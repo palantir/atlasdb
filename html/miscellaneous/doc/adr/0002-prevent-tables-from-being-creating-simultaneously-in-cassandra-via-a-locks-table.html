@@ -206,12 +206,12 @@
 <span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>Cassandra <a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-10699">has an issue</a> which can cause data loss in the situation:</p>
 <ol class="simple">
-<li>Node A and node B concurrently create table &quot;some.table&quot;</li>
-<li>Both table creations succeed, creating tables with column family ids &quot;123&quot; and &quot;456&quot;</li>
-<li>Cassandra picks &quot;123&quot; to be the correct table for &quot;some.table&quot;</li>
+<li>Node A and node B concurrently create table “some.table”</li>
+<li>Both table creations succeed, creating tables with column family ids “123” and “456”</li>
+<li>Cassandra picks “123” to be the correct table for “some.table”</li>
 <li>Cassandra is restarted</li>
-<li>After restart Cassandra gossips and decides that &quot;456&quot; is the correct table for &quot;some.table&quot;</li>
-<li>All data that was written to &quot;123&quot; is now lost</li>
+<li>After restart Cassandra gossips and decides that “456” is the correct table for “some.table”</li>
+<li>All data that was written to “123” is now lost</li>
 </ol>
 <p>To fix this we must prevent tables from being created at the same time.</p>
 </div>

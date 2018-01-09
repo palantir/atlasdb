@@ -215,14 +215,14 @@ inflight transactions will fail. A concrete trace is as follows:</p>
 <ol class="simple">
 <li>Client A acquires lock L</li>
 <li>Client B blocks on acquiring lock L, with request B1</li>
-<li>The idle timeout for Client B's connection runs out, and we close the HTTP/2 stream</li>
+<li>The idle timeout for Client B’s connection runs out, and we close the HTTP/2 stream</li>
 <li>Client B retries, and blocks on acquiring lock L, with request B2</li>
 <li>Client A releases L</li>
 <li>Request B1 is granted, but client B is no longer listening on it</li>
 <li>(2 minutes) The idle timeout for Client B will expire four times, and Client B retries with requests B3, B4, B5, B6</li>
 <li>The lock granted to request B1 is reaped, and request B2 is granted, but client B is not listening for it</li>
 </ol>
-<p>Since we retry every 30 seconds by default but only &quot;service&quot; one request every 2 minutes and 5 seconds, we accumulate
+<p>Since we retry every 30 seconds by default but only “service” one request every 2 minutes and 5 seconds, we accumulate
 a backlog of requests. Also, observe that setting the idle timeout to 2 minutes and 5 seconds does not solve the
 problem (though it does mitigate it), since multiple clients may be blocking on acquiring the same lock.</p>
 </div>
@@ -241,9 +241,9 @@ race, we will still free the resources shortly after, thus achieving requirement
 <p>In the event that a lock request blocks for longer than the blocking timeout, we interrupt the requesting thread and
 notify the client by sending a <code class="docutils literal"><span class="pre">SerializableError</span></code> which wraps a <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code>. Upon receiving a
 503, a client checks the nature of the error occurring on the server; in the event of <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code>,
-we retry on the same node, and reset the counter of the number of times we've failed to zero.</p>
-<p>The timeout mechanism is implemented using Guava's <code class="docutils literal"><span class="pre">TimeLimiter</span></code>, and server time is thus considered authoritative; we
-believe this is reasonable as it is used for both our time limiting and for Jetty's handling of idle timeouts. Thus,
+we retry on the same node, and reset the counter of the number of times we’ve failed to zero.</p>
+<p>The timeout mechanism is implemented using Guava’s <code class="docutils literal"><span class="pre">TimeLimiter</span></code>, and server time is thus considered authoritative; we
+believe this is reasonable as it is used for both our time limiting and for Jetty’s handling of idle timeouts. Thus,
 we are relatively resilient to clock drift relative to the client or to other nodes in the TimeLock cluster.</p>
 </div>
 <div class="section" id="alternatives-considered">
@@ -277,7 +277,7 @@ timeout. We would probably prefer this to live on the server, since the idle tim
 <div class="section" id="send-a-last-gasp-message-to-the-lock-service-to-free-resources-before-the-stream-closes">
 <span id="send-a-last-gasp-message-to-the-lock-service-to-free-resources-before-the-stream-closes"></span><h4>4. Send a last-gasp message to the lock service to free resources before the stream closes<a class="headerlink" href="#send-a-last-gasp-message-to-the-lock-service-to-free-resources-before-the-stream-closes" title="Permalink to this headline">¶</a></h4>
 <p>An idea we considered was to have Jetty free resources on the lock service before closing the HTTP/2 stream.</p>
-<p>This solution appears to be the cleanest of the &quot;free resources&quot;-based solutions, including the one we chose to
+<p>This solution appears to be the cleanest of the “free resources”-based solutions, including the one we chose to
 implement. Unfortunately, while this feature has been requested in Jetty, as at time of writing this has not
 been implemented yet; see <a class="reference external" href="https://github.com/eclipse/jetty.project/issues/824">Jetty issue #824</a>.</p>
 </div>
@@ -289,14 +289,14 @@ requests of a suitable length). For example, with the default idle timeout of 30
 for 45 seconds could send a lock request that blocks for 30 seconds, and upon failure submit another request that
 blocks for just under 15 seconds (suitably accounting for network overheads).</p>
 <p>This solution is relatively similar to what was implemented, though it requires clients to know what the
-aforementioned &quot;appropriate length&quot; should be (it needs to be the idle timeout or less) which is inappropriate as
+aforementioned “appropriate length” should be (it needs to be the idle timeout or less) which is inappropriate as
 that timeout is configured on the server side.</p>
 </div>
 <div class="section" id="implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry">
-<span id="implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry"></span><h4>6. Implement a &quot;magic&quot; HTTP status code or header to ask clients to retry<a class="headerlink" href="#implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry" title="Permalink to this headline">¶</a></h4>
+<span id="implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry"></span><h4>6. Implement a “magic” HTTP status code or header to ask clients to retry<a class="headerlink" href="#implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry" title="Permalink to this headline">¶</a></h4>
 <p>An alternative to serializing exceptions into <code class="docutils literal"><span class="pre">SerializableError</span></code>s could be defining a specific HTTP status code
 and/or custom header to indicate that a blocking timeout has occurred and/or clients should retry. This is used
-in practice e.g. in nginx, where a 495 indicates an error with a client's SSL certificates.</p>
+in practice e.g. in nginx, where a 495 indicates an error with a client’s SSL certificates.</p>
 <p>This solution would be simpler than serializing exceptions; our existing <code class="docutils literal"><span class="pre">AtlasDbErrorDecoder</span></code> already switched on the
 status code returned in an HTTP response. However, we prefer not to introduce any custom status codes where feasible
 (since clients are unlikely to understand these status codes). A similar argument, though perhaps weaker, applies
@@ -315,12 +315,12 @@ be incorrect:</p>
 <li>Client A acquires lock L and repeatedly refreshes it</li>
 <li>(T = 0) Client B blocks on L; it wants to block for at most 45 seconds.</li>
 <li>(T = 30) Client B receives a <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code>, and retries - it blocks again on L for at most 45 seconds</li>
-<li>(T = 30k, for positive integer k) Client B receives a <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code> and retries on L...</li>
+<li>(T = 30k, for positive integer k) Client B receives a <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code> and retries on L…</li>
 </ol>
 <p>They will actually behave like <code class="docutils literal"><span class="pre">BLOCK_INDEFINITELY</span></code> requests unless the client retries correctly, by suitably
 reducing the blocking duration of lock requests when retrying. We can implement this by having lock service clients
 modify their lock requests on retrying, though that should be the subject of a separate implementation and separate
-ADR (as there are some subtleties involving which sources of time one treats as authoritative, and it's also not
+ADR (as there are some subtleties involving which sources of time one treats as authoritative, and it’s also not
 certain that an authoritative source of time is strictly necessary).</p>
 </div>
 <div class="section" id="exception-serialization">

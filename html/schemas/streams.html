@@ -235,11 +235,18 @@ does not count toward your byte limit for your local trasaction.</p>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">inMemoryThreshold</span></code></td>
 <td>Specifies the largest size object (in bytes) which AtlasDB will cache in memory in order to boost retrieval performance.</td>
 </tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">tableNameLogSafety</span></code></td>
+<td>Specifies the if the table name is safe to added to logs and metrics. By default, the table is considered <code class="docutils literal"><span class="pre">UNSAFE</span></code>.</td>
+</tr>
 </tbody>
 </table>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">If using Cassandra KVS, we <em>strongly</em> recommend that <code class="docutils literal"><span class="pre">hashRowComponents()</span></code> is set, in order to avoid hotspotting.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">We <em>strongly</em> recommend using <code class="docutils literal"><span class="pre">tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)</span></code> if the table has a safe name.</p>
 </div>
 <p>For an example of streams in use, see the <code class="docutils literal"><span class="pre">user_profile</span></code> table and <code class="docutils literal"><span class="pre">user_photos</span></code> stream store in <a class="reference external" href="https://github.com/palantir/atlasdb/blob/cd4f33dfcaa95acb90374f698158a4aae8c28945/examples/profile-client/src/main/java/com/palantir/example/profile/schema/ProfileSchema.java">ProfileSchema</a>, and the <code class="docutils literal"><span class="pre">updateImage</span></code> method in <a class="reference external" href="https://github.com/palantir/atlasdb/blob/cd4f33dfcaa95acb90374f698158a4aae8c28945/examples/profile-client/src/main/java/com/palantir/example/profile/ProfileStore.java#L92-L110">ProfileStore</a>.</p>
 <div class="admonition note">

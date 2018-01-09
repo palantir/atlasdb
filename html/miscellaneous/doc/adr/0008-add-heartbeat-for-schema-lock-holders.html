@@ -222,13 +222,13 @@ trying to acquire the lock can see the updates to the lock and keep retrying as 
 <p>Currently, the lock value in the locks table consists of a randomly generated identifier. To incorporate the heartbeat
 updates into the same value, we decided to change the lock value to following format:
 <code class="docutils literal"><span class="pre">&lt;randomly</span> <span class="pre">generated</span> <span class="pre">id&gt;_&lt;heartbeat</span> <span class="pre">value&gt;</span></code>. The heartbeat value would essentially be incremented by 1 for every
-&quot;heartbeat&quot; by the lock holder.</p>
+“heartbeat” by the lock holder.</p>
 <p>For example, a lock with identifier <code class="docutils literal"><span class="pre">123456789</span></code> and heartbeat value <code class="docutils literal"><span class="pre">23</span></code> would have <code class="docutils literal"><span class="pre">123456789_23</span></code> as its lock value.</p>
 <p>Once we had the heartbeat mechanism in place, we needed to decide whether to allow someone waiting on a lock
 to override the lock and grab it once it detects that the lock holder is dead (via its heartbeat). Allowing locks
 that could be overridden weakened the guarantee provided by the lock and could cause corruption in rare situations.
 On the plus side, overridable locks would minimize human intervention when dealing with dead lock holders.</p>
-<p>However, it was decided that we should avoid the possibility of data corruption as much as possible. Therefore, we won't
+<p>However, it was decided that we should avoid the possibility of data corruption as much as possible. Therefore, we won’t
 have overridable locks for now and simply use the information about the health of the lock holder to better inform
 the exception we throw when we timeout on the lock. This will still require manual intervention (truncating the locks
 table) when a lock holder dies without releasing the lock but provides a better picture of the situation
