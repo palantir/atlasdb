@@ -58,7 +58,6 @@ class CassandraRequestExceptionHandler {
                 InetSocketAddress hostTried,
                 Exception ex)
             throws K {
-        req.incrementNumberOfAttempts();
         req.triedOnHost(hostTried);
         this.handleExceptionInternal(req, hostTried, ex);
         if (isRetriableWithBackoffException(ex)) {
@@ -124,6 +123,7 @@ class CassandraRequestExceptionHandler {
             throw (K) ex;
         }
     }
+
     @VisibleForTesting
     static boolean isConnectionException(Throwable ex) {
         return ex != null

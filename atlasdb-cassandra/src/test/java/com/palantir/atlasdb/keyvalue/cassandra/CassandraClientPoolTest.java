@@ -193,6 +193,8 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldRetryOnSameNodeToFailureAndThenRedirect() {
+        // TODO(ssouza): make 4 =
+        // 1 + CassandraClientPoolImpl.MAX_TRIES_TOTAL - CassandraClientPoolImpl.MAX_TRIES_SAME_HOST
         int numHosts = 4;
         List<InetSocketAddress> hostList = Lists.newArrayList();
         for (int i = 0; i < numHosts; i++) {

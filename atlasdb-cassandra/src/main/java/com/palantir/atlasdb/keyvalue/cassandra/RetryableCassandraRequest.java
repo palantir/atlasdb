@@ -44,10 +44,6 @@ public class RetryableCassandraRequest<V, K extends Exception> {
         return fn;
     }
 
-    public void incrementNumberOfAttempts() {
-        numberOfAttempts++;
-    }
-
     public int getNumberOfAttempts() {
         return numberOfAttempts;
     }
@@ -66,5 +62,6 @@ public class RetryableCassandraRequest<V, K extends Exception> {
 
     public void triedOnHost(InetSocketAddress host) {
         triedHosts.add(host);
+        numberOfAttempts++;
     }
 }
