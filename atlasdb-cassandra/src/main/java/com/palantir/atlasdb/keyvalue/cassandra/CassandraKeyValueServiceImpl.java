@@ -224,6 +224,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
+            CassandraClientPool clientPool) {
+        return create(configManager,
+                clientPool,
+                leaderConfig,
+                LoggerFactory.getLogger(CassandraKeyValueService.class),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
         return create(configManager, leaderConfig, initializeAsync, FakeQosClient.INSTANCE);
     }
@@ -255,30 +266,40 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync,
             QosClient qosClient) {
+        CassandraClientPool clientPool = CassandraClientPoolImpl.create(configManager.getConfig(),
+                initializeAsync,
+                qosClient);
+        return create(configManager, clientPool, leaderConfig, log, initializeAsync);
+    }
+
+    private static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            CassandraClientPool clientPool,
+            Optional<LeaderConfig> leaderConfig,
+            Logger log,
+            boolean initializeAsync) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
                 log,
                 configManager,
+                clientPool,
                 compactionManager,
-                leaderConfig,
-                initializeAsync,
-                qosClient);
+                leaderConfig);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
 
     protected CassandraKeyValueServiceImpl(Logger log,
-                                       CassandraKeyValueServiceConfigManager configManager,
-                                       Optional<CassandraJmxCompactionManager> compactionManager,
-                                       Optional<LeaderConfig> leaderConfig,
-                                       boolean initializeAsync,
-                                       QosClient qosClient) {
+                                        CassandraKeyValueServiceConfigManager configManager,
+                                        CassandraClientPool clientPool,
+                                        Optional<CassandraJmxCompactionManager> compactionManager,
+                                        Optional<LeaderConfig> leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync, qosClient);
+        this.clientPool = clientPool;
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();

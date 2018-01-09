@@ -18,9 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -32,10 +30,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.cassandra.thrift.TimedOutException;
-import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.thrift.transport.TTransportException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -52,6 +46,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 public class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;
     private static final int TIME_BETWEEN_EVICTION_RUNS_SECONDS = 20;
+    private static final int UNRESPONSIVE_HOST_BACKOFF_SECONDS = 5 * 60;
     private static final int DEFAULT_PORT = 5000;
     private static final int OTHER_PORT = 6000;
     private static final String HOSTNAME_1 = "1.0.0.0";
@@ -60,12 +55,22 @@ public class CassandraClientPoolTest {
     private static final InetSocketAddress HOST_1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
     private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
     private static final InetSocketAddress HOST_3 = new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT);
+
     private MetricRegistry metricRegistry;
+    private CassandraKeyValueServiceConfig config;
+    private Blacklist blacklist;
 
     @Before
     public void setup() {
         AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), new DefaultTaggedMetricRegistry());
         this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
+
+        config = mock(CassandraKeyValueServiceConfig.class);
+        when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
+        when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
+        when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
+
+        blacklist = new Blacklist(config);
     }
 
     @Test
@@ -131,7 +136,7 @@ public class CassandraClientPoolTest {
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
         CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
                 ImmutableSet.of(HOST_1, HOST_2));
-        cassandraClientPool.getBlacklist().add(HOST_1);
+        blacklist.add(HOST_1);
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertContainerHasHostOne(container);
@@ -189,7 +194,9 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldRetryOnSameNodeToFailureAndThenRedirect() {
-        int numHosts = CassandraClientPoolImpl.MAX_TRIES_TOTAL - CassandraClientPoolImpl.MAX_TRIES_SAME_HOST + 1;
+        // TODO(ssouza): make 4 =
+        // 1 + CassandraClientPoolImpl.MAX_TRIES_TOTAL - CassandraClientPoolImpl.MAX_TRIES_SAME_HOST
+        int numHosts = 4;
         List<InetSocketAddress> hostList = Lists.newArrayList();
         for (int i = 0; i < numHosts; i++) {
             hostList.add(new InetSocketAddress(i));
@@ -199,7 +206,7 @@ public class CassandraClientPoolTest {
                 ImmutableSet.copyOf(hostList), new SocketTimeoutException());
         runNoopOnHostWithRetryWithException(hostList.get(0), cassandraClientPool);
 
-        verifyNumberOfAttemptsOnHost(hostList.get(0), cassandraClientPool, CassandraClientPoolImpl.MAX_TRIES_SAME_HOST);
+        verifyNumberOfAttemptsOnHost(hostList.get(0), cassandraClientPool, cassandraClientPool.getMaxRetriesPerHost());
         for (int i = 1; i < numHosts; i++) {
             verifyNumberOfAttemptsOnHost(hostList.get(i), cassandraClientPool, 1);
         }
@@ -211,7 +218,7 @@ public class CassandraClientPoolTest {
                 ImmutableSet.of(HOST_1), new SocketTimeoutException());
 
         runNoopOnHostWithRetryWithException(HOST_1, cassandraClientPool);
-        verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, CassandraClientPoolImpl.MAX_TRIES_TOTAL);
+        verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, cassandraClientPool.getMaxTriesTotal());
     }
 
     @Test
@@ -261,39 +268,6 @@ public class CassandraClientPoolTest {
                         Mockito.<FunctionCheckedException<CassandraClient, Object, RuntimeException>>any());
     }
 
-    @Test
-    public void testIsConnectionException() {
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new TimedOutException()));
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new TTransportException()));
-        assertTrue(CassandraClientPoolImpl.isConnectionException(new TTransportException(
-                new SocketTimeoutException())));
-    }
-
-    @Test
-    public void testIsRetriableException() {
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TimedOutException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TTransportException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TTransportException(new SocketTimeoutException())));
-    }
-
-    @Test
-    public void testIsRetriableWithBackoffException() {
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(new NoSuchElementException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(new UnavailableException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(
-                new TTransportException(new SocketTimeoutException())));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(
-                new TTransportException(new UnavailableException())));
-    }
-
-    @Test
-    public void testIsFastFailoverException() {
-        assertFalse(CassandraClientPoolImpl.isRetriableWithBackoffException(new InvalidRequestException()));
-        assertFalse(CassandraClientPoolImpl.isRetriableException(new InvalidRequestException()));
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new InvalidRequestException()));
-        assertTrue(CassandraClientPoolImpl.isFastFailoverException(new InvalidRequestException()));
-    }
-
     private CassandraClientPoolImpl clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {
         return clientPoolWith(servers, ImmutableSet.of(), Optional.empty());
     }
@@ -312,13 +286,12 @@ public class CassandraClientPoolTest {
             ImmutableSet<InetSocketAddress> servers,
             ImmutableSet<InetSocketAddress> serversInPool,
             Optional<Exception> failureMode) {
-        CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
-        when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
-        when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.servers()).thenReturn(servers);
 
         CassandraClientPoolImpl cassandraClientPool =
-                CassandraClientPoolImpl.createImplForTest(config, CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN);
+                CassandraClientPoolImpl.createImplForTest(config,
+                        CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
+                        blacklist);
 
         serversInPool.forEach(address ->
                 cassandraClientPool.addPool(address, getMockPoolingContainerForHost(address, failureMode)));
@@ -388,16 +361,14 @@ public class CassandraClientPoolTest {
     private void verifyAggregateFailureMetrics(
             double requestFailureProportion,
             double requestConnectionExceptionProportion) {
-        assertEquals(
-                getAggregateMetricValueForMetricName("requestFailureProportion"),
-                requestFailureProportion);
-        assertEquals(
-                getAggregateMetricValueForMetricName("requestConnectionExceptionProportion"),
-                requestConnectionExceptionProportion);
+        assertEquals(requestFailureProportion,
+                getAggregateMetricValueForMetricName("requestFailureProportion"));
+        assertEquals(requestConnectionExceptionProportion,
+                getAggregateMetricValueForMetricName("requestConnectionExceptionProportion"));
     }
 
     private void verifyBlacklistMetric(Integer expectedSize) {
-        assertEquals(getAggregateMetricValueForMetricName("numBlacklistedHosts"), expectedSize);
+        assertEquals(expectedSize, getAggregateMetricValueForMetricName("numBlacklistedHosts"));
     }
 
     private Object getAggregateMetricValueForMetricName(String metricName) {
