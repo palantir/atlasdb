@@ -45,7 +45,7 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 20)
-    @Measurement(time = 160)
+    @Measurement(time = 460)
     public Object fullTableScanAverage_NormalSize(ConsecutiveNarrowTable.AverageTable table) {
         return fullTableScan(table, false, DEFAULT_BATCH_SIZE);
     }
@@ -53,7 +53,7 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 20)
-    @Measurement(time = 160)
+    @Measurement(time = 460)
     public Object fullTableScanAverage_Large(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return fullTableScan(table, false, 4096);
     }
