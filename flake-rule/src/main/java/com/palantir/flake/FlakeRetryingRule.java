@@ -65,17 +65,34 @@ public class FlakeRetryingRule implements TestRule {
         for (int attempt = 1; attempt <= retryAnnotation.numAttempts(); attempt++) {
             try {
                 base.evaluate();
-                return;
-            } catch (Throwable t) {
-                log.info("Test {}.{} failed on attempt {} of {}.",
+                log.info("Test {}.{} succeeded on attempt {} of {}.",
                         description.getClassName(),
                         description.getMethodName(),
                         attempt,
                         retryAnnotation.numAttempts());
-                if (attempt == retryAnnotation.numAttempts()) {
-                    throw Throwables.propagate(t);
-                }
+                return;
+            } catch (Exception | AssertionError e) {
+                // This includes AssertionErrors because of tests where a flaky operation takes place, and then
+                // assertions are made on the state of the world assuming that said flaky operation was successful.
+                // TODO (jkong): Make whether AssertionError is permitted configurable.
+                logFailureAndThrowIfNeeded(retryAnnotation, description, attempt, e);
+            } catch (Throwable t) {
+                // This covers other Errors, where it generally doesn't make sense to retry.
+                throw Throwables.propagate(t);
             }
         }
+    }
+
+    private static void logFailureAndThrowIfNeeded(
+            ShouldRetry retryAnnotation,
+            Description description,
+            int attempt,
+            Throwable e) {
+        log.info("Test {}.{} failed on attempt {} of {}.",
+                description.getClassName(),
+                description.getMethodName(),
+                attempt,
+                retryAnnotation.numAttempts());
+        throw Throwables.propagate(e);
     }
 }

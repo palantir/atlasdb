@@ -21,7 +21,8 @@ import java.lang.annotation.RetentionPolicy;
 
 /**
  * An annotation signalling that a given test class or test method should be retried in the event of a test failure.
- * In the event that both a test class and a test method are annotated with this
+ * If specified on a test class, all test methods in the class will be considered retriable. In the event that both a
+ * test class and a test method have this annotation, the method-level annotation will take precedence.
  *
  * Note that this annotation will only actually cause a test to be retried if it is run with the
  * {@link FlakeRetryingRule} present as a test rule in the relevant class.
@@ -32,7 +33,7 @@ public @interface ShouldRetry {
      * The number of attempts to retry a test that fails, before declaring the test as failed.
      * This is useful for avoiding build failures whilst flaky tests still live in the codebase.
      *
-     * Values provided should be strictly positive; behaviour when this value is nonpositive is undefined.
+     * Values provided should be strictly positive; behaviour when this value is zero or negative is undefined.
      */
     int numAttempts() default 5;
 }
