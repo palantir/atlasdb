@@ -11,21 +11,35 @@ message SchemaDependentTableMetadataEntry {
     optional SchemaDependentTableMetadata schemaDependentTableMetadata = 2;
 }
 
-message SchemaDependentTableMetadata {
-    optional CleanupRequirement cleanupRequirement = 1;
-}
-
 message TableReference {
     optional string namespace = 1;
     optional string tableName = 2;
 }
 
-enum CleanupRequirement {
-    // Used for tables without cleanup tasks.
-    NOT_NEEDED = 0;
+message SchemaDependentTableMetadata {
+    oneof cleanupMetadata {
+        NullCleanupMetadata nullMetadata = 1;
+        StreamStoreCleanupMetadata streamStoreMetadata = 2;
+        ArbitraryCleanupMetadata arbitraryMetadata = 3;
+    }
+}
 
-    // Used for tables (possibly inclusive of stream-store meta-tables) that have user-defined cleanup tasks
-    // which can safely be processed asynchronously (e.g. via a queue).
-    // Examples include cascading deletes and reads from append-only Atlas tables.
-    ARBITRARY_ASYNC = 64;
+message NullCleanupMetadata {
+    // Used for tables without cleanup tasks.
+}
+
+message StreamStoreCleanupMetadata {
+    // Used for stream store tables which have cleanup tasks.
+
+    // Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+    // AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+    optional StreamStoreCleanupV1Metadata v1Metadata = 1;
+}
+
+message StreamStoreCleanupV1Metadata {
+    optional int32 numHashedRowComponents = 1 [default = 0];
+}
+
+message ArbitraryCleanupMetadata {
+    // Used for tables with arbitrary cleanup tasks.
 }
