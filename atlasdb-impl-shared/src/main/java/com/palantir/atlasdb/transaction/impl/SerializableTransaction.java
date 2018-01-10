@@ -64,6 +64,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
@@ -111,7 +112,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    SweepStrategyManager sweepStrategyManager,
                                    long immutableTimestamp,
                                    Optional<LockToken> immutableTsLock,
-                                   AdvisoryLockPreCommitCheck advisoryLockCheck,
+                                   PreCommitCondition preCommitCondition,
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,
                                    TransactionReadSentinelBehavior readSentinelBehavior,
@@ -129,7 +130,7 @@ public class SerializableTransaction extends SnapshotTransaction {
               sweepStrategyManager,
               immutableTimestamp,
               immutableTsLock,
-              advisoryLockCheck,
+              preCommitCondition,
               constraintCheckingMode,
               transactionTimeoutMillis,
               readSentinelBehavior,
@@ -706,7 +707,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 sweepStrategyManager,
                 immutableTimestamp,
                 Optional.empty(),
-                AdvisoryLockPreCommitCheck.NO_OP,
+                PreCommitCondition.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),

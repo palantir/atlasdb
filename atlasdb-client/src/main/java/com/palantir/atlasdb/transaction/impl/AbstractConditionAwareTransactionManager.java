@@ -33,10 +33,10 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
 
     private static final PreCommitCondition NO_OP_CONDITION = new PreCommitCondition() {
         @Override
-        public void checkBeforeRetry() {}
+        public void throwIfConditionInvalid(long timestamp) {}
 
         @Override
-        public void checkBeforeCommit(long timestamp) {}
+        public void cleanup() {}
     };
 
     AbstractConditionAwareTransactionManager(Supplier<Long> timestampCacheSize) {
