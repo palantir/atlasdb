@@ -18,18 +18,24 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -47,6 +53,8 @@ public class CqlExecutorImpl implements CqlExecutor {
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
+        CqlPreparedResult prepare(ByteBuffer query, Compression compression);
+        CqlResult executePrepared(int queryId, List<ByteBuffer> values);
     }
 
     public CqlExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
@@ -67,7 +75,6 @@ public class CqlExecutorImpl implements CqlExecutor {
         CqlQuery query = new CqlQuery(selQuery, quotedTableName(tableRef), keys(rowsAscending), limit(limit));
         return executeAndGetCells(query, rowsAscending.get(0), CqlExecutorImpl::getCellFromRow);
     }
-
 
     /**
      * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the given
@@ -120,6 +127,34 @@ public class CqlExecutorImpl implements CqlExecutor {
 
         return executeAndGetCells(query, row,
                 result -> CqlExecutorImpl.getCellFromKeylessRow(result, row));
+    }
+
+    @Override
+    // actually just uses the prepared statement for now
+    public List<CellWithTimestamp> getTimestampsParallel(
+            TableReference tableRef,
+            List<byte[]> rowsAscending,
+            int limit) {
+        String preparedSelQuery = String.format("SELECT key, column1, column2 FROM %s WHERE key = ? LIMIT %d;",
+                quotedTableName(tableRef).getValue(),
+                limit);
+        ByteBuffer queryBytes = ByteBuffer.wrap(preparedSelQuery.getBytes(StandardCharsets.UTF_8));
+        CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, Compression.NONE);
+        int queryId = preparedResult.getItemId();
+
+        List<CellWithTimestamp> result = Lists.newArrayList();
+        Iterator<byte[]> rows = rowsAscending.iterator();
+        while (result.size() < limit && rows.hasNext()) {
+            // We can parallelise this, but would need to collect it carefully to make sure we satisfy the guarantees:
+            // 1. Results are ordered
+            // 2. There are at most <limit> results
+            // 3. We return the first <limit> results
+            CqlResult cqlResult = queryExecutor.executePrepared(queryId,
+                    ImmutableList.of(ByteBuffer.wrap(rows.next())));
+            result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
+        }
+
+        return result;
     }
 
     private List<CellWithTimestamp> executeAndGetCells(
@@ -198,6 +233,28 @@ public class CqlExecutorImpl implements CqlExecutor {
         public CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection) {
             return executeQueryOnHost(cqlQuery, getHostForRow(rowHintForHostSelection));
         }
+
+        @Override
+        public CqlPreparedResult prepare(ByteBuffer query, Compression compression) {
+            try {
+                return clientPool.runWithRetry(client -> client.rawClient().prepare_cql3_query(query, compression));
+            } catch (TException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        }
+
+        @Override
+        public CqlResult executePrepared(int queryId, List<ByteBuffer> values) {
+            try {
+                return clientPool.runWithRetry(client ->
+                        client.rawClient().execute_prepared_cql3_query(queryId, values, consistency));
+            } catch (UnavailableException e) {
+                throw wrapIfConsistencyAll(e);
+            } catch (TException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        }
+
 
         private InetSocketAddress getHostForRow(byte[] row) {
             return clientPool.getRandomHostForKey(row);

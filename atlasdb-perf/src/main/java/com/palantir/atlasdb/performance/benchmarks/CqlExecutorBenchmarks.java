@@ -79,6 +79,23 @@ public class CqlExecutorBenchmarks {
         return cells;
     }
 
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 3)
+    @Measurement(time = 15)
+    public Object getTimestampsInParallel(ConsecutiveNarrowTable.AverageTable table) {
+        CqlExecutor cqlExecutor = getCqlExecutor(table);
+
+        List<byte[]> rows = table.getRowList().subList(0, 1024);
+        int limit = 1000;
+        int numThreads = 10;
+        List<CellWithTimestamp> cells = cqlExecutor.getTimestampsParallel(table.getTableRef(), rows, limit);
+
+        Preconditions.checkState(cells.size() == limit, "Should have gotten 1000 cells back");
+
+        return cells;
+    }
+
     private CqlExecutor getCqlExecutor(ConsecutiveNarrowTable.AverageTable table) {
         KeyValueService kvs = table.getKvs();
         CassandraKeyValueServiceImpl ckvs = getCKVS(kvs);
