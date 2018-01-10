@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>External Timelock Service Configurations &mdash; OSS AtlasDB develop documentation</title>
+  <title>QoS Client Configuration &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -40,9 +40,9 @@
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
     <link rel="top" title="OSS AtlasDB develop documentation" href="../../index.html"/>
-        <link rel="up" title="Configuration" href="../index.html"/>
-        <link rel="next" title="Timelock Server Configuration" href="timelock_server_config.html"/>
-        <link rel="prev" title="DB KVS (Oracle - beta) Configuration" href="../key_value_service_configs/oracle_key_value_service_config.html"/> 
+        <link rel="up" title="QoS Service Configurations" href="index.html"/>
+        <link rel="next" title="Cassandra Configuration" href="../cassandra_config.html"/>
+        <link rel="prev" title="QoS Service Configurations" href="index.html"/> 
 
   
   <script src="../../_static/js/modernizr.min.js"></script>
@@ -101,12 +101,11 @@
 <li class="toctree-l1"><a class="reference internal" href="../../transactions/index.html">Transactions</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Configuration</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../key_value_service_configs/index.html">Key Value Service Configurations</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">External Timelock Service Configurations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="timelock_server_config.html">Timelock Server Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="timelock_client_config.html">Timelock Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external_timelock_service_configs/index.html">External Timelock Service Configurations</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">QoS Service Configurations</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">QoS Client Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../qos_configs/index.html">QoS Service Configurations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../cassandra_config.html">Cassandra Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../multinode_cassandra.html">Multinode Cassandra HA Guarantees</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../enabling_cassandra_tracing.html">Enabling Cassandra Tracing</a></li>
@@ -167,14 +166,16 @@
         
           <li><a href="../index.html">Configuration</a> &raquo;</li>
         
-      <li>External Timelock Service Configurations</li>
+          <li><a href="index.html">QoS Service Configurations</a> &raquo;</li>
+        
+      <li>QoS Client Configuration</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
             
-              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/external_timelock_service_configs/index.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/qos_configs/qos_client_config.rst" class="fa fa-github"> Edit on GitHub</a>
             
           
         
@@ -188,14 +189,58 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="external-timelock-service-configurations">
-<span id="external-timelock-service-configs"></span><h1>External Timelock Service Configurations<a class="headerlink" href="#external-timelock-service-configurations" title="Permalink to this headline">¶</a></h1>
-<p>Information on how to configure an external <a class="reference internal" href="../../services/timelock_service/index.html#external-timelock-service"><span class="std std-ref">Timelock Service</span></a> and how to configure an AtlasDB client to use the Timelock Service can be found below.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="timelock_server_config.html">Timelock Server Configuration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="timelock_client_config.html">Timelock Client Configuration</a></li>
-</ul>
+  <div class="section" id="qos-client-configuration">
+<span id="id1"></span><h1>QoS Client Configuration<a class="headerlink" href="#qos-client-configuration" title="Permalink to this headline">¶</a></h1>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Note that this service is under active development and testing, please contact the AtlasDB team before using this feature.</p>
+</div>
+<p>The Qos service is currently supported only for services deployed against Cassandra. The Qos service can be used by
+clients to rate-limit requests to Cassandra.</p>
+<p>You will need to update your AtlasDB configuration with pre-determined limits in terms of the number of bytes for the
+reads and writes.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">QoS client configuration is a part of the AtlasDB Runtime configuration.</p>
+</div>
+<div class="section" id="install-time-configuration">
+<h2>Install-Time Configuration<a class="headerlink" href="#install-time-configuration" title="Permalink to this headline">¶</a></h2>
+<p>An AtlasDB config can have an optional <code class="docutils literal"><span class="pre">qos</span></code> block if the service wants to rate limit the reads/writes to Cassandra. This is
+live-reloadable and hence the limits can be modified while the service is online. The limits will be loaded when the
+next request hits the server and knowledge of the previous rate-limiting will be lost.</p>
+<p>Optional parameters:</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>maxBackoffSleepTime</td>
+<td>The rate-limiter can cause the request processing thread to sleep for sometime if soft-limiting is being applied.
+This parameter configures the maximum time a client request can be made to wait by the rate limiter.
+This should definitely be less than the server idle timeout or jetty will cause the request to timeout and potentially retry.
+The default value is 10 seconds.
+This is of type <a class="reference external" href="https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/HumanReadableDuration.java">HumanReadableDuration</a>.</td>
+</tr>
+<tr class="row-odd"><td>limits::readBytesPerSecond</td>
+<td>The maximum number of bytes to read from Cassandra per second (specified as a long).
+The default value is <code class="docutils literal"><span class="pre">Long.MAX_VALUE</span></code> implying no read limit.</td>
+</tr>
+<tr class="row-even"><td>limits::writeBytesPerSecond</td>
+<td>The maximum number of bytes to write to Cassandra per second (specified as a long).
+The default value is <code class="docutils literal"><span class="pre">Long.MAX_VALUE</span></code> implying no write limit.</td>
+</tr>
+<tr class="row-odd"><td>qosService</td>
+<td>The config for the QoS Service.
+This is of type <a class="reference external" href="https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/ServiceConfiguration.java">ServiceConfiguration</a>.</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 
@@ -209,10 +254,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="timelock_server_config.html" class="btn btn-neutral float-right" title="Timelock Server Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../cassandra_config.html" class="btn btn-neutral float-right" title="Cassandra Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../key_value_service_configs/oracle_key_value_service_config.html" class="btn btn-neutral" title="DB KVS (Oracle - beta) Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral" title="QoS Service Configurations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
