@@ -54,13 +54,13 @@ class CassandraRequestExceptionHandler {
         this.blacklist = blacklist;
     }
 
-    <K extends Exception> void handleRequest(
+    <K extends Exception> void handleExceptionFromRequest(
                 RetryableCassandraRequest<?, K> req,
                 InetSocketAddress hostTried,
                 Exception ex)
             throws K {
         req.triedOnHost(hostTried);
-        this.handleExceptionInternal(req, hostTried, ex);
+        this.handleNumberOfAttempts(req.getNumberOfAttempts(), hostTried, ex);
 
         if (isRetriableWithBackoffException(ex)) {
             // And value between -500 and +500ms to backoff to better spread load on failover
@@ -87,47 +87,48 @@ class CassandraRequestExceptionHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private <K extends Exception> void handleExceptionInternal(RetryableCassandraRequest<?, K> req,
+    private <K extends Exception> void handleNumberOfAttempts(int numberOfAttempts,
             InetSocketAddress host,
             Exception ex) throws K {
         if (!isRetryable(ex)) {
             throw (K) ex;
         }
 
-        if (req.getNumberOfAttempts() >= maxTriesTotal.get()) {
-            throw logAndReturnException(req, ex);
+        if (numberOfAttempts >= maxTriesTotal.get()) {
+            throw (K) logAndReturnException(numberOfAttempts, ex);
         }
 
-        if (isConnectionException(ex) && req.getNumberOfAttempts() >= maxTriesSameHost.get()) {
+        if (isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get()) {
             blacklist.add(host);
         }
 
         // Only log the actual exception the first time
-        if (req.getNumberOfAttempts() > 1) {
+        if (numberOfAttempts > 1) {
             log.info("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
-                    SafeArg.of("numTries", req.getNumberOfAttempts()),
+                    SafeArg.of("numTries", numberOfAttempts),
                     SafeArg.of("maxTotalTries", maxTriesTotal),
                     SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                     UnsafeArg.of("exceptionMessage", ex.getMessage()));
         } else {
             log.info("Error occurred talking to cassandra. Attempt {} of {}.",
-                    SafeArg.of("numTries", req.getNumberOfAttempts()),
+                    SafeArg.of("numTries", numberOfAttempts),
                     SafeArg.of("maxTotalTries", maxTriesTotal),
                     ex);
         }
     }
 
-    private <K extends Exception> K logAndReturnException(RetryableCassandraRequest<?, K> req, Exception ex) {
+    @SuppressWarnings("unchecked")
+    private <K extends Exception> K logAndReturnException(int numberOfAttempts, Exception ex) {
         if (ex instanceof TTransportException
                 && ex.getCause() != null
                 && (ex.getCause().getClass() == SocketException.class)) {
-            log.error(CONNECTION_FAILURE_MSG, req.getNumberOfAttempts(), ex);
+            log.error(CONNECTION_FAILURE_MSG, numberOfAttempts, ex);
             String errorMsg =
-                    MessageFormatter.format(CONNECTION_FAILURE_MSG, req.getNumberOfAttempts()).getMessage();
+                    MessageFormatter.format(CONNECTION_FAILURE_MSG, numberOfAttempts).getMessage();
             return (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
         } else {
             log.error("Tried to connect to cassandra {} times.",
-                    SafeArg.of("numTries", req.getNumberOfAttempts()), ex);
+                    SafeArg.of("numTries", numberOfAttempts), ex);
             return (K) ex;
         }
     }
