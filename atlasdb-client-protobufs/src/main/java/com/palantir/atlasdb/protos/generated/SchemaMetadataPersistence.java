@@ -4910,35 +4910,37 @@ public final class SchemaMetadataPersistence {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\037SchemaMetadataPersistence.proto\022%com.p" +
-      "alantir.atlasdb.protos.generated\032\036TableM" +
-      "etadataPersistence.proto\"q\n\016SchemaMetada" +
-      "ta\022_\n\rtableMetadata\030\001 \003(\0132H.com.palantir" +
-      ".atlasdb.protos.generated.SchemaDependen" +
-      "tTableMetadataEntry\"\335\001\n!SchemaDependentT" +
-      "ableMetadataEntry\022M\n\016tableReference\030\001 \001(" +
-      "\01325.com.palantir.atlasdb.protos.generate" +
-      "d.TableReference\022i\n\034schemaDependentTable" +
-      "Metadata\030\002 \001(\0132C.com.palantir.atlasdb.pr",
-      "otos.generated.SchemaDependentTableMetad" +
-      "ata\"6\n\016TableReference\022\021\n\tnamespace\030\001 \001(\t" +
-      "\022\021\n\ttableName\030\002 \001(\t\"\305\002\n\034SchemaDependentT" +
-      "ableMetadata\022R\n\014nullMetadata\030\001 \001(\0132:.com" +
-      ".palantir.atlasdb.protos.generated.NullC" +
-      "leanupMetadataH\000\022`\n\023streamStoreMetadata\030" +
-      "\002 \001(\0132A.com.palantir.atlasdb.protos.gene" +
-      "rated.StreamStoreCleanupMetadataH\000\022\\\n\021ar" +
-      "bitraryMetadata\030\003 \001(\0132?.com.palantir.atl" +
-      "asdb.protos.generated.ArbitraryCleanupMe",
-      "tadataH\000B\021\n\017cleanupMetadata\"\025\n\023NullClean" +
-      "upMetadata\"u\n\032StreamStoreCleanupMetadata" +
-      "\022W\n\nv1Metadata\030\001 \001(\0132C.com.palantir.atla" +
-      "sdb.protos.generated.StreamStoreCleanupV" +
-      "1Metadata\"\211\001\n\034StreamStoreCleanupV1Metada" +
-      "ta\022!\n\026numHashedRowComponents\030\001 \001(\005:\0010\022F\n" +
-      "\014streamIdType\030\002 \001(\01620.com.palantir.atlas" +
-      "db.protos.generated.ValueType\"\032\n\030Arbitra" +
-      "ryCleanupMetadata"
+      "\nFmain/proto/com/palantir/atlasdb/protos" +
+      "/SchemaMetadataPersistence.proto\022%com.pa" +
+      "lantir.atlasdb.protos.generated\032Emain/pr" +
+      "oto/com/palantir/atlasdb/protos/TableMet" +
+      "adataPersistence.proto\"q\n\016SchemaMetadata" +
+      "\022_\n\rtableMetadata\030\001 \003(\0132H.com.palantir.a" +
+      "tlasdb.protos.generated.SchemaDependentT" +
+      "ableMetadataEntry\"\335\001\n!SchemaDependentTab" +
+      "leMetadataEntry\022M\n\016tableReference\030\001 \001(\0132" +
+      "5.com.palantir.atlasdb.protos.generated.",
+      "TableReference\022i\n\034schemaDependentTableMe" +
+      "tadata\030\002 \001(\0132C.com.palantir.atlasdb.prot" +
+      "os.generated.SchemaDependentTableMetadat" +
+      "a\"6\n\016TableReference\022\021\n\tnamespace\030\001 \001(\t\022\021" +
+      "\n\ttableName\030\002 \001(\t\"\305\002\n\034SchemaDependentTab" +
+      "leMetadata\022R\n\014nullMetadata\030\001 \001(\0132:.com.p" +
+      "alantir.atlasdb.protos.generated.NullCle" +
+      "anupMetadataH\000\022`\n\023streamStoreMetadata\030\002 " +
+      "\001(\0132A.com.palantir.atlasdb.protos.genera" +
+      "ted.StreamStoreCleanupMetadataH\000\022\\\n\021arbi",
+      "traryMetadata\030\003 \001(\0132?.com.palantir.atlas" +
+      "db.protos.generated.ArbitraryCleanupMeta" +
+      "dataH\000B\021\n\017cleanupMetadata\"\025\n\023NullCleanup" +
+      "Metadata\"u\n\032StreamStoreCleanupMetadata\022W" +
+      "\n\nv1Metadata\030\001 \001(\0132C.com.palantir.atlasd" +
+      "b.protos.generated.StreamStoreCleanupV1M" +
+      "etadata\"\211\001\n\034StreamStoreCleanupV1Metadata" +
+      "\022!\n\026numHashedRowComponents\030\001 \001(\005:\0010\022F\n\014s" +
+      "treamIdType\030\002 \001(\01620.com.palantir.atlasdb" +
+      ".protos.generated.ValueType\"\032\n\030Arbitrary",
+      "CleanupMetadata"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {

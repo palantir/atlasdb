@@ -1,7 +1,7 @@
 package com.palantir.atlasdb.protos.generated;
 
 // Don't want to duplicate ValueType, but moving things whilst not doing a dev break seems nontrivial.
-import "TableMetadataPersistence.proto";
+import "main/proto/com/palantir/atlasdb/protos/TableMetadataPersistence.proto";
 
 message SchemaMetadata {
     // Using this rather than map, to avoid introducing a dependency on proto3
