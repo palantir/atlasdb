@@ -179,8 +179,9 @@ class CassandraRequestExceptionHandler {
 
     @VisibleForTesting
     boolean shouldRetryOnDifferentHost(Exception ex, int numberOfAttempts) {
-        return (isIndicativeOfCassandraLoad(ex) && numberOfAttempts >= maxTriesSameHost.get())
-                || isFastFailoverException(ex);
+        return isFastFailoverException(ex)
+                || (numberOfAttempts >= maxTriesSameHost.get() &&
+                (isConnectionException(ex) || isIndicativeOfCassandraLoad(ex)));
     }
 
     // Group exceptions by type.
