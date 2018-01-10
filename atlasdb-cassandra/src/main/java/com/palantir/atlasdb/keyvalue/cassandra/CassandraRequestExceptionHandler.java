@@ -122,9 +122,9 @@ class CassandraRequestExceptionHandler {
             return;
         }
 
-        // And value between -500 and +500ms to backoff to better spread load on failover
         int numberOfAttempts = req.getNumberOfAttempts();
         long backoffPeriod = backoff.duration.toMilliseconds();
+        // And value between -500 and +500ms to backoff to better spread load on failover
         long sleepDuration =
                 numberOfAttempts * backoffPeriod + (ThreadLocalRandom.current().nextInt(1000) - 500);
         log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
