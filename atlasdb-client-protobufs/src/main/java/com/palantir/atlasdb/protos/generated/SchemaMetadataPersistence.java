@@ -4068,6 +4068,15 @@ public final class SchemaMetadataPersistence {
      * <code>optional int32 numHashedRowComponents = 1 [default = 0];</code>
      */
     int getNumHashedRowComponents();
+
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+     */
+    boolean hasStreamIdType();
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+     */
+    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType getStreamIdType();
   }
   /**
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata}
@@ -4126,6 +4135,17 @@ public final class SchemaMetadataPersistence {
               numHashedRowComponents_ = input.readInt32();
               break;
             }
+            case 16: {
+              int rawValue = input.readEnum();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType value = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(2, rawValue);
+              } else {
+                bitField0_ |= 0x00000002;
+                streamIdType_ = value;
+              }
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -4181,8 +4201,24 @@ public final class SchemaMetadataPersistence {
       return numHashedRowComponents_;
     }
 
+    public static final int STREAMIDTYPE_FIELD_NUMBER = 2;
+    private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType streamIdType_;
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+     */
+    public boolean hasStreamIdType() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+     */
+    public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType getStreamIdType() {
+      return streamIdType_;
+    }
+
     private void initFields() {
       numHashedRowComponents_ = 0;
+      streamIdType_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType.VAR_LONG;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -4200,6 +4236,9 @@ public final class SchemaMetadataPersistence {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeInt32(1, numHashedRowComponents_);
       }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeEnum(2, streamIdType_.getNumber());
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -4212,6 +4251,10 @@ public final class SchemaMetadataPersistence {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(1, numHashedRowComponents_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(2, streamIdType_.getNumber());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -4332,6 +4375,8 @@ public final class SchemaMetadataPersistence {
         super.clear();
         numHashedRowComponents_ = 0;
         bitField0_ = (bitField0_ & ~0x00000001);
+        streamIdType_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType.VAR_LONG;
+        bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
 
@@ -4364,6 +4409,10 @@ public final class SchemaMetadataPersistence {
           to_bitField0_ |= 0x00000001;
         }
         result.numHashedRowComponents_ = numHashedRowComponents_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.streamIdType_ = streamIdType_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -4382,6 +4431,9 @@ public final class SchemaMetadataPersistence {
         if (other == com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.getDefaultInstance()) return this;
         if (other.hasNumHashedRowComponents()) {
           setNumHashedRowComponents(other.getNumHashedRowComponents());
+        }
+        if (other.hasStreamIdType()) {
+          setStreamIdType(other.getStreamIdType());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -4438,6 +4490,41 @@ public final class SchemaMetadataPersistence {
       public Builder clearNumHashedRowComponents() {
         bitField0_ = (bitField0_ & ~0x00000001);
         numHashedRowComponents_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType streamIdType_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType.VAR_LONG;
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+       */
+      public boolean hasStreamIdType() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+       */
+      public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType getStreamIdType() {
+        return streamIdType_;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+       */
+      public Builder setStreamIdType(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField0_ |= 0x00000002;
+        streamIdType_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+       */
+      public Builder clearStreamIdType() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        streamIdType_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType.VAR_LONG;
         onChanged();
         return this;
       }
@@ -4824,31 +4911,34 @@ public final class SchemaMetadataPersistence {
   static {
     java.lang.String[] descriptorData = {
       "\n\037SchemaMetadataPersistence.proto\022%com.p" +
-      "alantir.atlasdb.protos.generated\"q\n\016Sche" +
-      "maMetadata\022_\n\rtableMetadata\030\001 \003(\0132H.com." +
-      "palantir.atlasdb.protos.generated.Schema" +
-      "DependentTableMetadataEntry\"\335\001\n!SchemaDe" +
-      "pendentTableMetadataEntry\022M\n\016tableRefere" +
-      "nce\030\001 \001(\01325.com.palantir.atlasdb.protos." +
-      "generated.TableReference\022i\n\034schemaDepend" +
-      "entTableMetadata\030\002 \001(\0132C.com.palantir.at" +
-      "lasdb.protos.generated.SchemaDependentTa",
-      "bleMetadata\"6\n\016TableReference\022\021\n\tnamespa" +
-      "ce\030\001 \001(\t\022\021\n\ttableName\030\002 \001(\t\"\305\002\n\034SchemaDe" +
-      "pendentTableMetadata\022R\n\014nullMetadata\030\001 \001" +
-      "(\0132:.com.palantir.atlasdb.protos.generat" +
-      "ed.NullCleanupMetadataH\000\022`\n\023streamStoreM" +
-      "etadata\030\002 \001(\0132A.com.palantir.atlasdb.pro" +
-      "tos.generated.StreamStoreCleanupMetadata" +
-      "H\000\022\\\n\021arbitraryMetadata\030\003 \001(\0132?.com.pala" +
-      "ntir.atlasdb.protos.generated.ArbitraryC" +
-      "leanupMetadataH\000B\021\n\017cleanupMetadata\"\025\n\023N",
-      "ullCleanupMetadata\"u\n\032StreamStoreCleanup" +
-      "Metadata\022W\n\nv1Metadata\030\001 \001(\0132C.com.palan" +
-      "tir.atlasdb.protos.generated.StreamStore" +
-      "CleanupV1Metadata\"A\n\034StreamStoreCleanupV" +
-      "1Metadata\022!\n\026numHashedRowComponents\030\001 \001(" +
-      "\005:\0010\"\032\n\030ArbitraryCleanupMetadata"
+      "alantir.atlasdb.protos.generated\032\036TableM" +
+      "etadataPersistence.proto\"q\n\016SchemaMetada" +
+      "ta\022_\n\rtableMetadata\030\001 \003(\0132H.com.palantir" +
+      ".atlasdb.protos.generated.SchemaDependen" +
+      "tTableMetadataEntry\"\335\001\n!SchemaDependentT" +
+      "ableMetadataEntry\022M\n\016tableReference\030\001 \001(" +
+      "\01325.com.palantir.atlasdb.protos.generate" +
+      "d.TableReference\022i\n\034schemaDependentTable" +
+      "Metadata\030\002 \001(\0132C.com.palantir.atlasdb.pr",
+      "otos.generated.SchemaDependentTableMetad" +
+      "ata\"6\n\016TableReference\022\021\n\tnamespace\030\001 \001(\t" +
+      "\022\021\n\ttableName\030\002 \001(\t\"\305\002\n\034SchemaDependentT" +
+      "ableMetadata\022R\n\014nullMetadata\030\001 \001(\0132:.com" +
+      ".palantir.atlasdb.protos.generated.NullC" +
+      "leanupMetadataH\000\022`\n\023streamStoreMetadata\030" +
+      "\002 \001(\0132A.com.palantir.atlasdb.protos.gene" +
+      "rated.StreamStoreCleanupMetadataH\000\022\\\n\021ar" +
+      "bitraryMetadata\030\003 \001(\0132?.com.palantir.atl" +
+      "asdb.protos.generated.ArbitraryCleanupMe",
+      "tadataH\000B\021\n\017cleanupMetadata\"\025\n\023NullClean" +
+      "upMetadata\"u\n\032StreamStoreCleanupMetadata" +
+      "\022W\n\nv1Metadata\030\001 \001(\0132C.com.palantir.atla" +
+      "sdb.protos.generated.StreamStoreCleanupV" +
+      "1Metadata\"\211\001\n\034StreamStoreCleanupV1Metada" +
+      "ta\022!\n\026numHashedRowComponents\030\001 \001(\005:\0010\022F\n" +
+      "\014streamIdType\030\002 \001(\01620.com.palantir.atlas" +
+      "db.protos.generated.ValueType\"\032\n\030Arbitra" +
+      "ryCleanupMetadata"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -4861,6 +4951,7 @@ public final class SchemaMetadataPersistence {
     com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor(),
         }, assigner);
     internal_static_com_palantir_atlasdb_protos_generated_SchemaMetadata_descriptor =
       getDescriptor().getMessageTypes().get(0);
@@ -4903,13 +4994,14 @@ public final class SchemaMetadataPersistence {
     internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_descriptor,
-        new java.lang.String[] { "NumHashedRowComponents", });
+        new java.lang.String[] { "NumHashedRowComponents", "StreamIdType", });
     internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_descriptor =
       getDescriptor().getMessageTypes().get(7);
     internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_descriptor,
         new java.lang.String[] { });
+    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor();
   }
 
   // @@protoc_insertion_point(outer_class_scope)

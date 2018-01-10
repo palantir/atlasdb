@@ -1,5 +1,8 @@
 package com.palantir.atlasdb.protos.generated;
 
+// Don't want to duplicate ValueType, but moving things whilst not doing a dev break seems nontrivial.
+import "TableMetadataPersistence.proto";
+
 message SchemaMetadata {
     // Using this rather than map, to avoid introducing a dependency on proto3
     // TODO (jkong): Eventually coordinate a shift to proto3
@@ -38,6 +41,7 @@ message StreamStoreCleanupMetadata {
 
 message StreamStoreCleanupV1Metadata {
     optional int32 numHashedRowComponents = 1 [default = 0];
+    optional ValueType streamIdType = 2;
 }
 
 message ArbitraryCleanupMetadata {
