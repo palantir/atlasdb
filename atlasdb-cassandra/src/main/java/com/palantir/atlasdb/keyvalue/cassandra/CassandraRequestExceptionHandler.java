@@ -34,6 +34,7 @@ import org.slf4j.helpers.MessageFormatter;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
+import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting.api.config.service.HumanReadableDuration;
@@ -155,7 +156,8 @@ class CassandraRequestExceptionHandler {
         return isConnectionException(ex)
                 || isTransientException(ex)
                 || isIndicativeOfCassandraLoad(ex)
-                || isFastFailoverException(ex);
+                || isFastFailoverException(ex)
+                || isQosException(ex);
     }
 
     @VisibleForTesting
@@ -167,6 +169,9 @@ class CassandraRequestExceptionHandler {
     Backoff shouldBackoff(Exception ex) {
         if (isConnectionException(ex) || isIndicativeOfCassandraLoad(ex)) {
             return Backoff.SHORT;
+        }
+        if (isQosException(ex)) {
+            return Backoff.LONG;
         }
 
         return Backoff.NO;
@@ -216,6 +221,12 @@ class CassandraRequestExceptionHandler {
                 || isFastFailoverException(ex.getCause()));
     }
 
+    private boolean isQosException(Throwable ex) {
+        return ex != null
+                && (ex instanceof RateLimitExceededException
+                || isQosException(ex.getCause()));
+    }
+
     private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
             + " Error writing to Cassandra socket."
             + " Likely cause: Exceeded maximum thrift frame size;"
@@ -224,7 +235,8 @@ class CassandraRequestExceptionHandler {
     @VisibleForTesting
     enum Backoff {
         NO(HumanReadableDuration.minutes(0L)),
-        SHORT(HumanReadableDuration.seconds(1L));
+        SHORT(HumanReadableDuration.seconds(1L)),
+        LONG(HumanReadableDuration.seconds(10L));
 
         private HumanReadableDuration duration;
 

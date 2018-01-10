@@ -36,6 +36,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 
 public class CassandraRequestExceptionHandlerTest {
 
@@ -52,6 +53,7 @@ public class CassandraRequestExceptionHandlerTest {
     private Set<Exception> indicativeOfCassandraLoadException = Sets.newHashSet(new NoSuchElementException(),
             new UnavailableException());
     private Set<Exception> fastFailoverExceptions = Sets.newHashSet(new InvalidRequestException());
+    private Set<Exception> qosExceptions = Sets.newHashSet(new RateLimitExceededException(MESSAGE));
 
     private CassandraRequestExceptionHandler exceptionHandler = new CassandraRequestExceptionHandler(
             () -> MAX_RETRIES_PER_HOST,
@@ -65,6 +67,7 @@ public class CassandraRequestExceptionHandlerTest {
         allExceptions = Sets.union(allExceptions, transientExceptions);
         allExceptions = Sets.union(allExceptions, indicativeOfCassandraLoadException);
         allExceptions = Sets.union(allExceptions, fastFailoverExceptions);
+        allExceptions = Sets.union(allExceptions, qosExceptions);
 
         for (Exception ex : allExceptions) {
             assertTrue(String.format("Exception %s should be retryable", ex), exceptionHandler.isRetryable(ex));
@@ -100,6 +103,12 @@ public class CassandraRequestExceptionHandlerTest {
             assertEquals(String.format("Exception %s should have short backoff", ex),
                     exceptionHandler.shouldBackoff(ex),
                     CassandraRequestExceptionHandler.Backoff.SHORT);
+        }
+
+        for (Exception ex : qosExceptions) {
+            assertEquals(String.format("QoS exception %s should have long backoff", ex),
+                    exceptionHandler.shouldBackoff(ex),
+                    CassandraRequestExceptionHandler.Backoff.LONG);
         }
 
         for (Exception ex : fastFailoverExceptions) {
