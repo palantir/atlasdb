@@ -20,11 +20,14 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
 
-public class SimpleThrottlingStrategy implements ThrottlingStrategy {
+import net.jcip.annotations.GuardedBy;
+import net.jcip.annotations.ThreadSafe;
 
+@ThreadSafe
+public class SimpleThrottlingStrategy implements ThrottlingStrategy {
     private static final double ONCE_EVERY_HUNDRED_SECONDS = 0.01;
     private final RateLimiter rateLimiter;
-    private double multiplier;
+    @GuardedBy("this") private double multiplier;
 
     public SimpleThrottlingStrategy() {
         this.rateLimiter = RateLimiter.create(ONCE_EVERY_HUNDRED_SECONDS);
@@ -36,10 +39,10 @@ public class SimpleThrottlingStrategy implements ThrottlingStrategy {
             QosPriority unused) {
         if (shouldAdjust()) {
             if (cassandraIsUnhealthy(metricMeasurements.get())) {
-                multiplier = halveTheRateMultiplier();
+                halveTheRateMultiplier();
             } else {
-                // TODO(hsaraogi): increase only in the qosMetrics imply that the client is consuming its limit.
-                multiplier = increaseTheRateMultiplier();
+                // TODO(hsaraogi): increase only if the client is consuming its limit.
+                increaseTheRateMultiplier();
             }
         }
         return multiplier;
@@ -49,12 +52,12 @@ public class SimpleThrottlingStrategy implements ThrottlingStrategy {
         return rateLimiter.tryAcquire();
     }
 
-    private double increaseTheRateMultiplier() {
-        return Math.min(2.0, multiplier * 1.1);
+    private synchronized void increaseTheRateMultiplier() {
+        multiplier = Math.min(2.0, multiplier * 1.1);
     }
 
-    private double halveTheRateMultiplier() {
-        return Math.max(0.1, multiplier * 0.5);
+    private synchronized void halveTheRateMultiplier() {
+        multiplier = Math.max(0.1, multiplier * 0.5);
     }
 
     private boolean cassandraIsUnhealthy(List<CassandraHealthMetricMeasurement> metricMeasurements) {

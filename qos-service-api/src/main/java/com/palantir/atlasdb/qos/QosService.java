@@ -26,12 +26,22 @@ import com.palantir.logsafe.Safe;
 
 @Path("/qos")
 public interface QosService {
+    /**
+     * Get the read limit for a client.
+     * @param client the name of the client.
+     * @return the number of bytes per second the client is allowed to read
+     */
     @Path("{client: [a-zA-Z0-9_-]+}/read-limit")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     long readLimit(@Safe @PathParam("client") String client);
 
+    /**
+     * Get the write limit for a client.
+     * @param client the name of the client.
+     * @return the number of bytes per second the client is allowed to write
+     */
     @Path("{client: [a-zA-Z0-9_-]+}/write-limit")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)

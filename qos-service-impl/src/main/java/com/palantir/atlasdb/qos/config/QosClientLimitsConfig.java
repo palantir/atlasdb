@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableQosClientLimitsConfig.class)
 @JsonSerialize(as = ImmutableQosClientLimitsConfig.class)
 public abstract class QosClientLimitsConfig implements Serializable {
-    // These numbers comes from the metrics released and are scaled by a factor of 2,
+    // These numbers come from the metrics released and are scaled by a factor of 2,
     // we should probably scale up more or set to no limit?
     public static final long BYTES_READ_PER_SECOND_PER_CLIENT = 500_000L;
     public static final long BYTES_WRITTEN_PER_SECOND_PER_CLIENT = 1_000_000L;
