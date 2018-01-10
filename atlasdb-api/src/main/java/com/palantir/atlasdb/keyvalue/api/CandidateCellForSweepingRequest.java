@@ -44,7 +44,7 @@ public interface CandidateCellForSweepingRequest {
     // FOR PERF TESTING CASSANDRA ONLY!
     @Value.Default
     default TimestampFetchMode fetchMode() {
-        return TimestampFetchMode.GREATER_THAN;
+        return TimestampFetchMode.PREPARED;
     }
 
     default CandidateCellForSweepingRequest withStartRow(byte[] startRow) {
