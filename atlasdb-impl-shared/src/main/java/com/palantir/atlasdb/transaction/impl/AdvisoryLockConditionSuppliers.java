@@ -30,11 +30,13 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 
-public class AdvisoryLockConditionSuppliers {
+public final class AdvisoryLockConditionSuppliers {
 
     private static final Logger log = LoggerFactory.getLogger(AdvisoryLockConditionSuppliers.class);
 
     private static final int NUM_RETRIES = 10;
+
+    private AdvisoryLockConditionSuppliers() {}
 
     public static Supplier<AdvisoryLocksCondition> get(LockService lockService, Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier) {

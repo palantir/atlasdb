@@ -64,7 +64,8 @@ public abstract class AbstractLockAwareTransactionManager
             LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         checkOpen();
-        AdvisoryLocksCondition lockCondition = new ExternalLocksCondition(getLockService(), ImmutableSet.copyOf(lockTokens));
+        AdvisoryLocksCondition lockCondition =
+                new ExternalLocksCondition(getLockService(), ImmutableSet.copyOf(lockTokens));
         return runTaskWithConditionThrowOnConflict(lockCondition,
                 (transaction, condition) -> task.execute(transaction, condition.getLocks()));
     }
