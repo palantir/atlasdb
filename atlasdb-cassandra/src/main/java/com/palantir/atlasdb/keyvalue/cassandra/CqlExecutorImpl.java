@@ -149,6 +149,8 @@ public class CqlExecutorImpl implements CqlExecutor {
             // 1. Results are ordered
             // 2. There are at most <limit> results
             // 3. We return the first <limit> results
+            // We can ensure this by not applying the limit until after collection, and grouping by row
+            // I think this is ensured later on in the code path?
             CqlResult cqlResult = queryExecutor.executePrepared(queryId,
                     ImmutableList.of(ByteBuffer.wrap(rows.next())));
             result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));

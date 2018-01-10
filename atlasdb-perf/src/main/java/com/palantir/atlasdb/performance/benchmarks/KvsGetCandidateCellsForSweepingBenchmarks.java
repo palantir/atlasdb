@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampFetchMode;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.common.base.ClosableIterator;
@@ -46,33 +47,54 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Threads(1)
     @Warmup(time = 20)
     @Measurement(time = 460)
-    public Object fullTableScanAverage_NormalSize(ConsecutiveNarrowTable.AverageTable table) {
-        return fullTableScan(table, DEFAULT_BATCH_SIZE);
+    public Object fullTableScanAverage_NormalSize_GreaterThan(ConsecutiveNarrowTable.AverageTable table) {
+        return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.GREATER_THAN);
+
     }
 
     @Benchmark
     @Threads(1)
     @Warmup(time = 20)
     @Measurement(time = 460)
-    public Object fullTableScanAverage_Large(ConsecutiveNarrowTable.AverageTable table) {
-        return fullTableScan(table, 4096);
+    public Object fullTableScanAverage_NormalSize_InClause(ConsecutiveNarrowTable.AverageTable table) {
+        return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.IN_CLAUSE);
+
     }
 
-    private int fullTableScan(ConsecutiveNarrowTable table, int batchSizeHint) {
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 460)
+    public Object fullTableScanAverage_NormalSize_Prepared(ConsecutiveNarrowTable.AverageTable table) {
+        return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.PREPARED);
+
+    }
+
+//    @Benchmark
+//    @Threads(1)
+//    @Warmup(time = 2)
+//    @Measurement(time = 5)
+//    public Object fullTableScanAverage_Large(ConsecutiveNarrowTable.AverageTable table) {
+//        return fullTableScan(table, 4096, TimestampFetchMode.PREPARED);
+//
+//    }
+
+    private int fullTableScan(ConsecutiveNarrowTable table, int batchSizeHint, TimestampFetchMode fetchMode) {
         // TODO(gsheasby): consider extracting a common interface for WideRowTable and ConsecutiveNarrowTable
         // to avoid unpacking here
         int numCellsExpected = table.getNumRows() * 10; // hack! AverageTable has 10 columns
-        return fullTableScan(table.getTableRef(), table.getKvs(), numCellsExpected, false, batchSizeHint);
+        return fullTableScan(table.getTableRef(), table.getKvs(), numCellsExpected, false, batchSizeHint, fetchMode);
     }
 
     private int fullTableScan(TableReference tableRef, KeyValueService kvs, int numCellsExpected, boolean thorough,
-            int batchSizeHint) {
+            int batchSizeHint, TimestampFetchMode fetchMode) {
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                     .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
                     .batchSizeHint(batchSizeHint)
                     .maxTimestampExclusive(Long.MAX_VALUE)
                     .shouldCheckIfLatestValueIsEmpty(thorough)
                     .timestampsToIgnore(thorough ? ImmutableSet.of() : ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP))
+                    .fetchMode(fetchMode)
                     .build();
         try (ClosableIterator<List<CandidateCellForSweeping>> iter = kvs.getCandidateCellsForSweeping(
                     tableRef, request)) {
