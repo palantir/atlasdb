@@ -2068,20 +2068,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private void insertRangeTombstones(CassandraClient client, Map<Cell, Long> maxTimestampExclusiveByCell,
             TableReference tableRef) throws TException {
-        Map<ByteBuffer, Map<String, List<Mutation>>> mutationsByRowByTable = Maps.newHashMap();
+        MutationMap mutationMap = new MutationMap();
 
         maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
             Mutation mutation = Mutations.rangeTombstoneForColumn(
                     cell.getColumnName(),
                     maxTimestampExclusive);
 
-            mutationsByRowByTable
-                    .computeIfAbsent(ByteBuffer.wrap(cell.getRowName()), ignored -> new HashMap<>())
-                    .computeIfAbsent(internalTableName(tableRef), ignored -> new ArrayList<>())
-                    .add(mutation);
+            mutationMap.addMutationForCell(cell, tableRef, mutation);
         });
 
-        batchMutateInternal("deleteAllTimestamps", client, tableRef, mutationsByRowByTable,
+        batchMutateInternal("deleteAllTimestamps", client, tableRef, mutationMap,
                 deleteConsistency);
     }
 
