@@ -42,9 +42,8 @@ public interface CandidateCellForSweepingRequest {
     boolean ignoreGarbageCollectionSentinels();
 
     default boolean shouldSweep(long timestamp) {
-        if (ignoreGarbageCollectionSentinels()
-                && timestamp == com.palantir.atlasdb.keyvalue.api.Value.INVALID_VALUE_TIMESTAMP) {
-            return false;
+        if (timestamp == com.palantir.atlasdb.keyvalue.api.Value.INVALID_VALUE_TIMESTAMP) {
+            return ignoreGarbageCollectionSentinels();
         }
 
         return timestamp < maxTimestampExclusive();
