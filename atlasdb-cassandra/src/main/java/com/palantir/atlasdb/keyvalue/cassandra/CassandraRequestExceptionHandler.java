@@ -82,6 +82,22 @@ class CassandraRequestExceptionHandler {
     }
 
     @SuppressWarnings("unchecked")
+    private <K extends Exception> K logAndReturnException(int numberOfAttempts, Exception ex) {
+        if (ex instanceof TTransportException
+                && ex.getCause() != null
+                && (ex.getCause().getClass() == SocketException.class)) {
+            log.error(CONNECTION_FAILURE_MSG, numberOfAttempts, ex);
+            String errorMsg =
+                    MessageFormatter.format(CONNECTION_FAILURE_MSG, numberOfAttempts).getMessage();
+            return (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
+        } else {
+            log.error("Tried to connect to cassandra {} times.",
+                    SafeArg.of("numTries", numberOfAttempts), ex);
+            return (K) ex;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     private <K extends Exception> void logNumberOfAttempts(Exception ex,
             int numberOfAttempts) throws K {
         // Only log the actual exception the first time
@@ -130,22 +146,6 @@ class CassandraRequestExceptionHandler {
             log.info("Retrying with on a different host a query intended for host {}.",
                     SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
             req.giveUpOnPreferredHost();
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private <K extends Exception> K logAndReturnException(int numberOfAttempts, Exception ex) {
-        if (ex instanceof TTransportException
-                && ex.getCause() != null
-                && (ex.getCause().getClass() == SocketException.class)) {
-            log.error(CONNECTION_FAILURE_MSG, numberOfAttempts, ex);
-            String errorMsg =
-                    MessageFormatter.format(CONNECTION_FAILURE_MSG, numberOfAttempts).getMessage();
-            return (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
-        } else {
-            log.error("Tried to connect to cassandra {} times.",
-                    SafeArg.of("numTries", numberOfAttempts), ex);
-            return (K) ex;
         }
     }
 
