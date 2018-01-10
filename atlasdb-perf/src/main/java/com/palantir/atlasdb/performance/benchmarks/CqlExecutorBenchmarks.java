@@ -17,14 +17,9 @@
 package com.palantir.atlasdb.performance.benchmarks;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.NotFoundException;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
@@ -47,8 +42,8 @@ public class CqlExecutorBenchmarks {
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 3)
+    @Measurement(time = 15)
     public Object getTimestampsUsingInClause(ConsecutiveNarrowTable.AverageTable table) {
         CqlExecutor cqlExecutor = getCqlExecutor(table);
 
@@ -63,8 +58,8 @@ public class CqlExecutorBenchmarks {
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 3)
+    @Measurement(time = 15)
     public Object getTimestampsUsingGreaterThan(ConsecutiveNarrowTable.AverageTable table) {
         CqlExecutor cqlExecutor = getCqlExecutor(table);
 
@@ -88,7 +83,6 @@ public class CqlExecutorBenchmarks {
 
         List<byte[]> rows = table.getRowList().subList(0, 1024);
         int limit = 1000;
-        int numThreads = 10;
         List<CellWithTimestamp> cells = cqlExecutor.getTimestampsParallel(table.getTableRef(), rows, limit);
 
         Preconditions.checkState(cells.size() == limit, "Should have gotten 1000 cells back");
