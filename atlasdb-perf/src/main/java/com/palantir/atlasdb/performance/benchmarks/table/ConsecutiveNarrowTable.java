@@ -82,6 +82,8 @@ public abstract class ConsecutiveNarrowTable {
         return services.getKeyValueService();
     }
 
+    public abstract int getCellsPerRow();
+
     public abstract TableReference getTableRef();
 
     public abstract int getNumRows();
@@ -120,6 +122,11 @@ public abstract class ConsecutiveNarrowTable {
         }
 
         @Override
+        public int getCellsPerRow() {
+            return 1;
+        }
+
+        @Override
         protected void setupData() {
             storeDataInTable(this, 1);
         }
@@ -135,6 +142,11 @@ public abstract class ConsecutiveNarrowTable {
         @Override
         public int getNumRows() {
             return DIRTY_NUM_ROWS;
+        }
+
+        @Override
+        public int getCellsPerRow() {
+            return 10;
         }
 
         @Override
@@ -178,6 +190,11 @@ public abstract class ConsecutiveNarrowTable {
         @Override
         public int getNumRows() {
             return DIRTY_NUM_ROWS;
+        }
+
+        @Override
+        public int getCellsPerRow() {
+            return 100;
         }
 
         @Override
