@@ -149,8 +149,8 @@ public abstract class AbstractSweepTest {
 
         Optional<SweepResults> optResults = completeSweep(175);
         optResults.ifPresent(results -> {
-            assertEquals(4, results.getStaleValuesDeleted());
-            assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(5);
+            assertEquals(2, results.getStaleValuesDeleted());
+            assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(3);
         });
 
         assertEquals("buzz", getFromDefaultColumn("foo", 200));
@@ -336,8 +336,8 @@ public abstract class AbstractSweepTest {
 
         Optional<SweepResults> optResults = completeSweep(175);
         optResults.ifPresent(results -> {
-            assertEquals(4, results.getStaleValuesDeleted());
-            assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(6);
+            assertEquals(3, results.getStaleValuesDeleted());
+            assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(4);
         });
 
         assertNull(getFromDefaultColumn("foo", 200));
@@ -353,8 +353,8 @@ public abstract class AbstractSweepTest {
 
         Optional<SweepResults> optResults = completeSweep(175);
         optResults.ifPresent(results -> {
-            assertEquals(4, results.getStaleValuesDeleted());
-            assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(5);
+            assertEquals(2, results.getStaleValuesDeleted());
+            assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(3);
         });
 
         assertEquals("foo", getFromDefaultColumn("foo", 200));

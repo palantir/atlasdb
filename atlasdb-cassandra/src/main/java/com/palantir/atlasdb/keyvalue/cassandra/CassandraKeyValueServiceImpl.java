@@ -1466,7 +1466,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(rangeRequest.getStartInclusive())
                 .maxTimestampExclusive(timestamp)
-                .addTimestampsToIgnore()
                 .shouldCheckIfLatestValueIsEmpty(false)
                 .build();
         return getCandidateRowsForSweeping("getRangeOfTimestamps", tableRef, request)
