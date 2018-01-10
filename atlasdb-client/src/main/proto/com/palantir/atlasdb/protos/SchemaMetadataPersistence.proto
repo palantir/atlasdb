@@ -21,9 +21,9 @@ message TableReference {
 
 message SchemaDependentTableMetadata {
     oneof cleanupMetadata {
-        NullCleanupMetadata nullMetadata = 1;
-        StreamStoreCleanupMetadata streamStoreMetadata = 2;
-        ArbitraryCleanupMetadata arbitraryMetadata = 3;
+        NullCleanupMetadata null = 1;
+        StreamStoreCleanupMetadata streamStore = 2;
+        ArbitraryCleanupMetadata arbitrary = 3;
     }
 }
 
