@@ -67,7 +67,7 @@ public class CqlExecutorImpl implements CqlExecutor {
     }
 
     @Override
-    public List<CellWithTimestamp> getTimestamps(
+    public List<CellWithTimestamp> getTimestampsUsingInClause(
             TableReference tableRef,
             List<byte[]> rowsAscending,
             int limit) {
@@ -131,7 +131,7 @@ public class CqlExecutorImpl implements CqlExecutor {
 
     @Override
     // actually just uses the prepared statement for now
-    public List<CellWithTimestamp> getTimestampsParallel(
+    public List<CellWithTimestamp> getTimestamps(
             TableReference tableRef,
             List<byte[]> rowsAscending,
             int limit) {

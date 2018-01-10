@@ -49,7 +49,7 @@ public class CqlExecutorBenchmarks {
 
         List<byte[]> rows = table.getRowList().subList(0, 1024);
         int limit = 1000;
-        List<CellWithTimestamp> cells = cqlExecutor.getTimestamps(table.getTableRef(), rows, limit);
+        List<CellWithTimestamp> cells = cqlExecutor.getTimestampsUsingInClause(table.getTableRef(), rows, limit);
 
         Preconditions.checkState(cells.size() == limit, "Should have gotten 1000 cells back");
 
@@ -83,7 +83,7 @@ public class CqlExecutorBenchmarks {
 
         List<byte[]> rows = table.getRowList().subList(0, 1024);
         int limit = 1000;
-        List<CellWithTimestamp> cells = cqlExecutor.getTimestampsParallel(table.getTableRef(), rows, limit);
+        List<CellWithTimestamp> cells = cqlExecutor.getTimestamps(table.getTableRef(), rows, limit);
 
         Preconditions.checkState(cells.size() == limit, "Should have gotten 1000 cells back");
 
