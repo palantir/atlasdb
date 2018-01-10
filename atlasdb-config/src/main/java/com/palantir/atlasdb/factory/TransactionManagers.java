@@ -86,9 +86,9 @@ import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
-import com.palantir.atlasdb.sweep.SweepMetrics;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
+import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -372,7 +372,7 @@ public abstract class TransactionManagers {
         AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() ->
                 getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService()));
 
-        SweepMetrics sweepMetrics = new SweepMetrics();
+        SweepMetricsManager sweepMetrics = new SweepMetricsManager();
 
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
                 env,
@@ -401,7 +401,7 @@ public abstract class TransactionManagers {
             SerializableTransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetrics sweepMetrics,
+            SweepMetricsManager sweepMetrics,
             boolean initializeAsync,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(

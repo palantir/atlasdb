@@ -79,7 +79,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 PtBytes.EMPTY_BYTE_ARRAY);
-        assertEquals(SweepResults.createEmptySweepResult(), results);
+        assertEquals(SweepResults.createEmptySweepResult(Optional.empty()), results);
         assertEquals(ImmutableSet.of(50L, 75L, 100L, 125L, 150L), getAllTsFromDefaultColumn("foo"));
     }
 
@@ -208,7 +208,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 nextStartRow);
-        assertEquals(SweepResults.createEmptySweepResult(), results);
+        assertEquals(SweepResults.createEmptySweepResult(Optional.empty()), results);
     }
 
     @Test(timeout = 50000)
@@ -246,8 +246,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         putIntoDefaultColumn("foo", "foo", 125);
         putUncommitted("foo", "", 150);
         SweepResults results = completeSweep(175).get();
-        //        assertEquals(4, results.getStaleValuesDeleted());
-        //        assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(5);
+        assertEquals(4, results.getStaleValuesDeleted());
+        assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(5);
         assertEquals("foo", getFromDefaultColumn("foo", 200));
         assertEquals(ImmutableSet.of(125L), getAllTsFromDefaultColumn("foo"));
     }
@@ -255,6 +255,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     @SuppressWarnings("unchecked")
     private Pair<List<List<Cell>>, SweepResults> runSweep(CellsSweeper cellsSweeper, SweepTaskRunner spiedSweepRunner,
             int maxCellTsPairsToExamine, int candidateBatchSize, int deleteBatchSize) {
+        sweepTimestamp.set(Long.MAX_VALUE);
         List<List<Cell>> sweptCells = Lists.newArrayList();
 
         doAnswer((invocationOnMock) -> {
@@ -291,7 +292,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                             .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                             .build(),
                     startRow);
-            assertEquals(ts, results.getSweptTimestamp());
+            assertEquals(ts, results.getMinSweptTimestamp());
             assertArrayEquals(startRow, results.getPreviousStartRow().orElse(null));
             totalStaleValuesDeleted += results.getStaleValuesDeleted();
             totalCellsExamined += results.getCellTsPairsExamined();
@@ -299,7 +300,9 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                 return Optional.of(ImmutableSweepResults.builder()
                         .staleValuesDeleted(totalStaleValuesDeleted)
                         .cellTsPairsExamined(totalCellsExamined)
-                        .sweptTimestamp(ts)
+                        .timeInMillis(1)
+                        .timeSweepStarted(1)
+                        .minSweptTimestamp(ts)
                         .build());
             }
             startRow = results.getNextStartRow().get();
