@@ -47,7 +47,7 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Warmup(time = 20)
     @Measurement(time = 460)
     public Object fullTableScanAverage_NormalSize(ConsecutiveNarrowTable.AverageTable table) {
-        return fullTableScan(table, false, DEFAULT_BATCH_SIZE);
+        return fullTableScan(table, DEFAULT_BATCH_SIZE);
     }
 
     @Benchmark
@@ -55,14 +55,14 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Warmup(time = 20)
     @Measurement(time = 460)
     public Object fullTableScanAverage_Large(ConsecutiveNarrowTable.AverageTable table) {
-        return fullTableScan(table, false, 4096);
+        return fullTableScan(table, 4096);
     }
 
-    private int fullTableScan(ConsecutiveNarrowTable table, boolean thorough, int batchSizeHint) {
+    private int fullTableScan(ConsecutiveNarrowTable table, int batchSizeHint) {
         // TODO(gsheasby): consider extracting a common interface for WideRowTable and ConsecutiveNarrowTable
         // to avoid unpacking here
         int numCellsExpected = table.getNumRows() * 10; // hack! AverageTable has 10 columns
-        return fullTableScan(table.getTableRef(), table.getKvs(), numCellsExpected, thorough, batchSizeHint);
+        return fullTableScan(table.getTableRef(), table.getKvs(), numCellsExpected, false, batchSizeHint);
     }
 
     private int fullTableScan(TableReference tableRef, KeyValueService kvs, int numCellsExpected, boolean thorough,
