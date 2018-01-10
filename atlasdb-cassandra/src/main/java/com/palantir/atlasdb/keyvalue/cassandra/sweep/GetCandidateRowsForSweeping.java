@@ -96,8 +96,7 @@ public class GetCandidateRowsForSweeping {
     private List<CandidateRowForSweeping> convertToOrderedSweepCandidateRows() {
         Map<ByteBuffer, List<CandidateCellForSweeping>> cellsByRow = cellTimestamps.stream()
                 .map(cell -> cell.toSweepCandidate(
-                        request.maxTimestampExclusive(),
-                        request.timestampsToIgnore(),
+                        request::shouldSweep,
                         cellsWithEmptyValues.contains(cell.cell())))
                 .collect(Collectors.groupingBy(
                         cell -> ByteBuffer.wrap(cell.cell().getRowName()),

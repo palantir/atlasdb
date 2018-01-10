@@ -16,42 +16,31 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.LongSupplier;
 
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
 public enum Sweeper {
     CONSERVATIVE((unreadableTs, immutableTs) -> Math.min(unreadableTs.getAsLong(), immutableTs.getAsLong()),
-                 ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP),
                  false,
                  true),
     THOROUGH((unreadableTs, immutableTs) -> immutableTs.getAsLong(),
-            ImmutableSet.of(),
              true,
              false);
 
     private final SweepTimestampSupplier sweepTimestampSupplier;
-    private final Set<Long> timestampsToIgnore;
     private final boolean shouldSweepLastCommitted;
     private final boolean shouldAddSentinels;
 
-    Sweeper(SweepTimestampSupplier sweepTimestampSupplier, Set<Long> timestampsToIgnore,
+    Sweeper(SweepTimestampSupplier sweepTimestampSupplier,
             boolean shouldSweepLastCommitted, boolean shouldAddSentinels) {
         this.sweepTimestampSupplier = sweepTimestampSupplier;
-        this.timestampsToIgnore = timestampsToIgnore;
         this.shouldSweepLastCommitted = shouldSweepLastCommitted;
         this.shouldAddSentinels = shouldAddSentinels;
     }
 
     public SweepTimestampSupplier getSweepTimestampSupplier() {
         return sweepTimestampSupplier;
-    }
-
-    public Set<Long> getTimestampsToIgnore() {
-        return timestampsToIgnore;
     }
 
     public boolean shouldSweepLastCommitted() {

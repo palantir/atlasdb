@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 
 public final class SweepQueryHelpers {
@@ -24,9 +25,8 @@ public final class SweepQueryHelpers {
 
     public static void appendIgnoredTimestampPredicate(CandidateCellForSweepingRequest request,
                                                        FullQuery.Builder builder) {
-        for (long ts : request.timestampsToIgnore()) {
-            // In practice this will always be -1, so we don't bother with binds
-            builder.append(" AND ts <> ").append(String.valueOf(ts));
+        if (request.ignoreGarbageCollectionSentinels()) {
+            builder.append(" AND ts <> ").append(String.valueOf(Value.INVALID_VALUE_TIMESTAMP));
         }
     }
 
