@@ -91,11 +91,6 @@ develop
            Previously, the result would only count cell-ts pairs examined in the last batch.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
 
-    *    - |fixed|
-         - Make RateLimitedException retriable.
-           If configuring the QosClientConfig to rate limit, please watch the metric `QosMetrics.rateLimitedExceptions` and tune your config.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/>`__)
-
 =======
 v0.72.0
 =======
