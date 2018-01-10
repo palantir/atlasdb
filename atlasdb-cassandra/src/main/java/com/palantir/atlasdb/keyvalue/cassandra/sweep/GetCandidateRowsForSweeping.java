@@ -79,7 +79,7 @@ public class GetCandidateRowsForSweeping {
 
     private void fetchCellTimestamps() {
         cellTimestamps = new GetCellTimestamps(cqlExecutor, rowGetter, table, request.startRowInclusive(),
-                timestampsBatchSize).execute();
+                timestampsBatchSize, request.fetchMode()).execute();
     }
 
     public void findCellsWithEmptyValuesIfNeeded() {

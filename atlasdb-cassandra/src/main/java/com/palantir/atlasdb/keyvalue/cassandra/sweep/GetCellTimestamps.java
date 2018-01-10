@@ -31,6 +31,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampFetchMode;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
@@ -42,6 +43,7 @@ public class GetCellTimestamps {
     private final TableReference tableRef;
     private final byte[] startRowInclusive;
     private final int batchHint;
+    private final TimestampFetchMode fetchMode;
 
     private final Collection<CellWithTimestamp> timestamps = Lists.newArrayList();
 
@@ -50,12 +52,14 @@ public class GetCellTimestamps {
             RowGetter rowGetter,
             TableReference tableRef,
             byte[] startRowInclusive,
-            int batchHint) {
+            int batchHint,
+            TimestampFetchMode fetchMode) {
         this.cqlExecutor = cqlExecutor;
         this.rowGetter = rowGetter;
         this.tableRef = tableRef;
         this.startRowInclusive = startRowInclusive;
         this.batchHint = batchHint;
+        this.fetchMode = fetchMode;
     }
 
     /**
@@ -101,9 +105,23 @@ public class GetCellTimestamps {
             }
 
             // Note that both ends of this range are *inclusive*
-            List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rows, batchHint);
+            List<CellWithTimestamp> batch = getCellWithTimestamps(rows);
             timestamps.addAll(batch);
             rangeStart = RangeRequests.nextLexicographicName(Iterables.getLast(rows));
+        }
+    }
+
+    private List<CellWithTimestamp> getCellWithTimestamps(List<byte[]> rows) {
+        switch (fetchMode) {
+            case PREPARED:
+                return cqlExecutor.getTimestamps(tableRef, rows, batchHint);
+            case IN_CLAUSE:
+                return cqlExecutor.getTimestampsUsingInClause(tableRef, rows, batchHint);
+            case GREATER_THAN:
+            default:
+                return cqlExecutor.getTimestamps(tableRef, rows.get(0), Iterables.getLast(rows),
+                        batchHint);
+
         }
     }
 

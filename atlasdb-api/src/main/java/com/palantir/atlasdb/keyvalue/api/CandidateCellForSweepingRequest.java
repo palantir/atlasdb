@@ -41,6 +41,12 @@ public interface CandidateCellForSweepingRequest {
      */
     Set<Long> timestampsToIgnore();
 
+    // FOR PERF TESTING CASSANDRA ONLY!
+    @Value.Default
+    default TimestampFetchMode fetchMode() {
+        return TimestampFetchMode.GREATER_THAN;
+    }
+
     default CandidateCellForSweepingRequest withStartRow(byte[] startRow) {
         return ImmutableCandidateCellForSweepingRequest.builder()
                 .from(this)
