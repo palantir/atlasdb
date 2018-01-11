@@ -20,6 +20,5 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public interface ThrottlingStrategy {
-    double getClientLimitMultiplier(Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements,
-            QosPriority qosPriority);
+    double getClientLimitMultiplier(Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements);
 }

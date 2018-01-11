@@ -31,14 +31,14 @@ public class QosResource implements QosService {
     @Override
     public long readLimit(String client) {
         QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
-        return (long) clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
-                * qosClientLimitsConfig.limits().readBytesPerSecond();
+        return (long) (clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
+                * qosClientLimitsConfig.limits().readBytesPerSecond());
     }
 
     @Override
     public long writeLimit(String client) {
         QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
-        return (long) clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
-                * qosClientLimitsConfig.limits().writeBytesPerSecond();
+        return (long) (clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
+                * qosClientLimitsConfig.limits().writeBytesPerSecond());
     }
 }

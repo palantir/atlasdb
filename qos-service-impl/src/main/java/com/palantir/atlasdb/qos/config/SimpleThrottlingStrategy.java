@@ -35,10 +35,9 @@ public class SimpleThrottlingStrategy implements ThrottlingStrategy {
     }
 
     @Override
-    public double getClientLimitMultiplier(Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements,
-            QosPriority unused) {
+    public double getClientLimitMultiplier(Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements) {
         if (shouldAdjust()) {
-            if (cassandraIsUnhealthy(metricMeasurements.get())) {
+            if (cassandraIsUnhealthy(metricMeasurements)) {
                 halveTheRateMultiplier();
             } else {
                 // TODO(hsaraogi): increase only if the client is consuming its limit.
@@ -53,15 +52,15 @@ public class SimpleThrottlingStrategy implements ThrottlingStrategy {
     }
 
     private synchronized void increaseTheRateMultiplier() {
-        multiplier = Math.min(2.0, multiplier * 1.1);
+        multiplier = Math.min(1.0, multiplier * 1.1);
     }
 
     private synchronized void halveTheRateMultiplier() {
         multiplier = Math.max(0.1, multiplier * 0.5);
     }
 
-    private boolean cassandraIsUnhealthy(List<CassandraHealthMetricMeasurement> metricMeasurements) {
-        return metricMeasurements.stream()
+    private boolean cassandraIsUnhealthy(Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements) {
+        return metricMeasurements.get().stream()
                 .anyMatch(metricMeasurement -> !metricMeasurement.isMeasurementWithinLimits());
     }
 }

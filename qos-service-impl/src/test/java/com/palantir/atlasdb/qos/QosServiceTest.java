@@ -18,6 +18,8 @@ package com.palantir.atlasdb.qos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -33,6 +35,7 @@ import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
+import com.palantir.atlasdb.qos.ratelimit.CassandraMetricsClientLimitMultiplier;
 import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
 public class QosServiceTest {
@@ -67,6 +70,48 @@ public class QosServiceTest {
         assertEquals(10L, resource.readLimit("foo"));
         assertEquals(20L, resource.readLimit("foo"));
         assertEquals(30L, resource.readLimit("foo"));
+    }
+
+    @Test
+    public void canScaleDownLimits() {
+        QosClientConfigLoader qosClientConfigLoader = QosClientConfigLoader.create(() -> ImmutableMap.of("foo",
+                ImmutableQosClientLimitsConfig.builder()
+                        .clientPriority(QosPriority.MEDIUM)
+                        .limits(ImmutableQosLimitsConfig.builder()
+                                .readBytesPerSecond(100)
+                                .writeBytesPerSecond(20)
+                                .build())
+                        .build()));
+        CassandraMetricsClientLimitMultiplier clientLimitMultiplier = mock(CassandraMetricsClientLimitMultiplier.class);
+        resource = new QosResource(qosClientConfigLoader, clientLimitMultiplier);
+        when(clientLimitMultiplier.getClientLimitMultiplier(QosPriority.MEDIUM)).thenReturn(1.0, 1.0, 0.5, 0.5, 0.25, 0.25);
+        assertEquals(100L, resource.readLimit("foo"));
+        assertEquals(20L, resource.writeLimit("foo"));
+        assertEquals(50L, resource.readLimit("foo"));
+        assertEquals(10L, resource.writeLimit("foo"));
+        assertEquals(25L, resource.readLimit("foo"));
+        assertEquals(5L, resource.writeLimit("foo"));
+    }
+
+    @Test
+    public void canScaleDownAndScaleUpLimits() {
+        QosClientConfigLoader qosClientConfigLoader = QosClientConfigLoader.create(() -> ImmutableMap.of("foo",
+                ImmutableQosClientLimitsConfig.builder()
+                        .clientPriority(QosPriority.MEDIUM)
+                        .limits(ImmutableQosLimitsConfig.builder()
+                                .readBytesPerSecond(100)
+                                .writeBytesPerSecond(20)
+                                .build())
+                        .build()));
+        CassandraMetricsClientLimitMultiplier clientLimitMultiplier = mock(CassandraMetricsClientLimitMultiplier.class);
+        resource = new QosResource(qosClientConfigLoader, clientLimitMultiplier);
+        when(clientLimitMultiplier.getClientLimitMultiplier(QosPriority.MEDIUM)).thenReturn(1.0, 1.0, 0.5, 0.5, 0.55, 0.55);
+        assertEquals(100L, resource.readLimit("foo"));
+        assertEquals(20L, resource.writeLimit("foo"));
+        assertEquals(50L, resource.readLimit("foo"));
+        assertEquals(10L, resource.writeLimit("foo"));
+        assertEquals(55L, resource.readLimit("foo"));
+        assertEquals(11L, resource.writeLimit("foo"));
     }
 
     private Map<String, QosClientLimitsConfig> configWithLimits(Map<String, Long> limits) {

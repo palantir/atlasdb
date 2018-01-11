@@ -22,12 +22,17 @@ runtime:
       clientPriority: LOW
   qos-cassandra-metrics:
     cassandra-health-metrics:
-
       - type: CommitLog
         name: PendingTasks
         attribute: Value
         lowerLimit: 0
         upperLimit: 50
+      - type: CommitLog
+        name: TotalCommitLogSize
+        attribute: Value
+        lowerLimit: 0
+        upperLimit: 1000
+
 install:
   qos-cassandra-metrics:
     cassandra-service-config:
