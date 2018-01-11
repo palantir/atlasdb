@@ -18,7 +18,7 @@ package com.palantir.atlasdb.qos.ratelimit;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -39,37 +39,36 @@ public class CassandraMetricMeasurementsLoader {
     private List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements;
 
     public CassandraMetricMeasurementsLoader(Supplier<List<CassandraHealthMetric>> cassandraHealthMetrics,
-            CassandraMetricsService cassandraMetricClient) {
+            CassandraMetricsService cassandraMetricClient, ScheduledExecutorService scheduledExecutorService) {
         this.cassandraHealthMetrics = cassandraHealthMetrics;
         this.cassandraMetricClient = cassandraMetricClient;
-        Executors.newSingleThreadScheduledExecutor()
-                .scheduleWithFixedDelay(this::loadCassandraMetrics, 5, 5, TimeUnit.SECONDS);
+        this.cassandraHealthMetricMeasurements = new ArrayList<>();
+        scheduledExecutorService
+                .scheduleWithFixedDelay(() -> {
+                    try {
+                        loadCassandraMetrics();
+                    } catch (Exception e) {
+                        log.error("Failed to refresh the cassandra metrics."
+                                + " Extended periods of being unable to refresh will hinder QoS of all clients.", e);
+                    }
+                }, 0, 5, TimeUnit.SECONDS);
     }
 
     private void loadCassandraMetrics() {
-        try {
-           cassandraHealthMetricMeasurements = cassandraHealthMetrics.get().stream().map(metric ->
-                    ImmutableCassandraHealthMetricMeasurement.builder()
-                            .currentValue(cassandraMetricClient.getMetric(
-                                    metric.type(),
-                                    metric.name(),
-                                    metric.attribute(),
-                                    metric.additionalParams()))
-                            .lowerLimit(metric.lowerLimit())
-                            .upperLimit(metric.upperLimit())
-                            .build())
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            cassandraHealthMetricMeasurements = new ArrayList<>();
-            log.error("Failed to refresh the cassandra metrics."
-                    + " Extended periods of being unable to refresh will hinder QoS of all clients.", e);
-        }
+        cassandraHealthMetricMeasurements = this.cassandraHealthMetrics.get().stream().map(metric ->
+                ImmutableCassandraHealthMetricMeasurement.builder()
+                        .currentValue(this.cassandraMetricClient.getMetric(
+                                metric.type(),
+                                metric.name(),
+                                metric.attribute(),
+                                metric.additionalParams()))
+                        .lowerLimit(metric.lowerLimit())
+                        .upperLimit(metric.upperLimit())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     public List<CassandraHealthMetricMeasurement> getCassandraHealthMetricMeasurements() {
-        if (cassandraHealthMetricMeasurements == null) {
-            loadCassandraMetrics();
-        }
         return cassandraHealthMetricMeasurements;
     }
 }
