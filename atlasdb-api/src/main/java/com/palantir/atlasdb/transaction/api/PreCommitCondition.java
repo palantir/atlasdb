@@ -18,8 +18,16 @@ package com.palantir.atlasdb.transaction.api;
 
 public interface PreCommitCondition {
 
+    /**
+     * Checks that the condition is valid at the given timestamp, otherwise throws. If the condition is not valid,
+     * the transaction will not be committed.
+     */
     void throwIfConditionInvalid(long timestamp);
 
+    /**
+     * Cleans up any state managed by this condition, e.g. a lock that should be held for the lifetime of the
+     * transaction. Conditions last the lifetime of a particular transaction and will be cleaned up on each retry.
+     */
     void cleanup();
 
     PreCommitCondition NO_OP = new PreCommitCondition() {

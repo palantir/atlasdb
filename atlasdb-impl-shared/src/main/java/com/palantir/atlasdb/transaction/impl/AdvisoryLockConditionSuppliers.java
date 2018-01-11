@@ -83,7 +83,6 @@ public final class AdvisoryLockConditionSuppliers {
                     throw ex;
                 }
                 AbstractTransactionManager.sleepForBackoff(failureCount);
-                continue;
             } else {
                 return response;
             }
