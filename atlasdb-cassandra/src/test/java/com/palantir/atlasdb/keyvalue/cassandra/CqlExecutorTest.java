@@ -63,7 +63,7 @@ public class CqlExecutorTest {
 
         CqlPreparedResult preparedResult = new CqlPreparedResult();
         preparedResult.setItemId(1);
-        when(queryExecutor.prepare(any(), any())).thenReturn(preparedResult);
+        when(queryExecutor.prepare(any(), any(), any())).thenReturn(preparedResult);
 
         when(queryExecutor.executePrepared(eq(1), any())).thenReturn(result);
     }
@@ -75,7 +75,7 @@ public class CqlExecutorTest {
 
         executor.getTimestamps(TABLE_REF, ImmutableList.of(ROW, END_ROW), LIMIT);
 
-        verify(queryExecutor).prepare(argThat(byteBufferMatcher(expected)), any());
+        verify(queryExecutor).prepare(argThat(byteBufferMatcher(expected)), eq(ROW), any());
         verify(queryExecutor).executePrepared(eq(1), eq(ImmutableList.of(ByteBuffer.wrap(ROW))));
 
     }
