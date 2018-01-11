@@ -18,12 +18,14 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.UnavailableException;
@@ -47,6 +49,8 @@ public class CqlExecutorImpl implements CqlExecutor {
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
+        CqlPreparedResult prepare(ByteBuffer query, Compression compression);
+        CqlResult executePrepared(int queryId, List<ByteBuffer> values);
     }
 
     CqlExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
@@ -174,6 +178,27 @@ public class CqlExecutorImpl implements CqlExecutor {
         @Override
         public CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection) {
             return executeQueryOnHost(cqlQuery, getHostForRow(rowHintForHostSelection));
+        }
+
+        @Override
+        public CqlPreparedResult prepare(ByteBuffer query, Compression compression) {
+            try {
+                return clientPool.runWithRetry(client -> client.rawClient().prepare_cql3_query(query, compression));
+            } catch (TException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        }
+
+        @Override
+        public CqlResult executePrepared(int queryId, List<ByteBuffer> values) {
+            try {
+                return clientPool.runWithRetry(client ->
+                        client.rawClient().execute_prepared_cql3_query(queryId, values, consistency));
+            } catch (UnavailableException e) {
+                throw wrapIfConsistencyAll(e);
+            } catch (TException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
         }
 
         private InetSocketAddress getHostForRow(byte[] row) {
