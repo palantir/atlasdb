@@ -46,8 +46,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     public abstract int getPort();
 
     @Override
-    @Value.Derived
-    @JsonIgnore
+    @Value.Default
     public String getUrl() {
         if (getServerDn().isPresent()) {
             return String.format("jdbc:oracle:thin:@(DESCRIPTION=" +

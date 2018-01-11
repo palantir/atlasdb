@@ -29,11 +29,10 @@ import com.palantir.sql.Connections;
  */
 public enum DBType {
     // AJ: the oracle jdbc url is missing a final "paren" - processing in DBMgr will fix this...
-    ORACLE("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL={PROTOCOL})(HOST={HOST})(PORT={PORT}))(CONNECT_DATA=(SID={SID}))", "oracle.jdbc.driver.OracleDriver", "SELECT 1 FROM dual", true),
-    POSTGRESQL("jdbc:postgresql://{HOST}:{PORT}/{DBNAME}", "org.postgresql.Driver", "SELECT 1", true),
-    H2_MEMORY("jdbc:h2:mem:", "org.h2.Driver", "SELECT 1", true);
+    ORACLE("oracle.jdbc.driver.OracleDriver", "SELECT 1 FROM dual", true),
+    POSTGRESQL("org.postgresql.Driver", "SELECT 1", true),
+    H2_MEMORY("org.h2.Driver", "SELECT 1", true);
 
-    private final String defaultUrl;
     private final String driver;
     private final String testQuery;
     private final boolean hasGIS;
@@ -42,15 +41,10 @@ public enum DBType {
         return hasGIS;
     }
 
-    private DBType(String defaultUrl, String driver, String testQuery, boolean hasGIS) {
-        this.defaultUrl = defaultUrl;
+    private DBType(String driver, String testQuery, boolean hasGIS) {
         this.driver = driver;
         this.testQuery = testQuery;
         this.hasGIS = hasGIS;
-    }
-
-    public String getDefaultUrl() {
-        return defaultUrl;
     }
 
     public String getDriverName() {
