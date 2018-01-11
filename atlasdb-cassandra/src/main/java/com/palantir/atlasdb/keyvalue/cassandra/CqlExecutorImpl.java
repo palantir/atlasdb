@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -36,6 +37,7 @@ import org.apache.thrift.TException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -194,9 +196,12 @@ public class CqlExecutorImpl implements CqlExecutor {
         private final CassandraClientPool clientPool;
         private final ConsistencyLevel consistency;
 
+        private Map<Integer, InetSocketAddress> hostsPerPreparedQuery;
+
         QueryExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
             this.clientPool = clientPool;
             this.consistency = consistency;
+            this.hostsPerPreparedQuery = Maps.newHashMap();
         }
 
         @Override
@@ -210,7 +215,11 @@ public class CqlExecutorImpl implements CqlExecutor {
                     client.rawClient().prepare_cql3_query(query, compression);
 
             try {
-                return clientPool.runWithRetryOnHost(getHostForRow(rowHintForHostSelection), prepareFunction);
+                InetSocketAddress hostForRow = getHostForRow(rowHintForHostSelection);
+                CqlPreparedResult preparedResult = clientPool.runWithRetryOnHost(hostForRow,
+                        prepareFunction);
+                hostsPerPreparedQuery.put(preparedResult.getItemId(), hostForRow);
+                return preparedResult;
             } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
             }
@@ -220,8 +229,10 @@ public class CqlExecutorImpl implements CqlExecutor {
         public CqlResult executePrepared(int queryId, List<ByteBuffer> values) {
             FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction = client ->
                     client.rawClient().execute_prepared_cql3_query(queryId, values, consistency);
-            byte[] rowHintForHostSelection = values.get(0).array();
-            return executeFunctionOnHost(cqlFunction, getHostForRow(rowHintForHostSelection));
+
+            InetSocketAddress host = hostsPerPreparedQuery.getOrDefault(queryId, getHostForRow(values.get(0).array()));
+
+            return executeFunctionOnHost(cqlFunction, host);
         }
 
         private InetSocketAddress getHostForRow(byte[] row) {
