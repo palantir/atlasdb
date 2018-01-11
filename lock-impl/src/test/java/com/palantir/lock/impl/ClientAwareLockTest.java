@@ -26,12 +26,16 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.concurrent.InterruptibleFuture;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.StringLockDescriptor;
@@ -42,6 +46,7 @@ import com.palantir.remoting3.tracing.Tracers;
  *
  * @author jtamer
  */
+@ShouldRetry
 public final class ClientAwareLockTest {
 
     private static final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
@@ -54,6 +59,9 @@ public final class ClientAwareLockTest {
     private KnownClientLock knownClientReadLock;
     private KnownClientLock knownClientWriteLock;
     private CyclicBarrier barrier;
+
+    @Rule
+    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     /** Sets up the tests. */
     @Before public void setUp() {

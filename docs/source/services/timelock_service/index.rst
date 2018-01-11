@@ -3,12 +3,6 @@
 External Timelock Service
 =========================
 
-.. danger::
-
-   Running external timestamp and lock services is currently an experimental feature.
-   Improperly configuring one's cluster to use external timestamp and lock services can result in **SEVERE DATA
-   CORRUPTION**! Please contact the AtlasDB team if you wish to try this feature.
-
 .. toctree::
     :maxdepth: 1
     :titlesonly:
@@ -35,3 +29,5 @@ services embedded within one's clients) provides several benefits:
   difficult.
 - Timelock Services can be run in clustered mode, allowing for high availability as long as a majority quorum of nodes
   exists.
+- AtlasDB client services running in HA mode may potentially become stateless, possibly simplifying deployability,
+  availability and backup stories. Previously, these services would keep track of Paxos information on the local disk.

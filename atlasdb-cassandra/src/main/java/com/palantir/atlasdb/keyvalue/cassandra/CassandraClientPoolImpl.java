@@ -17,8 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -26,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -34,22 +31,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.NotFoundException;
-import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.TokenRange;
-import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
 
-import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -68,12 +58,10 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -130,23 +118,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-    private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
-            + " Error writing to Cassandra socket."
-            + " Likely cause: Exceeded maximum thrift frame size;"
-            + " unlikely cause: network issues.";
-    /**
-     * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
-     * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
-     */
-    @VisibleForTesting
-    static final int MAX_TRIES_SAME_HOST = 3;
 
-    @VisibleForTesting
-    static final int MAX_TRIES_TOTAL = 6;
     @VisibleForTesting
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
 
-    private Blacklist blacklist = new Blacklist();
+    private final Blacklist blacklist;
+    private final CassandraRequestExceptionHandler exceptionHandler;
 
     final TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
     private final CassandraKeyValueServiceConfig config;
@@ -154,9 +131,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final StartupChecks startupChecks;
     private final QosClient qosClient;
     private final ScheduledExecutorService refreshDaemon;
-    private final MetricsManager metricsManager = new MetricsManager();
-    private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
-    private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+    private final CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics();
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private List<InetSocketAddress> cassandraHosts;
@@ -164,30 +139,48 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks) {
-        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.INSTANCE);
+            StartupChecks startupChecks,
+            Blacklist blacklist) {
+        return create(config,
+                startupChecks,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                FakeQosClient.INSTANCE,
+                blacklist);
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
         return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.INSTANCE);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync,
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config,
+            boolean initializeAsync,
             QosClient qosClient) {
-        CassandraClientPoolImpl cassandraClientPool = create(config, StartupChecks.RUN, initializeAsync, qosClient);
+        CassandraClientPoolImpl cassandraClientPool = create(config,
+                StartupChecks.RUN,
+                initializeAsync,
+                qosClient,
+                new Blacklist(config));
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
     private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks, boolean initializeAsync, QosClient qosClient) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks, qosClient);
+            StartupChecks startupChecks,
+            boolean initializeAsync,
+            QosClient qosClient,
+            Blacklist blacklist) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config,
+                startupChecks,
+                qosClient,
+                blacklist);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
     }
 
-
-    private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks,
-            QosClient qosClient) {
+    private CassandraClientPoolImpl(
+            CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks,
+            QosClient qosClient,
+            Blacklist blacklist) {
         this.config = config;
         this.startupChecks = startupChecks;
         this.qosClient = qosClient;
@@ -195,6 +188,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build()));
+        this.blacklist = blacklist;
+        this.exceptionHandler = new CassandraRequestExceptionHandler(
+                this::getMaxRetriesPerHost, this::getMaxTriesTotal, blacklist);
     }
 
     private void tryInitialize() {
@@ -217,11 +213,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             runOneTimeStartupChecks();
         }
         refreshPool(); // ensure we've initialized before returning
-        registerAggregateMetrics();
+        metrics.registerAggregateMetrics(blacklist::size);
     }
 
     private void cleanUpOnInitFailure() {
-        metricsManager.deregisterMetrics();
+        metrics.deregisterMetrics();
         refreshPoolFuture.cancel(true);
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
@@ -233,12 +229,21 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         refreshDaemon.shutdown();
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
-        metricsManager.deregisterMetrics();
+        metrics.deregisterMetrics();
+    }
+
+    /**
+     * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
+     * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
+     */
+    @VisibleForTesting
+    int getMaxRetriesPerHost() {
+        return 3;
     }
 
     @VisibleForTesting
-    Blacklist getBlacklist() {
-        return blacklist;
+    int getMaxTriesTotal() {
+        return 6;
     }
 
     @Override
@@ -251,20 +256,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         tokenRangeWritesLogger.markWritesForTable(entries.keySet(), tableRef);
     }
 
-    private void registerAggregateMetrics() {
-        metricsManager.registerMetric(
-                CassandraClientPool.class, "numBlacklistedHosts",
-                () -> blacklist.size());
-        metricsManager.registerMetric(
-                CassandraClientPool.class, "requestFailureProportion",
-                aggregateMetrics::getExceptionProportion);
-        metricsManager.registerMetric(
-                CassandraClientPool.class, "requestConnectionExceptionProportion",
-                aggregateMetrics::getConnectionExceptionProportion);
-    }
-
     private synchronized void refreshPool() {
-        checkAndUpdateBlacklist();
+        blacklist.checkAndUpdate(getCurrentPools());
 
         Set<InetSocketAddress> serversToAdd = Sets.newHashSet(config.servers());
         Set<InetSocketAddress> serversToRemove = ImmutableSet.of();
@@ -329,7 +322,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             StringBuilder currentState = new StringBuilder();
             currentState.append(
                     String.format("POOL STATUS: Current blacklist = %s,%n current hosts in pool = %s%n",
-                    blacklist.getBlacklistedHosts().keySet().toString(), currentPools.keySet().toString()));
+                            blacklist.describeBlacklistedHosts(),
+                            currentPools.keySet().toString()));
             for (Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
                 int activeCheckouts = entry.getValue().getActiveCheckouts();
                 int totalAllowed = entry.getValue().getPoolSize();
@@ -341,37 +335,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                                 totalAllowed > 0 ? Integer.toString(totalAllowed) : "(not bounded)"));
             }
             log.debug("Current pool state: {}", currentState.toString());
-        }
-    }
-
-    private void checkAndUpdateBlacklist() {
-        // Check blacklist and re-integrate or continue to wait as necessary
-        for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklist.getBlacklistedHosts().entrySet()) {
-            long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
-            if (blacklistedEntry.getValue() + backoffTimeMillis < System.currentTimeMillis()) {
-                InetSocketAddress host = blacklistedEntry.getKey();
-                if (isHostHealthy(host)) {
-                    blacklist.remove(host);
-                    log.info("Added host {} back into the pool after a waiting period and successful health check.",
-                            SafeArg.of("host", CassandraLogHelper.host(host)));
-                }
-            }
-        }
-    }
-
-    private boolean isHostHealthy(InetSocketAddress host) {
-        try {
-            CassandraClientPoolingContainer testingContainer = currentPools.get(host);
-            testingContainer.runWithPooledResource(describeRing);
-            testingContainer.runWithPooledResource(validatePartitioner);
-            return true;
-        } catch (Exception e) {
-            log.warn("We tried to add {} back into the pool, but got an exception"
-                            + " that caused us to distrust this host further. Exception message was: {} : {}",
-                    SafeArg.of("host", CassandraLogHelper.host(host)),
-                    SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
-                    UnsafeArg.of("exceptionMessage", e.getMessage()));
-            return false;
         }
     }
 
@@ -392,7 +355,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return Optional.empty();
         }
 
-        Set<InetSocketAddress> livingHosts = Sets.difference(filteredHosts, blacklist.getBlacklistedHosts().keySet());
+        Set<InetSocketAddress> livingHosts = blacklist.filterBlacklistedHostsFrom(filteredHosts);
         if (livingHosts.isEmpty()) {
             log.warn("There are no known live hosts in the connection pool matching the predicate. We're choosing"
                     + " one at random in a last-ditch attempt at forward progress.");
@@ -415,16 +378,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return getRandomGoodHost().getHost();
         }
 
-        Set<InetSocketAddress> liveOwnerHosts = Sets.difference(
-                ImmutableSet.copyOf(hostsForKey),
-                blacklist.getBlacklistedHosts().keySet());
+        Set<InetSocketAddress> liveOwnerHosts = blacklist.filterBlacklistedHostsFrom(hostsForKey);
 
         if (liveOwnerHosts.isEmpty()) {
             log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
                     + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
                     + " Current host blacklist is {}."
                     + " Current state logged at TRACE",
-                    SafeArg.of("blacklistedHosts", CassandraLogHelper.blacklistedHosts(blacklist)));
+                    SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
             log.trace("Current ring view is: {}.",
                     SafeArg.of("tokenMap", CassandraLogHelper.tokenMap(tokenMap)));
             return getRandomGoodHost().getHost();
@@ -464,7 +425,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
             if (thisHostResponded) {
                 try {
-                    runOnHost(host, validatePartitioner);
+                    runOnHost(host, getValidatePartitioner());
                 } catch (Exception e) {
                     aliveButInvalidPartitionerHosts.put(host, e);
                 }
@@ -532,7 +493,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     ImmutableRangeMap.builder();
 
             // grab latest token ring view from a random node in the cluster
-            List<TokenRange> tokenRanges = getRandomGoodHost().runWithPooledResource(describeRing);
+            List<TokenRange> tokenRanges = getRandomGoodHost().runWithPooledResource(getDescribeRing());
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
@@ -563,14 +524,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =
-            new FunctionCheckedException<CassandraClient, List<TokenRange>, Exception>() {
-                @Override
-                public List<TokenRange> apply(CassandraClient client) throws Exception {
-                    return client.rawClient().describe_ring(config.getKeyspaceOrThrow());
-                }
-            };
-
     @Override
     public <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         return runWithRetryOnHost(getRandomGoodHost().getHost(), fn);
@@ -580,55 +533,37 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     public <V, K extends Exception> V runWithRetryOnHost(
             InetSocketAddress specifiedHost,
             FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        int numTries = 0;
-        boolean shouldRetryOnDifferentHost = false;
-        Set<InetSocketAddress> triedHosts = Sets.newHashSet();
+        RetryableCassandraRequest<V, K> req = new RetryableCassandraRequest<>(specifiedHost, fn);
+
         while (true) {
             if (log.isTraceEnabled()) {
                 log.trace("Running function on host {}.",
-                        SafeArg.of("host", CassandraLogHelper.host(specifiedHost)));
+                        SafeArg.of("host", CassandraLogHelper.host(req.getPreferredHost())));
             }
-            CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
-
-            if (blacklist.contains(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
-                InetSocketAddress previousHostPool = hostPool == null ? specifiedHost : hostPool.getHost();
-                Optional<CassandraClientPoolingContainer> hostPoolCandidate
-                        = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
-                hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
-                log.warn("Randomly redirected a query intended for host {} to {}.",
-                        SafeArg.of("previousHost", CassandraLogHelper.host(previousHostPool)),
-                        SafeArg.of("randomHost", CassandraLogHelper.host(hostPool.getHost())));
-            }
+            CassandraClientPoolingContainer hostPool = getPreferredHostOrFallBack(req);
 
             try {
-                return runWithPooledResourceRecordingMetrics(hostPool, fn);
-            } catch (Exception e) {
-                numTries++;
-                triedHosts.add(hostPool.getHost());
-                this.<K>handleException(numTries, hostPool.getHost(), e);
-                if (isRetriableWithBackoffException(e)) {
-                    // And value between -500 and +500ms to backoff to better spread load on failover
-                    int sleepDuration = numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
-                    log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
-                            UnsafeArg.of("queryString", fn.toString()),
-                            SafeArg.of("sleepDuration", sleepDuration),
-                            SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
-
-                    try {
-                        Thread.sleep(sleepDuration);
-                    } catch (InterruptedException i) {
-                        throw new RuntimeException(i);
-                    }
-                    if (numTries >= MAX_TRIES_SAME_HOST) {
-                        shouldRetryOnDifferentHost = true;
-                    }
-                } else if (isFastFailoverException(e)) {
-                    log.info("Retrying with fast failover a query intended for host {}.",
-                            SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
-                    shouldRetryOnDifferentHost = true;
-                }
+                return runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
+            } catch (Exception ex) {
+                exceptionHandler.handleRequest(req, hostPool.getHost(), ex);
             }
         }
+    }
+
+    private <V, K extends Exception> CassandraClientPoolingContainer getPreferredHostOrFallBack(
+            RetryableCassandraRequest<V, K> req) {
+        CassandraClientPoolingContainer hostPool = currentPools.get(req.getPreferredHost());
+
+        if (blacklist.contains(req.getPreferredHost()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
+            InetSocketAddress previousHost = hostPool == null ? req.getPreferredHost() : hostPool.getHost();
+            Optional<CassandraClientPoolingContainer> hostPoolCandidate
+                    = getRandomGoodHostForPredicate(address -> !req.alreadyTriedOnHost(address));
+            hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
+            log.warn("Randomly redirected a query intended for host {} to {}.",
+                    SafeArg.of("previousHost", CassandraLogHelper.host(previousHost)),
+                    SafeArg.of("randomHost", CassandraLogHelper.host(hostPool.getHost())));
+        }
+        return hostPool;
     }
 
     @Override
@@ -647,74 +582,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraClientPoolingContainer hostPool,
             FunctionCheckedException<CassandraClient, V, K> fn) throws K {
 
-        recordRequestOnHost(hostPool);
+        metrics.recordRequestOnHost(hostPool);
         try {
             return hostPool.runWithPooledResource(fn);
         } catch (Exception e) {
-            recordExceptionOnHost(hostPool);
-            if (isConnectionException(e)) {
-                recordConnectionExceptionOnHost(hostPool);
+            metrics.recordExceptionOnHost(hostPool);
+            if (CassandraRequestExceptionHandler.isConnectionException(e)) {
+                metrics.recordConnectionExceptionOnHost(hostPool);
             }
             throw e;
-        }
-    }
-
-    private void recordRequestOnHost(CassandraClientPoolingContainer hostPool) {
-        updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequest);
-    }
-
-    private void recordExceptionOnHost(CassandraClientPoolingContainer hostPool) {
-        updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequestException);
-    }
-
-    private void recordConnectionExceptionOnHost(CassandraClientPoolingContainer hostPool) {
-        updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequestConnectionException);
-    }
-
-    private void updateMetricOnAggregateAndHost(
-            CassandraClientPoolingContainer hostPool,
-            Consumer<RequestMetrics> metricsConsumer) {
-        metricsConsumer.accept(aggregateMetrics);
-        RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getHost());
-        if (requestMetricsForHost != null) {
-            metricsConsumer.accept(requestMetricsForHost);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception ex) throws K {
-        if (isRetriableException(ex) || isRetriableWithBackoffException(ex) || isFastFailoverException(ex)) {
-            if (numTries >= MAX_TRIES_TOTAL) {
-                if (ex instanceof TTransportException
-                        && ex.getCause() != null
-                        && (ex.getCause().getClass() == SocketException.class)) {
-                    log.error(CONNECTION_FAILURE_MSG, numTries, ex);
-                    String errorMsg = MessageFormatter.format(CONNECTION_FAILURE_MSG, numTries).getMessage();
-                    throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
-                } else {
-                    log.error("Tried to connect to cassandra {} times.", SafeArg.of("numTries", numTries), ex);
-                    throw (K) ex;
-                }
-            } else {
-                // Only log the actual exception the first time
-                if (numTries > 1) {
-                    log.info("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
-                            SafeArg.of("numTries", numTries),
-                            SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
-                            SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
-                            UnsafeArg.of("exceptionMessage", ex.getMessage()));
-                } else {
-                    log.info("Error occurred talking to cassandra. Attempt {} of {}.",
-                            SafeArg.of("numTries", numTries),
-                            SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
-                            ex);
-                }
-                if (isConnectionException(ex) && numTries >= MAX_TRIES_SAME_HOST) {
-                    blacklist.add(host);
-                }
-            }
-        } else {
-            throw (K) ex;
         }
     }
 
@@ -787,56 +663,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    @VisibleForTesting
-    static boolean isConnectionException(Throwable ex) {
-        return ex != null
-                && (ex instanceof SocketTimeoutException
-                || ex instanceof ClientCreationFailedException
-                || isConnectionException(ex.getCause()));
-    }
-
-    @VisibleForTesting
-    static boolean isRetriableException(Throwable ex) {
-        return ex != null
-                && (ex instanceof TTransportException
-                || ex instanceof TimedOutException
-                || ex instanceof InsufficientConsistencyException
-                || isConnectionException(ex)
-                || isRetriableException(ex.getCause()));
-    }
-
-    @VisibleForTesting
-    static boolean isRetriableWithBackoffException(Throwable ex) {
-        return ex != null
-                // pool for this node is fully in use
-                && (ex instanceof NoSuchElementException
-                // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
-                || ex instanceof UnavailableException
-                // tcp socket timeout, possibly indicating network flake, long GC, or restarting server
-                || isConnectionException(ex)
-                || isRetriableWithBackoffException(ex.getCause()));
-    }
-
-    @VisibleForTesting
-    static boolean isFastFailoverException(Throwable ex) {
-        return ex != null
-                // underlying cassandra table does not exist. The table might exist on other cassandra nodes.
-                && (ex instanceof InvalidRequestException
-                || isFastFailoverException(ex.getCause()));
-    }
-
-    private final FunctionCheckedException<CassandraClient, Void, Exception> validatePartitioner =
-            new FunctionCheckedException<CassandraClient, Void, Exception>() {
-                @Override
-                public Void apply(CassandraClient client) throws Exception {
-                    CassandraVerifier.validatePartitioner(client.rawClient().describe_partitioner(), config);
-                    return null;
-                }
-            };
-
     @Override
     public FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner() {
-        return validatePartitioner;
+        return CassandraUtils.getValidatePartitioner(config);
+    }
+
+    private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> getDescribeRing() {
+        return CassandraUtils.getDescribeRing(config);
     }
 
     /**
@@ -896,43 +729,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         // This basically exists for testing
         InetSocketAddress getRandomHostInternal(int index) {
             return hosts.higherEntry(index).getValue();
-        }
-    }
-
-    private class RequestMetrics {
-        private final Meter totalRequests;
-        private final Meter totalRequestExceptions;
-        private final Meter totalRequestConnectionExceptions;
-
-        RequestMetrics(String metricPrefix) {
-            totalRequests = metricsManager.registerOrGetMeter(
-                    CassandraClientPool.class, metricPrefix, "requests");
-            totalRequestExceptions = metricsManager.registerOrGetMeter(
-                    CassandraClientPool.class, metricPrefix, "requestExceptions");
-            totalRequestConnectionExceptions = metricsManager.registerOrGetMeter(
-                    CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
-        }
-
-        void markRequest() {
-            totalRequests.mark();
-        }
-
-        void markRequestException() {
-            totalRequestExceptions.mark();
-        }
-
-        void markRequestConnectionException() {
-            totalRequestConnectionExceptions.mark();
-        }
-
-        // Approximate
-        double getExceptionProportion() {
-            return ((double) totalRequestExceptions.getCount()) / ((double) totalRequests.getCount());
-        }
-
-        // Approximate
-        double getConnectionExceptionProportion() {
-            return ((double) totalRequestConnectionExceptions.getCount()) / ((double) totalRequests.getCount());
         }
     }
 

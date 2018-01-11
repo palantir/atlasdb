@@ -149,15 +149,13 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
 
     private static Optional<SweepProgress> hydrateProgress(Map<Cell, Value> result) {
         if (result.isEmpty()) {
-            log.info("No persisted intermittent SweepProgress information found. "
-                    + "Sweep will choose a new table to sweep.");
+            log.info("No persisted SweepProgress information found.");
             return Optional.empty();
         }
         try {
             return Optional.of(OBJECT_MAPPER.readValue(result.get(CELL).getContents(), SweepProgress.class));
         } catch (Exception e) {
-            log.warn("Error deserializing SweepProgress object while attempting to load intermediate result. "
-                    + "Sweep will choose a new table to sweep.", e);
+            log.warn("Error deserializing SweepProgress object.", e);
             return Optional.empty();
         }
     }
