@@ -207,7 +207,6 @@ Throughout this document, we assume the AtlasDB client you are trying to reverse
 <li>Shut down your AtlasDB clients for <code class="docutils literal"><span class="pre">client</span></code> .</li>
 <li>Take a restore timestamp.</li>
 <li>Revert your AtlasDB client configuration.</li>
-<li>Remove your client from the list of TimeLock clients.</li>
 <li>Restart the TimeLock servers.</li>
 <li>Update your key-value service to the restore timestamp.</li>
 <li>Start your AtlasDB clients.</li>
@@ -224,7 +223,7 @@ together issue monotonically increasing timestamps.</p>
 of timestamps across TimeLock and the key-value service backed services is monotonically increasing.</p>
 <p>This can be obtained using <code class="docutils literal"><span class="pre">curl</span></code> as follows. Note that if you obtain an HTTP 503 error, this is because you curled a
 node that was not the leader; please try the other nodes.</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>$ curl -XPOST https://&lt;timelock-host&gt;:8421/client/timestamp/fresh-timestamp
+<div class="highlight-none"><div class="highlight"><pre><span></span>$ curl -XPOST https://&lt;timelock-host&gt;:8421/timelock/api/client/timestamp/fresh-timestamp
 123456789
 </pre></div>
 </div>
@@ -235,26 +234,13 @@ node that was not the leader; please try the other nodes.</p>
 <p>Remove the <code class="docutils literal"><span class="pre">timelock</span></code> block from your AtlasDB client configurations. For more detail on options
 for using embedded timestamp and lock services, please consult <a class="reference internal" href="../../configuration/leader_config.html#leader-config"><span class="std std-ref">Leader Config</span></a>.</p>
 </div>
-<div class="section" id="step-4-reconfigure-timelock">
-<h2>Step 4: Reconfigure TimeLock<a class="headerlink" href="#step-4-reconfigure-timelock" title="Permalink to this headline">¶</a></h2>
-<p>Remove <code class="docutils literal"><span class="pre">client</span></code> from the <code class="docutils literal"><span class="pre">clients</span></code> block of your TimeLock server configuration.</p>
-</div>
-<div class="section" id="step-5-start-your-timelock-servers">
-<h2>Step 5: Start your TimeLock Servers<a class="headerlink" href="#step-5-start-your-timelock-servers" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="step-4-start-your-timelock-servers">
+<h2>Step 4: Start your TimeLock Servers<a class="headerlink" href="#step-4-start-your-timelock-servers" title="Permalink to this headline">¶</a></h2>
 <p>Start your TimeLock servers. Other services that were still dependent on TimeLock (if any) should now
-work normally. To verify that your client no longer uses TimeLock, it may be useful to curl the fresh-timestamp
-endpoint for your node, expecting a <code class="docutils literal"><span class="pre">NotFoundException</span></code> :</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>$ curl -XPOST https://&lt;timelock-host&gt;:8421/client/timestamp/fresh-timestamp
-{
-  &quot;message&quot; : &quot;d37a5956-c492-4a3b-a057-b7b4ea557043&quot;,
-  &quot;exceptionClass&quot; : &quot;javax.ws.rs.NotFoundException&quot;,
-  &quot;stackTrace&quot; : null
-}
-</pre></div>
+work normally. This step is placed here to minimise downtime for other services that may be running against TimeLock.</p>
 </div>
-</div>
-<div class="section" id="step-6-update-your-key-value-service">
-<h2>Step 6: Update your Key-Value Service<a class="headerlink" href="#step-6-update-your-key-value-service" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="step-5-update-your-key-value-service">
+<h2>Step 5: Update your Key-Value Service<a class="headerlink" href="#step-5-update-your-key-value-service" title="Permalink to this headline">¶</a></h2>
 <p>Update the timestamp table in your key value service, such that it is valid and has the bound set to <code class="docutils literal"><span class="pre">TS</span></code> .
 This will vary depending on your choice of key-value service:</p>
 <ul>
@@ -306,13 +292,13 @@ it suffices to rename the column back:</p>
 </li>
 </ul>
 </div>
-<div class="section" id="step-7-start-your-atlasdb-clients">
-<h2>Step 7: Start your AtlasDB Clients<a class="headerlink" href="#step-7-start-your-atlasdb-clients" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="step-6-start-your-atlasdb-clients">
+<h2>Step 6: Start your AtlasDB Clients<a class="headerlink" href="#step-6-start-your-atlasdb-clients" title="Permalink to this headline">¶</a></h2>
 <p>Finally, start your AtlasDB clients. At this point, it may be useful to perform a simple smoke test to verify that your
 clients work properly or curl the embedded timestamp service to confirm timestamps are greater than your restore
 timestamp from above.</p>
 <blockquote>
-<div><div class="highlight-none"><div class="highlight"><pre><span></span>$ curl -XPOST https://&lt;client-host&gt;:&lt;application-port&gt;/client/timestamp/fresh-timestamp
+<div><div class="highlight-none"><div class="highlight"><pre><span></span>$ curl -XPOST https://&lt;client-host&gt;:&lt;application-port&gt;&lt;application-context-path&gt;/timestamp/fresh-timestamp
 123456790 # greater than restore timestamp
 </pre></div>
 </div>

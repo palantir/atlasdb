@@ -190,12 +190,6 @@
             
   <div class="section" id="external-timelock-service">
 <span id="id1"></span><h1>External Timelock Service<a class="headerlink" href="#external-timelock-service" title="Permalink to this headline">¶</a></h1>
-<div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">Running external timestamp and lock services is currently an experimental feature.
-Improperly configuring one’s cluster to use external timestamp and lock services can result in <strong>SEVERE DATA
-CORRUPTION</strong>! Please contact the AtlasDB team if you wish to try this feature.</p>
-</div>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Timelock Server Installation</a></li>
@@ -221,6 +215,8 @@ had to be run on the same server, and within the same JVM).</li>
 difficult.</li>
 <li>Timelock Services can be run in clustered mode, allowing for high availability as long as a majority quorum of nodes
 exists.</li>
+<li>AtlasDB client services running in HA mode may potentially become stateless, possibly simplifying deployability,
+availability and backup stories. Previously, these services would keep track of Paxos information on the local disk.</li>
 </ul>
 </div>
 

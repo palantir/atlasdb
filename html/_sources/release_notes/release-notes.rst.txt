@@ -63,10 +63,12 @@ develop
     *    - |improved|
          - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
+
     *    - |fixed|
          - Further reduced memory pressure on sweep for Cassandra KVS, by rewriting one of the CQL queries.
            This removes a significant cause of occurrences of Cassandra OOMs that have been seen in the field recently.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2826>`__)
+           However, performance is significantly degraded on tables with few columns and few overwrites.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2826>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2826>`__)
 
     *    - |improved|
          - Sweep stats are updated more often when large writes are being made.
