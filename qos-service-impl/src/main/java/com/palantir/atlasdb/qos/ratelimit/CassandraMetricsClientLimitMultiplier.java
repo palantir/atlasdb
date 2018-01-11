@@ -29,7 +29,8 @@ import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
 import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
 
-public final class CassandraMetricsClientLimitMultiplier implements ClientLimitMultiplier {
+@SuppressWarnings("checkstyle:FinalClass") // Required for testing
+public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultiplier {
     private final ThrottlingStrategy throttlingStrategy;
     private final CassandraMetricMeasurementsLoader cassandraHealthMetrics;
 
