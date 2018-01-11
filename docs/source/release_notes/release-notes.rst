@@ -63,6 +63,7 @@ develop
     *    - |improved|
          - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
+
     *    - |fixed|
          - Further reduced memory pressure on sweep for Cassandra KVS, by rewriting one of the CQL queries.
            This removes a significant cause of occurrences of Cassandra OOMs that have been seen in the field recently.
@@ -82,7 +83,7 @@ develop
          - Safe and Unsafe table name logging args are now different, fixed unreleased bug where tables names were logged as Safe
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2838>`__)
            
-    *    - |logs|
+    *    - |improved| |logs|
          - Messages to the `slow-lock-log` now log at `WARN` rather than `INFO`, these messages can indicate a problem so we should be sure they are visible.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2828>`__)
 
@@ -90,6 +91,12 @@ develop
          - SweepResults.getCellTsPairsExamined now returns the correct result when sweep is run over multiple batches. 
            Previously, the result would only count cell-ts pairs examined in the last batch.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
+
+    *    - |fixed| |userbreak|
+         - AtlasDB will now *fail to start* if a TimeLock block is included in the initial runtime configuration, but the install configuration is set up not to use TimeLock.
+           Previously, AtlasDB would start successfully, but the TimeLock block in the runtime configuration would be silently ignored.
+           Note that the decision on whether to use TimeLock or another source of timestamps and locks is made at install-time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
 
 =======
 v0.72.0
