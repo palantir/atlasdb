@@ -40,13 +40,8 @@ public abstract class AbstractLockAwareTransactionManager
         checkOpen();
         Supplier<AdvisoryLocksCondition> conditionSupplier =
                 AdvisoryLockConditionSuppliers.get(getLockService(), lockTokens, lockSupplier);
-        return runTaskWithConditionWithRetry(conditionSupplier, (transaction, condition) -> {
-            try {
-                return task.execute(transaction, condition.getLocks());
-            } finally {
-                condition.cleanup();
-            }
-        });
+        return runTaskWithConditionWithRetry(conditionSupplier, (transaction, condition) ->
+                task.execute(transaction, condition.getLocks()));
     }
 
     @Override

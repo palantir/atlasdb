@@ -114,8 +114,12 @@ import com.palantir.timestamp.TimestampService;
             C condition, ConditionAwareTransactionTask<T, C, E> task)
             throws E, TransactionFailedRetriableException {
         checkOpen();
-        RawTransaction tx = setupRunTaskWithConditionThrowOnConflict(condition);
-        return finishRunTaskWithLockThrowOnConflict(tx, transaction -> task.execute(transaction, condition));
+        try {
+            RawTransaction tx = setupRunTaskWithConditionThrowOnConflict(condition);
+            return finishRunTaskWithLockThrowOnConflict(tx, transaction -> task.execute(transaction, condition));
+        } finally {
+            condition.cleanup();
+        }
     }
 
     public RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
