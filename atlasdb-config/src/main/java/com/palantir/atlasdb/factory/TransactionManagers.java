@@ -495,6 +495,7 @@ public abstract class TransactionManagers {
             com.google.common.base.Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
+        assertNoSpuriousTimeLockBlockInRuntimeConfig(config, runtimeConfigSupplier);
         if (config.leader().isPresent()) {
             return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
@@ -503,6 +504,20 @@ public abstract class TransactionManagers {
             return createRawServicesFromTimeLock(config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);
+        }
+    }
+
+    private static void assertNoSpuriousTimeLockBlockInRuntimeConfig(
+            AtlasDbConfig config,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
+        // Note: The other direction (timelock install config without a runtime block) should be maintained for
+        // backwards compatibility.
+        AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
+        if (!config.timelock().isPresent() && initialRuntimeConfig.timelockRuntime().isPresent()) {
+            throw new IllegalStateException("Found a service configured not to use timelock, with a timelock"
+                    + " block in the runtime config! This is unexpected. If you wish to use non-timelock services,"
+                    + " please remove the timelock block from the runtime config; if you wish to use timelock,"
+                    + " please add to the install config an empty YAML object for timelock - [timelock: {}]");
         }
     }
 
