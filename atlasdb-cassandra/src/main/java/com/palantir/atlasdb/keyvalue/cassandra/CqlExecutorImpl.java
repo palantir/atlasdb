@@ -53,7 +53,7 @@ public class CqlExecutorImpl implements CqlExecutor {
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
-        CqlPreparedResult prepare(ByteBuffer query, Compression compression);
+        CqlPreparedResult prepare(ByteBuffer query, byte[] rowHintForHostSelection, Compression compression);
         CqlResult executePrepared(int queryId, List<ByteBuffer> values);
     }
 
@@ -75,7 +75,8 @@ public class CqlExecutorImpl implements CqlExecutor {
                 quotedTableName(tableRef).getValue(),
                 limit);
         ByteBuffer queryBytes = ByteBuffer.wrap(preparedSelQuery.getBytes(StandardCharsets.UTF_8));
-        CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, Compression.NONE);
+
+        CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, rowsAscending.get(0), Compression.NONE);
         int queryId = preparedResult.getItemId();
 
         List<CellWithTimestamp> result = Lists.newArrayList();
@@ -204,9 +205,12 @@ public class CqlExecutorImpl implements CqlExecutor {
         }
 
         @Override
-        public CqlPreparedResult prepare(ByteBuffer query, Compression compression) {
+        public CqlPreparedResult prepare(ByteBuffer query, byte[] rowHintForHostSelection, Compression compression) {
+            FunctionCheckedException<CassandraClient, CqlPreparedResult, TException> prepareFunction = client ->
+                    client.rawClient().prepare_cql3_query(query, compression);
+
             try {
-                return clientPool.runWithRetry(client -> client.rawClient().prepare_cql3_query(query, compression));
+                return clientPool.runWithRetryOnHost(getHostForRow(rowHintForHostSelection), prepareFunction);
             } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
             }
@@ -214,14 +218,10 @@ public class CqlExecutorImpl implements CqlExecutor {
 
         @Override
         public CqlResult executePrepared(int queryId, List<ByteBuffer> values) {
-            try {
-                return clientPool.runWithRetry(client ->
-                        client.rawClient().execute_prepared_cql3_query(queryId, values, consistency));
-            } catch (UnavailableException e) {
-                throw wrapIfConsistencyAll(e);
-            } catch (TException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
+            FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction = client ->
+                    client.rawClient().execute_prepared_cql3_query(queryId, values, consistency);
+            byte[] rowHintForHostSelection = values.get(0).array();
+            return executeFunctionOnHost(cqlFunction, getHostForRow(rowHintForHostSelection));
         }
 
         private InetSocketAddress getHostForRow(byte[] row) {
@@ -229,8 +229,13 @@ public class CqlExecutorImpl implements CqlExecutor {
         }
 
         private CqlResult executeQueryOnHost(CqlQuery cqlQuery, InetSocketAddress host) {
+            return executeFunctionOnHost(createCqlFunction(cqlQuery), host);
+        }
+
+        private CqlResult executeFunctionOnHost(
+                FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction, InetSocketAddress host) {
             try {
-                return clientPool.runWithRetryOnHost(host, createCqlFunction(cqlQuery));
+                return clientPool.runWithRetryOnHost(host, cqlFunction);
             } catch (UnavailableException e) {
                 throw wrapIfConsistencyAll(e);
             } catch (TException e) {
