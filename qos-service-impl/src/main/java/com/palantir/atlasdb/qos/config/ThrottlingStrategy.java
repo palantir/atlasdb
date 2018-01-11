@@ -16,9 +16,10 @@
 
 package com.palantir.atlasdb.qos.config;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.function.Supplier;
 
 public interface ThrottlingStrategy {
-    double getClientLimitMultiplier(Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements);
+    double getClientLimitMultiplier(
+            Supplier<Collection<? extends CassandraHealthMetricMeasurement>> metricMeasurements);
 }

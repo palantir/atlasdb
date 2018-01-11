@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.qos.ratelimit;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
@@ -29,7 +29,7 @@ import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
 import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
 
-public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultiplier {
+public final class CassandraMetricsClientLimitMultiplier implements ClientLimitMultiplier {
     private final ThrottlingStrategy throttlingStrategy;
     private final CassandraMetricMeasurementsLoader cassandraHealthMetrics;
 
@@ -50,7 +50,8 @@ public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultipl
                 installConfig.throttlingStrategy());
 
         CassandraMetricMeasurementsLoader cassandraMetricMeasurementsLoader = new CassandraMetricMeasurementsLoader(
-                () -> runtimeConfig.get().cassandraHealthMetrics(), metricsService, Executors.newSingleThreadScheduledExecutor());
+                () -> runtimeConfig.get().cassandraHealthMetrics(), metricsService,
+                Executors.newSingleThreadScheduledExecutor());
         return new CassandraMetricsClientLimitMultiplier(throttlingStrategy, cassandraMetricMeasurementsLoader);
     }
 
@@ -62,7 +63,7 @@ public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultipl
         return throttlingStrategy.getClientLimitMultiplier(getCassandraHealthMetricMeasurements());
     }
 
-    private Supplier<List<CassandraHealthMetricMeasurement>> getCassandraHealthMetricMeasurements() {
+    private Supplier<Collection<? extends CassandraHealthMetricMeasurement>> getCassandraHealthMetricMeasurements() {
         return cassandraHealthMetrics::getCassandraHealthMetricMeasurements;
     }
 }

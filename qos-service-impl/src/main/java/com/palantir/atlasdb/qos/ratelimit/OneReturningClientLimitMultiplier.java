@@ -13,18 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos.ratelimit;
 
 import com.palantir.atlasdb.qos.config.QosPriority;
 
-public class OneReturningClientLimitMultiplier implements ClientLimitMultiplier {
+public enum OneReturningClientLimitMultiplier implements ClientLimitMultiplier {
+    INSTANCE;
+
     @Override
     public double getClientLimitMultiplier(QosPriority qosPriority) {
         return 1.0;
     }
 
     public static ClientLimitMultiplier create() {
-        return new OneReturningClientLimitMultiplier();
+        return INSTANCE;
     }
 }

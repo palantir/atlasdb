@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.qos.config;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
@@ -27,7 +27,8 @@ import net.jcip.annotations.ThreadSafe;
 public class SimpleThrottlingStrategy implements ThrottlingStrategy {
     private static final double ONCE_EVERY_HUNDRED_SECONDS = 0.01;
     private final RateLimiter rateLimiter;
-    @GuardedBy("this") private double multiplier;
+    @GuardedBy("this")
+    private double multiplier;
 
     public SimpleThrottlingStrategy() {
         this.rateLimiter = RateLimiter.create(ONCE_EVERY_HUNDRED_SECONDS);
@@ -35,7 +36,8 @@ public class SimpleThrottlingStrategy implements ThrottlingStrategy {
     }
 
     @Override
-    public double getClientLimitMultiplier(Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements) {
+    public double getClientLimitMultiplier(
+            Supplier<Collection<? extends CassandraHealthMetricMeasurement>> metricMeasurements) {
         if (shouldAdjust()) {
             if (cassandraIsUnhealthy(metricMeasurements)) {
                 halveTheRateMultiplier();
@@ -59,7 +61,8 @@ public class SimpleThrottlingStrategy implements ThrottlingStrategy {
         multiplier = Math.max(0.1, multiplier * 0.5);
     }
 
-    private boolean cassandraIsUnhealthy(Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements) {
+    private boolean cassandraIsUnhealthy(
+            Supplier<Collection<? extends CassandraHealthMetricMeasurement>> metricMeasurements) {
         return metricMeasurements.get().stream()
                 .anyMatch(metricMeasurement -> !metricMeasurement.isMeasurementWithinLimits());
     }

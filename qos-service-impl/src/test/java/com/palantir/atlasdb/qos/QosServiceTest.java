@@ -44,7 +44,8 @@ public class QosServiceTest {
     @Test
     public void defaultsToFixedLimit() {
         QosClientConfigLoader qosClientConfigLoader = QosClientConfigLoader.create(ImmutableMap::of);
-        OneReturningClientLimitMultiplier oneReturningClientLimitMultiplier = new OneReturningClientLimitMultiplier();
+        OneReturningClientLimitMultiplier oneReturningClientLimitMultiplier =
+                OneReturningClientLimitMultiplier.INSTANCE;
         resource = new QosResource(qosClientConfigLoader, oneReturningClientLimitMultiplier);
         assertThat(QosClientLimitsConfig.BYTES_READ_PER_SECOND_PER_CLIENT).isEqualTo(resource.readLimit("foo"));
         assertThat(QosClientLimitsConfig.BYTES_WRITTEN_PER_SECOND_PER_CLIENT).isEqualTo(resource.writeLimit("foo"));
@@ -84,7 +85,8 @@ public class QosServiceTest {
                         .build()));
         CassandraMetricsClientLimitMultiplier clientLimitMultiplier = mock(CassandraMetricsClientLimitMultiplier.class);
         resource = new QosResource(qosClientConfigLoader, clientLimitMultiplier);
-        when(clientLimitMultiplier.getClientLimitMultiplier(QosPriority.MEDIUM)).thenReturn(1.0, 1.0, 0.5, 0.5, 0.25, 0.25);
+        when(clientLimitMultiplier.getClientLimitMultiplier(QosPriority.MEDIUM)).thenReturn(1.0, 1.0, 0.5, 0.5, 0.25,
+                0.25);
         assertEquals(100L, resource.readLimit("foo"));
         assertEquals(20L, resource.writeLimit("foo"));
         assertEquals(50L, resource.readLimit("foo"));
@@ -105,7 +107,8 @@ public class QosServiceTest {
                         .build()));
         CassandraMetricsClientLimitMultiplier clientLimitMultiplier = mock(CassandraMetricsClientLimitMultiplier.class);
         resource = new QosResource(qosClientConfigLoader, clientLimitMultiplier);
-        when(clientLimitMultiplier.getClientLimitMultiplier(QosPriority.MEDIUM)).thenReturn(1.0, 1.0, 0.5, 0.5, 0.55, 0.55);
+        when(clientLimitMultiplier.getClientLimitMultiplier(QosPriority.MEDIUM)).thenReturn(1.0, 1.0, 0.5, 0.5, 0.55,
+                0.55);
         assertEquals(100L, resource.readLimit("foo"));
         assertEquals(20L, resource.writeLimit("foo"));
         assertEquals(50L, resource.readLimit("foo"));

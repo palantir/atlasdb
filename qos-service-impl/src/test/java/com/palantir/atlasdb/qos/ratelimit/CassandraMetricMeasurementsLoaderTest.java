@@ -125,5 +125,4 @@ public class CassandraMetricMeasurementsLoaderTest {
                 .upperLimit(UPPER_LIMIT)
                 .build();
     }
-
 }

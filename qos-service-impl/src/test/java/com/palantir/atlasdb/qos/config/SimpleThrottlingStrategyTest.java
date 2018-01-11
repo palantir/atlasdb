@@ -18,7 +18,7 @@ package com.palantir.atlasdb.qos.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -38,7 +38,7 @@ public class SimpleThrottlingStrategyTest {
     public void clientLimitMultiplierIsIncreasingForCassandraHealthyIndicatingMetrics() throws Exception {
         SimpleThrottlingStrategy simpleThrottlingStrategy = new SimpleThrottlingStrategy();
 
-        Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements = () -> ImmutableList.of(
+        Supplier<Collection<? extends CassandraHealthMetricMeasurement>> metricMeasurements = () -> ImmutableList.of(
                 getMetricMeasurement(5, 10, 8), getMetricMeasurement(4, 8, 6));
 
         assertThat(simpleThrottlingStrategy.getClientLimitMultiplier(metricMeasurements)).isEqualTo(1.0);
@@ -48,7 +48,7 @@ public class SimpleThrottlingStrategyTest {
     public void clientLimitMultiplierIsDecreasingForOneCassandraUnhealthyIndicatingMetrics() throws Exception {
         SimpleThrottlingStrategy simpleThrottlingStrategy = new SimpleThrottlingStrategy();
 
-        Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements = () -> ImmutableList.of(
+        Supplier<Collection<? extends CassandraHealthMetricMeasurement>> metricMeasurements = () -> ImmutableList.of(
                 getMetricMeasurement(5, 10, 15), getMetricMeasurement(4, 8, 6));
 
         assertThat(simpleThrottlingStrategy.getClientLimitMultiplier(metricMeasurements)).isEqualTo(0.5);
@@ -58,7 +58,7 @@ public class SimpleThrottlingStrategyTest {
     public void clientLimitMultiplierIsDecreasingForAllCassandraUnhealthyIndicatingMetrics() throws Exception {
         SimpleThrottlingStrategy simpleThrottlingStrategy = new SimpleThrottlingStrategy();
 
-        Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements = () -> ImmutableList.of(
+        Supplier<Collection<? extends CassandraHealthMetricMeasurement>> metricMeasurements = () -> ImmutableList.of(
                 getMetricMeasurement(5, 10, 15), getMetricMeasurement(4, 8, 2));
 
         assertThat(simpleThrottlingStrategy.getClientLimitMultiplier(metricMeasurements)).isEqualTo(0.5);
@@ -69,11 +69,11 @@ public class SimpleThrottlingStrategyTest {
             throws Exception {
         SimpleThrottlingStrategy simpleThrottlingStrategy = new SimpleThrottlingStrategy();
 
-        Supplier<List<CassandraHealthMetricMeasurement>> unhealthyMetricMeasurements = () -> ImmutableList.of(
-                getMetricMeasurement(5, 10, 15), getMetricMeasurement(4, 8, 2));
+        Supplier<Collection<? extends CassandraHealthMetricMeasurement>> unhealthyMetricMeasurements = () ->
+                ImmutableList.of(getMetricMeasurement(5, 10, 15), getMetricMeasurement(4, 8, 2));
 
-        Supplier<List<CassandraHealthMetricMeasurement>> healthyMetricMeasurements = () -> ImmutableList.of(
-                getMetricMeasurement(5, 10, 8), getMetricMeasurement(4, 8, 6));
+        Supplier<Collection<? extends CassandraHealthMetricMeasurement>> healthyMetricMeasurements = () ->
+                ImmutableList.of(getMetricMeasurement(5, 10, 8), getMetricMeasurement(4, 8, 6));
 
         assertThat(simpleThrottlingStrategy.getClientLimitMultiplier(unhealthyMetricMeasurements)).isEqualTo(0.5);
         Uninterruptibles.sleepUninterruptibly(100, TimeUnit.SECONDS);
