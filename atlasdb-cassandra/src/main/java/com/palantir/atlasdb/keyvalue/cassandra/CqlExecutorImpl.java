@@ -19,6 +19,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -32,6 +34,8 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -67,9 +71,28 @@ public class CqlExecutorImpl implements CqlExecutor {
             TableReference tableRef,
             List<byte[]> rowsAscending,
             int limit) {
-        String selQuery = "SELECT key, column1, column2 FROM %s WHERE key IN (%s) LIMIT %s;";
-        CqlQuery query = new CqlQuery(selQuery, quotedTableName(tableRef), keys(rowsAscending), limit(limit));
-        return executeAndGetCells(query, rowsAscending.get(0), CqlExecutorImpl::getCellFromRow);
+        String preparedSelQuery = String.format("SELECT key, column1, column2 FROM %s WHERE key = ? LIMIT %d;",
+                quotedTableName(tableRef).getValue(),
+                limit);
+        ByteBuffer queryBytes = ByteBuffer.wrap(preparedSelQuery.getBytes(StandardCharsets.UTF_8));
+        CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, Compression.NONE);
+        int queryId = preparedResult.getItemId();
+
+        List<CellWithTimestamp> result = Lists.newArrayList();
+        Iterator<byte[]> rows = rowsAscending.iterator();
+        while (result.size() < limit && rows.hasNext()) {
+            // We can parallelise this, but would need to collect it carefully to make sure we satisfy the guarantees:
+            // 1. Results are ordered
+            // 2. There are at most <limit> results
+            // 3. We return the first <limit> results
+            // We can ensure this by not applying the limit until after collection, and grouping by row
+            // I think this is ensured later on in the code path?
+            CqlResult cqlResult = queryExecutor.executePrepared(queryId,
+                    ImmutableList.of(ByteBuffer.wrap(rows.next())));
+            result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
+        }
+
+        return result;
     }
 
     private Arg<String> keys(List<byte[]> rowsAscending) {
