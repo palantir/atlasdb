@@ -95,7 +95,7 @@ develop
 
     *    - |new|
          - The JDBC URL for Oracle can now be overridden in the configuration.
-         - (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
 
 =======
 v0.72.0
