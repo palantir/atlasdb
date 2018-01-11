@@ -98,12 +98,6 @@ public class CqlExecutorImpl implements CqlExecutor {
         return result;
     }
 
-    private Arg<String> keys(List<byte[]> rowsAscending) {
-        return UnsafeArg.of("keys",
-                rowsAscending.stream().map(CqlExecutorImpl::getKey)
-                        .collect(Collectors.joining(",")));
-    }
-
     /**
      * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the (column, timestamp)
      * pair represented by ({@code startColumnInclusive}, {@code startTimestampExclusive}).
