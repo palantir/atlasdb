@@ -93,8 +93,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
-import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
+import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -569,7 +569,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         try {
             txManager.runTaskWithLocksThrowOnConflict(ImmutableList.of(getExpiredHeldLocksToken()), task.getRight());
             return Optional.of(task.getLeft());
-        } catch (TransactionFailedRetriableException expected) {
+        } catch (TransactionFailedNonRetriableException expected) {
             return Optional.empty();
         } catch (Exception e) {
             throw Throwables.propagate(e);
@@ -749,7 +749,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
                 return null;
             });
-        } catch (TransactionLockTimeoutException e) {
+        } catch (TransactionLockTimeoutNonRetriableException e) {
             Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
             assertThat(e.getMessage(), containsString(expectedTokens.toString()));
             assertThat(e.getMessage(), containsString("Retry is not possible."));
