@@ -197,6 +197,12 @@ public class TableDefinition extends AbstractDefinition {
         ignoreHotspottingChecks = true;
     }
 
+    /**
+     * Returns the number of components to hash as a prefix to row keys.
+     */
+    public int getNumberOfComponentsHashed() {
+        return numberOfComponentsHashed;
+    }
 
     public void rowComponent(String componentName, ValueType valueType) {
         rowComponent(componentName, valueType, defaultNamedComponentLogSafety);
