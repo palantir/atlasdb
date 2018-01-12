@@ -81,59 +81,6 @@ public class CqlExecutorImpl implements CqlExecutor {
         return executeAndGetCells(query, rowsAscending.get(0), CqlExecutorImpl::getCellFromRow);
     }
 
-    /**
-     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the given
-     * {@code startRowInclusive}, potentially spanning across multiple rows.
-     */
-    @Override
-    public List<CellWithTimestamp> getTimestamps(
-            TableReference tableRef,
-            byte[] startRowInclusive,
-            byte[] endRowInclusive,
-            int limit) {
-        String selQuery = "SELECT key, column1, column2 FROM %s"
-                + " WHERE token(key) >= token(%s) AND token(key) <= token(%s) LIMIT %s;";
-        CqlQuery query = new CqlQuery(
-                selQuery,
-                quotedTableName(tableRef),
-                key(startRowInclusive),
-                key(endRowInclusive),
-                limit(limit));
-
-        return executeAndGetCells(query, startRowInclusive, CqlExecutorImpl::getCellFromRow);
-    }
-
-    private Arg<String> keys(List<byte[]> rowsAscending) {
-        return UnsafeArg.of("keys",
-                rowsAscending.stream().map(CqlExecutorImpl::getKey)
-                        .collect(Collectors.joining(",")));
-    }
-
-    /**
-     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the (column, timestamp)
-     * pair represented by ({@code startColumnInclusive}, {@code startTimestampExclusive}).
-     */
-    @Override
-    public List<CellWithTimestamp> getTimestampsWithinRow(
-            TableReference tableRef,
-            byte[] row,
-            byte[] startColumnInclusive,
-            long startTimestampExclusive,
-            int limit) {
-        long invertedTimestamp = ~startTimestampExclusive;
-        String selQuery = "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;";
-        CqlQuery query = new CqlQuery(
-                selQuery,
-                quotedTableName(tableRef),
-                key(row),
-                column1(startColumnInclusive),
-                column2(invertedTimestamp),
-                limit(limit));
-
-        return executeAndGetCells(query, row,
-                result -> CqlExecutorImpl.getCellFromKeylessRow(result, row));
-    }
-
     @Override
     // actually just uses the prepared statement for now
     public List<CellWithTimestamp> getTimestamps(
@@ -185,6 +132,59 @@ public class CqlExecutorImpl implements CqlExecutor {
         }
 
         return result;
+    }
+
+    /**
+     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the given
+     * {@code startRowInclusive}, potentially spanning across multiple rows.
+     */
+    @Override
+    public List<CellWithTimestamp> getTimestamps(
+            TableReference tableRef,
+            byte[] startRowInclusive,
+            byte[] endRowInclusive,
+            int limit) {
+        String selQuery = "SELECT key, column1, column2 FROM %s"
+                + " WHERE token(key) >= token(%s) AND token(key) <= token(%s) LIMIT %s;";
+        CqlQuery query = new CqlQuery(
+                selQuery,
+                quotedTableName(tableRef),
+                key(startRowInclusive),
+                key(endRowInclusive),
+                limit(limit));
+
+        return executeAndGetCells(query, startRowInclusive, CqlExecutorImpl::getCellFromRow);
+    }
+
+    private Arg<String> keys(List<byte[]> rowsAscending) {
+        return UnsafeArg.of("keys",
+                rowsAscending.stream().map(CqlExecutorImpl::getKey)
+                        .collect(Collectors.joining(",")));
+    }
+
+    /**
+     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the (column, timestamp)
+     * pair represented by ({@code startColumnInclusive}, {@code startTimestampExclusive}).
+     */
+    @Override
+    public List<CellWithTimestamp> getTimestampsWithinRow(
+            TableReference tableRef,
+            byte[] row,
+            byte[] startColumnInclusive,
+            long startTimestampExclusive,
+            int limit) {
+        long invertedTimestamp = ~startTimestampExclusive;
+        String selQuery = "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;";
+        CqlQuery query = new CqlQuery(
+                selQuery,
+                quotedTableName(tableRef),
+                key(row),
+                column1(startColumnInclusive),
+                column2(invertedTimestamp),
+                limit(limit));
+
+        return executeAndGetCells(query, row,
+                result -> CqlExecutorImpl.getCellFromKeylessRow(result, row));
     }
 
     private List<CellWithTimestamp> executeAndGetCells(
