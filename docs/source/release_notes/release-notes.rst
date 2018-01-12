@@ -56,6 +56,13 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2835>`__)
 
     *    - |devbreak|
+         - Qos Service: AtlasDB now provides a QosService to rate-limit clients. You can set up per-client node read and write limits
+           for each of the services in the QosService and that will be enforced for all reads and writes to Cassandra. The QoS service
+           has knowledge of the Casandra health and can scale up/down the configured limits. Note that the default limits enforced
+           by the QoS service is 10MB/s for reads and 5MB/s for writes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)
+
+    *    - |devbreak|
          - For clarity, we renamed `ForwardingLockService` to `SimplifyingLockService`, since this class also overwrote some of its parents methods.
            Also, its `delegate` methods now is public.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)

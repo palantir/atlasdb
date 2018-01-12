@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos.server;
+
+import java.util.concurrent.Executors;
 
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosAgent;
@@ -39,7 +40,8 @@ public class QosServerLauncher extends Application<QosServerConfig> {
     public void run(QosServerConfig configuration, Environment environment) {
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
 
-        QosAgent agent = new QosAgent(() -> configuration.runtime(), environment.jersey()::register);
+        QosAgent agent = new QosAgent(configuration::runtime, configuration.install(),
+                Executors.newSingleThreadScheduledExecutor(), environment.jersey()::register);
         agent.createAndRegisterResources();
     }
 }
