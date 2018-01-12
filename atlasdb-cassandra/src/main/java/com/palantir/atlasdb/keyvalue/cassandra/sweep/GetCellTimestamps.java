@@ -114,9 +114,11 @@ public class GetCellTimestamps {
     private List<CellWithTimestamp> getCellWithTimestamps(List<byte[]> rows) {
         switch (fetchMode) {
             case PREPARED:
-                return cqlExecutor.getTimestamps(tableRef, rows, batchHint);
+                return cqlExecutor.getTimestamps_Prepared_SingleThread(tableRef, rows, batchHint);
             case IN_CLAUSE:
                 return cqlExecutor.getTimestampsUsingInClause(tableRef, rows, batchHint);
+            case PARALLEL:
+                return cqlExecutor.getTimestamps(tableRef, rows, batchHint);
             case GREATER_THAN:
             default:
                 return cqlExecutor.getTimestamps(tableRef, rows.get(0), Iterables.getLast(rows),

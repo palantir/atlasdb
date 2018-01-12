@@ -43,7 +43,7 @@ public class CqlExecutorBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 3)
-    @Measurement(time = 15)
+    @Measurement(time = 10)
     public Object getTimestampsUsingInClause(ConsecutiveNarrowTable.AverageTable table) {
         CqlExecutor cqlExecutor = getCqlExecutor(table);
 
@@ -59,7 +59,7 @@ public class CqlExecutorBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 3)
-    @Measurement(time = 15)
+    @Measurement(time = 10)
     public Object getTimestampsUsingGreaterThan(ConsecutiveNarrowTable.AverageTable table) {
         CqlExecutor cqlExecutor = getCqlExecutor(table);
 
@@ -77,7 +77,24 @@ public class CqlExecutorBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 3)
-    @Measurement(time = 15)
+    @Measurement(time = 10)
+    public Object getTimestampsPrepared(ConsecutiveNarrowTable.AverageTable table) {
+        CqlExecutor cqlExecutor = getCqlExecutor(table);
+
+        List<byte[]> rows = table.getRowList().subList(0, 1024);
+        int limit = 1000;
+        List<CellWithTimestamp> cells = cqlExecutor.getTimestamps_Prepared_SingleThread(table.getTableRef(), rows,
+                limit);
+
+        Preconditions.checkState(cells.size() >= limit, "Should have gotten 1000 cells back");
+
+        return cells;
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 3)
+    @Measurement(time = 10)
     public Object getTimestampsInParallel(ConsecutiveNarrowTable.AverageTable table) {
         CqlExecutor cqlExecutor = getCqlExecutor(table);
 
@@ -85,7 +102,7 @@ public class CqlExecutorBenchmarks {
         int limit = 1000;
         List<CellWithTimestamp> cells = cqlExecutor.getTimestamps(table.getTableRef(), rows, limit);
 
-        Preconditions.checkState(cells.size() == limit, "Should have gotten 1000 cells back");
+        Preconditions.checkState(cells.size() >= limit, "Should have gotten 1000 cells back");
 
         return cells;
     }

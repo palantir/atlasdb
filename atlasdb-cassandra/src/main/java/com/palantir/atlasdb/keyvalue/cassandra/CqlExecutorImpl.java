@@ -82,6 +82,33 @@ public class CqlExecutorImpl implements CqlExecutor {
     }
 
     @Override
+    public List<CellWithTimestamp> getTimestamps_Prepared_SingleThread(TableReference tableRef,
+            List<byte[]> rowsAscending, int limit) {
+        String preparedSelQuery = String.format("SELECT key, column1, column2 FROM %s WHERE key = ? LIMIT %d;",
+                quotedTableName(tableRef).getValue(),
+                limit);
+        ByteBuffer queryBytes = ByteBuffer.wrap(preparedSelQuery.getBytes(StandardCharsets.UTF_8));
+        CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, Compression.NONE);
+        int queryId = preparedResult.getItemId();
+
+        List<CellWithTimestamp> result = Lists.newArrayList();
+        Iterator<byte[]> rows = rowsAscending.iterator();
+        while (result.size() < limit && rows.hasNext()) {
+            // We can parallelise this, but would need to collect it carefully to make sure we satisfy the guarantees:
+            // 1. Results are ordered
+            // 2. There are at most <limit> results
+            // 3. We return the first <limit> results
+            // We can ensure this by not applying the limit until after collection, and grouping by row
+            // I think this is ensured later on in the code path?
+            CqlResult cqlResult = queryExecutor.executePrepared(queryId,
+                    ImmutableList.of(ByteBuffer.wrap(rows.next())));
+            result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
+        }
+
+        return result;
+    }
+
+    @Override
     // actually just uses the prepared statement for now
     public List<CellWithTimestamp> getTimestamps(
             TableReference tableRef,

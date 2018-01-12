@@ -19,5 +19,6 @@ package com.palantir.atlasdb.keyvalue.api;
 public enum TimestampFetchMode {
     GREATER_THAN,
     IN_CLAUSE,
-    PREPARED
+    PREPARED,
+    PARALLEL
 }

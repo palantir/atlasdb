@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 
 public interface CqlExecutor {
     List<CellWithTimestamp> getTimestampsUsingInClause(TableReference tableRef, List<byte[]> rows, int limit);
+    List<CellWithTimestamp> getTimestamps_Prepared_SingleThread(TableReference tableRef, List<byte[]> rows, int limit);
 
     /**
      * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the (column, timestamp)
