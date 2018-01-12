@@ -23,8 +23,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,6 +34,7 @@ import org.mockito.ArgumentMatcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
@@ -57,16 +60,23 @@ public class CqlExecutorTest {
             Uninterruptibles.sleepUninterruptibly(queryDelayMillis, TimeUnit.MILLISECONDS);
             return result;
         });
+
+        CqlPreparedResult preparedResult = new CqlPreparedResult();
+        preparedResult.setItemId(1);
+        when(queryExecutor.prepare(any(), any(), any())).thenReturn(preparedResult);
+
+        when(queryExecutor.executePrepared(eq(1), any())).thenReturn(result);
     }
 
     @Test
     public void getTimestampsForGivenRows() {
         String expected = "SELECT key, column1, column2 FROM \"foo__bar\""
-                + " WHERE key IN (0x0102,0x0509) LIMIT 100;";
+                + " WHERE key = ? LIMIT 100;";
 
         executor.getTimestamps(TABLE_REF, ImmutableList.of(ROW, END_ROW), LIMIT);
 
-        verify(queryExecutor).execute(argThat(cqlQueryMatcher(expected)), eq(ROW));
+        verify(queryExecutor).prepare(argThat(byteBufferMatcher(expected)), eq(ROW), any());
+        verify(queryExecutor).executePrepared(eq(1), eq(ImmutableList.of(ByteBuffer.wrap(ROW))));
 
     }
 
@@ -80,6 +90,20 @@ public class CqlExecutorTest {
         verify(queryExecutor).execute(argThat(cqlQueryMatcher(expected)), eq(ROW));
     }
 
+    private ArgumentMatcher<ByteBuffer> byteBufferMatcher(String expected) {
+        return new ArgumentMatcher<ByteBuffer>() {
+            @Override
+            public boolean matches(Object argument) {
+                if (!(argument instanceof ByteBuffer)) {
+                    return false;
+                }
+
+                String actualQuery = PtBytes.toString(((ByteBuffer) argument).array());
+                return expected.equals(actualQuery);
+            }
+        };
+    }
+
     private ArgumentMatcher<CqlQuery> cqlQueryMatcher(String expected) {
         return new ArgumentMatcher<CqlQuery>() {
             @Override
@@ -88,7 +112,7 @@ public class CqlExecutorTest {
                     return false;
                 }
 
-                String actualQuery = ((CqlQuery) argument).toString();
+                String actualQuery = argument.toString();
                 return expected.equals(actualQuery);
             }
         };

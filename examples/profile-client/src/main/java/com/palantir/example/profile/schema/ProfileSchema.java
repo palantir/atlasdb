@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.persister.JsonNodePersister;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
@@ -46,6 +47,7 @@ public class ProfileSchema implements AtlasSchema {
                 OptionalType.JAVA8);
 
         schema.addTableDefinition("user_profile", new TableDefinition() {{
+            allSafeForLoggingByDefault();
             rowName();
                 rowComponent("id", ValueType.UUID);
             columns();
@@ -86,7 +88,9 @@ public class ProfileSchema implements AtlasSchema {
         }});
 
         schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG).build());
+                new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG)
+                        .tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+                        .build());
 
         return schema;
     }

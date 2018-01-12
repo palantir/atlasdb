@@ -38,14 +38,6 @@ final class CassandraLogHelper {
         return host.getHostString();
     }
 
-    static List<String> blacklistedHosts(Blacklist blacklist) {
-        return blacklist.getBlacklistedHosts().entrySet().stream()
-                .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
-                        host(blacklistedHostToBlacklistTime.getKey()),
-                        blacklistedHostToBlacklistTime.getValue().longValue()))
-                .collect(Collectors.toList());
-    }
-
     static Collection<String> collectionOfHosts(Collection<InetSocketAddress> hosts) {
         return hosts.stream().map(CassandraLogHelper::host).collect(Collectors.toSet());
     }

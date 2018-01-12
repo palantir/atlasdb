@@ -112,6 +112,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.Mutations;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
@@ -224,6 +225,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
+            CassandraClientPool clientPool) {
+        return create(configManager,
+                clientPool,
+                leaderConfig,
+                LoggerFactory.getLogger(CassandraKeyValueService.class),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
         return create(configManager, leaderConfig, initializeAsync, FakeQosClient.INSTANCE);
     }
@@ -255,30 +267,40 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync,
             QosClient qosClient) {
+        CassandraClientPool clientPool = CassandraClientPoolImpl.create(configManager.getConfig(),
+                initializeAsync,
+                qosClient);
+        return create(configManager, clientPool, leaderConfig, log, initializeAsync);
+    }
+
+    private static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            CassandraClientPool clientPool,
+            Optional<LeaderConfig> leaderConfig,
+            Logger log,
+            boolean initializeAsync) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
                 log,
                 configManager,
+                clientPool,
                 compactionManager,
-                leaderConfig,
-                initializeAsync,
-                qosClient);
+                leaderConfig);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
 
     protected CassandraKeyValueServiceImpl(Logger log,
-                                       CassandraKeyValueServiceConfigManager configManager,
-                                       Optional<CassandraJmxCompactionManager> compactionManager,
-                                       Optional<LeaderConfig> leaderConfig,
-                                       boolean initializeAsync,
-                                       QosClient qosClient) {
+                                        CassandraKeyValueServiceConfigManager configManager,
+                                        CassandraClientPool clientPool,
+                                        Optional<CassandraJmxCompactionManager> compactionManager,
+                                        Optional<LeaderConfig> leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync, qosClient);
+        this.clientPool = clientPool;
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -937,7 +959,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 : Range.startOfColumn(startColOrEmpty, startTs);
         ByteBuffer end = endColExlusiveOrEmpty.length == 0
                 ? Range.UNBOUND_END
-                : Range.endOfColumn(RangeRequests.previousLexicographicName(endColExlusiveOrEmpty));
+                : Range.endOfColumnIncludingSentinels(RangeRequests.previousLexicographicName(endColExlusiveOrEmpty));
         return Range.of(start, end);
     }
 
@@ -2022,6 +2044,61 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } else {
             super.deleteRange(tableRef, range);
         }
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        Map<InetSocketAddress, Map<Cell, Long>> keysByHost = partitionMapByHost(maxTimestampExclusiveByCell.entrySet());
+        for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
+            deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue());
+        }
+    }
+
+    public void deleteAllTimestampsOnSingleHost(
+            TableReference tableRef,
+            InetSocketAddress host,
+            Map<Cell, Long> maxTimestampExclusiveByCell) {
+        if (maxTimestampExclusiveByCell.isEmpty()) {
+            return;
+        }
+
+        try {
+            clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
+
+                @Override
+                public Void apply(CassandraClient client) throws Exception {
+                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef);
+                    return null;
+                }
+
+                @Override
+                public String toString() {
+                    return "delete_timestamp_ranges_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
+                            + maxTimestampExclusiveByCell.size() + " column timestamp ranges)";
+                }
+            });
+        } catch (UnavailableException e) {
+            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.",
+                    e);
+        } catch (Exception e) {
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+        }
+    }
+
+    private void insertRangeTombstones(CassandraClient client, Map<Cell, Long> maxTimestampExclusiveByCell,
+            TableReference tableRef) throws TException {
+        MutationMap mutationMap = new MutationMap();
+
+        maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
+            Mutation mutation = Mutations.rangeTombstoneForColumn(
+                    cell.getColumnName(),
+                    maxTimestampExclusive);
+
+            mutationMap.addMutationForCell(cell, tableRef, mutation);
+        });
+
+        batchMutateInternal("deleteAllTimestamps", client, tableRef, mutationMap,
+                deleteConsistency);
     }
 
     /**
