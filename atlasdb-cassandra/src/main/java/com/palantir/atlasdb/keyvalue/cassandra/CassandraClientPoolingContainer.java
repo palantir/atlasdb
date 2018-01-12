@@ -82,12 +82,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     }
 
     // returns negative if not available; only expected use is debugging
-    protected int getActiveCheckouts() {
+    public int getActiveCheckouts() {
         return clientPool.getNumActive();
     }
 
     // returns negative if unbounded; only expected use is debugging
-    protected int getPoolSize() {
+    public int getPoolSize() {
         return clientPool.getMaxTotal();
     }
 

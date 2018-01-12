@@ -34,7 +34,7 @@ public final class CassandraLogHelper {
         // Utility class.
     }
 
-    static String host(InetSocketAddress host) {
+    public static String host(InetSocketAddress host) {
         return host.getHostString();
     }
 
