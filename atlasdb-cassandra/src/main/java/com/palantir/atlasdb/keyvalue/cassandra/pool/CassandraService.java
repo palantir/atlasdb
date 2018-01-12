@@ -148,4 +148,8 @@ public class CassandraService {
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getPools() {
         return currentPools;
     }
+
+    public InetSocketAddress getRandomHostByActiveConnections(Set<InetSocketAddress> desiredHosts) {
+        return WeightedHosts.create(Maps.filterKeys(currentPools, desiredHosts::contains)).getRandomHost();
+    }
 }

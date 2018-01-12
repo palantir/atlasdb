@@ -52,7 +52,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.WeightedHosts;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.common.base.FunctionCheckedException;
@@ -351,8 +350,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             livingHosts = filteredHosts;
         }
 
-        InetSocketAddress randomLivingHost = getRandomHostByActiveConnections(
-                Maps.filterKeys(cassandra.getPools(), livingHosts::contains));
+        InetSocketAddress randomLivingHost = cassandra.getRandomHostByActiveConnections(livingHosts);
         return Optional.ofNullable(pools.get(randomLivingHost));
     }
 
@@ -379,13 +377,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     SafeArg.of("tokenMap", cassandra.getRingViewDescription()));
             return getRandomGoodHost().getHost();
         } else {
-            return getRandomHostByActiveConnections(Maps.filterKeys(cassandra.getPools(), liveOwnerHosts::contains));
+            return cassandra.getRandomHostByActiveConnections(liveOwnerHosts);
         }
-    }
-
-    private static InetSocketAddress getRandomHostByActiveConnections(
-            Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
-        return WeightedHosts.create(pools).getRandomHost();
     }
 
     @VisibleForTesting
