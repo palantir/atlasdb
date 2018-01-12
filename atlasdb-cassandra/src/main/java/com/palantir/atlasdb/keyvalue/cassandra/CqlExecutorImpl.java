@@ -134,6 +134,10 @@ public class CqlExecutorImpl implements CqlExecutor {
                 for (Future<CqlResult> f : futures) {
                     CqlResult cqlResult = f.get();
                     result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
+
+                    if (result.size() >= limit) {
+                        break;
+                    }
                 }
             } catch (InterruptedException e) {
                 throw Throwables.throwUncheckedException(e);
