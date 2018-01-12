@@ -94,12 +94,6 @@ public class CqlExecutorImpl implements CqlExecutor {
         List<CellWithTimestamp> result = Lists.newArrayList();
         Iterator<byte[]> rows = rowsAscending.iterator();
         while (result.size() < limit && rows.hasNext()) {
-            // We can parallelise this, but would need to collect it carefully to make sure we satisfy the guarantees:
-            // 1. Results are ordered
-            // 2. There are at most <limit> results
-            // 3. We return the first <limit> results
-            // We can ensure this by not applying the limit until after collection, and grouping by row
-            // I think this is ensured later on in the code path?
             CqlResult cqlResult = queryExecutor.executePrepared(queryId,
                     ImmutableList.of(ByteBuffer.wrap(rows.next())));
             result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
@@ -109,7 +103,6 @@ public class CqlExecutorImpl implements CqlExecutor {
     }
 
     @Override
-    // actually just uses the prepared statement for now
     public List<CellWithTimestamp> getTimestamps(
             TableReference tableRef,
             List<byte[]> rowsAscending,
@@ -127,10 +120,8 @@ public class CqlExecutorImpl implements CqlExecutor {
         ExecutorService executor = PTExecutors.newFixedThreadPool(16);
 
         while (result.size() < limit && rows.hasNext()) {
-            // Create new tasks
             List<Future<CqlResult>> futures = Lists.newArrayList();
 
-            // TODO can we just submit all rows at once? Note that in the general case we won't need all the results
             for (int i = 0; i < 16 && rows.hasNext(); i++) {
                 byte[] row = rows.next();
                 Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
@@ -141,13 +132,6 @@ public class CqlExecutorImpl implements CqlExecutor {
 
             try {
                 for (Future<CqlResult> f : futures) {
-                    // TODO We need to collect these carefully to make sure we satisfy the guarantees:
-                    // 1. Results are ordered
-                    // 2. There are at most <limit> results
-                    // 3. We return the first <limit> results
-                    // We can ensure this by not applying the limit until after collection, and grouping by row
-                    // I think this is ensured later on in the code path?
-                    // TODO map results to row indices? Use a sorted List?
                     CqlResult cqlResult = f.get();
                     result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
                 }
