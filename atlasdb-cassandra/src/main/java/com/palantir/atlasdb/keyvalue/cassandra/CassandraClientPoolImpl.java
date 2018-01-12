@@ -116,7 +116,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraService cassandra;
 
     private final CassandraKeyValueServiceConfig config;
-    private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     private final StartupChecks startupChecks;
     private final QosClient qosClient;
     private final ScheduledExecutorService refreshDaemon;
@@ -209,15 +208,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void cleanUpOnInitFailure() {
         metrics.deregisterMetrics();
         refreshPoolFuture.cancel(true);
-        currentPools.forEach((address, cassandraClientPoolingContainer) ->
+        cassandra.getPools().forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
-        currentPools.clear();
+        cassandra.getPools().clear();
     }
 
     @Override
     public void shutdown() {
         refreshDaemon.shutdown();
-        currentPools.forEach((address, cassandraClientPoolingContainer) ->
+        cassandra.getPools().forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
         metrics.deregisterMetrics();
     }
@@ -238,7 +237,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
-        return currentPools;
+        return cassandra.getPools();
     }
 
     @Override
@@ -252,7 +251,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private synchronized void refreshPool() {
-        blacklist.checkAndUpdate(getCurrentPools());
+        blacklist.checkAndUpdate(cassandra.getPools());
 
         Set<InetSocketAddress> serversToAdd = Sets.newHashSet(config.servers());
         Set<InetSocketAddress> serversToRemove = ImmutableSet.of();
@@ -261,10 +260,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             serversToAdd.addAll(cassandra.refreshTokenRanges());
         }
 
-        serversToAdd = Sets.difference(serversToAdd, currentPools.keySet());
+        serversToAdd = Sets.difference(serversToAdd, cassandra.getPools().keySet());
 
         if (!config.autoRefreshNodes()) { // (we would just add them back in)
-            serversToRemove = Sets.difference(currentPools.keySet(), config.servers());
+            serversToRemove = Sets.difference(cassandra.getPools().keySet(), config.servers());
         }
 
         serversToAdd.forEach(this::addPool);
@@ -291,20 +290,20 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void addPool(InetSocketAddress server, CassandraClientPoolingContainer container) {
-        currentPools.put(server, container);
+        cassandra.getPools().put(server, container);
     }
 
     @VisibleForTesting
     void removePool(InetSocketAddress removedServerAddress) {
         blacklist.remove(removedServerAddress);
         try {
-            currentPools.get(removedServerAddress).shutdownPooling();
+            cassandra.getPools().get(removedServerAddress).shutdownPooling();
         } catch (Exception e) {
             log.warn("While removing a host ({}) from the pool, we were unable to gently cleanup resources.",
                     SafeArg.of("removedServerAddress", CassandraLogHelper.host(removedServerAddress)),
                     e);
         }
-        currentPools.remove(removedServerAddress);
+        cassandra.getPools().remove(removedServerAddress);
     }
 
     private void debugLogStateOfPool() {
@@ -313,8 +312,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             currentState.append(
                     String.format("POOL STATUS: Current blacklist = %s,%n current hosts in pool = %s%n",
                             blacklist.describeBlacklistedHosts(),
-                            currentPools.keySet().toString()));
-            for (Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
+                            cassandra.getPools().keySet().toString()));
+            for (Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : cassandra.getPools().entrySet()) {
                 int activeCheckouts = entry.getValue().getActiveCheckouts();
                 int totalAllowed = entry.getValue().getPoolSize();
 
@@ -335,7 +334,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     Optional<CassandraClientPoolingContainer> getRandomGoodHostForPredicate(Predicate<InetSocketAddress> predicate) {
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = currentPools;
+        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = cassandra.getPools();
 
         Set<InetSocketAddress> filteredHosts = pools.keySet().stream()
                 .filter(predicate)
@@ -353,7 +352,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
 
         InetSocketAddress randomLivingHost = getRandomHostByActiveConnections(
-                Maps.filterKeys(currentPools, livingHosts::contains));
+                Maps.filterKeys(cassandra.getPools(), livingHosts::contains));
         return Optional.ofNullable(pools.get(randomLivingHost));
     }
 
@@ -380,7 +379,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     SafeArg.of("tokenMap", cassandra.getRingViewDescription()));
             return getRandomGoodHost().getHost();
         } else {
-            return getRandomHostByActiveConnections(Maps.filterKeys(currentPools, liveOwnerHosts::contains));
+            return getRandomHostByActiveConnections(Maps.filterKeys(cassandra.getPools(), liveOwnerHosts::contains));
         }
     }
 
@@ -402,7 +401,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Map<InetSocketAddress, Exception> aliveButInvalidPartitionerHosts = Maps.newHashMap();
         boolean thisHostResponded = false;
         boolean atLeastOneHostResponded = false;
-        for (InetSocketAddress host : currentPools.keySet()) {
+        for (InetSocketAddress host : cassandra.getPools().keySet()) {
             thisHostResponded = false;
             try {
                 runOnHost(host, CassandraVerifier.healthCheck);
@@ -451,7 +450,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     public InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
         InetAddress resolvedHost = InetAddress.getByName(host);
 
-        Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
+        Set<InetSocketAddress> allKnownHosts = Sets.union(cassandra.getPools().keySet(), config.servers());
         for (InetSocketAddress address : allKnownHosts) {
             if (address.getAddress().equals(resolvedHost)) {
                 return address;
@@ -497,7 +496,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private <V, K extends Exception> CassandraClientPoolingContainer getPreferredHostOrFallBack(
             RetryableCassandraRequest<V, K> req) {
-        CassandraClientPoolingContainer hostPool = currentPools.get(req.getPreferredHost());
+        CassandraClientPoolingContainer hostPool = cassandra.getPools().get(req.getPreferredHost());
 
         if (blacklist.contains(req.getPreferredHost()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
             InetSocketAddress previousHost = hostPool == null ? req.getPreferredHost() : hostPool.getHost();
@@ -519,7 +518,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
             FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
+        CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedHost);
         return runWithPooledResourceRecordingMetrics(hostPool, fn);
     }
 
@@ -545,7 +544,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     // acting like it does.
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
-        for (InetSocketAddress host : currentPools.keySet()) {
+        for (InetSocketAddress host : cassandra.getPools().keySet()) {
             Cassandra.Client client = null;
             try {
                 client = CassandraClientFactory.getClientInternal(host, config);

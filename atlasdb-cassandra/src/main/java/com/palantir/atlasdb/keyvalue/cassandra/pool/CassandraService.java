@@ -59,6 +59,7 @@ public class CassandraService {
     @VisibleForTesting
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
     private final TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
+    private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
 
     public CassandraService(CassandraKeyValueServiceConfig config, CassandraClientPoolImpl cassandraClientPool) {
         this.config = config;
@@ -142,5 +143,9 @@ public class CassandraService {
 
     public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
         tokenRangeWritesLogger.markWritesForTable(entries.keySet(), tableRef);
+    }
+
+    public Map<InetSocketAddress, CassandraClientPoolingContainer> getPools() {
+        return currentPools;
     }
 }
