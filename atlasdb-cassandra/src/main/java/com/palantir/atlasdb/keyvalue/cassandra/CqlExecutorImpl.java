@@ -118,35 +118,41 @@ public class CqlExecutorImpl implements CqlExecutor {
         Iterator<byte[]> rows = rowsAscending.iterator();
 
         ExecutorService executor = PTExecutors.newFixedThreadPool(16);
+        List<Future<CqlResult>> futures = Lists.newArrayList();
 
-        while (result.size() < limit && rows.hasNext()) {
-            List<Future<CqlResult>> futures = Lists.newArrayList();
+        for (int i = 0; i < 16 && rows.hasNext(); i++) {
+            byte[] row = rows.next();
+            Future<CqlResult> future = submitAndGetFuture(executor, queryId, row);
+            futures.add(future);
+        }
 
-            for (int i = 0; i < 16 && rows.hasNext(); i++) {
-                byte[] row = rows.next();
-                Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
-                        ImmutableList.of(ByteBuffer.wrap(row)));
-                Future<CqlResult> future = executor.submit(task);
-                futures.add(future);
-            }
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                Future<CqlResult> f = futures.get(i);
+                CqlResult cqlResult = f.get();
+                result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
 
-            try {
-                for (Future<CqlResult> f : futures) {
-                    CqlResult cqlResult = f.get();
-                    result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
-
-                    if (result.size() >= limit) {
-                        break;
-                    }
+                if (result.size() >= limit) {
+                    break;
                 }
-            } catch (InterruptedException e) {
-                throw Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                throw Throwables.throwUncheckedException(e.getCause());
+
+                if (rows.hasNext()) {
+                    futures.add(submitAndGetFuture(executor, queryId, rows.next()));
+                }
             }
+        } catch (InterruptedException e) {
+            throw Throwables.throwUncheckedException(e);
+        } catch (ExecutionException e) {
+            throw Throwables.throwUncheckedException(e.getCause());
         }
 
         return result;
+    }
+
+    private Future<CqlResult> submitAndGetFuture(ExecutorService executor, int queryId, byte[] row) {
+        Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
+                ImmutableList.of(ByteBuffer.wrap(row)));
+        return executor.submit(task);
     }
 
     /**
