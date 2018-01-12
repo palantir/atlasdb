@@ -194,7 +194,7 @@ public abstract class ConsecutiveNarrowTable {
 
         @Override
         public int getCellsPerRow() {
-            return 100;
+            return 1;
         }
 
         @Override

@@ -49,51 +49,50 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     /**************************************************************************************
      *    AVERAGE TABLE
      */
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanAverage_Small_GreaterThan(ConsecutiveNarrowTable.AverageTable table) {
-//        return fullTableScan(table, SMALL, TimestampFetchMode.GREATER_THAN);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanAverage_Small_InClause(ConsecutiveNarrowTable.AverageTable table) {
-//        return fullTableScan(table, SMALL, TimestampFetchMode.IN_CLAUSE);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanAverage_Small_Prepared(ConsecutiveNarrowTable.AverageTable table) {
-//        return fullTableScan(table, SMALL, TimestampFetchMode.PREPARED);
-//
-//    }
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanAverage_Small_GreaterThan(ConsecutiveNarrowTable.AverageTable table) {
+        return fullTableScan(table, SMALL, TimestampFetchMode.GREATER_THAN);
+
+    }
 
     @Benchmark
     @Threads(1)
     @Warmup(time = 20)
-    @Measurement(time = 60)
+    @Measurement(time = 310)
+    public Object fullTableScanAverage_Small_Prepared(ConsecutiveNarrowTable.AverageTable table) {
+        return fullTableScan(table, SMALL, TimestampFetchMode.PREPARED);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanAverage_Small_Parallel(ConsecutiveNarrowTable.AverageTable table) {
+        return fullTableScan(table, SMALL, TimestampFetchMode.PARALLEL);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
     public Object fullTableScanAverage_NormalSize_GreaterThan(ConsecutiveNarrowTable.AverageTable table) {
         return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.GREATER_THAN);
 
     }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanAverage_NormalSize_InClause(ConsecutiveNarrowTable.AverageTable table) {
-//        return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.IN_CLAUSE);
-//
-//    }
-//
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanAverage_NormalSize_Prepared(ConsecutiveNarrowTable.AverageTable table) {
+        return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.PREPARED);
+
+    }
+
     @Benchmark
     @Threads(1)
     @Warmup(time = 20)
@@ -103,62 +102,62 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
 
     }
 
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanAverage_Large_GreaterThan(ConsecutiveNarrowTable.AverageTable table) {
-//        return fullTableScan(table, LARGE, TimestampFetchMode.GREATER_THAN);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanAverage_Large_InClause(ConsecutiveNarrowTable.AverageTable table) {
-//        return fullTableScan(table, LARGE, TimestampFetchMode.IN_CLAUSE);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanAverage_Large_Prepared(ConsecutiveNarrowTable.AverageTable table) {
-//        return fullTableScan(table, LARGE, TimestampFetchMode.PREPARED);
-//
-//    }
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanAverage_Large_GreaterThan(ConsecutiveNarrowTable.AverageTable table) {
+        return fullTableScan(table, LARGE, TimestampFetchMode.GREATER_THAN);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanAverage_Large_Prepared(ConsecutiveNarrowTable.AverageTable table) {
+        return fullTableScan(table, LARGE, TimestampFetchMode.PREPARED);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanAverage_Large_Parallel(ConsecutiveNarrowTable.AverageTable table) {
+        return fullTableScan(table, LARGE, TimestampFetchMode.PARALLEL);
+
+    }
 
     /**************************************************************************************
      *    CLEAN TABLE
      */
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanClean_Small_GreaterThan(ConsecutiveNarrowTable.CleanNarrowTable table) {
-//        return fullTableScan(table, SMALL, TimestampFetchMode.GREATER_THAN);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanClean_Small_InClause(ConsecutiveNarrowTable.CleanNarrowTable table) {
-//        return fullTableScan(table, SMALL, TimestampFetchMode.IN_CLAUSE);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanClean_Small_Prepared(ConsecutiveNarrowTable.CleanNarrowTable table) {
-//        return fullTableScan(table, SMALL, TimestampFetchMode.PREPARED);
-//
-//    }
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanClean_Small_GreaterThan(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, SMALL, TimestampFetchMode.GREATER_THAN);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanClean_Small_Prepared(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, SMALL, TimestampFetchMode.PREPARED);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanClean_Small_Parallel(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, SMALL, TimestampFetchMode.PARALLEL);
+
+    }
 
     @Benchmark
     @Threads(1)
@@ -168,80 +167,80 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
         return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.GREATER_THAN);
 
     }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanClean_NormalSize_InClause(ConsecutiveNarrowTable.CleanNarrowTable table) {
-//        return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.IN_CLAUSE);
-//
-//    }
-//
+
     @Benchmark
     @Threads(1)
     @Warmup(time = 20)
     @Measurement(time = 310)
     public Object fullTableScanClean_NormalSize_Prepared(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.PREPARED);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanClean_NormalSize_Parallel(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.PARALLEL);
     }
 
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanClean_Large_GreaterThan(ConsecutiveNarrowTable.CleanNarrowTable table) {
-//        return fullTableScan(table, LARGE, TimestampFetchMode.GREATER_THAN);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanClean_Large_InClause(ConsecutiveNarrowTable.CleanNarrowTable table) {
-//        return fullTableScan(table, LARGE, TimestampFetchMode.IN_CLAUSE);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanClean_Large_Prepared(ConsecutiveNarrowTable.CleanNarrowTable table) {
-//        return fullTableScan(table, LARGE, TimestampFetchMode.PREPARED);
-//
-//    }
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanClean_Large_GreaterThan(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, LARGE, TimestampFetchMode.GREATER_THAN);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanClean_Large_Prepared(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, LARGE, TimestampFetchMode.PREPARED);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanClean_Large_Parallel(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, LARGE, TimestampFetchMode.PARALLEL);
+
+    }
 
     /**************************************************************************************
      *    DIRTY TABLE
      */
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanDirty_Small_GreaterThan(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-//        return fullTableScan(table, SMALL, TimestampFetchMode.GREATER_THAN);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanDirty_Small_InClause(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-//        return fullTableScan(table, SMALL, TimestampFetchMode.IN_CLAUSE);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanDirty_Small_Prepared(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-//        return fullTableScan(table, SMALL, TimestampFetchMode.PREPARED);
-//
-//    }
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanDirty_Small_GreaterThan(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, SMALL, TimestampFetchMode.GREATER_THAN);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanDirty_Small_Prepared(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, SMALL, TimestampFetchMode.PREPARED);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanDirty_Small_Parallel(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, SMALL, TimestampFetchMode.PARALLEL);
+
+    }
 
     @Benchmark
     @Threads(1)
@@ -252,15 +251,15 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
 
     }
 
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanDirty_NormalSize_InClause(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-//        return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.IN_CLAUSE);
-//
-//    }
-//
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanDirty_NormalSize_Prepared(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, DEFAULT_BATCH_SIZE, TimestampFetchMode.PREPARED);
+
+    }
+
     @Benchmark
     @Threads(1)
     @Warmup(time = 20)
@@ -270,32 +269,32 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
 
     }
 
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanDirty_Large_GreaterThan(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-//        return fullTableScan(table, LARGE, TimestampFetchMode.GREATER_THAN);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanDirty_Large_InClause(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-//        return fullTableScan(table, LARGE, TimestampFetchMode.IN_CLAUSE);
-//
-//    }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 20)
-//    @Measurement(time = 310)
-//    public Object fullTableScanDirty_Large_Prepared(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-//        return fullTableScan(table, LARGE, TimestampFetchMode.PREPARED);
-//
-//    }
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanDirty_Large_GreaterThan(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, LARGE, TimestampFetchMode.GREATER_THAN);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanDirty_Large_Prepared(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, LARGE, TimestampFetchMode.PREPARED);
+
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 310)
+    public Object fullTableScanDirty_Large_Parallel(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, LARGE, TimestampFetchMode.PARALLEL);
+
+    }
 
     private int fullTableScan(ConsecutiveNarrowTable table, int batchSizeHint, TimestampFetchMode fetchMode) {
         // TODO(gsheasby): consider extracting a common interface for WideRowTable and ConsecutiveNarrowTable
@@ -317,8 +316,8 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
         try (ClosableIterator<List<CandidateCellForSweeping>> iter = kvs.getCandidateCellsForSweeping(
                     tableRef, request)) {
             int numCandidates = Iterators.size(Iterators.concat(Iterators.transform(iter, List::iterator)));
-//            Preconditions.checkState(numCandidates == numCellsExpected,
-//                    "Number of candidates %s != %s", numCandidates, numCellsExpected);
+            Preconditions.checkState(numCandidates == numCellsExpected,
+                    "Number of candidates %s != %s", numCandidates, numCellsExpected);
             return numCandidates;
         }
     }
