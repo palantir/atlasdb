@@ -49,7 +49,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long>
         implements PersistentStreamStore {
 
-    public static final int NUMBER_OF_TIMES_TO_ATTEMPT_TO_STORE_BLOCK = 6;
+    public static final int NUM_RETRIES_ON_QOS_EXCEPTION = 6;
 
     protected AbstractPersistentStreamStore(TransactionManager txManager) {
         super(txManager);
@@ -206,14 +206,15 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         if (tx != null) {
             storeBlock(tx, id, blockNumber, bytesToStore);
         } else {
-            Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
-            attemptToStoreBlockWithoutTransaction(id, blockNumber, bytesToStore);
+            attemptToStoreBlockWithNewTransaction(id, blockNumber, bytesToStore);
         }
     }
 
-    private void attemptToStoreBlockWithoutTransaction(final long id, final long blockNumber,
+    private void attemptToStoreBlockWithNewTransaction(final long id, final long blockNumber,
             final byte[] bytesToStore) {
-        for (int attempt = 0; attempt < NUMBER_OF_TIMES_TO_ATTEMPT_TO_STORE_BLOCK; attempt++) {
+        Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
+
+        for (int attempt = 1; attempt <= NUM_RETRIES_ON_QOS_EXCEPTION; attempt++) {
             try {
                 txnMgr.runTaskThrowOnConflict(
                         (TransactionTask<Void, RuntimeException>) t1 -> {
@@ -222,7 +223,6 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                         });
             } catch (RateLimitExceededException ex) {
                 Uninterruptibles.sleepUninterruptibly(attempt, TimeUnit.SECONDS);
-                storeBlockWithNonNullTransaction(null, id, blockNumber, bytesToStore);
             }
         }
     }
