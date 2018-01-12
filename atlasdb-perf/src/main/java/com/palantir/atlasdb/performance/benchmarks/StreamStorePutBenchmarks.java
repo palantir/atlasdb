@@ -16,13 +16,7 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThat;
-
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -53,10 +47,8 @@ public class StreamStorePutBenchmarks {
                 tableFactory
         );
 
-        transactionManager.runTaskThrowOnConflict(txn -> {
-            streamTestStreamStore.storeStreams(txn,
-                    ImmutableMap.of(txn.getTimestamp(), streamingTable.getStreamToWrite()));
-        });
+        transactionManager.runTaskThrowOnConflict(txn -> streamTestStreamStore.storeStreams(txn,
+                ImmutableMap.of(txn.getTimestamp(), streamingTable.getStreamToWrite())));
     }
 
     @Benchmark
