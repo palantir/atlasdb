@@ -16,14 +16,32 @@
 
 package com.palantir.atlasdb.schema.cleanup;
 
+import com.google.common.base.Throwables;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence;
 
 public class ArbitraryCleanupMetadata implements CleanupMetadata {
+    public static Hydrator<ArbitraryCleanupMetadata> BYTES_HYDRATOR = message -> {
+        try {
+            return hydrateFromProto(SchemaMetadataPersistence.ArbitraryCleanupMetadata.parseFrom(message));
+        } catch (InvalidProtocolBufferException e) {
+            throw Throwables.propagate(e);
+        }
+    };
+
+    public static ArbitraryCleanupMetadata hydrateFromProto(
+            SchemaMetadataPersistence.ArbitraryCleanupMetadata unused) {
+        // For now, this is correct!
+        return new ArbitraryCleanupMetadata();
+    }
+
     @Override
     public byte[] persistToBytes() {
-        return SchemaMetadataPersistence.ArbitraryCleanupMetadata.newBuilder()
-                .build()
-                .toByteArray();
+        return persistToProto().toByteArray();
+    }
+
+    public SchemaMetadataPersistence.ArbitraryCleanupMetadata persistToProto() {
+        return SchemaMetadataPersistence.ArbitraryCleanupMetadata.newBuilder().build();
     }
 
     @Override
