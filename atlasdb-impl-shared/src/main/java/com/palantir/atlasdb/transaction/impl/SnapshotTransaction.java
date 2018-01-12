@@ -1337,6 +1337,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void commitWrites(TransactionService transactionService) {
         if (!hasWrites()) {
+            // verify any pre-commit conditions on the transaction
+            preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
+
             // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
             // to ensure that sweep hasn't thoroughly deleted cells we tried to read
             // TODO(nziebart): we actually only need to do this if we've read from tables with THOROUGH sweep strategy
@@ -1372,7 +1375,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throwIfReadWriteConflictForSerializable(commitTimestamp);
 
             // Verify that our locks and pre-commit conditions are still valid before we actually commit;
-            // this throwIfLocksExpired is required by the transaction protocol for correctness
+            // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness
             throwIfPreCommitRequirementsNotMet(commitLocksToken, commitTimestamp);
 
             Timer.Context commitTsTimer = getTimer("commitPutCommitTs").time();

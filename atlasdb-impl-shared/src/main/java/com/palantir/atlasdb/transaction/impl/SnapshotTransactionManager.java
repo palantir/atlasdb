@@ -215,8 +215,12 @@ import com.palantir.timestamp.TimestampService;
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency);
-        return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
-                new ReadTransaction(transaction, sweepStrategyManager));
+        try {
+            return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
+                    new ReadTransaction(transaction, sweepStrategyManager));
+        } finally {
+            condition.cleanup();
+        }
     }
 
     /**

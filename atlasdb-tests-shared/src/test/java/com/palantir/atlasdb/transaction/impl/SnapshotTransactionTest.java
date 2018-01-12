@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -91,6 +92,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
@@ -163,6 +165,17 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return delegate;
         }
     }
+
+    private static final PreCommitCondition ALWAYS_FAILS_CONDITION = new PreCommitCondition() {
+        @Override
+        public void throwIfConditionInvalid(long timestamp) {
+            throw new RuntimeException("Condition failed");
+        }
+
+        @Override
+        public void cleanup() {}
+    };
+
     static final TableReference TABLE = TableReference.createFromFullyQualifiedName("default.table");
     static final TableReference TABLE1 = TableReference.createFromFullyQualifiedName("default.table1");
     static final TableReference TABLE2 = TableReference.createFromFullyQualifiedName("default.table2");
@@ -754,6 +767,106 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             assertThat(e.getMessage(), containsString(expectedTokens.toString()));
             assertThat(e.getMessage(), containsString("Retry is not possible."));
         }
+    }
+
+    @Test
+    public void commitIfPreCommitConditionSucceeds() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        serializableTxManager.runTaskWithConditionThrowOnConflict(PreCommitCondition.NO_OP, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+            return null;
+        });
+    }
+
+    @Test
+    public void failToCommitIfPreCommitConditionFails() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        try {
+            serializableTxManager.runTaskWithConditionThrowOnConflict(ALWAYS_FAILS_CONDITION, (tx, condition) -> {
+                tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+                return null;
+            });
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage(), containsString("Condition failed"));
+        }
+    }
+
+    @Test
+    public void readTransactionSucceedsIfConditionSucceeds() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        serializableTxManager.runTaskReadOnlyWithCondition(PreCommitCondition.NO_OP,
+                (tx, condition) -> tx.get(TABLE, ImmutableSet.of(cell)));
+    }
+
+    @Test
+    public void readTransactionFailsIfConditionFails() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        try {
+            serializableTxManager.runTaskReadOnlyWithCondition(ALWAYS_FAILS_CONDITION,
+                    (tx, condition) -> tx.get(TABLE, ImmutableSet.of(cell)));
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage(), containsString("Condition failed"));
+        }
+    }
+
+    @Test
+    public void cleanupPreCommitConditionsOnSuccess() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        MutableLong counter = new MutableLong(0L);
+        PreCommitCondition succeedsCondition = new PreCommitCondition() {
+            @Override
+            public void throwIfConditionInvalid(long timestamp) {}
+
+            @Override
+            public void cleanup() {
+                counter.increment();
+            }
+        };
+
+        serializableTxManager.runTaskWithConditionThrowOnConflict(succeedsCondition, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+            return null;
+        });
+        assertThat(counter.intValue(), is(1));
+
+        serializableTxManager.runTaskReadOnlyWithCondition(succeedsCondition,
+                (tx, condition) -> tx.get(TABLE, ImmutableSet.of(cell)));
+        assertThat(counter.intValue(), is(2));
+    }
+
+    @Test
+    public void cleanupPreCommitConditionsOnFailure() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        MutableLong counter = new MutableLong(0L);
+        PreCommitCondition failsCondition = new PreCommitCondition() {
+            @Override
+            public void throwIfConditionInvalid(long timestamp) {
+                throw new RuntimeException("Condition failed");
+            }
+
+            @Override
+            public void cleanup() {
+                counter.increment();
+            }
+        };
+
+        try {
+            serializableTxManager.runTaskWithConditionThrowOnConflict(failsCondition, (tx, condition) -> {
+                tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+                return null;
+            });
+        } catch (RuntimeException e) {
+            // expected
+        }
+        assertThat(counter.intValue(), is(1));
+
+        try {
+            serializableTxManager.runTaskReadOnlyWithCondition(failsCondition,
+                    (tx, condition) -> tx.get(TABLE, ImmutableSet.of(cell)));
+        } catch (RuntimeException e) {
+            // expected
+        }
+        assertThat(counter.intValue(), is(2));
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {
