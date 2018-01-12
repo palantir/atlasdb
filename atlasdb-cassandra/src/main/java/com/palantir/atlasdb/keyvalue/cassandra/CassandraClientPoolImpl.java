@@ -16,15 +16,12 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.NotFoundException;
@@ -116,7 +113,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics();
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
-    private List<InetSocketAddress> cassandraHosts;
     private ScheduledFuture<?> refreshPoolFuture;
 
     @VisibleForTesting
@@ -176,10 +172,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void tryInitialize() {
-        cassandraHosts = config.servers().stream()
-                .sorted(Comparator.comparing(InetSocketAddress::toString))
-                .collect(Collectors.toList());
-        cassandraHosts.forEach(this::addPool);
+        cassandra.cacheInitialCassandraHosts();
 
         refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
@@ -204,6 +197,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         cassandra.getPools().forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
         cassandra.getPools().clear();
+        cassandra.clearInitialCassandraHosts();
     }
 
     @Override
@@ -277,8 +271,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void addPool(InetSocketAddress server) {
-        int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
-        cassandra.addPool(server, currentPoolNumber);
+        cassandra.addPool(server);
     }
 
     @Override

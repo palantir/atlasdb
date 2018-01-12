@@ -20,6 +20,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,10 +64,11 @@ public class CassandraService {
     private final Blacklist blacklist;
     private final QosClient qosClient;
 
-    @VisibleForTesting
-    volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
+    private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
     private final TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
+
+    private List<InetSocketAddress> cassandraHosts;
 
     public CassandraService(CassandraKeyValueServiceConfig config, Blacklist blacklist, QosClient qosClient) {
         this.config = config;
@@ -256,8 +259,9 @@ public class CassandraService {
         }
     }
 
-    public void addPool(InetSocketAddress server, int poolNumber) {
-        currentPools.put(server, new CassandraClientPoolingContainer(qosClient, server, config, poolNumber));
+    public void addPool(InetSocketAddress server) {
+        int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
+        currentPools.put(server, new CassandraClientPoolingContainer(qosClient, server, config, currentPoolNumber));
     }
 
     public void removePool(InetSocketAddress removedServerAddress) {
@@ -270,5 +274,16 @@ public class CassandraService {
                     e);
         }
         currentPools.remove(removedServerAddress);
+    }
+
+    public void cacheInitialCassandraHosts() {
+        cassandraHosts = config.servers().stream()
+                .sorted(Comparator.comparing(InetSocketAddress::toString))
+                .collect(Collectors.toList());
+        cassandraHosts.forEach(this::addPool);
+    }
+
+    public void clearInitialCassandraHosts() {
+        cassandraHosts = Collections.emptyList();
     }
 }

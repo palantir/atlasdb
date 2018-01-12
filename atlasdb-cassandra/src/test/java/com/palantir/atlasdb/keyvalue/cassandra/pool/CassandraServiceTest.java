@@ -118,19 +118,19 @@ public class CassandraServiceTest {
         assertThat(container.get().getHost(), equalTo(HOST_1));
     }
 
-
     private CassandraService clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {
-        return clientPoolWith(servers, ImmutableSet.of());
+        return clientPoolWith(servers, servers);
     }
 
     private CassandraService clientPoolWithServersInCurrentPool(ImmutableSet<InetSocketAddress> servers) {
-        return clientPoolWith(ImmutableSet.of(), servers);
+        return clientPoolWith(servers, servers);
     }
 
     private CassandraService clientPoolWith(
             ImmutableSet<InetSocketAddress> servers,
             ImmutableSet<InetSocketAddress> serversInPool) {
         config = ImmutableCassandraKeyValueServiceConfig.builder()
+                .replicationFactor(3)
                 .addServers(servers.toArray(new InetSocketAddress[0]))
                 .build();
 
@@ -138,10 +138,8 @@ public class CassandraServiceTest {
 
         CassandraService service = new CassandraService(config, blacklist, new FakeQosClient());
 
-        int number = 0;
-        for (InetSocketAddress serverInPool : serversInPool) {
-            service.addPool(serverInPool, number++);
-        }
+        service.cacheInitialCassandraHosts();
+        serversInPool.forEach(service::addPool);
 
         return service;
     }
