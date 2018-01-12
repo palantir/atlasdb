@@ -20,14 +20,12 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
 
-import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
 public class SimpleThrottlingStrategy implements ThrottlingStrategy {
     private static final double ONCE_EVERY_HUNDRED_SECONDS = 0.01;
     private final RateLimiter rateLimiter;
-    @GuardedBy("this")
     private double multiplier;
 
     public SimpleThrottlingStrategy() {

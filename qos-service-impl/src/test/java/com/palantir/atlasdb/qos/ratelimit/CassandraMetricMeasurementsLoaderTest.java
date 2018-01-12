@@ -22,9 +22,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.net.ConnectException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import javax.management.InstanceNotFoundException;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
@@ -63,12 +66,20 @@ public class CassandraMetricMeasurementsLoaderTest {
 
         cassandraMetricMeasurementsLoader = new CassandraMetricMeasurementsLoader(
                 healthMetricSupplier, cassandraMetricClient, scheduledExecutorService);
+
+        when(healthMetricSupplier.get()).thenReturn(ImmutableList.of(
+                getCassandraMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1),
+                getCassandraMetric(METRIC_TYPE_2, METRIC_NAME_2, METRIC_ATTRIBUTE_2)));
+
+        when(cassandraMetricClient.getMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1, ImmutableMap.of()))
+                .thenReturn(METRIC_VALUE_1);
+
+        when(cassandraMetricClient.getMetric(METRIC_TYPE_2, METRIC_NAME_2, METRIC_ATTRIBUTE_2, ImmutableMap.of()))
+                .thenReturn(METRIC_VALUE_2);
     }
 
     @Test
     public void metricsLoaderLoadsMetricsEveryFiveSeconds() throws Exception {
-        when(healthMetricSupplier.get()).thenReturn(ImmutableList.of());
-
         scheduledExecutorService.tick(1, TimeUnit.SECONDS);
         verify(healthMetricSupplier, times(1)).get();
 
@@ -84,16 +95,6 @@ public class CassandraMetricMeasurementsLoaderTest {
 
     @Test
     public void canReturnTheCassandraMetricsFromTheCassandraMetricService() throws Exception {
-        when(healthMetricSupplier.get()).thenReturn(ImmutableList.of(
-                getCassandraMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1),
-                getCassandraMetric(METRIC_TYPE_2, METRIC_NAME_2, METRIC_ATTRIBUTE_2)));
-
-        when(cassandraMetricClient.getMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1, ImmutableMap.of()))
-                .thenReturn(METRIC_VALUE_1);
-
-        when(cassandraMetricClient.getMetric(METRIC_TYPE_2, METRIC_NAME_2, METRIC_ATTRIBUTE_2, ImmutableMap.of()))
-                .thenReturn(METRIC_VALUE_2);
-
         scheduledExecutorService.tick(3, TimeUnit.SECONDS);
 
         List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
@@ -104,6 +105,28 @@ public class CassandraMetricMeasurementsLoaderTest {
                         getCassandraMetricMeasurement(METRIC_VALUE_2));
 
         assertThat(expectedCassandraHealthMetricMeasurements).isEqualTo(cassandraHealthMetricMeasurements);
+    }
+
+    @Test
+    public void canHandleNonExistingMetric() throws Exception {
+        assertThatMetricsReturnedAreEmptyIfCassandraMetricsServiceThrows(InstanceNotFoundException.class);
+    }
+
+    @Test
+    public void canhandleFailureGettingMetric() throws Exception {
+        assertThatMetricsReturnedAreEmptyIfCassandraMetricsServiceThrows(ConnectException.class);
+    }
+
+    private void assertThatMetricsReturnedAreEmptyIfCassandraMetricsServiceThrows(Class clazz) {
+        when(cassandraMetricClient.getMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1, ImmutableMap.of()))
+                .thenThrow(clazz);
+
+        scheduledExecutorService.tick(3, TimeUnit.SECONDS);
+
+        List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
+                cassandraMetricMeasurementsLoader.getCassandraHealthMetricMeasurements();
+
+        assertThat(ImmutableList.of()).isEqualTo(cassandraHealthMetricMeasurements);
     }
 
     private CassandraHealthMetric getCassandraMetric(String metricType, String metricName,

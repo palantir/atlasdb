@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.qos.ratelimit;
 
 import java.util.Collection;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
@@ -42,7 +42,7 @@ public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultipl
     }
 
     public static ClientLimitMultiplier create(Supplier<QosCassandraMetricsRuntimeConfig> runtimeConfig,
-            QosCassandraMetricsInstallConfig installConfig) {
+            QosCassandraMetricsInstallConfig installConfig, ScheduledExecutorService metricsLoaderExecutor) {
         CassandraMetricsService metricsService = JaxRsClient.create(
                 CassandraMetricsService.class,
                 "qos-service",
@@ -51,8 +51,7 @@ public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultipl
                 installConfig.throttlingStrategy());
 
         CassandraMetricMeasurementsLoader cassandraMetricMeasurementsLoader = new CassandraMetricMeasurementsLoader(
-                () -> runtimeConfig.get().cassandraHealthMetrics(), metricsService,
-                Executors.newSingleThreadScheduledExecutor());
+                () -> runtimeConfig.get().cassandraHealthMetrics(), metricsService, metricsLoaderExecutor);
         return new CassandraMetricsClientLimitMultiplier(throttlingStrategy, cassandraMetricMeasurementsLoader);
     }
 

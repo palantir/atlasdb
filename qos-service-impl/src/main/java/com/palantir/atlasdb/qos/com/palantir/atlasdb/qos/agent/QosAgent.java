@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent;
 
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -28,12 +29,15 @@ import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 public class QosAgent {
     private final Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier;
     private final QosServiceInstallConfig installConfig;
+    private ScheduledExecutorService managedMetricsLoaderExecutor;
     private final Consumer<Object> registrar;
 
     public QosAgent(Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier, QosServiceInstallConfig installConfig,
+            ScheduledExecutorService managedMetricsLoaderExecutor,
             Consumer<Object> registrar) {
         this.runtimeConfigSupplier = runtimeConfigSupplier;
         this.installConfig = installConfig;
+        this.managedMetricsLoaderExecutor = managedMetricsLoaderExecutor;
         this.registrar = registrar;
     }
 
@@ -48,7 +52,7 @@ public class QosAgent {
         return installConfig.qosCassandraMetricsConfig().map(
                 config -> CassandraMetricsClientLimitMultiplier.create(
                         () -> runtimeConfigSupplier.get().qosCassandraMetricsConfig(),
-                        config))
+                        config, managedMetricsLoaderExecutor))
                 .orElseGet(OneReturningClientLimitMultiplier::create);
     }
 }
