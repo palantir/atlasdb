@@ -42,6 +42,8 @@ public final class AtlasDbConstants {
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace(
             "atlasdb_metadata");
+    public static final TableReference DEFAULT_SCHEMA_METADATA_TABLE = TableReference.createWithEmptyNamespace(
+            "_schema_metadata");
 
     public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
 
