@@ -1,14 +1,3 @@
-server:
-  #rootPath: /api/*
-  #applicationContextPath: /
-  #adminContextPath: /
-  applicationConnectors:
-    - type: http
-      port: 3828
-  adminConnectors:
-    - type: http
-      port: 3829
-
 atlasdb:
   keyValueService:
     type: cassandra
@@ -36,3 +25,4 @@ atlasdb:
     localServer: http://localhost:3828
     leaders:
       - http://localhost:3828
+

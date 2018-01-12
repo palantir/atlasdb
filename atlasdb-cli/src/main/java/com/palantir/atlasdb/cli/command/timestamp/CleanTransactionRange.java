@@ -15,15 +15,17 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -60,7 +62,7 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
                 RangeRequest.all(),
                 Long.MAX_VALUE);
 
-        Multimap<Cell, Long> toDelete = HashMultimap.create();
+        Map<Cell, byte[]> txTableValuesToWrite =  new HashMap<>();
         while (range.hasNext()) {
             RowResult<Value> row = range.next();
             byte[] rowName = row.getRowName();
@@ -85,14 +87,19 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
                     SafeArg.of("startTs", startTs), SafeArg.of("commitTs", commitTs));
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
-            toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L
+            byte[] valueForRollbackTimestamp =
+                    TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS);
+
+            txTableValuesToWrite.put(key, valueForRollbackTimestamp);
         }
 
-        if (!toDelete.isEmpty()) {
-            kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
-            printer.info("Delete completed.");
+        if (!txTableValuesToWrite.isEmpty()) {
+            Map<TableReference, Map<Cell, byte[]>> valuesToPut = new HashMap<>();
+            valuesToPut.put(TransactionConstants.TRANSACTION_TABLE, txTableValuesToWrite);
+            kvs.put(TransactionConstants.TRANSACTION_TABLE, txTableValuesToWrite, services.getTimestampService().getFreshTimestamp());
+            printer.info("Completed rollback of transactions after the given timestamp.");
         } else {
-            printer.info("Found no transactions after the given timestamp to delete.");
+            printer.info("Found no transactions after the given timestamp to rollback.");
         }
 
         return 0;
