@@ -47,4 +47,14 @@ public class NullCleanupMetadata implements CleanupMetadata {
     public void accept(Visitor visitor) {
         visitor.visit(this);
     }
+
+    @Override
+    public boolean equals(Object other) {
+        return this == other || (other != null && this.getClass() == other.getClass());
+    }
+
+    @Override
+    public int hashCode() {
+        return ArbitraryCleanupMetadata.class.hashCode();
+    }
 }

@@ -18,22 +18,21 @@ package com.palantir.atlasdb.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-
 import org.junit.Test;
 
-import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence;
+import com.palantir.atlasdb.schema.cleanup.ImmutableStreamStoreCleanupMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
 
 public class SchemaDependentTableMetadataTest {
     @Test
-    public void canSerializeAndDeserializeMetadataWithVariousCleanupRequirements() {
-        Arrays.stream(SchemaMetadataPersistence.CleanupRequirement.values())
-                .forEach(cleanupRequirement -> {
-                    SchemaDependentTableMetadata tableMetadata = ImmutableSchemaDependentTableMetadata.builder()
-                            .cleanupRequirement(cleanupRequirement)
-                            .build();
-                    assertThat(SchemaDependentTableMetadata.HYDRATOR.hydrateFromBytes(tableMetadata.persistToBytes()))
-                            .isEqualTo(tableMetadata);
-                });
+    public void canSerializeAndDeserialize() {
+        SchemaDependentTableMetadata metadata = ImmutableSchemaDependentTableMetadata.builder()
+                .cleanupMetadata(ImmutableStreamStoreCleanupMetadata.builder()
+                        .numHashedRowComponents(1)
+                        .streamIdType(ValueType.FIXED_LONG)
+                        .build())
+                .build();
+        assertThat(SchemaDependentTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
+                .isEqualTo(metadata);
     }
 }
