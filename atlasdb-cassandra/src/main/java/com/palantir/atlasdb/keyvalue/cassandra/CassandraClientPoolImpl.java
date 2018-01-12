@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -36,6 +37,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -233,8 +235,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    CassandraService getCassandra() {
-        return cassandra;
+    TokenRangeWritesLogger getTokenRangeWritesLogger() {
+        return cassandra.getTokenRangeWritesLogger();
+    }
+
+    @VisibleForTesting
+    RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
+        return cassandra.getTokenMap();
     }
 
     private synchronized void refreshPool() {
@@ -253,7 +260,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             serversToRemove = Sets.difference(cassandra.getPools().keySet(), config.servers());
         }
 
-        serversToAdd.forEach(this::addPool);
+        serversToAdd.forEach(cassandra::addPool);
         serversToRemove.forEach(cassandra::removePool);
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
@@ -272,6 +279,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     void addPool(InetSocketAddress server) {
         cassandra.addPool(server);
+    }
+
+    @VisibleForTesting
+    void removePool(InetSocketAddress server) {
+        cassandra.removePool(server);
     }
 
     @Override

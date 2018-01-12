@@ -75,7 +75,7 @@ public class CassandraClientPoolIntegrationTest {
     @Test
     public void testTokenMapping() {
         Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
-                clientPool.getCassandra().getTokenMap().asMapOfRanges();
+                clientPool.getTokenMap().asMapOfRanges();
 
         for (Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry :
                 mapOfRanges.entrySet()) {

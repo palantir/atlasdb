@@ -77,7 +77,7 @@ public class CassandraClientPoolTest {
 
         assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2"));
 
-        cassandraClientPool.getCassandra().removePool(HOST_1);
+        cassandraClientPool.removePool(HOST_1);
         assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName("pool1")), is(false));
         assertThatMetricsArePresent(ImmutableSet.of("pool2"));
 
@@ -91,7 +91,7 @@ public class CassandraClientPoolTest {
 
         assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
 
-        cassandraClientPool.getCassandra().removePool(HOST_2);
+        cassandraClientPool.removePool(HOST_2);
         assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool3"));
         assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName("pool2")), is(false));
 
