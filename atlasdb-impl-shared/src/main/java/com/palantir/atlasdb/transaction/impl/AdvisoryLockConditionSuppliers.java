@@ -22,6 +22,7 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
@@ -89,7 +90,8 @@ public final class AdvisoryLockConditionSuppliers {
         }
     }
 
-    private static final AdvisoryLocksCondition NO_LOCKS_CONDITION = new AdvisoryLocksCondition() {
+    @VisibleForTesting
+    static final AdvisoryLocksCondition NO_LOCKS_CONDITION = new AdvisoryLocksCondition() {
         @Override
         public Iterable<HeldLocksToken> getLocks() {
             return ImmutableSet.of();

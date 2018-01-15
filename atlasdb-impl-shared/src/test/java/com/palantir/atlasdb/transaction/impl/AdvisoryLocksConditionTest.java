@@ -30,8 +30,10 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -41,15 +43,26 @@ import com.palantir.lock.LockCollections;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
+import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.TimeDuration;
 
 public class AdvisoryLocksConditionTest {
 
-    private static final HeldLocksToken TRANSASCTION_LOCK_TOKEN = getHeldLocksToken(BigInteger.ZERO);
+    private static final SortedLockCollection<LockDescriptor> LOCK_DESCRIPTORS = LockCollections.of(
+            ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+            .put(AtlasRowLockDescriptor.of(
+                    TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                    TransactionConstants.getValueForTimestamp(0L)), LockMode.WRITE)
+            .build());
+    private static final LockRequest LOCK_REQUEST = LockRequest.builder(LOCK_DESCRIPTORS).build();
+    private static final Supplier<LockRequest> LOCK_REQUEST_SUPPLIER = () -> LOCK_REQUEST;
+
+    private static final HeldLocksToken TRANSACTION_LOCK_TOKEN = getHeldLocksToken(BigInteger.ZERO);
     private static final LockRefreshToken TRANSACTION_LOCK_REFRESH_TOKEN =
-            TRANSASCTION_LOCK_TOKEN.getLockRefreshToken();
+            TRANSACTION_LOCK_TOKEN.getLockRefreshToken();
     private static final HeldLocksToken EXTERNAL_LOCK_TOKEN = getHeldLocksToken(BigInteger.ONE);
     private static final LockRefreshToken EXTERNAL_LOCK_REFRESH_TOKEN =
             EXTERNAL_LOCK_TOKEN.getLockRefreshToken();
@@ -62,10 +75,10 @@ public class AdvisoryLocksConditionTest {
     @Before
     public void before() {
         lockService = mock(LockService.class);
-        transactionLocksCondition = new TransactionLocksCondition(lockService, TRANSASCTION_LOCK_TOKEN);
+        transactionLocksCondition = new TransactionLocksCondition(lockService, TRANSACTION_LOCK_TOKEN);
         externalLocksCondition = new ExternalLocksCondition(lockService, ImmutableSet.of(EXTERNAL_LOCK_TOKEN));
         combinedLocksCondition = new CombinedLocksCondition(lockService, ImmutableSet.of(EXTERNAL_LOCK_TOKEN),
-                TRANSASCTION_LOCK_TOKEN);
+                TRANSACTION_LOCK_TOKEN);
     }
 
     @Test
@@ -93,7 +106,7 @@ public class AdvisoryLocksConditionTest {
 
     @Test
     public void transactionLocksCondition_getLocks() {
-        assertThat(transactionLocksCondition.getLocks()).containsOnly(TRANSASCTION_LOCK_TOKEN);
+        assertThat(transactionLocksCondition.getLocks()).containsOnly(TRANSACTION_LOCK_TOKEN);
     }
 
     @Test
@@ -133,18 +146,64 @@ public class AdvisoryLocksConditionTest {
 
     @Test
     public void combinedLocksCondition_getLocks() {
-        assertThat(combinedLocksCondition.getLocks()).containsOnly(EXTERNAL_LOCK_TOKEN, TRANSASCTION_LOCK_TOKEN);
+        assertThat(combinedLocksCondition.getLocks()).containsOnly(EXTERNAL_LOCK_TOKEN, TRANSACTION_LOCK_TOKEN);
     }
 
-    // test AdvisoryLockConditionSuppliers
+    @Test
+    public void conditionSupplier_noLocks() {
+        Supplier<AdvisoryLocksCondition> conditionSupplier =
+                AdvisoryLockConditionSuppliers.get(lockService, ImmutableSet.of(), () -> null);
+        assertThat(conditionSupplier.get()).isSameAs(AdvisoryLockConditionSuppliers.NO_LOCKS_CONDITION);
+    }
+
+    @Test
+    public void conditionSupplier_externalLocks() {
+        Supplier<AdvisoryLocksCondition> conditionSupplier =
+                AdvisoryLockConditionSuppliers.get(lockService, ImmutableSet.of(EXTERNAL_LOCK_TOKEN), () -> null);
+        assertThat(conditionSupplier.get().getLocks()).containsOnly(EXTERNAL_LOCK_TOKEN);
+    }
+
+    @Test
+    public void conditionSupplier_transactionLockSuccess() throws InterruptedException {
+        Supplier<AdvisoryLocksCondition> conditionSupplier =
+                AdvisoryLockConditionSuppliers.get(lockService, ImmutableSet.of(), LOCK_REQUEST_SUPPLIER);
+        when(lockService.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
+                .thenReturn(TRANSACTION_LOCK_TOKEN);
+        assertThat(conditionSupplier.get().getLocks()).containsOnly(TRANSACTION_LOCK_TOKEN);
+    }
+
+    @Test
+    public void conditionSupplier_transactionLockFailure() throws InterruptedException {
+        Supplier<AdvisoryLocksCondition> conditionSupplier =
+                AdvisoryLockConditionSuppliers.get(lockService, ImmutableSet.of(), LOCK_REQUEST_SUPPLIER);
+        when(lockService.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
+                .thenReturn(null);
+        assertThatThrownBy(() -> conditionSupplier.get())
+                .isInstanceOf(LockAcquisitionException.class)
+                .hasMessageContaining("Failed to lock using the provided lock request");
+    }
+
+    @Test
+    public void conditionSupplier_transactionLockFailureBeforeSuccess() throws InterruptedException {
+        Supplier<AdvisoryLocksCondition> conditionSupplier =
+                AdvisoryLockConditionSuppliers.get(lockService, ImmutableSet.of(), LOCK_REQUEST_SUPPLIER);
+        when(lockService.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
+                .thenReturn(null)
+                .thenReturn(null)
+                .thenReturn(TRANSACTION_LOCK_TOKEN);
+        assertThat(conditionSupplier.get().getLocks()).containsOnly(TRANSACTION_LOCK_TOKEN);
+    }
+
+    @Test
+    public void conditionSupplier_bothLocks() throws InterruptedException {
+        Supplier<AdvisoryLocksCondition> conditionSupplier = AdvisoryLockConditionSuppliers.get(
+                lockService, ImmutableSet.of(EXTERNAL_LOCK_TOKEN), LOCK_REQUEST_SUPPLIER);
+        when(lockService.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
+                .thenReturn(TRANSACTION_LOCK_TOKEN);
+        assertThat(conditionSupplier.get().getLocks()).containsOnly(EXTERNAL_LOCK_TOKEN, TRANSACTION_LOCK_TOKEN);
+    }
 
     private static HeldLocksToken getHeldLocksToken(BigInteger tokenId) {
-        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
-        builder.put(
-                AtlasRowLockDescriptor.of(
-                        TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                        TransactionConstants.getValueForTimestamp(0L)),
-                LockMode.WRITE);
         long creationDateMs = System.currentTimeMillis();
         long expirationDateMs = creationDateMs - 1;
         TimeDuration lockTimeout = SimpleTimeDuration.of(0, TimeUnit.SECONDS);
@@ -154,7 +213,7 @@ public class AdvisoryLocksConditionTest {
                 LockClient.of("fake lock client"),
                 creationDateMs,
                 expirationDateMs,
-                LockCollections.of(builder.build()),
+                LOCK_DESCRIPTORS,
                 lockTimeout,
                 versionId,
                 "Dummy thread");
