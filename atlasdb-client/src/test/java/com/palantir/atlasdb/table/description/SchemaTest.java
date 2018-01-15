@@ -30,6 +30,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +43,12 @@ import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.SchemaDependentTableMetadata;
+import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.CleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
+import com.palantir.atlasdb.schema.stream.StreamTableType;
 
 public class SchemaTest {
     @Rule
@@ -48,9 +56,16 @@ public class SchemaTest {
 
     private static final String TEST_PACKAGE = "package";
     private static final String TEST_TABLE_NAME = "TestTable";
+    private static final String TEST_INDEX_NAME = TEST_TABLE_NAME + IndexDefinition.IndexType.ADDITIVE.getIndexSuffix();
     private static final String TEST_PATH = TEST_PACKAGE + "/" + TEST_TABLE_NAME + "Table.java";
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
+    private static final TableReference INDEX_TABLE_REF = TableReference.createWithEmptyNamespace(TEST_INDEX_NAME);
     private static final String EXPECTED_FILES_FOLDER_PATH = "src/integrationInput/java";
+
+    private static final Consumer<CleanupMetadata> NULL_CLEANUP_METADATA_ASSERTION =
+            metadata -> assertThat(metadata).isInstanceOf(NullCleanupMetadata.class);
+    private static final Consumer<CleanupMetadata> ARBITRARY_CLEANUP_METADATA_ASSERTION =
+            metadata -> assertThat(metadata).isInstanceOf(ArbitraryCleanupMetadata.class);
 
     @Test
     public void testRendersGuavaOptionalsByDefault() throws IOException {
@@ -181,7 +196,97 @@ public class SchemaTest {
             schema.addIndexDefinition(longTableName, id);
         })
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(getErrorMessage(longTableName + IndexDefinition.IndexType.ADDITIVE.getIndexSuffix(), kvsList));
+                .hasMessage(
+                        getErrorMessage(longTableName + IndexDefinition.IndexType.ADDITIVE.getIndexSuffix(), kvsList));
+    }
+
+    @Test
+    public void simpleTablesHaveNullCleanupMetadata() {
+        Schema schema = getSchemaWithSimpleTestTable();
+        assertOnCleanupMetadataInSchema(schema, TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
+    }
+
+    @Test
+    public void tablesWithCustomCleanupTaskHaveArbitraryCleanupMetadata() {
+        Schema schema = getSchemaWithSimpleTestTable();
+        schema.addCleanupTask(TEST_TABLE_NAME, () -> (tx, cells) -> false);
+        assertOnCleanupMetadataInSchema(schema, TABLE_REF, ARBITRARY_CLEANUP_METADATA_ASSERTION);
+    }
+
+    @Test
+    public void indexTablesWithoutCleanupTasksHaveNullCleanupMetadata() {
+        Schema schema = getSchemaWithSimpleTestTable();
+
+        addTestIndexDefinition(schema);
+
+        assertOnCleanupMetadataInSchema(schema, INDEX_TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
+    }
+
+    @Test
+    public void indexTablesWithCleanupTasksHaveArbitraryCleanupMetadata() {
+        Schema schema = getSchemaWithSimpleTestTable();
+
+        addTestIndexDefinition(schema);
+        schema.addCleanupTask(TEST_INDEX_NAME, () -> (tx, cells) -> false);
+
+        assertOnCleanupMetadataInSchema(schema, INDEX_TABLE_REF, ARBITRARY_CLEANUP_METADATA_ASSERTION);
+    }
+
+    @Test
+    public void indexTablesWithoutCleanupTasksHaveNullCleanupMetadataEvenIfBaseTableHasCleanupTasks() {
+        Schema schema = getSchemaWithSimpleTestTable();
+        schema.addCleanupTask(TEST_TABLE_NAME, () -> (tx, cells) -> false);
+
+        addTestIndexDefinition(schema);
+
+        assertOnCleanupMetadataInSchema(schema, INDEX_TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
+    }
+
+    @Test
+    public void streamStoreTablesCreatedWithCorrectCleanupMetadata() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        String shortName = "f";
+        String longName = "floccinaucinihilipilification";
+
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_LONG)
+                        .build());
+        assertOnCleanupMetadataInSchema(
+                schema,
+                StreamTableType.VALUE.getTableName(shortName),
+                NULL_CLEANUP_METADATA_ASSERTION);
+    }
+
+    private Schema getSchemaWithSimpleTestTable() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
+        return schema;
+    }
+
+    private void addTestIndexDefinition(Schema schema) {
+        IndexDefinition indexDefinition = new IndexDefinition(IndexDefinition.IndexType.ADDITIVE);
+        indexDefinition.onTable(TEST_TABLE_NAME);
+        schema.addIndexDefinition(TEST_TABLE_NAME, indexDefinition);
+    }
+
+    private void assertOnCleanupMetadataInSchema(
+            Schema schema,
+            String tableName,
+            Consumer<CleanupMetadata> verification) {
+        assertOnCleanupMetadataInSchema(
+                schema,
+                TableReference.create(Namespace.EMPTY_NAMESPACE, tableName),
+                verification);
+    }
+
+    private void assertOnCleanupMetadataInSchema(
+            Schema schema,
+            TableReference tableReference,
+            Consumer<CleanupMetadata> verification) {
+        Map<TableReference, SchemaDependentTableMetadata> metadatas
+                = schema.getSchemaMetadata().schemaDependentTableMetadata();
+        assertThat(metadatas).containsKey(tableReference);
+        verification.accept(metadatas.get(tableReference).cleanupMetadata());
     }
 
     private void checkIfFilesAreTheSame(List<String> generatedTestTables) {
