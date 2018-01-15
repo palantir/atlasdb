@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -38,6 +37,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosSynchronizer;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
@@ -65,7 +65,7 @@ public class PaxosTimestampCreator implements TimestampCreator {
 
     @Override
     public Supplier<ManagedTimestampService> createTimestampService(String client, LeaderConfig unused) {
-        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+        ExecutorService executor = PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")
                 .setDaemon(true)
                 .build());
