@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -43,6 +44,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -60,6 +62,7 @@ import com.palantir.logsafe.UnsafeArg;
 public class CqlExecutorImpl implements CqlExecutor {
     private final QueryExecutor queryExecutor;
     private final ExecutorService executor;
+    private final int numThreads;
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
@@ -67,15 +70,20 @@ public class CqlExecutorImpl implements CqlExecutor {
         CqlResult executePrepared(int queryId, List<ByteBuffer> values);
     }
 
-    CqlExecutorImpl(ExecutorService executor, CassandraClientPool clientPool, ConsistencyLevel consistency) {
+    CqlExecutorImpl(ExecutorService executor,
+            CassandraClientPool clientPool,
+            ConsistencyLevel consistency,
+            int numThreads) {
         this.queryExecutor = new QueryExecutorImpl(clientPool, consistency);
         this.executor = executor;
+        this.numThreads = numThreads;
     }
 
     @VisibleForTesting
     CqlExecutorImpl(QueryExecutor queryExecutor) {
         this.queryExecutor = queryExecutor;
-        this.executor = PTExecutors.newFixedThreadPool(16);
+        this.executor = PTExecutors.newFixedThreadPool(AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS);
+        this.numThreads = AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
 
     @Override
@@ -104,6 +112,12 @@ public class CqlExecutorImpl implements CqlExecutor {
                 Future<CqlResult> future = futures.get(rowIndex);
                 CqlResult cqlResult = future.get();
                 result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
+
+                if (result.size() > limit) {
+                    cancelFutures(futures.subList(rowIndex, futures.size()));
+                    break;
+                }
+
             }
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
@@ -127,11 +141,17 @@ public class CqlExecutorImpl implements CqlExecutor {
 
         Callable<CqlResult> task = () -> {
             CqlResult cqlResult = queryExecutor.executePrepared(queryId, ImmutableList.of(ByteBuffer.wrap(row)));
-            nextFuture(futures, queryId, futuresIndex.incrementAndGet(), futuresIndex, rows);
+            if (!Thread.interrupted()) {
+                nextFuture(futures, queryId, futuresIndex.incrementAndGet(), futuresIndex, rows);
+            }
             return cqlResult;
         };
 
         futures.add(rowIndex, executor.submit(task));
+    }
+
+    private void cancelFutures(List<Future<CqlResult>> futures) {
+        futures.forEach(f -> f.cancel(true));
     }
 
     /**
