@@ -19,9 +19,9 @@ package com.palantir.atlasdb.qos.ratelimit;
 import com.palantir.atlasdb.qos.config.SimpleThrottlingStrategy;
 import com.palantir.atlasdb.qos.config.ThrottlingStrategy;
 
-public final class ThrottlingStrategyFactory {
+public final class ThrottlingStrategies {
 
-    private ThrottlingStrategyFactory() {
+    private ThrottlingStrategies() {
         //utility class
     }
 
