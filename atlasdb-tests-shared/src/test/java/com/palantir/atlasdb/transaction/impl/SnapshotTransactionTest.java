@@ -767,6 +767,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
                 return null;
             });
+            fail();
         } catch (TransactionLockTimeoutNonRetriableException e) {
             Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
             assertThat(e.getMessage(), containsString(expectedTokens.toString()));
@@ -789,6 +790,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
                 return null;
             });
+            fail();
         } catch (TransactionFailedRetriableException e) {
             assertThat(e.getMessage(), containsString("Condition failed"));
         }
@@ -822,6 +824,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
                 return null;
             });
+            fail();
         } catch (TransactionFailedNonRetriableException e) {
             assertThat(e.getMessage(), containsString("Condition failed"));
         }
@@ -838,6 +841,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         try {
             serializableTxManager.runTaskReadOnlyWithCondition(ALWAYS_FAILS_CONDITION,
                     (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
+            fail();
         } catch (TransactionFailedRetriableException e) {
             assertThat(e.getMessage(), containsString("Condition failed"));
         }
@@ -887,6 +891,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
                 return null;
             });
+            fail();
         } catch (TransactionFailedRetriableException e) {
             // expected
         }
@@ -895,6 +900,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         try {
             serializableTxManager.runTaskReadOnlyWithCondition(failsCondition,
                     (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
+            fail();
         } catch (TransactionFailedRetriableException e) {
             // expected
         }
