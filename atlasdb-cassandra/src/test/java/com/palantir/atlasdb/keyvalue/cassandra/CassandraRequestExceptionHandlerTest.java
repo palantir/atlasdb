@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -97,15 +96,13 @@ public class CassandraRequestExceptionHandlerTest {
         shortBackoffsExceptions = Sets.union(shortBackoffsExceptions, indicativeOfCassandraLoadException);
 
         for (Exception ex : shortBackoffsExceptions) {
-            assertEquals(String.format("Exception %s should have short backoff", ex),
-                    exceptionHandler.shouldBackoff(ex),
-                    CassandraRequestExceptionHandler.Backoff.SHORT);
+            assertTrue(String.format("Exception %s should backoff", ex),
+                    exceptionHandler.shouldBackoff(ex));
         }
 
         for (Exception ex : fastFailoverExceptions) {
-            assertEquals(String.format("Fast failover exception %s should not backoff", ex),
-                    exceptionHandler.shouldBackoff(ex),
-                    CassandraRequestExceptionHandler.Backoff.NO);
+            assertFalse(String.format("Fast failover exception %s should not backoff", ex),
+                    exceptionHandler.shouldBackoff(ex));
         }
     }
 

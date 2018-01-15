@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
@@ -36,10 +37,11 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
 class CassandraRequestExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+
+    private static final Duration backoffDuration = Duration.ofSeconds(1);
 
     private final Supplier<Integer> maxTriesSameHost;
     private final Supplier<Integer> maxTriesTotal;
@@ -117,13 +119,12 @@ class CassandraRequestExceptionHandler {
     private <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
             InetSocketAddress hostTried,
             Exception ex) {
-        Backoff backoff = shouldBackoff(ex);
-        if (backoff.equals(Backoff.NO)) {
+        if (!shouldBackoff(ex)) {
             return;
         }
 
         int numberOfAttempts = req.getNumberOfAttempts();
-        long backoffPeriod = backoff.duration.toMilliseconds();
+        long backoffPeriod = backoffDuration.toMillis();
         // And value between -500 and +500ms to backoff to better spread load on failover
         long sleepDuration =
                 numberOfAttempts * backoffPeriod + (ThreadLocalRandom.current().nextInt(1000) - 500);
@@ -164,12 +165,8 @@ class CassandraRequestExceptionHandler {
     }
 
     @VisibleForTesting
-    Backoff shouldBackoff(Exception ex) {
-        if (isConnectionException(ex) || isIndicativeOfCassandraLoad(ex)) {
-            return Backoff.SHORT;
-        }
-
-        return Backoff.NO;
+    boolean shouldBackoff(Exception ex) {
+        return isConnectionException(ex) || isIndicativeOfCassandraLoad(ex);
     }
 
     @VisibleForTesting
@@ -220,16 +217,4 @@ class CassandraRequestExceptionHandler {
             + " Error writing to Cassandra socket."
             + " Likely cause: Exceeded maximum thrift frame size;"
             + " unlikely cause: network issues.";
-
-    @VisibleForTesting
-    enum Backoff {
-        NO(HumanReadableDuration.minutes(0L)),
-        SHORT(HumanReadableDuration.seconds(1L));
-
-        private HumanReadableDuration duration;
-
-        Backoff(HumanReadableDuration duration) {
-            this.duration = duration;
-        }
-    }
 }
