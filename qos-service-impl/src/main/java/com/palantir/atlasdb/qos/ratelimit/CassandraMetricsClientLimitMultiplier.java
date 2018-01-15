@@ -47,7 +47,7 @@ public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultipl
                 CassandraMetricsService.class,
                 "qos-service",
                 ClientConfigurations.of(installConfig.cassandraServiceConfig()));
-        ThrottlingStrategy throttlingStrategy = ThrottlingStrategyFactory.getThrottlingStrategy(
+        ThrottlingStrategy throttlingStrategy = ThrottlingStrategies.getThrottlingStrategy(
                 installConfig.throttlingStrategy());
 
         CassandraMetricMeasurementsLoader cassandraMetricMeasurementsLoader = new CassandraMetricMeasurementsLoader(

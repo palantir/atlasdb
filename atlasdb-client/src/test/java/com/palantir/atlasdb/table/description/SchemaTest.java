@@ -166,6 +166,24 @@ public class SchemaTest {
         checkIfFilesAreTheSame(generatedTestTables);
     }
 
+    @Test
+    public void testLongIndexNameLengthFailsCassandra() throws IOException {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        int longLengthCassandra = AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT;
+        String longTableName = String.join("", Collections.nCopies(longLengthCassandra, "x"));
+        TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
+        List<CharacterLimitType> kvsList = new ArrayList<>();
+        kvsList.add(CharacterLimitType.CASSANDRA);
+        schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef));
+        assertThatThrownBy(() -> {
+            IndexDefinition id = new IndexDefinition(IndexDefinition.IndexType.ADDITIVE);
+            id.onTable(longTableName);
+            schema.addIndexDefinition(longTableName, id);
+        })
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(getErrorMessage(longTableName + IndexDefinition.IndexType.ADDITIVE.getIndexSuffix(), kvsList));
+    }
+
     private void checkIfFilesAreTheSame(List<String> generatedTestTables) {
         generatedTestTables.forEach(tableName -> {
             String generatedFilePath =

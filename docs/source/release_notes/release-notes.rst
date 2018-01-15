@@ -55,6 +55,11 @@ develop
            The parallelism can be changed by adjusting ``sweepReadThreads`` in Cassandra KVS config (default 16).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2860>`__)
 
+    *    - |improved|
+         - AtlasDB now throws an error during schema code generation stage if index table name length exceeds KVS table name length limits.
+           To override this, please specify ``ignoreTableNameLengthChecks()`` on your schema.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2862>`__)
+
 ===========
 v0.73.0-rc1
 ===========
