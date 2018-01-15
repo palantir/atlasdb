@@ -113,6 +113,10 @@ develop
          - The LockAwareTransactionManager pre-commit checks that verify that locks are still held have been generalized to support arbitrary pre-commit checks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2846>`__)
 
+    *    - |fixed|
+         - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2868>`__)
+
 =======
 v0.72.0
 =======

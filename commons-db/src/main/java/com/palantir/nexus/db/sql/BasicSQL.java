@@ -66,7 +66,6 @@ import com.palantir.nexus.db.ResourceCreationLocation;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
-import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.sql.Connections;
 import com.palantir.sql.PreparedStatements;
 import com.palantir.sql.ResultSets;
@@ -360,10 +359,10 @@ public abstract class BasicSQL {
     private static final String selectThreadName = "SQL select statement"; //$NON-NLS-1$
     private static final String executeThreadName = "SQL execute statement"; //$NON-NLS-1$
     private static final int KEEP_SQL_THREAD_ALIVE_TIMEOUT = 3000; //3 seconds
-    private static ExecutorService service = Tracers.wrap(PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(selectThreadName, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
-    static ExecutorService executeService = Tracers.wrap(PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(executeThreadName, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
+    private static ExecutorService service = PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(selectThreadName, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
+    static ExecutorService executeService = PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(executeThreadName, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
 
     protected static enum AutoClose {
         TRUE, FALSE;

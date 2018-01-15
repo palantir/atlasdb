@@ -119,7 +119,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.remoting2.tracing.Tracers;
 
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
@@ -208,7 +207,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testConcurrentWriteChangedConflicts() throws InterruptedException, ExecutionException {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         CompletionService<Void> executor = new ExecutorCompletionService<Void>(
-                Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
+                PTExecutors.newFixedThreadPool(8));
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
@@ -235,7 +234,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void testConcurrentWriteWriteConflicts() throws InterruptedException, ExecutionException {
         CompletionService<Void> executor = new ExecutorCompletionService<Void>(
-                Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
+                PTExecutors.newFixedThreadPool(8));
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
@@ -387,7 +386,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager);
 
-        ScheduledExecutorService service = Tracers.wrap(PTExecutors.newScheduledThreadPool(20));
+        ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
         for (int i = 0; i < 30; i++) {
             final int threadNumber = i;

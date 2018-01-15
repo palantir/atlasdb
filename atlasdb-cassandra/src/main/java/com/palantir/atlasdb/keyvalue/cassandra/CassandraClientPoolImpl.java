@@ -68,7 +68,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
-import com.palantir.remoting3.tracing.Tracers;
 
 /**
  * Feature breakdown:
@@ -184,10 +183,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this.config = config;
         this.startupChecks = startupChecks;
         this.qosClient = qosClient;
-        this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
+        this.refreshDaemon = PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
-                .build()));
+                .build());
         this.blacklist = blacklist;
         this.exceptionHandler = new CassandraRequestExceptionHandler(
                 this::getMaxRetriesPerHost, this::getMaxTriesTotal, blacklist);
@@ -545,7 +544,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             try {
                 return runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
             } catch (Exception ex) {
-                exceptionHandler.handleRequest(req, hostPool.getHost(), ex);
+                exceptionHandler.handleExceptionFromRequest(req, hostPool.getHost(), ex);
             }
         }
     }

@@ -60,7 +60,6 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.remoting2.tracing.Tracers;
 
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
@@ -184,7 +183,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         final CyclicBarrier barrier = new CyclicBarrier(2);
 
         final Transaction t1 = startTransaction();
-        ExecutorService exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
+        ExecutorService exec = PTExecutors.newCachedThreadPool();
         Future<?> future = exec.submit((Callable<Void>) () -> {
             withdrawMoney(t1, true, false);
             barrier.await();
