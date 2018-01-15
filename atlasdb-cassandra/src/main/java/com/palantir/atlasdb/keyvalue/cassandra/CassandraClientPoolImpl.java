@@ -545,7 +545,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             try {
                 return runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
             } catch (Exception ex) {
-                exceptionHandler.handleRequest(req, hostPool.getHost(), ex);
+                exceptionHandler.handleExceptionFromRequest(req, hostPool.getHost(), ex);
             }
         }
     }
