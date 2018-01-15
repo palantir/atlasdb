@@ -111,6 +111,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                 result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
 
                 if (result.size() > limit) {
+                    cancelFutures(futures.subList(i + 1, futures.size()));
                     break;
                 }
 
@@ -131,6 +132,10 @@ public class CqlExecutorImpl implements CqlExecutor {
         Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
                 ImmutableList.of(ByteBuffer.wrap(row)));
         return executor.submit(task);
+    }
+
+    private void cancelFutures(List<Future<CqlResult>> futures) {
+        futures.forEach(f -> f.cancel(true));
     }
 
     /**
