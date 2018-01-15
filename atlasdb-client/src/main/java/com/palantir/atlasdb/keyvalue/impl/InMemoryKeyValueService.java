@@ -69,7 +69,6 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting3.tracing.Tracers;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -85,7 +84,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     public InMemoryKeyValueService(boolean createTablesAutomatically) {
         this(createTablesAutomatically,
-                Tracers.wrap(PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true))));
+                PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true)));
     }
 
     public InMemoryKeyValueService(boolean createTablesAutomatically,

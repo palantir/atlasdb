@@ -39,7 +39,6 @@ import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.remoting3.tracing.Tracers;
 
 /**
  * Tests for {@link ClientAwareReadWriteLockImpl}.
@@ -49,8 +48,8 @@ import com.palantir.remoting3.tracing.Tracers;
 @ShouldRetry
 public final class ClientAwareLockTest {
 
-    private static final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(ClientAwareLockTest.class.getName(), true)));
+    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(ClientAwareLockTest.class.getName(), true));
 
     private final LockClient client = LockClient.of("client");
     private ClientAwareReadWriteLock readWriteLock;
