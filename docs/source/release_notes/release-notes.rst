@@ -104,6 +104,13 @@ develop
          - The JDBC URL for Oracle can now be overridden in the configuration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
 
+    *    - |devbreak| |improved|
+         - The ``partitionStrategy`` parameter in AtlasDB table metadata has been removed; products that explicitly specify partition strategies in their schemas will need to remove them.
+           The value of this parameter was never actually read; behaviour would have been identical regardless of what this was specified to (if at all).
+           This change was made to simplify the API and also remove any illusion that specifying the ``partitionStrategy`` would have done anything.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2864>`__)
+
+
 =======
 v0.72.0
 =======
