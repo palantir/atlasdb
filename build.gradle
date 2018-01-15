@@ -18,10 +18,10 @@ buildscript {
         classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.13.0'
         classpath 'com.palantir.baseline:gradle-baseline-java:0.13.0'
         classpath 'com.palantir:jacoco-coverage:0.4.0'
-        classpath 'com.palantir.sls-packaging:gradle-sls-packaging:2.4.0'
+        classpath 'com.palantir.sls-packaging:gradle-sls-packaging:2.7.0'
         classpath "com.netflix.nebula:gradle-dependency-lock-plugin:4.3.2"
-        classpath 'com.netflix.nebula:nebula-dependency-recommender:3.6.3'
-        classpath 'com.netflix.nebula:nebula-publishing-plugin:4.9.1'
+        classpath 'com.netflix.nebula:nebula-dependency-recommender:5.0.0'
+        classpath 'com.netflix.nebula:nebula-publishing-plugin:5.1.4'
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
     }
 }
