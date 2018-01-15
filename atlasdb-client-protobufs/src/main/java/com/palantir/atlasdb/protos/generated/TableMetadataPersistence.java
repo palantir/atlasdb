@@ -654,88 +654,6 @@ public final class TableMetadataPersistence {
   }
 
   /**
-   * Protobuf enum {@code com.palantir.atlasdb.protos.generated.PartitionStrategy}
-   */
-  public enum PartitionStrategy
-      implements com.google.protobuf.ProtocolMessageEnum {
-    /**
-     * <code>ORDERED = 0;</code>
-     */
-    ORDERED(0, 0),
-    /**
-     * <code>HASH = 1;</code>
-     */
-    HASH(1, 1),
-    ;
-
-    /**
-     * <code>ORDERED = 0;</code>
-     */
-    public static final int ORDERED_VALUE = 0;
-    /**
-     * <code>HASH = 1;</code>
-     */
-    public static final int HASH_VALUE = 1;
-
-
-    public final int getNumber() { return value; }
-
-    public static PartitionStrategy valueOf(int value) {
-      switch (value) {
-        case 0: return ORDERED;
-        case 1: return HASH;
-        default: return null;
-      }
-    }
-
-    public static com.google.protobuf.Internal.EnumLiteMap<PartitionStrategy>
-        internalGetValueMap() {
-      return internalValueMap;
-    }
-    private static com.google.protobuf.Internal.EnumLiteMap<PartitionStrategy>
-        internalValueMap =
-          new com.google.protobuf.Internal.EnumLiteMap<PartitionStrategy>() {
-            public PartitionStrategy findValueByNumber(int number) {
-              return PartitionStrategy.valueOf(number);
-            }
-          };
-
-    public final com.google.protobuf.Descriptors.EnumValueDescriptor
-        getValueDescriptor() {
-      return getDescriptor().getValues().get(index);
-    }
-    public final com.google.protobuf.Descriptors.EnumDescriptor
-        getDescriptorForType() {
-      return getDescriptor();
-    }
-    public static final com.google.protobuf.Descriptors.EnumDescriptor
-        getDescriptor() {
-      return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(6);
-    }
-
-    private static final PartitionStrategy[] VALUES = values();
-
-    public static PartitionStrategy valueOf(
-        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
-      if (desc.getType() != getDescriptor()) {
-        throw new java.lang.IllegalArgumentException(
-          "EnumValueDescriptor is not for this type.");
-      }
-      return VALUES[desc.getIndex()];
-    }
-
-    private final int index;
-    private final int value;
-
-    private PartitionStrategy(int index, int value) {
-      this.index = index;
-      this.value = value;
-    }
-
-    // @@protoc_insertion_point(enum_scope:com.palantir.atlasdb.protos.generated.PartitionStrategy)
-  }
-
-  /**
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.SweepStrategy}
    */
   public enum SweepStrategy
@@ -801,7 +719,7 @@ public final class TableMetadataPersistence {
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(7);
+      return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(6);
     }
 
     private static final SweepStrategy[] VALUES = values();
@@ -883,7 +801,7 @@ public final class TableMetadataPersistence {
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(8);
+      return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(7);
     }
 
     private static final LogSafety[] VALUES = values();
@@ -957,20 +875,19 @@ public final class TableMetadataPersistence {
     com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority getCachePriority();
 
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.PartitionStrategy partitionStrategy = 5;</code>
-     */
-    boolean hasPartitionStrategy();
-    /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.PartitionStrategy partitionStrategy = 5;</code>
-     */
-    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy getPartitionStrategy();
-
-    /**
      * <code>optional bool rangeScanAllowed = 6;</code>
+     *
+     * <pre>
+     * Tag number 5 was previously used.
+     * </pre>
      */
     boolean hasRangeScanAllowed();
     /**
      * <code>optional bool rangeScanAllowed = 6;</code>
+     *
+     * <pre>
+     * Tag number 5 was previously used.
+     * </pre>
      */
     boolean getRangeScanAllowed();
 
@@ -1128,29 +1045,18 @@ public final class TableMetadataPersistence {
               }
               break;
             }
-            case 40: {
-              int rawValue = input.readEnum();
-              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy value = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy.valueOf(rawValue);
-              if (value == null) {
-                unknownFields.mergeVarintField(5, rawValue);
-              } else {
-                bitField0_ |= 0x00000010;
-                partitionStrategy_ = value;
-              }
-              break;
-            }
             case 48: {
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               rangeScanAllowed_ = input.readBool();
               break;
             }
             case 56: {
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               explicitCompression_ = input.readBool();
               break;
             }
             case 64: {
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000040;
               negativeLookups_ = input.readBool();
               break;
             }
@@ -1160,18 +1066,18 @@ public final class TableMetadataPersistence {
               if (value == null) {
                 unknownFields.mergeVarintField(9, rawValue);
               } else {
-                bitField0_ |= 0x00000100;
+                bitField0_ |= 0x00000080;
                 sweepStrategy_ = value;
               }
               break;
             }
             case 80: {
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               explicitCompressionBlockSizeKiloBytes_ = input.readInt32();
               break;
             }
             case 88: {
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               appendHeavyAndReadLight_ = input.readBool();
               break;
             }
@@ -1181,7 +1087,7 @@ public final class TableMetadataPersistence {
               if (value == null) {
                 unknownFields.mergeVarintField(12, rawValue);
               } else {
-                bitField0_ |= 0x00000800;
+                bitField0_ |= 0x00000400;
                 nameLogSafety_ = value;
               }
               break;
@@ -1298,31 +1204,24 @@ public final class TableMetadataPersistence {
       return cachePriority_;
     }
 
-    public static final int PARTITIONSTRATEGY_FIELD_NUMBER = 5;
-    private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy partitionStrategy_;
-    /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.PartitionStrategy partitionStrategy = 5;</code>
-     */
-    public boolean hasPartitionStrategy() {
-      return ((bitField0_ & 0x00000010) == 0x00000010);
-    }
-    /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.PartitionStrategy partitionStrategy = 5;</code>
-     */
-    public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy getPartitionStrategy() {
-      return partitionStrategy_;
-    }
-
     public static final int RANGESCANALLOWED_FIELD_NUMBER = 6;
     private boolean rangeScanAllowed_;
     /**
      * <code>optional bool rangeScanAllowed = 6;</code>
+     *
+     * <pre>
+     * Tag number 5 was previously used.
+     * </pre>
      */
     public boolean hasRangeScanAllowed() {
-      return ((bitField0_ & 0x00000020) == 0x00000020);
+      return ((bitField0_ & 0x00000010) == 0x00000010);
     }
     /**
      * <code>optional bool rangeScanAllowed = 6;</code>
+     *
+     * <pre>
+     * Tag number 5 was previously used.
+     * </pre>
      */
     public boolean getRangeScanAllowed() {
       return rangeScanAllowed_;
@@ -1334,7 +1233,7 @@ public final class TableMetadataPersistence {
      * <code>optional bool explicitCompression = 7 [deprecated = true];</code>
      */
     @java.lang.Deprecated public boolean hasExplicitCompression() {
-      return ((bitField0_ & 0x00000040) == 0x00000040);
+      return ((bitField0_ & 0x00000020) == 0x00000020);
     }
     /**
      * <code>optional bool explicitCompression = 7 [deprecated = true];</code>
@@ -1349,7 +1248,7 @@ public final class TableMetadataPersistence {
      * <code>optional bool negativeLookups = 8;</code>
      */
     public boolean hasNegativeLookups() {
-      return ((bitField0_ & 0x00000080) == 0x00000080);
+      return ((bitField0_ & 0x00000040) == 0x00000040);
     }
     /**
      * <code>optional bool negativeLookups = 8;</code>
@@ -1364,7 +1263,7 @@ public final class TableMetadataPersistence {
      * <code>optional .com.palantir.atlasdb.protos.generated.SweepStrategy sweepStrategy = 9;</code>
      */
     public boolean hasSweepStrategy() {
-      return ((bitField0_ & 0x00000100) == 0x00000100);
+      return ((bitField0_ & 0x00000080) == 0x00000080);
     }
     /**
      * <code>optional .com.palantir.atlasdb.protos.generated.SweepStrategy sweepStrategy = 9;</code>
@@ -1379,7 +1278,7 @@ public final class TableMetadataPersistence {
      * <code>optional int32 explicitCompressionBlockSizeKiloBytes = 10;</code>
      */
     public boolean hasExplicitCompressionBlockSizeKiloBytes() {
-      return ((bitField0_ & 0x00000200) == 0x00000200);
+      return ((bitField0_ & 0x00000100) == 0x00000100);
     }
     /**
      * <code>optional int32 explicitCompressionBlockSizeKiloBytes = 10;</code>
@@ -1394,7 +1293,7 @@ public final class TableMetadataPersistence {
      * <code>optional bool appendHeavyAndReadLight = 11;</code>
      */
     public boolean hasAppendHeavyAndReadLight() {
-      return ((bitField0_ & 0x00000400) == 0x00000400);
+      return ((bitField0_ & 0x00000200) == 0x00000200);
     }
     /**
      * <code>optional bool appendHeavyAndReadLight = 11;</code>
@@ -1409,7 +1308,7 @@ public final class TableMetadataPersistence {
      * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
      */
     public boolean hasNameLogSafety() {
-      return ((bitField0_ & 0x00000800) == 0x00000800);
+      return ((bitField0_ & 0x00000400) == 0x00000400);
     }
     /**
      * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
@@ -1423,7 +1322,6 @@ public final class TableMetadataPersistence {
       columns_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnMetadataDescription.getDefaultInstance();
       conflictHandler_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableConflictHandler.IGNORE_ALL;
       cachePriority_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority.COLDEST;
-      partitionStrategy_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy.ORDERED;
       rangeScanAllowed_ = false;
       explicitCompression_ = false;
       negativeLookups_ = false;
@@ -1478,27 +1376,24 @@ public final class TableMetadataPersistence {
         output.writeEnum(4, cachePriority_.getNumber());
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        output.writeEnum(5, partitionStrategy_.getNumber());
-      }
-      if (((bitField0_ & 0x00000020) == 0x00000020)) {
         output.writeBool(6, rangeScanAllowed_);
       }
-      if (((bitField0_ & 0x00000040) == 0x00000040)) {
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
         output.writeBool(7, explicitCompression_);
       }
-      if (((bitField0_ & 0x00000080) == 0x00000080)) {
+      if (((bitField0_ & 0x00000040) == 0x00000040)) {
         output.writeBool(8, negativeLookups_);
       }
-      if (((bitField0_ & 0x00000100) == 0x00000100)) {
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
         output.writeEnum(9, sweepStrategy_.getNumber());
       }
-      if (((bitField0_ & 0x00000200) == 0x00000200)) {
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
         output.writeInt32(10, explicitCompressionBlockSizeKiloBytes_);
       }
-      if (((bitField0_ & 0x00000400) == 0x00000400)) {
+      if (((bitField0_ & 0x00000200) == 0x00000200)) {
         output.writeBool(11, appendHeavyAndReadLight_);
       }
-      if (((bitField0_ & 0x00000800) == 0x00000800)) {
+      if (((bitField0_ & 0x00000400) == 0x00000400)) {
         output.writeEnum(12, nameLogSafety_.getNumber());
       }
       getUnknownFields().writeTo(output);
@@ -1528,33 +1423,29 @@ public final class TableMetadataPersistence {
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeEnumSize(5, partitionStrategy_.getNumber());
+          .computeBoolSize(6, rangeScanAllowed_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(6, rangeScanAllowed_);
+          .computeBoolSize(7, explicitCompression_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(7, explicitCompression_);
+          .computeBoolSize(8, negativeLookups_);
       }
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(8, negativeLookups_);
+          .computeEnumSize(9, sweepStrategy_.getNumber());
       }
       if (((bitField0_ & 0x00000100) == 0x00000100)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeEnumSize(9, sweepStrategy_.getNumber());
+          .computeInt32Size(10, explicitCompressionBlockSizeKiloBytes_);
       }
       if (((bitField0_ & 0x00000200) == 0x00000200)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(10, explicitCompressionBlockSizeKiloBytes_);
-      }
-      if (((bitField0_ & 0x00000400) == 0x00000400)) {
-        size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(11, appendHeavyAndReadLight_);
       }
-      if (((bitField0_ & 0x00000800) == 0x00000800)) {
+      if (((bitField0_ & 0x00000400) == 0x00000400)) {
         size += com.google.protobuf.CodedOutputStream
           .computeEnumSize(12, nameLogSafety_.getNumber());
       }
@@ -1693,22 +1584,20 @@ public final class TableMetadataPersistence {
         bitField0_ = (bitField0_ & ~0x00000004);
         cachePriority_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority.COLDEST;
         bitField0_ = (bitField0_ & ~0x00000008);
-        partitionStrategy_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy.ORDERED;
-        bitField0_ = (bitField0_ & ~0x00000010);
         rangeScanAllowed_ = false;
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000010);
         explicitCompression_ = false;
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000020);
         negativeLookups_ = false;
-        bitField0_ = (bitField0_ & ~0x00000080);
+        bitField0_ = (bitField0_ & ~0x00000040);
         sweepStrategy_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.NOTHING;
-        bitField0_ = (bitField0_ & ~0x00000100);
+        bitField0_ = (bitField0_ & ~0x00000080);
         explicitCompressionBlockSizeKiloBytes_ = 0;
-        bitField0_ = (bitField0_ & ~0x00000200);
+        bitField0_ = (bitField0_ & ~0x00000100);
         appendHeavyAndReadLight_ = false;
-        bitField0_ = (bitField0_ & ~0x00000400);
+        bitField0_ = (bitField0_ & ~0x00000200);
         nameLogSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
-        bitField0_ = (bitField0_ & ~0x00000800);
+        bitField0_ = (bitField0_ & ~0x00000400);
         return this;
       }
 
@@ -1764,33 +1653,29 @@ public final class TableMetadataPersistence {
         if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
           to_bitField0_ |= 0x00000010;
         }
-        result.partitionStrategy_ = partitionStrategy_;
+        result.rangeScanAllowed_ = rangeScanAllowed_;
         if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
           to_bitField0_ |= 0x00000020;
         }
-        result.rangeScanAllowed_ = rangeScanAllowed_;
+        result.explicitCompression_ = explicitCompression_;
         if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
           to_bitField0_ |= 0x00000040;
         }
-        result.explicitCompression_ = explicitCompression_;
+        result.negativeLookups_ = negativeLookups_;
         if (((from_bitField0_ & 0x00000080) == 0x00000080)) {
           to_bitField0_ |= 0x00000080;
         }
-        result.negativeLookups_ = negativeLookups_;
+        result.sweepStrategy_ = sweepStrategy_;
         if (((from_bitField0_ & 0x00000100) == 0x00000100)) {
           to_bitField0_ |= 0x00000100;
         }
-        result.sweepStrategy_ = sweepStrategy_;
+        result.explicitCompressionBlockSizeKiloBytes_ = explicitCompressionBlockSizeKiloBytes_;
         if (((from_bitField0_ & 0x00000200) == 0x00000200)) {
           to_bitField0_ |= 0x00000200;
         }
-        result.explicitCompressionBlockSizeKiloBytes_ = explicitCompressionBlockSizeKiloBytes_;
+        result.appendHeavyAndReadLight_ = appendHeavyAndReadLight_;
         if (((from_bitField0_ & 0x00000400) == 0x00000400)) {
           to_bitField0_ |= 0x00000400;
-        }
-        result.appendHeavyAndReadLight_ = appendHeavyAndReadLight_;
-        if (((from_bitField0_ & 0x00000800) == 0x00000800)) {
-          to_bitField0_ |= 0x00000800;
         }
         result.nameLogSafety_ = nameLogSafety_;
         result.bitField0_ = to_bitField0_;
@@ -1820,9 +1705,6 @@ public final class TableMetadataPersistence {
         }
         if (other.hasCachePriority()) {
           setCachePriority(other.getCachePriority());
-        }
-        if (other.hasPartitionStrategy()) {
-          setPartitionStrategy(other.getPartitionStrategy());
         }
         if (other.hasRangeScanAllowed()) {
           setRangeScanAllowed(other.getRangeScanAllowed());
@@ -2194,68 +2076,49 @@ public final class TableMetadataPersistence {
         return this;
       }
 
-      private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy partitionStrategy_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy.ORDERED;
-      /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.PartitionStrategy partitionStrategy = 5;</code>
-       */
-      public boolean hasPartitionStrategy() {
-        return ((bitField0_ & 0x00000010) == 0x00000010);
-      }
-      /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.PartitionStrategy partitionStrategy = 5;</code>
-       */
-      public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy getPartitionStrategy() {
-        return partitionStrategy_;
-      }
-      /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.PartitionStrategy partitionStrategy = 5;</code>
-       */
-      public Builder setPartitionStrategy(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy value) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000010;
-        partitionStrategy_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.PartitionStrategy partitionStrategy = 5;</code>
-       */
-      public Builder clearPartitionStrategy() {
-        bitField0_ = (bitField0_ & ~0x00000010);
-        partitionStrategy_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy.ORDERED;
-        onChanged();
-        return this;
-      }
-
       private boolean rangeScanAllowed_ ;
       /**
        * <code>optional bool rangeScanAllowed = 6;</code>
+       *
+       * <pre>
+       * Tag number 5 was previously used.
+       * </pre>
        */
       public boolean hasRangeScanAllowed() {
-        return ((bitField0_ & 0x00000020) == 0x00000020);
+        return ((bitField0_ & 0x00000010) == 0x00000010);
       }
       /**
        * <code>optional bool rangeScanAllowed = 6;</code>
+       *
+       * <pre>
+       * Tag number 5 was previously used.
+       * </pre>
        */
       public boolean getRangeScanAllowed() {
         return rangeScanAllowed_;
       }
       /**
        * <code>optional bool rangeScanAllowed = 6;</code>
+       *
+       * <pre>
+       * Tag number 5 was previously used.
+       * </pre>
        */
       public Builder setRangeScanAllowed(boolean value) {
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
         rangeScanAllowed_ = value;
         onChanged();
         return this;
       }
       /**
        * <code>optional bool rangeScanAllowed = 6;</code>
+       *
+       * <pre>
+       * Tag number 5 was previously used.
+       * </pre>
        */
       public Builder clearRangeScanAllowed() {
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000010);
         rangeScanAllowed_ = false;
         onChanged();
         return this;
@@ -2266,7 +2129,7 @@ public final class TableMetadataPersistence {
        * <code>optional bool explicitCompression = 7 [deprecated = true];</code>
        */
       @java.lang.Deprecated public boolean hasExplicitCompression() {
-        return ((bitField0_ & 0x00000040) == 0x00000040);
+        return ((bitField0_ & 0x00000020) == 0x00000020);
       }
       /**
        * <code>optional bool explicitCompression = 7 [deprecated = true];</code>
@@ -2278,7 +2141,7 @@ public final class TableMetadataPersistence {
        * <code>optional bool explicitCompression = 7 [deprecated = true];</code>
        */
       @java.lang.Deprecated public Builder setExplicitCompression(boolean value) {
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
         explicitCompression_ = value;
         onChanged();
         return this;
@@ -2287,7 +2150,7 @@ public final class TableMetadataPersistence {
        * <code>optional bool explicitCompression = 7 [deprecated = true];</code>
        */
       @java.lang.Deprecated public Builder clearExplicitCompression() {
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000020);
         explicitCompression_ = false;
         onChanged();
         return this;
@@ -2298,7 +2161,7 @@ public final class TableMetadataPersistence {
        * <code>optional bool negativeLookups = 8;</code>
        */
       public boolean hasNegativeLookups() {
-        return ((bitField0_ & 0x00000080) == 0x00000080);
+        return ((bitField0_ & 0x00000040) == 0x00000040);
       }
       /**
        * <code>optional bool negativeLookups = 8;</code>
@@ -2310,7 +2173,7 @@ public final class TableMetadataPersistence {
        * <code>optional bool negativeLookups = 8;</code>
        */
       public Builder setNegativeLookups(boolean value) {
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
         negativeLookups_ = value;
         onChanged();
         return this;
@@ -2319,7 +2182,7 @@ public final class TableMetadataPersistence {
        * <code>optional bool negativeLookups = 8;</code>
        */
       public Builder clearNegativeLookups() {
-        bitField0_ = (bitField0_ & ~0x00000080);
+        bitField0_ = (bitField0_ & ~0x00000040);
         negativeLookups_ = false;
         onChanged();
         return this;
@@ -2330,7 +2193,7 @@ public final class TableMetadataPersistence {
        * <code>optional .com.palantir.atlasdb.protos.generated.SweepStrategy sweepStrategy = 9;</code>
        */
       public boolean hasSweepStrategy() {
-        return ((bitField0_ & 0x00000100) == 0x00000100);
+        return ((bitField0_ & 0x00000080) == 0x00000080);
       }
       /**
        * <code>optional .com.palantir.atlasdb.protos.generated.SweepStrategy sweepStrategy = 9;</code>
@@ -2345,7 +2208,7 @@ public final class TableMetadataPersistence {
         if (value == null) {
           throw new NullPointerException();
         }
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000080;
         sweepStrategy_ = value;
         onChanged();
         return this;
@@ -2354,7 +2217,7 @@ public final class TableMetadataPersistence {
        * <code>optional .com.palantir.atlasdb.protos.generated.SweepStrategy sweepStrategy = 9;</code>
        */
       public Builder clearSweepStrategy() {
-        bitField0_ = (bitField0_ & ~0x00000100);
+        bitField0_ = (bitField0_ & ~0x00000080);
         sweepStrategy_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.NOTHING;
         onChanged();
         return this;
@@ -2365,7 +2228,7 @@ public final class TableMetadataPersistence {
        * <code>optional int32 explicitCompressionBlockSizeKiloBytes = 10;</code>
        */
       public boolean hasExplicitCompressionBlockSizeKiloBytes() {
-        return ((bitField0_ & 0x00000200) == 0x00000200);
+        return ((bitField0_ & 0x00000100) == 0x00000100);
       }
       /**
        * <code>optional int32 explicitCompressionBlockSizeKiloBytes = 10;</code>
@@ -2377,7 +2240,7 @@ public final class TableMetadataPersistence {
        * <code>optional int32 explicitCompressionBlockSizeKiloBytes = 10;</code>
        */
       public Builder setExplicitCompressionBlockSizeKiloBytes(int value) {
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000100;
         explicitCompressionBlockSizeKiloBytes_ = value;
         onChanged();
         return this;
@@ -2386,7 +2249,7 @@ public final class TableMetadataPersistence {
        * <code>optional int32 explicitCompressionBlockSizeKiloBytes = 10;</code>
        */
       public Builder clearExplicitCompressionBlockSizeKiloBytes() {
-        bitField0_ = (bitField0_ & ~0x00000200);
+        bitField0_ = (bitField0_ & ~0x00000100);
         explicitCompressionBlockSizeKiloBytes_ = 0;
         onChanged();
         return this;
@@ -2397,7 +2260,7 @@ public final class TableMetadataPersistence {
        * <code>optional bool appendHeavyAndReadLight = 11;</code>
        */
       public boolean hasAppendHeavyAndReadLight() {
-        return ((bitField0_ & 0x00000400) == 0x00000400);
+        return ((bitField0_ & 0x00000200) == 0x00000200);
       }
       /**
        * <code>optional bool appendHeavyAndReadLight = 11;</code>
@@ -2409,7 +2272,7 @@ public final class TableMetadataPersistence {
        * <code>optional bool appendHeavyAndReadLight = 11;</code>
        */
       public Builder setAppendHeavyAndReadLight(boolean value) {
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000200;
         appendHeavyAndReadLight_ = value;
         onChanged();
         return this;
@@ -2418,7 +2281,7 @@ public final class TableMetadataPersistence {
        * <code>optional bool appendHeavyAndReadLight = 11;</code>
        */
       public Builder clearAppendHeavyAndReadLight() {
-        bitField0_ = (bitField0_ & ~0x00000400);
+        bitField0_ = (bitField0_ & ~0x00000200);
         appendHeavyAndReadLight_ = false;
         onChanged();
         return this;
@@ -2429,7 +2292,7 @@ public final class TableMetadataPersistence {
        * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
        */
       public boolean hasNameLogSafety() {
-        return ((bitField0_ & 0x00000800) == 0x00000800);
+        return ((bitField0_ & 0x00000400) == 0x00000400);
       }
       /**
        * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
@@ -2444,7 +2307,7 @@ public final class TableMetadataPersistence {
         if (value == null) {
           throw new NullPointerException();
         }
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
         nameLogSafety_ = value;
         onChanged();
         return this;
@@ -2453,7 +2316,7 @@ public final class TableMetadataPersistence {
        * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
        */
       public Builder clearNameLogSafety() {
-        bitField0_ = (bitField0_ & ~0x00000800);
+        bitField0_ = (bitField0_ & ~0x00000400);
         nameLogSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
         onChanged();
         return this;
@@ -9153,7 +9016,7 @@ public final class TableMetadataPersistence {
     java.lang.String[] descriptorData = {
       "\nEmain/proto/com/palantir/atlasdb/protos" +
       "/TableMetadataPersistence.proto\022%com.pal" +
-      "antir.atlasdb.protos.generated\"\355\005\n\rTable" +
+      "antir.atlasdb.protos.generated\"\230\005\n\rTable" +
       "Metadata\022O\n\007rowName\030\001 \002(\0132>.com.palantir" +
       ".atlasdb.protos.generated.NameMetadataDe" +
       "scription\022Q\n\007columns\030\002 \002(\0132@.com.palanti" +
@@ -9162,78 +9025,75 @@ public final class TableMetadataPersistence {
       "com.palantir.atlasdb.protos.generated.Ta" +
       "bleConflictHandler\022K\n\rcachePriority\030\004 \001(",
       "\01624.com.palantir.atlasdb.protos.generate" +
-      "d.CachePriority\022S\n\021partitionStrategy\030\005 \001" +
-      "(\01628.com.palantir.atlasdb.protos.generat" +
-      "ed.PartitionStrategy\022\030\n\020rangeScanAllowed" +
-      "\030\006 \001(\010\022\037\n\023explicitCompression\030\007 \001(\010B\002\030\001\022" +
-      "\027\n\017negativeLookups\030\010 \001(\010\022K\n\rsweepStrateg" +
-      "y\030\t \001(\01624.com.palantir.atlasdb.protos.ge" +
-      "nerated.SweepStrategy\022-\n%explicitCompres" +
-      "sionBlockSizeKiloBytes\030\n \001(\005\022\037\n\027appendHe" +
-      "avyAndReadLight\030\013 \001(\010\022O\n\rnameLogSafety\030\014",
-      " \001(\01620.com.palantir.atlasdb.protos.gener" +
-      "ated.LogSafety:\006UNSAFE\"\274\001\n\027NameMetadataD" +
-      "escription\022R\n\tnameParts\030\001 \003(\0132?.com.pala" +
-      "ntir.atlasdb.protos.generated.NameCompon" +
-      "entDescription\022(\n\025hasFirstComponentHash\030" +
-      "\002 \001(\010:\005falseB\002\030\001\022#\n\030numberOfComponentsHa" +
-      "shed\030\003 \001(\005:\0010\"\277\002\n\030NameComponentDescripti" +
-      "on\022\025\n\rcomponentName\030\001 \002(\t\022>\n\004type\030\002 \002(\0162" +
+      "d.CachePriority\022\030\n\020rangeScanAllowed\030\006 \001(" +
+      "\010\022\037\n\023explicitCompression\030\007 \001(\010B\002\030\001\022\027\n\017ne" +
+      "gativeLookups\030\010 \001(\010\022K\n\rsweepStrategy\030\t \001" +
+      "(\01624.com.palantir.atlasdb.protos.generat" +
+      "ed.SweepStrategy\022-\n%explicitCompressionB" +
+      "lockSizeKiloBytes\030\n \001(\005\022\037\n\027appendHeavyAn" +
+      "dReadLight\030\013 \001(\010\022O\n\rnameLogSafety\030\014 \001(\0162" +
       "0.com.palantir.atlasdb.protos.generated." +
-      "ValueType\022D\n\005order\030\003 \002(\01625.com.palantir.",
-      "atlasdb.protos.generated.ValueByteOrder\022" +
-      "\035\n\025hasUniformPartitioner\030\004 \001(\010\022\032\n\022explic" +
-      "itPartitions\030\005 \003(\t\022K\n\tlogSafety\030\006 \001(\01620." +
-      "com.palantir.atlasdb.protos.generated.Lo" +
-      "gSafety:\006UNSAFE\"\310\001\n\031ColumnMetadataDescri" +
-      "ption\022S\n\014namedColumns\030\001 \003(\0132=.com.palant" +
-      "ir.atlasdb.protos.generated.NamedColumnD" +
-      "escription\022V\n\rdynamicColumn\030\002 \001(\0132?.com." +
-      "palantir.atlasdb.protos.generated.Dynami" +
-      "cColumnDescription\"\300\001\n\030DynamicColumnDesc",
-      "ription\022V\n\016columnNameDesc\030\001 \002(\0132>.com.pa" +
-      "lantir.atlasdb.protos.generated.NameMeta" +
-      "dataDescription\022L\n\005value\030\002 \002(\0132=.com.pal" +
-      "antir.atlasdb.protos.generated.ColumnVal" +
-      "ueDescription\"\330\001\n\026NamedColumnDescription" +
-      "\022\021\n\tshortName\030\001 \002(\t\022\020\n\010longName\030\002 \002(\t\022L\n" +
-      "\005value\030\003 \002(\0132=.com.palantir.atlasdb.prot" +
-      "os.generated.ColumnValueDescription\022K\n\tl" +
-      "ogSafety\030\004 \001(\01620.com.palantir.atlasdb.pr" +
-      "otos.generated.LogSafety:\006UNSAFE\"\274\003\n\026Col",
-      "umnValueDescription\022>\n\004type\030\001 \002(\01620.com." +
-      "palantir.atlasdb.protos.generated.ValueT" +
-      "ype\022\021\n\tclassName\030\002 \001(\t\022M\n\013compression\030\003 " +
-      "\001(\01622.com.palantir.atlasdb.protos.genera" +
-      "ted.Compression:\004NONE\022H\n\006format\030\004 \001(\01628." +
-      "com.palantir.atlasdb.protos.generated.Co" +
-      "lumnValueFormat\022\032\n\022canonicalClassName\030\005 " +
-      "\001(\t\022\037\n\023protoFileDescriptor\030\006 \001(\014B\002\030\001\022\030\n\020" +
-      "protoMessageName\030\007 \001(\t\022_\n\027protoFileDescr" +
-      "iptorTree\030\010 \001(\0132>.com.palantir.atlasdb.p",
-      "rotos.generated.FileDescriptorTreeProto\"" +
-      "\214\001\n\027FileDescriptorTreeProto\022\033\n\023protoFile" +
-      "Descriptor\030\001 \002(\014\022T\n\014dependencies\030\002 \003(\0132>" +
-      ".com.palantir.atlasdb.protos.generated.F" +
-      "ileDescriptorTreeProto*\305\001\n\tValueType\022\014\n\010" +
-      "VAR_LONG\020\001\022\016\n\nFIXED_LONG\020\002\022\n\n\006STRING\020\003\022\010" +
-      "\n\004BLOB\020\004\022\023\n\017VAR_SIGNED_LONG\020\005\022\034\n\030FIXED_L" +
-      "ONG_LITTLE_ENDIAN\020\006\022\016\n\nSHA256HASH\020\007\022\016\n\nV" +
-      "AR_STRING\020\010\022\027\n\023NULLABLE_FIXED_LONG\020\t\022\016\n\n" +
-      "SIZED_BLOB\020\n\022\010\n\004UUID\020\013*#\n\013Compression\022\010\n",
-      "\004NONE\020\001\022\n\n\006SNAPPY\020\002*N\n\021ColumnValueFormat" +
-      "\022\t\n\005PROTO\020\001\022\017\n\013PERSISTABLE\020\002\022\016\n\nVALUE_TY" +
-      "PE\020\003\022\r\n\tPERSISTER\020\004*/\n\016ValueByteOrder\022\r\n" +
-      "\tASCENDING\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024TableCo" +
-      "nflictHandler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RETRY_O" +
-      "N_WRITE_WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CHANGE" +
-      "D\020\003\022\020\n\014SERIALIZABLE\020\004\022\035\n\031RETRY_ON_WRITE_" +
-      "WRITE_CELL\020\005*F\n\rCachePriority\022\013\n\007COLDEST" +
-      "\020\000\022\010\n\004COLD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007HOTTE" +
-      "ST\020\177**\n\021PartitionStrategy\022\013\n\007ORDERED\020\000\022\010",
-      "\n\004HASH\020\001*<\n\rSweepStrategy\022\013\n\007NOTHING\020\000\022\020" +
-      "\n\014CONSERVATIVE\020\001\022\014\n\010THOROUGH\020\002*!\n\tLogSaf" +
-      "ety\022\010\n\004SAFE\020\000\022\n\n\006UNSAFE\020\001"
+      "LogSafety:\006UNSAFE\"\274\001\n\027NameMetadataDescri",
+      "ption\022R\n\tnameParts\030\001 \003(\0132?.com.palantir." +
+      "atlasdb.protos.generated.NameComponentDe" +
+      "scription\022(\n\025hasFirstComponentHash\030\002 \001(\010" +
+      ":\005falseB\002\030\001\022#\n\030numberOfComponentsHashed\030" +
+      "\003 \001(\005:\0010\"\277\002\n\030NameComponentDescription\022\025\n" +
+      "\rcomponentName\030\001 \002(\t\022>\n\004type\030\002 \002(\01620.com" +
+      ".palantir.atlasdb.protos.generated.Value" +
+      "Type\022D\n\005order\030\003 \002(\01625.com.palantir.atlas" +
+      "db.protos.generated.ValueByteOrder\022\035\n\025ha" +
+      "sUniformPartitioner\030\004 \001(\010\022\032\n\022explicitPar",
+      "titions\030\005 \003(\t\022K\n\tlogSafety\030\006 \001(\01620.com.p" +
+      "alantir.atlasdb.protos.generated.LogSafe" +
+      "ty:\006UNSAFE\"\310\001\n\031ColumnMetadataDescription" +
+      "\022S\n\014namedColumns\030\001 \003(\0132=.com.palantir.at" +
+      "lasdb.protos.generated.NamedColumnDescri" +
+      "ption\022V\n\rdynamicColumn\030\002 \001(\0132?.com.palan" +
+      "tir.atlasdb.protos.generated.DynamicColu" +
+      "mnDescription\"\300\001\n\030DynamicColumnDescripti" +
+      "on\022V\n\016columnNameDesc\030\001 \002(\0132>.com.palanti" +
+      "r.atlasdb.protos.generated.NameMetadataD",
+      "escription\022L\n\005value\030\002 \002(\0132=.com.palantir" +
+      ".atlasdb.protos.generated.ColumnValueDes" +
+      "cription\"\330\001\n\026NamedColumnDescription\022\021\n\ts" +
+      "hortName\030\001 \002(\t\022\020\n\010longName\030\002 \002(\t\022L\n\005valu" +
+      "e\030\003 \002(\0132=.com.palantir.atlasdb.protos.ge" +
+      "nerated.ColumnValueDescription\022K\n\tlogSaf" +
+      "ety\030\004 \001(\01620.com.palantir.atlasdb.protos." +
+      "generated.LogSafety:\006UNSAFE\"\274\003\n\026ColumnVa" +
+      "lueDescription\022>\n\004type\030\001 \002(\01620.com.palan" +
+      "tir.atlasdb.protos.generated.ValueType\022\021",
+      "\n\tclassName\030\002 \001(\t\022M\n\013compression\030\003 \001(\01622" +
+      ".com.palantir.atlasdb.protos.generated.C" +
+      "ompression:\004NONE\022H\n\006format\030\004 \001(\01628.com.p" +
+      "alantir.atlasdb.protos.generated.ColumnV" +
+      "alueFormat\022\032\n\022canonicalClassName\030\005 \001(\t\022\037" +
+      "\n\023protoFileDescriptor\030\006 \001(\014B\002\030\001\022\030\n\020proto" +
+      "MessageName\030\007 \001(\t\022_\n\027protoFileDescriptor" +
+      "Tree\030\010 \001(\0132>.com.palantir.atlasdb.protos" +
+      ".generated.FileDescriptorTreeProto\"\214\001\n\027F" +
+      "ileDescriptorTreeProto\022\033\n\023protoFileDescr",
+      "iptor\030\001 \002(\014\022T\n\014dependencies\030\002 \003(\0132>.com." +
+      "palantir.atlasdb.protos.generated.FileDe" +
+      "scriptorTreeProto*\305\001\n\tValueType\022\014\n\010VAR_L" +
+      "ONG\020\001\022\016\n\nFIXED_LONG\020\002\022\n\n\006STRING\020\003\022\010\n\004BLO" +
+      "B\020\004\022\023\n\017VAR_SIGNED_LONG\020\005\022\034\n\030FIXED_LONG_L" +
+      "ITTLE_ENDIAN\020\006\022\016\n\nSHA256HASH\020\007\022\016\n\nVAR_ST" +
+      "RING\020\010\022\027\n\023NULLABLE_FIXED_LONG\020\t\022\016\n\nSIZED" +
+      "_BLOB\020\n\022\010\n\004UUID\020\013*#\n\013Compression\022\010\n\004NONE" +
+      "\020\001\022\n\n\006SNAPPY\020\002*N\n\021ColumnValueFormat\022\t\n\005P" +
+      "ROTO\020\001\022\017\n\013PERSISTABLE\020\002\022\016\n\nVALUE_TYPE\020\003\022",
+      "\r\n\tPERSISTER\020\004*/\n\016ValueByteOrder\022\r\n\tASCE" +
+      "NDING\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024TableConflic" +
+      "tHandler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RETRY_ON_WRI" +
+      "TE_WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CHANGED\020\003\022\020" +
+      "\n\014SERIALIZABLE\020\004\022\035\n\031RETRY_ON_WRITE_WRITE" +
+      "_CELL\020\005*F\n\rCachePriority\022\013\n\007COLDEST\020\000\022\010\n" +
+      "\004COLD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007HOTTEST\020\177*" +
+      "<\n\rSweepStrategy\022\013\n\007NOTHING\020\000\022\020\n\014CONSERV" +
+      "ATIVE\020\001\022\014\n\010THOROUGH\020\002*!\n\tLogSafety\022\010\n\004SA" +
+      "FE\020\000\022\n\n\006UNSAFE\020\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -9252,7 +9112,7 @@ public final class TableMetadataPersistence {
     internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_descriptor,
-        new java.lang.String[] { "RowName", "Columns", "ConflictHandler", "CachePriority", "PartitionStrategy", "RangeScanAllowed", "ExplicitCompression", "NegativeLookups", "SweepStrategy", "ExplicitCompressionBlockSizeKiloBytes", "AppendHeavyAndReadLight", "NameLogSafety", });
+        new java.lang.String[] { "RowName", "Columns", "ConflictHandler", "CachePriority", "RangeScanAllowed", "ExplicitCompression", "NegativeLookups", "SweepStrategy", "ExplicitCompressionBlockSizeKiloBytes", "AppendHeavyAndReadLight", "NameLogSafety", });
     internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_fieldAccessorTable = new
