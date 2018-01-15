@@ -20,13 +20,14 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,6 +49,7 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.common.annotation.Output;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -89,27 +91,19 @@ public class CqlExecutorImpl implements CqlExecutor {
         CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, rowsAscending.get(0), Compression.NONE);
         int queryId = preparedResult.getItemId();
 
-        Iterator<byte[]> rows = rowsAscending.iterator();
         List<CellWithTimestamp> result = Lists.newArrayList();
-        List<Future<CqlResult>> futures = Lists.newArrayList();
 
-        for (int i = 0; i < 16 && rows.hasNext(); i++) {
-            futures.add(submitAndGetFuture(queryId, rows.next()));
+        List<Future<CqlResult>> futures = new ArrayList<>(rowsAscending.size());
+        AtomicInteger futuresIndex = new AtomicInteger(0);
+        for (int i = 0; i < 16; i++) {
+            nextFuture(futures, queryId, futuresIndex.getAndIncrement(), futuresIndex, rowsAscending);
         }
 
         try {
-            for (int i = 0; i < futures.size(); i++) {
-                Future<CqlResult> future = futures.get(i);
+            for (int rowIndex = 0; result.size() < limit && rowIndex < rowsAscending.size(); rowIndex++) {
+                Future<CqlResult> future = futures.get(rowIndex);
                 CqlResult cqlResult = future.get();
                 result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
-
-                if (result.size() > limit) {
-                    break;
-                }
-
-                if (rows.hasNext()) {
-                    futures.add(submitAndGetFuture(queryId, rows.next()));
-                }
             }
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
@@ -120,10 +114,24 @@ public class CqlExecutorImpl implements CqlExecutor {
         return result;
     }
 
-    private Future<CqlResult> submitAndGetFuture(int queryId, byte[] row) {
-        Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
-                ImmutableList.of(ByteBuffer.wrap(row)));
-        return executor.submit(task);
+    private void nextFuture(@Output List<Future<CqlResult>> futures,
+            int queryId,
+            int rowIndex,
+            AtomicInteger futuresIndex,
+            List<byte[]> rows) {
+        if (rowIndex >= rows.size()) {
+            return;
+        }
+
+        byte[] row = rows.get(rowIndex);
+
+        Callable<CqlResult> task = () -> {
+            CqlResult cqlResult = queryExecutor.executePrepared(queryId, ImmutableList.of(ByteBuffer.wrap(row)));
+            nextFuture(futures, queryId, futuresIndex.incrementAndGet(), futuresIndex, rows);
+            return cqlResult;
+        };
+
+        futures.add(rowIndex, executor.submit(task));
     }
 
     /**
