@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
@@ -110,7 +109,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         return TransactionManagers.builder()
                 .config(config)
                 .userAgent("ete test")
-                .globalMetricsRegistry(new MetricRegistry())
+                .globalMetricsRegistry(environment.metrics())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment.jersey()::register)
                 .addAllSchemas(ETE_SCHEMAS)
