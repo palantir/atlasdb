@@ -56,7 +56,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public class CqlExecutorImpl implements CqlExecutor {
-    private QueryExecutor queryExecutor;
+    private final QueryExecutor queryExecutor;
+    private final ExecutorService executor;
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
@@ -64,13 +65,15 @@ public class CqlExecutorImpl implements CqlExecutor {
         CqlResult executePrepared(int queryId, List<ByteBuffer> values);
     }
 
-    CqlExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
+    CqlExecutorImpl(ExecutorService executor, CassandraClientPool clientPool, ConsistencyLevel consistency) {
         this.queryExecutor = new QueryExecutorImpl(clientPool, consistency);
+        this.executor = executor;
     }
 
     @VisibleForTesting
     CqlExecutorImpl(QueryExecutor queryExecutor) {
         this.queryExecutor = queryExecutor;
+        this.executor = PTExecutors.newFixedThreadPool(16);
     }
 
     @Override
@@ -86,15 +89,12 @@ public class CqlExecutorImpl implements CqlExecutor {
         CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, rowsAscending.get(0), Compression.NONE);
         int queryId = preparedResult.getItemId();
 
-        List<CellWithTimestamp> result = Lists.newArrayList();
         Iterator<byte[]> rows = rowsAscending.iterator();
+        List<CellWithTimestamp> result = Lists.newArrayList();
         List<Future<CqlResult>> futures = Lists.newArrayList();
 
-        // TODO move outside CqlExecutor class
-        ExecutorService executor = PTExecutors.newFixedThreadPool(16);
-
         for (int i = 0; i < 16 && rows.hasNext(); i++) {
-            futures.add(submitAndGetFuture(executor, queryId, rows.next()));
+            futures.add(submitAndGetFuture(queryId, rows.next()));
         }
 
         try {
@@ -108,7 +108,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                 }
 
                 if (rows.hasNext()) {
-                    futures.add(submitAndGetFuture(executor, queryId, rows.next()));
+                    futures.add(submitAndGetFuture(queryId, rows.next()));
                 }
             }
         } catch (InterruptedException e) {
@@ -120,7 +120,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         return result;
     }
 
-    private Future<CqlResult> submitAndGetFuture(ExecutorService executor, int queryId, byte[] row) {
+    private Future<CqlResult> submitAndGetFuture(int queryId, byte[] row) {
         Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
                 ImmutableList.of(ByteBuffer.wrap(row)));
         return executor.submit(task);

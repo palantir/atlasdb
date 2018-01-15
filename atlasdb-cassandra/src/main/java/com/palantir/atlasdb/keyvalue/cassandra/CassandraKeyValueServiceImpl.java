@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -132,6 +133,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -1499,7 +1501,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private CqlExecutor newInstrumentedCqlExecutor() {
-        return AtlasDbMetrics.instrument(CqlExecutor.class, new CqlExecutorImpl(clientPool, ConsistencyLevel.ALL));
+        ExecutorService executorService = PTExecutors.newFixedThreadPool(16);
+        return AtlasDbMetrics.instrument(CqlExecutor.class,
+                new CqlExecutorImpl(executorService, clientPool, ConsistencyLevel.ALL));
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
