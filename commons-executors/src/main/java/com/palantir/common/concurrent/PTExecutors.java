@@ -474,20 +474,7 @@ public final class PTExecutors {
      * interface, then the returned {@code Runnable} will also implement {@code Future}.
      */
     public static Runnable wrap(final Runnable runnable) {
-        final Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> mapForNewThread =
-                ExecutorInheritableThreadLocal.getMapForNewThread();
-        Runnable wrappedRunnable = Tracers.wrap(new Runnable() {
-            @Override
-            public void run() {
-                ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
-                        ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
-                try {
-                    runnable.run();
-                } finally {
-                    ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
-                }
-            }
-        });
+        Runnable wrappedRunnable = wrapRunnable(runnable);
         if (runnable instanceof Future<?>) {
             @SuppressWarnings("unchecked")
             Future<Object> unsafeFuture = (Future<Object>) runnable;
@@ -497,20 +484,22 @@ public final class PTExecutors {
     }
 
     public static <T> RunnableFuture<T> wrap(RunnableFuture<T> rf) {
+        Runnable wrappedRunnable = wrapRunnable(rf);
+        return new ForwardingRunnableFuture<T>(wrappedRunnable, rf);
+    }
+
+    private static Runnable wrapRunnable(Runnable runnable) {
         final Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
-        return new ForwardingRunnableFuture<T>(rf) {
-            @Override
-            public void run() {
-                ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
+        return Tracers.wrap(() -> {
+            ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
                     ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
-                try {
-                    super.run();
-                } finally {
-                    ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
-                }
+            try {
+                runnable.run();
+            } finally {
+                ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
             }
-        };
+        });
     }
 
     /**
