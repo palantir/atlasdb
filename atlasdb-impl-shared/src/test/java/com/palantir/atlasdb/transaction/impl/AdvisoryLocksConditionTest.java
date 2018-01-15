@@ -47,29 +47,36 @@ import com.palantir.lock.TimeDuration;
 
 public class AdvisoryLocksConditionTest {
 
-    private static final HeldLocksToken LOCK_TOKEN = getHeldLocksToken();
-    private static final LockRefreshToken LOCK_REFRESH_TOKEN = LOCK_TOKEN.getLockRefreshToken();
+    private static final HeldLocksToken TRANSASCTION_LOCK_TOKEN = getHeldLocksToken(BigInteger.ZERO);
+    private static final LockRefreshToken TRANSACTION_LOCK_REFRESH_TOKEN =
+            TRANSASCTION_LOCK_TOKEN.getLockRefreshToken();
+    private static final HeldLocksToken EXTERNAL_LOCK_TOKEN = getHeldLocksToken(BigInteger.ONE);
+    private static final LockRefreshToken EXTERNAL_LOCK_REFRESH_TOKEN =
+            EXTERNAL_LOCK_TOKEN.getLockRefreshToken();
 
     private LockService lockService;
     private TransactionLocksCondition transactionLocksCondition;
     private ExternalLocksCondition externalLocksCondition;
+    private CombinedLocksCondition combinedLocksCondition;
 
     @Before
     public void before() {
         lockService = mock(LockService.class);
-        transactionLocksCondition = new TransactionLocksCondition(lockService, LOCK_TOKEN);
-        externalLocksCondition = new ExternalLocksCondition(lockService, ImmutableSet.of(LOCK_TOKEN));
+        transactionLocksCondition = new TransactionLocksCondition(lockService, TRANSASCTION_LOCK_TOKEN);
+        externalLocksCondition = new ExternalLocksCondition(lockService, ImmutableSet.of(EXTERNAL_LOCK_TOKEN));
+        combinedLocksCondition = new CombinedLocksCondition(lockService, ImmutableSet.of(EXTERNAL_LOCK_TOKEN),
+                TRANSASCTION_LOCK_TOKEN);
     }
 
     @Test
     public void transactionLocksCondition_cleanUpReleasesLock() {
         transactionLocksCondition.cleanup();
-        verify(lockService).unlock(LOCK_REFRESH_TOKEN);
+        verify(lockService).unlock(TRANSACTION_LOCK_REFRESH_TOKEN);
     }
 
     @Test
     public void transactionLocksCondition_conditionFails() {
-        when(lockService.refreshLockRefreshTokens(Collections.singleton(LOCK_REFRESH_TOKEN)))
+        when(lockService.refreshLockRefreshTokens(Collections.singleton(TRANSACTION_LOCK_REFRESH_TOKEN)))
                 .thenReturn(ImmutableSet.of());
 
         assertThatThrownBy(() -> transactionLocksCondition.throwIfConditionInvalid(0L))
@@ -79,14 +86,14 @@ public class AdvisoryLocksConditionTest {
 
     @Test
     public void transactionLocksCondition_conditionSucceeds() {
-        when(lockService.refreshLockRefreshTokens(Collections.singleton(LOCK_REFRESH_TOKEN)))
-                .thenReturn(ImmutableSet.of(LOCK_REFRESH_TOKEN));
+        when(lockService.refreshLockRefreshTokens(Collections.singleton(TRANSACTION_LOCK_REFRESH_TOKEN)))
+                .thenReturn(ImmutableSet.of(TRANSACTION_LOCK_REFRESH_TOKEN));
         transactionLocksCondition.throwIfConditionInvalid(0L);
     }
 
     @Test
     public void transactionLocksCondition_getLocks() {
-        assertThat(transactionLocksCondition.getLocks()).containsOnly(LOCK_TOKEN);
+        assertThat(transactionLocksCondition.getLocks()).containsOnly(TRANSASCTION_LOCK_TOKEN);
     }
 
     @Test
@@ -97,7 +104,7 @@ public class AdvisoryLocksConditionTest {
 
     @Test
     public void externalLocksCondition_conditionFails() {
-        when(lockService.refreshLockRefreshTokens(Collections.singleton(LOCK_REFRESH_TOKEN)))
+        when(lockService.refreshLockRefreshTokens(Collections.singleton(EXTERNAL_LOCK_REFRESH_TOKEN)))
                 .thenReturn(ImmutableSet.of());
 
         assertThatThrownBy(() -> externalLocksCondition.throwIfConditionInvalid(0L))
@@ -107,21 +114,31 @@ public class AdvisoryLocksConditionTest {
 
     @Test
     public void externalLocksCondition_conditionSucceeds() {
-        when(lockService.refreshLockRefreshTokens(Collections.singleton(LOCK_REFRESH_TOKEN)))
-                .thenReturn(ImmutableSet.of(LOCK_REFRESH_TOKEN));
+        when(lockService.refreshLockRefreshTokens(ImmutableSet.of(EXTERNAL_LOCK_REFRESH_TOKEN)))
+                .thenReturn(ImmutableSet.of(EXTERNAL_LOCK_REFRESH_TOKEN));
         externalLocksCondition.throwIfConditionInvalid(0L);
     }
 
     @Test
     public void externalLocksCondition_getLocks() {
-        assertThat(externalLocksCondition.getLocks()).containsOnly(LOCK_TOKEN);
+        assertThat(externalLocksCondition.getLocks()).containsOnly(EXTERNAL_LOCK_TOKEN);
     }
 
+    @Test
+    public void combinedLocksCondition_checkExternalLocksFirst() {
+        assertThatThrownBy(() -> combinedLocksCondition.throwIfConditionInvalid(0L))
+                .isInstanceOf(TransactionLockTimeoutNonRetriableException.class)
+                .hasMessageContaining("Provided external lock tokens expired. Retry is not possible");
+    }
 
+    @Test
+    public void combinedLocksCondition_getLocks() {
+        assertThat(combinedLocksCondition.getLocks()).containsOnly(EXTERNAL_LOCK_TOKEN, TRANSASCTION_LOCK_TOKEN);
+    }
 
-    // test AdvisoryLockConditionSuppliers, External/Combined/TransactionLockCondition
+    // test AdvisoryLockConditionSuppliers
 
-    private static HeldLocksToken getHeldLocksToken() {
+    private static HeldLocksToken getHeldLocksToken(BigInteger tokenId) {
         ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
         builder.put(
                 AtlasRowLockDescriptor.of(
@@ -133,7 +150,7 @@ public class AdvisoryLocksConditionTest {
         TimeDuration lockTimeout = SimpleTimeDuration.of(0, TimeUnit.SECONDS);
         long versionId = 0L;
         return new HeldLocksToken(
-                BigInteger.ZERO,
+                tokenId,
                 LockClient.of("fake lock client"),
                 creationDateMs,
                 expirationDateMs,
