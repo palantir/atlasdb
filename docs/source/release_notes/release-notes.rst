@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - AtlasDB now throws an error during schema code generation stage if index table name length exceeds KVS table name length limits.
+           To override this, please specify ``ignoreTableNameLengthChecks()`` on your schema.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2862>`__)
+
     *    - |improved| |logs| |metrics|
          - Allow StreamStore table names to be marked as safe. This will make StreamStore tables appear correctly on our logs and metrics.
            When building a StreamStore, please use `.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)` to mark the table name as safe.
