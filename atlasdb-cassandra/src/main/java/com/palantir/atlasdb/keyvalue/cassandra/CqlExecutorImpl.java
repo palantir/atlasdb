@@ -20,12 +20,14 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -46,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.common.annotation.Output;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -102,6 +105,59 @@ public class CqlExecutorImpl implements CqlExecutor {
         return result;
     }
 
+//    @Override
+//    public List<CellWithTimestamp> getTimestamps(
+//            TableReference tableRef,
+//            List<byte[]> rowsAscending,
+//            int limit) {
+//        String preparedSelQuery = String.format("SELECT key, column1, column2 FROM %s WHERE key = ? LIMIT %d;",
+//                quotedTableName(tableRef).getValue(),
+//                limit);
+//        ByteBuffer queryBytes = ByteBuffer.wrap(preparedSelQuery.getBytes(StandardCharsets.UTF_8));
+//        CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, Compression.NONE);
+//        int queryId = preparedResult.getItemId();
+//
+//        List<CellWithTimestamp> result = Lists.newArrayList();
+//        Iterator<byte[]> rows = rowsAscending.iterator();
+//
+//        ExecutorService executor = PTExecutors.newFixedThreadPool(16);
+//        List<Future<CqlResult>> futures = Lists.newArrayList();
+//
+//        for (int i = 0; i < 16 && rows.hasNext(); i++) {
+//            byte[] row = rows.next();
+//            Future<CqlResult> future = submitAndGetFuture(executor, queryId, row);
+//            futures.add(future);
+//        }
+//
+//        try {
+//            for (int i = 0; i < futures.size(); i++) {
+//                Future<CqlResult> f = futures.get(i);
+//                CqlResult cqlResult = f.get();
+//                result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
+//
+//                if (result.size() >= limit) {
+//                    break;
+//                }
+//
+//                if (rows.hasNext()) {
+//                    futures.add(submitAndGetFuture(executor, queryId, rows.next()));
+//                }
+//            }
+//        } catch (InterruptedException e) {
+//            throw Throwables.throwUncheckedException(e);
+//        } catch (ExecutionException e) {
+//            throw Throwables.throwUncheckedException(e.getCause());
+//        }
+//
+//        return result;
+//    }
+//
+//    private Future<CqlResult> submitAndGetFuture(ExecutorService executor, int queryId, byte[] row) {
+//        Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
+//                ImmutableList.of(ByteBuffer.wrap(row)));
+//        return executor.submit(task);
+//    }
+
     @Override
     public List<CellWithTimestamp> getTimestamps(
             TableReference tableRef,
@@ -111,34 +167,25 @@ public class CqlExecutorImpl implements CqlExecutor {
                 quotedTableName(tableRef).getValue(),
                 limit);
         ByteBuffer queryBytes = ByteBuffer.wrap(preparedSelQuery.getBytes(StandardCharsets.UTF_8));
+
+        ExecutorService executor = PTExecutors.newFixedThreadPool(16);
+
         CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, Compression.NONE);
         int queryId = preparedResult.getItemId();
 
         List<CellWithTimestamp> result = Lists.newArrayList();
-        Iterator<byte[]> rows = rowsAscending.iterator();
 
-        ExecutorService executor = PTExecutors.newFixedThreadPool(16);
-        List<Future<CqlResult>> futures = Lists.newArrayList();
-
-        for (int i = 0; i < 16 && rows.hasNext(); i++) {
-            byte[] row = rows.next();
-            Future<CqlResult> future = submitAndGetFuture(executor, queryId, row);
-            futures.add(future);
+        List<Future<CqlResult>> futures = new ArrayList<>(rowsAscending.size());
+        AtomicInteger futuresIndex = new AtomicInteger(0);
+        for (int i = 0; i < 16; i++) {
+            nextFuture(futures, queryId, futuresIndex.getAndIncrement(), futuresIndex, rowsAscending, executor);
         }
 
         try {
-            for (int i = 0; i < futures.size(); i++) {
-                Future<CqlResult> f = futures.get(i);
-                CqlResult cqlResult = f.get();
+            for (int rowIndex = 0; result.size() < limit && rowIndex < rowsAscending.size(); rowIndex++) {
+                Future<CqlResult> future = futures.get(rowIndex);
+                CqlResult cqlResult = future.get();
                 result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
-
-                if (result.size() >= limit) {
-                    break;
-                }
-
-                if (rows.hasNext()) {
-                    futures.add(submitAndGetFuture(executor, queryId, rows.next()));
-                }
             }
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
@@ -149,10 +196,25 @@ public class CqlExecutorImpl implements CqlExecutor {
         return result;
     }
 
-    private Future<CqlResult> submitAndGetFuture(ExecutorService executor, int queryId, byte[] row) {
-        Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
-                ImmutableList.of(ByteBuffer.wrap(row)));
-        return executor.submit(task);
+    private void nextFuture(@Output List<Future<CqlResult>> futures,
+            int queryId,
+            int rowIndex,
+            AtomicInteger futuresIndex,
+            List<byte[]> rows,
+            ExecutorService executor) {
+        if (rowIndex >= rows.size()) {
+            return;
+        }
+
+        byte[] row = rows.get(rowIndex);
+
+        Callable<CqlResult> task = () -> {
+            CqlResult cqlResult = queryExecutor.executePrepared(queryId, ImmutableList.of(ByteBuffer.wrap(row)));
+            nextFuture(futures, queryId, futuresIndex.incrementAndGet(), futuresIndex, rows, executor);
+            return cqlResult;
+        };
+
+        futures.add(rowIndex, executor.submit(task));
     }
 
     /**
