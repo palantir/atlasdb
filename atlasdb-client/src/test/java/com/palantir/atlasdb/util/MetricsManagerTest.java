@@ -49,7 +49,7 @@ public class MetricsManagerTest {
     private static final Meter METER = new Meter();
 
     private final MetricRegistry registry = new MetricRegistry();
-    private TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
+    private final TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
     private final MetricsManager metricsManager = new MetricsManager(registry, taggedMetricRegistry);
 
     @Test

@@ -58,7 +58,9 @@ public class SchemaMutationLockTablesIntegrationTest {
     public void setupKvs() throws TException, InterruptedException {
         config = ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
-        clientPool = CassandraClientPoolImpl.createImplForTest(config, CassandraClientPoolImpl.StartupChecks.RUN);
+        clientPool = CassandraClientPoolImpl.createImplForTest(config,
+                CassandraClientPoolImpl.StartupChecks.RUN,
+                new Blacklist(config));
         clientPool.runOneTimeStartupChecks();
         lockTables = new SchemaMutationLockTables(clientPool, config);
     }

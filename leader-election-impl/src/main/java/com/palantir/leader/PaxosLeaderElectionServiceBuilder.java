@@ -47,6 +47,9 @@ public class PaxosLeaderElectionServiceBuilder {
         return this;
     }
 
+    /**
+     * Mapping containing the host/port information for all nodes in the cluster EXCEPT this one.
+     */
     public PaxosLeaderElectionServiceBuilder potentialLeadersToHosts(
             Map<PingableLeader, HostAndPort> potentialLeadersToHosts) {
         this.potentialLeadersToHosts = potentialLeadersToHosts;

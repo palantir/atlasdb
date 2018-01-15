@@ -30,11 +30,8 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
-import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
-import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
@@ -79,15 +76,12 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
-        NextTableToSweepProviderImpl nextTableToSweepProvider = new NextTableToSweepProviderImpl(
-                specificTableSweeper.getKvs(),
-                specificTableSweeper.getSweepPriorityStore());
-        NextTableToSweepProvider streamStoreAwareNextTableToSweepProvider =
-                new StreamStoreRemappingNextTableToSweepProviderImpl(nextTableToSweepProvider);
+        NextTableToSweepProvider nextTableToSweepProvider = NextTableToSweepProvider
+                .create(specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
 
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),
-                streamStoreAwareNextTableToSweepProvider,
+                nextTableToSweepProvider,
                 sweepBatchConfigSource,
                 isSweepEnabled,
                 sweepPauseMillis,
@@ -190,7 +184,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 return SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
             }
         } catch (RuntimeException e) {
-            specificTableSweeper.getSweepMetrics().sweepError();
+            specificTableSweeper.updateSweepErrorMetric();
 
             log.error("Sweep failed", e);
             return SweepOutcome.ERROR;
@@ -218,7 +212,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
             return SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE;
         } catch (RuntimeException e) {
-            specificTableSweeper.getSweepMetrics().sweepError();
+            specificTableSweeper.updateSweepErrorMetric();
 
             return determineCauseOfFailure(e, tableToSweep.get());
         }
@@ -228,23 +222,21 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     // and try to lambda refactor this unless you live far enough in the future that this isn't an issue
     private Optional<TableToSweep> getTableToSweep() {
         return specificTableSweeper.getTxManager().runTaskWithRetry(
-                new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
-                    @Override
-                    public Optional<TableToSweep> execute(Transaction tx) {
-                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
-                        if (progress.isPresent()) {
-                            return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
-                        } else {
-                            Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
-                                    tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
-                            if (nextTable.isPresent()) {
-                                return Optional.of(new TableToSweep(nextTable.get(), Optional.empty()));
-                            } else {
-                                return Optional.empty();
-                            }
-                        }
+                tx -> {
+                    Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
+                    if (progress.isPresent()) {
+                        return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
+                    } else {
+                        log.info("Sweep is choosing a new table to sweep.");
+                        Optional<TableReference> nextTable = getNextTableToSweep(tx);
+                        return nextTable.map(tableReference -> new TableToSweep(tableReference, Optional.empty()));
                     }
                 });
+    }
+
+    private Optional<TableReference> getNextTableToSweep(Transaction tx) {
+        return nextTableToSweepProvider
+                .getNextTableToSweep(tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
     }
 
     private SweepOutcome determineCauseOfFailure(Exception originalException, TableToSweep tableToSweep) {

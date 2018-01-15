@@ -21,8 +21,8 @@ import javax.ws.rs.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.lock.ForwardingLockService;
 import com.palantir.lock.LockService;
+import com.palantir.lock.SimplifyingLockService;
 import com.palantir.logsafe.UnsafeArg;
 
 /**
@@ -33,7 +33,7 @@ import com.palantir.logsafe.UnsafeArg;
  * We rely on the previous implementation of SnapshotTransactionManager#getImmutableTimestampInternal (e.g. in 0.48.0),
  * which attempts to acquire the immutable timestamp before transactions begin running.
  */
-public class NonTransactionalLockService extends ForwardingLockService {
+public class NonTransactionalLockService extends SimplifyingLockService {
     private static final Logger log = LoggerFactory.getLogger(NonTransactionalLockService.class);
 
     private final LockService delegate;
@@ -43,7 +43,7 @@ public class NonTransactionalLockService extends ForwardingLockService {
     }
 
     @Override
-    protected LockService delegate() {
+    public LockService delegate() {
         return delegate;
     }
 

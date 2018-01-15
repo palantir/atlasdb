@@ -19,8 +19,8 @@ import static java.lang.Math.min;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -33,7 +33,7 @@ public class StreamTableDefinitionBuilder {
     private final String prefix;
     private final ValueType idType;
 
-    private ExpirationStrategy expirationStrategy = ExpirationStrategy.NEVER;
+    private TableMetadataPersistence.LogSafety tableNameLogSafety = TableMetadataPersistence.LogSafety.UNSAFE;
     private boolean hashFirstRowComponent = false;
     private boolean appendHeavyAndReadLight = false;
     private boolean dbSideCompressionForBlocks = false;
@@ -45,20 +45,15 @@ public class StreamTableDefinitionBuilder {
         this.idType = idType;
     }
 
-    public StreamTableDefinitionBuilder(StreamTableType type, String prefix, ValueType idType, ExpirationStrategy expirationStrategy, boolean hashFirstRowComponent, boolean appendHeavyAndReadLight, boolean dbSideCompressionForBlocks) {
+    public StreamTableDefinitionBuilder(StreamTableType type, String prefix, ValueType idType,
+            boolean hashFirstRowComponent, boolean appendHeavyAndReadLight, boolean dbSideCompressionForBlocks) {
         this.streamTableType = type;
         this.prefix = prefix;
         this.idType = idType;
 
-        this.expirationStrategy = expirationStrategy;
         this.hashFirstRowComponent = hashFirstRowComponent;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
         this.dbSideCompressionForBlocks = dbSideCompressionForBlocks;
-    }
-
-    public StreamTableDefinitionBuilder expirationStrategy(ExpirationStrategy expirationStrategy) {
-        this.expirationStrategy = expirationStrategy;
-        return this;
     }
 
     public StreamTableDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
@@ -66,6 +61,11 @@ public class StreamTableDefinitionBuilder {
                 "The number of components specified must be less than two as " +
                         "StreamStore internal tables use at most two row components.");
         this.numberOfComponentsHashed = numberOfComponentsHashed;
+        return this;
+    }
+
+    public StreamTableDefinitionBuilder tableNameLogSafety(TableMetadataPersistence.LogSafety tableNameLogSafety) {
+        this.tableNameLogSafety = tableNameLogSafety;
         return this;
     }
 
@@ -85,16 +85,20 @@ public class StreamTableDefinitionBuilder {
         case HASH:
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
+
+                tableNameLogSafety(tableNameLogSafety);
+                namedComponentsSafeByDefault();
+
                 rowName();
                     rowComponent("hash",            ValueType.SHA256HASH);
                 dynamicColumns();
                     columnComponent("stream_id",    idType);
                     value(ValueType.VAR_LONG);
+
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(1);
                 explicitCompressionRequested();
                 negativeLookups();
-                expirationStrategy(expirationStrategy);
                 if (appendHeavyAndReadLight) {
                     appendHeavyAndReadLight();
                 }
@@ -104,6 +108,10 @@ public class StreamTableDefinitionBuilder {
         case INDEX:
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
+
+                tableNameLogSafety(tableNameLogSafety);
+                namedComponentsSafeByDefault();
+
                 rowName();
                     // Can hash at most one component for this table.
                     hashFirstNRowComponents(min(numberOfComponentsHashed, 1));
@@ -111,10 +119,10 @@ public class StreamTableDefinitionBuilder {
                 dynamicColumns();
                     columnComponent("reference", ValueType.SIZED_BLOB);
                     value(ValueType.VAR_LONG);
+
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(1);
                 explicitCompressionRequested();
-                expirationStrategy(expirationStrategy);
                 if (appendHeavyAndReadLight) {
                     appendHeavyAndReadLight();
                 }
@@ -124,17 +132,21 @@ public class StreamTableDefinitionBuilder {
         case METADATA:
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
+
+                tableNameLogSafety(tableNameLogSafety);
+                namedComponentsSafeByDefault();
+
                 rowName();
                     // Can hash at most one component for this table.
                     hashFirstNRowComponents(min(numberOfComponentsHashed, 1));
                     rowComponent("id", idType);
                 columns();
                     column("metadata", "md", StreamPersistence.StreamMetadata.class);
+
                 maxValueSize(64);
                 conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED);
                 explicitCompressionRequested();
                 negativeLookups();
-                expirationStrategy(expirationStrategy);
                 if (appendHeavyAndReadLight) {
                     appendHeavyAndReadLight();
                 }
@@ -144,16 +156,20 @@ public class StreamTableDefinitionBuilder {
         case VALUE:
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
+
+                tableNameLogSafety(tableNameLogSafety);
+                namedComponentsSafeByDefault();
+
                 rowName();
                     hashFirstNRowComponents(numberOfComponentsHashed);
                     rowComponent("id",              idType);
                     rowComponent("block_id",        ValueType.VAR_LONG);
                 columns();
                     column("value", "v",            ValueType.BLOB);
+
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(GenericStreamStore.BLOCK_SIZE_IN_BYTES);
                 cachePriority(CachePriority.COLD);
-                expirationStrategy(expirationStrategy);
                 if (appendHeavyAndReadLight) {
                     appendHeavyAndReadLight();
                 }

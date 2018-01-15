@@ -70,7 +70,9 @@ import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.qos.QosService;
 import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
@@ -85,9 +87,9 @@ import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
-import com.palantir.atlasdb.sweep.SweepMetrics;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
+import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -113,6 +115,9 @@ import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.remoting.api.config.service.ServiceConfiguration;
+import com.palantir.remoting3.clients.ClientConfigurations;
+import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -170,6 +175,7 @@ public abstract class TransactionManagers {
 
     /**
      * Accepts a single {@link Schema}.
+     *
      * @see TransactionManagers#createInMemory(Set)
      */
     public static SerializableTransactionManager createInMemory(Schema schema) {
@@ -299,9 +305,26 @@ public abstract class TransactionManagers {
     }
 
     private QosClient getQosClient(Supplier<QosClientConfig> config) {
-        QosRateLimiters rateLimiters = QosRateLimiters.create(
-                JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
-                JavaSuppliers.compose(QosClientConfig::limits, config));
+        Optional<ServiceConfiguration> qosServiceConfig = config.get().qosService();
+        QosRateLimiters rateLimiters;
+        if (qosServiceConfig.isPresent()) {
+            QosService qosService = JaxRsClient.create(QosService.class, userAgent(),
+                    ClientConfigurations.of(qosServiceConfig.get()));
+            rateLimiters = QosRateLimiters.create(
+                    JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
+                    () -> {
+                        long readLimit = qosService.readLimit(config().getNamespaceString());
+                        long writeLimit = qosService.writeLimit(config().getNamespaceString());
+                        return ImmutableQosLimitsConfig.builder()
+                                .readBytesPerSecond(readLimit)
+                                .writeBytesPerSecond(writeLimit)
+                                .build();
+                    });
+        } else {
+            rateLimiters = QosRateLimiters.create(
+                    JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
+                    JavaSuppliers.compose(QosClientConfig::limits, config));
+        }
         return AtlasDbQosClient.create(rateLimiters);
     }
 
@@ -353,7 +376,7 @@ public abstract class TransactionManagers {
         AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() ->
                 getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService()));
 
-        SweepMetrics sweepMetrics = new SweepMetrics();
+        SweepMetricsManager sweepMetricsManager = new SweepMetricsManager();
 
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
                 env,
@@ -361,7 +384,7 @@ public abstract class TransactionManagers {
                 transactionManager,
                 sweepRunner,
                 sweepPerfLogger,
-                sweepMetrics,
+                sweepMetricsManager,
                 config.initializeAsync(),
                 sweepBatchConfigSource);
 
@@ -382,7 +405,7 @@ public abstract class TransactionManagers {
             SerializableTransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetrics sweepMetrics,
+            SweepMetricsManager sweepMetricsManager,
             boolean initializeAsync,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
@@ -391,7 +414,7 @@ public abstract class TransactionManagers {
                 sweepRunner,
                 SweepTableFactory.of(),
                 sweepPerfLogger,
-                sweepMetrics,
+                sweepMetricsManager,
                 initializeAsync);
         env.accept(new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource));
         return specificTableSweeper;

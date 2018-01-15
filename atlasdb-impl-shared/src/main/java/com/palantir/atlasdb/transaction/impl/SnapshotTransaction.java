@@ -1159,26 +1159,21 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
-        put(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY), Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
+        putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         ensureNoEmptyValues(values);
-        put(tableRef, values, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
+        putInternal(tableRef, values);
     }
 
-    private void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
+    public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
         Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
         if (values.isEmpty()) {
             return;
         }
-
-        // todo (clockfort) also check if valid table for TTL
-        Map<Cell, byte[]> valuesToWrite = ttlDuration != Cell.INVALID_TTL && ttlUnit != Cell.INVALID_TTL_TYPE
-                ? createExpiringValues(values, ttlDuration, ttlUnit)
-                : values;
 
         numWriters.incrementAndGet();
         try {
@@ -1187,7 +1182,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             ConcurrentNavigableMap<Cell, byte[]> writes = getLocalWrites(tableRef);
 
-            putWritesAndLogIfTooLarge(valuesToWrite, writes);
+            putWritesAndLogIfTooLarge(values, writes);
         } finally {
             numWriters.decrementAndGet();
         }
@@ -1200,20 +1195,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         "AtlasDB does not currently support inserting null or empty (zero-byte) values.");
             }
         }
-    }
-
-    private Map<Cell, byte[]> createExpiringValues(Map<Cell, byte[]> values,
-                                                   long ttlDuration,
-                                                   TimeUnit ttlUnit) {
-        Map<Cell, byte[]> expiringValues = Maps.newHashMapWithExpectedSize(values.size());
-        for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
-            Cell expiringCell = Cell.create(
-                    cellEntry.getKey().getRowName(),
-                    cellEntry.getKey().getColumnName(),
-                    ttlDuration, ttlUnit);
-            expiringValues.put(expiringCell, cellEntry.getValue());
-        }
-        return expiringValues;
     }
 
     private void putWritesAndLogIfTooLarge(Map<Cell, byte[]> values, SortedMap<Cell, byte[]> writes) {

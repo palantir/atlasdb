@@ -1,0 +1,7 @@
+qos-cassandra-metrics:
+  cassandra-service-config:
+    uris:
+      - https://localhost:9161/cassandra-sidecar/api/
+    security:
+      trustStorePath: trustStore.jks
+  throttling-strategy: SIMPLE

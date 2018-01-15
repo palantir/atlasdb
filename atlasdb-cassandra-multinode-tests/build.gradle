@@ -8,6 +8,7 @@ dependencies {
     testCompile project(":atlasdb-tests-shared")
     testCompile project(":atlasdb-container-test-utils")
     testCompile project(":atlasdb-ete-test-utils")
+    testCompile project(":flake-rule")
 
     testCompile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
        exclude module: 'junit'

@@ -30,6 +30,9 @@ import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -57,6 +60,10 @@ public class MetricsManager {
         return metricRegistry;
     }
 
+    public TaggedMetricRegistry getTaggedRegistry() {
+        return taggedMetricRegistry;
+    }
+
     public void registerMetric(Class clazz, String metricPrefix, String metricName, Gauge gauge) {
         registerMetric(clazz, metricPrefix, metricName, (Metric) gauge);
     }
@@ -69,12 +76,27 @@ public class MetricsManager {
         registerMetric(clazz, metricName, (Metric) gauge);
     }
 
+    public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
+        Map<String, String> tag = getTableNameTagFor(tableRef);
+        registerMetric(clazz, metricName, gauge, tag);
+    }
+
     public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
-        taggedMetricRegistry.gauge(MetricName.builder()
-                        .safeName(MetricRegistry.name(clazz, metricName))
-                        .safeTags(tag)
-                        .build(),
-                gauge);
+        MetricName metricToAdd = MetricName.builder()
+                .safeName(MetricRegistry.name(clazz, metricName))
+                .safeTags(tag)
+                .build();
+        if (taggedMetricRegistry.getMetrics().containsKey(metricToAdd)) {
+            log.warn("Replacing the metric [ {} ]. This will happen if you are trying to re-register metrics "
+                            + "or have two tagged metrics with the same name across the application.",
+                    SafeArg.of("metricName", metricName));
+            taggedMetricRegistry.remove(metricToAdd);
+        }
+        taggedMetricRegistry.gauge(metricToAdd, gauge);
+    }
+
+    private Map<String, String> getTableNameTagFor(TableReference tableRef) {
+        return ImmutableMap.of("tableName", LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName());
     }
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {

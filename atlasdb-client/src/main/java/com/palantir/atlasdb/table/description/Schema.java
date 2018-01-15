@@ -115,25 +115,7 @@ public class Schema {
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(tableName),
                 "Invalid table name " + tableName);
-        if (!ignoreTableNameLengthChecks) {
-            String internalTableName = AbstractKeyValueService.internalTableName(
-                    TableReference.create(namespace, tableName));
-            List<CharacterLimitType> kvsExceeded = new ArrayList<>();
-
-            if (internalTableName.length() > AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT) {
-                kvsExceeded.add(CharacterLimitType.CASSANDRA);
-            }
-            if (internalTableName.length() > AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT) {
-                kvsExceeded.add(CharacterLimitType.POSTGRES);
-            }
-            Preconditions.checkArgument(
-                    kvsExceeded.isEmpty(),
-                    "Internal table name %s is too long, known to exceed character limits for "
-                            + "the following KVS: %s. If using a table prefix, please ensure that the concatenation "
-                            + "of the prefix with the internal table name is below the KVS limit. "
-                            + "If running only against a different KVS, set the ignoreTableNameLength flag.",
-                    tableName, StringUtils.join(kvsExceeded, ", "));
-        }
+        validateTableNameLength(tableName);
         tableDefinitions.put(tableName, definition);
     }
 
@@ -174,8 +156,31 @@ public class Schema {
     public void addIndexDefinition(String idxName, IndexDefinition definition) {
         validateIndex(idxName, definition);
         String indexName = Schemas.appendIndexSuffix(idxName, definition).getQualifiedName();
+        validateTableNameLength(indexName);
         indexesByTable.put(definition.getSourceTable(), indexName);
         indexDefinitions.put(indexName, definition);
+    }
+
+    private void validateTableNameLength(String idxName) {
+        if (!ignoreTableNameLengthChecks) {
+            String internalTableName = AbstractKeyValueService.internalTableName(
+                    TableReference.create(namespace, idxName));
+            List<CharacterLimitType> kvsExceeded = new ArrayList<>();
+
+            if (internalTableName.length() > AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT) {
+                kvsExceeded.add(CharacterLimitType.CASSANDRA);
+            }
+            if (internalTableName.length() > AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT) {
+                kvsExceeded.add(CharacterLimitType.POSTGRES);
+            }
+            Preconditions.checkArgument(
+                    kvsExceeded.isEmpty(),
+                    "Internal table name %s is too long, known to exceed character limits for "
+                            + "the following KVS: %s. If using a table prefix, please ensure that the concatenation "
+                            + "of the prefix with the internal table name is below the KVS limit. "
+                            + "If running only against a different KVS, set the ignoreTableNameLength flag.",
+                    idxName, StringUtils.join(kvsExceeded, ", "));
+        }
     }
 
     /**
@@ -184,7 +189,7 @@ public class Schema {
      * @param streamStoreDefinition You probably want to use a @{StreamStoreDefinitionBuilder} for convenience.
      */
     public void addStreamStoreDefinition(StreamStoreDefinition streamStoreDefinition) {
-        streamStoreDefinition.getTables().forEach((tableName, definition) -> addTableDefinition(tableName, definition));
+        streamStoreDefinition.getTables().forEach(this::addTableDefinition);
         StreamStoreRenderer renderer = streamStoreDefinition.getRenderer(packageName, name);
         Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(
                 packageName, name, renderer, namespace);

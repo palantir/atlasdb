@@ -41,7 +41,137 @@ Changelog
 develop
 =======
 
-.. replace this with the release date
+.. replace this with the release date and the above with v<tag> (the v makes the permalinks nice)
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - AtlasDB now throws an error during schema code generation stage if index table name length exceeds KVS table name length limits.
+           To override this, please specify ``ignoreTableNameLengthChecks()`` on your schema.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2862>`__)
+
+    *    - |improved| |logs| |metrics|
+         - Allow StreamStore table names to be marked as safe. This will make StreamStore tables appear correctly on our logs and metrics.
+           When building a StreamStore, please use `.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)` to mark the table name as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2835>`__)
+
+    *    - |devbreak|
+         - Qos Service: AtlasDB now provides a QosService to rate-limit clients. You can set up per-client node read and write limits
+           for each of the services in the QosService and that will be enforced for all reads and writes to Cassandra. The QoS service
+           has knowledge of the Casandra health and can scale up/down the configured limits. Note that the default limits enforced
+           by the QoS service is 10MB/s for reads and 5MB/s for writes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)
+
+    *    - |devbreak|
+         - For clarity, we renamed `ForwardingLockService` to `SimplifyingLockService`, since this class also overwrote some of its parents methods.
+           Also, its `delegate` methods now is public.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)
+
+    *    - |improved|
+         - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
+
+    *    - |fixed|
+         - Further reduced memory pressure on sweep for Cassandra KVS, by rewriting one of the CQL queries.
+           This removes a significant cause of occurrences of Cassandra OOMs that have been seen in the field recently.
+           However, performance is significantly degraded on tables with few columns and few overwrites.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2826>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2826>`__)
+
+    *    - |improved|
+         - Sweep stats are updated more often when large writes are being made.
+           ``SweepStatsKVS`` now tracks the size of modifications being made to the underlying KVS and will write when a threshold is passed.  Previously sweep stats were updated every 65536 writes, but this could be a significant amount of data if written to the stream store.  We now also track the size of the writes and if this is greater than 1GB we flush the stats.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2792>`__)
+
+    *    - |improved|
+         - Improvements to how sweep prioritises which tables to sweep, should allow better reclaiming of space from stream stores.
+           Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away. 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2793>`__)
+
+    *    - |fixed| |logs|
+         - Safe and Unsafe table name logging args are now different, fixed unreleased bug where tables names were logged as Safe
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2838>`__)
+           
+    *    - |logs|
+         - Messages to the `slow-lock-log` now log at `WARN` rather than `INFO`, these messages can indicate a problem so we should be sure they are visible.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2828>`__)
+
+    *    - |fixed|
+         - SweepResults.getCellTsPairsExamined now returns the correct result when sweep is run over multiple batches. 
+           Previously, the result would only count cell-ts pairs examined in the last batch.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
+
+    *    - |new|
+         - The JDBC URL for Oracle can now be overridden in the configuration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
+
+=======
+v0.72.0
+=======
+
+13 December 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new| |improved| |metrics| |logs|
+         - Sweep metrics were reworked. Sweep now exposes metrics indicating the total number of cells examined, cells deleted, time spent sweeping, and time elapsed since sweep started on the current table that are updated after each iteration of sweep and separate metrics that are updated after each table is fully swept.
+           Additionally, sweep now exposes metrics tagged with table names that expose the total number of cells examined, cells deleted, time spent sweeping per iteration for each table separately.
+           Logs will also include the new timing information.
+           Sweep now exposes the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.SweepMetric.``:
+
+              - ``cellTimestampPairsExamined.meter.currentIteration``
+              - ``cellTimestampPairsExamined.histogram.currentTable``
+              - ``cellTimestampPairsExamined.histogram.currentIteration`` (tagged)
+              - ``staleValuesDeleted.meter.currentIteration``
+              - ``staleValuesDeleted.histogram.currentTable``
+              - ``staleValuesDeleted.histogram.currentIteration`` (tagged)
+              - ``sweepTimeSweeping.meter.currentIteration``
+              - ``sweepTimeSweeping.histogram.currentTable``
+              - ``sweepTimeSweeping.histogram.currentIteration`` (tagged)
+              - ``sweepTimeElapsedSinceStart.currentValue.currentIteration``
+              - ``sweepTimeElapsedSinceStart.histogram.currentTable``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2672>`__)
+
+    *    - |improved|
+         - AtlasDB now provides a configurable ``compactInterval`` (0 by default) option for Postgres, in the Postgres DDL Config.
+           A vacuum will be kicked off an a table only if there hasn't been one on the same table in the last ``compactInterval``.
+           This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days (e.g. ``2d`` or ``2 days``) for this config option
+           and would encourage users to test this out and report the results back. We will modify the defaults once this has been field tested.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2767>`__)
+
+    *    - |fixed|
+         - The ``LeaderPingHealthCheck`` supplied by ``PaxosLeadershipCreator`` now correctly reports the leadership state of nodes that believe themselves to be the leader.
+           Previously, the health check would ping every *other* node in the cluster, resulting in leader nodes reporting that there are no leaders.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2805>`__)
+
+    *    - |fixed|
+         - Fixed a bug in LockServiceImpl (caused by a bug in AbstractQueuedSynchronizer) where a race condition could cause a lock to become stuck indefinitely.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2799>`__)
+
+    *    - |devbreak|
+         - Deleted the TTL duration field from the ``Cell`` class.
+           The interface ``ExpiringKeyValueService`` and implementations ``CassandraExpiringKeyValueService`` and ``CqlExpiringKeyValueService`` have also been removed.
+           Additionally, ``StreamTableDefinitionBuilder.expirationStrategy`` has been removed.
+           We don't believe that any of these fields or classes were used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2599>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.71.1
+=======
+
+8 December 2017
 
 .. list-table::
     :widths: 5 40
@@ -51,16 +181,59 @@ develop
          - Change
 
     *    - |fixed|
+         - Removed an unused dependency from ``atlasdb-api``, fixing a dependency clash in a downstream product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2798>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.71.0
+=======
+
+7 December 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - **AtlasDB QoS**: AtlasDB now allows clients to live-reloadably configure read and write limits (in terms of bytes) to rate-limit requests to Cassandra.
+           AtlasDB clients will receive a ``RateLimitExceededException`` for requests that are throttled and should handle them appropriately.
+           We provide an exception mapper ``RateLimitExceededExceptionMapper`` to map the throttling exceptions to ``429``, but it is upto the application to register the exception mapper.
+           Note that this is an experimental feature and applications should generally not enable it by default yet, unless the application has hard read-write limits.
+           This should allow us to throttle dynamically in situations where the load on Cassandra is high.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2629>`__)
+
+    *    - |improved|
+         - AtlasDB publish of new releases is now done through the internal circleCI build instead of external circleCI.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2783>`__)
+
+    *    - |improved|
+         - AtlasDB no longer logs Cassandra retries at level WARN, thus reducing the volume of WARN logs by a significant factor. These logs are now available at INFO.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2776>`__)
+
+    *    - |fixed|
          - Sweep can now make progress after a restore and after the clean transactions CLI is run.
            Earlier, it would fail throwing a ``NullPointerException`` due to failure to read the commit ts.
            This would cause sweep to keep retrying without realising that it will never proceed forward.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2778>`__)
+
+    *    - |fixed|
+         - Sweep will no longer run during KVS Migrations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2784>`__)
 
     *    - |new| |logs|
          - Cassandra KVS now records how many writes have been made into each token range for each table.
            That information is logged at info every time a table is written to more than a threshold of times (currently 100 000 writes).
            These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
+
+    *    - |new| |metrics|
+         - New metric added which reports the probability that a table is being written to unevenly.  ``com.palantir.atlasdb.keyvalue.cassandra.TokenRangeWritesLogger.probabilityDistributionIsNotUniform`` is tagged with the table reference (where safe) and is a probability from 0.0 to 1.0 that the token ranges are being written to unevenly.  Cassandra KVS only.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2764>`__)
 
     *    - |new|
          - ``TimeLockAgent`` exposes a new method, ``getStatus()``, to be used by the internal TimeLock instance in order to provide a health check.
@@ -75,11 +248,15 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2782>`__)
 
+    *    - |new|
+         - Added a CLI to read the punch table. The CLI receives an epoch time, in millis, and returns an approximation of the AtlasDB timestamp strictly before the given timestamp.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2775>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.70.1
-======
+=======
+v0.70.1
+=======
 
 30 November 2017
 
@@ -110,9 +287,9 @@ develop
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.70.0
-======
+=======
+v0.70.0
+=======
 
 30 November 2017
 

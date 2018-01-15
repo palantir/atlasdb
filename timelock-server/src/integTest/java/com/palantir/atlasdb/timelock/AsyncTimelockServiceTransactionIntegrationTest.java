@@ -64,6 +64,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
 
     public AsyncTimelockServiceTransactionIntegrationTest(TestableTimelockCluster cluster) {
         super(cluster);
+        cluster.waitUntilLeaderIsElected();
 
         txnManager = TimeLockTestUtils.createTransactionManager(cluster);
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
