@@ -50,6 +50,24 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - On Cassandra KVS, sweep reads data from Cassandra in parallel, resulting in improved performance.
+           The parallelism can be changed by adjusting ``sweepReadThreads`` in Cassandra KVS config (default 16).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2860>`__)
+
+===========
+v0.73.0-rc1
+===========
+
+11 January 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved| |logs| |metrics|
          - Allow StreamStore table names to be marked as safe. This will make StreamStore tables appear correctly on our logs and metrics.
            When building a StreamStore, please use `.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)` to mark the table name as safe.
@@ -84,19 +102,19 @@ develop
 
     *    - |improved|
          - Improvements to how sweep prioritises which tables to sweep, should allow better reclaiming of space from stream stores.
-           Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away. 
+           Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2793>`__)
 
     *    - |fixed| |logs|
          - Safe and Unsafe table name logging args are now different, fixed unreleased bug where tables names were logged as Safe
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2838>`__)
-           
+
     *    - |logs|
          - Messages to the `slow-lock-log` now log at `WARN` rather than `INFO`, these messages can indicate a problem so we should be sure they are visible.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2828>`__)
 
     *    - |fixed|
-         - SweepResults.getCellTsPairsExamined now returns the correct result when sweep is run over multiple batches. 
+         - SweepResults.getCellTsPairsExamined now returns the correct result when sweep is run over multiple batches.
            Previously, the result would only count cell-ts pairs examined in the last batch.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
 

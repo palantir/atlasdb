@@ -42,6 +42,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -58,6 +59,7 @@ import com.palantir.logsafe.UnsafeArg;
 public class CqlExecutorImpl implements CqlExecutor {
     private final QueryExecutor queryExecutor;
     private final ExecutorService executor;
+    private final int numThreads;
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
@@ -65,15 +67,20 @@ public class CqlExecutorImpl implements CqlExecutor {
         CqlResult executePrepared(int queryId, List<ByteBuffer> values);
     }
 
-    CqlExecutorImpl(ExecutorService executor, CassandraClientPool clientPool, ConsistencyLevel consistency) {
+    CqlExecutorImpl(ExecutorService executor,
+            CassandraClientPool clientPool,
+            ConsistencyLevel consistency,
+            int numThreads) {
         this.queryExecutor = new QueryExecutorImpl(clientPool, consistency);
         this.executor = executor;
+        this.numThreads = numThreads;
     }
 
     @VisibleForTesting
     CqlExecutorImpl(QueryExecutor queryExecutor) {
         this.queryExecutor = queryExecutor;
-        this.executor = PTExecutors.newFixedThreadPool(16);
+        this.executor = PTExecutors.newFixedThreadPool(AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS);
+        this.numThreads = AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
 
     @Override
@@ -93,7 +100,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         List<CellWithTimestamp> result = Lists.newArrayList();
         List<Future<CqlResult>> futures = Lists.newArrayList();
 
-        for (int i = 0; i < 16 && rows.hasNext(); i++) {
+        for (int i = 0; i < numThreads && rows.hasNext(); i++) {
             futures.add(submitAndGetFuture(queryId, rows.next()));
         }
 
