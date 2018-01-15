@@ -23,6 +23,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -46,6 +50,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -83,16 +88,40 @@ public class CqlExecutorImpl implements CqlExecutor {
 
         List<CellWithTimestamp> result = Lists.newArrayList();
         Iterator<byte[]> rows = rowsAscending.iterator();
+
+        // TODO move outside CqlExecutor class
+        ExecutorService executor = PTExecutors.newFixedThreadPool(16);
+
         while (result.size() < limit && rows.hasNext()) {
-            // We can parallelise this, but would need to collect it carefully to make sure we satisfy the guarantees:
-            // 1. Results are ordered
-            // 2. There are at most <limit> results
-            // 3. We return the first <limit> results
-            // We can ensure this by not applying the limit until after collection, and grouping by row
-            // I think this is ensured later on in the code path?
-            CqlResult cqlResult = queryExecutor.executePrepared(queryId,
-                    ImmutableList.of(ByteBuffer.wrap(rows.next())));
-            result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
+            // Create new tasks
+            List<Future<CqlResult>> futures = Lists.newArrayList();
+
+            // TODO can we just submit all rows at once? Note that in the general case we won't need all the results
+            for (int i = 0; i < 16 && rows.hasNext(); i++) {
+                byte[] row = rows.next();
+                Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
+                        ImmutableList.of(ByteBuffer.wrap(row)));
+                Future<CqlResult> future = executor.submit(task);
+                futures.add(future);
+            }
+
+            try {
+                for (Future<CqlResult> f : futures) {
+                    // TODO We need to collect these carefully to make sure we satisfy the guarantees:
+                    // 1. Results are ordered
+                    // 2. There are at most <limit> results
+                    // 3. We return the first <limit> results
+                    // We can ensure this by not applying the limit until after collection, and grouping by row
+                    // I think this is ensured later on in the code path?
+                    // TODO map results to row indices? Use a sorted List?
+                    CqlResult cqlResult = f.get();
+                    result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
+                }
+            } catch (InterruptedException e) {
+                throw Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                throw Throwables.throwUncheckedException(e.getCause());
+            }
         }
 
         return result;
