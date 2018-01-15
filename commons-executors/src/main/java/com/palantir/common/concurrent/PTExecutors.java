@@ -478,14 +478,14 @@ public final class PTExecutors {
         if (runnable instanceof Future<?>) {
             @SuppressWarnings("unchecked")
             Future<Object> unsafeFuture = (Future<Object>) runnable;
-            return new ForwardingRunnableFuture<Object>(wrappedRunnable, unsafeFuture);
+            return new ForwardingRunnableFuture<>(wrappedRunnable, unsafeFuture);
         }
         return wrappedRunnable;
     }
 
     public static <T> RunnableFuture<T> wrap(RunnableFuture<T> rf) {
         Runnable wrappedRunnable = wrapRunnable(rf);
-        return new ForwardingRunnableFuture<T>(wrappedRunnable, rf);
+        return new ForwardingRunnableFuture<>(wrappedRunnable, rf);
     }
 
     private static Runnable wrapRunnable(Runnable runnable) {

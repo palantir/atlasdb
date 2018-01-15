@@ -39,7 +39,6 @@ import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.remoting3.tracing.Tracers;
 
 /**
  * Tests for {@link ClientAwareReadWriteLockImpl}.
