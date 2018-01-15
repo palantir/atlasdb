@@ -407,7 +407,6 @@ public class TableDefinition extends AbstractDefinition {
                 getColumnMetadataDescription(),
                 conflictHandler,
                 cachePriority,
-                partitionStrategy,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKb,
                 negativeLookups,
