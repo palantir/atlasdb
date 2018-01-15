@@ -109,6 +109,10 @@ develop
          - The JDBC URL for Oracle can now be overridden in the configuration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
 
+    *    - |improved|
+         - The LockAwareTransactionManager pre-commit checks that verify that locks are still held have been generalized to support arbitrary pre-commit checks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2846>`__)
+
 =======
 v0.72.0
 =======
