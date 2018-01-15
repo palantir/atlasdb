@@ -88,47 +88,42 @@ public class CqlExecutorImpl implements CqlExecutor {
 
         List<CellWithTimestamp> result = Lists.newArrayList();
         Iterator<byte[]> rows = rowsAscending.iterator();
+        List<Future<CqlResult>> futures = Lists.newArrayList();
 
         // TODO move outside CqlExecutor class
         ExecutorService executor = PTExecutors.newFixedThreadPool(16);
 
-        while (result.size() < limit && rows.hasNext()) {
-            // Create new tasks
-            List<Future<CqlResult>> futures = Lists.newArrayList();
+        for (int i = 0; i < 16 && rows.hasNext(); i++) {
+            futures.add(submitAndGetFuture(executor, queryId, rows.next()));
+        }
 
-            // TODO can we just submit all rows at once? Note that in the general case we won't need all the results
-            for (int i = 0; i < 16 && rows.hasNext(); i++) {
-                byte[] row = rows.next();
-                Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
-                        ImmutableList.of(ByteBuffer.wrap(row)));
-                Future<CqlResult> future = executor.submit(task);
-                futures.add(future);
-            }
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                Future<CqlResult> future = futures.get(i);
+                CqlResult cqlResult = future.get();
+                result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
 
-            try {
-                for (Future<CqlResult> f : futures) {
-                    // TODO We need to collect these carefully to make sure we satisfy the guarantees:
-                    // 1. Results are ordered
-                    // 2. There are at most <limit> results
-                    // 3. We return the first <limit> results
-                    // We can ensure this by not applying the limit until after collection, and grouping by row
-                    // I think this is ensured later on in the code path?
-                    // TODO map results to row indices? Use a sorted List?
-                    CqlResult cqlResult = f.get();
-                    result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
-
-                    if (result.size() > limit) {
-                        break;
-                    }
+                if (result.size() > limit) {
+                    break;
                 }
-            } catch (InterruptedException e) {
-                throw Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                throw Throwables.throwUncheckedException(e.getCause());
+
+                if (rows.hasNext()) {
+                    futures.add(submitAndGetFuture(executor, queryId, rows.next()));
+                }
             }
+        } catch (InterruptedException e) {
+            throw Throwables.throwUncheckedException(e);
+        } catch (ExecutionException e) {
+            throw Throwables.throwUncheckedException(e.getCause());
         }
 
         return result;
+    }
+
+    private Future<CqlResult> submitAndGetFuture(ExecutorService executor, int queryId, byte[] row) {
+        Callable<CqlResult> task = () -> queryExecutor.executePrepared(queryId,
+                ImmutableList.of(ByteBuffer.wrap(row)));
+        return executor.submit(task);
     }
 
     /**
