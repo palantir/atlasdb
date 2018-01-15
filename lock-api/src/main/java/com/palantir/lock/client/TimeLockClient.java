@@ -20,11 +20,11 @@ import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -44,7 +44,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     private final LockRefresher lockRefresher;
 
     public static TimeLockClient createDefault(TimelockService timelockService) {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
+        ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                 .setNameFormat(TimeLockClient.class.getSimpleName() + "-%d")
                 .setDaemon(true)
                 .build());

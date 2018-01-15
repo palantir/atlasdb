@@ -72,7 +72,6 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting3.tracing.Tracers;
 
 /**
  * Scrubs individuals cells on-demand.
@@ -89,8 +88,8 @@ public class Scrubber {
     private static final int RETRY_SLEEP_INTERVAL_IN_MILLIS = 1000;
     private static final int MAX_DELETES_IN_BATCH = 10_000;
 
-    private final ScheduledExecutorService service = Tracers.wrap(PTExecutors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("scrubber", true /* daemon */)));
+    private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory("scrubber", true /* daemon */));
     @GuardedBy("this") private boolean scrubTaskLaunched = false;
 
     private final KeyValueService keyValueService;
@@ -173,8 +172,8 @@ public class Scrubber {
         this.readThreadCount = readThreadCount;
         this.followers = followers;
         NamedThreadFactory threadFactory = new NamedThreadFactory(SCRUBBER_THREAD_PREFIX, true);
-        this.readerExec = Tracers.wrap(PTExecutors.newFixedThreadPool(readThreadCount, threadFactory));
-        this.exec = Tracers.wrap(PTExecutors.newFixedThreadPool(threadCount, threadFactory));
+        this.readerExec = PTExecutors.newFixedThreadPool(readThreadCount, threadFactory);
+        this.exec = PTExecutors.newFixedThreadPool(threadCount, threadFactory);
     }
 
     public boolean isInitialized() {
