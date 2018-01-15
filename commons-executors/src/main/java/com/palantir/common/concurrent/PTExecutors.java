@@ -39,6 +39,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.palantir.remoting3.tracing.Tracers;
+
 /**
  * Please always use the static methods in this class instead of the ones in {@link
  * java.util.concurrent.Executors}, because the executors returned by these methods will propagate
@@ -474,23 +476,7 @@ public final class PTExecutors {
     public static Runnable wrap(final Runnable runnable) {
         final Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
-        if (runnable instanceof Future<?>) {
-            @SuppressWarnings("unchecked")
-            Future<Object> unsafeFuture = (Future<Object>) runnable;
-            return new ForwardingRunnableFuture<Object>(unsafeFuture) {
-                @Override
-                public void run() {
-                    ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
-                        ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
-                    try {
-                        super.run();
-                    } finally {
-                        ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
-                    }
-                }
-            };
-        }
-        return new Runnable() {
+        Runnable wrappedRunnable = Tracers.wrap(new Runnable() {
             @Override
             public void run() {
                 ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
@@ -501,7 +487,13 @@ public final class PTExecutors {
                     ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
                 }
             }
-        };
+        });
+        if (runnable instanceof Future<?>) {
+            @SuppressWarnings("unchecked")
+            Future<Object> unsafeFuture = (Future<Object>) runnable;
+            return new ForwardingRunnableFuture<Object>(wrappedRunnable, unsafeFuture);
+        }
+        return wrappedRunnable;
     }
 
     public static <T> RunnableFuture<T> wrap(RunnableFuture<T> rf) {
@@ -528,7 +520,7 @@ public final class PTExecutors {
     public static <T> Callable<T> wrap(final Callable<? extends T> callable) {
         final Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
-        return new Callable<T>() {
+        return Tracers.wrap(new Callable<T>() {
             @Override
             public T call() throws Exception {
                 ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
@@ -539,7 +531,7 @@ public final class PTExecutors {
                     ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
                 }
             }
-        };
+        });
     }
 
     /**
