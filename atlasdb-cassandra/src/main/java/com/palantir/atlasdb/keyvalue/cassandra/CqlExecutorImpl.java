@@ -116,6 +116,10 @@ public class CqlExecutorImpl implements CqlExecutor {
                     // TODO map results to row indices? Use a sorted List?
                     CqlResult cqlResult = f.get();
                     result.addAll(CqlExecutorImpl.getCells(CqlExecutorImpl::getCellFromRow, cqlResult));
+
+                    if (result.size() > limit) {
+                        break;
+                    }
                 }
             } catch (InterruptedException e) {
                 throw Throwables.throwUncheckedException(e);
