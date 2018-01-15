@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
@@ -32,6 +34,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ser.std.InetSocketAddressSerializer;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -102,21 +105,34 @@ public final class CassandraKeyValueServices {
 
         StringBuilder schemaVersions = new StringBuilder();
         for (Entry<String, List<String>> version : versions.entrySet()) {
-            schemaVersions.append(String.format("%nAt schema version %s:", version.getKey()));
-            for (String node : version.getValue()) {
-                schemaVersions.append(String.format("%n\tNode: %s", node));
-            }
+            addNodeInformation(schemaVersions,
+                    String.format("%nAt schema version %s:", version.getKey()),
+                    version.getValue());
         }
+        addNodeInformation(schemaVersions,
+                "%nNodes specified in config file:",
+                config.servers().stream().map(InetSocketAddress::toString).collect(Collectors.toList()));
+
         String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions,"
                         + " after attempting to modify table %s. %s"
-                        + " \nFind the nodes above that diverge from the majority schema"
-                        + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
+                        + " \nFind the nodes above that diverge from the majority schema. If nodes"
+                        + " have schema 'UNKNOWN', they are likely down/unresponsive"
                         + " and examine their logs to determine the issue."
                         + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
-                        + " You can quick-check this with 'nodetool describecluster'.",
+                        + " You can quick-check this with 'nodetool describecluster'."
+                        + " If nodes are specified in the config file, but do not have a schema version,"
+                        + " then they have never joined the cluster and you should verify your configuration"
+                        + " is correct.",
                 tableName,
                 schemaVersions.toString());
         throw new IllegalStateException(errorMessage);
+    }
+
+    private static void addNodeInformation(StringBuilder builder, String message, List<String> nodes) {
+        builder.append(message);
+        for (String node : nodes) {
+            builder.append(String.format("%n\tNode: %s", node));
+        }
     }
 
     /**
@@ -127,7 +143,7 @@ public final class CassandraKeyValueServices {
             boolean allowQuorumAgreement,
             CassandraKeyValueServiceConfig config,
             Map<String, List<String>> versions) {
-        if (getNumberOfReachableSchemas(versions) > 1) {
+        if (getNumberOfDistinctReachableSchemas(versions) > 1) {
             return false;
         }
 
@@ -140,7 +156,7 @@ public final class CassandraKeyValueServices {
         return numberOfVisibleNodes == numberOfServers;
     }
 
-    private static long getNumberOfReachableSchemas(Map<String, List<String>> versions) {
+    private static long getNumberOfDistinctReachableSchemas(Map<String, List<String>> versions) {
         return versions.keySet().stream().filter(schema -> !schema.equals(VERSION_UNREACHABLE)).count();
     }
 
