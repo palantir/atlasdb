@@ -47,6 +47,7 @@ import com.palantir.atlasdb.schema.SchemaDependentTableMetadata;
 import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
 import com.palantir.atlasdb.schema.cleanup.CleanupMetadata;
 import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 
@@ -243,7 +244,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void streamStoreTablesCreatedWithCorrectCleanupMetadata() {
+    public void streamStoreMetadataGeneratedCorrectlyForSimpleStreamStore() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String shortName = "f";
         String longName = "floccinaucinihilipilification";
@@ -251,10 +252,67 @@ public class SchemaTest {
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_LONG)
                         .build());
+
+        assertCleanupMetadataCorrectForStreamStore(schema, shortName, 0, ValueType.VAR_LONG);
+    }
+
+    @Test
+    public void streamStoreMetadataGeneratedCorrectlyForStreamStoreWithHashFirstRowComponent() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        String shortName = "a";
+        String longName = "antidisestablishmentarianism";
+
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.FIXED_LONG)
+                        .hashFirstRowComponent()
+                        .build());
+
+        assertCleanupMetadataCorrectForStreamStore(schema, shortName, 1, ValueType.FIXED_LONG);
+    }
+
+    @Test
+    public void streamStoreMetadataGeneratedCorrectlyForStreamStoreWithHashRowComponents() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        String shortName = "p";
+        String longName = "pneumonoultramicroscopicsilicovolcanoconiosis";
+
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.FIXED_LONG_LITTLE_ENDIAN)
+                        .hashRowComponents()
+                        .build());
+
+        assertCleanupMetadataCorrectForStreamStore(schema, shortName, 2, ValueType.FIXED_LONG_LITTLE_ENDIAN);
+    }
+
+    @Test
+    public void streamStoreTablesSupportAdditionalCleanupTasks() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        String shortName = "l";
+        String longName = "llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch";
+
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_SIGNED_LONG)
+                        .hashRowComponents()
+                        .build());
+        schema.addCleanupTask(StreamTableType.HASH.getTableName(shortName), () -> (cells, tx) -> false);
+        schema.addCleanupTask(StreamTableType.INDEX.getTableName(shortName), () -> (cells, tx) -> false);
+
         assertOnCleanupMetadataInSchema(
                 schema,
                 StreamTableType.VALUE.getTableName(shortName),
                 NULL_CLEANUP_METADATA_ASSERTION);
+        assertOnCleanupMetadataInSchema(
+                schema,
+                StreamTableType.HASH.getTableName(shortName),
+                ARBITRARY_CLEANUP_METADATA_ASSERTION);
+        assertOnCleanupMetadataInSchema(
+                schema,
+                StreamTableType.METADATA.getTableName(shortName),
+                getStreamStoreMetadataAssertion(2, ValueType.VAR_SIGNED_LONG));
+        assertOnCleanupMetadataInSchema(
+                schema,
+                StreamTableType.INDEX.getTableName(shortName),
+                ARBITRARY_CLEANUP_METADATA_ASSERTION);
     }
 
     private Schema getSchemaWithSimpleTestTable() {
@@ -287,6 +345,38 @@ public class SchemaTest {
                 = schema.getSchemaMetadata().schemaDependentTableMetadata();
         assertThat(metadatas).containsKey(tableReference);
         verification.accept(metadatas.get(tableReference).cleanupMetadata());
+    }
+
+    private void assertCleanupMetadataCorrectForStreamStore(
+            Schema schema,
+            String streamStoreShortName,
+            int numComponentsHashed,
+            ValueType idType) {
+        assertOnCleanupMetadataInSchema(
+                schema,
+                StreamTableType.VALUE.getTableName(streamStoreShortName),
+                NULL_CLEANUP_METADATA_ASSERTION);
+        assertOnCleanupMetadataInSchema(
+                schema,
+                StreamTableType.HASH.getTableName(streamStoreShortName),
+                NULL_CLEANUP_METADATA_ASSERTION);
+        assertOnCleanupMetadataInSchema(
+                schema,
+                StreamTableType.METADATA.getTableName(streamStoreShortName),
+                getStreamStoreMetadataAssertion(numComponentsHashed, idType));
+        assertOnCleanupMetadataInSchema(
+                schema,
+                StreamTableType.INDEX.getTableName(streamStoreShortName),
+                getStreamStoreMetadataAssertion(numComponentsHashed, idType));
+    }
+
+    private Consumer<CleanupMetadata> getStreamStoreMetadataAssertion(int numHashedComponents, ValueType streamIdType) {
+        return metadata -> {
+            assertThat(metadata).isInstanceOf(StreamStoreCleanupMetadata.class);
+            StreamStoreCleanupMetadata streamStoreCleanupMetadata = (StreamStoreCleanupMetadata) metadata;
+            assertThat(streamStoreCleanupMetadata.numHashedRowComponents()).isEqualTo(numHashedComponents);
+            assertThat(streamStoreCleanupMetadata.streamIdType()).isEqualTo(streamIdType);
+        };
     }
 
     private void checkIfFilesAreTheSame(List<String> generatedTestTables) {
