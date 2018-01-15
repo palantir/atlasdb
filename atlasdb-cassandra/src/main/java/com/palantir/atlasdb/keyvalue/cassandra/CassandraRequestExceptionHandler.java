@@ -70,7 +70,7 @@ class CassandraRequestExceptionHandler {
         int numberOfAttempts = req.getNumberOfAttempts();
 
         if (numberOfAttempts >= maxTriesTotal.get()) {
-            throw (K) logAndReturnException(numberOfAttempts, ex);
+            logAndThrowException(numberOfAttempts, ex);
         }
 
         if (shouldBlacklist(ex, numberOfAttempts)) {
@@ -83,18 +83,18 @@ class CassandraRequestExceptionHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private <K extends Exception> K logAndReturnException(int numberOfAttempts, Exception ex) {
+    private <K extends Exception> void logAndThrowException(int numberOfAttempts, Exception ex) throws K {
         if (ex instanceof TTransportException
                 && ex.getCause() != null
                 && (ex.getCause().getClass() == SocketException.class)) {
             log.error(CONNECTION_FAILURE_MSG, numberOfAttempts, ex);
             String errorMsg =
                     MessageFormatter.format(CONNECTION_FAILURE_MSG, numberOfAttempts).getMessage();
-            return (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
+            throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
         } else {
             log.error("Tried to connect to cassandra {} times.",
                     SafeArg.of("numTries", numberOfAttempts), ex);
-            return (K) ex;
+            throw (K) ex;
         }
     }
 
@@ -172,8 +172,8 @@ class CassandraRequestExceptionHandler {
     @VisibleForTesting
     boolean shouldRetryOnDifferentHost(Exception ex, int numberOfAttempts) {
         return isFastFailoverException(ex)
-                || (numberOfAttempts >= maxTriesSameHost.get() &&
-                (isConnectionException(ex) || isIndicativeOfCassandraLoad(ex)));
+                || (numberOfAttempts >= maxTriesSameHost.get()
+                && (isConnectionException(ex) || isIndicativeOfCassandraLoad(ex)));
     }
 
     // Group exceptions by type.
