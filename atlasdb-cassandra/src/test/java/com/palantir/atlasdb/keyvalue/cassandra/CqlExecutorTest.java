@@ -77,7 +77,7 @@ public class CqlExecutorTest {
 
         verify(queryExecutor).prepare(argThat(byteBufferMatcher(expected)), eq(ROW), any());
         verify(queryExecutor).executePrepared(eq(1), eq(ImmutableList.of(ByteBuffer.wrap(ROW))));
-
+        verify(queryExecutor).executePrepared(eq(1), eq(ImmutableList.of(ByteBuffer.wrap(END_ROW))));
     }
 
     @Test
