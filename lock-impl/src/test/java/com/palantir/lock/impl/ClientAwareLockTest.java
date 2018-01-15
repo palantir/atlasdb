@@ -49,8 +49,8 @@ import com.palantir.remoting3.tracing.Tracers;
 @ShouldRetry
 public final class ClientAwareLockTest {
 
-    private static final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(ClientAwareLockTest.class.getName(), true)));
+    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(ClientAwareLockTest.class.getName(), true));
 
     private final LockClient client = LockClient.of("client");
     private ClientAwareReadWriteLock readWriteLock;
