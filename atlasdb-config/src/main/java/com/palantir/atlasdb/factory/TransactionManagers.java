@@ -72,7 +72,6 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.QosService;
 import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
-import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
@@ -314,18 +313,13 @@ public abstract class TransactionManagers {
                     ClientConfigurations.of(qosServiceConfig.get()));
             rateLimiters = QosRateLimiters.create(
                     JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
-                    () -> {
-                        long readLimit = qosService.readLimit(config().getNamespaceString());
-                        long writeLimit = qosService.writeLimit(config().getNamespaceString());
-                        return ImmutableQosLimitsConfig.builder()
-                                .readBytesPerSecond(readLimit)
-                                .writeBytesPerSecond(writeLimit)
-                                .build();
-                    });
+                    () -> qosService.readLimit(config().getNamespaceString()),
+                    () -> qosService.writeLimit(config().getNamespaceString()));
         } else {
             rateLimiters = QosRateLimiters.create(
                     JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
-                    JavaSuppliers.compose(QosClientConfig::limits, config));
+                    JavaSuppliers.compose(conf -> conf.limits().readBytesPerSecond(), config),
+                    JavaSuppliers.compose(conf -> conf.limits().writeBytesPerSecond(), config));
         }
         return AtlasDbQosClient.create(rateLimiters);
     }
