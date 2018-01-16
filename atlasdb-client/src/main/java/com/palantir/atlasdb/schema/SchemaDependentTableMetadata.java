@@ -63,11 +63,11 @@ public abstract class SchemaDependentTableMetadata implements Persistable {
     private static CleanupMetadata parseCleanupMetadata(
             SchemaMetadataPersistence.SchemaDependentTableMetadata message) {
         switch (message.getCleanupMetadataCase()) {
-            case ARBITRARYCLEANUPMETADATA:
+            case ARBITRARY_CLEANUP_METADATA:
                 return ArbitraryCleanupMetadata.hydrateFromProto(message.getArbitraryCleanupMetadata());
-            case NULLCLEANUPMETADATA:
+            case NULL_CLEANUP_METADATA:
                 return NullCleanupMetadata.hydrateFromProto(message.getNullCleanupMetadata());
-            case STREAMSTORECLEANUPMETADATA:
+            case STREAM_STORE_CLEANUP_METADATA:
                 return StreamStoreCleanupMetadata.hydrateFromProto(message.getStreamStoreCleanupMetadata());
             default:
                 throw new IllegalStateException("Unexpected type of cleanup metadata found: "

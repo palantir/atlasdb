@@ -2159,41 +2159,56 @@ public final class SchemaMetadataPersistence {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
      */
     boolean hasNullCleanupMetadata();
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
      */
     com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata getNullCleanupMetadata();
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
      */
     com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder getNullCleanupMetadataOrBuilder();
 
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
      */
     boolean hasStreamStoreCleanupMetadata();
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
      */
     com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata getStreamStoreCleanupMetadata();
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
      */
     com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder getStreamStoreCleanupMetadataOrBuilder();
 
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
      */
     boolean hasArbitraryCleanupMetadata();
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
      */
     com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata getArbitraryCleanupMetadata();
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
      */
     com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder getArbitraryCleanupMetadataOrBuilder();
   }
@@ -2332,9 +2347,9 @@ public final class SchemaMetadataPersistence {
     private java.lang.Object cleanupMetadata_;
     public enum CleanupMetadataCase
         implements com.google.protobuf.Internal.EnumLite {
-      NULLCLEANUPMETADATA(1),
-      STREAMSTORECLEANUPMETADATA(2),
-      ARBITRARYCLEANUPMETADATA(3),
+      NULL_CLEANUP_METADATA(1),
+      STREAM_STORE_CLEANUP_METADATA(2),
+      ARBITRARY_CLEANUP_METADATA(3),
       CLEANUPMETADATA_NOT_SET(0);
       private int value = 0;
       private CleanupMetadataCase(int value) {
@@ -2342,9 +2357,9 @@ public final class SchemaMetadataPersistence {
       }
       public static CleanupMetadataCase valueOf(int value) {
         switch (value) {
-          case 1: return NULLCLEANUPMETADATA;
-          case 2: return STREAMSTORECLEANUPMETADATA;
-          case 3: return ARBITRARYCLEANUPMETADATA;
+          case 1: return NULL_CLEANUP_METADATA;
+          case 2: return STREAM_STORE_CLEANUP_METADATA;
+          case 3: return ARBITRARY_CLEANUP_METADATA;
           case 0: return CLEANUPMETADATA_NOT_SET;
           default: throw new java.lang.IllegalArgumentException(
             "Value is undefined for this oneof enum.");
@@ -2361,15 +2376,25 @@ public final class SchemaMetadataPersistence {
           cleanupMetadataCase_);
     }
 
-    public static final int NULLCLEANUPMETADATA_FIELD_NUMBER = 1;
+    public static final int NULL_CLEANUP_METADATA_FIELD_NUMBER = 1;
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
      */
     public boolean hasNullCleanupMetadata() {
       return cleanupMetadataCase_ == 1;
     }
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
      */
     public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata getNullCleanupMetadata() {
       if (cleanupMetadataCase_ == 1) {
@@ -2378,7 +2403,12 @@ public final class SchemaMetadataPersistence {
       return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance();
     }
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
      */
     public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder getNullCleanupMetadataOrBuilder() {
       if (cleanupMetadataCase_ == 1) {
@@ -2387,15 +2417,15 @@ public final class SchemaMetadataPersistence {
       return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance();
     }
 
-    public static final int STREAMSTORECLEANUPMETADATA_FIELD_NUMBER = 2;
+    public static final int STREAM_STORE_CLEANUP_METADATA_FIELD_NUMBER = 2;
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
      */
     public boolean hasStreamStoreCleanupMetadata() {
       return cleanupMetadataCase_ == 2;
     }
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
      */
     public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata getStreamStoreCleanupMetadata() {
       if (cleanupMetadataCase_ == 2) {
@@ -2404,7 +2434,7 @@ public final class SchemaMetadataPersistence {
       return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance();
     }
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
      */
     public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder getStreamStoreCleanupMetadataOrBuilder() {
       if (cleanupMetadataCase_ == 2) {
@@ -2413,15 +2443,15 @@ public final class SchemaMetadataPersistence {
       return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance();
     }
 
-    public static final int ARBITRARYCLEANUPMETADATA_FIELD_NUMBER = 3;
+    public static final int ARBITRARY_CLEANUP_METADATA_FIELD_NUMBER = 3;
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
      */
     public boolean hasArbitraryCleanupMetadata() {
       return cleanupMetadataCase_ == 3;
     }
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
      */
     public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata getArbitraryCleanupMetadata() {
       if (cleanupMetadataCase_ == 3) {
@@ -2430,7 +2460,7 @@ public final class SchemaMetadataPersistence {
       return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.getDefaultInstance();
     }
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
      */
     public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder getArbitraryCleanupMetadataOrBuilder() {
       if (cleanupMetadataCase_ == 3) {
@@ -2670,15 +2700,15 @@ public final class SchemaMetadataPersistence {
       public Builder mergeFrom(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata other) {
         if (other == com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance()) return this;
         switch (other.getCleanupMetadataCase()) {
-          case NULLCLEANUPMETADATA: {
+          case NULL_CLEANUP_METADATA: {
             mergeNullCleanupMetadata(other.getNullCleanupMetadata());
             break;
           }
-          case STREAMSTORECLEANUPMETADATA: {
+          case STREAM_STORE_CLEANUP_METADATA: {
             mergeStreamStoreCleanupMetadata(other.getStreamStoreCleanupMetadata());
             break;
           }
-          case ARBITRARYCLEANUPMETADATA: {
+          case ARBITRARY_CLEANUP_METADATA: {
             mergeArbitraryCleanupMetadata(other.getArbitraryCleanupMetadata());
             break;
           }
@@ -2731,13 +2761,23 @@ public final class SchemaMetadataPersistence {
       private com.google.protobuf.SingleFieldBuilder<
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder> nullCleanupMetadataBuilder_;
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
        */
       public boolean hasNullCleanupMetadata() {
         return cleanupMetadataCase_ == 1;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
        */
       public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata getNullCleanupMetadata() {
         if (nullCleanupMetadataBuilder_ == null) {
@@ -2753,7 +2793,12 @@ public final class SchemaMetadataPersistence {
         }
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
        */
       public Builder setNullCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata value) {
         if (nullCleanupMetadataBuilder_ == null) {
@@ -2769,7 +2814,12 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
        */
       public Builder setNullCleanupMetadata(
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder builderForValue) {
@@ -2783,7 +2833,12 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
        */
       public Builder mergeNullCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata value) {
         if (nullCleanupMetadataBuilder_ == null) {
@@ -2805,7 +2860,12 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
        */
       public Builder clearNullCleanupMetadata() {
         if (nullCleanupMetadataBuilder_ == null) {
@@ -2824,13 +2884,23 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
        */
       public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder getNullCleanupMetadataBuilder() {
         return getNullCleanupMetadataFieldBuilder().getBuilder();
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
        */
       public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder getNullCleanupMetadataOrBuilder() {
         if ((cleanupMetadataCase_ == 1) && (nullCleanupMetadataBuilder_ != null)) {
@@ -2843,7 +2913,12 @@ public final class SchemaMetadataPersistence {
         }
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata nullCleanupMetadata = 1;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
        */
       private com.google.protobuf.SingleFieldBuilder<
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder> 
@@ -2866,13 +2941,13 @@ public final class SchemaMetadataPersistence {
       private com.google.protobuf.SingleFieldBuilder<
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder> streamStoreCleanupMetadataBuilder_;
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
        */
       public boolean hasStreamStoreCleanupMetadata() {
         return cleanupMetadataCase_ == 2;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
        */
       public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata getStreamStoreCleanupMetadata() {
         if (streamStoreCleanupMetadataBuilder_ == null) {
@@ -2888,7 +2963,7 @@ public final class SchemaMetadataPersistence {
         }
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
        */
       public Builder setStreamStoreCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata value) {
         if (streamStoreCleanupMetadataBuilder_ == null) {
@@ -2904,7 +2979,7 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
        */
       public Builder setStreamStoreCleanupMetadata(
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder builderForValue) {
@@ -2918,7 +2993,7 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
        */
       public Builder mergeStreamStoreCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata value) {
         if (streamStoreCleanupMetadataBuilder_ == null) {
@@ -2940,7 +3015,7 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
        */
       public Builder clearStreamStoreCleanupMetadata() {
         if (streamStoreCleanupMetadataBuilder_ == null) {
@@ -2959,13 +3034,13 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
        */
       public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder getStreamStoreCleanupMetadataBuilder() {
         return getStreamStoreCleanupMetadataFieldBuilder().getBuilder();
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
        */
       public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder getStreamStoreCleanupMetadataOrBuilder() {
         if ((cleanupMetadataCase_ == 2) && (streamStoreCleanupMetadataBuilder_ != null)) {
@@ -2978,7 +3053,7 @@ public final class SchemaMetadataPersistence {
         }
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder> 
@@ -3001,13 +3076,13 @@ public final class SchemaMetadataPersistence {
       private com.google.protobuf.SingleFieldBuilder<
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder> arbitraryCleanupMetadataBuilder_;
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
        */
       public boolean hasArbitraryCleanupMetadata() {
         return cleanupMetadataCase_ == 3;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
        */
       public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata getArbitraryCleanupMetadata() {
         if (arbitraryCleanupMetadataBuilder_ == null) {
@@ -3023,7 +3098,7 @@ public final class SchemaMetadataPersistence {
         }
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
        */
       public Builder setArbitraryCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata value) {
         if (arbitraryCleanupMetadataBuilder_ == null) {
@@ -3039,7 +3114,7 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
        */
       public Builder setArbitraryCleanupMetadata(
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder builderForValue) {
@@ -3053,7 +3128,7 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
        */
       public Builder mergeArbitraryCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata value) {
         if (arbitraryCleanupMetadataBuilder_ == null) {
@@ -3075,7 +3150,7 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
        */
       public Builder clearArbitraryCleanupMetadata() {
         if (arbitraryCleanupMetadataBuilder_ == null) {
@@ -3094,13 +3169,13 @@ public final class SchemaMetadataPersistence {
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
        */
       public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder getArbitraryCleanupMetadataBuilder() {
         return getArbitraryCleanupMetadataFieldBuilder().getBuilder();
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
        */
       public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder getArbitraryCleanupMetadataOrBuilder() {
         if ((cleanupMetadataCase_ == 3) && (arbitraryCleanupMetadataBuilder_ != null)) {
@@ -3113,7 +3188,7 @@ public final class SchemaMetadataPersistence {
         }
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder> 
@@ -4924,23 +4999,24 @@ public final class SchemaMetadataPersistence {
       "tadata\030\002 \001(\0132C.com.palantir.atlasdb.prot" +
       "os.generated.SchemaDependentTableMetadat" +
       "a\"6\n\016TableReference\022\021\n\tnamespace\030\001 \001(\t\022\021" +
-      "\n\ttableName\030\002 \001(\t\"\332\002\n\034SchemaDependentTab" +
-      "leMetadata\022Y\n\023nullCleanupMetadata\030\001 \001(\0132" +
-      ":.com.palantir.atlasdb.protos.generated." +
-      "NullCleanupMetadataH\000\022g\n\032streamStoreClea" +
-      "nupMetadata\030\002 \001(\0132A.com.palantir.atlasdb" +
-      ".protos.generated.StreamStoreCleanupMeta",
-      "dataH\000\022c\n\030arbitraryCleanupMetadata\030\003 \001(\013" +
-      "2?.com.palantir.atlasdb.protos.generated" +
-      ".ArbitraryCleanupMetadataH\000B\021\n\017cleanupMe" +
-      "tadata\"\025\n\023NullCleanupMetadata\"u\n\032StreamS" +
-      "toreCleanupMetadata\022W\n\nv1Metadata\030\001 \001(\0132" +
-      "C.com.palantir.atlasdb.protos.generated." +
-      "StreamStoreCleanupV1Metadata\"\211\001\n\034StreamS" +
-      "toreCleanupV1Metadata\022!\n\026numHashedRowCom" +
-      "ponents\030\001 \001(\005:\0010\022F\n\014streamIdType\030\002 \001(\01620" +
-      ".com.palantir.atlasdb.protos.generated.V",
-      "alueType\"\032\n\030ArbitraryCleanupMetadata"
+      "\n\ttableName\030\002 \001(\t\"\341\002\n\034SchemaDependentTab" +
+      "leMetadata\022[\n\025null_cleanup_metadata\030\001 \001(" +
+      "\0132:.com.palantir.atlasdb.protos.generate" +
+      "d.NullCleanupMetadataH\000\022j\n\035stream_store_" +
+      "cleanup_metadata\030\002 \001(\0132A.com.palantir.at" +
+      "lasdb.protos.generated.StreamStoreCleanu",
+      "pMetadataH\000\022e\n\032arbitrary_cleanup_metadat" +
+      "a\030\003 \001(\0132?.com.palantir.atlasdb.protos.ge" +
+      "nerated.ArbitraryCleanupMetadataH\000B\021\n\017cl" +
+      "eanupMetadata\"\025\n\023NullCleanupMetadata\"u\n\032" +
+      "StreamStoreCleanupMetadata\022W\n\nv1Metadata" +
+      "\030\001 \001(\0132C.com.palantir.atlasdb.protos.gen" +
+      "erated.StreamStoreCleanupV1Metadata\"\211\001\n\034" +
+      "StreamStoreCleanupV1Metadata\022!\n\026numHashe" +
+      "dRowComponents\030\001 \001(\005:\0010\022F\n\014streamIdType\030" +
+      "\002 \001(\01620.com.palantir.atlasdb.protos.gene",
+      "rated.ValueType\"\032\n\030ArbitraryCleanupMetad" +
+      "ata"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {

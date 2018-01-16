@@ -21,9 +21,11 @@ message TableReference {
 
 message SchemaDependentTableMetadata {
     oneof cleanupMetadata {
-        NullCleanupMetadata nullCleanupMetadata = 1;
-        StreamStoreCleanupMetadata streamStoreCleanupMetadata = 2;
-        ArbitraryCleanupMetadata arbitraryCleanupMetadata = 3;
+        // These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+        // SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+        NullCleanupMetadata null_cleanup_metadata = 1;
+        StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;
+        ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;
     }
 }
 
