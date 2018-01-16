@@ -27,6 +27,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -140,7 +141,12 @@ public class CqlExecutorImpl implements CqlExecutor {
             return cqlResult;
         };
 
-        futures.add(rowIndex, executor.submit(task));
+        try {
+            futures.add(rowIndex, executor.submit(task));
+        } catch (RejectedExecutionException ex) {
+            // This is fine — the executor is shutdown when we already fetched all the values we were interested for
+            // the current iteration.
+        }
     }
 
     private void cancelFutures(List<Future<CqlResult>> futures) {
