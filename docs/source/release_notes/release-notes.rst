@@ -93,9 +93,18 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
 
     *    - |fixed| |userbreak|
-         - AtlasDB will now *fail to start* if a TimeLock block is included in the initial runtime configuration, but the install configuration is set up not to use TimeLock.
-           Previously, AtlasDB would start successfully, but the TimeLock block in the runtime configuration would be silently ignored.
+         - AtlasDB will now *fail to start* if a TimeLock block is included in the initial runtime configuration, but the install configuration is set up with a leader block or with remote timestamp and lock blocks.
+           Previously, AtlasDB would start successfully under these conditions, but the TimeLock block in the runtime configuration would be silently ignored.
            Note that the decision on whether to use TimeLock or another source of timestamps and locks is made at install-time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
+
+    *    - |improved| |userbreak|
+         - AtlasDB users can now specify the usage of TimeLock Server purely by including a TimeLock block in the initial runtime configuration.
+           Previously, AtlasDB users would need to specify that they were using TimeLock in the install configuration, possibly with an empty object (``timelock: {}``).
+           This is a change from previous behaviour in cases where users specified an embedded install configuration but a TimeLock block in the runtime configuration; previously, the embedded configuration would have been selected, while now the TimeLock configuration will be selected.
+
+           Also, users with scripts that depend on supplying a default runtime configuration may need to be careful to ensure that TimeLock configuration is preserved when such scripts are run.
+           That said, AtlasDB will fail to start if trying to access a database that uses TimeLock without going through TimeLock, so we don't think there is a risk of data corruption.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
 
 =======
