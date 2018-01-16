@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos.config;
 
 import java.util.Map;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -27,5 +27,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
 @Value.Immutable
 public abstract class QosServiceRuntimeConfig {
-    public abstract Map<String, Long> clientLimits();
+    @JsonProperty("client-limits")
+    public abstract Map<String, QosClientLimitsConfig> clientLimits();
+
+    @JsonProperty("qos-cassandra-metrics")
+    @Value.Default
+    public QosCassandraMetricsRuntimeConfig qosCassandraMetricsConfig() {
+        return ImmutableQosCassandraMetricsRuntimeConfig.builder().build();
+    }
 }

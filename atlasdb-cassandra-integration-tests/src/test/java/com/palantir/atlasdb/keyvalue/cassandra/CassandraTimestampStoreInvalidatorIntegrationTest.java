@@ -24,7 +24,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -32,9 +34,11 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
+@ShouldRetry
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraTimestampStoreInvalidatorIntegrationTest.class)
@@ -46,6 +50,9 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
+
+    @Rule
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv);
 
     @Before
     public void setUp() {

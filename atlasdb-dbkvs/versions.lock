@@ -151,7 +151,9 @@
             "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting-api:errors"
+                "com.palantir.remoting-api:errors",
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:refresh-utils"
             ]
         },
         "com.google.guava:guava": {
@@ -441,6 +443,7 @@
         "com.palantir.remoting3:jaxrs-clients": {
             "locked": "3.5.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:qos-service-api"
             ]
         },
@@ -574,6 +577,21 @@
             "locked": "3.8.1",
             "transitive": [
                 "com.palantir.remoting3:okhttp-clients"
+            ]
+        },
+        "com.squareup.okhttp3:okhttp": {
+            "locked": "3.8.1",
+            "transitive": [
+                "com.netflix.feign:feign-okhttp",
+                "com.palantir.remoting3:okhttp-clients",
+                "com.palantir.remoting3:tracing-okhttp3",
+                "com.squareup.okhttp3:logging-interceptor"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.13.0",
+            "transitive": [
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "com.squareup:javapoet": {
@@ -870,7 +888,9 @@
             "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting-api:errors"
+                "com.palantir.remoting-api:errors",
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:refresh-utils"
             ]
         },
         "com.google.guava:guava": {
@@ -1160,6 +1180,7 @@
         "com.palantir.remoting3:jaxrs-clients": {
             "locked": "3.5.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:qos-service-api"
             ]
         },
@@ -1293,6 +1314,21 @@
             "locked": "3.8.1",
             "transitive": [
                 "com.palantir.remoting3:okhttp-clients"
+            ]
+        },
+        "com.squareup.okhttp3:okhttp": {
+            "locked": "3.8.1",
+            "transitive": [
+                "com.netflix.feign:feign-okhttp",
+                "com.palantir.remoting3:okhttp-clients",
+                "com.palantir.remoting3:tracing-okhttp3",
+                "com.squareup.okhttp3:logging-interceptor"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.13.0",
+            "transitive": [
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "com.squareup:javapoet": {

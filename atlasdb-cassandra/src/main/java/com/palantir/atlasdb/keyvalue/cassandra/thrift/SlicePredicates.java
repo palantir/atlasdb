@@ -35,6 +35,14 @@ public final class SlicePredicates {
                 Limit.ONE);
     }
 
+    public static SlicePredicate rangeTombstoneForColumn(byte[] columnName, long maxTimestampExclusive) {
+        return create(
+                Range.of(
+                        Range.startOfColumn(columnName, maxTimestampExclusive),
+                        Range.endOfColumnExcludingSentinels(columnName)),
+                Limit.NO_LIMIT);
+    }
+
     public static SlicePredicate create(Range range, Limit limit) {
         SliceRange slice = new SliceRange(
                 range.start(),
@@ -58,7 +66,7 @@ public final class SlicePredicates {
 
         static Range singleColumn(byte[] columnName, long maxTimestampExclusive) {
             ByteBuffer start = startOfColumn(columnName, maxTimestampExclusive);
-            ByteBuffer end = endOfColumn(columnName);
+            ByteBuffer end = endOfColumnIncludingSentinels(columnName);
             return of(start, end);
         }
 
@@ -68,10 +76,16 @@ public final class SlicePredicates {
                     maxTimestampExclusive - 1);
         }
 
-        static ByteBuffer endOfColumn(byte[] columnName) {
+        static ByteBuffer endOfColumnIncludingSentinels(byte[] columnName) {
             return CassandraKeyValueServices.makeCompositeBuffer(
                     columnName,
                     -1);
+        }
+
+        static ByteBuffer endOfColumnExcludingSentinels(byte[] columnName) {
+            return CassandraKeyValueServices.makeCompositeBuffer(
+                    columnName,
+                    0);
         }
 
         static Range of(ByteBuffer startInclusive, ByteBuffer endInclusive) {

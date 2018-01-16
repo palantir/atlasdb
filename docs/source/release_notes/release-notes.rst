@@ -50,10 +50,22 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - AtlasDB now throws an error during schema code generation stage if index table name length exceeds KVS table name length limits.
+           To override this, please specify ``ignoreTableNameLengthChecks()`` on your schema.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2862>`__)
+
     *    - |improved| |logs| |metrics|
          - Allow StreamStore table names to be marked as safe. This will make StreamStore tables appear correctly on our logs and metrics.
            When building a StreamStore, please use `.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)` to mark the table name as safe.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2835>`__)
+
+    *    - |devbreak|
+         - Qos Service: AtlasDB now provides a QosService to rate-limit clients. You can set up per-client node read and write limits
+           for each of the services in the QosService and that will be enforced for all reads and writes to Cassandra. The QoS service
+           has knowledge of the Casandra health and can scale up/down the configured limits. Note that the default limits enforced
+           by the QoS service is 10MB/s for reads and 5MB/s for writes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)
 
     *    - |devbreak|
          - For clarity, we renamed `ForwardingLockService` to `SimplifyingLockService`, since this class also overwrote some of its parents methods.
@@ -67,7 +79,8 @@ develop
     *    - |fixed|
          - Further reduced memory pressure on sweep for Cassandra KVS, by rewriting one of the CQL queries.
            This removes a significant cause of occurrences of Cassandra OOMs that have been seen in the field recently.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2826>`__)
+           However, performance is significantly degraded on tables with few columns and few overwrites.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2826>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2826>`__)
 
     *    - |improved|
          - Sweep stats are updated more often when large writes are being made.
@@ -106,6 +119,10 @@ develop
            Also, users with scripts that depend on supplying a default runtime configuration may need to be careful to ensure that TimeLock configuration is preserved when such scripts are run.
            That said, AtlasDB will fail to start if trying to access a database that uses TimeLock without going through TimeLock, so we don't think there is a risk of data corruption.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
+
+    *    - |new|
+         - The JDBC URL for Oracle can now be overridden in the configuration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
 
 =======
 v0.72.0
