@@ -1496,15 +1496,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return new CandidateRowsForSweepingIterator(
                 (iteratorTableRef, cells, maxTimestampExclusive) ->
                         get(kvsMethodName, iteratorTableRef, cells, maxTimestampExclusive),
-                newInstrumentedCqlExecutor(), rowGetter,
-                tableRef, request);
+                newInstrumentedCqlExecutor(),
+                rowGetter,
+                tableRef,
+                request,
+                configManager.getConfig());
     }
 
     private CqlExecutor newInstrumentedCqlExecutor() {
-        int numThreads = configManager.getConfig().sweepReadThreads();
-        ExecutorService executorService = PTExecutors.newFixedThreadPool(numThreads);
         return AtlasDbMetrics.instrument(CqlExecutor.class,
-                new CqlExecutorImpl(executorService, clientPool, ConsistencyLevel.ALL, numThreads));
+                new CqlExecutorImpl(clientPool, ConsistencyLevel.ALL));
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(

@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
@@ -38,5 +39,6 @@ public interface CqlExecutor {
      * {@code startRowInclusive}, potentially spanning across multiple rows. Will only return {@code limit} values,
      * so may not return cells from all of the rows provided.
      */
-    List<CellWithTimestamp> getTimestamps(TableReference tableRef, List<byte[]> rows, int limit);
+    List<CellWithTimestamp> getTimestamps(TableReference tableRef, List<byte[]> rows, int limit,
+            ExecutorService executor);
 }
