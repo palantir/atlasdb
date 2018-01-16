@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -40,7 +41,6 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
@@ -125,7 +125,7 @@ public final class Leaders {
                 remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, userAgent);
 
         InstrumentedExecutorService proposerExecutorService = new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
+                Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                         .setNameFormat("atlas-proposer-%d")
                         .setDaemon(true)
                         .build()),
@@ -136,7 +136,7 @@ public final class Leaders {
                 leaderUuid, proposerExecutorService));
 
         InstrumentedExecutorService leaderElectionExecutor = new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
+                Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                         .setNameFormat("atlas-leaders-election-%d")
                         .setDaemon(true)
                         .build()),

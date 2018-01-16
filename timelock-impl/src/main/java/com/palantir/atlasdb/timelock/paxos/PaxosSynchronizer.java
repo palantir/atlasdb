@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.annotation.Nullable;
 
@@ -27,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosQuorumChecker;
@@ -60,7 +60,7 @@ public final class PaxosSynchronizer {
     }
 
     private static Optional<PaxosValue> getMostRecentLearnedValue(List<PaxosLearner> paxosLearners) {
-        ExecutorService executor = PTExecutors.newCachedThreadPool();
+        ExecutorService executor = Executors.newCachedThreadPool();
         List<PaxosValueResponse> responses = PaxosQuorumChecker.collectAsManyResponsesAsPossible(
                 ImmutableList.copyOf(paxosLearners),
                 learner -> ImmutablePaxosValueResponse.of(learner.getGreatestLearnedValue()),

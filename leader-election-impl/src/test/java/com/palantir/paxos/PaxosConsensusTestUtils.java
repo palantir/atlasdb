@@ -35,6 +35,7 @@ import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
+import com.palantir.remoting3.tracing.Tracers;
 
 public final class PaxosConsensusTestUtils {
 
@@ -52,7 +53,7 @@ public final class PaxosConsensusTestUtils {
         List<PaxosAcceptor> acceptors = Lists.newArrayList();
         List<PaxosLearner> learners = Lists.newArrayList();
         List<AtomicBoolean> failureToggles = Lists.newArrayList();
-        ExecutorService executor = PTExecutors.newCachedThreadPool();
+        ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool());
 
         RuntimeException e = new RuntimeException("mock server failure");
         for (int i = 0; i < numLeaders; i++) {

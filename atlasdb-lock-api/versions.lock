@@ -250,7 +250,6 @@
         "com.palantir.remoting3:tracing": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.remoting3:tracing-okhttp3"
             ]
         },
@@ -614,7 +613,6 @@
         "com.palantir.remoting3:tracing": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.remoting3:tracing-okhttp3"
             ]
         },

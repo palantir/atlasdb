@@ -37,6 +37,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.DelegatingInvocationHandler;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
+import com.palantir.remoting3.tracing.Tracers;
 
 public class PaxosConsensusFastTest {
 
@@ -121,7 +122,7 @@ public class PaxosConsensusFastTest {
         }
         LeadershipToken t = state.gainLeadership(0);
         state.goDown(QUORUM_SIZE - 1);
-        ExecutorService exec = PTExecutors.newSingleThreadExecutor();
+        ExecutorService exec = Tracers.wrap(PTExecutors.newSingleThreadExecutor());
         Future<Void> f = exec.submit(() -> {
             int i = QUORUM_SIZE-1;
             while (!Thread.currentThread().isInterrupted()) {
