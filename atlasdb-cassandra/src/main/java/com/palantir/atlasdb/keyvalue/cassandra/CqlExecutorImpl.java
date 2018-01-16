@@ -39,6 +39,8 @@ import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -59,6 +61,7 @@ import com.palantir.logsafe.UnsafeArg;
 
 public class CqlExecutorImpl implements CqlExecutor {
     private final QueryExecutor queryExecutor;
+    private Logger log = LoggerFactory.getLogger(CqlExecutor.class);
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
@@ -82,7 +85,7 @@ public class CqlExecutorImpl implements CqlExecutor {
             List<byte[]> rowsAscending,
             int limit,
             ExecutorService executor,
-            Integer nThreads) {
+            Integer executorThreads) {
         String preparedSelQuery = String.format("SELECT key, column1, column2 FROM %s WHERE key = ? LIMIT %d;",
                 quotedTableName(tableRef).getValue(),
                 limit);
@@ -94,9 +97,12 @@ public class CqlExecutorImpl implements CqlExecutor {
         List<CellWithTimestamp> result = Lists.newArrayList();
 
         List<Future<CqlResult>> futures = new ArrayList<>(rowsAscending.size());
-        AtomicInteger futuresIndex = new AtomicInteger(0);
-        for (int i = 0; i < nThreads; i++) {
-            scheduleSweepRowTask(futures, queryId, futuresIndex.getAndIncrement(), futuresIndex, rowsAscending,
+        for (int i = 0; i < rowsAscending.size(); i++) {
+            futures.add(null);
+        }
+        AtomicInteger nextRowToQuery = new AtomicInteger(0);
+        for (int i = 0; i < executorThreads; i++) {
+            scheduleSweepRowTask(futures, queryId, nextRowToQuery.getAndIncrement(), nextRowToQuery, rowsAscending,
                     executor);
         }
 
@@ -110,7 +116,6 @@ public class CqlExecutorImpl implements CqlExecutor {
                     cancelFutures(futures.subList(rowIndex, futures.size()));
                     break;
                 }
-
             }
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
@@ -124,7 +129,7 @@ public class CqlExecutorImpl implements CqlExecutor {
     private void scheduleSweepRowTask(@Output List<Future<CqlResult>> futures,
             int queryId,
             int rowIndex,
-            AtomicInteger futuresIndex,
+            AtomicInteger nextRowToQuery,
             List<byte[]> rows,
             ExecutorService executor) {
         if (rowIndex >= rows.size()) {
@@ -136,16 +141,20 @@ public class CqlExecutorImpl implements CqlExecutor {
         Callable<CqlResult> task = () -> {
             CqlResult cqlResult = queryExecutor.executePrepared(queryId, ImmutableList.of(ByteBuffer.wrap(row)));
             if (!Thread.interrupted()) {
-                scheduleSweepRowTask(futures, queryId, futuresIndex.incrementAndGet(), futuresIndex, rows, executor);
+                scheduleSweepRowTask(futures, queryId, nextRowToQuery.getAndIncrement(), nextRowToQuery, rows,
+                        executor);
             }
             return cqlResult;
         };
 
         try {
-            futures.add(rowIndex, executor.submit(task));
-        } catch (RejectedExecutionException ex) {
-            // This is fine — the executor is shutdown when we already fetched all the values we were interested for
-            // the current iteration.
+            Future<CqlResult> future = executor.submit(task);
+            futures.set(rowIndex, future);
+        } catch (RejectedExecutionException e) {
+            // RejectedExecutionException are expected.
+            // The executor is shutdown when we already fetched all the values we were interested
+            // for the current iteration.
+            log.trace("Rejecting row {} because executor is closed", rows.get(rowIndex));
         }
     }
 

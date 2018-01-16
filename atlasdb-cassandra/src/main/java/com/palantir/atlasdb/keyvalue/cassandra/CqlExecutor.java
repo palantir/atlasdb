@@ -39,8 +39,8 @@ public interface CqlExecutor {
      * {@code startRowInclusive}, potentially spanning across multiple rows. Will only return {@code limit} values,
      * so may not return cells from all of the rows provided.
      * @param executor is used for parallelizing the queries to Cassandra. Each row is fetched in a separate thread.
-     * @param nThreads the number of threads to use when fetching rows from Cassandra.
+     * @param executorThreads the number of threads to use when fetching rows from Cassandra.
      */
     List<CellWithTimestamp> getTimestamps(TableReference tableRef, List<byte[]> rows, int limit,
-            ExecutorService executor, Integer nThreads);
+            ExecutorService executor, Integer executorThreads);
 }

@@ -100,8 +100,8 @@ public class GetCellTimestamps {
     private void fetchBatchOfTimestampsBeginningAtStartRow() {
         byte[] rangeStart = startRowInclusive;
 
-        Integer nThreads = config.sweepReadThreads();
-        ExecutorService executor = PTExecutors.newFixedThreadPool(nThreads);
+        Integer executorThreads = config.sweepReadThreads();
+        ExecutorService executor = PTExecutors.newFixedThreadPool(executorThreads);
 
         while (timestamps.isEmpty()) {
             List<byte[]> rows = getRows(rangeStart);
@@ -110,7 +110,8 @@ public class GetCellTimestamps {
             }
 
             // Note that both ends of this range are *inclusive*
-            List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rows, batchHint, executor, nThreads);
+            List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rows, batchHint, executor,
+                    executorThreads);
             timestamps.addAll(batch);
             rangeStart = RangeRequests.nextLexicographicName(Iterables.getLast(rows));
         }

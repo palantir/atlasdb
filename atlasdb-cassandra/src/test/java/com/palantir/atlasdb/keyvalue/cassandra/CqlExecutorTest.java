@@ -75,9 +75,9 @@ public class CqlExecutorTest {
         String expected = "SELECT key, column1, column2 FROM \"foo__bar\""
                 + " WHERE key = ? LIMIT 100;";
 
-        int nThreads = AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
+        int executorThreads = AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
         executor.getTimestamps(TABLE_REF, ImmutableList.of(ROW, END_ROW), LIMIT,
-                PTExecutors.newFixedThreadPool(nThreads), nThreads);
+                PTExecutors.newFixedThreadPool(executorThreads), executorThreads);
 
         verify(queryExecutor).prepare(argThat(byteBufferMatcher(expected)), eq(ROW), any());
         verify(queryExecutor).executePrepared(eq(1), eq(ImmutableList.of(ByteBuffer.wrap(ROW))));
