@@ -77,7 +77,7 @@ v0.73.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2862>`__)
 
 ===========
-v0.73.0-rc1
+v0.73.0-rc2
 ===========
 
 12 January 2018
@@ -93,9 +93,9 @@ v0.73.0-rc1
          - Qos Service: AtlasDB now provides a QosService to rate-limit clients. You can set up per-client node read and write limits
            for each of the services in the QosService and that will be enforced for all reads and writes to Cassandra. The QoS service
            has knowledge of the Casandra health and can scale up/down the configured limits. Note that the default limits enforced
-           by the QoS service is 10MB/s for reads and 5MB/s for writes.
+           by the QoS service is 50MB/s for reads and 10MB/s for writes.
            Please note that this feature is currently experimental; if you wish to use it, please contact the AtlasDB team.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2700>`__)
 
     *    - |new|
          - The JDBC URL for Oracle can now be overridden in the configuration.
