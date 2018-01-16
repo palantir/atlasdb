@@ -50,6 +50,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+=======
+v0.73.0
+=======
+
+16 January 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - On Cassandra KVS, sweep reads data from Cassandra in parallel, resulting in improved performance.
            The parallelism can be changed by adjusting ``sweepReadThreads`` in Cassandra KVS config (default 16).
@@ -59,6 +75,31 @@ develop
          - AtlasDB now throws an error during schema code generation stage if index table name length exceeds KVS table name length limits.
            To override this, please specify ``ignoreTableNameLengthChecks()`` on your schema.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2862>`__)
+
+===========
+v0.73.0-rc1
+===========
+
+12 January 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak|
+         - Qos Service: AtlasDB now provides a QosService to rate-limit clients. You can set up per-client node read and write limits
+           for each of the services in the QosService and that will be enforced for all reads and writes to Cassandra. The QoS service
+           has knowledge of the Casandra health and can scale up/down the configured limits. Note that the default limits enforced
+           by the QoS service is 10MB/s for reads and 5MB/s for writes.
+           Please note that this feature is currently experimental; if you wish to use it, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
+
+    *    - |new|
+         - The JDBC URL for Oracle can now be overridden in the configuration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
 
 ===========
 v0.73.0-rc1
@@ -77,13 +118,6 @@ v0.73.0-rc1
          - Allow StreamStore table names to be marked as safe. This will make StreamStore tables appear correctly on our logs and metrics.
            When building a StreamStore, please use `.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)` to mark the table name as safe.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2835>`__)
-
-    *    - |devbreak|
-         - Qos Service: AtlasDB now provides a QosService to rate-limit clients. You can set up per-client node read and write limits
-           for each of the services in the QosService and that will be enforced for all reads and writes to Cassandra. The QoS service
-           has knowledge of the Casandra health and can scale up/down the configured limits. Note that the default limits enforced
-           by the QoS service is 10MB/s for reads and 5MB/s for writes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)
 
     *    - |devbreak|
          - For clarity, we renamed `ForwardingLockService` to `SimplifyingLockService`, since this class also overwrote some of its parents methods.
@@ -122,10 +156,6 @@ v0.73.0-rc1
          - SweepResults.getCellTsPairsExamined now returns the correct result when sweep is run over multiple batches.
            Previously, the result would only count cell-ts pairs examined in the last batch.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
-
-    *    - |new|
-         - The JDBC URL for Oracle can now be overridden in the configuration.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
 
 =======
 v0.72.0
