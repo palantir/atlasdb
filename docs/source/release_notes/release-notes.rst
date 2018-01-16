@@ -116,28 +116,32 @@ v0.73.0-rc1
 
     *    - |improved| |logs| |metrics|
          - Allow StreamStore table names to be marked as safe. This will make StreamStore tables appear correctly on our logs and metrics.
-           When building a StreamStore, please use `.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)` to mark the table name as safe.
+           When building a StreamStore, please use ``.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)`` to mark the table name as safe.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2835>`__)
 
     *    - |improved|
          - Sweep stats are updated more often when large writes are being made.
-           ``SweepStatsKVS`` now tracks the size of modifications being made to the underlying KVS and will write when a threshold is passed.  Previously sweep stats were updated every 65536 writes, but this could be a significant amount of data if written to the stream store.  We now also track the size of the writes and if this is greater than 1GB we flush the stats.
+           ``SweepStatsKVS`` now tracks the size of modifications being made to the underlying KVS and will write when a threshold is passed.
+           Previously, sweep stats were updated every 65536 writes, but this could be a significant amount of data if written to the stream store.
+           We now also track the size of the writes and if this is greater than 1GB, we flush the stats.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2792>`__)
 
     *    - |improved|
-         - Improvements to how sweep prioritises which tables to sweep, should allow better reclaiming of space from stream stores.
-           Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away.
+         - Improvements to how sweep prioritises which tables to sweep; should allow better reclaiming of space from stream stores.
+           Stream store value tables are now more likely to be chosen because they contain lots of data per write.
+           We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.
+           We wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2793>`__)
 
     *    - |fixed|
-         - SweepResults.getCellTsPairsExamined now returns the correct result when sweep is run over multiple batches.
+         - ``SweepResults.getCellTsPairsExamined`` now returns the correct result when sweep is run over multiple batches.
            Previously, the result would only count cell-ts pairs examined in the last batch.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
 
     *    - |fixed|
          - Further reduced memory pressure on sweep for Cassandra KVS, by rewriting one of the CQL queries.
            This removes a significant cause of occurrences of Cassandra OOMs that have been seen in the field recently.
-           However, performance is significantly degraded on tables with few columns and few overwrites.
+           However, performance is significantly degraded on tables with few columns and few overwrites (fixed in 0.73.0).
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2826>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2826>`__)
 
     *    - |fixed| |logs|
@@ -145,12 +149,12 @@ v0.73.0-rc1
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2838>`__)
 
     *    - |logs|
-         - Messages to the `slow-lock-log` now log at `WARN` rather than `INFO`, these messages can indicate a problem so we should be sure they are visible.
+         - Messages to the ``slow-lock-log`` now log at ``WARN`` rather than ``INFO``, these messages can indicate a problem so we should be sure they are visible.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2828>`__)
 
     *    - |devbreak|
-         - For clarity, we renamed `ForwardingLockService` to `SimplifyingLockService`, since this class also overwrote some of its parents methods.
-           Also, its `delegate` methods now is public.
+         - For clarity, we renamed ``ForwardingLockService`` to ``SimplifyingLockService``, since this class also overwrote some of its parent's methods.
+           Also, its ``delegate`` method is now public.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)
 
     *    - |improved|
