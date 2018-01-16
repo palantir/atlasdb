@@ -37,7 +37,7 @@ import com.palantir.lock.SimpleHeldLocksToken;
 @SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
 public class LockRefreshingLockService extends ForwardingLockService {
     private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
-    private static final long DEFAULT_FREFRESH_FREQUENCY_MILLIS = 5000;
+    private static final long DEFAULT_REFRESH_FREQUENCY_MILLIS = 5000;
 
     final LockService delegate;
     final Set<LockRefreshToken> toRefresh;
@@ -46,7 +46,7 @@ public class LockRefreshingLockService extends ForwardingLockService {
     volatile boolean isClosed = false;
 
     public static LockRefreshingLockService create(LockService delegate) {
-        return create(delegate, DEFAULT_FREFRESH_FREQUENCY_MILLIS);
+        return create(delegate, DEFAULT_REFRESH_FREQUENCY_MILLIS);
     }
 
     public static LockRefreshingLockService create(LockService delegate, long refreshFrequencyMillis) {
