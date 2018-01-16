@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
+
     *    - |improved|
          - On Cassandra KVS, sweep reads data from Cassandra in parallel, resulting in improved performance.
            The parallelism can be changed by adjusting ``sweepReadThreads`` in Cassandra KVS config (default 16).

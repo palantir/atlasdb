@@ -196,12 +196,16 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2872">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>On Cassandra KVS, sweep reads data from Cassandra in parallel, resulting in improved performance.
 The parallelism can be changed by adjusting <code class="docutils literal"><span class="pre">sweepReadThreads</span></code> in Cassandra KVS config (default 16).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2860">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now throws an error during schema code generation stage if index table name length exceeds KVS table name length limits.
 To override this, please specify <code class="docutils literal"><span class="pre">ignoreTableNameLengthChecks()</span></code> on your schema.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2862">Pull Request</a>)</td>
