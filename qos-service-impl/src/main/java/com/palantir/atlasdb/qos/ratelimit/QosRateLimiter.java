@@ -41,6 +41,7 @@ import com.palantir.logsafe.SafeArg;
 public class QosRateLimiter {
 
     private static final Logger log = LoggerFactory.getLogger(QosRateLimiter.class);
+    private static final double ONCE_EVERY_TWO_SECONDS = 0.5;
 
     private static final long MAX_BURST_SECONDS = 5;
 
@@ -50,6 +51,7 @@ public class QosRateLimiter {
     private final RateLimiter.SleepingStopwatch stopwatch;
 
     private volatile RateLimiter rateLimiter;
+    private final com.google.common.util.concurrent.RateLimiter rateUpdateLimiter;
     private volatile long currentRate;
 
     public static QosRateLimiter create(Supplier<Long> maxBackoffTimeMillis, Supplier<Long> unitsPerSecond,
@@ -65,6 +67,7 @@ public class QosRateLimiter {
         this.unitsPerSecond = unitsPerSecond;
         this.maxBackoffTimeMillis = maxBackoffTimeMillis;
         this.rateLimiterName = rateLimiterName;
+        this.rateUpdateLimiter = com.google.common.util.concurrent.RateLimiter.create(ONCE_EVERY_TWO_SECONDS);
 
         createRateLimiterAtomically();
     }
@@ -95,7 +98,7 @@ public class QosRateLimiter {
      * overhead and double comparisons, we maintain the current rate ourselves.
      */
     private void updateRateIfNeeded() {
-        if (currentRate != unitsPerSecond.get()) {
+        if (rateUpdateLimiter.tryAcquire() && currentRate != unitsPerSecond.get()) {
             createRateLimiterAtomically();
         }
     }

@@ -20,17 +20,16 @@ import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.qos.config.QosLimitsConfig;
-
 @Value.Immutable
 public interface QosRateLimiters {
 
-    static QosRateLimiters create(Supplier<Long> maxBackoffSleepTimeMillis, Supplier<QosLimitsConfig> config) {
+    static QosRateLimiters create(Supplier<Long> maxBackoffSleepTimeMillis, Supplier<Long> readLimitSupplier,
+            Supplier<Long> writeLimitSupplier) {
         QosRateLimiter readLimiter = QosRateLimiter.create(maxBackoffSleepTimeMillis,
-                () -> config.get().readBytesPerSecond(), "read");
+               readLimitSupplier, "read");
 
         QosRateLimiter writeLimiter = QosRateLimiter.create(maxBackoffSleepTimeMillis,
-                () -> config.get().writeBytesPerSecond(), "write");
+                writeLimitSupplier, "write");
 
         return ImmutableQosRateLimiters.builder()
                 .read(readLimiter)
