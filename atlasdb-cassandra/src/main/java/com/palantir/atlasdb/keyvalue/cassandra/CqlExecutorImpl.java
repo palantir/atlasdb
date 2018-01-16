@@ -80,7 +80,8 @@ public class CqlExecutorImpl implements CqlExecutor {
             TableReference tableRef,
             List<byte[]> rowsAscending,
             int limit,
-            ExecutorService executor) {
+            ExecutorService executor,
+            Integer nThreads) {
         String preparedSelQuery = String.format("SELECT key, column1, column2 FROM %s WHERE key = ? LIMIT %d;",
                 quotedTableName(tableRef).getValue(),
                 limit);
@@ -93,7 +94,7 @@ public class CqlExecutorImpl implements CqlExecutor {
 
         List<Future<CqlResult>> futures = new ArrayList<>(rowsAscending.size());
         AtomicInteger futuresIndex = new AtomicInteger(0);
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < nThreads; i++) {
             scheduleSweepRowTask(futures, queryId, futuresIndex.getAndIncrement(), futuresIndex, rowsAscending,
                     executor);
         }
