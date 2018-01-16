@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
+
     *    - |improved|
          - AtlasDB now throws an error during schema code generation stage if index table name length exceeds KVS table name length limits.
            To override this, please specify ``ignoreTableNameLengthChecks()`` on your schema.
