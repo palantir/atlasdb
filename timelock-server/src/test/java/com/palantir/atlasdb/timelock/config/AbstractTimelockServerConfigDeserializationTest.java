@@ -25,15 +25,17 @@ import java.nio.file.Paths;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.StdSubtypeResolver;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
-
-import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
 public abstract class AbstractTimelockServerConfigDeserializationTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
@@ -41,10 +43,11 @@ public abstract class AbstractTimelockServerConfigDeserializationTest {
             .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
 
     static {
-        OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
+        OBJECT_MAPPER.setSubtypeResolver(new StdSubtypeResolver());
         OBJECT_MAPPER.registerModule(new GuavaModule());
         OBJECT_MAPPER.registerModule(new Jdk7Module());
         OBJECT_MAPPER.registerModule(new Jdk8Module());
+        OBJECT_MAPPER.registerSubtypes(CassandraKeyValueServiceConfig.class, InMemoryAtlasDbConfig.class);
     }
 
     protected AbstractTimelockServerConfigDeserializationTest() {}
