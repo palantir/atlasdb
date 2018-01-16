@@ -42,7 +42,7 @@ public class CleanupMetadataTest {
                                 ImmutableStreamStoreCleanupMetadata.builder()
                                         .numHashedRowComponents(num)
                                         .streamIdType(ValueType.UUID)
-                                        .build())).isEqualTo(7));
+                                        .build())).isEqualTo(num));
     }
 
     private static class HashComponentsVisitor implements CleanupMetadata.Visitor<Integer> {
