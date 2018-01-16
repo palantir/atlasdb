@@ -433,9 +433,9 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void throwsIfInstallConfigIsEmbeddedButInitialRuntimeConfigContainsTimeLockBlock() {
+    public void usesTimeLockIfInstallConfigIsEmbeddedButInitialRuntimeConfigContainsTimeLockBlock() {
         setUpTimeLockBlockInRuntimeConfig();
-        assertGetLockAndTimestampServicesThrows();
+        verifyUsingTimeLockByGettingAFreshTimestamp();
     }
 
     @Test
@@ -453,19 +453,25 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void doesNotThrowIfInstallConfigIsTimeLockAndInitialRuntimeConfigContainsTimeLockBlock() {
+    public void usesTimeLockIfInstallConfigIsTimeLockAndInitialRuntimeConfigContainsTimeLockBlock() {
         setUpTimeLockBlockInInstallConfig();
         setUpTimeLockBlockInRuntimeConfig();
-        getLockAndTimestampServices();
+        verifyUsingTimeLockByGettingAFreshTimestamp();
     }
 
     @Test
-    public void doesNotThrowIfInstallConfigIsTimeLockAndInitialRuntimeConfigDoesNotContainTimeLockBlock() {
+    public void usesTimeLockIfInstallConfigIsTimeLockAndInitialRuntimeConfigDoesNotContainTimeLockBlock() {
         setUpTimeLockBlockInInstallConfig();
-        getLockAndTimestampServices();
+        verifyUsingTimeLockByGettingAFreshTimestamp();
 
         assertTrue("Runtime config was not expected to contain a timelock block",
                 !runtimeConfig.timelockRuntime().isPresent());
+    }
+
+    private void verifyUsingTimeLockByGettingAFreshTimestamp() {
+        when(config.namespace()).thenReturn(Optional.of(CLIENT));
+        getLockAndTimestampServices().timelock().getFreshTimestamp();
+        availableServer.verify(1, postRequestedFor(urlMatching(TIMELOCK_TIMESTAMP_PATH)));
     }
 
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {

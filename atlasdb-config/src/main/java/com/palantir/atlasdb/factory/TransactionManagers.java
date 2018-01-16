@@ -47,6 +47,7 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
@@ -495,12 +496,13 @@ public abstract class TransactionManagers {
             com.google.common.base.Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
-        assertNoSpuriousTimeLockBlockInRuntimeConfig(config, runtimeConfigSupplier);
+        AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
+        assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
             return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
-        } else if (config.timelock().isPresent()) {
+        } else if (config.timelock().isPresent() || initialRuntimeConfig.timelockRuntime().isPresent()) {
             return createRawServicesFromTimeLock(config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);
@@ -509,16 +511,19 @@ public abstract class TransactionManagers {
 
     private static void assertNoSpuriousTimeLockBlockInRuntimeConfig(
             AtlasDbConfig config,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
+            AtlasDbRuntimeConfig initialRuntimeConfig) {
         // Note: The other direction (timelock install config without a runtime block) should be maintained for
         // backwards compatibility.
-        AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
-        if (!config.timelock().isPresent() && initialRuntimeConfig.timelockRuntime().isPresent()) {
+        if (timestampOrLockOrLeaderBlockPresent(config) && initialRuntimeConfig.timelockRuntime().isPresent()) {
             throw new IllegalStateException("Found a service configured not to use timelock, with a timelock"
                     + " block in the runtime config! This is unexpected. If you wish to use non-timelock services,"
                     + " please remove the timelock block from the runtime config; if you wish to use timelock,"
-                    + " please add to the install config an empty YAML object for timelock - [timelock: {}]");
+                    + " please remove the leader, remote timestamp or remote lock configuration blocks.");
         }
+    }
+
+    private static boolean timestampOrLockOrLeaderBlockPresent(AtlasDbConfig config) {
+        return config.timestamp().isPresent() || config.lock().isPresent() || config.leader().isPresent();
     }
 
     private static LockAndTimestampServices createRawServicesFromTimeLock(
@@ -539,9 +544,9 @@ public abstract class TransactionManagers {
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        Preconditions.checkState(config.timelock().isPresent(),
-                "Cannot create raw services from timelock without a timelock block!");
-        TimeLockClientConfig clientConfig = config.timelock().get();
+        Preconditions.checkState(!timestampOrLockOrLeaderBlockPresent(config),
+                "Cannot create raw services from timelock with another source of timestamps/locks configured!");
+        TimeLockClientConfig clientConfig = config.timelock().orElse(ImmutableTimeLockClientConfig.builder().build());
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
         return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
                 clientConfig,
