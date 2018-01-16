@@ -109,6 +109,10 @@ develop
          - The JDBC URL for Oracle can now be overridden in the configuration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
 
+    *    - |improved|
+         - Refactored internals of CassandraClientPool, no functional change expected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2876>`__)
+
 =======
 v0.72.0
 =======
