@@ -69,7 +69,7 @@ public class QosRateLimiter {
         this.rateLimiterName = rateLimiterName;
         this.rateUpdateLimiter = com.google.common.util.concurrent.RateLimiter.create(ONCE_EVERY_TWO_SECONDS);
 
-        createRateLimiterAtomically();
+        createRateLimiterAtomically(unitsPerSecond.get());
     }
 
     /**
@@ -98,8 +98,21 @@ public class QosRateLimiter {
      * overhead and double comparisons, we maintain the current rate ourselves.
      */
     private void updateRateIfNeeded() {
-        if (rateUpdateLimiter.tryAcquire() && currentRate != unitsPerSecond.get()) {
-            createRateLimiterAtomically();
+        if (rateUpdateLimiter.tryAcquire()) {
+            long updatedRate = getUpdatedRate();
+            if (currentRate != updatedRate) {
+                createRateLimiterAtomically(updatedRate);
+            }
+        }
+    }
+
+    private long getUpdatedRate() {
+        try {
+            return unitsPerSecond.get();
+        } catch (Exception e) {
+            log.error("Could not refresh the Qos rate. This can happen if the Qos Service is unreachable."
+                    + " Extended periods of being unable to refresh will hinder QoS of all clients., ", e);
+            return currentRate;
         }
     }
 
@@ -109,8 +122,8 @@ public class QosRateLimiter {
      * more, even if you update the rate to something very large. So, we just create a new rate limiter if the rate
      * changes.
      */
-    private synchronized void createRateLimiterAtomically() {
-        currentRate = unitsPerSecond.get();
+    private synchronized void createRateLimiterAtomically(long rate) {
+        currentRate = rate;
         rateLimiter = new SmoothRateLimiter.SmoothBursty(stopwatch, MAX_BURST_SECONDS);
         rateLimiter.setRate(currentRate);
 
