@@ -26,7 +26,7 @@ public interface QosRateLimiters {
     static QosRateLimiters create(Supplier<Long> maxBackoffSleepTimeMillis, Supplier<Long> readLimitSupplier,
             Supplier<Long> writeLimitSupplier) {
         QosRateLimiter readLimiter = QosRateLimiter.create(maxBackoffSleepTimeMillis,
-               readLimitSupplier, "read");
+                readLimitSupplier, "read");
 
         QosRateLimiter writeLimiter = QosRateLimiter.create(maxBackoffSleepTimeMillis,
                 writeLimitSupplier, "write");

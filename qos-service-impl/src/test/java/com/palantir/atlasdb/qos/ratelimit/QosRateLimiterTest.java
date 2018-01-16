@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
 
 public class QosRateLimiterTest {
@@ -35,9 +36,9 @@ public class QosRateLimiterTest {
     private static final long START_TIME_NANOS = 0L;
     private static final Supplier<Long> MAX_BACKOFF_TIME_MILLIS = () -> 10_000L;
 
-    RateLimiter.SleepingStopwatch stopwatch = mock(RateLimiter.SleepingStopwatch.class);
-    Supplier<Long> currentRate = mock(Supplier.class);
-    QosRateLimiter limiter;
+    private RateLimiter.SleepingStopwatch stopwatch = mock(RateLimiter.SleepingStopwatch.class);
+    private Supplier<Long> currentRate = mock(Supplier.class);
+    private QosRateLimiter limiter;
 
     @Before
     public void before() {
@@ -223,6 +224,7 @@ public class QosRateLimiterTest {
 
         // increase to a large rate
         when(currentRate.get()).thenReturn(1000000L);
+        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
         limiter.consumeWithBackoff(1);
         tickMillis(1);
 
@@ -231,6 +233,7 @@ public class QosRateLimiterTest {
 
         // decrease to small rate
         when(currentRate.get()).thenReturn(10L);
+        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
         tickMillis(1000);
 
         limiter.consumeWithBackoff(1);
