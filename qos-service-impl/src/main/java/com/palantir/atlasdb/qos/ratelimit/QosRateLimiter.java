@@ -18,6 +18,7 @@ package com.palantir.atlasdb.qos.ratelimit;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -41,9 +42,14 @@ import com.palantir.logsafe.SafeArg;
 public class QosRateLimiter {
 
     private static final Logger log = LoggerFactory.getLogger(QosRateLimiter.class);
-    private static final double ONCE_EVERY_TWO_SECONDS = 0.5;
 
     private static final long MAX_BURST_SECONDS = 5;
+    private static final String RATE_UPDATE_ERROR_MESSAGE = "Could not refresh the Qos rate."
+            + " This can happen if the Qos Service is unreachable."
+            + " Extended periods of being unable to refresh will hinder QoS of all clients.";
+
+    @VisibleForTesting
+    static final int RATE_UPDATE_INTERVAL_IN_SECONDS = 2;
 
     private final Supplier<Long> maxBackoffTimeMillis;
     private final String rateLimiterName;
@@ -51,25 +57,41 @@ public class QosRateLimiter {
     private final RateLimiter.SleepingStopwatch stopwatch;
 
     private volatile RateLimiter rateLimiter;
-    private final com.google.common.util.concurrent.RateLimiter rateUpdateLimiter;
     private volatile long currentRate;
+    private final long defaultRate;
 
-    public static QosRateLimiter create(Supplier<Long> maxBackoffTimeMillis, Supplier<Long> unitsPerSecond,
-            String rateLimiterType) {
+    public static QosRateLimiter create(
+            Supplier<Long> maxBackoffTimeMillis,
+            Supplier<Long> unitsPerSecond,
+            String rateLimiterType,
+            ScheduledExecutorService executorService,
+            long defaultRate) {
         return new QosRateLimiter(RateLimiter.SleepingStopwatch.createFromSystemTimer(), maxBackoffTimeMillis,
-                unitsPerSecond, rateLimiterType);
+                unitsPerSecond, rateLimiterType, executorService, defaultRate);
     }
 
     @VisibleForTesting
-    QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch, Supplier<Long> maxBackoffTimeMillis,
-            Supplier<Long> unitsPerSecond, String rateLimiterName) {
+    QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch,
+            Supplier<Long> maxBackoffTimeMillis,
+            Supplier<Long> unitsPerSecond,
+            String rateLimiterName,
+            ScheduledExecutorService executorService,
+            long defaultRate) {
         this.stopwatch = stopwatch;
         this.unitsPerSecond = unitsPerSecond;
         this.maxBackoffTimeMillis = maxBackoffTimeMillis;
         this.rateLimiterName = rateLimiterName;
-        this.rateUpdateLimiter = com.google.common.util.concurrent.RateLimiter.create(ONCE_EVERY_TWO_SECONDS);
+        this.defaultRate = defaultRate;
+        createRateLimiterAtomically(getUpdatedRate());
 
-        createRateLimiterAtomically(unitsPerSecond.get());
+        executorService
+                .scheduleWithFixedDelay(() -> {
+                    try {
+                        updateRateIfNeeded();
+                    } catch (Throwable t) {
+                        log.error(RATE_UPDATE_ERROR_MESSAGE, t);
+                    }
+                }, 0, RATE_UPDATE_INTERVAL_IN_SECONDS, TimeUnit.SECONDS);
     }
 
     /**
@@ -79,8 +101,6 @@ public class QosRateLimiter {
      * @return the amount of time slept for, if any
      */
     public Duration consumeWithBackoff(long estimatedNumUnits) {
-        updateRateIfNeeded();
-
         Optional<Duration> waitTime = rateLimiter.tryAcquire(
                 estimatedNumUnits,
                 maxBackoffTimeMillis.get(),
@@ -98,11 +118,9 @@ public class QosRateLimiter {
      * overhead and double comparisons, we maintain the current rate ourselves.
      */
     private void updateRateIfNeeded() {
-        if (rateUpdateLimiter.tryAcquire()) {
-            long updatedRate = getUpdatedRate();
-            if (currentRate != updatedRate) {
-                createRateLimiterAtomically(updatedRate);
-            }
+        long updatedRate = getUpdatedRate();
+        if (currentRate != updatedRate) {
+            createRateLimiterAtomically(updatedRate);
         }
     }
 
@@ -110,9 +128,16 @@ public class QosRateLimiter {
         try {
             return unitsPerSecond.get();
         } catch (Exception e) {
-            log.error("Could not refresh the Qos rate. This can happen if the Qos Service is unreachable."
-                    + " Extended periods of being unable to refresh will hinder QoS of all clients., ", e);
+            log.error(RATE_UPDATE_ERROR_MESSAGE, e);
+            return returnPreviousOrDefaultRate();
+        }
+    }
+
+    private long returnPreviousOrDefaultRate() {
+        if (currentRate > 0) {
             return currentRate;
+        } else {
+            return defaultRate;
         }
     }
 
