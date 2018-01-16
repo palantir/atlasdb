@@ -963,6 +963,11 @@ Bug fixes
          - Move ``@CancelableServerCall`` to a more fitting package that matches internal codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2562>`__)
 
+    *   - |improved|
+        - Expose the TimestampService, KeyValueService and TimeLockService before initialization when initializing asynchronously.
+          AtlasDB users might need these objects when initializing, so we need to expose them without throwing when not initialized.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2564>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

@@ -71,8 +71,23 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
 
         @Override
+        public TimelockService getTimelockService() {
+            return manager.getTimelockService();
+        }
+
+        @Override
         public LockService getLockService() {
             return manager.getLockService();
+        }
+
+        @Override
+        public TimestampService getTimestampService() {
+            return manager.getTimestampService();
+        }
+
+        @Override
+        public KeyValueService getKeyValueService() {
+            return manager.getKeyValueService();
         }
 
         @Override
