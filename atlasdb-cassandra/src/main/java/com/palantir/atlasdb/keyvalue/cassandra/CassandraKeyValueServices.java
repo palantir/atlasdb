@@ -116,14 +116,13 @@ public final class CassandraKeyValueServices {
 
         String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions,"
                         + " after attempting to modify table %s. %s"
-                        + " \nFind the nodes above that diverge from the majority schema. If nodes"
-                        + " have schema 'UNKNOWN', they are likely down/unresponsive"
-                        + " and examine their logs to determine the issue."
+                        + " \nFind the nodes above that diverge from the majority schema and examine their logs to"
+                        + " determine the issue. If nodes have schema 'UNKNOWN', they are likely down/unresponsive."
                         + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
                         + " You can quick-check this with 'nodetool describecluster'."
-                        + " \nIf nodes are specified in the config file, but do not have a schema version,"
-                        + " then they have never joined the cluster and you should verify your configuration"
-                        + " is correct. %s",
+                        + " \nIf nodes are specified in the config file, but do not have a schema version listed"
+                        + " above, then they may have never joined the cluster. Verify your configuration is correct"
+                        + " and that the nodes specified in the config are up and joined the cluster. %s",
                 tableName,
                 schemaVersions.toString(),
                 configNodes);
