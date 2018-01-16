@@ -30,7 +30,7 @@ public class NullCleanupMetadata implements CleanupMetadata {
     };
 
     public static NullCleanupMetadata hydrateFromProto(SchemaMetadataPersistence.NullCleanupMetadata unused) {
-        // For now, this is correct!
+        // This is correct while the NullCleanupMetadata message has no fields.
         return new NullCleanupMetadata();
     }
 
@@ -55,6 +55,6 @@ public class NullCleanupMetadata implements CleanupMetadata {
 
     @Override
     public int hashCode() {
-        return ArbitraryCleanupMetadata.class.hashCode();
+        return NullCleanupMetadata.class.hashCode();
     }
 }

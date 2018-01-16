@@ -19,34 +19,72 @@ package com.palantir.atlasdb.schema.cleanup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Arrays;
-import java.util.stream.IntStream;
+import java.util.Collection;
+import java.util.List;
 
+import org.immutables.value.Value;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence;
 import com.palantir.atlasdb.table.description.ValueType;
 
+@RunWith(Enclosed.class)
 public class StreamStoreCleanupMetadataTest {
-    @Test
-    public void canSerializeAndDeserializePreservingHashedComponentsAndValueTypes() {
-        IntStream.range(0, 2).forEach(numHashedComponents ->
-                Arrays.stream(ValueType.values()).forEach(valueType -> {
-                    StreamStoreCleanupMetadata metadata = ImmutableStreamStoreCleanupMetadata.builder()
-                            .numHashedRowComponents(numHashedComponents)
-                            .streamIdType(valueType)
-                            .build();
-                    assertThat(StreamStoreCleanupMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
-                            .isEqualTo(metadata);
-                 }));
+    @RunWith(Parameterized.class)
+    public static class HashComponentsParameterizedStreamStoreCleanupMetadataTest {
+        @Parameterized.Parameters(name = "canSerializeAndDeserialize({0})")
+        public static Collection<HashedComponentsAndStreamIdType> data() {
+            List<Integer> validNumHashedComponents = ImmutableList.of(0, 1, 2);
+            List<ValueType> valueTypes = Lists.newArrayList(ValueType.values());
+            List<HashedComponentsAndStreamIdType> product = Lists.newArrayList();
+            for (Integer hashedComponents : validNumHashedComponents) {
+                for (ValueType valueType : valueTypes) {
+                    product.add(ImmutableHashedComponentsAndStreamIdType.of(hashedComponents, valueType));
+                }
+            }
+            return product;
+        }
+
+        private final int numComponents;
+        private final ValueType streamIdType;
+
+        public HashComponentsParameterizedStreamStoreCleanupMetadataTest(HashedComponentsAndStreamIdType testParams) {
+            this.numComponents = testParams.numHashedRowComponents();
+            this.streamIdType = testParams.streamIdType();
+        }
+
+        @Test
+        public void canSerializeAndDeserializePreservingHashedComponentsAndValueTypes() {
+            StreamStoreCleanupMetadata metadata = ImmutableStreamStoreCleanupMetadata.builder()
+                    .numHashedRowComponents(numComponents)
+                    .streamIdType(streamIdType)
+                    .build();
+            assertThat(StreamStoreCleanupMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
+                    .isEqualTo(metadata);
+        }
     }
 
-    @Test
-    public void throwsIfDeserializingEmptyStreamStoreCleanupMetadata() {
-        SchemaMetadataPersistence.StreamStoreCleanupMetadata metadataProto =
-                SchemaMetadataPersistence.StreamStoreCleanupMetadata.newBuilder().build();
+    public static class NonParameterizedStreamStoreCleanupMetadataTest {
+        @Test
+        public void throwsIfDeserializingEmptyStreamStoreCleanupMetadata() {
+            SchemaMetadataPersistence.StreamStoreCleanupMetadata metadataProto =
+                    SchemaMetadataPersistence.StreamStoreCleanupMetadata.newBuilder().build();
 
-        assertThatThrownBy(() -> StreamStoreCleanupMetadata.hydrateFromProto(metadataProto))
-                .isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> StreamStoreCleanupMetadata.hydrateFromProto(metadataProto))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    @Value.Immutable
+    interface HashedComponentsAndStreamIdType {
+        @Value.Parameter
+        int numHashedRowComponents();
+        @Value.Parameter
+        ValueType streamIdType();
     }
 }

@@ -50,7 +50,10 @@ public abstract class StreamStoreCleanupMetadata implements CleanupMetadata {
                 builder.streamIdType(ValueType.hydrateFromProto(v1Metadata.getStreamIdType()));
             }
         } else {
-            log.warn("Encountered stream store cleanup metadata without v1 metadata, which is unexpected.");
+            final String v1MetadataNotFound = "Encountered stream store cleanup metadata without v1 metadata,"
+                    + " which is unexpected.";
+            log.warn(v1MetadataNotFound);
+            throw new IllegalStateException(v1MetadataNotFound);
         }
         return builder.build();
     }

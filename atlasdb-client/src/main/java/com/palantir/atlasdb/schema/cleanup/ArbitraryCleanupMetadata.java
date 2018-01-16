@@ -31,7 +31,7 @@ public class ArbitraryCleanupMetadata implements CleanupMetadata {
 
     public static ArbitraryCleanupMetadata hydrateFromProto(
             SchemaMetadataPersistence.ArbitraryCleanupMetadata unused) {
-        // For now, this is correct!
+        // This is correct while the ArbitraryCleanupMetadata message has no fields.
         return new ArbitraryCleanupMetadata();
     }
 
