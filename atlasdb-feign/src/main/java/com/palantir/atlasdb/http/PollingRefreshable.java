@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.http;
 
 import java.time.Duration;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -27,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.ext.refresh.Refreshable;
 
@@ -77,7 +77,7 @@ public final class PollingRefreshable<T> implements AutoCloseable {
     public static <T> PollingRefreshable<T> create(Supplier<T> supplier, Duration refreshInterval) {
         return createWithSpecificPoller(supplier,
                 refreshInterval,
-                PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("polling-refreshable", true)));
+                Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("polling-refreshable", true)));
     }
 
     @VisibleForTesting

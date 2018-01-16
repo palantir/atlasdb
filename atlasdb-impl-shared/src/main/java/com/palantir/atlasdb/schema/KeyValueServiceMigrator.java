@@ -36,6 +36,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting3.tracing.Tracers;
 
 public class KeyValueServiceMigrator {
     private final TableReference checkpointTable;
@@ -178,7 +179,7 @@ public class KeyValueServiceMigrator {
         GeneralTaskCheckpointer checkpointer =
                 new GeneralTaskCheckpointer(checkpointTable, toKvs, txManager);
 
-        ExecutorService executor = PTExecutors.newFixedThreadPool(threads);
+        ExecutorService executor = Tracers.wrap(PTExecutors.newFixedThreadPool(threads));
         try {
             migrateTables(
                     tables,

@@ -90,6 +90,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -693,7 +694,7 @@ public class StreamTest extends AtlasDbTestCase {
         final CountDownLatch firstLatch = new CountDownLatch(1);
         final CountDownLatch secondLatch = new CountDownLatch(1);
 
-        ExecutorService exec = PTExecutors.newFixedThreadPool(2);
+        ExecutorService exec = Tracers.wrap(PTExecutors.newFixedThreadPool(2));
 
         Future<?> firstFuture = exec.submit(() -> {
             try {

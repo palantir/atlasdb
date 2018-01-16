@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.SweepTestUtils;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting2.tracing.Tracers;
 
 public class SweepProgressStoreTest {
     private ExecutorService exec;
@@ -59,7 +60,7 @@ public class SweepProgressStoreTest {
 
     @Before
     public void setup() {
-        exec = PTExecutors.newCachedThreadPool();
+        exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
         KeyValueService kvs = new InMemoryKeyValueService(false, exec);
         txManager = SweepTestUtils.setupTxManager(kvs);
         progressStore = SweepProgressStoreImpl.create(kvs, false);
