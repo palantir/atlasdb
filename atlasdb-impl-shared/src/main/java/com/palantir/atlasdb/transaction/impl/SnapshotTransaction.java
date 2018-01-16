@@ -1360,14 +1360,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
             long millisForCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTsTimer.stop());
 
-            Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
-            if (!expiredLocks.isEmpty()) {
-                final String baseMsg = "This isn't a bug but it should happen very infrequently. "
-                        + "Required locks are no longer valid but we have already committed successfully. ";
-                String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
-                log.error(baseMsg + "{}", expiredLocksErrorString,
-                        new TransactionFailedRetriableException(baseMsg + expiredLocksErrorString));
-            }
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
