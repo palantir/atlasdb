@@ -54,6 +54,10 @@ develop
          - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
 
+    *    - |improved|
+         - Refactored internals of CassandraClientPool, no functional change expected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2876>`__)
+
 =======
 v0.73.0
 =======
@@ -163,10 +167,6 @@ v0.73.0-rc1
     *    - |fixed|
          - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2868>`__)
-
-    *    - |improved|
-         - Refactored internals of CassandraClientPool, no functional change expected.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2876>`__)
 
 =======
 v0.72.0
