@@ -22,14 +22,15 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence;
+import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
 
 public class SchemaMetadataTest {
     private final SchemaDependentTableMetadata TABLE_METADATA_1 = ImmutableSchemaDependentTableMetadata.builder()
-            .cleanupRequirement(SchemaMetadataPersistence.CleanupRequirement.NOT_NEEDED)
+            .cleanupMetadata(new ArbitraryCleanupMetadata())
             .build();
     private final SchemaDependentTableMetadata TABLE_METADATA_2 = ImmutableSchemaDependentTableMetadata.builder()
-            .cleanupRequirement(SchemaMetadataPersistence.CleanupRequirement.ARBITRARY_ASYNC)
+            .cleanupMetadata(new NullCleanupMetadata())
             .build();
 
     @Test

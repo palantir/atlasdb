@@ -32,6 +32,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -42,7 +43,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagerTest extends TransactionTestSetup {
@@ -130,7 +130,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                SweepQueueWriter.NO_OP);
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp(any())).thenReturn(
@@ -143,6 +144,6 @@ public class TransactionManagerTest extends TransactionTestSetup {
     @Override
     protected KeyValueService getKeyValueService() {
         return new InMemoryKeyValueService(false,
-                Tracers.wrap(PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true))));
+                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
     }
 }

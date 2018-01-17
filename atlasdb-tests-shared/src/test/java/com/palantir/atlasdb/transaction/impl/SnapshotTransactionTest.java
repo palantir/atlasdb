@@ -24,6 +24,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 import java.math.BigInteger;
 import java.util.Collection;
@@ -43,6 +48,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -84,6 +90,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePrior
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -112,7 +119,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.remoting2.tracing.Tracers;
 
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
@@ -188,7 +194,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testConcurrentWriteChangedConflicts() throws InterruptedException, ExecutionException {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         CompletionService<Void> executor = new ExecutorCompletionService<Void>(
-                Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
+                PTExecutors.newFixedThreadPool(8));
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
@@ -215,7 +221,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void testConcurrentWriteWriteConflicts() throws InterruptedException, ExecutionException {
         CompletionService<Void> executor = new ExecutorCompletionService<Void>(
-                Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
+                PTExecutors.newFixedThreadPool(8));
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
@@ -284,7 +290,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
                 getRangesExecutor,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                sweepQueue);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -341,7 +348,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
                 getRangesExecutor,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                sweepQueue);
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
         snapshot.commit();
 
@@ -365,9 +373,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 lockService,
                 transactionService,
                 conflictDetectionManager,
-                sweepStrategyManager);
+                sweepStrategyManager,
+                sweepQueue);
 
-        ScheduledExecutorService service = Tracers.wrap(PTExecutors.newScheduledThreadPool(20));
+        ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
         for (int i = 0; i < 30; i++) {
             final int threadNumber = i;
@@ -753,6 +762,82 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             assertThat(e.getMessage(), containsString(expectedTokens.toString()));
             assertThat(e.getMessage(), containsString("Retry is not possible."));
         }
+    }
+
+    @Test
+    public void committedWritesAreAddedToSweepQueue() {
+        List<WriteInfo> table1Writes = ImmutableList.of(
+                WriteInfo.of(Cell.create("a".getBytes(), "b".getBytes()), false, 2L),
+                WriteInfo.of(Cell.create("a".getBytes(), "c".getBytes()), false, 2L),
+                WriteInfo.of(Cell.create("a".getBytes(), "d".getBytes()), true, 2L),
+                WriteInfo.of(Cell.create("b".getBytes(), "d".getBytes()), false, 2L));
+        List<WriteInfo> table2Writes = ImmutableList.of(
+                WriteInfo.of(Cell.create("w".getBytes(), "x".getBytes()), false, 2L),
+                WriteInfo.of(Cell.create("y".getBytes(), "z".getBytes()), false, 2L),
+                WriteInfo.of(Cell.create("z".getBytes(), "z".getBytes()), true, 2L));
+
+        AtomicLong startTs = new AtomicLong(0);
+        txManager.runTaskWithRetry(txn -> {
+            table1Writes.forEach(write -> {
+                put(txn, TABLE1, write);
+            });
+            table2Writes.forEach(write -> {
+                put(txn, TABLE2, write);
+            });
+            return null;
+        });
+
+        verify(sweepQueue).enqueue(eq(TABLE1), eq(table1Writes));
+        verify(sweepQueue).enqueue(eq(TABLE2), eq(table2Writes));
+    }
+
+    private void put(Transaction txn, TableReference table, WriteInfo write) {
+        if (write.isTombstone()) {
+            txn.delete(table, ImmutableSet.of(write.cell()));
+        } else {
+            txn.put(table, ImmutableMap.of(write.cell(), new byte[1]));
+        }
+    }
+
+    @Test
+    public void noWritesAddedToSweepQueueOnConflict() {
+        Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
+        byte[] value = new byte[1];
+
+        Transaction t1 = txManager.createNewTransaction();
+        Transaction t2 = txManager.createNewTransaction();
+
+        t1.put(TABLE, ImmutableMap.of(cell, value));
+        t2.put(TABLE, ImmutableMap.of(cell, new byte[1]));
+
+        t1.commit();
+        verify(sweepQueue).enqueue(any(), any());
+
+        try {
+            t2.commit();
+            fail();
+        } catch (TransactionConflictException e) {
+            // expected
+        }
+
+        verifyNoMoreInteractions(sweepQueue);
+    }
+
+    @Test
+    public void noWritesAddedToSweepQueueOnException() {
+        Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
+        byte[] value = new byte[1];
+
+        try {
+            txManager.runTaskWithRetry(txn -> {
+                txn.put(TABLE, ImmutableMap.of(cell, value));
+                throw new RuntimeException("test");
+            });
+        } catch (RuntimeException e) {
+            // expected
+        }
+
+        verifyZeroInteractions(sweepQueue);
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {

@@ -47,6 +47,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -59,7 +60,6 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.remoting2.tracing.Tracers;
 
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
@@ -106,7 +106,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 timestampCache,
                 AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY) {
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                SweepQueueWriter.NO_OP) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());
@@ -183,7 +184,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         final CyclicBarrier barrier = new CyclicBarrier(2);
 
         final Transaction t1 = startTransaction();
-        ExecutorService exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
+        ExecutorService exec = PTExecutors.newCachedThreadPool();
         Future<?> future = exec.submit((Callable<Void>) () -> {
             withdrawMoney(t1, true, false);
             barrier.await();
