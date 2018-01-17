@@ -54,6 +54,10 @@ develop
          - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
 
+    *    - |fixed|
+         - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2874>`__)
+
 =======
 v0.73.0
 =======
@@ -90,7 +94,7 @@ v0.73.0-rc2
     *    - Type
          - Change
 
-    *    - |devbreak|
+    *    - |new|
          - Qos Service: AtlasDB now supports a QosService which can rate-limit clients.
            Please note that this feature is currently experimental; if you wish to use it, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2700>`__)
@@ -159,10 +163,6 @@ v0.73.0-rc1
     *    - |improved|
          - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
-
-    *    - |fixed|
-         - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2868>`__)
 
 =======
 v0.72.0
