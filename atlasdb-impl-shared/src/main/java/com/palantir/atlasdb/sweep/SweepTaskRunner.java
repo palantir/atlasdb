@@ -162,7 +162,7 @@ public class SweepTaskRunner {
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .batchSizeHint(batchConfig.candidateBatchSize())
-                .sweepTimestamp(sweepTs)
+                .maxTimestampExclusive(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(sweeper.shouldSweepLastCommitted())
                 .timestampsToIgnore(sweeper.getTimestampsToIgnore())
                 .build();
@@ -188,7 +188,7 @@ public class SweepTaskRunner {
                 totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType,
                         2 * batchConfig.deleteBatchSize());
 
-                totalCellTsPairsExamined = batch.numCellTsPairsExaminedSoFar();
+                totalCellTsPairsExamined += batch.numCellTsPairsExamined();
                 lastRow = batch.lastCellExamined().getRowName();
             }
             return SweepResults.builder()

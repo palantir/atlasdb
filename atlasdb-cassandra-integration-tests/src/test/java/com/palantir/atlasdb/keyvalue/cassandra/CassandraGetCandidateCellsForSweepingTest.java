@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -50,9 +51,8 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 1)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L })
+                        .sortedTimestamps(ImmutableList.of(10L))
                         .isLatestValueEmpty(false)
-                        .numCellsTsPairsExamined(1)
                         .build());
     }
 
@@ -62,9 +62,8 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 1)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L, 20L })
+                        .sortedTimestamps(ImmutableList.of(10L, 20L))
                         .isLatestValueEmpty(false)
-                        .numCellsTsPairsExamined(2)
                         .build());
     }
 

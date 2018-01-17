@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.KvsProfilingLogger;
 
 public class CqlExecutorTest {
 
@@ -57,43 +56,22 @@ public class CqlExecutorTest {
     }
 
     @Test
-    public void getColumnsForRow() {
-        String expected = "SELECT column1, column2 FROM \"foo__bar\" WHERE key = 0x0102 LIMIT 100;";
+    public void getTimestamps() {
+        String expected = "SELECT key, column1, column2 FROM \"foo__bar\" WHERE token(key) >= token(0x0102) LIMIT 100;";
 
-        executor.getColumnsForRow(TABLE_REF, ROW, LIMIT);
-
-        verify(queryExecutor).execute(ROW, expected);
-    }
-
-    @Test
-    public void getTimestampsForRowAndColumn() {
-        String expected = "SELECT column1, column2 FROM \"foo__bar\" WHERE key = 0x0102 AND column1 = 0x0304 "
-                + "AND column2 > -124 LIMIT 100;";
-
-        executor.getTimestampsForRowAndColumn(TABLE_REF, ROW, COLUMN, TIMESTAMP, LIMIT);
+        executor.getTimestamps(TABLE_REF, ROW, LIMIT);
 
         verify(queryExecutor).execute(ROW, expected);
     }
 
     @Test
-    public void getNextColumnsForRow() {
-        String expected = "SELECT column1, column2 FROM \"foo__bar\" WHERE key = 0x0102 AND column1 > 0x0304 "
-                + "LIMIT 100;";
+    public void getTimestampsWithinRow() {
+        String expected = "SELECT column1, column2 FROM \"foo__bar\" WHERE key = 0x0102"
+                + " AND (column1, column2) > (0x0304, -124) LIMIT 100;";
 
-        executor.getNextColumnsForRow(TABLE_REF, ROW, COLUMN, LIMIT);
+        executor.getTimestampsWithinRow(TABLE_REF, ROW, COLUMN, TIMESTAMP, LIMIT);
 
         verify(queryExecutor).execute(ROW, expected);
-    }
-
-    // this test just verifies that nothing blows up when logging a slow query, and the output can be verified manually
-    @Test
-    public void logsSlowResult() {
-        queryDelayMillis = 10;
-        KvsProfilingLogger.setSlowLogThresholdMillis(1);
-
-        executor.getColumnsForRow(TABLE_REF, ROW, LIMIT);
-        executor.getTimestampsForRowAndColumn(TABLE_REF, ROW, COLUMN, TIMESTAMP, LIMIT);
-        executor.getNextColumnsForRow(TABLE_REF, ROW, COLUMN, LIMIT);
     }
 
 }

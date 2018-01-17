@@ -53,22 +53,22 @@ public class SweepableCellFilter {
         long numCellTsPairsExamined = 0;
         Cell lastCellExamined = null;
         for (CandidateCellForSweeping candidate : candidates) {
-            if (candidate.sortedTimestamps().length > 0) {
+            if (candidate.sortedTimestamps().size() > 0) {
                 CellToSweep cellToSweep = getCellToSweep(candidate, commitTss);
                 if (cellToSweep != null) {
                     builder.addCells(cellToSweep);
                 }
             }
-            numCellTsPairsExamined = candidate.numCellsTsPairsExamined();
+            numCellTsPairsExamined += candidate.sortedTimestamps().size();
             lastCellExamined = candidate.cell();
         }
-        return builder.numCellTsPairsExaminedSoFar(numCellTsPairsExamined).lastCellExamined(lastCellExamined).build();
+        return builder.numCellTsPairsExamined(numCellTsPairsExamined).lastCellExamined(lastCellExamined).build();
     }
 
     // Decide if the candidate cell needs to be swept, and if so, for which timestamps.
     @Nullable
     private CellToSweep getCellToSweep(CandidateCellForSweeping candidate, CommitTsLoader commitTss) {
-        Preconditions.checkArgument(candidate.sortedTimestamps().length > 0);
+        Preconditions.checkArgument(candidate.sortedTimestamps().size() > 0);
         TLongList timestampsToSweep = new TLongArrayList();
         TLongList uncommittedTimestamps = new TLongArrayList();
         long maxStartTs = TransactionConstants.FAILED_COMMIT_TS;

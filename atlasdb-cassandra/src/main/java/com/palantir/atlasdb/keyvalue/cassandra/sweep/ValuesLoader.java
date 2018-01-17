@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep;
+package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import java.util.List;
-
-import org.immutables.value.Value;
+import java.util.Map;
+import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 
-@Value.Immutable
-public interface BatchOfCellsToSweep {
-    List<CellToSweep> cells();
+public interface ValuesLoader {
 
-    /**
-     * Returns the total number of (cell, ts) pairs examined in this batch.
-     */
-    long numCellTsPairsExamined();
+    Map<Cell, Value> getValues(TableReference tableRef, Set<Cell> cells, long maxTimestampExclusive);
 
-    Cell lastCellExamined();
 }

@@ -16,13 +16,49 @@
 package com.palantir.common.base;
 
 import java.io.Closeable;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.Spliterators;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 
 @SuppressWarnings("DangerousJsonTypeInfoUsage")
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property= "@class")
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 public interface ClosableIterator<T> extends Iterator<T>, Closeable {
     @Override
-    void close();
+    default void close() { }
+
+    default <U> ClosableIterator<U> map(Function<T, U> mapper) {
+        return ClosableIterators.wrap(Iterators.transform(this, mapper::apply));
+    }
+
+    default <U> ClosableIterator<U> flatMap(Function<T, Collection<U>> mapper) {
+        return ClosableIterators.wrap(stream().flatMap(obj -> mapper.apply(obj).stream()).iterator(), this);
+    }
+
+    default ClosableIterator<T> stopWhen(Predicate<T> shouldStop) {
+        PeekingIterator<T> peekingIterator = Iterators.peekingIterator(this);
+        return new ClosableIterator<T>() {
+
+            @Override
+            public boolean hasNext() {
+                return peekingIterator.hasNext() && !shouldStop.test(peekingIterator.peek());
+            }
+
+            @Override
+            public T next() {
+                return peekingIterator.next();
+            }
+        };
+    }
+
+    default Stream<T> stream() {
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(this, 0), false);
+    }
 }
