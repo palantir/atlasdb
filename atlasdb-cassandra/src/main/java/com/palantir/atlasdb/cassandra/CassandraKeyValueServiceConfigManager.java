@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting3.tracing.Tracers;
 
 public final class CassandraKeyValueServiceConfigManager {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServiceConfigManager.class);
@@ -62,7 +61,7 @@ public final class CassandraKeyValueServiceConfigManager {
             long refreshInterval) {
         CassandraKeyValueServiceConfigManager ret = new CassandraKeyValueServiceConfigManager(
                 configSupplier,
-                Tracers.wrap(PTExecutors.newScheduledThreadPool(1)),
+                PTExecutors.newScheduledThreadPool(1),
                 initDelay,
                 refreshInterval);
         ret.init();

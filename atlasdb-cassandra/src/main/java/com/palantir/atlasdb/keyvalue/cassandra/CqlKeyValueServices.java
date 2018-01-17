@@ -56,7 +56,6 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.visitor.Visitor;
-import com.palantir.remoting3.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -82,7 +81,7 @@ public final class CqlKeyValueServices {
         LIGHTWEIGHT_TRANSACTION_REQUIRED
     }
 
-    private final ExecutorService traceRetrievalExec = Tracers.wrap(PTExecutors.newFixedThreadPool(8));
+    private final ExecutorService traceRetrievalExec = PTExecutors.newFixedThreadPool(8);
 
     private static final int MAX_TRIES = 20;
     private static final long TRACE_RETRIEVAL_MS_BETWEEN_TRIES = 500;

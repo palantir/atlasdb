@@ -16,7 +16,6 @@
 
 package com.palantir.async.initializer;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
@@ -98,7 +98,7 @@ public abstract class AsyncInitializer {
 
     // Not final for tests
     ScheduledExecutorService getExecutorService() {
-        return Executors.newSingleThreadScheduledExecutor(
+        return PTExecutors.newSingleThreadScheduledExecutor(
                 new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
     }
 

@@ -47,7 +47,6 @@ import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
 
 public class TableMigratorTest extends AtlasDbTestCase {
     @Test
@@ -116,7 +115,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
             TableMigratorBuilder builder = new TableMigratorBuilder()
                     .srcTable(name)
                     .partitions(1)
-                    .executor(Tracers.wrap(PTExecutors.newSingleThreadExecutor()))
+                    .executor(PTExecutors.newSingleThreadExecutor())
                     .checkpointer(checkpointer)
                     .rangeMigrator(rangeMigrator);
             TableMigrator migrator = builder.build();

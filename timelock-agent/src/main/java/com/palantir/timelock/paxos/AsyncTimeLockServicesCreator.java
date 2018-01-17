@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 
@@ -37,6 +36,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.JavaSuppliers;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 
@@ -84,12 +84,12 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             String client,
             Supplier<ManagedTimestampService> timestampServiceSupplier) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
-                Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
+                PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-reaper-" + client + "-%d")
                         .setDaemon(true)
                         .build()), AtlasDbMetrics.getMetricRegistry(), "async-lock-reaper");
         ScheduledExecutorService timeoutExecutor = new InstrumentedScheduledExecutorService(
-                Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
+                PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-timeouts-" + client + "-%d")
                         .setDaemon(true)
                         .build()), AtlasDbMetrics.getMetricRegistry(), "async-lock-timeouts");

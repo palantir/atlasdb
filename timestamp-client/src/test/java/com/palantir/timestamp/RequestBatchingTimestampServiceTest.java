@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
 
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
 
 public class RequestBatchingTimestampServiceTest {
     @Test
@@ -55,7 +54,7 @@ public class RequestBatchingTimestampServiceTest {
         final AtomicLong timestampsGenerated = new AtomicLong(0);
         final long startMillis = System.currentTimeMillis();
 
-        ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool());
+        ExecutorService executor = PTExecutors.newCachedThreadPool();
         try {
             for (int i = 0; i < numThreads; ++i) {
                 executor.submit(() -> {
