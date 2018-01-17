@@ -54,7 +54,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
-import com.palantir.remoting3.tracing.Tracers;
 
 /**
  * Feature breakdown:
@@ -163,10 +162,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             Blacklist blacklist) {
         this.config = config;
         this.startupChecks = startupChecks;
-        this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
+        this.refreshDaemon = PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
-                .build()));
+                .build());
         this.blacklist = blacklist;
         this.exceptionHandler = new CassandraRequestExceptionHandler(
                 this::getMaxRetriesPerHost, this::getMaxTriesTotal, blacklist);

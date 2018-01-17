@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -44,6 +45,7 @@ public class GetCandidateRowsForSweeping {
     private final TableReference table;
     private final CandidateCellForSweepingRequest request;
     private final int timestampsBatchSize;
+    private CassandraKeyValueServiceConfig config;
     private final int valuesBatchSize;
 
     private List<CellWithTimestamps> cellTimestamps;
@@ -54,12 +56,14 @@ public class GetCandidateRowsForSweeping {
             CqlExecutor cqlExecutor,
             RowGetter rowGetter,
             TableReference table,
-            CandidateCellForSweepingRequest request) {
+            CandidateCellForSweepingRequest request,
+            CassandraKeyValueServiceConfig config) {
         this.table = table;
         this.cqlExecutor = cqlExecutor;
         this.rowGetter = rowGetter;
         this.request = request;
         this.valuesLoader = valuesLoader;
+        this.config = config;
 
         this.timestampsBatchSize = request.batchSizeHint().orElse(DEFAULT_TIMESTAMPS_BATCH_SIZE);
         // TODO(nziebart): this should probably be configurable
@@ -79,7 +83,7 @@ public class GetCandidateRowsForSweeping {
 
     private void fetchCellTimestamps() {
         cellTimestamps = new GetCellTimestamps(cqlExecutor, rowGetter, table, request.startRowInclusive(),
-                timestampsBatchSize).execute();
+                timestampsBatchSize, config).execute();
     }
 
     public void findCellsWithEmptyValuesIfNeeded() {

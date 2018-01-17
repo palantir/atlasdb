@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -84,7 +85,7 @@ public abstract class TransactionTestSetup {
 
     protected TransactionManager getManager() {
         return new TestTransactionManagerImpl(keyValueService, timestampService, lockClient, lockService,
-                transactionService, conflictDetectionManager, sweepStrategyManager);
+                transactionService, conflictDetectionManager, sweepStrategyManager, SweepQueueWriter.NO_OP);
     }
 
     protected void put(Transaction txn,

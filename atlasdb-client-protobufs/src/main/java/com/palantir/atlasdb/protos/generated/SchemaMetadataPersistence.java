@@ -8,108 +8,6 @@ public final class SchemaMetadataPersistence {
   public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {
   }
-  /**
-   * Protobuf enum {@code com.palantir.atlasdb.protos.generated.CleanupRequirement}
-   */
-  public enum CleanupRequirement
-      implements com.google.protobuf.ProtocolMessageEnum {
-    /**
-     * <code>NOT_NEEDED = 0;</code>
-     *
-     * <pre>
-     * Used for tables without cleanup tasks.
-     * </pre>
-     */
-    NOT_NEEDED(0, 0),
-    /**
-     * <code>ARBITRARY_ASYNC = 64;</code>
-     *
-     * <pre>
-     * Used for tables (possibly inclusive of stream-store meta-tables) that have user-defined cleanup tasks
-     * which can safely be processed asynchronously (e.g. via a queue).
-     * Examples include cascading deletes and reads from append-only Atlas tables.
-     * </pre>
-     */
-    ARBITRARY_ASYNC(1, 64),
-    ;
-
-    /**
-     * <code>NOT_NEEDED = 0;</code>
-     *
-     * <pre>
-     * Used for tables without cleanup tasks.
-     * </pre>
-     */
-    public static final int NOT_NEEDED_VALUE = 0;
-    /**
-     * <code>ARBITRARY_ASYNC = 64;</code>
-     *
-     * <pre>
-     * Used for tables (possibly inclusive of stream-store meta-tables) that have user-defined cleanup tasks
-     * which can safely be processed asynchronously (e.g. via a queue).
-     * Examples include cascading deletes and reads from append-only Atlas tables.
-     * </pre>
-     */
-    public static final int ARBITRARY_ASYNC_VALUE = 64;
-
-
-    public final int getNumber() { return value; }
-
-    public static CleanupRequirement valueOf(int value) {
-      switch (value) {
-        case 0: return NOT_NEEDED;
-        case 64: return ARBITRARY_ASYNC;
-        default: return null;
-      }
-    }
-
-    public static com.google.protobuf.Internal.EnumLiteMap<CleanupRequirement>
-        internalGetValueMap() {
-      return internalValueMap;
-    }
-    private static com.google.protobuf.Internal.EnumLiteMap<CleanupRequirement>
-        internalValueMap =
-          new com.google.protobuf.Internal.EnumLiteMap<CleanupRequirement>() {
-            public CleanupRequirement findValueByNumber(int number) {
-              return CleanupRequirement.valueOf(number);
-            }
-          };
-
-    public final com.google.protobuf.Descriptors.EnumValueDescriptor
-        getValueDescriptor() {
-      return getDescriptor().getValues().get(index);
-    }
-    public final com.google.protobuf.Descriptors.EnumDescriptor
-        getDescriptorForType() {
-      return getDescriptor();
-    }
-    public static final com.google.protobuf.Descriptors.EnumDescriptor
-        getDescriptor() {
-      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.getDescriptor().getEnumTypes().get(0);
-    }
-
-    private static final CleanupRequirement[] VALUES = values();
-
-    public static CleanupRequirement valueOf(
-        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
-      if (desc.getType() != getDescriptor()) {
-        throw new java.lang.IllegalArgumentException(
-          "EnumValueDescriptor is not for this type.");
-      }
-      return VALUES[desc.getIndex()];
-    }
-
-    private final int index;
-    private final int value;
-
-    private CleanupRequirement(int index, int value) {
-      this.index = index;
-      this.value = value;
-    }
-
-    // @@protoc_insertion_point(enum_scope:com.palantir.atlasdb.protos.generated.CleanupRequirement)
-  }
-
   public interface SchemaMetadataOrBuilder extends
       // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.SchemaMetadata)
       com.google.protobuf.MessageOrBuilder {
@@ -1623,412 +1521,6 @@ public final class SchemaMetadataPersistence {
     // @@protoc_insertion_point(class_scope:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadataEntry)
   }
 
-  public interface SchemaDependentTableMetadataOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata)
-      com.google.protobuf.MessageOrBuilder {
-
-    /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.CleanupRequirement cleanupRequirement = 1;</code>
-     */
-    boolean hasCleanupRequirement();
-    /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.CleanupRequirement cleanupRequirement = 1;</code>
-     */
-    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement getCleanupRequirement();
-  }
-  /**
-   * Protobuf type {@code com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata}
-   */
-  public static final class SchemaDependentTableMetadata extends
-      com.google.protobuf.GeneratedMessage implements
-      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata)
-      SchemaDependentTableMetadataOrBuilder {
-    // Use SchemaDependentTableMetadata.newBuilder() to construct.
-    private SchemaDependentTableMetadata(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-      super(builder);
-      this.unknownFields = builder.getUnknownFields();
-    }
-    private SchemaDependentTableMetadata(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
-
-    private static final SchemaDependentTableMetadata defaultInstance;
-    public static SchemaDependentTableMetadata getDefaultInstance() {
-      return defaultInstance;
-    }
-
-    public SchemaDependentTableMetadata getDefaultInstanceForType() {
-      return defaultInstance;
-    }
-
-    private final com.google.protobuf.UnknownFieldSet unknownFields;
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-        getUnknownFields() {
-      return this.unknownFields;
-    }
-    private SchemaDependentTableMetadata(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      initFields();
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-            case 8: {
-              int rawValue = input.readEnum();
-              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement value = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement.valueOf(rawValue);
-              if (value == null) {
-                unknownFields.mergeVarintField(1, rawValue);
-              } else {
-                bitField0_ |= 0x00000001;
-                cleanupRequirement_ = value;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
-      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor;
-    }
-
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder.class);
-    }
-
-    public static com.google.protobuf.Parser<SchemaDependentTableMetadata> PARSER =
-        new com.google.protobuf.AbstractParser<SchemaDependentTableMetadata>() {
-      public SchemaDependentTableMetadata parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new SchemaDependentTableMetadata(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<SchemaDependentTableMetadata> getParserForType() {
-      return PARSER;
-    }
-
-    private int bitField0_;
-    public static final int CLEANUPREQUIREMENT_FIELD_NUMBER = 1;
-    private com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement cleanupRequirement_;
-    /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.CleanupRequirement cleanupRequirement = 1;</code>
-     */
-    public boolean hasCleanupRequirement() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
-    }
-    /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.CleanupRequirement cleanupRequirement = 1;</code>
-     */
-    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement getCleanupRequirement() {
-      return cleanupRequirement_;
-    }
-
-    private void initFields() {
-      cleanupRequirement_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement.NOT_NEEDED;
-    }
-    private byte memoizedIsInitialized = -1;
-    public final boolean isInitialized() {
-      byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
-
-      memoizedIsInitialized = 1;
-      return true;
-    }
-
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
-      getSerializedSize();
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeEnum(1, cleanupRequirement_.getNumber());
-      }
-      getUnknownFields().writeTo(output);
-    }
-
-    private int memoizedSerializedSize = -1;
-    public int getSerializedSize() {
-      int size = memoizedSerializedSize;
-      if (size != -1) return size;
-
-      size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeEnumSize(1, cleanupRequirement_.getNumber());
-      }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSerializedSize = size;
-      return size;
-    }
-
-    private static final long serialVersionUID = 0L;
-    @java.lang.Override
-    protected java.lang.Object writeReplace()
-        throws java.io.ObjectStreamException {
-      return super.writeReplace();
-    }
-
-    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return PARSER.parseFrom(input);
-    }
-    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
-    }
-    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
-    }
-    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
-    }
-    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return PARSER.parseFrom(input);
-    }
-    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
-    }
-
-    public static Builder newBuilder() { return Builder.create(); }
-    public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata prototype) {
-      return newBuilder().mergeFrom(prototype);
-    }
-    public Builder toBuilder() { return newBuilder(this); }
-
-    @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-      Builder builder = new Builder(parent);
-      return builder;
-    }
-    /**
-     * Protobuf type {@code com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata)
-        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
-        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor;
-      }
-
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder.class);
-      }
-
-      // Construct using com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.newBuilder()
-      private Builder() {
-        maybeForceBuilderInitialization();
-      }
-
-      private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-        super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-        }
-      }
-      private static Builder create() {
-        return new Builder();
-      }
-
-      public Builder clear() {
-        super.clear();
-        cleanupRequirement_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement.NOT_NEEDED;
-        bitField0_ = (bitField0_ & ~0x00000001);
-        return this;
-      }
-
-      public Builder clone() {
-        return create().mergeFrom(buildPartial());
-      }
-
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
-        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor;
-      }
-
-      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata getDefaultInstanceForType() {
-        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance();
-      }
-
-      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata build() {
-        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(result);
-        }
-        return result;
-      }
-
-      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata buildPartial() {
-        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata result = new com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata(this);
-        int from_bitField0_ = bitField0_;
-        int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-          to_bitField0_ |= 0x00000001;
-        }
-        result.cleanupRequirement_ = cleanupRequirement_;
-        result.bitField0_ = to_bitField0_;
-        onBuilt();
-        return result;
-      }
-
-      public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata) {
-          return mergeFrom((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata)other);
-        } else {
-          super.mergeFrom(other);
-          return this;
-        }
-      }
-
-      public Builder mergeFrom(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata other) {
-        if (other == com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance()) return this;
-        if (other.hasCleanupRequirement()) {
-          setCleanupRequirement(other.getCleanupRequirement());
-        }
-        this.mergeUnknownFields(other.getUnknownFields());
-        return this;
-      }
-
-      public final boolean isInitialized() {
-        return true;
-      }
-
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws java.io.IOException {
-        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parsedMessage = null;
-        try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata) e.getUnfinishedMessage();
-          throw e;
-        } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
-        return this;
-      }
-      private int bitField0_;
-
-      private com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement cleanupRequirement_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement.NOT_NEEDED;
-      /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.CleanupRequirement cleanupRequirement = 1;</code>
-       */
-      public boolean hasCleanupRequirement() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
-      }
-      /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.CleanupRequirement cleanupRequirement = 1;</code>
-       */
-      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement getCleanupRequirement() {
-        return cleanupRequirement_;
-      }
-      /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.CleanupRequirement cleanupRequirement = 1;</code>
-       */
-      public Builder setCleanupRequirement(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement value) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        bitField0_ |= 0x00000001;
-        cleanupRequirement_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.CleanupRequirement cleanupRequirement = 1;</code>
-       */
-      public Builder clearCleanupRequirement() {
-        bitField0_ = (bitField0_ & ~0x00000001);
-        cleanupRequirement_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement.NOT_NEEDED;
-        onChanged();
-        return this;
-      }
-
-      // @@protoc_insertion_point(builder_scope:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata)
-    }
-
-    static {
-      defaultInstance = new SchemaDependentTableMetadata(true);
-      defaultInstance.initFields();
-    }
-
-    // @@protoc_insertion_point(class_scope:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata)
-  }
-
   public interface TableReferenceOrBuilder extends
       // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.TableReference)
       com.google.protobuf.MessageOrBuilder {
@@ -2662,6 +2154,2788 @@ public final class SchemaMetadataPersistence {
     // @@protoc_insertion_point(class_scope:com.palantir.atlasdb.protos.generated.TableReference)
   }
 
+  public interface SchemaDependentTableMetadataOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
+     */
+    boolean hasNullCleanupMetadata();
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
+     */
+    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata getNullCleanupMetadata();
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
+     */
+    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder getNullCleanupMetadataOrBuilder();
+
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+     */
+    boolean hasStreamStoreCleanupMetadata();
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+     */
+    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata getStreamStoreCleanupMetadata();
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+     */
+    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder getStreamStoreCleanupMetadataOrBuilder();
+
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+     */
+    boolean hasArbitraryCleanupMetadata();
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+     */
+    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata getArbitraryCleanupMetadata();
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+     */
+    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder getArbitraryCleanupMetadataOrBuilder();
+  }
+  /**
+   * Protobuf type {@code com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata}
+   */
+  public static final class SchemaDependentTableMetadata extends
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata)
+      SchemaDependentTableMetadataOrBuilder {
+    // Use SchemaDependentTableMetadata.newBuilder() to construct.
+    private SchemaDependentTableMetadata(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private SchemaDependentTableMetadata(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final SchemaDependentTableMetadata defaultInstance;
+    public static SchemaDependentTableMetadata getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public SchemaDependentTableMetadata getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private SchemaDependentTableMetadata(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder subBuilder = null;
+              if (cleanupMetadataCase_ == 1) {
+                subBuilder = ((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) cleanupMetadata_).toBuilder();
+              }
+              cleanupMetadata_ = input.readMessage(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) cleanupMetadata_);
+                cleanupMetadata_ = subBuilder.buildPartial();
+              }
+              cleanupMetadataCase_ = 1;
+              break;
+            }
+            case 18: {
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder subBuilder = null;
+              if (cleanupMetadataCase_ == 2) {
+                subBuilder = ((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) cleanupMetadata_).toBuilder();
+              }
+              cleanupMetadata_ = input.readMessage(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) cleanupMetadata_);
+                cleanupMetadata_ = subBuilder.buildPartial();
+              }
+              cleanupMetadataCase_ = 2;
+              break;
+            }
+            case 26: {
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder subBuilder = null;
+              if (cleanupMetadataCase_ == 3) {
+                subBuilder = ((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) cleanupMetadata_).toBuilder();
+              }
+              cleanupMetadata_ = input.readMessage(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) cleanupMetadata_);
+                cleanupMetadata_ = subBuilder.buildPartial();
+              }
+              cleanupMetadataCase_ = 3;
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<SchemaDependentTableMetadata> PARSER =
+        new com.google.protobuf.AbstractParser<SchemaDependentTableMetadata>() {
+      public SchemaDependentTableMetadata parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new SchemaDependentTableMetadata(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<SchemaDependentTableMetadata> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    private int cleanupMetadataCase_ = 0;
+    private java.lang.Object cleanupMetadata_;
+    public enum CleanupMetadataCase
+        implements com.google.protobuf.Internal.EnumLite {
+      NULL_CLEANUP_METADATA(1),
+      STREAM_STORE_CLEANUP_METADATA(2),
+      ARBITRARY_CLEANUP_METADATA(3),
+      CLEANUPMETADATA_NOT_SET(0);
+      private int value = 0;
+      private CleanupMetadataCase(int value) {
+        this.value = value;
+      }
+      public static CleanupMetadataCase valueOf(int value) {
+        switch (value) {
+          case 1: return NULL_CLEANUP_METADATA;
+          case 2: return STREAM_STORE_CLEANUP_METADATA;
+          case 3: return ARBITRARY_CLEANUP_METADATA;
+          case 0: return CLEANUPMETADATA_NOT_SET;
+          default: throw new java.lang.IllegalArgumentException(
+            "Value is undefined for this oneof enum.");
+        }
+      }
+      public int getNumber() {
+        return this.value;
+      }
+    };
+
+    public CleanupMetadataCase
+    getCleanupMetadataCase() {
+      return CleanupMetadataCase.valueOf(
+          cleanupMetadataCase_);
+    }
+
+    public static final int NULL_CLEANUP_METADATA_FIELD_NUMBER = 1;
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
+     */
+    public boolean hasNullCleanupMetadata() {
+      return cleanupMetadataCase_ == 1;
+    }
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
+     */
+    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata getNullCleanupMetadata() {
+      if (cleanupMetadataCase_ == 1) {
+         return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) cleanupMetadata_;
+      }
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance();
+    }
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+     *
+     * <pre>
+     * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+     * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+     * </pre>
+     */
+    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder getNullCleanupMetadataOrBuilder() {
+      if (cleanupMetadataCase_ == 1) {
+         return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) cleanupMetadata_;
+      }
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance();
+    }
+
+    public static final int STREAM_STORE_CLEANUP_METADATA_FIELD_NUMBER = 2;
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+     */
+    public boolean hasStreamStoreCleanupMetadata() {
+      return cleanupMetadataCase_ == 2;
+    }
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+     */
+    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata getStreamStoreCleanupMetadata() {
+      if (cleanupMetadataCase_ == 2) {
+         return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) cleanupMetadata_;
+      }
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance();
+    }
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+     */
+    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder getStreamStoreCleanupMetadataOrBuilder() {
+      if (cleanupMetadataCase_ == 2) {
+         return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) cleanupMetadata_;
+      }
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance();
+    }
+
+    public static final int ARBITRARY_CLEANUP_METADATA_FIELD_NUMBER = 3;
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+     */
+    public boolean hasArbitraryCleanupMetadata() {
+      return cleanupMetadataCase_ == 3;
+    }
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+     */
+    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata getArbitraryCleanupMetadata() {
+      if (cleanupMetadataCase_ == 3) {
+         return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) cleanupMetadata_;
+      }
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.getDefaultInstance();
+    }
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+     */
+    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder getArbitraryCleanupMetadataOrBuilder() {
+      if (cleanupMetadataCase_ == 3) {
+         return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) cleanupMetadata_;
+      }
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.getDefaultInstance();
+    }
+
+    private void initFields() {
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (cleanupMetadataCase_ == 1) {
+        output.writeMessage(1, (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) cleanupMetadata_);
+      }
+      if (cleanupMetadataCase_ == 2) {
+        output.writeMessage(2, (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) cleanupMetadata_);
+      }
+      if (cleanupMetadataCase_ == 3) {
+        output.writeMessage(3, (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) cleanupMetadata_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (cleanupMetadataCase_ == 1) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) cleanupMetadata_);
+      }
+      if (cleanupMetadataCase_ == 2) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) cleanupMetadata_);
+      }
+      if (cleanupMetadataCase_ == 3) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) cleanupMetadata_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata)
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder.class);
+      }
+
+      // Construct using com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        cleanupMetadataCase_ = 0;
+        cleanupMetadata_ = null;
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor;
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata getDefaultInstanceForType() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance();
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata build() {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata buildPartial() {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata result = new com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (cleanupMetadataCase_ == 1) {
+          if (nullCleanupMetadataBuilder_ == null) {
+            result.cleanupMetadata_ = cleanupMetadata_;
+          } else {
+            result.cleanupMetadata_ = nullCleanupMetadataBuilder_.build();
+          }
+        }
+        if (cleanupMetadataCase_ == 2) {
+          if (streamStoreCleanupMetadataBuilder_ == null) {
+            result.cleanupMetadata_ = cleanupMetadata_;
+          } else {
+            result.cleanupMetadata_ = streamStoreCleanupMetadataBuilder_.build();
+          }
+        }
+        if (cleanupMetadataCase_ == 3) {
+          if (arbitraryCleanupMetadataBuilder_ == null) {
+            result.cleanupMetadata_ = cleanupMetadata_;
+          } else {
+            result.cleanupMetadata_ = arbitraryCleanupMetadataBuilder_.build();
+          }
+        }
+        result.bitField0_ = to_bitField0_;
+        result.cleanupMetadataCase_ = cleanupMetadataCase_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata) {
+          return mergeFrom((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata other) {
+        if (other == com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance()) return this;
+        switch (other.getCleanupMetadataCase()) {
+          case NULL_CLEANUP_METADATA: {
+            mergeNullCleanupMetadata(other.getNullCleanupMetadata());
+            break;
+          }
+          case STREAM_STORE_CLEANUP_METADATA: {
+            mergeStreamStoreCleanupMetadata(other.getStreamStoreCleanupMetadata());
+            break;
+          }
+          case ARBITRARY_CLEANUP_METADATA: {
+            mergeArbitraryCleanupMetadata(other.getArbitraryCleanupMetadata());
+            break;
+          }
+          case CLEANUPMETADATA_NOT_SET: {
+            break;
+          }
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int cleanupMetadataCase_ = 0;
+      private java.lang.Object cleanupMetadata_;
+      public CleanupMetadataCase
+          getCleanupMetadataCase() {
+        return CleanupMetadataCase.valueOf(
+            cleanupMetadataCase_);
+      }
+
+      public Builder clearCleanupMetadata() {
+        cleanupMetadataCase_ = 0;
+        cleanupMetadata_ = null;
+        onChanged();
+        return this;
+      }
+
+      private int bitField0_;
+
+      private com.google.protobuf.SingleFieldBuilder<
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder> nullCleanupMetadataBuilder_;
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
+       */
+      public boolean hasNullCleanupMetadata() {
+        return cleanupMetadataCase_ == 1;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata getNullCleanupMetadata() {
+        if (nullCleanupMetadataBuilder_ == null) {
+          if (cleanupMetadataCase_ == 1) {
+            return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) cleanupMetadata_;
+          }
+          return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance();
+        } else {
+          if (cleanupMetadataCase_ == 1) {
+            return nullCleanupMetadataBuilder_.getMessage();
+          }
+          return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance();
+        }
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
+       */
+      public Builder setNullCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata value) {
+        if (nullCleanupMetadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          cleanupMetadata_ = value;
+          onChanged();
+        } else {
+          nullCleanupMetadataBuilder_.setMessage(value);
+        }
+        cleanupMetadataCase_ = 1;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
+       */
+      public Builder setNullCleanupMetadata(
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder builderForValue) {
+        if (nullCleanupMetadataBuilder_ == null) {
+          cleanupMetadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          nullCleanupMetadataBuilder_.setMessage(builderForValue.build());
+        }
+        cleanupMetadataCase_ = 1;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
+       */
+      public Builder mergeNullCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata value) {
+        if (nullCleanupMetadataBuilder_ == null) {
+          if (cleanupMetadataCase_ == 1 &&
+              cleanupMetadata_ != com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance()) {
+            cleanupMetadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.newBuilder((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) cleanupMetadata_)
+                .mergeFrom(value).buildPartial();
+          } else {
+            cleanupMetadata_ = value;
+          }
+          onChanged();
+        } else {
+          if (cleanupMetadataCase_ == 1) {
+            nullCleanupMetadataBuilder_.mergeFrom(value);
+          }
+          nullCleanupMetadataBuilder_.setMessage(value);
+        }
+        cleanupMetadataCase_ = 1;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
+       */
+      public Builder clearNullCleanupMetadata() {
+        if (nullCleanupMetadataBuilder_ == null) {
+          if (cleanupMetadataCase_ == 1) {
+            cleanupMetadataCase_ = 0;
+            cleanupMetadata_ = null;
+            onChanged();
+          }
+        } else {
+          if (cleanupMetadataCase_ == 1) {
+            cleanupMetadataCase_ = 0;
+            cleanupMetadata_ = null;
+          }
+          nullCleanupMetadataBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder getNullCleanupMetadataBuilder() {
+        return getNullCleanupMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder getNullCleanupMetadataOrBuilder() {
+        if ((cleanupMetadataCase_ == 1) && (nullCleanupMetadataBuilder_ != null)) {
+          return nullCleanupMetadataBuilder_.getMessageOrBuilder();
+        } else {
+          if (cleanupMetadataCase_ == 1) {
+            return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) cleanupMetadata_;
+          }
+          return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance();
+        }
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.NullCleanupMetadata null_cleanup_metadata = 1;</code>
+       *
+       * <pre>
+       * These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+       * SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+       * </pre>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder> 
+          getNullCleanupMetadataFieldBuilder() {
+        if (nullCleanupMetadataBuilder_ == null) {
+          if (!(cleanupMetadataCase_ == 1)) {
+            cleanupMetadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance();
+          }
+          nullCleanupMetadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder>(
+                  (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) cleanupMetadata_,
+                  getParentForChildren(),
+                  isClean());
+          cleanupMetadata_ = null;
+        }
+        cleanupMetadataCase_ = 1;
+        return nullCleanupMetadataBuilder_;
+      }
+
+      private com.google.protobuf.SingleFieldBuilder<
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder> streamStoreCleanupMetadataBuilder_;
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+       */
+      public boolean hasStreamStoreCleanupMetadata() {
+        return cleanupMetadataCase_ == 2;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata getStreamStoreCleanupMetadata() {
+        if (streamStoreCleanupMetadataBuilder_ == null) {
+          if (cleanupMetadataCase_ == 2) {
+            return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) cleanupMetadata_;
+          }
+          return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance();
+        } else {
+          if (cleanupMetadataCase_ == 2) {
+            return streamStoreCleanupMetadataBuilder_.getMessage();
+          }
+          return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance();
+        }
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+       */
+      public Builder setStreamStoreCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata value) {
+        if (streamStoreCleanupMetadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          cleanupMetadata_ = value;
+          onChanged();
+        } else {
+          streamStoreCleanupMetadataBuilder_.setMessage(value);
+        }
+        cleanupMetadataCase_ = 2;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+       */
+      public Builder setStreamStoreCleanupMetadata(
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder builderForValue) {
+        if (streamStoreCleanupMetadataBuilder_ == null) {
+          cleanupMetadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          streamStoreCleanupMetadataBuilder_.setMessage(builderForValue.build());
+        }
+        cleanupMetadataCase_ = 2;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+       */
+      public Builder mergeStreamStoreCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata value) {
+        if (streamStoreCleanupMetadataBuilder_ == null) {
+          if (cleanupMetadataCase_ == 2 &&
+              cleanupMetadata_ != com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance()) {
+            cleanupMetadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.newBuilder((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) cleanupMetadata_)
+                .mergeFrom(value).buildPartial();
+          } else {
+            cleanupMetadata_ = value;
+          }
+          onChanged();
+        } else {
+          if (cleanupMetadataCase_ == 2) {
+            streamStoreCleanupMetadataBuilder_.mergeFrom(value);
+          }
+          streamStoreCleanupMetadataBuilder_.setMessage(value);
+        }
+        cleanupMetadataCase_ = 2;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+       */
+      public Builder clearStreamStoreCleanupMetadata() {
+        if (streamStoreCleanupMetadataBuilder_ == null) {
+          if (cleanupMetadataCase_ == 2) {
+            cleanupMetadataCase_ = 0;
+            cleanupMetadata_ = null;
+            onChanged();
+          }
+        } else {
+          if (cleanupMetadataCase_ == 2) {
+            cleanupMetadataCase_ = 0;
+            cleanupMetadata_ = null;
+          }
+          streamStoreCleanupMetadataBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder getStreamStoreCleanupMetadataBuilder() {
+        return getStreamStoreCleanupMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder getStreamStoreCleanupMetadataOrBuilder() {
+        if ((cleanupMetadataCase_ == 2) && (streamStoreCleanupMetadataBuilder_ != null)) {
+          return streamStoreCleanupMetadataBuilder_.getMessageOrBuilder();
+        } else {
+          if (cleanupMetadataCase_ == 2) {
+            return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) cleanupMetadata_;
+          }
+          return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance();
+        }
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder> 
+          getStreamStoreCleanupMetadataFieldBuilder() {
+        if (streamStoreCleanupMetadataBuilder_ == null) {
+          if (!(cleanupMetadataCase_ == 2)) {
+            cleanupMetadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance();
+          }
+          streamStoreCleanupMetadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder>(
+                  (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) cleanupMetadata_,
+                  getParentForChildren(),
+                  isClean());
+          cleanupMetadata_ = null;
+        }
+        cleanupMetadataCase_ = 2;
+        return streamStoreCleanupMetadataBuilder_;
+      }
+
+      private com.google.protobuf.SingleFieldBuilder<
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder> arbitraryCleanupMetadataBuilder_;
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+       */
+      public boolean hasArbitraryCleanupMetadata() {
+        return cleanupMetadataCase_ == 3;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata getArbitraryCleanupMetadata() {
+        if (arbitraryCleanupMetadataBuilder_ == null) {
+          if (cleanupMetadataCase_ == 3) {
+            return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) cleanupMetadata_;
+          }
+          return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.getDefaultInstance();
+        } else {
+          if (cleanupMetadataCase_ == 3) {
+            return arbitraryCleanupMetadataBuilder_.getMessage();
+          }
+          return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.getDefaultInstance();
+        }
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+       */
+      public Builder setArbitraryCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata value) {
+        if (arbitraryCleanupMetadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          cleanupMetadata_ = value;
+          onChanged();
+        } else {
+          arbitraryCleanupMetadataBuilder_.setMessage(value);
+        }
+        cleanupMetadataCase_ = 3;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+       */
+      public Builder setArbitraryCleanupMetadata(
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder builderForValue) {
+        if (arbitraryCleanupMetadataBuilder_ == null) {
+          cleanupMetadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          arbitraryCleanupMetadataBuilder_.setMessage(builderForValue.build());
+        }
+        cleanupMetadataCase_ = 3;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+       */
+      public Builder mergeArbitraryCleanupMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata value) {
+        if (arbitraryCleanupMetadataBuilder_ == null) {
+          if (cleanupMetadataCase_ == 3 &&
+              cleanupMetadata_ != com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.getDefaultInstance()) {
+            cleanupMetadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.newBuilder((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) cleanupMetadata_)
+                .mergeFrom(value).buildPartial();
+          } else {
+            cleanupMetadata_ = value;
+          }
+          onChanged();
+        } else {
+          if (cleanupMetadataCase_ == 3) {
+            arbitraryCleanupMetadataBuilder_.mergeFrom(value);
+          }
+          arbitraryCleanupMetadataBuilder_.setMessage(value);
+        }
+        cleanupMetadataCase_ = 3;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+       */
+      public Builder clearArbitraryCleanupMetadata() {
+        if (arbitraryCleanupMetadataBuilder_ == null) {
+          if (cleanupMetadataCase_ == 3) {
+            cleanupMetadataCase_ = 0;
+            cleanupMetadata_ = null;
+            onChanged();
+          }
+        } else {
+          if (cleanupMetadataCase_ == 3) {
+            cleanupMetadataCase_ = 0;
+            cleanupMetadata_ = null;
+          }
+          arbitraryCleanupMetadataBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder getArbitraryCleanupMetadataBuilder() {
+        return getArbitraryCleanupMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder getArbitraryCleanupMetadataOrBuilder() {
+        if ((cleanupMetadataCase_ == 3) && (arbitraryCleanupMetadataBuilder_ != null)) {
+          return arbitraryCleanupMetadataBuilder_.getMessageOrBuilder();
+        } else {
+          if (cleanupMetadataCase_ == 3) {
+            return (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) cleanupMetadata_;
+          }
+          return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.getDefaultInstance();
+        }
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder> 
+          getArbitraryCleanupMetadataFieldBuilder() {
+        if (arbitraryCleanupMetadataBuilder_ == null) {
+          if (!(cleanupMetadataCase_ == 3)) {
+            cleanupMetadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.getDefaultInstance();
+          }
+          arbitraryCleanupMetadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder>(
+                  (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) cleanupMetadata_,
+                  getParentForChildren(),
+                  isClean());
+          cleanupMetadata_ = null;
+        }
+        cleanupMetadataCase_ = 3;
+        return arbitraryCleanupMetadataBuilder_;
+      }
+
+      // @@protoc_insertion_point(builder_scope:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata)
+    }
+
+    static {
+      defaultInstance = new SchemaDependentTableMetadata(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata)
+  }
+
+  public interface NullCleanupMetadataOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.NullCleanupMetadata)
+      com.google.protobuf.MessageOrBuilder {
+  }
+  /**
+   * Protobuf type {@code com.palantir.atlasdb.protos.generated.NullCleanupMetadata}
+   *
+   * <pre>
+   * Used for tables without cleanup tasks.
+   * </pre>
+   */
+  public static final class NullCleanupMetadata extends
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.NullCleanupMetadata)
+      NullCleanupMetadataOrBuilder {
+    // Use NullCleanupMetadata.newBuilder() to construct.
+    private NullCleanupMetadata(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private NullCleanupMetadata(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final NullCleanupMetadata defaultInstance;
+    public static NullCleanupMetadata getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public NullCleanupMetadata getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private NullCleanupMetadata(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NullCleanupMetadata_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NullCleanupMetadata_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<NullCleanupMetadata> PARSER =
+        new com.google.protobuf.AbstractParser<NullCleanupMetadata>() {
+      public NullCleanupMetadata parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new NullCleanupMetadata(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<NullCleanupMetadata> getParserForType() {
+      return PARSER;
+    }
+
+    private void initFields() {
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code com.palantir.atlasdb.protos.generated.NullCleanupMetadata}
+     *
+     * <pre>
+     * Used for tables without cleanup tasks.
+     * </pre>
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.NullCleanupMetadata)
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadataOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NullCleanupMetadata_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NullCleanupMetadata_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.Builder.class);
+      }
+
+      // Construct using com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_NullCleanupMetadata_descriptor;
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata getDefaultInstanceForType() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance();
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata build() {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata buildPartial() {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata result = new com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata(this);
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) {
+          return mergeFrom((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata other) {
+        if (other == com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata.getDefaultInstance()) return this;
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.NullCleanupMetadata) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:com.palantir.atlasdb.protos.generated.NullCleanupMetadata)
+    }
+
+    static {
+      defaultInstance = new NullCleanupMetadata(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:com.palantir.atlasdb.protos.generated.NullCleanupMetadata)
+  }
+
+  public interface StreamStoreCleanupMetadataOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+     *
+     * <pre>
+     * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+     * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+     * </pre>
+     */
+    boolean hasV1Metadata();
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+     *
+     * <pre>
+     * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+     * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+     * </pre>
+     */
+    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata getV1Metadata();
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+     *
+     * <pre>
+     * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+     * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+     * </pre>
+     */
+    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1MetadataOrBuilder getV1MetadataOrBuilder();
+  }
+  /**
+   * Protobuf type {@code com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata}
+   *
+   * <pre>
+   * Used for stream store tables which have cleanup tasks.
+   * </pre>
+   */
+  public static final class StreamStoreCleanupMetadata extends
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata)
+      StreamStoreCleanupMetadataOrBuilder {
+    // Use StreamStoreCleanupMetadata.newBuilder() to construct.
+    private StreamStoreCleanupMetadata(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private StreamStoreCleanupMetadata(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final StreamStoreCleanupMetadata defaultInstance;
+    public static StreamStoreCleanupMetadata getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public StreamStoreCleanupMetadata getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private StreamStoreCleanupMetadata(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000001) == 0x00000001)) {
+                subBuilder = v1Metadata_.toBuilder();
+              }
+              v1Metadata_ = input.readMessage(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(v1Metadata_);
+                v1Metadata_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000001;
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupMetadata_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupMetadata_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<StreamStoreCleanupMetadata> PARSER =
+        new com.google.protobuf.AbstractParser<StreamStoreCleanupMetadata>() {
+      public StreamStoreCleanupMetadata parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new StreamStoreCleanupMetadata(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<StreamStoreCleanupMetadata> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    public static final int V1METADATA_FIELD_NUMBER = 1;
+    private com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata v1Metadata_;
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+     *
+     * <pre>
+     * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+     * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+     * </pre>
+     */
+    public boolean hasV1Metadata() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+     *
+     * <pre>
+     * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+     * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+     * </pre>
+     */
+    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata getV1Metadata() {
+      return v1Metadata_;
+    }
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+     *
+     * <pre>
+     * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+     * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+     * </pre>
+     */
+    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1MetadataOrBuilder getV1MetadataOrBuilder() {
+      return v1Metadata_;
+    }
+
+    private void initFields() {
+      v1Metadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.getDefaultInstance();
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeMessage(1, v1Metadata_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, v1Metadata_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata}
+     *
+     * <pre>
+     * Used for stream store tables which have cleanup tasks.
+     * </pre>
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata)
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadataOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupMetadata_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupMetadata_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.Builder.class);
+      }
+
+      // Construct using com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getV1MetadataFieldBuilder();
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        if (v1MetadataBuilder_ == null) {
+          v1Metadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.getDefaultInstance();
+        } else {
+          v1MetadataBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000001);
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupMetadata_descriptor;
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata getDefaultInstanceForType() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance();
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata build() {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata buildPartial() {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata result = new com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        if (v1MetadataBuilder_ == null) {
+          result.v1Metadata_ = v1Metadata_;
+        } else {
+          result.v1Metadata_ = v1MetadataBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) {
+          return mergeFrom((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata other) {
+        if (other == com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata.getDefaultInstance()) return this;
+        if (other.hasV1Metadata()) {
+          mergeV1Metadata(other.getV1Metadata());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupMetadata) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata v1Metadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1MetadataOrBuilder> v1MetadataBuilder_;
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+       *
+       * <pre>
+       * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+       * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+       * </pre>
+       */
+      public boolean hasV1Metadata() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+       *
+       * <pre>
+       * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+       * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+       * </pre>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata getV1Metadata() {
+        if (v1MetadataBuilder_ == null) {
+          return v1Metadata_;
+        } else {
+          return v1MetadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+       *
+       * <pre>
+       * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+       * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+       * </pre>
+       */
+      public Builder setV1Metadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata value) {
+        if (v1MetadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          v1Metadata_ = value;
+          onChanged();
+        } else {
+          v1MetadataBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00000001;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+       *
+       * <pre>
+       * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+       * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+       * </pre>
+       */
+      public Builder setV1Metadata(
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.Builder builderForValue) {
+        if (v1MetadataBuilder_ == null) {
+          v1Metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          v1MetadataBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00000001;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+       *
+       * <pre>
+       * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+       * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+       * </pre>
+       */
+      public Builder mergeV1Metadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata value) {
+        if (v1MetadataBuilder_ == null) {
+          if (((bitField0_ & 0x00000001) == 0x00000001) &&
+              v1Metadata_ != com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.getDefaultInstance()) {
+            v1Metadata_ =
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.newBuilder(v1Metadata_).mergeFrom(value).buildPartial();
+          } else {
+            v1Metadata_ = value;
+          }
+          onChanged();
+        } else {
+          v1MetadataBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00000001;
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+       *
+       * <pre>
+       * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+       * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+       * </pre>
+       */
+      public Builder clearV1Metadata() {
+        if (v1MetadataBuilder_ == null) {
+          v1Metadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.getDefaultInstance();
+          onChanged();
+        } else {
+          v1MetadataBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000001);
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+       *
+       * <pre>
+       * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+       * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+       * </pre>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.Builder getV1MetadataBuilder() {
+        bitField0_ |= 0x00000001;
+        onChanged();
+        return getV1MetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+       *
+       * <pre>
+       * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+       * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+       * </pre>
+       */
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1MetadataOrBuilder getV1MetadataOrBuilder() {
+        if (v1MetadataBuilder_ != null) {
+          return v1MetadataBuilder_.getMessageOrBuilder();
+        } else {
+          return v1Metadata_;
+        }
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata v1Metadata = 1;</code>
+       *
+       * <pre>
+       * Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+       * AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+       * </pre>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1MetadataOrBuilder> 
+          getV1MetadataFieldBuilder() {
+        if (v1MetadataBuilder_ == null) {
+          v1MetadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1MetadataOrBuilder>(
+                  getV1Metadata(),
+                  getParentForChildren(),
+                  isClean());
+          v1Metadata_ = null;
+        }
+        return v1MetadataBuilder_;
+      }
+
+      // @@protoc_insertion_point(builder_scope:com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata)
+    }
+
+    static {
+      defaultInstance = new StreamStoreCleanupMetadata(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:com.palantir.atlasdb.protos.generated.StreamStoreCleanupMetadata)
+  }
+
+  public interface StreamStoreCleanupV1MetadataOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional int32 numHashedRowComponents = 1 [default = 0];</code>
+     */
+    boolean hasNumHashedRowComponents();
+    /**
+     * <code>optional int32 numHashedRowComponents = 1 [default = 0];</code>
+     */
+    int getNumHashedRowComponents();
+
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+     */
+    boolean hasStreamIdType();
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+     */
+    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType getStreamIdType();
+  }
+  /**
+   * Protobuf type {@code com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata}
+   */
+  public static final class StreamStoreCleanupV1Metadata extends
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata)
+      StreamStoreCleanupV1MetadataOrBuilder {
+    // Use StreamStoreCleanupV1Metadata.newBuilder() to construct.
+    private StreamStoreCleanupV1Metadata(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private StreamStoreCleanupV1Metadata(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final StreamStoreCleanupV1Metadata defaultInstance;
+    public static StreamStoreCleanupV1Metadata getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public StreamStoreCleanupV1Metadata getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private StreamStoreCleanupV1Metadata(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 8: {
+              bitField0_ |= 0x00000001;
+              numHashedRowComponents_ = input.readInt32();
+              break;
+            }
+            case 16: {
+              int rawValue = input.readEnum();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType value = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(2, rawValue);
+              } else {
+                bitField0_ |= 0x00000002;
+                streamIdType_ = value;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<StreamStoreCleanupV1Metadata> PARSER =
+        new com.google.protobuf.AbstractParser<StreamStoreCleanupV1Metadata>() {
+      public StreamStoreCleanupV1Metadata parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new StreamStoreCleanupV1Metadata(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<StreamStoreCleanupV1Metadata> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    public static final int NUMHASHEDROWCOMPONENTS_FIELD_NUMBER = 1;
+    private int numHashedRowComponents_;
+    /**
+     * <code>optional int32 numHashedRowComponents = 1 [default = 0];</code>
+     */
+    public boolean hasNumHashedRowComponents() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional int32 numHashedRowComponents = 1 [default = 0];</code>
+     */
+    public int getNumHashedRowComponents() {
+      return numHashedRowComponents_;
+    }
+
+    public static final int STREAMIDTYPE_FIELD_NUMBER = 2;
+    private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType streamIdType_;
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+     */
+    public boolean hasStreamIdType() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+     */
+    public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType getStreamIdType() {
+      return streamIdType_;
+    }
+
+    private void initFields() {
+      numHashedRowComponents_ = 0;
+      streamIdType_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType.VAR_LONG;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeInt32(1, numHashedRowComponents_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeEnum(2, streamIdType_.getNumber());
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(1, numHashedRowComponents_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(2, streamIdType_.getNumber());
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata)
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1MetadataOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.Builder.class);
+      }
+
+      // Construct using com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        numHashedRowComponents_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        streamIdType_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType.VAR_LONG;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_descriptor;
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata getDefaultInstanceForType() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.getDefaultInstance();
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata build() {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata buildPartial() {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata result = new com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.numHashedRowComponents_ = numHashedRowComponents_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.streamIdType_ = streamIdType_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata) {
+          return mergeFrom((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata other) {
+        if (other == com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata.getDefaultInstance()) return this;
+        if (other.hasNumHashedRowComponents()) {
+          setNumHashedRowComponents(other.getNumHashedRowComponents());
+        }
+        if (other.hasStreamIdType()) {
+          setStreamIdType(other.getStreamIdType());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.StreamStoreCleanupV1Metadata) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private int numHashedRowComponents_ ;
+      /**
+       * <code>optional int32 numHashedRowComponents = 1 [default = 0];</code>
+       */
+      public boolean hasNumHashedRowComponents() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional int32 numHashedRowComponents = 1 [default = 0];</code>
+       */
+      public int getNumHashedRowComponents() {
+        return numHashedRowComponents_;
+      }
+      /**
+       * <code>optional int32 numHashedRowComponents = 1 [default = 0];</code>
+       */
+      public Builder setNumHashedRowComponents(int value) {
+        bitField0_ |= 0x00000001;
+        numHashedRowComponents_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 numHashedRowComponents = 1 [default = 0];</code>
+       */
+      public Builder clearNumHashedRowComponents() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        numHashedRowComponents_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType streamIdType_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType.VAR_LONG;
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+       */
+      public boolean hasStreamIdType() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+       */
+      public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType getStreamIdType() {
+        return streamIdType_;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+       */
+      public Builder setStreamIdType(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField0_ |= 0x00000002;
+        streamIdType_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .com.palantir.atlasdb.protos.generated.ValueType streamIdType = 2;</code>
+       */
+      public Builder clearStreamIdType() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        streamIdType_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueType.VAR_LONG;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata)
+    }
+
+    static {
+      defaultInstance = new StreamStoreCleanupV1Metadata(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:com.palantir.atlasdb.protos.generated.StreamStoreCleanupV1Metadata)
+  }
+
+  public interface ArbitraryCleanupMetadataOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata)
+      com.google.protobuf.MessageOrBuilder {
+  }
+  /**
+   * Protobuf type {@code com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata}
+   *
+   * <pre>
+   * Used for tables with arbitrary cleanup tasks.
+   * </pre>
+   */
+  public static final class ArbitraryCleanupMetadata extends
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata)
+      ArbitraryCleanupMetadataOrBuilder {
+    // Use ArbitraryCleanupMetadata.newBuilder() to construct.
+    private ArbitraryCleanupMetadata(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private ArbitraryCleanupMetadata(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final ArbitraryCleanupMetadata defaultInstance;
+    public static ArbitraryCleanupMetadata getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public ArbitraryCleanupMetadata getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private ArbitraryCleanupMetadata(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<ArbitraryCleanupMetadata> PARSER =
+        new com.google.protobuf.AbstractParser<ArbitraryCleanupMetadata>() {
+      public ArbitraryCleanupMetadata parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new ArbitraryCleanupMetadata(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ArbitraryCleanupMetadata> getParserForType() {
+      return PARSER;
+    }
+
+    private void initFields() {
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata}
+     *
+     * <pre>
+     * Used for tables with arbitrary cleanup tasks.
+     * </pre>
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata)
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadataOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.class, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.Builder.class);
+      }
+
+      // Construct using com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_descriptor;
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata getDefaultInstanceForType() {
+        return com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.getDefaultInstance();
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata build() {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata buildPartial() {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata result = new com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata(this);
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) {
+          return mergeFrom((com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata other) {
+        if (other == com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata.getDefaultInstance()) return this;
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.ArbitraryCleanupMetadata) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata)
+    }
+
+    static {
+      defaultInstance = new ArbitraryCleanupMetadata(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:com.palantir.atlasdb.protos.generated.ArbitraryCleanupMetadata)
+  }
+
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_palantir_atlasdb_protos_generated_SchemaMetadata_descriptor;
   private static
@@ -2673,15 +4947,35 @@ public final class SchemaMetadataPersistence {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadataEntry_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_palantir_atlasdb_protos_generated_TableReference_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_TableReference_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_palantir_atlasdb_protos_generated_TableReference_descriptor;
+    internal_static_com_palantir_atlasdb_protos_generated_NullCleanupMetadata_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_com_palantir_atlasdb_protos_generated_TableReference_fieldAccessorTable;
+      internal_static_com_palantir_atlasdb_protos_generated_NullCleanupMetadata_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupMetadata_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupMetadata_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -2693,22 +4987,36 @@ public final class SchemaMetadataPersistence {
     java.lang.String[] descriptorData = {
       "\nFmain/proto/com/palantir/atlasdb/protos" +
       "/SchemaMetadataPersistence.proto\022%com.pa" +
-      "lantir.atlasdb.protos.generated\"q\n\016Schem" +
-      "aMetadata\022_\n\rtableMetadata\030\001 \003(\0132H.com.p" +
-      "alantir.atlasdb.protos.generated.SchemaD" +
-      "ependentTableMetadataEntry\"\335\001\n!SchemaDep" +
-      "endentTableMetadataEntry\022M\n\016tableReferen" +
-      "ce\030\001 \001(\01325.com.palantir.atlasdb.protos.g" +
-      "enerated.TableReference\022i\n\034schemaDepende" +
-      "ntTableMetadata\030\002 \001(\0132C.com.palantir.atl",
-      "asdb.protos.generated.SchemaDependentTab" +
-      "leMetadata\"u\n\034SchemaDependentTableMetada" +
-      "ta\022U\n\022cleanupRequirement\030\001 \001(\01629.com.pal" +
-      "antir.atlasdb.protos.generated.CleanupRe" +
-      "quirement\"6\n\016TableReference\022\021\n\tnamespace" +
-      "\030\001 \001(\t\022\021\n\ttableName\030\002 \001(\t*9\n\022CleanupRequ" +
-      "irement\022\016\n\nNOT_NEEDED\020\000\022\023\n\017ARBITRARY_ASY" +
-      "NC\020@"
+      "lantir.atlasdb.protos.generated\032Emain/pr" +
+      "oto/com/palantir/atlasdb/protos/TableMet" +
+      "adataPersistence.proto\"q\n\016SchemaMetadata" +
+      "\022_\n\rtableMetadata\030\001 \003(\0132H.com.palantir.a" +
+      "tlasdb.protos.generated.SchemaDependentT" +
+      "ableMetadataEntry\"\335\001\n!SchemaDependentTab" +
+      "leMetadataEntry\022M\n\016tableReference\030\001 \001(\0132" +
+      "5.com.palantir.atlasdb.protos.generated.",
+      "TableReference\022i\n\034schemaDependentTableMe" +
+      "tadata\030\002 \001(\0132C.com.palantir.atlasdb.prot" +
+      "os.generated.SchemaDependentTableMetadat" +
+      "a\"6\n\016TableReference\022\021\n\tnamespace\030\001 \001(\t\022\021" +
+      "\n\ttableName\030\002 \001(\t\"\341\002\n\034SchemaDependentTab" +
+      "leMetadata\022[\n\025null_cleanup_metadata\030\001 \001(" +
+      "\0132:.com.palantir.atlasdb.protos.generate" +
+      "d.NullCleanupMetadataH\000\022j\n\035stream_store_" +
+      "cleanup_metadata\030\002 \001(\0132A.com.palantir.at" +
+      "lasdb.protos.generated.StreamStoreCleanu",
+      "pMetadataH\000\022e\n\032arbitrary_cleanup_metadat" +
+      "a\030\003 \001(\0132?.com.palantir.atlasdb.protos.ge" +
+      "nerated.ArbitraryCleanupMetadataH\000B\021\n\017cl" +
+      "eanupMetadata\"\025\n\023NullCleanupMetadata\"u\n\032" +
+      "StreamStoreCleanupMetadata\022W\n\nv1Metadata" +
+      "\030\001 \001(\0132C.com.palantir.atlasdb.protos.gen" +
+      "erated.StreamStoreCleanupV1Metadata\"\211\001\n\034" +
+      "StreamStoreCleanupV1Metadata\022!\n\026numHashe" +
+      "dRowComponents\030\001 \001(\005:\0010\022F\n\014streamIdType\030" +
+      "\002 \001(\01620.com.palantir.atlasdb.protos.gene",
+      "rated.ValueType\"\032\n\030ArbitraryCleanupMetad" +
+      "ata"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -2721,6 +5029,7 @@ public final class SchemaMetadataPersistence {
     com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor(),
         }, assigner);
     internal_static_com_palantir_atlasdb_protos_generated_SchemaMetadata_descriptor =
       getDescriptor().getMessageTypes().get(0);
@@ -2734,18 +5043,43 @@ public final class SchemaMetadataPersistence {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadataEntry_descriptor,
         new java.lang.String[] { "TableReference", "SchemaDependentTableMetadata", });
-    internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor =
-      getDescriptor().getMessageTypes().get(2);
-    internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor,
-        new java.lang.String[] { "CleanupRequirement", });
     internal_static_com_palantir_atlasdb_protos_generated_TableReference_descriptor =
-      getDescriptor().getMessageTypes().get(3);
+      getDescriptor().getMessageTypes().get(2);
     internal_static_com_palantir_atlasdb_protos_generated_TableReference_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_TableReference_descriptor,
         new java.lang.String[] { "Namespace", "TableName", });
+    internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor =
+      getDescriptor().getMessageTypes().get(3);
+    internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor,
+        new java.lang.String[] { "NullCleanupMetadata", "StreamStoreCleanupMetadata", "ArbitraryCleanupMetadata", "CleanupMetadata", });
+    internal_static_com_palantir_atlasdb_protos_generated_NullCleanupMetadata_descriptor =
+      getDescriptor().getMessageTypes().get(4);
+    internal_static_com_palantir_atlasdb_protos_generated_NullCleanupMetadata_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_NullCleanupMetadata_descriptor,
+        new java.lang.String[] { });
+    internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupMetadata_descriptor =
+      getDescriptor().getMessageTypes().get(5);
+    internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupMetadata_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupMetadata_descriptor,
+        new java.lang.String[] { "V1Metadata", });
+    internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_descriptor =
+      getDescriptor().getMessageTypes().get(6);
+    internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_StreamStoreCleanupV1Metadata_descriptor,
+        new java.lang.String[] { "NumHashedRowComponents", "StreamIdType", });
+    internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_descriptor =
+      getDescriptor().getMessageTypes().get(7);
+    internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_com_palantir_atlasdb_protos_generated_ArbitraryCleanupMetadata_descriptor,
+        new java.lang.String[] { });
+    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor();
   }
 
   // @@protoc_insertion_point(outer_class_scope)
