@@ -56,7 +56,4 @@ public interface CellWithTimestamps {
                 .isLatestValueEmpty(latestValueEmpty)
                 .build();
     }
-
-
-
 }
