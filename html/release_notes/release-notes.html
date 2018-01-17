@@ -200,15 +200,59 @@
 <td>Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2872">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-73-0">
+<h2>v0.73.0<a class="headerlink" href="#v0-73-0" title="Permalink to this headline">¶</a></h2>
+<p>16 January 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>On Cassandra KVS, sweep reads data from Cassandra in parallel, resulting in improved performance.
 The parallelism can be changed by adjusting <code class="docutils literal"><span class="pre">sweepReadThreads</span></code> in Cassandra KVS config (default 16).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2860">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now throws an error during schema code generation stage if index table name length exceeds KVS table name length limits.
 To override this, please specify <code class="docutils literal"><span class="pre">ignoreTableNameLengthChecks()</span></code> on your schema.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2862">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-73-0-rc2">
+<h2>v0.73.0-rc2<a class="headerlink" href="#v0-73-0-rc2" title="Permalink to this headline">¶</a></h2>
+<p>12 January 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Qos Service: AtlasDB now supports a QosService which can rate-limit clients.
+Please note that this feature is currently experimental; if you wish to use it, please contact the AtlasDB team.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2700">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>The JDBC URL for Oracle can now be overridden in the configuration.
+The parameter path is <code class="docutils literal"><span class="pre">keyValueService/connection/url</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2837">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -229,57 +273,50 @@ To override this, please specify <code class="docutils literal"><span class="pre
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>Allow StreamStore table names to be marked as safe. This will make StreamStore tables appear correctly on our logs and metrics.
-When building a StreamStore, please use <cite>.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)</cite> to mark the table name as safe.
+When building a StreamStore, please use <code class="docutils literal"><span class="pre">.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)</span></code> to mark the table name as safe.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2835">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>Qos Service: AtlasDB now provides a QosService to rate-limit clients. You can set up per-client node read and write limits
-for each of the services in the QosService and that will be enforced for all reads and writes to Cassandra. The QoS service
-has knowledge of the Casandra health and can scale up/down the configured limits. Note that the default limits enforced
-by the QoS service is 10MB/s for reads and 5MB/s for writes.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2729">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>For clarity, we renamed <cite>ForwardingLockService</cite> to <cite>SimplifyingLockService</cite>, since this class also overwrote some of its parents methods.
-Also, its <cite>delegate</cite> methods now is public.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2729">Pull Request</a>)</td>
-</tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2823">Pull Request</a>)</td>
+<td>Sweep stats are updated more often when large writes are being made.
+<code class="docutils literal"><span class="pre">SweepStatsKVS</span></code> now tracks the size of modifications being made to the underlying KVS and will write when a threshold is passed.
+Previously, sweep stats were updated every 65536 writes, but this could be a significant amount of data if written to the stream store.
+We now also track the size of the writes and if this is greater than 1GB, we flush the stats.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2792">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Improvements to how sweep prioritises which tables to sweep; should allow better reclaiming of space from stream stores.
+Stream store value tables are now more likely to be chosen because they contain lots of data per write.
+We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.
+We wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2793">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">SweepResults.getCellTsPairsExamined</span></code> now returns the correct result when sweep is run over multiple batches.
+Previously, the result would only count cell-ts pairs examined in the last batch.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2830">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Further reduced memory pressure on sweep for Cassandra KVS, by rewriting one of the CQL queries.
 This removes a significant cause of occurrences of Cassandra OOMs that have been seen in the field recently.
-However, performance is significantly degraded on tables with few columns and few overwrites.
+However, performance is significantly degraded on tables with few columns and few overwrites (fixed in 0.73.0).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2826">Pull Request 1</a> and <a class="reference external" href="https://github.com/palantir/atlasdb/pull/2826">Pull Request 2</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Sweep stats are updated more often when large writes are being made.
-<code class="docutils literal"><span class="pre">SweepStatsKVS</span></code> now tracks the size of modifications being made to the underlying KVS and will write when a threshold is passed.  Previously sweep stats were updated every 65536 writes, but this could be a significant amount of data if written to the stream store.  We now also track the size of the writes and if this is greater than 1GB we flush the stats.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2792">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Improvements to how sweep prioritises which tables to sweep, should allow better reclaiming of space from stream stores.
-Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2793">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>Safe and Unsafe table name logging args are now different, fixed unreleased bug where tables names were logged as Safe
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2838">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span></td>
-<td>Messages to the <cite>slow-lock-log</cite> now log at <cite>WARN</cite> rather than <cite>INFO</cite>, these messages can indicate a problem so we should be sure they are visible.
+<td>Messages to the <code class="docutils literal"><span class="pre">slow-lock-log</span></code> now log at <code class="docutils literal"><span class="pre">WARN</span></code> rather than <code class="docutils literal"><span class="pre">INFO</span></code>, these messages can indicate a problem so we should be sure they are visible.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2828">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>SweepResults.getCellTsPairsExamined now returns the correct result when sweep is run over multiple batches.
-Previously, the result would only count cell-ts pairs examined in the last batch.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2830">Pull Request</a>)</td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>For clarity, we renamed <code class="docutils literal"><span class="pre">ForwardingLockService</span></code> to <code class="docutils literal"><span class="pre">SimplifyingLockService</span></code>, since this class also overwrote some of its parent’s methods.
+Also, its <code class="docutils literal"><span class="pre">delegate</span></code> method is now public.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2729">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>The JDBC URL for Oracle can now be overridden in the configuration.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2837">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2823">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.

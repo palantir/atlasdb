@@ -54,6 +54,19 @@ develop
          - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
 
+=======
+v0.73.0
+=======
+
+16 January 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - On Cassandra KVS, sweep reads data from Cassandra in parallel, resulting in improved performance.
            The parallelism can be changed by adjusting ``sweepReadThreads`` in Cassandra KVS config (default 16).
@@ -63,6 +76,29 @@ develop
          - AtlasDB now throws an error during schema code generation stage if index table name length exceeds KVS table name length limits.
            To override this, please specify ``ignoreTableNameLengthChecks()`` on your schema.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2862>`__)
+
+===========
+v0.73.0-rc2
+===========
+
+12 January 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak|
+         - Qos Service: AtlasDB now supports a QosService which can rate-limit clients.
+           Please note that this feature is currently experimental; if you wish to use it, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2700>`__)
+
+    *    - |new|
+         - The JDBC URL for Oracle can now be overridden in the configuration.
+           The parameter path is ``keyValueService/connection/url``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
 
 ===========
 v0.73.0-rc1
@@ -79,57 +115,50 @@ v0.73.0-rc1
 
     *    - |improved| |logs| |metrics|
          - Allow StreamStore table names to be marked as safe. This will make StreamStore tables appear correctly on our logs and metrics.
-           When building a StreamStore, please use `.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)` to mark the table name as safe.
+           When building a StreamStore, please use ``.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)`` to mark the table name as safe.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2835>`__)
 
-    *    - |devbreak|
-         - Qos Service: AtlasDB now provides a QosService to rate-limit clients. You can set up per-client node read and write limits
-           for each of the services in the QosService and that will be enforced for all reads and writes to Cassandra. The QoS service
-           has knowledge of the Casandra health and can scale up/down the configured limits. Note that the default limits enforced
-           by the QoS service is 10MB/s for reads and 5MB/s for writes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)
-
-    *    - |devbreak|
-         - For clarity, we renamed `ForwardingLockService` to `SimplifyingLockService`, since this class also overwrote some of its parents methods.
-           Also, its `delegate` methods now is public.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)
+    *    - |improved|
+         - Sweep stats are updated more often when large writes are being made.
+           ``SweepStatsKVS`` now tracks the size of modifications being made to the underlying KVS and will write when a threshold is passed.
+           Previously, sweep stats were updated every 65536 writes, but this could be a significant amount of data if written to the stream store.
+           We now also track the size of the writes and if this is greater than 1GB, we flush the stats.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2792>`__)
 
     *    - |improved|
-         - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
+         - Improvements to how sweep prioritises which tables to sweep; should allow better reclaiming of space from stream stores.
+           Stream store value tables are now more likely to be chosen because they contain lots of data per write.
+           We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.
+           We wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2793>`__)
+
+    *    - |fixed|
+         - ``SweepResults.getCellTsPairsExamined`` now returns the correct result when sweep is run over multiple batches.
+           Previously, the result would only count cell-ts pairs examined in the last batch.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
 
     *    - |fixed|
          - Further reduced memory pressure on sweep for Cassandra KVS, by rewriting one of the CQL queries.
            This removes a significant cause of occurrences of Cassandra OOMs that have been seen in the field recently.
-           However, performance is significantly degraded on tables with few columns and few overwrites.
+           However, performance is significantly degraded on tables with few columns and few overwrites (fixed in 0.73.0).
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2826>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2826>`__)
-
-    *    - |improved|
-         - Sweep stats are updated more often when large writes are being made.
-           ``SweepStatsKVS`` now tracks the size of modifications being made to the underlying KVS and will write when a threshold is passed.  Previously sweep stats were updated every 65536 writes, but this could be a significant amount of data if written to the stream store.  We now also track the size of the writes and if this is greater than 1GB we flush the stats.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2792>`__)
-
-    *    - |improved|
-         - Improvements to how sweep prioritises which tables to sweep, should allow better reclaiming of space from stream stores.
-           Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2793>`__)
 
     *    - |fixed| |logs|
          - Safe and Unsafe table name logging args are now different, fixed unreleased bug where tables names were logged as Safe
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2838>`__)
 
     *    - |logs|
-         - Messages to the `slow-lock-log` now log at `WARN` rather than `INFO`, these messages can indicate a problem so we should be sure they are visible.
+         - Messages to the ``slow-lock-log`` now log at ``WARN`` rather than ``INFO``, these messages can indicate a problem so we should be sure they are visible.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2828>`__)
 
-    *    - |fixed|
-         - SweepResults.getCellTsPairsExamined now returns the correct result when sweep is run over multiple batches.
-           Previously, the result would only count cell-ts pairs examined in the last batch.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
+    *    - |devbreak|
+         - For clarity, we renamed ``ForwardingLockService`` to ``SimplifyingLockService``, since this class also overwrote some of its parent's methods.
+           Also, its ``delegate`` method is now public.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)
 
-    *    - |new|
-         - The JDBC URL for Oracle can now be overridden in the configuration.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
+    *    - |improved|
+         - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
 
     *    - |fixed|
          - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
