@@ -54,6 +54,10 @@ develop
          - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
 
+    *    - |improved|
+         - Refactored internals of CassandraClientPool, no functional change expected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2876>`__)
+
 =======
 v0.73.0
 =======

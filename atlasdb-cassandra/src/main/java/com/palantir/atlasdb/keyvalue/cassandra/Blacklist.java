@@ -34,13 +34,13 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-class Blacklist {
+public class Blacklist {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
     private final CassandraKeyValueServiceConfig config;
     private Map<InetSocketAddress, Long> blacklist;
 
-    Blacklist(CassandraKeyValueServiceConfig config) {
+    public Blacklist(CassandraKeyValueServiceConfig config) {
         this.config = config;
         this.blacklist = Maps.newConcurrentMap();
     }
@@ -79,7 +79,7 @@ class Blacklist {
         }
     }
 
-    Set<InetSocketAddress> filterBlacklistedHostsFrom(Collection<InetSocketAddress> potentialHosts) {
+    public Set<InetSocketAddress> filterBlacklistedHostsFrom(Collection<InetSocketAddress> potentialHosts) {
         return Sets.difference(ImmutableSet.copyOf(potentialHosts), blacklist.keySet());
     }
 
@@ -87,7 +87,7 @@ class Blacklist {
         return blacklist.containsKey(host);
     }
 
-    void add(InetSocketAddress host) {
+    public void add(InetSocketAddress host) {
         blacklist.put(host, System.currentTimeMillis());
         log.warn("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
     }
@@ -96,7 +96,7 @@ class Blacklist {
         hosts.forEach(this::add);
     }
 
-    void remove(InetSocketAddress host) {
+    public void remove(InetSocketAddress host) {
         blacklist.remove(host);
     }
 
@@ -108,11 +108,11 @@ class Blacklist {
         return blacklist.size();
     }
 
-    String describeBlacklistedHosts() {
+    public String describeBlacklistedHosts() {
         return blacklist.keySet().toString();
     }
 
-    List<String> blacklistDetails() {
+    public List<String> blacklistDetails() {
         return blacklist.entrySet().stream()
                 .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
                         CassandraLogHelper.host(blacklistedHostToBlacklistTime.getKey()),
