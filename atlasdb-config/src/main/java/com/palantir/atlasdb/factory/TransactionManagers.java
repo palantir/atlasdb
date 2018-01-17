@@ -537,7 +537,7 @@ public abstract class TransactionManagers {
             AtlasDbRuntimeConfig initialRuntimeConfig) {
         // Note: The other direction (timelock install config without a runtime block) should be maintained for
         // backwards compatibility.
-        if (timestampOrLockOrLeaderBlockPresent(config) && initialRuntimeConfig.timelockRuntime().isPresent()) {
+        if (remoteTimestampAndLockOrLeaderBlocksPresent(config) && initialRuntimeConfig.timelockRuntime().isPresent()) {
             throw new IllegalStateException("Found a service configured not to use timelock, with a timelock"
                     + " block in the runtime config! This is unexpected. If you wish to use non-timelock services,"
                     + " please remove the timelock block from the runtime config; if you wish to use timelock,"
@@ -545,8 +545,8 @@ public abstract class TransactionManagers {
         }
     }
 
-    private static boolean timestampOrLockOrLeaderBlockPresent(AtlasDbConfig config) {
-        return config.timestamp().isPresent() || config.lock().isPresent() || config.leader().isPresent();
+    private static boolean remoteTimestampAndLockOrLeaderBlocksPresent(AtlasDbConfig config) {
+        return (config.timestamp().isPresent() && config.lock().isPresent()) || config.leader().isPresent();
     }
 
     private static LockAndTimestampServices createRawServicesFromTimeLock(
@@ -567,7 +567,7 @@ public abstract class TransactionManagers {
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        Preconditions.checkState(!timestampOrLockOrLeaderBlockPresent(config),
+        Preconditions.checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
                 "Cannot create raw services from timelock with another source of timestamps/locks configured!");
         TimeLockClientConfig clientConfig = config.timelock().orElse(ImmutableTimeLockClientConfig.builder().build());
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());

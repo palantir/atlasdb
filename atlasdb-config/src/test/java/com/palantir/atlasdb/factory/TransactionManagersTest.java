@@ -73,7 +73,6 @@ import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
@@ -145,7 +144,6 @@ public class TransactionManagersTest {
     private int availablePort;
     private TimeLockClientConfig mockClientConfig;
     private ServerListConfig rawRemoteServerConfig;
-    private TimeLockRuntimeConfig mockTimelockRuntimeConfig;
 
     private AtlasDbConfig config;
     private AtlasDbRuntimeConfig runtimeConfig;
@@ -209,9 +207,6 @@ public class TransactionManagersTest {
         mockClientConfig = getTimelockConfigForServers(ImmutableList.of(getUriForPort(availablePort)));
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
-                .build();
-        mockTimelockRuntimeConfig = ImmutableTimeLockRuntimeConfig.builder()
-                .serversList(rawRemoteServerConfig)
                 .build();
         configSupplier = () -> Optional.of(runtimeConfig);
     }
@@ -433,7 +428,7 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void usesTimeLockIfInstallConfigIsEmbeddedButInitialRuntimeConfigContainsTimeLockBlock() {
+    public void usesTimeLockIfInstallConfigIsUnspecifiedButInitialRuntimeConfigContainsTimeLockBlock() {
         setUpTimeLockBlockInRuntimeConfig();
         verifyUsingTimeLockByGettingAFreshTimestamp();
     }
@@ -508,7 +503,10 @@ public class TransactionManagersTest {
     }
 
     private void setUpTimeLockBlockInRuntimeConfig() {
-        when(runtimeConfig.timelockRuntime()).thenReturn(Optional.of(mockTimelockRuntimeConfig));
+        when(runtimeConfig.timelockRuntime()).thenReturn(
+                Optional.of(ImmutableTimeLockRuntimeConfig.builder()
+                        .serversList(rawRemoteServerConfig)
+                        .build()));
     }
 
     private void setUpRemoteTimestampAndLockBlocksInConfig() {
