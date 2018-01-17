@@ -117,7 +117,7 @@ develop
            This is a change from previous behaviour in cases where users specified an embedded install configuration but a TimeLock block in the runtime configuration; previously, the embedded configuration would have been selected, while now the TimeLock configuration will be selected.
 
            Also, users with scripts that depend on supplying a default runtime configuration may need to be careful to ensure that TimeLock configuration is preserved when such scripts are run.
-           That said, AtlasDB will fail to start if trying to access a database that uses TimeLock without going through TimeLock, so we don't think there is a risk of data corruption.
+           That said, AtlasDB will fail to start if trying to access a key-value service where TimeLock has been used as a source of timestamps without going through TimeLock, so we don't think there is a risk of data corruption.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
 
     *    - |new|
