@@ -91,10 +91,7 @@ v0.73.0-rc2
          - Change
 
     *    - |devbreak|
-         - Qos Service: AtlasDB now provides a QosService to rate-limit clients. You can set up per-client node read and write limits
-           for each of the services in the QosService and that will be enforced for all reads and writes to Cassandra. The QoS service
-           has knowledge of the Casandra health and can scale up/down the configured limits. Note that the default limits enforced
-           by the QoS service is 50MB/s for reads and 10MB/s for writes.
+         - Qos Service: AtlasDB now supports a QosService which can rate-limit clients.
            Please note that this feature is currently experimental; if you wish to use it, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2700>`__)
 
