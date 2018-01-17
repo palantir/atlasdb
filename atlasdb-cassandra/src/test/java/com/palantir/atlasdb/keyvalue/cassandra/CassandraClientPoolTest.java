@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -25,7 +24,6 @@ import static org.mockito.Mockito.when;
 
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -71,81 +69,6 @@ public class CassandraClientPoolTest {
         when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
 
         blacklist = new Blacklist(config);
-    }
-
-    @Test
-    public void shouldReturnAddressForSingleHostInPool() throws UnknownHostException {
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
-
-        InetSocketAddress resolvedHost = cassandraClientPool.getAddressForHost(HOSTNAME_1);
-
-        assertThat(resolvedHost, equalTo(HOST_1));
-    }
-
-    @Test
-    public void shouldReturnAddressForSingleServer() throws UnknownHostException {
-        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1));
-
-        InetSocketAddress resolvedHost = cassandraClientPool.getAddressForHost(HOSTNAME_1);
-
-        assertThat(resolvedHost, equalTo(HOST_1));
-    }
-
-    @Test
-    public void shouldUseCommonPortIfThereIsOnlyOneAndNoAddressMatches() throws UnknownHostException {
-        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
-
-        InetSocketAddress resolvedHost = cassandraClientPool.getAddressForHost(HOSTNAME_3);
-
-        assertThat(resolvedHost, equalTo(new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT)));
-    }
-
-
-    @Test(expected = UnknownHostException.class)
-    public void shouldThrowIfPortsAreNotTheSameAddressDoesNotMatch() throws UnknownHostException {
-        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, OTHER_PORT);
-
-        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, host2));
-
-        cassandraClientPool.getAddressForHost(HOSTNAME_3);
-    }
-
-    @Test
-    public void shouldReturnAbsentIfPredicateMatchesNoServers() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
-
-        Optional<CassandraClientPoolingContainer> container
-                = cassandraClientPool.getRandomGoodHostForPredicate(address -> false);
-        assertThat(container.isPresent(), is(false));
-    }
-
-    @Test
-    public void shouldOnlyReturnHostsMatchingPredicate() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
-                ImmutableSet.of(HOST_1, HOST_2));
-
-        int numTrials = 50;
-        for (int i = 0; i < numTrials; i++) {
-            Optional<CassandraClientPoolingContainer> container
-                    = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
-            assertContainerHasHostOne(container);
-        }
-    }
-
-    @Test
-    public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
-                ImmutableSet.of(HOST_1, HOST_2));
-        blacklist.add(HOST_1);
-        Optional<CassandraClientPoolingContainer> container
-                = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
-        assertContainerHasHostOne(container);
-    }
-
-    @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "ConstantConditions"})
-    private void assertContainerHasHostOne(Optional<CassandraClientPoolingContainer> container) {
-        assertThat(container.isPresent(), is(true));
-        assertThat(container.get().getHost(), equalTo(HOST_1));
     }
 
     @Test
@@ -294,7 +217,8 @@ public class CassandraClientPoolTest {
                         blacklist);
 
         serversInPool.forEach(address ->
-                cassandraClientPool.addPool(address, getMockPoolingContainerForHost(address, failureMode)));
+                cassandraClientPool.getCurrentPools()
+                        .put(address, getMockPoolingContainerForHost(address, failureMode)));
 
         return cassandraClientPool;
     }
