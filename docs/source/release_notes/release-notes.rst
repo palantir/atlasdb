@@ -99,6 +99,7 @@ v0.73.0-rc2
 
     *    - |new|
          - The JDBC URL for Oracle can now be overridden in the configuration.
+           The parameter path is ``keyValueService/connection/url``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
 
 ===========
