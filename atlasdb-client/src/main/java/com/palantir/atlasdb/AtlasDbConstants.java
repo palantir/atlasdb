@@ -113,6 +113,7 @@ public final class AtlasDbConstants {
     public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 128;
     public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 128;
     public static final int DEFAULT_SWEEP_READ_LIMIT = 128;
+    public static final int DEFAULT_SWEEP_CASSANDRA_READ_THREADS = 16;
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 

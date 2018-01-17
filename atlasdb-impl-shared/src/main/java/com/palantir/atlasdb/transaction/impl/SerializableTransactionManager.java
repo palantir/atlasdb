@@ -23,6 +23,7 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -89,7 +90,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     // TODO(ssouza): it's hard to change the interface of STM with this.
     // We should extract interfaces and delete this hack.
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, null, () -> 1L, false, null, 1, 1);
+        this(null, null, null, null, null, null, null, null, null, () -> 1L, false, null, 1, 1, SweepQueueWriter.NO_OP);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,
@@ -106,7 +107,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
-            Supplier<Long> timestampCacheSize) {
+            Supplier<Long> timestampCacheSize,
+            SweepQueueWriter sweepQueueWriter) {
         TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
                 timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
@@ -123,7 +125,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                sweepQueueWriter);
 
         return initializeAsync
                 ? new InitializeCheckingWrapper(serializableTransactionManager, initializationPrerequisite)
@@ -155,7 +158,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                SweepQueueWriter.NO_OP);
     }
 
     /**
@@ -191,7 +195,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 allowHiddenTableAccess,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency
+                defaultGetRangesConcurrency,
+                SweepQueueWriter.NO_OP
         );
     }
 
@@ -209,7 +214,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency) {
+            int defaultGetRangesConcurrency,
+            SweepQueueWriter sweepQueueWriter) {
         super(
                 keyValueService,
                 timelockService,
@@ -224,7 +230,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 timestampTracker,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
-                timestampCacheSize);
+                timestampCacheSize,
+                sweepQueueWriter);
     }
 
     @Override
@@ -250,7 +257,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                sweepQueueWriter);
     }
 
 }

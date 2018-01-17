@@ -33,6 +33,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
@@ -59,7 +60,8 @@ public class SnapshotTransactionManagerTest {
             TimestampTrackerImpl.createNoOpTracker(),
             TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+            SweepQueueWriter.NO_OP);
 
     @Test
     public void isAlwaysInitialized() {
@@ -101,7 +103,8 @@ public class SnapshotTransactionManagerTest {
                 TimestampTrackerImpl.createNoOpTracker(),
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                SweepQueueWriter.NO_OP);
         newTransactionManager.close(); // should not throw
     }
 

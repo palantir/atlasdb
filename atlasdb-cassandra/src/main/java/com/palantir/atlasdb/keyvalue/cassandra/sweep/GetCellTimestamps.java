@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.KeyRange;
@@ -28,12 +29,14 @@ import org.apache.cassandra.thrift.SlicePredicate;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
+import com.palantir.common.concurrent.PTExecutors;
 
 public class GetCellTimestamps {
 
@@ -42,6 +45,7 @@ public class GetCellTimestamps {
     private final TableReference tableRef;
     private final byte[] startRowInclusive;
     private final int batchHint;
+    private CassandraKeyValueServiceConfig config;
 
     private final Collection<CellWithTimestamp> timestamps = Lists.newArrayList();
 
@@ -50,12 +54,14 @@ public class GetCellTimestamps {
             RowGetter rowGetter,
             TableReference tableRef,
             byte[] startRowInclusive,
-            int batchHint) {
+            int batchHint,
+            CassandraKeyValueServiceConfig config) {
         this.cqlExecutor = cqlExecutor;
         this.rowGetter = rowGetter;
         this.tableRef = tableRef;
         this.startRowInclusive = startRowInclusive;
         this.batchHint = batchHint;
+        this.config = config;
     }
 
     /**
@@ -94,6 +100,9 @@ public class GetCellTimestamps {
     private void fetchBatchOfTimestampsBeginningAtStartRow() {
         byte[] rangeStart = startRowInclusive;
 
+        Integer executorThreads = config.sweepReadThreads();
+        ExecutorService executor = PTExecutors.newFixedThreadPool(executorThreads);
+
         while (timestamps.isEmpty()) {
             List<byte[]> rows = getRows(rangeStart);
             if (rows.isEmpty()) {
@@ -101,10 +110,13 @@ public class GetCellTimestamps {
             }
 
             // Note that both ends of this range are *inclusive*
-            List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rows, batchHint);
+            List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rows, batchHint, executor,
+                    executorThreads);
             timestamps.addAll(batch);
             rangeStart = RangeRequests.nextLexicographicName(Iterables.getLast(rows));
         }
+
+        executor.shutdown();
     }
 
     private List<byte[]> getRows(byte[] rangeStart) {

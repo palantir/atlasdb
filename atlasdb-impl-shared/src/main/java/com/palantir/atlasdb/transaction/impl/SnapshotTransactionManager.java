@@ -32,6 +32,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
@@ -66,6 +67,7 @@ import com.palantir.timestamp.TimestampService;
     final ExecutorService getRangesExecutor;
     final TimestampTracker timestampTracker;
     final int defaultGetRangesConcurrency;
+    final SweepQueueWriter sweepQueueWriter;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -84,7 +86,8 @@ import com.palantir.timestamp.TimestampService;
             TimestampTracker timestampTracker,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            Supplier<Long> timestampCacheSize) {
+            Supplier<Long> timestampCacheSize,
+            SweepQueueWriter sweepQueueWriter) {
         super(timestampCacheSize);
 
         this.keyValueService = keyValueService;
@@ -102,6 +105,7 @@ import com.palantir.timestamp.TimestampService;
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
         this.timestampTracker = timestampTracker;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.sweepQueueWriter = sweepQueueWriter;
     }
 
     @Override
@@ -182,7 +186,8 @@ import com.palantir.timestamp.TimestampService;
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                sweepQueueWriter);
     }
 
     @Override
@@ -214,7 +219,8 @@ import com.palantir.timestamp.TimestampService;
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                sweepQueueWriter::enqueue);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));
