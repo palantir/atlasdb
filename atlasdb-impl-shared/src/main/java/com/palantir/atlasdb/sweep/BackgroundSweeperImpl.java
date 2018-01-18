@@ -36,6 +36,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -133,7 +134,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
             sweepOutcomeMetrics.shutdown();
         } catch (Throwable t) {
-            log.error("BackgroundSweeper failed fatally and will not rerun until restarted", t);
+            log.error("BackgroundSweeper failed fatally and will not rerun until restarted: {}",
+                    UnsafeArg.of("message", t.getMessage()), t);
             sweepOutcomeMetrics.fatal();
         }
     }
