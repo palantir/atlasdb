@@ -108,36 +108,36 @@ public class SchemaMetadataServiceImplTest {
     }
 
     @Test
-    public void canDecommissionSchema() {
+    public void canDeleteSchemaMetadata() {
         schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
-        schemaMetadataService.decommissionSchema(SCHEMA_NAME_ONE);
+        schemaMetadataService.deleteSchemaMetadata(SCHEMA_NAME_ONE);
         assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).isEmpty();
     }
 
     @Test
-    public void canDecommissionAndRecommissionSchema() {
+    public void canDeleteAndRestoreSchemaMetadata() {
         IntStream.range(0, 10)
                 .forEach(index -> {
                     SchemaMetadata metadataToPut = index % 2 == 0 ? SCHEMA_METADATA_ONE : SCHEMA_METADATA_TWO;
                     schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, metadataToPut);
                     assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE))
                             .contains(metadataToPut);
-                    schemaMetadataService.decommissionSchema(SCHEMA_NAME_ONE);
+                    schemaMetadataService.deleteSchemaMetadata(SCHEMA_NAME_ONE);
                     assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).isEmpty();
                 });
     }
 
     @Test
-    public void canDecommissionSchemaThatIsNotPresent() {
-        schemaMetadataService.decommissionSchema("should not exist");
+    public void canDeleteSchemaMetadataThatIsNotPresent() {
+        schemaMetadataService.deleteSchemaMetadata("should not exist");
         // pass
     }
 
     @Test
-    public void decommissionIsIdempotent() {
+    public void deleteIsIdempotent() {
         schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
-        schemaMetadataService.decommissionSchema(SCHEMA_NAME_ONE);
-        schemaMetadataService.decommissionSchema(SCHEMA_NAME_ONE);
+        schemaMetadataService.deleteSchemaMetadata(SCHEMA_NAME_ONE);
+        schemaMetadataService.deleteSchemaMetadata(SCHEMA_NAME_ONE);
         assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).isEmpty();
     }
 
