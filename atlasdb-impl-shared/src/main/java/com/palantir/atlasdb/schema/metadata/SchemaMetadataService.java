@@ -55,6 +55,13 @@ public interface SchemaMetadataService {
     void deleteSchemaMetadata(String schemaName);
 
     /**
+     * Returns true if and only if the Schema Metadata Service has completed its initialization, and is prepared
+     * to service requests.
+     *
+     * Note that this does not guarantee that requests can actually be serviced. For example, if the schema metadata
+     * service was able to start but then the key value service became unavailable, calls to other methods will
+     * still fail even though this method can return true.
+     *
      * @return true iff the Schema Metadata Service has completed initialization and is prepared to service requests
      */
     boolean isInitialized();
