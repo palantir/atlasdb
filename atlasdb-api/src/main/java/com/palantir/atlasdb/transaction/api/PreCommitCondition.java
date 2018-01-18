@@ -28,7 +28,7 @@ public interface PreCommitCondition {
      * Cleans up any state managed by this condition, e.g. a lock that should be held for the lifetime of the
      * transaction. Conditions last the lifetime of a particular transaction and will be cleaned up on each retry.
      *
-     * The cleanup method should not throw any exceptions - it should be best effort. When this method has called,
+     * The cleanup method should not throw any exceptions - it should be best effort. When this method is called,
      * the transaction has already failed or committed.
      */
     void cleanup();
