@@ -41,7 +41,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = SchemaMetadataService.class)
-public class SchemaMetadataServiceImpl implements SchemaMetadataService {
+public final class SchemaMetadataServiceImpl implements SchemaMetadataService {
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SchemaMetadataService {
         @Override
@@ -150,8 +150,8 @@ public class SchemaMetadataServiceImpl implements SchemaMetadataService {
     private Optional<byte[]> loadMetadataCellFromKeyValueService(String schemaName) {
         Map<Cell, Value> kvsData = keyValueService.get(AtlasDbConstants.DEFAULT_SCHEMA_METADATA_TABLE,
                 ImmutableMap.of(createCellForGivenSchemaName(schemaName), QUERY_TIMESTAMP));
-        return kvsData.isEmpty() ?
-                Optional.empty() :
-                Optional.of(Iterables.getOnlyElement(kvsData.values()).getContents());
+        return kvsData.isEmpty()
+                ? Optional.empty()
+                : Optional.of(Iterables.getOnlyElement(kvsData.values()).getContents());
     }
 }

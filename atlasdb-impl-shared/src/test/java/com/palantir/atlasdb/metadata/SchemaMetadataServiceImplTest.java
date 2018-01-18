@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.util.Map;
@@ -41,20 +42,18 @@ import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.exception.NotInitializedException;
 
 public class SchemaMetadataServiceImplTest {
-    private final SchemaMetadataService SCHEMA_METADATA_SERVICE = SchemaMetadataServiceImpl.create(
-            new InMemoryKeyValueService(true),
-            false);
-
-    private final String SCHEMA_NAME_ONE = "one";
-    private final SchemaMetadata SCHEMA_METADATA_ONE =
+    private static final String SCHEMA_NAME_ONE = "one";
+    private static final SchemaMetadata SCHEMA_METADATA_ONE =
             ImmutableSchemaMetadata.builder().putSchemaDependentTableMetadata(
                     TableReference.create(Namespace.EMPTY_NAMESPACE, "tableOne"),
-                    ImmutableSchemaDependentTableMetadata.builder().cleanupMetadata(new NullCleanupMetadata()).build()).build();
+                    ImmutableSchemaDependentTableMetadata.builder()
+                            .cleanupMetadata(new NullCleanupMetadata()).build()).build();
 
-    private final String SCHEMA_NAME_TWO = "two";
-    private final SchemaMetadata SCHEMA_METADATA_TWO =
+    private static final String SCHEMA_NAME_TWO = "two";
+    private static final SchemaMetadata SCHEMA_METADATA_TWO =
             ImmutableSchemaMetadata.builder().putSchemaDependentTableMetadata(
                     TableReference.create(Namespace.EMPTY_NAMESPACE, "tableTwo"),
                     ImmutableSchemaDependentTableMetadata.builder().cleanupMetadata(
@@ -63,52 +62,56 @@ public class SchemaMetadataServiceImplTest {
                                     .streamIdType(ValueType.VAR_LONG)
                                     .build()).build()).build();
 
+    private final SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(
+            new InMemoryKeyValueService(true),
+            false);
+
     @Test
     public void retrievesStoredMetadata() {
-        SCHEMA_METADATA_SERVICE.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
-        assertThat(SCHEMA_METADATA_SERVICE.loadSchemaMetadata(SCHEMA_NAME_ONE)).contains(SCHEMA_METADATA_ONE);
+        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
+        assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).contains(SCHEMA_METADATA_ONE);
     }
 
     @Test
     public void returnsOptionalIfNoMetadataPresent() {
-        assertThat(SCHEMA_METADATA_SERVICE.loadSchemaMetadata("should not exist")).isEmpty();
+        assertThat(schemaMetadataService.loadSchemaMetadata("should not exist")).isEmpty();
     }
 
     @Test
     public void overwritesPreviouslyStoredMetadata() {
-        SCHEMA_METADATA_SERVICE.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
-        SCHEMA_METADATA_SERVICE.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_TWO);
-        assertThat(SCHEMA_METADATA_SERVICE.loadSchemaMetadata(SCHEMA_NAME_ONE)).contains(SCHEMA_METADATA_TWO);
+        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
+        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_TWO);
+        assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).contains(SCHEMA_METADATA_TWO);
     }
 
     @Test
     public void storesDistinctMetadataForDifferentSchemas() {
-        SCHEMA_METADATA_SERVICE.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
-        SCHEMA_METADATA_SERVICE.putSchemaMetadata(SCHEMA_NAME_TWO, SCHEMA_METADATA_TWO);
-        assertThat(SCHEMA_METADATA_SERVICE.loadSchemaMetadata(SCHEMA_NAME_ONE)).contains(SCHEMA_METADATA_ONE);
-        assertThat(SCHEMA_METADATA_SERVICE.loadSchemaMetadata(SCHEMA_NAME_TWO)).contains(SCHEMA_METADATA_TWO);
+        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
+        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_TWO, SCHEMA_METADATA_TWO);
+        assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).contains(SCHEMA_METADATA_ONE);
+        assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_TWO)).contains(SCHEMA_METADATA_TWO);
     }
 
     @Test
     public void getAllMetadataReturnsKnownPairs() {
-        SCHEMA_METADATA_SERVICE.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
-        SCHEMA_METADATA_SERVICE.putSchemaMetadata(SCHEMA_NAME_TWO, SCHEMA_METADATA_TWO);
+        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
+        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_TWO, SCHEMA_METADATA_TWO);
 
         Map<String, SchemaMetadata> expected = ImmutableMap.of(
                 SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE, SCHEMA_NAME_TWO, SCHEMA_METADATA_TWO);
-        assertThat(SCHEMA_METADATA_SERVICE.getAllSchemaMetadata()).isEqualTo(expected);
+        assertThat(schemaMetadataService.getAllSchemaMetadata()).isEqualTo(expected);
     }
 
     @Test
     public void getAllMetadataReturnsNothingIfNoDataKnown() {
-        assertThat(SCHEMA_METADATA_SERVICE.getAllSchemaMetadata()).isEmpty();
+        assertThat(schemaMetadataService.getAllSchemaMetadata()).isEmpty();
     }
 
     @Test
     public void canDecommissionSchema() {
-        SCHEMA_METADATA_SERVICE.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
-        SCHEMA_METADATA_SERVICE.decommissionSchema(SCHEMA_NAME_ONE);
-        assertThat(SCHEMA_METADATA_SERVICE.loadSchemaMetadata(SCHEMA_NAME_ONE)).isEmpty();
+        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
+        schemaMetadataService.decommissionSchema(SCHEMA_NAME_ONE);
+        assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).isEmpty();
     }
 
     @Test
@@ -116,26 +119,26 @@ public class SchemaMetadataServiceImplTest {
         IntStream.range(0, 10)
                 .forEach(index -> {
                     SchemaMetadata metadataToPut = index % 2 == 0 ? SCHEMA_METADATA_ONE : SCHEMA_METADATA_TWO;
-                    SCHEMA_METADATA_SERVICE.putSchemaMetadata(SCHEMA_NAME_ONE, metadataToPut);
-                    assertThat(SCHEMA_METADATA_SERVICE.loadSchemaMetadata(SCHEMA_NAME_ONE))
+                    schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, metadataToPut);
+                    assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE))
                             .contains(metadataToPut);
-                    SCHEMA_METADATA_SERVICE.decommissionSchema(SCHEMA_NAME_ONE);
-                    assertThat(SCHEMA_METADATA_SERVICE.loadSchemaMetadata(SCHEMA_NAME_ONE)).isEmpty();
+                    schemaMetadataService.decommissionSchema(SCHEMA_NAME_ONE);
+                    assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).isEmpty();
                 });
     }
 
     @Test
     public void canDecommissionSchemaThatIsNotPresent() {
-        SCHEMA_METADATA_SERVICE.decommissionSchema("should not exist");
+        schemaMetadataService.decommissionSchema("should not exist");
         // pass
     }
 
     @Test
     public void decommissionIsIdempotent() {
-        SCHEMA_METADATA_SERVICE.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
-        SCHEMA_METADATA_SERVICE.decommissionSchema(SCHEMA_NAME_ONE);
-        SCHEMA_METADATA_SERVICE.decommissionSchema(SCHEMA_NAME_ONE);
-        assertThat(SCHEMA_METADATA_SERVICE.loadSchemaMetadata(SCHEMA_NAME_ONE)).isEmpty();
+        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
+        schemaMetadataService.decommissionSchema(SCHEMA_NAME_ONE);
+        schemaMetadataService.decommissionSchema(SCHEMA_NAME_ONE);
+        assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).isEmpty();
     }
 
     @Test
@@ -156,15 +159,17 @@ public class SchemaMetadataServiceImplTest {
             }
         };
 
-        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(
+        SchemaMetadataService metadataService = SchemaMetadataServiceImpl.create(
                 forwardingKeyValueService,
                 true);
 
+        assertThatThrownBy(() -> metadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE))
+                .isInstanceOf(NotInitializedException.class);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
-                .until(schemaMetadataService::isInitialized);
-        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
-        assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).contains(SCHEMA_METADATA_ONE);
+                .until(metadataService::isInitialized);
+        metadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
+        assertThat(metadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).contains(SCHEMA_METADATA_ONE);
     }
 }
