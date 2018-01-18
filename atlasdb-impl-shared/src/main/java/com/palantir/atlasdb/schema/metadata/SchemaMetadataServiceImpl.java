@@ -110,6 +110,8 @@ public class SchemaMetadataServiceImpl implements SchemaMetadataService {
                             serializedMetadata));
             try {
                 keyValueService.checkAndSet(request);
+                log.info("Successfully updated the schema metadata to {}.",
+                        UnsafeArg.of("committedUpdate", request));
                 return;
             } catch (CheckAndSetException e) {
                 log.info("Failed to update the schema metadata: {}. Retrying.",
