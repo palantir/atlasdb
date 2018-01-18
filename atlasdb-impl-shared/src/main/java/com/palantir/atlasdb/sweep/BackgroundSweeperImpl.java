@@ -131,6 +131,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
+            sweepOutcomeMetrics.shutdown();
+        } catch (Throwable t) {
+            log.error("BackgroundSweeper failed fatally and will not rerun until restarted", t);
+            sweepOutcomeMetrics.fatal();
         }
     }
 
@@ -271,6 +275,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @Override
     public synchronized void shutdown() {
+        sweepOutcomeMetrics.shutdown();
         if (daemon == null) {
             return;
         }
@@ -286,12 +291,16 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     public enum SweepOutcome {
         SUCCESS, NOTHING_TO_SWEEP, DISABLED, UNABLE_TO_ACQUIRE_LOCKS,
-        NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR
+        NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR,
+        SHUTDOWN, FATAL
     }
 
     private class SweepOutcomeMetrics {
         private final MetricsManager metricsManager = new MetricsManager();
         private final SlidingTimeWindowReservoir reservoir;
+
+        private boolean shutdown;
+        private boolean fatal;
 
         SweepOutcomeMetrics() {
             Arrays.stream(SweepOutcome.values()).forEach(outcome ->
@@ -299,16 +308,42 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                             () -> getOutcomeCount(outcome))
             );
             reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
+            shutdown = false;
+            fatal = false;
         }
 
         private Long getOutcomeCount(SweepOutcome outcome) {
+            if (outcome == SweepOutcome.SHUTDOWN) {
+                return shutdown ? 1L : 0L;
+            }
+            if (outcome == SweepOutcome.FATAL) {
+                return fatal ? 1L : 0L;
+            }
+
             return Arrays.stream(reservoir.getSnapshot().getValues())
                     .filter(l -> l == outcome.ordinal())
                     .count();
         }
 
         void registerOccurrenceOf(SweepOutcome outcome) {
+            if (outcome == SweepOutcome.SHUTDOWN) {
+                shutdown();
+                return;
+            }
+            if (outcome == SweepOutcome.FATAL) {
+                fatal();
+                return;
+            }
+
             reservoir.update(outcome.ordinal());
+        }
+
+        public void shutdown() {
+            this.shutdown = true;
+        }
+
+        void fatal() {
+            this.fatal = true;
         }
     }
 }
