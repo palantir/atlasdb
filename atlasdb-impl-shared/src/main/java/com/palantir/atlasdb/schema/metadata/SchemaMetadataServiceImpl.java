@@ -133,7 +133,7 @@ public final class SchemaMetadataServiceImpl implements SchemaMetadataService {
     }
 
     @Override
-    public void decommissionSchema(String schemaName) {
+    public void deleteSchemaMetadata(String schemaName) {
         keyValueService.delete(AtlasDbConstants.DEFAULT_SCHEMA_METADATA_TABLE,
                 ImmutableMultimap.of(createCellForGivenSchemaName(schemaName), 0L));
     }

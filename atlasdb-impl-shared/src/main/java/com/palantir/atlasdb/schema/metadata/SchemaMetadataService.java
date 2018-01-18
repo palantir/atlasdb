@@ -52,7 +52,7 @@ public interface SchemaMetadataService {
      *
      * @param schemaName name of schema to delete metadata for
      */
-    void decommissionSchema(String schemaName);
+    void deleteSchemaMetadata(String schemaName);
 
     /**
      * @return true iff the Schema Metadata Service has completed initialization and is prepared to service requests
