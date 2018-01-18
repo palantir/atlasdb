@@ -710,7 +710,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 sweepStrategyManager,
                 immutableTimestamp,
                 Optional.empty(),
-                PreCommitCondition.NO_OP,
+                PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),

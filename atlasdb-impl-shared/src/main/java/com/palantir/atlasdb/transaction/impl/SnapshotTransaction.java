@@ -284,7 +284,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = 0;
         this.immutableTimestampLock = Optional.empty();
-        this.preCommitCondition = PreCommitCondition.NO_OP;
+        this.preCommitCondition = PreCommitConditions.NO_OP;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -316,7 +316,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = startTimeStamp;
         this.immutableTimestampLock = Optional.empty();
-        this.preCommitCondition = PreCommitCondition.NO_OP;
+        this.preCommitCondition = PreCommitConditions.NO_OP;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;

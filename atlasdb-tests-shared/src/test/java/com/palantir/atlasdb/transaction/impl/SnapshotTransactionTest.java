@@ -785,7 +785,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void commitIfPreCommitConditionSucceeds() {
-        serializableTxManager.runTaskWithConditionThrowOnConflict(PreCommitCondition.NO_OP, (tx, condition) -> {
+        serializableTxManager.runTaskWithConditionThrowOnConflict(PreCommitConditions.NO_OP, (tx, condition) -> {
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
             return null;
         });
@@ -808,7 +808,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void commitWithPreCommitConditionOnRetry() {
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
-                .thenReturn(PreCommitCondition.NO_OP);
+                .thenReturn(PreCommitConditions.NO_OP);
         serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
             return null;
@@ -840,7 +840,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void readTransactionSucceedsIfConditionSucceeds() {
-        serializableTxManager.runTaskReadOnlyWithCondition(PreCommitCondition.NO_OP,
+        serializableTxManager.runTaskReadOnlyWithCondition(PreCommitConditions.NO_OP,
                 (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
     }
 

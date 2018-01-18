@@ -192,7 +192,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskReadOnlyWithCondition(PreCommitCondition.NO_OP,
+        return runTaskReadOnlyWithCondition(PreCommitConditions.NO_OP,
                 (transaction, condition) -> task.execute(transaction));
     }
 

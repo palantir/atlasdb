@@ -45,6 +45,7 @@ public class CombinedLocksCondition implements AdvisoryLocksCondition {
 
     @Override
     public void cleanup() {
+        // Both of these conditions don't throw internally
         externalLocksCondition.cleanup();
         transactionLocksCondition.cleanup();
     }

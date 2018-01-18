@@ -50,7 +50,7 @@ public class TransactionLocksCondition implements AdvisoryLocksCondition {
 
     @Override
     public void cleanup() {
-        lockService.unlock(heldLock.getLockRefreshToken());
+        PreCommitConditions.runCleanupTask(() -> lockService.unlock(heldLock.getLockRefreshToken()));
     }
 
     @Override
