@@ -139,6 +139,10 @@ public class AdvisoryLocksConditionTest {
 
     @Test
     public void combinedLocksCondition_checkExternalLocksFirst() {
+        when(lockService.refreshLockRefreshTokens(Collections.singleton(EXTERNAL_LOCK_REFRESH_TOKEN)))
+                .thenReturn(ImmutableSet.of());
+        when(lockService.refreshLockRefreshTokens(Collections.singleton(TRANSACTION_LOCK_REFRESH_TOKEN)))
+                .thenReturn(ImmutableSet.of());
         assertThatThrownBy(() -> combinedLocksCondition.throwIfConditionInvalid(0L))
                 .isInstanceOf(TransactionLockTimeoutNonRetriableException.class)
                 .hasMessageContaining("Provided external lock tokens expired. Retry is not possible");
