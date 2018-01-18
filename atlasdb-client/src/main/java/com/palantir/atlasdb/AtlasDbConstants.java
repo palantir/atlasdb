@@ -83,7 +83,8 @@ public final class AtlasDbConstants {
             NAMESPACE_TABLE,
             PARTITION_MAP_TABLE,
             PERSISTED_LOCKS_TABLE,
-            SWEEP_PROGRESS_TABLE);
+            SWEEP_PROGRESS_TABLE,
+            DEFAULT_SCHEMA_METADATA_TABLE);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
