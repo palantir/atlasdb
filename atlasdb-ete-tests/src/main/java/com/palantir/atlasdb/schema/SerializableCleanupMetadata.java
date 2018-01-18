@@ -36,6 +36,10 @@ import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 @JsonDeserialize(as = ImmutableSerializableCleanupMetadata.class)
 @Value.Immutable
 public interface SerializableCleanupMetadata {
+    String NULL_TYPE = "NULL";
+    String STREAM_STORE_TYPE = "STREAM_STORE";
+    String ARBITRARY_TYPE = "ARBITRARY";
+
     String cleanupMetadataType();
 
     // The following fields should only be considered if cleanupMetadataType() returns "STREAM_STORE".
@@ -47,14 +51,14 @@ public interface SerializableCleanupMetadata {
         @Override
         public SerializableCleanupMetadata visit(NullCleanupMetadata cleanupMetadata) {
             return ImmutableSerializableCleanupMetadata.builder()
-                    .cleanupMetadataType("NULL")
+                    .cleanupMetadataType(NULL_TYPE)
                     .build();
         }
 
         @Override
         public SerializableCleanupMetadata visit(StreamStoreCleanupMetadata cleanupMetadata) {
             return ImmutableSerializableCleanupMetadata.builder()
-                    .cleanupMetadataType("STREAM_STORE")
+                    .cleanupMetadataType(STREAM_STORE_TYPE)
                     .numHashedRowComponents(cleanupMetadata.numHashedRowComponents())
                     .streamIdType(cleanupMetadata.streamIdType().name())
                     .build();
@@ -63,7 +67,7 @@ public interface SerializableCleanupMetadata {
         @Override
         public SerializableCleanupMetadata visit(ArbitraryCleanupMetadata cleanupMetadata) {
             return ImmutableSerializableCleanupMetadata.builder()
-                    .cleanupMetadataType("ARBITRARY")
+                    .cleanupMetadataType(ARBITRARY_TYPE)
                     .build();
         }
     };
