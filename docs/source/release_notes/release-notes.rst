@@ -58,6 +58,11 @@ develop
          - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2874>`__)
 
+    *    - |fixed|
+         - Fix a NPE in the sweep code.
+           The regression was introduced with (`#2860 <https://github.com/palantir/atlasdb/pull/2860>`__).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2883>`__)
+
 =======
 v0.73.0
 =======
