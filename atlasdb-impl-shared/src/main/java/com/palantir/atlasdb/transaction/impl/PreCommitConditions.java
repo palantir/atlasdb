@@ -41,7 +41,7 @@ public final class PreCommitConditions {
     public static void runCleanupTask(Runnable task) {
         try {
             task.run();
-        } catch (Throwable t) {
+        } catch (Exception t) {
             log.error("Failed to cleanup pre-commit condition", t);
         }
     }
