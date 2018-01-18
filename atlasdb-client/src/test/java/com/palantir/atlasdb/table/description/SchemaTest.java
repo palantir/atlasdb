@@ -204,14 +204,14 @@ public class SchemaTest {
     @Test
     public void simpleTablesHaveNullCleanupMetadata() {
         Schema schema = getSchemaWithSimpleTestTable();
-        assertOnCleanupMetadataInSchema(schema, TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
+        assertCleanupMetadataInSchemaSatisfies(schema, TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
     }
 
     @Test
     public void tablesWithCustomCleanupTaskHaveArbitraryCleanupMetadata() {
         Schema schema = getSchemaWithSimpleTestTable();
         schema.addCleanupTask(TEST_TABLE_NAME, () -> (tx, cells) -> false);
-        assertOnCleanupMetadataInSchema(schema, TABLE_REF, ARBITRARY_CLEANUP_METADATA_ASSERTION);
+        assertCleanupMetadataInSchemaSatisfies(schema, TABLE_REF, ARBITRARY_CLEANUP_METADATA_ASSERTION);
     }
 
     @Test
@@ -220,7 +220,7 @@ public class SchemaTest {
 
         addTestIndexDefinition(schema);
 
-        assertOnCleanupMetadataInSchema(schema, INDEX_TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
+        assertCleanupMetadataInSchemaSatisfies(schema, INDEX_TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
     }
 
     @Test
@@ -230,7 +230,7 @@ public class SchemaTest {
         addTestIndexDefinition(schema);
         schema.addCleanupTask(TEST_INDEX_NAME, () -> (tx, cells) -> false);
 
-        assertOnCleanupMetadataInSchema(schema, INDEX_TABLE_REF, ARBITRARY_CLEANUP_METADATA_ASSERTION);
+        assertCleanupMetadataInSchemaSatisfies(schema, INDEX_TABLE_REF, ARBITRARY_CLEANUP_METADATA_ASSERTION);
     }
 
     @Test
@@ -240,7 +240,7 @@ public class SchemaTest {
 
         addTestIndexDefinition(schema);
 
-        assertOnCleanupMetadataInSchema(schema, INDEX_TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
+        assertCleanupMetadataInSchemaSatisfies(schema, INDEX_TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
     }
 
     @Test
@@ -297,19 +297,19 @@ public class SchemaTest {
         schema.addCleanupTask(StreamTableType.HASH.getTableName(shortName), () -> (cells, tx) -> false);
         schema.addCleanupTask(StreamTableType.INDEX.getTableName(shortName), () -> (cells, tx) -> false);
 
-        assertOnCleanupMetadataInSchema(
+        assertCleanupMetadataInSchemaSatisfies(
                 schema,
                 StreamTableType.VALUE.getTableName(shortName),
                 NULL_CLEANUP_METADATA_ASSERTION);
-        assertOnCleanupMetadataInSchema(
+        assertCleanupMetadataInSchemaSatisfies(
                 schema,
                 StreamTableType.HASH.getTableName(shortName),
                 ARBITRARY_CLEANUP_METADATA_ASSERTION);
-        assertOnCleanupMetadataInSchema(
+        assertCleanupMetadataInSchemaSatisfies(
                 schema,
                 StreamTableType.METADATA.getTableName(shortName),
                 getStreamStoreMetadataAssertion(2, ValueType.VAR_SIGNED_LONG));
-        assertOnCleanupMetadataInSchema(
+        assertCleanupMetadataInSchemaSatisfies(
                 schema,
                 StreamTableType.INDEX.getTableName(shortName),
                 ARBITRARY_CLEANUP_METADATA_ASSERTION);
@@ -327,17 +327,17 @@ public class SchemaTest {
         schema.addIndexDefinition(TEST_TABLE_NAME, indexDefinition);
     }
 
-    private void assertOnCleanupMetadataInSchema(
+    private void assertCleanupMetadataInSchemaSatisfies(
             Schema schema,
             String tableName,
             Consumer<CleanupMetadata> verification) {
-        assertOnCleanupMetadataInSchema(
+        assertCleanupMetadataInSchemaSatisfies(
                 schema,
                 TableReference.create(Namespace.EMPTY_NAMESPACE, tableName),
                 verification);
     }
 
-    private void assertOnCleanupMetadataInSchema(
+    private void assertCleanupMetadataInSchemaSatisfies(
             Schema schema,
             TableReference tableReference,
             Consumer<CleanupMetadata> verification) {
@@ -352,19 +352,19 @@ public class SchemaTest {
             String streamStoreShortName,
             int numComponentsHashed,
             ValueType idType) {
-        assertOnCleanupMetadataInSchema(
+        assertCleanupMetadataInSchemaSatisfies(
                 schema,
                 StreamTableType.VALUE.getTableName(streamStoreShortName),
                 NULL_CLEANUP_METADATA_ASSERTION);
-        assertOnCleanupMetadataInSchema(
+        assertCleanupMetadataInSchemaSatisfies(
                 schema,
                 StreamTableType.HASH.getTableName(streamStoreShortName),
                 NULL_CLEANUP_METADATA_ASSERTION);
-        assertOnCleanupMetadataInSchema(
+        assertCleanupMetadataInSchemaSatisfies(
                 schema,
                 StreamTableType.METADATA.getTableName(streamStoreShortName),
                 getStreamStoreMetadataAssertion(numComponentsHashed, idType));
-        assertOnCleanupMetadataInSchema(
+        assertCleanupMetadataInSchemaSatisfies(
                 schema,
                 StreamTableType.INDEX.getTableName(streamStoreShortName),
                 getStreamStoreMetadataAssertion(numComponentsHashed, idType));
