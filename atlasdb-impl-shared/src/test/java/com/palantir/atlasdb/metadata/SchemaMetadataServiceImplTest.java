@@ -33,12 +33,14 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence;
 import com.palantir.atlasdb.schema.ImmutableSchemaDependentTableMetadata;
 import com.palantir.atlasdb.schema.ImmutableSchemaMetadata;
 import com.palantir.atlasdb.schema.SchemaMetadata;
+import com.palantir.atlasdb.schema.cleanup.ImmutableStreamStoreCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
+import com.palantir.atlasdb.table.description.ValueType;
 
 public class SchemaMetadataServiceImplTest {
     private final SchemaMetadataService SCHEMA_METADATA_SERVICE = SchemaMetadataServiceImpl.create(
@@ -49,15 +51,17 @@ public class SchemaMetadataServiceImplTest {
     private final SchemaMetadata SCHEMA_METADATA_ONE =
             ImmutableSchemaMetadata.builder().putSchemaDependentTableMetadata(
                     TableReference.create(Namespace.EMPTY_NAMESPACE, "tableOne"),
-                    ImmutableSchemaDependentTableMetadata.builder().cleanupRequirement(
-                            SchemaMetadataPersistence.CleanupRequirement.NOT_NEEDED).build()).build();
+                    ImmutableSchemaDependentTableMetadata.builder().cleanupMetadata(new NullCleanupMetadata()).build()).build();
 
     private final String SCHEMA_NAME_TWO = "two";
     private final SchemaMetadata SCHEMA_METADATA_TWO =
             ImmutableSchemaMetadata.builder().putSchemaDependentTableMetadata(
                     TableReference.create(Namespace.EMPTY_NAMESPACE, "tableTwo"),
-                    ImmutableSchemaDependentTableMetadata.builder().cleanupRequirement(
-                            SchemaMetadataPersistence.CleanupRequirement.ARBITRARY_ASYNC).build()).build();
+                    ImmutableSchemaDependentTableMetadata.builder().cleanupMetadata(
+                            ImmutableStreamStoreCleanupMetadata.builder()
+                                    .numHashedRowComponents(1)
+                                    .streamIdType(ValueType.VAR_LONG)
+                                    .build()).build()).build();
 
     @Test
     public void retrievesStoredMetadata() {
