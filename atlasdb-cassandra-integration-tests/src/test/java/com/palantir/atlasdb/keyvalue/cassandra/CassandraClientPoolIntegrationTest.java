@@ -38,7 +38,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -55,7 +54,7 @@ public class CassandraClientPoolIntegrationTest {
             CassandraContainer.KVS_CONFIG, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
 
     private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
-            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+            CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG,
             clientPool);
 

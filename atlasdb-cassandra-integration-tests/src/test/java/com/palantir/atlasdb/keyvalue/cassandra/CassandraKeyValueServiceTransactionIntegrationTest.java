@@ -19,7 +19,6 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TestRule;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -39,7 +38,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+                CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG);
     }
 
