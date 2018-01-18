@@ -62,12 +62,17 @@ public abstract class AbstractSweepTest {
 
     protected static final List<Cell> SMALL_LIST_OF_CELLS = Lists.newArrayList();
     protected static final List<Cell> BIG_LIST_OF_CELLS = Lists.newArrayList();
+    protected static final List<Cell> BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS = Lists.newArrayList();
 
     static {
         for (int i = 0; i < 10; i++) {
-            String colName = String.format("c%d", i);
+            String zeroPaddedIndex = String.format("%05d", i);
             BIG_LIST_OF_CELLS.add(
-                    Cell.create("row".getBytes(StandardCharsets.UTF_8), colName.getBytes(StandardCharsets.UTF_8)));
+                    Cell.create("row".getBytes(StandardCharsets.UTF_8),
+                            (COL + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8)));
+            BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS.add(
+                    Cell.create(("row" + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8),
+                            (COL + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8)));
         }
         SMALL_LIST_OF_CELLS.addAll(BIG_LIST_OF_CELLS.subList(0, 4));
     }
