@@ -62,6 +62,11 @@ develop
          - The LockAwareTransactionManager pre-commit checks that verify that locks are still held have been generalized to support arbitrary pre-commit checks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2846>`__)
 
+    *    - |fixed|
+         - Fix a NPE in the sweep code.
+           The regression was introduced with (`#2860 <https://github.com/palantir/atlasdb/pull/2860>`__).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2883>`__)
+
 =======
 v0.73.0
 =======
