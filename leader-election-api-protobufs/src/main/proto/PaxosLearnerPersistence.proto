@@ -1,5 +1,6 @@
 package com.palantir.paxos.persistence.generated.remoting;
-import "com/palantir/paxos/persistence/PaxosPersistence.proto";
+
+import "PaxosPersistence.proto";
 
 message LearnerRequestProto {
     required LearnerMethodProto method = 1;

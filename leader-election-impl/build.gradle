@@ -6,7 +6,7 @@ dependencies {
   compile project(":leader-election-api")
   compile project(":atlasdb-commons")
 
-  compile group: "com.google.protobuf", name: "protobuf-java", version: libVersions.protobuf
+  compile group: "com.google.protobuf", name: "protobuf-java"
   compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
   compile group: "commons-io", name: "commons-io"
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
