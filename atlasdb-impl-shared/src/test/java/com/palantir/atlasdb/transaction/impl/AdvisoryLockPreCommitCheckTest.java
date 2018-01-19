@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.junit.Test;
+import org.mockito.internal.hamcrest.HamcrestArgumentMatcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -143,7 +144,8 @@ public class AdvisoryLockPreCommitCheckTest {
 
         // We need to check that the element contains-exactly-in-any-order the same elements
         // but eq is too strong, because the check is allowed to (and does!) wrap the tokens in a different collection.
-        verify(timelockService).refreshLockLeases((Set<LockToken>) argThat(containsInAnyOrder(TOKENS_V2.toArray())));
+        verify(timelockService).refreshLockLeases(argThat(new HamcrestArgumentMatcher<>(
+                containsInAnyOrder(TOKENS_V2.toArray()))));
     }
 
     @Test
@@ -189,6 +191,6 @@ public class AdvisoryLockPreCommitCheckTest {
     private void verifyCalledWithLegacyTokens(LockService lockService) {
         // Note: eq is too strong, because it requires that the collection type matches the type of TOKENS
         verify(lockService).refreshLockRefreshTokens(
-                (Set<LockRefreshToken>) argThat(containsInAnyOrder(TOKENS.toArray())));
+                argThat(new HamcrestArgumentMatcher<>(containsInAnyOrder(TOKENS.toArray()))));
     }
 }

@@ -441,7 +441,7 @@ public class TransactionManagersTest {
     private void setUpForLocalServices() throws IOException {
         doAnswer(invocation -> {
             // Configure our server to reply with the same server ID as the registered PingableLeader.
-            PingableLeader localPingableLeader = invocation.getArgumentAt(0, PingableLeader.class);
+            PingableLeader localPingableLeader = invocation.getArgument(0);
             availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
                     .withStatus(200)
                     .withBody(("\"" + localPingableLeader.getUUID().toString() + "\"").getBytes())));
