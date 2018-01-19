@@ -49,7 +49,6 @@ configurations.all {
     resolutionStrategy {
         force 'org.assertj:assertj-core:3.5.2'
         force 'org.hamcrest:hamcrest-core:1.3'
-        force 'org.slf4j:slf4j-api:1.7.25'
     }
 }
 
