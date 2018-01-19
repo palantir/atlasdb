@@ -29,12 +29,10 @@ public class SchemaMetadataServiceEteTest {
     public void shouldBeAbleToRetrieveSchemaMetadataForTodoTable() {
         CleanupMetadataResource resource = EteSetup.createClientToSingleNode(CleanupMetadataResource.class);
 
-        assertThat(resource.get(
-                TodoSchema.class.getSimpleName(),
-                "default.todo")).isPresent()
+        assertThat(resource.get(TodoSchema.class.getSimpleName(), "default.todo"))
+                .isPresent()
                 .hasValueSatisfying(serializableCleanupMetadata ->
                         assertThat(serializableCleanupMetadata.cleanupMetadataType()).isEqualTo(
                                 SerializableCleanupMetadata.NULL_TYPE));
     }
-
 }

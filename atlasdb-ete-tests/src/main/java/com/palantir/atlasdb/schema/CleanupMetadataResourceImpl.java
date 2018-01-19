@@ -24,15 +24,26 @@ import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.common.base.Throwables;
 
 public class CleanupMetadataResourceImpl implements CleanupMetadataResource {
     private final SchemaMetadataService schemaMetadataService;
 
-    public CleanupMetadataResourceImpl(TransactionManager transactionManager) {
+    public CleanupMetadataResourceImpl(TransactionManager transactionManager, boolean initializeAsync) {
         Preconditions.checkState(transactionManager instanceof SerializableTransactionManager,
                 "Cannot create a CleanupMetadataResourceImpl from a non-SerializableTransactionManager");
+        // TODO (jkong): Implement async initialization
+        while (!transactionManager.isInitialized()) {
+            try {
+                Thread.sleep(1_000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw Throwables.rewrapAndThrowUncheckedException(e);
+            }
+        }
         schemaMetadataService = SchemaMetadataServiceImpl.create(
-                ((SerializableTransactionManager) transactionManager).getKeyValueService(), false);
+                ((SerializableTransactionManager) transactionManager).getKeyValueService(),
+                initializeAsync);
     }
 
     @Override

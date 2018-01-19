@@ -76,7 +76,9 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
-        environment.jersey().register(new CleanupMetadataResourceImpl(transactionManager));
+        environment.jersey().register(new CleanupMetadataResourceImpl(
+                transactionManager,
+                config.getAtlasDbConfig().initializeAsync()));
     }
 
     private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)
