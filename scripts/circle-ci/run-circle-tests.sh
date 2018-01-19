@@ -52,7 +52,7 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 # External builds have a 4GB limit so we have to tune everything so it fits in memory (only just!)
 if [[ $INTERNAL_BUILD == true ]]; then
     BASE_GRADLE_ARGS+=" --parallel"
-    if [[ $CIRCLE_NODE_INDEX == 7 ]]; then
+    if [ "$CIRCLE_NODE_INDEX" -eq "7" ]; then
         export _JAVA_OPTIONS="-Xmx2048m ${JAVA_GC_LOGGING_OPTIONS}"
     else
         export _JAVA_OPTIONS="-Xmx1024m ${JAVA_GC_LOGGING_OPTIONS}"
