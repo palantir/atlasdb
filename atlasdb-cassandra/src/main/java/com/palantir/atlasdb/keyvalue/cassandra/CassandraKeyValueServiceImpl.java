@@ -79,6 +79,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -234,15 +235,21 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
-        return create(config, leaderConfig, initializeAsync, FakeQosClient.INSTANCE);
+        return create(config,
+                CassandraKeyValueServiceRuntimeConfig::getDefault,
+                leaderConfig,
+                initializeAsync,
+                FakeQosClient.INSTANCE);
     }
 
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfig config,
+            java.util.function.Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync,
             QosClient qosClient) {
         return create(config,
+                runtimeConfig,
                 leaderConfig,
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
                 initializeAsync,
@@ -254,17 +261,22 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             Logger log) {
-        return create(config, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE);
+        return create(config,
+                CassandraKeyValueServiceRuntimeConfig::getDefault,
+                leaderConfig,
+                log,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.INSTANCE);
     }
 
     private static CassandraKeyValueService create(
             CassandraKeyValueServiceConfig config,
+            java.util.function.Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Logger log,
             boolean initializeAsync,
             QosClient qosClient) {
         CassandraClientPool clientPool = CassandraClientPoolImpl.create(config,
+                runtimeConfig,
                 initializeAsync,
                 qosClient);
         return create(config, clientPool, leaderConfig, log, initializeAsync);
@@ -288,7 +300,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
 
-    protected CassandraKeyValueServiceImpl(Logger log,
+    private CassandraKeyValueServiceImpl(Logger log,
             CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             Optional<CassandraJmxCompactionManager> compactionManager,

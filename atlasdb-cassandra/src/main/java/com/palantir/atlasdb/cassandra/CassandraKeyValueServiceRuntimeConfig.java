@@ -33,35 +33,42 @@ public class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRun
         return "cassandra";
     }
 
-    /**
-     * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
-     */
     @Value.Default
     public int unresponsiveHostBackoffTimeSeconds() {
         return 30;
     }
 
+    @Value.Default
     public int mutationBatchCount() {
         return 10;
     }
 
+    @Value.Default
     public int mutationBatchSizeBytes() {
         return 10;
     }
 
+    @Value.Default
     public int fetchBatchCount() {
         return 10;
     }
 
+    @Value.Default
     public Integer sweepReadThreads() {
         return 10;
     }
 
+    @Value.Default
     public int numberOfRetriesOnSameHost() {
         return 3;
     }
 
+    @Value.Default
     public int numberOfRetriesOnAllHosts() {
         return 6;
+    }
+
+    public static CassandraKeyValueServiceRuntimeConfig getDefault() {
+        return ImmutableCassandraKeyValueServiceRuntimeConfig.builder().build();
     }
 }

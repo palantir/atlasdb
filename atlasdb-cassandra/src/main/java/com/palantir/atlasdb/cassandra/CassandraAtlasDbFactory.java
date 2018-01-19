@@ -51,9 +51,11 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             QosClient qosClient) {
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, runtimeConfig, namespace);
-        Supplier<Optional<CassandraKeyValueServiceRuntimeConfig>> cassandraRuntimeConfig = cast(runtimeConfig);
+        Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig = preprocessKvsRuntimeConfig(
+                runtimeConfig);
         return CassandraKeyValueServiceImpl.create(
                 preprocessedConfig,
+                cassandraRuntimeConfig,
                 leaderConfig,
                 initializeAsync,
                 qosClient);
@@ -64,16 +66,33 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             KeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
-        Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
-                "CassandraAtlasDbFactory expects a configuration of type"
-                        + " CassandraKeyValueServiceConfig, found %s", config.getClass());
-
-        CassandraKeyValueServiceConfig cassandraConfig = (CassandraKeyValueServiceConfig) config;
+        CassandraKeyValueServiceConfig cassandraConfig = checkAndCast(config, CassandraKeyValueServiceConfig.class);
 
         String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
-        CassandraKeyValueServiceConfig configWithNamespace = CassandraKeyValueServiceConfigs.copyWithKeyspace(
-                cassandraConfig, desiredKeyspace);
+        CassandraKeyValueServiceConfig configWithNamespace = CassandraKeyValueServiceConfigs
+                .copyWithKeyspace(cassandraConfig, desiredKeyspace);
+
         return new CassandraReloadableKVSConfig(configWithNamespace, runtimeConfig);
+    }
+
+    @VisibleForTesting
+    Supplier<CassandraKeyValueServiceRuntimeConfig> preprocessKvsRuntimeConfig(
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
+        return () -> {
+            Optional<KeyValueServiceRuntimeConfig> configOptional = runtimeConfig.get();
+            if (configOptional.isPresent()) {
+                return checkAndCast(configOptional.get(), CassandraKeyValueServiceRuntimeConfig.class);
+            }
+
+            return CassandraKeyValueServiceRuntimeConfig.getDefault();
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T checkAndCast(Object obj, Class<T> clazz) {
+        Preconditions.checkArgument(clazz.isInstance(obj),
+                "CassandraAtlasDbFactory expects a type %s, found %s", clazz.getClass(), obj.getClass());
+        return (T) obj;
     }
 
     @Override
@@ -111,10 +130,5 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @Override
     public TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return CassandraTimestampStoreInvalidator.create(rawKvs);
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> T cast(Object obj) {
-        return (T) obj;
     }
 }
