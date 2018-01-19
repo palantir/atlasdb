@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.blob;
 
+import java.io.File;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +53,7 @@ public class BlobSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema(
                 BlobSchema.class.getSimpleName(),
-                BlobSchema.class.getPackage().getName(),
+                BlobSchema.class.getPackage().getName() + ".generated",
                 BLOB_NAMESPACE);
 
         schema.addStreamStoreDefinition(
@@ -80,5 +82,9 @@ public class BlobSchema implements AtlasSchema {
 
         schema.validate();
         return schema;
+    }
+
+    public static void main(String[] args) throws Exception {
+        GENERATED_SCHEMA.renderTables(new File("src/main/java"));
     }
 }
