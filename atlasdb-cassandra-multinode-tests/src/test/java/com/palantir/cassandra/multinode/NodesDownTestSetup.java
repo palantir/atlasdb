@@ -27,7 +27,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
@@ -100,7 +99,7 @@ public abstract class NodesDownTestSetup {
                 .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(3_000);
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
+                config,
                 ThreeNodeCassandraCluster.LEADER_CONFIG);
     }
 
@@ -134,11 +133,9 @@ public abstract class NodesDownTestSetup {
     }
 
     private static boolean startupChecksPass() {
-        CassandraKeyValueServiceConfigManager manager = CassandraKeyValueServiceConfigManager.createSimpleManager(
-                ThreeNodeCassandraCluster.KVS_CONFIG);
         try {
             // startup checks are done implicitly in the constructor
-            CassandraClientPoolImpl.create(manager.getConfig());
+            CassandraClientPoolImpl.create(ThreeNodeCassandraCluster.KVS_CONFIG);
             return true;
         } catch (Exception e) {
             return false;

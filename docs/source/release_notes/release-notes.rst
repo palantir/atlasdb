@@ -50,9 +50,13 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
+
     *    - |improved| |metrics|
          - BackgroundSweeperImpl now logs if there's an uncaught exception.  Added 2 new outcomes for normal and abnormal shutdown to allow closer monitoring.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/xxxx>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2884>`__)
 
     *    - |fixed|
          - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.

@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
@@ -60,8 +59,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     @Override
     public boolean canConnect(InetSocketAddress addr) {
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr)),
+                (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr),
                 Optional.of(ImmutableLeaderConfig.builder()
                         .quorumSize(1)
                         .localServer(addr.getHostString())
