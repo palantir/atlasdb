@@ -26,6 +26,7 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
@@ -55,7 +56,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final long CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS = 5;
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
             CheckAndSetSchema.getSchema(),
-            TodoSchema.getSchema());
+            TodoSchema.getSchema(),
+            BlobSchema.getSchema());
 
     public static void main(String[] args) throws Exception {
         new AtlasDbEteServer().run(args);

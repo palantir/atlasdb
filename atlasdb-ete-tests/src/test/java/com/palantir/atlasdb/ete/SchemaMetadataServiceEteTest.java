@@ -20,19 +20,52 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.schema.CleanupMetadataResource;
 import com.palantir.atlasdb.schema.SerializableCleanupMetadata;
+import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.TodoSchema;
 
 public class SchemaMetadataServiceEteTest {
+    private final CleanupMetadataResource resource = EteSetup.createClientToSingleNode(CleanupMetadataResource.class);
+
     @Test
     public void shouldBeAbleToRetrieveSchemaMetadataForTodoTable() {
-        CleanupMetadataResource resource = EteSetup.createClientToSingleNode(CleanupMetadataResource.class);
+        assertThat(getSerializableCleanupMetadataAndAssertPresent(TodoSchema.getSchema(), "default.todo"))
+                .satisfies(metadata -> assertThat(metadata.cleanupMetadataType())
+                        .isEqualTo(SerializableCleanupMetadata.NULL_TYPE));
+    }
 
-        assertThat(resource.get(TodoSchema.class.getSimpleName(), "default.todo"))
-                .isPresent()
-                .hasValueSatisfying(serializableCleanupMetadata ->
-                        assertThat(serializableCleanupMetadata.cleanupMetadataType()).isEqualTo(
-                                SerializableCleanupMetadata.NULL_TYPE));
+    @Test
+    public void shouldBeAbleToRetrieveSchemaMetadataForStreamStoreTables() {
+        assertThat(getSerializableCleanupMetadataAndAssertPresent(BlobSchema.getSchema(), "blob.data"))
+                .satisfies(metadata -> {
+                    assertThat(metadata.cleanupMetadataType()).isEqualTo(SerializableCleanupMetadata.STREAM_STORE_TYPE);
+                    assertThat(metadata.numHashedRowComponents()).isEqualTo(2);
+                    assertThat(metadata.streamIdType()).isEqualTo(ValueType.VAR_LONG.name());
+                });
+
+        assertThat(getSerializableCleanupMetadataAndAssertPresent(BlobSchema.getSchema(), "blob.hotspottyData"))
+                .satisfies(metadata -> {
+                    assertThat(metadata.cleanupMetadataType()).isEqualTo(SerializableCleanupMetadata.STREAM_STORE_TYPE);
+                    assertThat(metadata.numHashedRowComponents()).isEqualTo(0);
+                    assertThat(metadata.streamIdType()).isEqualTo(ValueType.VAR_SIGNED_LONG.name());
+                });
+    }
+
+    @Test
+    public void shouldBeAbleToRetrieveSchemaMetadataForTablesWithCleanupTasks() {
+        assertThat(getSerializableCleanupMetadataAndAssertPresent(BlobSchema.getSchema(), "blob.auditedData"))
+                .satisfies(metadata -> assertThat(metadata.cleanupMetadataType())
+                        .isEqualTo(SerializableCleanupMetadata.ARBITRARY_TYPE));
+    }
+
+    private SerializableCleanupMetadata getSerializableCleanupMetadataAndAssertPresent(
+            Schema sourceSchema,
+            String fullyQualifiedTableName) {
+        return resource.get(sourceSchema.getName(), fullyQualifiedTableName)
+                .orElseThrow(() -> new IllegalStateException("Could not find metadata for schema " + sourceSchema
+                        + " and table " + fullyQualifiedTableName));
     }
 }
