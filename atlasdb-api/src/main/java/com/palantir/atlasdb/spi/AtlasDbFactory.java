@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.spi;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,11 @@ public interface AtlasDbFactory {
 
     default KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        return createRawKeyValueService(config, leaderConfig, Optional.empty(), DEFAULT_INITIALIZE_ASYNC,
+        return createRawKeyValueService(config,
+                Optional::empty,
+                leaderConfig,
+                Optional.empty(),
+                DEFAULT_INITIALIZE_ASYNC,
                 FakeQosClient.INSTANCE);
     }
 
@@ -44,6 +49,8 @@ public interface AtlasDbFactory {
      * Creates a KeyValueService instance of type according to the config parameter.
      *
      * @param config Configuration file.
+     * @param runtimeConfig Runtime configuration file.
+     * @param runtimeConfig Runtime configuration file.
      * @param leaderConfig If the implementation supports it, the optional leader configuration.
      * @param namespace If the implementation supports it, this is the namespace to use when the namespace in config is
      * absent. If both are present, they must match.
@@ -54,6 +61,7 @@ public interface AtlasDbFactory {
      */
     KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             boolean initializeAsync,

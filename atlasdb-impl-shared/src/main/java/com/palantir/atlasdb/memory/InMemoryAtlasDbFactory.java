@@ -17,6 +17,7 @@ package com.palantir.atlasdb.memory;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,15 +100,16 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
      * Creates an InMemoryKeyValueService.
      *
      * @param config Configuration file.
-     * @param leaderConfig unused.
+     * @param runtimeConfig
+     *@param leaderConfig unused.
      * @param unused unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
-     * @param unusedQosClient unused.
-     * @return The requested KeyValueService instance
+     * @param unusedQosClient unused.     @return The requested KeyValueService instance
      */
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
             boolean initializeAsync,
