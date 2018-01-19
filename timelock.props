@@ -1,0 +1,13 @@
+
+# Timelock server uses a higher dropwizard version so that it can have an HTTP/2 connector.
+# This is supported by Dropwizard starting v1.0.0.
+# http://www.dropwizard.io/1.0.6/docs/manual/configuration.html#http-2-over-tls
+ch.qos.logback:logback-classic = 1.1.7
+com.fasterxml.jackson.*:* = 2.6.7
+com.google.guava:* = 21.0
+io.atomix.catalyst:catalyst-transport = 1.1.2
+io.github.openfeign:feign-core = 9.5.0
+org.eclipse.jetty:* = 9.3.9.v20160517
+org.glassfish.jersey.core:* = 2.23.2
+org.objenesis:objenesis = 2.3
+
