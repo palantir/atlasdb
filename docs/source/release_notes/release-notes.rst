@@ -68,8 +68,8 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2883>`__)
 
     *    - |devbreak|
-         - Upgraded to protobuf 3.5.1
-         - The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
+         - Upgraded to protobuf 3.5.1.
+           The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2887>`__)
 
 =======
