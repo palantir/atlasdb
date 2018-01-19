@@ -48,27 +48,27 @@ public interface SerializableCleanupMetadata {
 
     CleanupMetadata.Visitor<SerializableCleanupMetadata> SERIALIZER
             = new CleanupMetadata.Visitor<SerializableCleanupMetadata>() {
-        @Override
-        public SerializableCleanupMetadata visit(NullCleanupMetadata cleanupMetadata) {
-            return ImmutableSerializableCleanupMetadata.builder()
-                    .cleanupMetadataType(NULL_TYPE)
-                    .build();
-        }
+                @Override
+                public SerializableCleanupMetadata visit(NullCleanupMetadata cleanupMetadata) {
+                    return ImmutableSerializableCleanupMetadata.builder()
+                            .cleanupMetadataType(NULL_TYPE)
+                            .build();
+                }
 
-        @Override
-        public SerializableCleanupMetadata visit(StreamStoreCleanupMetadata cleanupMetadata) {
-            return ImmutableSerializableCleanupMetadata.builder()
-                    .cleanupMetadataType(STREAM_STORE_TYPE)
-                    .numHashedRowComponents(cleanupMetadata.numHashedRowComponents())
-                    .streamIdType(cleanupMetadata.streamIdType().name())
-                    .build();
-        }
+                @Override
+                public SerializableCleanupMetadata visit(StreamStoreCleanupMetadata cleanupMetadata) {
+                    return ImmutableSerializableCleanupMetadata.builder()
+                            .cleanupMetadataType(STREAM_STORE_TYPE)
+                            .numHashedRowComponents(cleanupMetadata.numHashedRowComponents())
+                            .streamIdType(cleanupMetadata.streamIdType().name())
+                            .build();
+                }
 
-        @Override
-        public SerializableCleanupMetadata visit(ArbitraryCleanupMetadata cleanupMetadata) {
-            return ImmutableSerializableCleanupMetadata.builder()
-                    .cleanupMetadataType(ARBITRARY_TYPE)
-                    .build();
-        }
-    };
+                @Override
+                public SerializableCleanupMetadata visit(ArbitraryCleanupMetadata cleanupMetadata) {
+                    return ImmutableSerializableCleanupMetadata.builder()
+                            .cleanupMetadataType(ARBITRARY_TYPE)
+                            .build();
+                }
+            };
 }
