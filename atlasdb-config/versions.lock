@@ -13,11 +13,10 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:leader-election-api",
@@ -29,7 +28,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor",
@@ -48,7 +47,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
@@ -81,20 +80,20 @@
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting2:error-handling",
@@ -108,7 +107,7 @@
             "locked": "2.6.7"
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
@@ -119,13 +118,13 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting3:jackson-support",
@@ -133,19 +132,19 @@
             ]
         },
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider"
             ]
         },
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
@@ -156,7 +155,7 @@
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider"
             ]
@@ -789,11 +788,10 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-joda",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:leader-election-api",
@@ -805,7 +803,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor",
@@ -824,7 +822,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
@@ -857,20 +855,20 @@
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting2:error-handling",
@@ -884,7 +882,7 @@
             "locked": "2.6.7"
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
@@ -895,13 +893,13 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting3:jackson-support",
@@ -909,19 +907,19 @@
             ]
         },
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider"
             ]
         },
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
@@ -932,7 +930,7 @@
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider"
             ]

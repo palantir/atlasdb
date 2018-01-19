@@ -9,7 +9,7 @@
             "requested": "2.2.0-rc3"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.palantir.atlasdb:atlasdb-api",
@@ -19,7 +19,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor",
@@ -31,7 +31,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
@@ -52,13 +52,13 @@
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting3:jackson-support",
@@ -66,7 +66,7 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing",
@@ -74,13 +74,13 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing"
@@ -664,7 +664,7 @@
             "requested": "2.2.0-rc3"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.palantir.atlasdb:atlasdb-api",
@@ -674,7 +674,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor",
@@ -686,7 +686,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
@@ -707,13 +707,13 @@
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting3:jackson-support",
@@ -721,7 +721,7 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing",
@@ -729,13 +729,13 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
-            "locked": "2.7.8",
+            "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing"
