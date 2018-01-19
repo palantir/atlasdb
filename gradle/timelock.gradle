@@ -1,7 +1,3 @@
-dependencyRecommendations {
-    strategy ConflictResolved
-}
-
 configurations.all {
     resolutionStrategy {
         eachDependency { details ->
