@@ -21,6 +21,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 
 @AutoService(KeyValueServiceRuntimeConfig.class)
@@ -40,22 +41,22 @@ public class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRun
 
     @Value.Default
     public int mutationBatchCount() {
-        return 10;
+        return 5000;
     }
 
     @Value.Default
     public int mutationBatchSizeBytes() {
-        return 10;
+        return 4 * 1024 * 1024;
     }
 
     @Value.Default
     public int fetchBatchCount() {
-        return 10;
+        return 5000;
     }
 
     @Value.Default
     public Integer sweepReadThreads() {
-        return 10;
+        return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
 
     @Value.Default

@@ -151,17 +151,23 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public abstract int replicationFactor();
 
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
+    @Deprecated
     public int mutationBatchCount() {
         return 5000;
     }
 
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
+    @Deprecated
     public int mutationBatchSizeBytes() {
         return 4 * 1024 * 1024;
     }
 
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
+    @Deprecated
     public int fetchBatchCount() {
         return 5000;
     }
@@ -249,7 +255,9 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 1_000;
     }
 
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
+    @Deprecated
     public Integer sweepReadThreads() {
         return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
