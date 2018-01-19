@@ -25,4 +25,3 @@ atlasdb:
     mutationBatchSizeBytes: 10000000
     fetchBatchCount: 1000
     autoRefreshNodes: false
-  initializeAsync: true
