@@ -33,7 +33,7 @@ import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
-import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.googlecode.protobuf.format.JsonFormat;
@@ -125,11 +125,11 @@ public final class ColumnValueDescription {
         return new ColumnValueDescription(Format.PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
-    public static ColumnValueDescription forProtoMessage(Class<? extends GeneratedMessage> clazz) {
+    public static ColumnValueDescription forProtoMessage(Class<? extends GeneratedMessageV3> clazz) {
         return forProtoMessage(clazz, Compression.NONE);
     }
 
-    public static ColumnValueDescription forProtoMessage(Class<? extends GeneratedMessage> clazz,
+    public static ColumnValueDescription forProtoMessage(Class<? extends GeneratedMessageV3> clazz,
                                                          Compression compression) {
         return new ColumnValueDescription(
                 Format.PROTO,
@@ -139,7 +139,7 @@ public final class ColumnValueDescription {
                 getDescriptor(clazz));
     }
 
-    private static <T extends GeneratedMessage> Descriptor getDescriptor(Class<T> clazz) {
+    private static <T extends GeneratedMessageV3> Descriptor getDescriptor(Class<T> clazz) {
         try {
             Method method = clazz.getMethod("getDescriptor");
             return (Descriptor) method.invoke(null);
@@ -270,7 +270,7 @@ public final class ColumnValueDescription {
                 throw new IllegalArgumentException("Tried to write json to a Persister that isn't for JsonNode.");
             }
         } else if (format == Format.PROTO) {
-            GeneratedMessage.Builder<?> builder = createBuilder(classLoader);
+            GeneratedMessageV3.Builder<?> builder = createBuilder(classLoader);
             // This will have issues with base64 blobs
             JsonFormat.merge(str, builder);
             bytes = builder.build().toByteArray();
@@ -280,10 +280,10 @@ public final class ColumnValueDescription {
         return CompressionUtils.compress(bytes, compression);
     }
 
-    private GeneratedMessage.Builder<?> createBuilder(ClassLoader classLoader) {
+    private GeneratedMessageV3.Builder<?> createBuilder(ClassLoader classLoader) {
         try {
             Method method = getImportClass(classLoader).getMethod("newBuilder");
-            return (GeneratedMessage.Builder<?>) method.invoke(null);
+            return (GeneratedMessageV3.Builder<?>) method.invoke(null);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -341,7 +341,7 @@ public final class ColumnValueDescription {
     @SuppressWarnings("unchecked")
     public Message hydrateProto(ClassLoader classLoader, byte[] value) {
         Preconditions.checkState(format == Format.PROTO, "Column value is not a protocol buffer.");
-        return ColumnValues.parseProtoBuf((Class<? extends GeneratedMessage>) getImportClass(classLoader), CompressionUtils.decompress(value, compression));
+        return ColumnValues.parseProtoBuf((Class<? extends GeneratedMessageV3>) getImportClass(classLoader), CompressionUtils.decompress(value, compression));
     }
 
     public TableMetadataPersistence.ColumnValueDescription.Builder persistToProto() {
