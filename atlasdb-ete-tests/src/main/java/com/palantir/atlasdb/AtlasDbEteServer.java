@@ -57,7 +57,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
             CheckAndSetSchema.getSchema(),
             TodoSchema.getSchema(),
-            BlobSchema.getSchema ());
+            BlobSchema.getSchema());
 
     public static void main(String[] args) throws Exception {
         new AtlasDbEteServer().run(args);

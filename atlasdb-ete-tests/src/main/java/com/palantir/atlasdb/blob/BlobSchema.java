@@ -67,12 +67,13 @@ public class BlobSchema implements AtlasSchema {
                 .build());
 
         schema.addTableDefinition("auditedData", new TableDefinition() {{
-                    allSafeForLoggingByDefault();
-                    rowName();
-                    rowComponent("id", ValueType.FIXED_LONG);
-                    columns();
-                    column("data", "d", ValueType.BLOB);
-                }});
+                allSafeForLoggingByDefault();
+                rowName();
+                rowComponent("id", ValueType.FIXED_LONG);
+                columns();
+                column("data", "d", ValueType.BLOB);
+            }
+        });
 
         schema.addCleanupTask("auditedData", () ->
                 (tx, cells) -> {
