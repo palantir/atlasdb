@@ -1051,11 +1051,6 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         createTables(ImmutableMap.of(tableRef, tableMetadata));
     }
 
-    public static void main(String[] args) {
-        Logger log = LoggerFactory.getLogger(":D");
-        log.info("exception message: {}", new RuntimeException("D:"));
-    }
-
     @Override
     public void createTables(final Map<TableReference, byte[]> tableRefsToTableMetadata) {
         Collection<com.datastax.driver.core.TableMetadata> tables = cluster.getMetadata()
