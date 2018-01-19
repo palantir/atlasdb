@@ -1,13 +1,13 @@
 {
     "compileClasspath": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor",
@@ -18,7 +18,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
@@ -35,20 +35,20 @@
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing",
@@ -56,20 +56,26 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "com.google.guava:guava": {
             "locked": "18.0",
@@ -231,6 +237,12 @@
                 "com.palantir.remoting3:jaxrs-clients"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "org.jvnet:animal-sniffer-annotation": {
             "locked": "1.0",
             "transitive": [
@@ -238,7 +250,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.remoting3:error-handling",
@@ -252,13 +264,13 @@
     },
     "runtime": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor",
@@ -269,7 +281,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
@@ -286,20 +298,20 @@
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing",
@@ -307,20 +319,26 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "com.google.guava:guava": {
             "locked": "18.0",
@@ -482,6 +500,12 @@
                 "com.palantir.remoting3:jaxrs-clients"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "org.jvnet:animal-sniffer-annotation": {
             "locked": "1.0",
             "transitive": [
@@ -489,7 +513,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.remoting3:error-handling",

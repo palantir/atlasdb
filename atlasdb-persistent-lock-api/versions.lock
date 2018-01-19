@@ -1,48 +1,72 @@
 {
     "compileClasspath": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.6.7"
+            "locked": "2.7.8"
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1"
+        },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         }
     },
     "runtime": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.6.7"
+            "locked": "2.7.8"
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1"
+        },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         }
     }
 }

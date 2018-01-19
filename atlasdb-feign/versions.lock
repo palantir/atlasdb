@@ -1,7 +1,7 @@
 {
     "compileClasspath": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -10,7 +10,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
@@ -20,7 +20,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
@@ -35,14 +35,14 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
@@ -50,20 +50,20 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
@@ -74,6 +74,7 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
+                "com.google.code.findbugs:annotations",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting3:refresh-utils"
@@ -191,6 +192,12 @@
                 "com.palantir.remoting2:error-handling"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",
             "transitive": [
@@ -210,18 +217,17 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
-                "com.palantir.tokens:auth-tokens",
-                "io.dropwizard.metrics:metrics-core"
+                "com.palantir.tokens:auth-tokens"
             ]
         }
     },
     "runtime": {
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -230,7 +236,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
@@ -240,7 +246,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
@@ -255,14 +261,14 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-guava": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
@@ -270,20 +276,20 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
-            "locked": "2.6.7",
+            "locked": "2.7.8",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support"
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
@@ -294,6 +300,7 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
+                "com.google.code.findbugs:annotations",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting3:refresh-utils"
@@ -411,6 +418,12 @@
                 "com.palantir.remoting2:error-handling"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",
             "transitive": [
@@ -430,12 +443,11 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
-                "com.palantir.tokens:auth-tokens",
-                "io.dropwizard.metrics:metrics-core"
+                "com.palantir.tokens:auth-tokens"
             ]
         }
     }
