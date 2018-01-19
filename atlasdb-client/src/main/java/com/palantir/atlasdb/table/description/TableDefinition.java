@@ -23,7 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.AbstractMessage;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -438,7 +438,7 @@ public class TableDefinition extends AbstractDefinition {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private ColumnValueDescription getColumnValueDescription(Class protoOrPersistable, Compression compression) {
-        if (GeneratedMessageV3.class.isAssignableFrom(protoOrPersistable)) {
+        if (AbstractMessage.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forProtoMessage(protoOrPersistable, compression);
         } else if (Persister.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forPersister(protoOrPersistable, compression);

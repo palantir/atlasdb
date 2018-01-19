@@ -29,7 +29,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
-import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.AbstractMessage;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.base.Throwables;
@@ -76,7 +76,7 @@ public final class ColumnValues {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends GeneratedMessageV3> T parseProtoBuf(Class<T> clazz, byte[] msg) {
+    public static <T extends AbstractMessage> T parseProtoBuf(Class<T> clazz, byte[] msg) {
         try {
             Method parseMethod = clazz.getMethod("parseFrom", byte[].class);
             return (T) parseMethod.invoke(null, msg);

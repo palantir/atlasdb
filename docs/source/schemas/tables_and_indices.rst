@@ -437,7 +437,7 @@ component ordering determines sort ordering for retrieval.
 .. code:: java
 
     public void value(ValueType valueType)
-    public void value(Class<? extends GeneratedMessageV3> proto, Compression compression = Compression.NONE)
+    public void value(Class<? extends AbstractMessage> proto, Compression compression = Compression.NONE)
 
 Every dynamic column will also have a value associated with it, which
 can be a primitive ValueType or protobuf (optionally compressed).
