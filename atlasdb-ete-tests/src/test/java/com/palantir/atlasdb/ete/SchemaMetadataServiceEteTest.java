@@ -23,6 +23,7 @@ import org.junit.Test;
 import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.schema.CleanupMetadataResource;
 import com.palantir.atlasdb.schema.SerializableCleanupMetadata;
+import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.TodoSchema;
@@ -38,20 +39,35 @@ public class SchemaMetadataServiceEteTest {
     }
 
     @Test
-    public void shouldBeAbleToRetrieveSchemaMetadataForStreamStoreTables() {
-        assertThat(getSerializableCleanupMetadataAndAssertPresent(BlobSchema.getSchema(), "blob.data"))
+    public void shouldBeAbleToRetrieveSchemaMetadataForStreamStoreIndexTables() {
+        assertThat(getSerializableCleanupMetadataAndAssertPresent(
+                BlobSchema.getSchema(), StreamTableType.INDEX.getTableName("blob.data")))
                 .satisfies(metadata -> {
                     assertThat(metadata.cleanupMetadataType()).isEqualTo(SerializableCleanupMetadata.STREAM_STORE_TYPE);
                     assertThat(metadata.numHashedRowComponents()).isEqualTo(2);
                     assertThat(metadata.streamIdType()).isEqualTo(ValueType.VAR_LONG.name());
                 });
 
-        assertThat(getSerializableCleanupMetadataAndAssertPresent(BlobSchema.getSchema(), "blob.hotspottyData"))
+        assertThat(getSerializableCleanupMetadataAndAssertPresent(
+                BlobSchema.getSchema(), StreamTableType.INDEX.getTableName("blob.hotspottyData")))
                 .satisfies(metadata -> {
                     assertThat(metadata.cleanupMetadataType()).isEqualTo(SerializableCleanupMetadata.STREAM_STORE_TYPE);
                     assertThat(metadata.numHashedRowComponents()).isEqualTo(0);
                     assertThat(metadata.streamIdType()).isEqualTo(ValueType.VAR_SIGNED_LONG.name());
                 });
+    }
+
+    @Test
+    public void shouldBeAbleToRetrieveSchemaMetadataForStreamStoreValueTables() {
+        assertThat(getSerializableCleanupMetadataAndAssertPresent(
+                BlobSchema.getSchema(), StreamTableType.VALUE.getTableName("blob.data")))
+                .satisfies(metadata -> assertThat(metadata.cleanupMetadataType())
+                        .isEqualTo(SerializableCleanupMetadata.NULL_TYPE));
+
+        assertThat(getSerializableCleanupMetadataAndAssertPresent(
+                BlobSchema.getSchema(), StreamTableType.VALUE.getTableName("blob.hotspottyData")))
+                .satisfies(metadata -> assertThat(metadata.cleanupMetadataType())
+                        .isEqualTo(SerializableCleanupMetadata.NULL_TYPE));
     }
 
     @Test
