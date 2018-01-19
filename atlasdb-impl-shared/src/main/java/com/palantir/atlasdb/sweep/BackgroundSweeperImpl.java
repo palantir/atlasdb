@@ -132,11 +132,11 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
-            sweepOutcomeMetrics.shutdown();
+            sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.SHUTDOWN);
         } catch (Throwable t) {
             log.error("BackgroundSweeper failed fatally and will not rerun until restarted: {}",
                     UnsafeArg.of("message", t.getMessage()), t);
-            sweepOutcomeMetrics.fatal();
+            sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.FATAL);
         }
     }
 
@@ -277,7 +277,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @Override
     public synchronized void shutdown() {
-        sweepOutcomeMetrics.shutdown();
+        sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.SHUTDOWN);
         if (daemon == null) {
             return;
         }
@@ -329,23 +329,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
         void registerOccurrenceOf(SweepOutcome outcome) {
             if (outcome == SweepOutcome.SHUTDOWN) {
-                shutdown();
+                shutdown = true;
                 return;
             }
             if (outcome == SweepOutcome.FATAL) {
-                fatal();
+                fatal = true;
                 return;
             }
 
             reservoir.update(outcome.ordinal());
-        }
-
-        public void shutdown() {
-            this.shutdown = true;
-        }
-
-        void fatal() {
-            this.fatal = true;
         }
     }
 }
