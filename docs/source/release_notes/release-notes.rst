@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed| |metrics|
+         - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/xxxx>`__)
+
     *    - |improved| |metrics|
          - BackgroundSweeperImpl now logs if there's an uncaught exception.  Added 2 new outcomes for normal and abnormal shutdown to allow closer monitoring.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/xxxx>`__)

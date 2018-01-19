@@ -18,6 +18,7 @@ package com.palantir.atlasdb.util;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.crypto.Sha256Hash;
 
 public class MetricsManager {
 
@@ -44,6 +46,7 @@ public class MetricsManager {
     private final MetricRegistry metricRegistry;
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final Set<String> registeredMetrics;
+    private final Function<TableReference, Boolean> isSafeToLog;
 
     public MetricsManager() {
         this(AtlasDbMetrics.getMetricRegistry(), AtlasDbMetrics.getTaggedMetricRegistry());
@@ -51,9 +54,16 @@ public class MetricsManager {
 
     @VisibleForTesting
     MetricsManager(MetricRegistry metricRegistry, TaggedMetricRegistry taggedMetricRegistry) {
+        this(metricRegistry, taggedMetricRegistry, new HashSet<>(), LoggingArgs::isSafe);
+    }
+
+    @VisibleForTesting
+    MetricsManager(MetricRegistry metricRegistry, TaggedMetricRegistry taggedMetricRegistry,
+            Set<String> registeredMetrics, Function<TableReference, Boolean> isSafeToLog) {
         this.metricRegistry = metricRegistry;
         this.taggedMetricRegistry = taggedMetricRegistry;
-        this.registeredMetrics = new HashSet<>();
+        this.registeredMetrics = registeredMetrics;
+        this.isSafeToLog = isSafeToLog;
     }
 
     public MetricRegistry getRegistry() {
@@ -95,8 +105,18 @@ public class MetricsManager {
         taggedMetricRegistry.gauge(metricToAdd, gauge);
     }
 
-    private Map<String, String> getTableNameTagFor(TableReference tableRef) {
-        return ImmutableMap.of("tableName", LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName());
+    @VisibleForTesting
+    Map<String, String> getTableNameTagFor(TableReference tableRef) {
+        String tableName = tableRef.getTablename();
+        if (!isSafeToLog.apply(tableRef)) {
+            tableName = "unsafeTableRef_" + obfuscate(tableRef);
+        }
+
+        return ImmutableMap.of("tableName", tableName);
+    }
+
+    private String obfuscate(TableReference tableRef) {
+        return Sha256Hash.computeHash(tableRef.getTablename().getBytes()).serializeToHexString().substring(0, 8);
     }
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {

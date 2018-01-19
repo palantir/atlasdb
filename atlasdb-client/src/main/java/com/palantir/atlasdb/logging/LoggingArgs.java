@@ -103,6 +103,10 @@ public final class LoggingArgs {
         return tableRef("tableRef", tableReference);
     }
 
+    public static boolean isSafe(TableReference tableReference) {
+        return logArbitrator.isTableReferenceSafe(tableReference);
+    }
+
     /**
      * If table is safe, returns the table. If unsafe, returns a placeholder.
      */
