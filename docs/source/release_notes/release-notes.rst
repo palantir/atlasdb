@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
+
     *    - |fixed|
          - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
