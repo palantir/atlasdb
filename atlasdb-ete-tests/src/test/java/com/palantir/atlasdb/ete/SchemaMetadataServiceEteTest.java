@@ -44,16 +44,16 @@ public class SchemaMetadataServiceEteTest {
                 BlobSchema.getSchema(), StreamTableType.INDEX.getTableName("blob.data")))
                 .satisfies(metadata -> {
                     assertThat(metadata.cleanupMetadataType()).isEqualTo(SerializableCleanupMetadata.STREAM_STORE_TYPE);
-                    assertThat(metadata.numHashedRowComponents()).isEqualTo(2);
-                    assertThat(metadata.streamIdType()).isEqualTo(ValueType.VAR_LONG.name());
+                    assertThat(metadata.numHashedRowComponents()).contains(2);
+                    assertThat(metadata.streamIdType()).contains(ValueType.VAR_LONG.name());
                 });
 
         assertThat(getSerializableCleanupMetadataAndAssertPresent(
                 BlobSchema.getSchema(), StreamTableType.INDEX.getTableName("blob.hotspottyData")))
                 .satisfies(metadata -> {
                     assertThat(metadata.cleanupMetadataType()).isEqualTo(SerializableCleanupMetadata.STREAM_STORE_TYPE);
-                    assertThat(metadata.numHashedRowComponents()).isEqualTo(0);
-                    assertThat(metadata.streamIdType()).isEqualTo(ValueType.VAR_SIGNED_LONG.name());
+                    assertThat(metadata.numHashedRowComponents()).contains(0);
+                    assertThat(metadata.streamIdType()).contains(ValueType.VAR_SIGNED_LONG.name());
                 });
     }
 
