@@ -247,7 +247,7 @@ public class SchemaTest {
     public void streamStoreMetadataGeneratedCorrectlyForSimpleStreamStore() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String shortName = "f";
-        String longName = "floccinaucinihilipilification";
+        String longName = "Floccinaucinihilipilification";
 
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_LONG)
@@ -260,7 +260,7 @@ public class SchemaTest {
     public void streamStoreMetadataGeneratedCorrectlyForStreamStoreWithHashFirstRowComponent() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String shortName = "a";
-        String longName = "antidisestablishmentarianism";
+        String longName = "Antidisestablishmentarianism";
 
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder(shortName, longName, ValueType.FIXED_LONG)
@@ -274,7 +274,7 @@ public class SchemaTest {
     public void streamStoreMetadataGeneratedCorrectlyForStreamStoreWithHashRowComponents() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String shortName = "p";
-        String longName = "pneumonoultramicroscopicsilicovolcanoconiosis";
+        String longName = "Pneumonoultramicroscopicsilicovolcanoconiosis";
 
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder(shortName, longName, ValueType.FIXED_LONG_LITTLE_ENDIAN)
@@ -288,7 +288,7 @@ public class SchemaTest {
     public void streamStoreTablesSupportAdditionalCleanupTasks() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String shortName = "l";
-        String longName = "llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch";
+        String longName = "Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch";
 
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_SIGNED_LONG)

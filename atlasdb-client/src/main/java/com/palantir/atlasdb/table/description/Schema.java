@@ -213,9 +213,7 @@ public class Schema {
                 .streamIdType(streamStoreDefinition.getIdType())
                 .build();
         streamStoreDefinition.getTables().forEach(
-                (tableName, definition) -> {
-                    streamStoreCleanupMetadata.put(tableName, metadata);
-                });
+                (tableName, definition) -> streamStoreCleanupMetadata.put(tableName, metadata));
 
         cleanupTasks.putAll(streamStoreCleanupTasks);
         streamStoreRenderers.add(renderer);
@@ -402,6 +400,7 @@ public class Schema {
         }
     }
 
+    // Cannot be removed, as it is used by the large internal product
     public void addCleanupTask(String rawTableName, OnCleanupTask task) {
         addCleanupTask(rawTableName, Suppliers.ofInstance(task));
     }
