@@ -351,7 +351,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private LockLeader whoIsTheLockCreator() {
         return leaderConfig
-                .map((config) -> config.whoIsTheLockLeader())
+                .map(LeaderConfig::whoIsTheLockLeader)
                 .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
