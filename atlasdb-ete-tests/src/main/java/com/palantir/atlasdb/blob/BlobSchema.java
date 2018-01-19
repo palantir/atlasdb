@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.table.description.Schema;
@@ -30,12 +31,12 @@ import com.palantir.logsafe.UnsafeArg;
 public class BlobSchema implements AtlasSchema {
     private static final Logger log = LoggerFactory.getLogger(BlobSchema.class);
 
+    private static final Namespace BLOB_NAMESPACE = Namespace.create("blob");
     private static final Schema GENERATED_SCHEMA = generateSchema();
-    private static final Namespace CLEANUP_METADATA_TEST_NAMESPACE = Namespace.create("blob");
 
     @Override
     public Namespace getNamespace() {
-        return CLEANUP_METADATA_TEST_NAMESPACE;
+        return BLOB_NAMESPACE;
     }
 
     @Override
@@ -51,31 +52,25 @@ public class BlobSchema implements AtlasSchema {
         Schema schema = new Schema(
                 BlobSchema.class.getSimpleName(),
                 BlobSchema.class.getPackage().getName(),
-                CLEANUP_METADATA_TEST_NAMESPACE);
+                BLOB_NAMESPACE);
 
         schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder("d", "data", ValueType.VAR_LONG)
+                new StreamStoreDefinitionBuilder("data", "Data", ValueType.VAR_LONG)
                 .hashRowComponents()
+                        .tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
                 .build());
 
         schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder("l", "legacyData", ValueType.FIXED_LONG)
-                .hashFirstRowComponent()
+                new StreamStoreDefinitionBuilder("hotspottyData", "HotspottyData", ValueType.VAR_SIGNED_LONG)
                 .build());
 
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder("h", "hotspottyData", ValueType.VAR_SIGNED_LONG)
-                .build());
-
-        schema.addTableDefinition(
-                "auditedData",
-                new TableDefinition() {{
+        schema.addTableDefinition("auditedData", new TableDefinition() {{
+                    allSafeForLoggingByDefault();
                     rowName();
                     rowComponent("id", ValueType.FIXED_LONG);
                     columns();
                     column("data", "d", ValueType.BLOB);
-                }}
-        );
+                }});
 
         schema.addCleanupTask("auditedData", () ->
                 (tx, cells) -> {
@@ -83,6 +78,7 @@ public class BlobSchema implements AtlasSchema {
                     return false;
                 });
 
+        schema.validate();
         return schema;
     }
 }
