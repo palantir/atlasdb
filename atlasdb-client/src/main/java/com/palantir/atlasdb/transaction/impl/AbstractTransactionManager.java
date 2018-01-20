@@ -92,7 +92,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
         }
     }
 
-    protected static void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {
+    protected void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {
         // no-op
     }
 

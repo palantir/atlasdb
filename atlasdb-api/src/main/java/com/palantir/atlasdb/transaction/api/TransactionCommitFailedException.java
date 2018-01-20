@@ -26,7 +26,7 @@ package com.palantir.atlasdb.transaction.api;
  * @author carrino
  *
  */
-public class TransactionCommitFailedException extends TransactionFailedNonRetriableException {
+public class TransactionCommitFailedException extends TransactionFailedException {
     private static final long serialVersionUID = 1L;
 
     public TransactionCommitFailedException(String message, Throwable cause) {
@@ -35,5 +35,10 @@ public class TransactionCommitFailedException extends TransactionFailedNonRetria
 
     public TransactionCommitFailedException(String message) {
         super(message);
+    }
+
+    @Override
+    public final boolean canTransactionBeRetried() {
+        return false;
     }
 }

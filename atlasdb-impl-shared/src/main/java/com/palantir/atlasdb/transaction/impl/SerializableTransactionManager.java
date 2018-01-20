@@ -25,7 +25,6 @@ import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
@@ -238,7 +237,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     protected SnapshotTransaction createTransaction(long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
-            PreCommitCondition preCommitCondition) {
+            AdvisoryLockPreCommitCheck advisoryLockCheck) {
         return new SerializableTransaction(
                 keyValueService,
                 timelockService,
@@ -249,7 +248,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 immutableTimestamp,
                 Optional.of(immutableTsLock),
-                preCommitCondition,
+                advisoryLockCheck,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

@@ -61,7 +61,7 @@ public interface LockAwareTransactionManager extends TransactionManager {
      * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
      * will not commit successfully if these locks are invalid by the time commit is run.
      *
-     * @param lockTokens lock tokens to refresh while transaction executes
+     * @param lockTokens lock tokens to acquire while transaction executes
      * @param task task to run
      *
      * @return value returned by task
