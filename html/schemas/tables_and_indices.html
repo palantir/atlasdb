@@ -555,7 +555,7 @@ order in which the components will be stored together. Since dyanmic
 columns of a row are retrieved in byte order, this means column
 component ordering determines sort ordering for retrieval.</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span>public void value(ValueType valueType)
-public void value(Class&lt;? extends GeneratedMessage&gt; proto, Compression compression = Compression.NONE)
+public void value(Class&lt;? extends AbstractMessage&gt; proto, Compression compression = Compression.NONE)
 </pre></div>
 </div>
 <p>Every dynamic column will also have a value associated with it, which
