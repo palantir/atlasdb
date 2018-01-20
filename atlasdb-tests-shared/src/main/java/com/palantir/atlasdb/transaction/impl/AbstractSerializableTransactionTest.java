@@ -98,7 +98,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
                 Optional.empty(),
-                PreCommitConditions.NO_OP,
+                AdvisoryLockPreCommitCheck.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

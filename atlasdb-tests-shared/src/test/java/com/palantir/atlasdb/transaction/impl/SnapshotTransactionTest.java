@@ -26,11 +26,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
 import java.util.Collection;
@@ -54,7 +52,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -65,8 +62,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -102,12 +97,10 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
-import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -175,24 +168,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return delegate;
         }
     }
-
-    private static final PreCommitCondition ALWAYS_FAILS_CONDITION = new PreCommitCondition() {
-        @Override
-        public void throwIfConditionInvalid(long timestamp) {
-            throw new TransactionFailedRetriableException("Condition failed");
-        }
-
-        @Override
-        public void cleanup() {}
-    };
-
     static final TableReference TABLE = TableReference.createFromFullyQualifiedName("default.table");
     static final TableReference TABLE1 = TableReference.createFromFullyQualifiedName("default.table1");
     static final TableReference TABLE2 = TableReference.createFromFullyQualifiedName("default.table2");
 
     static final TableReference TABLE_SWEPT_THOROUGH = TableReference.createFromFullyQualifiedName("default.table2");
-
-    private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
     @Override
     @Before
@@ -597,7 +577,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         try {
             txManager.runTaskWithLocksThrowOnConflict(ImmutableList.of(getExpiredHeldLocksToken()), task.getRight());
             return Optional.of(task.getLeft());
-        } catch (TransactionFailedNonRetriableException expected) {
+        } catch (TransactionFailedRetriableException expected) {
             return Optional.empty();
         } catch (Exception e) {
             throw Throwables.propagate(e);
@@ -749,8 +729,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test (expected = IllegalArgumentException.class)
     public void disallowPutOnEmptyObject() {
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.EMPTY_BYTE_ARRAY));
+        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Test
@@ -769,150 +750,18 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void noRetryOnExpiredLockTokens() throws InterruptedException {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         HeldLocksToken expiredLockToken = getExpiredHeldLocksToken();
         try {
             txManager.runTaskWithLocksWithRetry(ImmutableList.of(expiredLockToken), () -> null, (tx, locks) -> {
-                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+                tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
                 return null;
             });
-            fail();
-        } catch (TransactionLockTimeoutNonRetriableException e) {
+        } catch (TransactionLockTimeoutException e) {
             Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
             assertThat(e.getMessage(), containsString(expectedTokens.toString()));
             assertThat(e.getMessage(), containsString("Retry is not possible."));
         }
-    }
-
-    @Test
-    public void commitIfPreCommitConditionSucceeds() {
-        serializableTxManager.runTaskWithConditionThrowOnConflict(PreCommitConditions.NO_OP, (tx, condition) -> {
-            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-            return null;
-        });
-    }
-
-    @Test
-    public void failToCommitIfPreCommitConditionFails() {
-        try {
-            serializableTxManager.runTaskWithConditionThrowOnConflict(ALWAYS_FAILS_CONDITION, (tx, condition) -> {
-                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-                return null;
-            });
-            fail();
-        } catch (TransactionFailedRetriableException e) {
-            assertThat(e.getMessage(), containsString("Condition failed"));
-        }
-    }
-
-    @Test
-    public void commitWithPreCommitConditionOnRetry() {
-        Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
-        when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
-                .thenReturn(PreCommitConditions.NO_OP);
-        serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
-            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-            return null;
-        });
-    }
-
-    @Test
-    public void runWithRetryFailsOnNonRetriableException() {
-        PreCommitCondition nonRetriableFailure = new PreCommitCondition() {
-            @Override
-            public void throwIfConditionInvalid(long timestamp) {
-                throw new TransactionFailedNonRetriableException("Condition failed");
-            }
-
-            @Override
-            public void cleanup() {}
-        };
-        Supplier<PreCommitCondition> conditionSupplier = Suppliers.ofInstance(nonRetriableFailure);
-        try {
-            serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
-                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-                return null;
-            });
-            fail();
-        } catch (TransactionFailedNonRetriableException e) {
-            assertThat(e.getMessage(), containsString("Condition failed"));
-        }
-    }
-
-    @Test
-    public void readTransactionSucceedsIfConditionSucceeds() {
-        serializableTxManager.runTaskReadOnlyWithCondition(PreCommitConditions.NO_OP,
-                (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
-    }
-
-    @Test
-    public void readTransactionFailsIfConditionFails() {
-        try {
-            serializableTxManager.runTaskReadOnlyWithCondition(ALWAYS_FAILS_CONDITION,
-                    (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
-            fail();
-        } catch (TransactionFailedRetriableException e) {
-            assertThat(e.getMessage(), containsString("Condition failed"));
-        }
-    }
-
-    @Test
-    public void cleanupPreCommitConditionsOnSuccess() {
-        MutableLong counter = new MutableLong(0L);
-        PreCommitCondition succeedsCondition = new PreCommitCondition() {
-            @Override
-            public void throwIfConditionInvalid(long timestamp) {}
-
-            @Override
-            public void cleanup() {
-                counter.increment();
-            }
-        };
-
-        serializableTxManager.runTaskWithConditionThrowOnConflict(succeedsCondition, (tx, condition) -> {
-            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-            return null;
-        });
-        assertThat(counter.intValue(), is(1));
-
-        serializableTxManager.runTaskReadOnlyWithCondition(succeedsCondition,
-                (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
-        assertThat(counter.intValue(), is(2));
-    }
-
-    @Test
-    public void cleanupPreCommitConditionsOnFailure() {
-        MutableLong counter = new MutableLong(0L);
-        PreCommitCondition failsCondition = new PreCommitCondition() {
-            @Override
-            public void throwIfConditionInvalid(long timestamp) {
-                throw new TransactionFailedRetriableException("Condition failed");
-            }
-
-            @Override
-            public void cleanup() {
-                counter.increment();
-            }
-        };
-
-        try {
-            serializableTxManager.runTaskWithConditionThrowOnConflict(failsCondition, (tx, condition) -> {
-                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-                return null;
-            });
-            fail();
-        } catch (TransactionFailedRetriableException e) {
-            // expected
-        }
-        assertThat(counter.intValue(), is(1));
-
-        try {
-            serializableTxManager.runTaskReadOnlyWithCondition(failsCondition,
-                    (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
-            fail();
-        } catch (TransactionFailedRetriableException e) {
-            // expected
-        }
-        assertThat(counter.intValue(), is(2));
     }
 
     @Test
@@ -940,6 +789,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         verify(sweepQueue).enqueue(eq(TABLE1), eq(table1Writes));
         verify(sweepQueue).enqueue(eq(TABLE2), eq(table2Writes));
+    }
+
+    private void put(Transaction txn, TableReference table, WriteInfo write) {
+        if (write.isTombstone()) {
+            txn.delete(table, ImmutableSet.of(write.cell()));
+        } else {
+            txn.put(table, ImmutableMap.of(write.cell(), new byte[1]));
+        }
     }
 
     @Test
@@ -981,14 +838,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
 
         verifyZeroInteractions(sweepQueue);
-    }
-
-    private void put(Transaction txn, TableReference table, WriteInfo write) {
-        if (write.isTombstone()) {
-            txn.delete(table, ImmutableSet.of(write.cell()));
-        } else {
-            txn.put(table, ImmutableMap.of(write.cell(), new byte[1]));
-        }
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {
