@@ -100,9 +100,10 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
      *
-     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
-     * live-reloadable.
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#unresponsiveHostBackoffTimeSeconds()} to make this
+     * value live-reloadable.
      */
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
     public int unresponsiveHostBackoffTimeSeconds() {
@@ -275,6 +276,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#sweepReadThreads()} to make this value
      * live-reloadable.
      */
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
     public Integer sweepReadThreads() {

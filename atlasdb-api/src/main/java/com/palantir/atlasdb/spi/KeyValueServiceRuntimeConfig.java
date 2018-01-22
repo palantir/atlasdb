@@ -19,7 +19,7 @@ package com.palantir.atlasdb.spi;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
- * Marker interface for various AtlasDb KeyValueService config objects.
+ * Marker interface for various AtlasDb KeyValueServiceRuntime config objects.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 public interface KeyValueServiceRuntimeConfig {

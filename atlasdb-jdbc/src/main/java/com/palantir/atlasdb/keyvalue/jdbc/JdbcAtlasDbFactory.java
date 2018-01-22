@@ -52,7 +52,8 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
      *@param leaderConfig unused.
      * @param unused unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
-     * @param unusedQosClient unused.     @return The requested KeyValueService instance
+     * @param unusedQosClient unused.
+     * @return The requested KeyValueService instance
      */
     @Override
     public KeyValueService createRawKeyValueService(
