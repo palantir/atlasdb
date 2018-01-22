@@ -76,6 +76,11 @@ develop
            The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2887>`__)
 
+    *    - |fixed|
+         - V2 Schemas which use ``ValueType.BLOB`` will now compile.
+           Previously, compilation failed with an ``IllegalArgumentException`` from Java Poet, as we assumed Java versions of ``ValueType``s always had object types.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2899>`__)
+
 =======
 v0.73.0
 =======
