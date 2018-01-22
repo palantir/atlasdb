@@ -78,7 +78,7 @@ develop
 
     *    - |fixed|
          - V2 Schemas which use ``ValueType.BLOB`` will now compile.
-           Previously, compilation failed with an ``IllegalArgumentException`` from Java Poet, as we assumed Java versions of ``ValueType``s always had object types.
+           Previously, compilation failed with an ``IllegalArgumentException`` from Java Poet, as we assumed Java versions of ``ValueType`` were always associated with object types.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2899>`__)
 
 =======
