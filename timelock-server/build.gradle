@@ -61,3 +61,8 @@ dependencies {
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     integTestCompile group: 'com.palantir.remoting3', name: 'http2-agent'
 }
+
+compileJava {
+    options.compilerArgs += ['-Xep:PreconditionsConstantMessage:OFF']
+    options.compilerArgs += ['-Xep:ValidateConstantMessage:OFF']
+}
