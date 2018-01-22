@@ -326,6 +326,7 @@ public class SchemaTest {
             Arrays.stream(ValueType.values())
                     .filter(valueType -> valueType != ValueType.STRING && valueType != ValueType.BLOB)
                     .forEach(valueType -> rowComponent(valueType.name(), valueType));
+            rowComponent("BLOB", ValueType.BLOB);
             columns();
             Arrays.stream(ValueType.values())
                     .forEach(valueType -> column(valueType.name(), valueType.name() + "-long", valueType));
