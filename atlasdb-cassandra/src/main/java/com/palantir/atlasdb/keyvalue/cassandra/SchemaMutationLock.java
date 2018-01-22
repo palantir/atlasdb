@@ -43,7 +43,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
@@ -65,7 +65,7 @@ final class SchemaMutationLock {
     private static final int MAX_UNLOCK_RETRY_COUNT = 5;
 
     private final boolean supportsCas;
-    private final CassandraKeyValueServiceConfigManager configManager;
+    private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
     private final ConsistencyLevel writeConsistency;
@@ -77,7 +77,7 @@ final class SchemaMutationLock {
     SchemaMutationLock(
             // TODO(ssouza): get rid of non-cas, since we've dropped support for Cassandra 1.2.
             boolean supportsCas,
-            CassandraKeyValueServiceConfigManager configManager,
+            CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel writeConsistency,
@@ -85,7 +85,7 @@ final class SchemaMutationLock {
             HeartbeatService heartbeatService,
             int deadHeartbeatTimeoutThreshold) {
         this.supportsCas = supportsCas;
-        this.configManager = configManager;
+        this.config = config;
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.writeConsistency = writeConsistency;
@@ -186,7 +186,7 @@ final class SchemaMutationLock {
 
                 // We use schemaMutationTimeoutMillis to wait for schema mutations to agree as well as
                 // to specify the timeout period before we give up trying to acquire the schema mutation lock
-                int mutationTimeoutMillis = configManager.getConfig().schemaMutationTimeoutMillis()
+                int mutationTimeoutMillis = config.schemaMutationTimeoutMillis()
                         * CassandraConstants.SCHEMA_MUTATION_LOCK_TIMEOUT_MULTIPLIER;
                 Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -272,7 +272,7 @@ final class SchemaMutationLock {
                                 + " clients operating on the %s keyspace and then run the clean-cass-locks-state"
                                 + " cli command.",
                         stopwatch.elapsed(TimeUnit.MILLISECONDS),
-                        configManager.getConfig().getKeyspaceOrThrow()));
+                        config.getKeyspaceOrThrow()));
     }
 
     private void waitForSchemaMutationLockWithoutCas() throws TimeoutException {
@@ -281,7 +281,7 @@ final class SchemaMutationLock {
                 + " in parallel, or extremely heavy Cassandra cluster load.";
         try {
             if (!schemaMutationLockForEarlierVersionsOfCassandra.tryLock(
-                    configManager.getConfig().schemaMutationTimeoutMillis(),
+                    config.schemaMutationTimeoutMillis(),
                     TimeUnit.MILLISECONDS)) {
                 throw new TimeoutException(message);
             }

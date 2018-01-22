@@ -54,9 +54,28 @@ develop
          - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/xxxx>`__)
 
+    *    - |improved| |logs|
+         - AtlasDB internal table names are now safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
+
+    *    - |devbreak|
+         - `AtlasDbConstants.GENERIC_TABLE_METADATA` is now safe for logging, if you are using this as the metadata to
+           create table names that shouldn't be logged in the internal logging framework, do not use this metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
+
+    *    - |devbreak| |improved|
+         - The ``partitionStrategy`` parameter in AtlasDB table metadata has been removed; products that explicitly specify partition strategies in their schemas will need to remove them.
+           The value of this parameter was never actually read; behaviour would have been identical regardless of what this was specified to (if at all).
+           This change was made to simplify the API and also remove any illusion that specifying the ``partitionStrategy`` would have done anything.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2864>`__)
+
+    *    - |devbreak|
+         - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
+
     *    - |improved| |metrics|
          - BackgroundSweeperImpl now logs if there's an uncaught exception.  Added 2 new outcomes for normal and abnormal shutdown to allow closer monitoring.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/xxxx>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2884>`__)
 
     *    - |fixed|
          - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
@@ -74,6 +93,11 @@ develop
          - Fix a NPE in the sweep code.
            The regression was introduced with (`#2860 <https://github.com/palantir/atlasdb/pull/2860>`__).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2883>`__)
+
+    *    - |devbreak|
+         - Upgraded to protobuf 3.5.1.
+           The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2887>`__)
 
 =======
 v0.73.0
@@ -180,6 +204,7 @@ v0.73.0-rc1
     *    - |improved|
          - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
+
 
 =======
 v0.72.0

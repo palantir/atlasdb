@@ -44,7 +44,7 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
@@ -97,11 +97,9 @@ public class SchemaMutationLockIntegrationTest {
     private void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
         quickTimeoutConfig = ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(500);
-        CassandraKeyValueServiceConfigManager simpleManager =
-                CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
-        clientPool = CassandraClientPoolImpl.create(simpleManager.getConfig());
+        clientPool = CassandraClientPoolImpl.create(quickTimeoutConfig);
         lockTable = new UniqueSchemaMutationLockTable(
                 new SchemaMutationLockTables(clientPool, quickTimeoutConfig),
                 LockLeader.I_AM_THE_LOCK_LEADER);
@@ -111,9 +109,9 @@ public class SchemaMutationLockIntegrationTest {
                 HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS,
                 lockTable.getOnlyTable(),
                 writeConsistency);
-        schemaMutationLock = getSchemaMutationLock(supportsCas, simpleManager, queryRunner,
+        schemaMutationLock = getSchemaMutationLock(supportsCas, quickTimeoutConfig, queryRunner,
                 SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
-        secondSchemaMutationLock = getSchemaMutationLock(supportsCas, simpleManager, queryRunner,
+        secondSchemaMutationLock = getSchemaMutationLock(supportsCas, quickTimeoutConfig, queryRunner,
                 SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
         lockTestTools = new SchemaMutationLockTestTools(clientPool, lockTable);
     }
@@ -248,18 +246,16 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     private SchemaMutationLock createQuickHeartbeatTimeoutLock() {
-        CassandraKeyValueServiceConfigManager configManager =
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG);
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
-        return getSchemaMutationLock(true, configManager, queryRunner, 2000);
+        return getSchemaMutationLock(true, CassandraContainer.KVS_CONFIG, queryRunner, 2000);
     }
 
     private SchemaMutationLock getSchemaMutationLock(boolean supportsCas,
-            CassandraKeyValueServiceConfigManager simpleManager, TracingQueryRunner queryRunner,
+            CassandraKeyValueServiceConfig config, TracingQueryRunner queryRunner,
             int defaultDeadHeartbeatTimeoutThresholdMillis) {
         return new SchemaMutationLock(
                 supportsCas,
-                simpleManager,
+                config,
                 clientPool,
                 queryRunner,
                 writeConsistency,

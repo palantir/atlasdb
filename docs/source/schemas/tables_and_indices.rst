@@ -347,8 +347,8 @@ of the objects, in the above example), they can have partitions
 explicitly created for them by specifying ``explicit(...)``. Note that
 use of ``partition()`` assumes the order storage of rows; if there is no
 good way to partition the rows uniformly and range requests are not
-needed, then perhaps ``partitionStrategy(PartitionStrategy.HASH)`` is a
-better idea for your table.
+needed, then hashing the first (or first-N) row components of
+your table would likely be a good idea.
 
 .. warning::
    The most significant component of any
@@ -437,7 +437,7 @@ component ordering determines sort ordering for retrieval.
 .. code:: java
 
     public void value(ValueType valueType)
-    public void value(Class<? extends GeneratedMessage> proto, Compression compression = Compression.NONE)
+    public void value(Class<? extends AbstractMessage> proto, Compression compression = Compression.NONE)
 
 Every dynamic column will also have a value associated with it, which
 can be a primitive ValueType or protobuf (optionally compressed).
@@ -545,20 +545,6 @@ Behavioral Parameters
 
 The conflict handler parameter specifies the MVCC transaction semantics
 for the table.
-
-.. code:: java
-
-    public void partitionStrategy(PartitionStrategy strategy = PartitionStrategy.ORDERED);
-
-Specifies the strategy for how rows in the table will be partitioned
-across database shards.
-
--  **ORDERED** means that rows will be partitioned into contiguous
-   chunks of the table space. This is useful if your table needs range
-   scans. See the partitions section for more information.
--  **HASH** means that rows will be partitioned based on the hashes of
-   their row. This avoids hotspotting, but makes range scans rather
-   difficult.
 
 .. code:: java
 
