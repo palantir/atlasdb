@@ -22,6 +22,7 @@ import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.ContendedWriteTransactionBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.DynamicColumnsRangeScanBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.DynamicColumnsWriteTransactionBenchmark;
@@ -36,17 +37,22 @@ import com.palantir.atlasdb.timelock.benchmarks.benchmarks.RowsWriteTransactionB
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TimestampBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public class BenchmarksResource implements BenchmarksService {
 
-    private final AtlasDbConfig config;
     private final SerializableTransactionManager txnManager;
 
     public BenchmarksResource(AtlasDbConfig config) {
-        this.config = config;
-        this.txnManager = TransactionManagers.create(config, () -> Optional.empty(),
-                ImmutableSet.of(BenchmarksSchema.SCHEMA), res -> {
-                }, true);
+        this.txnManager = TransactionManagers.builder()
+                .config(config)
+                .userAgent(UserAgents.DEFAULT_USER_AGENT)
+                .globalMetricsRegistry(AtlasDbMetrics.getMetricRegistry())
+                .globalTaggedMetricRegistry(AtlasDbMetrics.getTaggedMetricRegistry())
+                .addSchemas(BenchmarksSchema.SCHEMA)
+                .allowHiddenTableAccess(true)
+                .runtimeConfigSupplier(Optional::empty)
+                .build().serializable();
     }
 
     @Override
