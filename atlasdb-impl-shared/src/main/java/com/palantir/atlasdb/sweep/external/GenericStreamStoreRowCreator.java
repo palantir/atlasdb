@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.sweep.external;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
@@ -26,15 +23,13 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.util.crypto.Sha256Hash;
 
 public class GenericStreamStoreRowCreator {
-    private static final Logger log = LoggerFactory.getLogger(GenericStreamStoreRowCreator.class);
-
     private final StreamStoreCleanupMetadata cleanupMetadata;
 
     public GenericStreamStoreRowCreator(StreamStoreCleanupMetadata cleanupMetadata) {
         this.cleanupMetadata = cleanupMetadata;
     }
 
-    public byte[] constructValueTableRow(byte[] streamId, long blockId) {
+    public byte[] constructValueTableRow(GenericStreamIdentifier streamId, long blockId) {
         byte[] hashComponent = StreamStoreHashEncodingUtils.getValueHashComponent(
                 cleanupMetadata.numHashedRowComponents(), streamId, blockId);
         byte[] streamIdComponent = cleanupMetadata.streamIdType().convertFromJava(streamId);
@@ -42,7 +37,7 @@ public class GenericStreamStoreRowCreator {
         return EncodingUtils.add(hashComponent, streamIdComponent, blockIdComponent);
     }
 
-    public byte[] constructIndexOrMetadataTableRow(byte[] streamId) {
+    public byte[] constructIndexOrMetadataTableRow(GenericStreamIdentifier streamId) {
         byte[] hashComponent = StreamStoreHashEncodingUtils.getGeneralHashComponent(
                 cleanupMetadata.numHashedRowComponents(), streamId);
         byte[] streamIdComponent = cleanupMetadata.streamIdType().convertFromJava(streamId);

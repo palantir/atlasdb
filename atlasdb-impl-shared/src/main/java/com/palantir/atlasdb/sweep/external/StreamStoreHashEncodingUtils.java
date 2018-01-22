@@ -26,7 +26,7 @@ public final class StreamStoreHashEncodingUtils {
     }
 
     // TODO (jkong): Sort out duplication between this and getValueHashComponent()
-    public static byte[] getGeneralHashComponent(int numHashedRowComponents, byte[] streamId) {
+    public static byte[] getGeneralHashComponent(int numHashedRowComponents, GenericStreamIdentifier streamId) {
         switch (numHashedRowComponents) {
             case 0:
                 return PtBytes.EMPTY_BYTE_ARRAY;
@@ -40,7 +40,7 @@ public final class StreamStoreHashEncodingUtils {
     }
 
     public static byte[] getValueHashComponent(
-            int numHashedRowComponents, byte[] streamId, long blockId) {
+            int numHashedRowComponents, GenericStreamIdentifier streamId, long blockId) {
         switch (numHashedRowComponents) {
             case 0:
                 return PtBytes.EMPTY_BYTE_ARRAY;
@@ -54,15 +54,15 @@ public final class StreamStoreHashEncodingUtils {
         }
     }
 
-    private static byte[] computeHashFirstComponent(byte[] streamId) {
-        return applyBitwiseXorWithMinValueAndConvert(computeMurmurHash(streamId));
+    private static byte[] computeHashFirstComponent(GenericStreamIdentifier streamId) {
+        return applyBitwiseXorWithMinValueAndConvert(computeMurmurHash(streamId.data()));
     }
 
-    private static byte[] computeHashFirstComponents(byte[] streamId, long blockId) {
+    private static byte[] computeHashFirstComponents(GenericStreamIdentifier streamId, long blockId) {
         // This is always VAR_LONG, regardless of the stream id type.
         // See StreamTableDefinitionBuilder#build() for case VALUE
         byte[] blockIdBytes = EncodingUtils.encodeUnsignedVarLong(blockId);
-        return applyBitwiseXorWithMinValueAndConvert(computeMurmurHash(streamId, blockIdBytes));
+        return applyBitwiseXorWithMinValueAndConvert(computeMurmurHash(streamId.data(), blockIdBytes));
     }
 
     private static byte[] applyBitwiseXorWithMinValueAndConvert(long input) {
