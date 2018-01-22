@@ -12,6 +12,7 @@ algorithm:
   type: paxos
 
 useClientRequestLimit: true
+
 timeLimiter:
   enableTimeLimiting: true
   blockingTimeoutErrorMargin: 0.2

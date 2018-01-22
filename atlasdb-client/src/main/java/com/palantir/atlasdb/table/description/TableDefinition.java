@@ -18,11 +18,12 @@ package com.palantir.atlasdb.table.description;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.AbstractMessage;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -82,7 +83,10 @@ public class TableDefinition extends AbstractDefinition {
      * If specified, this indicates that the names of all row components and named columns should be marked as safe by
      * default. Individual row components or named columns may still be marked as unsafe by explicitly creating them
      * as unsafe (by constructing them with UNSAFE values of LogSafety).
-     * Note that specifying this by itself does NOT make the table name safe for logging.
+     *
+     * Note that specifying this by itself DOES NOT make the table name safe for logging.
+     *
+     * Note that this DOES NOT make the values of either the rows or the columns safe for logging.
      */
     public void namedComponentsSafeByDefault() {
         Preconditions.checkState(state == State.NONE, "Specifying components are safe by default should be done outside"
@@ -96,6 +100,8 @@ public class TableDefinition extends AbstractDefinition {
      *
      * If you wish to have a table with an unsafe name but safe components, please use namedComponentsSafeByDefault()
      * instead.
+     *
+     * Note that this DOES NOT make the values of either the rows or the columns safe for logging.
      */
     public void allSafeForLoggingByDefault() {
         tableNameLogSafety(LogSafety.SAFE);
@@ -175,19 +181,39 @@ public class TableDefinition extends AbstractDefinition {
      * end of the row
      */
     public void hashFirstRowComponent() {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
-                "Can only indicate hashFirstRowComponent() inside the rowName scope.");
-        Preconditions.checkState(rowNameComponents.isEmpty(), "hashRowComponent must be the first row component");
-        hashFirstRowComponent = true;
+        checkHashRowComponentsPreconditions("hashFirstRowComponent");
+        hashFirstNRowComponents(1);
+    }
+
+    /**
+     * Prefix the row with a hash of the first N row components.
+     * If using prefix range requests, the components that are hashed must also be specified in the prefix.
+     */
+    public void hashFirstNRowComponents(int numberOfComponents) {
+        Preconditions.checkState(numberOfComponents >= 0,
+                "Need to specify a non-negative number of components to hash.");
+        checkHashRowComponentsPreconditions("hashFirstNRowComponents");
+        numberOfComponentsHashed = numberOfComponents;
         ignoreHotspottingChecks = true;
     }
 
+    /**
+     * Returns the number of components to hash as a prefix to row keys.
+     */
+    public int getNumberOfComponentsHashed() {
+        return numberOfComponentsHashed;
+    }
+
     public void rowComponent(String componentName, ValueType valueType) {
-        rowComponent(componentName, valueType, ValueByteOrder.ASCENDING);
+        rowComponent(componentName, valueType, defaultNamedComponentLogSafety);
     }
 
     public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
         rowComponent(componentName, valueType, valueByteOrder, defaultNamedComponentLogSafety);
+    }
+
+    public void rowComponent(String componentName, ValueType valueType, LogSafety rowNameLoggable) {
+        rowComponent(componentName, valueType, ValueByteOrder.ASCENDING, rowNameLoggable);
     }
 
     public void rowComponent(
@@ -206,8 +232,7 @@ public class TableDefinition extends AbstractDefinition {
     /**
      * Passing an empty list of partitioners means that this type is not able to be partitioned. This is sometimes
      * needed if the value type doesn't support the {@link UniformRowNamePartitioner}.  If the first entry in the table
-     * cannot be partitioned then it is likely this table will cause hot spots.  Consider adding
-     * partitionStrategy(HASH) in this case which will allow the DB to break it up however it wants.
+     * cannot be partitioned then it is likely this table will cause hot spots.
      * <p>
      * If no partition() is specified the default is to use a {@link UniformRowNamePartitioner}
      */
@@ -321,6 +346,20 @@ public class TableDefinition extends AbstractDefinition {
         return javaTableName;
     }
 
+    public boolean hasV2TableEnabled() {
+        return this.v2TableEnabled;
+    }
+
+    /**
+     * Enables generates of a separate set of "v2" tables, with simplified APIs for reading and writing data.
+     *
+     * This is a beta feature. API stability is not guaranteed, and the risk of defects is higher.
+     */
+    @Beta
+    public void enableV2Table() {
+        this.v2TableEnabled = true;
+    }
+
     public void validate() {
         toTableMetadata();
         getConstraintMetadata();
@@ -344,7 +383,7 @@ public class TableDefinition extends AbstractDefinition {
     private int maxValueSize = Integer.MAX_VALUE;
     private String genericTableName = null;
     private String javaTableName = null;
-    private boolean hashFirstRowComponent = false;
+    private int numberOfComponentsHashed = 0;
     private List<NameComponentDescription> rowNameComponents = Lists.newArrayList();
     private List<NamedColumnDescription> fixedColumns = Lists.newArrayList();
     private List<NameComponentDescription> dynamicColumnNameComponents = Lists.newArrayList();
@@ -355,6 +394,7 @@ public class TableDefinition extends AbstractDefinition {
     private boolean noColumns = false;
     private LogSafety tableNameSafety = LogSafety.UNSAFE;
     private LogSafety defaultNamedComponentLogSafety = LogSafety.UNSAFE;
+    private boolean v2TableEnabled = false;
 
     public TableMetadata toTableMetadata() {
         Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
@@ -368,16 +408,14 @@ public class TableDefinition extends AbstractDefinition {
         }
 
         return new TableMetadata(
-                NameMetadataDescription.create(rowNameComponents, hashFirstRowComponent),
+                NameMetadataDescription.create(rowNameComponents, numberOfComponentsHashed),
                 getColumnMetadataDescription(),
                 conflictHandler,
                 cachePriority,
-                partitionStrategy,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKb,
                 negativeLookups,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight,
                 tableNameSafety);
     }
@@ -404,7 +442,7 @@ public class TableDefinition extends AbstractDefinition {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private ColumnValueDescription getColumnValueDescription(Class protoOrPersistable, Compression compression) {
-        if (GeneratedMessage.class.isAssignableFrom(protoOrPersistable)) {
+        if (AbstractMessage.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forProtoMessage(protoOrPersistable, compression);
         } else if (Persister.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forPersister(protoOrPersistable, compression);
@@ -413,5 +451,12 @@ public class TableDefinition extends AbstractDefinition {
         } else {
             throw new IllegalArgumentException("Expected either protobuf or Persistable class.");
         }
+    }
+
+    private void checkHashRowComponentsPreconditions(String methodName) {
+        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
+                "Can only indicate %s inside the rowName scope.", methodName);
+        Preconditions.checkState(rowNameComponents.isEmpty(),
+                "%s must be the first row component.", methodName);
     }
 }

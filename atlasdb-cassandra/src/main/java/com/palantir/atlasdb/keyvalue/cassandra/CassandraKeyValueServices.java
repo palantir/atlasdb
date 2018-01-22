@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
@@ -47,39 +49,49 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public final class CassandraKeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;
+    private static final String VERSION_UNREACHABLE = "UNREACHABLE";
 
     private CassandraKeyValueServices() {
         // Utility class
     }
 
     static void waitForSchemaVersions(
+            CassandraKeyValueServiceConfig config,
             Cassandra.Client client,
-            String tableName,
-            int schemaTimeoutMillis)
+            String tableName)
             throws TException {
-        waitForSchemaVersions(client, tableName, schemaTimeoutMillis, false);
+        waitForSchemaVersions(config, client, tableName, false);
     }
 
+    /**
+     * Attempt to wait until nodes' schema versions match.
+     *
+     * @param config the KVS configuration.
+     * @param client Cassandra client.
+     * @param tableName table being modified.
+     * @param allowQuorumAgreement if true, only a quorum of nodes must agree if the rest of the nodes are unreachable.
+     * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
+     */
     static void waitForSchemaVersions(
+            CassandraKeyValueServiceConfig config,
             Cassandra.Client client,
             String tableName,
-            int schemaTimeoutMillis,
-            boolean allowUnresponsiveNode)
+            boolean allowQuorumAgreement)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
         Map<String, List<String>> versions;
         do {
+            // This only returns the schema versions of nodes that the client knows exist. In particular, if a node we
+            // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
+            // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (versions.size() <= 1) {
+            if (requiredNumberNodesAgreeOnSchemaVersion(allowQuorumAgreement, config, versions)) {
                 return;
             }
             try {
@@ -88,35 +100,71 @@ public final class CassandraKeyValueServices {
                 throw Throwables.throwUncheckedException(e);
             }
             sleepTime = Math.min(sleepTime * 2, MAX_SLEEP_TIME);
-        } while (System.currentTimeMillis() < start + schemaTimeoutMillis);
+        } while (System.currentTimeMillis() < start + config.schemaMutationTimeoutMillis());
 
-        StringBuilder sb = new StringBuilder();
-        final String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
-                + " after attempting to modify table {}. {}"
-                + " \nFind the nodes above that diverge from the majority schema"
-                + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
-                + " and examine their logs to determine the issue."
-                + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
-                + " You can quick-check this with 'nodetool describecluster'.";
+        StringBuilder schemaVersions = new StringBuilder();
         for (Entry<String, List<String>> version : versions.entrySet()) {
-            sb.append(String.format("%nAt schema version %s:", version.getKey()));
-            for (String node : version.getValue()) {
-                sb.append(String.format("%n\tNode: %s", node));
-            }
+            schemaVersions = addNodeInformation(schemaVersions,
+                    String.format("%nAt schema version %s:", version.getKey()),
+                    version.getValue());
         }
 
-        if (allowUnresponsiveNode
-                && exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(versions)) {
-            log.error(messageTemplate, tableName, sb.toString());
-        } else {
-            throw new IllegalStateException(sb.toString());
-        }
+        String configNodes = addNodeInformation(new StringBuilder(),
+                "Nodes specified in config file:",
+                config.servers().stream().map(InetSocketAddress::getHostName).collect(Collectors.toList()))
+                .toString();
+
+        String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions,"
+                        + " after attempting to modify table %s. %s"
+                        + " \nFind the nodes above that diverge from the majority schema and examine their logs to"
+                        + " determine the issue. If nodes have schema 'UNKNOWN', they are likely down/unresponsive."
+                        + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
+                        + " You can quick-check this with 'nodetool describecluster'."
+                        + " \nIf nodes are specified in the config file, but do not have a schema version listed"
+                        + " above, then they may have never joined the cluster. Verify your configuration is correct"
+                        + " and that the nodes specified in the config are up and joined the cluster. %s",
+                tableName,
+                schemaVersions.toString(),
+                configNodes);
+        throw new IllegalStateException(errorMessage);
     }
 
-    private static boolean exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(Map<String, List<String>> versions) {
-        return versions.entrySet().size() == 2
-                && versions.keySet().contains("UNREACHABLE")
-                && versions.get("UNREACHABLE").size() == 1;
+    /**
+     * @param allowQuorumAgreement if true, requires only a quorum of nodes to be in agreement. If false, all nodes
+     * need to have the same schema version.
+     */
+    private static boolean requiredNumberNodesAgreeOnSchemaVersion(
+            boolean allowQuorumAgreement,
+            CassandraKeyValueServiceConfig config,
+            Map<String, List<String>> versions) {
+        if (getNumberOfDistinctReachableSchemas(versions) > 1) {
+            return false;
+        }
+
+        int numberOfServers = config.servers().size();
+        int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
+
+        if (allowQuorumAgreement) {
+            return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
+        }
+        return numberOfVisibleNodes == numberOfServers;
+    }
+
+    private static long getNumberOfDistinctReachableSchemas(Map<String, List<String>> versions) {
+        return versions.keySet().stream().filter(schema -> !schema.equals(VERSION_UNREACHABLE)).count();
+    }
+
+    private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
+        return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
+                .map(Entry::getValue).mapToInt(List::size).sum();
+    }
+
+    private static StringBuilder addNodeInformation(StringBuilder builder, String message, List<String> nodes) {
+        builder.append(message);
+        for (String node : nodes) {
+            builder.append(String.format("%n\tNode: %s", node));
+        }
+        return builder;
     }
 
     /**
@@ -127,15 +175,12 @@ public final class CassandraKeyValueServices {
     static void warnUserInInitializationIfClusterAlreadyInInconsistentState(
             CassandraClientPool clientPool,
             CassandraKeyValueServiceConfig config) {
-        String warnMessage = "While checking the cassandra cluster during initialization, we noticed schema versions"
-                + " could not settle. Be aware that some operations will not work while you are in your current"
-                + " cluster status.";
         try {
             clientPool.run(client -> {
                 waitForSchemaVersions(
-                        client,
+                        config,
+                        client.rawClient(),
                         "(none, just an initialization check)",
-                        config.schemaMutationTimeoutMillis(),
                         true);
                 return null;
             });
@@ -148,7 +193,7 @@ public final class CassandraKeyValueServices {
         return "0x" + PtBytes.encodeHexString(array);
     }
 
-    static ByteBuffer makeCompositeBuffer(byte[] colName, long positiveTimestamp) {
+    public static ByteBuffer makeCompositeBuffer(byte[] colName, long positiveTimestamp) {
         assert colName.length <= 1 << 16 : "Cannot use column names larger than 64KiB, was " + colName.length;
 
         ByteBuffer buffer = ByteBuffer
@@ -191,7 +236,7 @@ public final class CassandraKeyValueServices {
      * Convenience method to get the name buffer for the specified column and
      * decompose it into the name and timestamp.
      */
-    static Pair<byte[], Long> decomposeName(Column column) {
+    public static Pair<byte[], Long> decomposeName(Column column) {
         ByteBuffer nameBuffer;
         if (column.isSetName()) {
             nameBuffer = column.bufferForName();

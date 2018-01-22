@@ -76,6 +76,11 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        delegate().deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell);
+    }
+
+    @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
         return delegate().getAllTimestamps(tableRef, keys, timestamp);
     }
@@ -144,6 +149,11 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         return delegate().getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return delegate().isInitialized();
     }
 
     @Override

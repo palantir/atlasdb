@@ -17,6 +17,7 @@ package com.palantir.leader;
 
 import java.io.Serializable;
 import java.util.Optional;
+import java.util.Set;
 
 import com.google.common.net.HostAndPort;
 
@@ -44,6 +45,13 @@ public interface LeaderElectionService {
     LeadershipToken blockOnBecomingLeader() throws InterruptedException;
 
     /**
+     * Returns a leadership token iff this node is currently the leader. This method may involve network
+     * calls to ensure that the token is valid at the time of invocation, but will return immediately if
+     * this node is not the last known leader.
+     */
+    Optional<LeadershipToken> getCurrentTokenIfLeading();
+
+    /**
      * This method actually ensures that there is a quorum of supporters that this node is still leading.
      * If this node cannot get a quorum that it is still the leader then this method will return false and this node
      * may not respond to requests and must get back in line by calling {@link #blockOnBecomingLeader()}.
@@ -60,4 +68,12 @@ public interface LeaderElectionService {
      * leader or can't cheaply find one.
      */
     Optional<HostAndPort> getSuspectedLeaderInMemory();
+
+    /**
+     * Get the set of potential leaders known by this leader election service. This will not do any network
+     * calls and is meant to be callable without major performance implications.
+     *
+     * @return the set of potential leaders known by this leader election service, including itself
+     */
+    Set<PingableLeader> getPotentialLeaders();
 }

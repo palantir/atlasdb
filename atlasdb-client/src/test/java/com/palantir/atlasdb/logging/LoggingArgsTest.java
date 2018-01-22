@@ -20,12 +20,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -39,6 +42,10 @@ public class LoggingArgsTest {
     private static final String ARG_NAME = "argName";
     private static final TableReference SAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.safe");
     private static final TableReference UNSAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.bar");
+    private static final List<TableReference> LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES = Lists.newArrayList(
+            SAFE_TABLE_REFERENCE,
+            UNSAFE_TABLE_REFERENCE
+    );
 
     private static final String SAFE_ROW_NAME = "saferow";
     private static final String UNSAFE_ROW_NAME = "row";
@@ -99,9 +106,9 @@ public class LoggingArgsTest {
 
     @Test
     public void propagatesNameAndTableReferenceIfSafe() {
-        Arg<TableReference> tableReferenceArg = LoggingArgs.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE);
+        Arg<String> tableReferenceArg = LoggingArgs.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE);
         assertThat(tableReferenceArg.getName()).isEqualTo(ARG_NAME);
-        assertThat(tableReferenceArg.getValue()).isEqualTo(SAFE_TABLE_REFERENCE);
+        assertThat(tableReferenceArg.getValue()).isEqualTo(SAFE_TABLE_REFERENCE.toString());
     }
 
     @Test
@@ -122,6 +129,16 @@ public class LoggingArgsTest {
     public void canReturnBothSafeAndUnsafeTableReferences() {
         assertThat(LoggingArgs.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE)).isInstanceOf(SafeArg.class);
         assertThat(LoggingArgs.tableRef(ARG_NAME, UNSAFE_TABLE_REFERENCE)).isInstanceOf(UnsafeArg.class);
+    }
+
+    @Test
+    @SuppressWarnings("CheckReturnValue") // We test that returnedArgs will contain both a safe and unsafe references.
+    public void canReturnListOfSafeTableReferences() {
+        LoggingArgs.SafeAndUnsafeTableReferences returnedArgs =
+                LoggingArgs.tableRefs(LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES);
+
+        assertThat(returnedArgs.safeTableRefs().getValue().contains(SAFE_TABLE_REFERENCE));
+        assertThat(returnedArgs.unsafeTableRefs().getValue().contains(UNSAFE_TABLE_REFERENCE));
     }
 
     @Test
@@ -216,5 +233,26 @@ public class LoggingArgsTest {
     public void returnsUnsafeBatchBatchColumnRangeEvenWhenContainsSafeColumns() {
         assertThat(LoggingArgs.batchColumnRangeSelection(SAFE_TABLE_REFERENCE, MIXED_BATCH_COLUMN_RANGE))
                 .isInstanceOf(UnsafeArg.class);
+    }
+
+    @Test
+    public void returnsSafeTableWhenTableIsSafe() {
+        assertThat(LoggingArgs.safeTableOrPlaceholder(SAFE_TABLE_REFERENCE)).isEqualTo(SAFE_TABLE_REFERENCE);
+    }
+
+    @Test
+    public void returnsPlaceholderWhenTableIsUnsafe() {
+        assertThat(LoggingArgs.safeTableOrPlaceholder(UNSAFE_TABLE_REFERENCE))
+                .isEqualTo(LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
+    }
+
+    @Test
+    public void returnsTablesAndPlaceholderWhenTablesAreSafeAndUnsafe() {
+        List<TableReference> tables = ImmutableList.of(SAFE_TABLE_REFERENCE, UNSAFE_TABLE_REFERENCE);
+        List<TableReference> returnedList = Lists.newArrayList(LoggingArgs.safeTablesOrPlaceholder(tables));
+        List<TableReference> expectedList = Lists.newArrayList(SAFE_TABLE_REFERENCE,
+                LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
+
+        assertThat(returnedList).containsOnly(expectedList.toArray(new TableReference[expectedList.size()]));
     }
 }

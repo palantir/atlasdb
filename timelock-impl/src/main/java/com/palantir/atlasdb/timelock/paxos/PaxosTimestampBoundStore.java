@@ -35,6 +35,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
@@ -42,7 +43,6 @@ import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
-import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -63,8 +63,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     @GuardedBy("this")
     private SequenceAndBound agreedState;
 
-    private final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
-            PTExecutors.newNamedThreadFactory(true)));
+    private final ExecutorService executor = PTExecutors.newCachedThreadPool(
+            PTExecutors.newNamedThreadFactory(true));
 
     public PaxosTimestampBoundStore(PaxosProposer proposer,
             PaxosLearner knowledge,
@@ -73,8 +73,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             long maximumWaitBeforeProposalMs) {
         DebugLogger.logger.info("Creating PaxosTimestampBoundStore. The UUID of my proposer is {}."
                 + " Currently, I believe the timestamp bound is {}.",
-                proposer.getUuid(),
-                knowledge.getGreatestLearnedValue());
+                SafeArg.of("proposerUuid", proposer.getUuid()),
+                SafeArg.of("timestampBound", knowledge.getGreatestLearnedValue()));
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.acceptors = acceptors;
@@ -269,8 +269,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                     log.warn("It appears we updated the timestamp limit to {}, which was less than our target {}."
                             + " This suggests we have another timestamp service running; possibly because we"
                             + " lost and regained leadership. For safety, we are now stopping this service.",
-                            newLimit,
-                            limit);
+                            SafeArg.of("newLimit", newLimit),
+                            SafeArg.of("target", limit));
                     throw new NotCurrentLeaderException(String.format(
                             "We updated the timestamp limit to %s, which was less than our target %s.",
                             newLimit,
@@ -309,9 +309,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             throw new NotCurrentLeaderException(errorMsg);
         }
         DebugLogger.logger.info("Trying to store limit '{}' for sequence '{}' yielded consensus on the value '{}'.",
-                limit,
-                newSeq,
-                value);
+                SafeArg.of("limit", limit),
+                SafeArg.of("paxosSequenceNumber", newSeq),
+                SafeArg.of("paxosValue", value));
     }
 
     /**
@@ -326,7 +326,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         long backoffTime = getRandomBackoffTime();
         log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We"
                 + " will retry in {} ms.",
-                backoffTime,
+                SafeArg.of("backoffTime", backoffTime),
                 paxosException);
         try {
             backoffAction.backoff(backoffTime);

@@ -30,16 +30,17 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.lock.LockService;
+import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@Path("/{client: [a-zA-Z0-9_-]+}")
+@Path("/{namespace: [a-zA-Z0-9_-]+}")
 public class TimeLockResource {
     private final Logger log = LoggerFactory.getLogger(TimeLockResource.class);
 
     private final Function<String, TimeLockServices>  clientServicesFactory;
-    private final ConcurrentMap<String, TimeLockServices> servicesByClient = Maps.newConcurrentMap();
+    private final ConcurrentMap<String, TimeLockServices> servicesByNamespace = Maps.newConcurrentMap();
     private final Supplier<Integer> maxNumberOfClients;
 
     public TimeLockResource(
@@ -50,46 +51,46 @@ public class TimeLockResource {
     }
 
     @Path("/lock")
-    public LockService getLockService(@PathParam("client") String client) {
-        return getOrCreateServices(client).getLockService();
+    public LockService getLockService(@Safe @PathParam("namespace") String namespace) {
+        return getOrCreateServices(namespace).getLockService();
     }
 
     @Path("/timestamp")
-    public TimestampService getTimeService(@PathParam("client") String client) {
-        return getOrCreateServices(client).getTimestampService();
+    public TimestampService getTimeService(@Safe @PathParam("namespace") String namespace) {
+        return getOrCreateServices(namespace).getTimestampService();
     }
 
     @Path("/timelock")
-    public Object getTimelockService(@PathParam("client") String client) {
-        return getOrCreateServices(client).getTimelockService().getPresentService();
+    public Object getTimelockService(@Safe @PathParam("namespace") String namespace) {
+        return getOrCreateServices(namespace).getTimelockService().getPresentService();
     }
 
     @Path("/timestamp-management")
-    public TimestampManagementService getTimestampManagementService(@PathParam("client") String client) {
-        return getOrCreateServices(client).getTimestampManagementService();
+    public TimestampManagementService getTimestampManagementService(@Safe @PathParam("namespace") String namespace) {
+        return getOrCreateServices(namespace).getTimestampManagementService();
     }
 
     @VisibleForTesting
-    TimeLockServices getOrCreateServices(String client) {
-        return servicesByClient.computeIfAbsent(client, this::createNewClient);
+    TimeLockServices getOrCreateServices(String namespace) {
+        return servicesByNamespace.computeIfAbsent(namespace, this::createNewClient);
     }
 
-    private TimeLockServices createNewClient(String client) {
-        Preconditions.checkArgument(!client.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
+    private TimeLockServices createNewClient(String namespace) {
+        Preconditions.checkArgument(!namespace.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 "The client name '%s' is reserved for the leader election service, and may not be "
                         + "used.",
                 PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE);
 
-        if (servicesByClient.size() >= maxNumberOfClients.get()) {
+        if (servicesByNamespace.size() >= maxNumberOfClients.get()) {
             log.error(
                     "Unable to create timelock services for client {}, as it would exceed the maximum number of "
                             + "allowed clients ({}). If this is intentional, the maximum number of clients can be "
                             + "increased via the maximum-number-of-clients runtime config property.",
-                    SafeArg.of("client", client),
+                    SafeArg.of("client", namespace),
                     SafeArg.of("maxNumberOfClients", maxNumberOfClients));
             throw new IllegalStateException("Maximum number of clients exceeded");
         }
 
-        return clientServicesFactory.apply(client);
+        return clientServicesFactory.apply(namespace);
     }
 }

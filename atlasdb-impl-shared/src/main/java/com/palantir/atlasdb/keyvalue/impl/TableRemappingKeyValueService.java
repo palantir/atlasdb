@@ -27,7 +27,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -48,8 +47,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public final class TableRemappingKeyValueService extends ForwardingObject implements
-        NamespacedKeyValueService {
+public final class TableRemappingKeyValueService extends ForwardingObject implements KeyValueService {
     public static TableRemappingKeyValueService create(KeyValueService delegate,
                                                        TableMappingService tableMapper) {
         return new TableRemappingKeyValueService(delegate, tableMapper);
@@ -62,11 +60,6 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     private TableRemappingKeyValueService(KeyValueService delegate, TableMappingService tableMapper) {
         this.delegate = delegate;
         this.tableMapper = tableMapper;
-    }
-
-    @Override
-    public TableMappingService getTableMapper() {
-        return tableMapper;
     }
 
     @Override
@@ -116,6 +109,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public void deleteRange(TableReference tableRef, RangeRequest range) {
         try {
             delegate().deleteRange(tableMapper.getMappedTableName(tableRef), range);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        try {
+            delegate().deleteAllTimestamps(tableMapper.getMappedTableName(tableRef), maxTimestampExclusiveByCell);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }

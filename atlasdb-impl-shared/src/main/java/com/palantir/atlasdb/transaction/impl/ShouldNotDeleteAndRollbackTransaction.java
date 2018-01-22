@@ -36,7 +36,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                                TransactionReadSentinelBehavior readSentinelBehavior,
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampCache,
-                               ExecutorService getRangesExecutor) {
+                               ExecutorService getRangesExecutor,
+                               int defaultGetRangesConcurrency) {
         super(keyValueService,
               transactionService,
               null,
@@ -47,7 +48,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
               timestampCache,
               // never actually used, since timelockService is null
               AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-              getRangesExecutor);
+              getRangesExecutor,
+              defaultGetRangesConcurrency);
     }
 
     @Override

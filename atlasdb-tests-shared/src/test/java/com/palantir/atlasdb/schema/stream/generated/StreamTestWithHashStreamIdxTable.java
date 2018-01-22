@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -56,11 +57,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
@@ -136,22 +134,22 @@ public final class StreamTestWithHashStreamIdxTable implements
     /**
      * <pre>
      * StreamTestWithHashStreamIdxRow {
-     *   {@literal Long firstComponentHash};
+     *   {@literal Long hashOfRowComponents};
      *   {@literal Long id};
      * }
      * </pre>
      */
     public static final class StreamTestWithHashStreamIdxRow implements Persistable, Comparable<StreamTestWithHashStreamIdxRow> {
-        private final long firstComponentHash;
+        private final long hashOfRowComponents;
         private final long id;
 
         public static StreamTestWithHashStreamIdxRow of(long id) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_LONG.convertFromJava(id)).asLong();
-            return new StreamTestWithHashStreamIdxRow(firstComponentHash, id);
+            long hashOfRowComponents = computeHashFirstComponents(id);
+            return new StreamTestWithHashStreamIdxRow(hashOfRowComponents, id);
         }
 
-        private StreamTestWithHashStreamIdxRow(long firstComponentHash, long id) {
-            this.firstComponentHash = firstComponentHash;
+        private StreamTestWithHashStreamIdxRow(long hashOfRowComponents, long id) {
+            this.hashOfRowComponents = hashOfRowComponents;
             this.id = id;
         }
 
@@ -179,27 +177,32 @@ public final class StreamTestWithHashStreamIdxTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
-            return EncodingUtils.add(firstComponentHashBytes, idBytes);
+            return EncodingUtils.add(hashOfRowComponentsBytes, idBytes);
         }
 
         public static final Hydrator<StreamTestWithHashStreamIdxRow> BYTES_HYDRATOR = new Hydrator<StreamTestWithHashStreamIdxRow>() {
             @Override
             public StreamTestWithHashStreamIdxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long firstComponentHash = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return new StreamTestWithHashStreamIdxRow(firstComponentHash, id);
+                return new StreamTestWithHashStreamIdxRow(hashOfRowComponents, id);
             }
         };
+
+        public static long computeHashFirstComponents(long id) {
+            byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(idBytes)).asLong();
+        }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("firstComponentHash", firstComponentHash)
+                .add("hashOfRowComponents", hashOfRowComponents)
                 .add("id", id)
                 .toString();
         }
@@ -216,19 +219,19 @@ public final class StreamTestWithHashStreamIdxTable implements
                 return false;
             }
             StreamTestWithHashStreamIdxRow other = (StreamTestWithHashStreamIdxRow) obj;
-            return Objects.equal(firstComponentHash, other.firstComponentHash) && Objects.equal(id, other.id);
+            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ firstComponentHash, id });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, id });
         }
 
         @Override
         public int compareTo(StreamTestWithHashStreamIdxRow o) {
             return ComparisonChain.start()
-                .compare(this.firstComponentHash, o.firstComponentHash)
+                .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.id, o.id)
                 .result();
         }
@@ -677,11 +680,8 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -752,8 +752,9 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vxkKNFvBIV9J6mLikqr+ZQ==";
+    static String __CLASS_HASH = "cssCFH1Pz34681laVu6sLA==";
 }

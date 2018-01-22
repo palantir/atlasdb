@@ -60,6 +60,11 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
+    public boolean isInitialized() {
+        return timestampService.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return timestampService.getFreshTimestamp();
     }
@@ -165,10 +170,11 @@ public class LegacyTimelockService implements TimelockService {
         return minLocked == null ? ts : minLocked;
     }
 
-    private LockRefreshToken lockAnonymous(com.palantir.lock.LockRequest lockRequest) {
+    private LockRefreshToken lockAnonymous(com.palantir.lock.LockRequest request) {
         try {
-            return lockService.lock(LockClient.ANONYMOUS.getClientId(), lockRequest);
+            return lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
         } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(ex);
         }
     }

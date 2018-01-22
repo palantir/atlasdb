@@ -28,14 +28,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
 
 public class PaxosConsensusSlowTest {
 
     private final int NUM_POTENTIAL_LEADERS = 6;
     private final int QUORUM_SIZE = 4;
 
-    Executor executor = Tracers.wrap(PTExecutors.newCachedThreadPool());
+    Executor executor = PTExecutors.newCachedThreadPool();
     private PaxosTestState state;
 
     @Before

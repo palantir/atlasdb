@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -29,8 +31,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -163,10 +163,11 @@ public class TimeLockMigrationEteTest {
         waitUntil(logsContainTransactionManagerCreationFailure());
     }
 
+    // Note that this check is a bit hacky, as it depends on finding a particular log message
     private static Callable<Boolean> logsContainTransactionManagerCreationFailure() {
         return () -> {
             String serverLogs = CLIENT_ORCHESTRATION_RULE.getClientLogs();
-            return serverLogs.contains("An error occurred while trying to create transaction manager.");
+            return serverLogs.contains("IllegalArgumentException trying to convert the stored value to a long.");
         };
     }
 

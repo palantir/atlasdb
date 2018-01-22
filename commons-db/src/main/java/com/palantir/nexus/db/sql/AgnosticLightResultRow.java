@@ -28,4 +28,6 @@ public interface AgnosticLightResultRow extends AgnosticResultRow {
 
     DateTime getDateTime(String colname) throws PalantirSqlException;
 
+    Object getArray(String colName) throws PalantirSqlException;
+
 }

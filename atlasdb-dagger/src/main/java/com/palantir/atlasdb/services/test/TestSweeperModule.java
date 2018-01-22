@@ -24,6 +24,7 @@ import javax.inject.Singleton;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -63,7 +64,8 @@ public class TestSweeperModule {
                                                   @Named("kvs") KeyValueService kvs,
                                                   TransactionService transactionService,
                                                   SweepStrategyManager sweepStrategyManager,
-                                                  Follower follower) {
+                                                  Follower follower,
+                                                  ServicesConfig config) {
         LongSupplier unreadable = unreadableTs.orElse(txm::getUnreadableTimestamp);
         LongSupplier immutable = immutableTs.orElse(txm::getImmutableTimestamp);
         return new SweepTaskRunner(
@@ -72,7 +74,7 @@ public class TestSweeperModule {
                 immutable,
                 transactionService,
                 sweepStrategyManager,
-                new CellsSweeper(txm, kvs, ImmutableList.of(follower)));
+                new CellsSweeper(txm, kvs, ImmutableList.of(follower), config.atlasDbConfig().initializeAsync()));
     }
 
 }

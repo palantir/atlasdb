@@ -1,7 +1,7 @@
-SERVER1=<hostname>
-SERVER2=<hostname>
-SERVER3=<hostname>
-CLIENT=<hostname>
-CASSANDRA1=<hostname>
-CASSANDRA2=<hostname>
-CASSANDRA3=<hostname>
+SERVER1=il-pg-alpha-2621258.use1.palantir.global
+SERVER2=il-pg-alpha-2621259.use1.palantir.global
+SERVER3=il-pg-alpha-2621260.use1.palantir.global
+CLIENT=il-pg-alpha-2621262.use1.palantir.global
+CASSANDRA1=il-pg-alpha-2621013.use1.palantir.global
+CASSANDRA2=il-pg-alpha-2621014.use1.palantir.global
+CASSANDRA3=il-pg-alpha-2621015.use1.palantir.global

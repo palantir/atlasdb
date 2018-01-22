@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Collection;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import com.palantir.atlasdb.timelock.lock.LockEvents.RequestInfo;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -27,12 +28,12 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 
 public final class LockLog {
 
-    private static volatile long slowLockThresholdMillis = 10_000;
+    private static volatile Supplier<Long> slowLockThresholdMillis = () -> 10_000L;
     private static final LockEvents events = new LockEvents(AtlasDbMetrics.getMetricRegistry());
 
     private LockLog() { }
 
-    public static void setSlowLockThresholdMillis(long thresholdMillis) {
+    public static void setSlowLockThresholdMillis(Supplier<Long> thresholdMillis) {
         slowLockThresholdMillis = thresholdMillis;
     }
 
@@ -63,7 +64,7 @@ public final class LockLog {
             long blockingTimeMillis) {
         events.requestComplete(blockingTimeMillis);
 
-        if (blockingTimeMillis < slowLockThresholdMillis) {
+        if (blockingTimeMillis == 0 || blockingTimeMillis < slowLockThresholdMillis.get()) {
             return;
         }
 

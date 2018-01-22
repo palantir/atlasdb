@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
 
 
 public class HeartbeatService {
@@ -60,8 +59,8 @@ public class HeartbeatService {
 
     public synchronized void startBeatingForLock(long lockId) {
         Preconditions.checkState(heartbeatExecutorService == null, START_BEATING_ERR_MSG);
-        heartbeatExecutorService = Tracers.wrap(PTExecutors.newSingleThreadScheduledExecutor(
-                new ThreadFactoryBuilder().setNameFormat("Atlas Schema Lock Heartbeat-" + lockTable + "-%d").build()));
+        heartbeatExecutorService = PTExecutors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder().setNameFormat("Atlas Schema Lock Heartbeat-" + lockTable + "-%d").build());
         heartbeatExecutorService.scheduleAtFixedRate(
                 new Heartbeat(clientPool, queryRunner, lockTable, writeConsistency, lockId),
                 0, heartbeatTimePeriodMillis, TimeUnit.MILLISECONDS);

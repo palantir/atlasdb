@@ -25,12 +25,23 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
 @Path("/timelock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public interface TimelockService {
+    /**
+     * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
+     * {@link com.palantir.async.initializer.AsyncInitializer}; other TimelockServices can keep the default
+     * implementation, and return true (they're trivially fully initialized).
+     *
+     * @return true iff the TimelockService has been fully initialized and is ready to use
+     */
+    default boolean isInitialized() {
+        return true;
+    }
 
     @POST
     @Path("fresh-timestamp")
@@ -38,7 +49,7 @@ public interface TimelockService {
 
     @POST
     @Path("fresh-timestamps")
-    TimestampRange getFreshTimestamps(@QueryParam("number") int numTimestampsRequested);
+    TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 
     @POST
     @Path("lock-immutable-timestamp")

@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.logsafe.SafeArg;
 
 public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetException> {
     private static final Logger log = LoggerFactory.getLogger(CheckAndSetExceptionMapper.class);
@@ -36,7 +37,10 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
     public Response toResponse(CheckAndSetException ex) {
         String errorId = UUID.randomUUID().toString();
         LockEntry lockEntry = extractStoredLockEntry(ex);
-        log.error("Error handling a request: {}. Stored persistent lock: {}", errorId, lockEntry, ex);
+        log.error("Error handling a request: {}. Stored persistent lock: {}",
+                SafeArg.of("errorId", errorId),
+                SafeArg.of("lockEntry", lockEntry),
+                ex);
         return createErrorResponse(errorId, lockEntry);
     }
 

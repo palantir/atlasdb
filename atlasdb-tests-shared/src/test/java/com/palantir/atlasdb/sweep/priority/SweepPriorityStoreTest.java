@@ -34,7 +34,6 @@ import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.SweepTestUtils;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
 
 public class SweepPriorityStoreTest {
     private ExecutorService exec;
@@ -43,10 +42,10 @@ public class SweepPriorityStoreTest {
 
     @Before
     public void setup() {
-        exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
+        exec = PTExecutors.newCachedThreadPool();
         KeyValueService kvs = new InMemoryKeyValueService(false, exec);
         txManager = SweepTestUtils.setupTxManager(kvs);
-        priorityStore = new SweepPriorityStore(SweepTableFactory.of());
+        priorityStore = SweepPriorityStoreImpl.create(kvs, SweepTableFactory.of(), false);
     }
 
     @After

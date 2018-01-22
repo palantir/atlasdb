@@ -11,8 +11,23 @@ repositories {
 
 schemas = [
     'com.palantir.atlasdb.schema.SweepSchema',
+    'com.palantir.atlasdb.table.description.ApiTestSchema',
     'com.palantir.atlasdb.table.description.GenericTestSchema'
 ]
+
+sourceSets {
+  integrationInput
+  test {
+    compileClasspath += integrationInput.output
+    runtimeClasspath += integrationInput.output
+  }
+}
+
+idea {
+  module {
+    testSourceDirs += sourceSets.integrationInput.java.srcDirs
+  }
+}
 
 libsDirName = file('build/artifacts')
 
@@ -33,19 +48,36 @@ dependencies {
   compile project(":atlasdb-commons")
   compile project(":atlasdb-api")
   compile project(":atlasdb-client-protobufs")
+  compile project(":qos-service-api")
   compile (group: 'com.googlecode.json-simple', name: 'json-simple') {
     exclude group: 'junit'
   }
   compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
   compile group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
   compile group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
-  compile group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0"
+  compile group: "com.google.protobuf", name: "protobuf-java"
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
   compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
-  compile group: 'com.palantir.remoting2', name: 'tracing'
+  compile group: 'com.palantir.remoting3', name: 'tracing'
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-  compile group: 'com.palantir.tritium', name: 'tritium-lib'
+  compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
+    exclude (group: 'com.palantir.remoting3', module: 'tracing')
+    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
+    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
+  }
+  compile (group: 'com.palantir.tritium', name: 'tritium-metrics') {
+    exclude (group: 'com.palantir.remoting3', module: 'tracing')
+    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
+    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
+  }
+  compile (group: 'com.palantir.tritium', name: 'tritium-lib') {
+    exclude (group: 'com.palantir.remoting3', module: 'tracing')
+    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
+    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
+  }
+  compile group: 'com.squareup', name:'javapoet', version: '1.9.0'
+  compile group: 'org.hdrhistogram', name: 'HdrHistogram'
 
   processor group: 'org.immutables', name: 'value'
 
@@ -56,4 +88,9 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'ch.qos.logback', name: 'logback-classic'
   testCompile group: 'org.assertj', name: 'assertj-core'
+
+  integrationInputCompile project(":atlasdb-client")
+
+  integrationInputCompile group: 'org.immutables', name: 'value'
+
 }

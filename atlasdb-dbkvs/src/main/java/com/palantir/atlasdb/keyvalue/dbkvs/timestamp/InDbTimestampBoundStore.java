@@ -44,6 +44,8 @@ import com.palantir.timestamp.TimestampBoundStore;
 public class InDbTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(InDbTimestampBoundStore.class);
 
+    private static final String EMPTY_TABLE_PREFIX = "";
+
     private final ConnectionManager connManager;
     private final TableReference timestampTable;
     private final String tablePrefix;
@@ -58,7 +60,11 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
      * Use only if you have already initialized the timestamo table. This exists for legacy support.
      */
     public InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
-        this(connManager, timestampTable, "");
+        this(connManager, timestampTable, EMPTY_TABLE_PREFIX);
+    }
+
+    public static InDbTimestampBoundStore create(ConnectionManager connManager, TableReference timestampTable) {
+        return InDbTimestampBoundStore.create(connManager, timestampTable, EMPTY_TABLE_PREFIX);
     }
 
     public static InDbTimestampBoundStore create(

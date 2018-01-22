@@ -23,7 +23,7 @@ The minimal parameters required to define a stream store are shown below:
 .. code:: java
 
     public void addStreamStoreDefinition(
-        new StreamStoreDefinitionBuilder(String shortName, String longName, ValueType valueType).build()
+        new StreamStoreDefinitionBuilder(String shortName, String longName, ValueType valueType).build();
     )
     
 - ``shortName`` is the prefix which will be used in the actual database tables.
@@ -39,6 +39,9 @@ Additional options for the builder include:
     *    - Option
          - Description
 
+    *    - ``hashRowComponents``
+         - Hashes the concatenation of the ``id`` and ``blockId`` components of the table storing the data blocks and prepends it to the row key. If using Cassandra KVS, we recommend that this flag is set in order to prevent hotspotting. We do not support adding this to an existing StreamStore, as it would require data migration.
+
     *    - ``hashFirstRowComponent``
          - Hashes the ``id`` component of the table.
 
@@ -50,7 +53,18 @@ Additional options for the builder include:
 
     *   - ``inMemoryThreshold``
         - Specifies the largest size object (in bytes) which AtlasDB will cache in memory in order to boost retrieval performance.
-  
+
+    *   - ``tableNameLogSafety``
+        - Specifies the if the table name is safe to added to logs and metrics. By default, the table is considered ``UNSAFE``.
+
+.. note::
+
+    If using Cassandra KVS, we *strongly* recommend that ``hashRowComponents()`` is set, in order to avoid hotspotting.
+
+.. note::
+
+    We *strongly* recommend using ``tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)`` if the table has a safe name.
+
 For an example of streams in use, see the ``user_profile`` table and ``user_photos`` stream store in `ProfileSchema`_, and the ``updateImage`` method in `ProfileStore`_.
 
 .. _ProfileSchema: https://github.com/palantir/atlasdb/blob/cd4f33dfcaa95acb90374f698158a4aae8c28945/examples/profile-client/src/main/java/com/palantir/example/profile/schema/ProfileSchema.java

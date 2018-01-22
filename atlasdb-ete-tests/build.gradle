@@ -15,6 +15,7 @@ dependencies {
     compile project(':atlasdb-dropwizard-bundle')
     compile project(':atlasdb-hikari')
 
+    compile group: 'org.awaitility', name: 'awaitility'
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
@@ -28,6 +29,7 @@ dependencies {
 
     testCompile project(':atlasdb-container-test-utils')
     testCompile project(':atlasdb-ete-test-utils')
+    testCompile project(':flake-rule')
 
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
@@ -51,8 +53,13 @@ task timeLockTest(type: Test) {
     include '**/*TimeLock*.class'
 }
 
+task startupIndependenceTest(type: Test) {
+    dependsOn prepareForEteTests
+    include '**/StartupIndependence*Test.class'
+}
+
 test {
-    dependsOn longTest, prepareForEteTests, timeLockTest
+    dependsOn longTest, prepareForEteTests, timeLockTest, startupIndependenceTest
     exclude '**/MultiCassandraTestSuite.class'
     exclude '**/*TimeLock*.class'
     exclude '**/*EteTest.class'

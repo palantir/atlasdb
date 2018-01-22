@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -29,6 +28,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
@@ -37,15 +37,17 @@ import com.palantir.atlasdb.timelock.paxos.PaxosSynchronizer;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
 
-public class PaxosTimestampCreator {
+public class PaxosTimestampCreator implements TimestampCreator {
     private final PaxosResource paxosResource;
     private final Set<String> remoteServers;
     private final Optional<SSLSocketFactory> optionalSecurity;
@@ -61,8 +63,9 @@ public class PaxosTimestampCreator {
         this.paxosRuntime = paxosRuntime;
     }
 
-    public Supplier<ManagedTimestampService> createPaxosBackedTimestampService(String client) {
-        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+    @Override
+    public Supplier<ManagedTimestampService> createTimestampService(String client, LeaderConfig unused) {
+        ExecutorService executor = PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")
                 .setDaemon(true)
                 .build());
@@ -112,11 +115,12 @@ public class PaxosTimestampCreator {
                         ImmutableList.copyOf(learners),
                         paxosRuntime.get().maximumWaitBeforeProposalMs()),
                 client);
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(boundStore);
+        PersistentTimestampService persistentTimestampService = PersistentTimestampServiceImpl.create(boundStore);
         return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
-        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass, client));
+        // TODO(nziebart): tag with the client name, when tritium supports it
+        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass));
     }
 }

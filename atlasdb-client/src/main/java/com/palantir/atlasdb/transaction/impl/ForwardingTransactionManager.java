@@ -25,6 +25,11 @@ public abstract class ForwardingTransactionManager extends ForwardingObject impl
     protected abstract TransactionManager delegate();
 
     @Override
+    public boolean isInitialized() {
+        return delegate().isInitialized();
+    }
+
+    @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task)
             throws E {
         return delegate().runTaskWithRetry(task);

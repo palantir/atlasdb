@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.server;
 
-import java.util.Optional;
-
-import com.google.common.collect.ImmutableSet;
+import com.codahale.metrics.SharedMetricRegistries;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
@@ -39,19 +37,21 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
     @Override
     public void initialize(Bootstrap<AtlasDbServiceServerConfiguration> bootstrap) {
         super.initialize(bootstrap);
-        bootstrap.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
+        bootstrap.setMetricRegistry(SharedMetricRegistries.getOrCreate("AtlasDbTest"));
     }
 
     @Override
     public void run(AtlasDbServiceServerConfiguration config, final Environment environment) throws Exception {
-        AtlasDbMetrics.setMetricRegistry(environment.metrics());
+        AtlasDbMetrics.setMetricRegistries(environment.metrics(), DefaultTaggedMetricRegistry.getDefault());
 
-        SerializableTransactionManager tm = TransactionManagers.create(
-                config.getConfig(),
-                Optional::empty,
-                ImmutableSet.of(),
-                environment.jersey()::register,
-                false);
+        SerializableTransactionManager tm = TransactionManagers.builder()
+                .config(config.getConfig())
+                .userAgent("AtlasDbServiceServer")
+                .globalMetricsRegistry(environment.metrics())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment.jersey()::register)
+                .build()
+                .serializable();
 
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService());
 

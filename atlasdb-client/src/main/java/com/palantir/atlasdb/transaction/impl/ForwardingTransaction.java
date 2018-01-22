@@ -96,6 +96,14 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
+    public <T> Stream<T> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+        return delegate().getRanges(tableRef, rangeRequests, visitableProcessor);
+    }
+
+    @Override
     public Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
             final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
         return delegate().getRangesLazy(tableRef, rangeRequests);

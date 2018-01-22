@@ -1,0 +1,31 @@
+server:
+  #rootPath: /api/*
+  #applicationContextPath: /
+  #adminContextPath: /
+  applicationConnectors:
+    - type: http
+      port: 3828
+  adminConnectors:
+    - type: http
+      port: 3829
+
+atlasdb:
+  keyValueService:
+    type: cassandra
+    servers:
+      - cassandra1:9160
+      - cassandra2:9160
+      - cassandra3:9160
+    ssl: false
+    replicationFactor: 3
+
+  initializeAsync: true
+  namespace: atlasete
+
+  leader:
+    quorumSize: 1
+    learnerLogDir: var/data/paxosLog/learner1
+    acceptorLogDir: var/data/paxosLog/acceptor1
+    localServer: http://${ME}:3828
+    leaders:
+      - http://ete1:3828

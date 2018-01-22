@@ -17,6 +17,7 @@ dependencies {
   compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
   compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
   compile group: 'ch.qos.logback', name: 'logback-classic'
+  compile group: 'org.awaitility', name: 'awaitility'
 
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'

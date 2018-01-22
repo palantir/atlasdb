@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.console.module
 
+import com.codahale.metrics.MetricRegistry
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.common.collect.ImmutableSet
 import com.palantir.atlasdb.api.AtlasDbService
 import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.config.AtlasDbConfig
 import com.palantir.atlasdb.config.AtlasDbConfigs
-import com.palantir.atlasdb.config.AtlasDbRuntimeConfig
 import com.palantir.atlasdb.console.AtlasConsoleModule
 import com.palantir.atlasdb.console.AtlasConsoleService
 import com.palantir.atlasdb.console.AtlasConsoleServiceImpl
@@ -31,12 +30,11 @@ import com.palantir.atlasdb.factory.TransactionManagers
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
-import com.palantir.atlasdb.table.description.Schema
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
-import java.util.function.Supplier
 
 /**
  * Public methods that clients can call within AtlasConsole.
@@ -217,20 +215,14 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     private setupConnection(AtlasDbConfig config) {
-        SerializableTransactionManager tm = TransactionManagers.create(
-                config,
-                new Supplier<Optional<AtlasDbRuntimeConfig>>() {
-                    @Override
-                    Optional<AtlasDbRuntimeConfig> get() {
-                        return Optional.empty()
-                    }
-                },
-                ImmutableSet.<Schema>of(),
-                new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
-                    @Override
-                    public void register(Object resource) {
-                    }
-                }, true)
+        SerializableTransactionManager tm = TransactionManagers.builder()
+                .config(config)
+                .userAgent("atlasdb console")
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .allowHiddenTableAccess(true)
+                .build()
+                .serializable()
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService())
         AtlasDbService service = new AtlasDbServiceImpl(tm.getKeyValueService(), tm, cache)
         ObjectMapper serviceMapper = new ObjectMapper()

@@ -18,7 +18,9 @@ package com.palantir.atlasdb.keyvalue.impl;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -46,7 +48,6 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -56,10 +57,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.tracing.TestSpanObserver;
-import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.base.ClosableIterators;
-import com.palantir.remoting2.tracing.SpanType;
-import com.palantir.remoting2.tracing.Tracer;
+import com.palantir.remoting.api.tracing.SpanType;
+import com.palantir.remoting3.tracing.Tracer;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -104,11 +103,21 @@ public class TracingKeyValueServiceTest {
     }
 
     @Test
+    public void delegatesInitializationCheck() {
+        when(delegate.isInitialized())
+                .thenReturn(false)
+                .thenReturn(true);
+
+        assertFalse(kvs.isInitialized());
+        assertTrue(kvs.isInitialized());
+    }
+
+    @Test
     public void addGarbageCollectionSentinelValues() throws Exception {
         ImmutableSet<Cell> cells = ImmutableSet.of(CELL);
         kvs.addGarbageCollectionSentinelValues(TABLE_REF, cells);
 
-        checkSpan("atlasdb-kvs.addGarbageCollectionSentinelValues(test.testTable, 1 cells)");
+        checkSpan("atlasdb-kvs.addGarbageCollectionSentinelValues({table}, 1 cells)");
         verify(delegate).addGarbageCollectionSentinelValues(TABLE_REF, cells);
         verifyNoMoreInteractions(delegate);
     }
@@ -118,7 +127,7 @@ public class TracingKeyValueServiceTest {
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(TABLE_REF, CELL, ROW_NAME, ROW_NAME);
         kvs.checkAndSet(request);
 
-        checkSpan("atlasdb-kvs.checkAndSet(test.testTable, Cell{rowName=726f77, columnName=636f6c, no TTL})");
+        checkSpan("atlasdb-kvs.checkAndSet({table})");
         verify(delegate).checkAndSet(request);
         verifyNoMoreInteractions(delegate);
     }
@@ -136,7 +145,7 @@ public class TracingKeyValueServiceTest {
     public void compactInternally() throws Exception {
         kvs.compactInternally(TABLE_REF);
 
-        checkSpan("atlasdb-kvs.compactInternally(test.testTable)");
+        checkSpan("atlasdb-kvs.compactInternally({table})");
         verify(delegate).compactInternally(TABLE_REF);
         verifyNoMoreInteractions(delegate);
     }
@@ -146,7 +155,7 @@ public class TracingKeyValueServiceTest {
         byte[] metadata = new byte[0];
         kvs.createTable(TABLE_REF, metadata);
 
-        checkSpan("atlasdb-kvs.createTable(test.testTable)");
+        checkSpan("atlasdb-kvs.createTable({table})");
         verify(delegate).createTable(TABLE_REF, metadata);
         verifyNoMoreInteractions(delegate);
     }
@@ -156,7 +165,7 @@ public class TracingKeyValueServiceTest {
         byte[] metadata = new byte[0];
         kvs.createTables(ImmutableMap.of(TABLE_REF, metadata));
 
-        checkSpan("atlasdb-kvs.createTables([test.testTable])");
+        checkSpan("atlasdb-kvs.createTables([{table}])");
         verify(delegate).createTables(ImmutableMap.of(TABLE_REF, metadata));
         verifyNoMoreInteractions(delegate);
     }
@@ -166,7 +175,7 @@ public class TracingKeyValueServiceTest {
         Multimap<Cell, Long> cells = ImmutableMultimap.of(CELL, 1L);
         kvs.delete(TABLE_REF, cells);
 
-        checkSpan("atlasdb-kvs.delete(test.testTable, 1 keys)");
+        checkSpan("atlasdb-kvs.delete({table}, 1 keys)");
         verify(delegate).delete(TABLE_REF, cells);
         verifyNoMoreInteractions(delegate);
     }
@@ -175,7 +184,7 @@ public class TracingKeyValueServiceTest {
     public void dropTable() throws Exception {
         kvs.dropTable(TABLE_REF);
 
-        checkSpan("atlasdb-kvs.dropTable(test.testTable)");
+        checkSpan("atlasdb-kvs.dropTable({table})");
         verify(delegate).dropTable(TABLE_REF);
         verifyNoMoreInteractions(delegate);
     }
@@ -184,7 +193,7 @@ public class TracingKeyValueServiceTest {
     public void dropTables() throws Exception {
         kvs.dropTables(ImmutableSet.of(TABLE_REF));
 
-        checkSpan("atlasdb-kvs.dropTables([test.testTable])");
+        checkSpan("atlasdb-kvs.dropTables([{table}])");
         verify(delegate).dropTables(ImmutableSet.of(TABLE_REF));
         verifyNoMoreInteractions(delegate);
     }
@@ -198,7 +207,7 @@ public class TracingKeyValueServiceTest {
         Map<Cell, Value> result = kvs.get(TABLE_REF, cells);
 
         assertThat(result, equalTo(expectedResult));
-        checkSpan("atlasdb-kvs.get(test.testTable, 1 cells)");
+        checkSpan("atlasdb-kvs.get({table}, 1 cells)");
         verify(delegate).get(TABLE_REF, cells);
         verifyNoMoreInteractions(delegate);
     }
@@ -217,7 +226,7 @@ public class TracingKeyValueServiceTest {
         Set<Cell> cells = ImmutableSet.of(CELL);
         kvs.getAllTimestamps(TABLE_REF, cells, 1L);
 
-        checkSpan("atlasdb-kvs.getAllTimestamps(test.testTable, 1 keys, ts 1)");
+        checkSpan("atlasdb-kvs.getAllTimestamps({table}, 1 keys, ts 1)");
         verify(delegate).getAllTimestamps(TABLE_REF, cells, 1L);
         verifyNoMoreInteractions(delegate);
     }
@@ -240,7 +249,7 @@ public class TracingKeyValueServiceTest {
                 TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
 
         assertThat(result, equalTo(expectedResult));
-        checkSpan("atlasdb-kvs.getFirstBatchForRanges(test.testTable, 1 ranges, ts 1)");
+        checkSpan("atlasdb-kvs.getFirstBatchForRanges({table}, 1 ranges, ts 1)");
         verify(delegate).getFirstBatchForRanges(TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
@@ -253,7 +262,7 @@ public class TracingKeyValueServiceTest {
         Map<Cell, Long> result = kvs.getLatestTimestamps(TABLE_REF, cells);
 
         assertThat(result.entrySet(), hasSize(1));
-        checkSpan("atlasdb-kvs.getLatestTimestamps(test.testTable, 1 cells)");
+        checkSpan("atlasdb-kvs.getLatestTimestamps({table}, 1 cells)");
         verify(delegate).getLatestTimestamps(TABLE_REF, cells);
         verifyNoMoreInteractions(delegate);
     }
@@ -265,7 +274,7 @@ public class TracingKeyValueServiceTest {
         byte[] result = kvs.getMetadataForTable(TABLE_REF);
 
         assertThat(result, equalTo(METADATA_BYTES));
-        checkSpan("atlasdb-kvs.getMetadataForTable(test.testTable)");
+        checkSpan("atlasdb-kvs.getMetadataForTable({table})");
         verify(delegate).getMetadataForTable(TABLE_REF);
         verifyNoMoreInteractions(delegate);
     }
@@ -284,34 +293,6 @@ public class TracingKeyValueServiceTest {
     }
 
     @Test
-    public void getRange() throws Exception {
-        ClosableIterator<RowResult<Value>> expectedResult = ClosableIterators.wrap(ImmutableList.of(
-                RowResult.of(CELL, VALUE)).iterator());
-        when(delegate.getRange(TABLE_REF, RANGE_REQUEST, TIMESTAMP)).thenReturn(expectedResult);
-        try (ClosableIterator<RowResult<Value>> result = kvs.getRange(TABLE_REF, RANGE_REQUEST, TIMESTAMP)) {
-            assertThat(result, equalTo(expectedResult));
-            checkSpan("atlasdb-kvs.getRange(test.testTable, ts 1)");
-            verify(delegate).getRange(TABLE_REF, RANGE_REQUEST, TIMESTAMP);
-            verifyNoMoreInteractions(delegate);
-        }
-    }
-
-    @Test
-    public void getRangeOfTimestamps() throws Exception {
-        Set<Long> longs = ImmutableSet.of(TIMESTAMP);
-        ClosableIterator<RowResult<Set<Long>>> expectedResult = ClosableIterators.wrap(ImmutableList.of(
-                RowResult.of(CELL, longs)).iterator());
-        when(delegate.getRangeOfTimestamps(TABLE_REF, RANGE_REQUEST, TIMESTAMP)).thenReturn(expectedResult);
-        try (ClosableIterator<RowResult<Set<Long>>> result = kvs.getRangeOfTimestamps(
-                TABLE_REF, RANGE_REQUEST, TIMESTAMP)) {
-            assertThat(result, equalTo(expectedResult));
-            checkSpan("atlasdb-kvs.getRangeOfTimestamps(test.testTable, ts 1)");
-            verify(delegate).getRangeOfTimestamps(TABLE_REF, RANGE_REQUEST, TIMESTAMP);
-            verifyNoMoreInteractions(delegate);
-        }
-    }
-
-    @Test
     public void getRows() throws Exception {
         ImmutableList<byte[]> rows = ImmutableList.of(ROW_NAME);
         Map<Cell, Value> expectedResult = ImmutableMap.of();
@@ -320,7 +301,7 @@ public class TracingKeyValueServiceTest {
         Map<Cell, Value> result = kvs.getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP);
 
         assertThat(result, equalTo(expectedResult));
-        checkSpan("atlasdb-kvs.getRows(test.testTable, 1 rows, ts 1)");
+        checkSpan("atlasdb-kvs.getRows({table}, 1 rows, ts 1)");
         verify(delegate).getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
@@ -336,24 +317,8 @@ public class TracingKeyValueServiceTest {
         Map<byte[], RowColumnRangeIterator> result = kvs.getRowsColumnRange(TABLE_REF, rows, range, TIMESTAMP);
 
         assertThat(result, equalTo(expectedResult));
-        checkSpan("atlasdb-kvs.getRowsColumnRange(test.testTable, 1 rows, ts 1)");
+        checkSpan("atlasdb-kvs.getRowsColumnRange({table}, 1 rows, ts 1)");
         verify(delegate).getRowsColumnRange(TABLE_REF, rows, range, TIMESTAMP);
-        verifyNoMoreInteractions(delegate);
-    }
-
-    @Test
-    public void getRowsColumnRange() throws Exception {
-        RowColumnRangeIterator expectedResult = mock(RowColumnRangeIterator.class);
-        List<byte[]> rows = ImmutableList.of(ROW_NAME);
-        ColumnRangeSelection range = new ColumnRangeSelection(COL_NAME, COL_NAME);
-        int cellBatchHint = 2;
-        when(delegate.getRowsColumnRange(TABLE_REF, rows, range, cellBatchHint, TIMESTAMP)).thenReturn(expectedResult);
-
-        RowColumnRangeIterator result = kvs.getRowsColumnRange(TABLE_REF, rows, range, cellBatchHint, TIMESTAMP);
-
-        assertThat(result, equalTo(expectedResult));
-        checkSpan("atlasdb-kvs.getRowsColumnRange(test.testTable, 1 rows, 2 hint, ts 1)");
-        verify(delegate).getRowsColumnRange(TABLE_REF, rows, range, cellBatchHint, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
 
@@ -372,7 +337,7 @@ public class TracingKeyValueServiceTest {
         Map<Cell, byte[]> values = ImmutableMap.of(CELL, VALUE_BYTES);
         kvs.put(TABLE_REF, values, TIMESTAMP);
 
-        checkSpan("atlasdb-kvs.put(test.testTable, 1 values, ts 1)");
+        checkSpan("atlasdb-kvs.put({table}, 1 values, ts 1)");
         verify(delegate).put(TABLE_REF, values, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
@@ -381,7 +346,7 @@ public class TracingKeyValueServiceTest {
     public void putMetadataForTable() throws Exception {
         kvs.putMetadataForTable(TABLE_REF, METADATA_BYTES);
 
-        checkSpan("atlasdb-kvs.putMetadataForTable(test.testTable, 8 bytes)");
+        checkSpan("atlasdb-kvs.putMetadataForTable({table}, 8 bytes)");
         verify(delegate).putMetadataForTable(TABLE_REF, METADATA_BYTES);
         verifyNoMoreInteractions(delegate);
     }
@@ -390,7 +355,7 @@ public class TracingKeyValueServiceTest {
     public void putMetadataForTables() throws Exception {
         kvs.putMetadataForTables(ImmutableMap.of(TABLE_REF, METADATA_BYTES));
 
-        checkSpan("atlasdb-kvs.putMetadataForTables([test.testTable])");
+        checkSpan("atlasdb-kvs.putMetadataForTables([{table}])");
         verify(delegate).putMetadataForTables(ImmutableMap.of(TABLE_REF, METADATA_BYTES));
         verifyNoMoreInteractions(delegate);
     }
@@ -400,7 +365,7 @@ public class TracingKeyValueServiceTest {
         Map<Cell, byte[]> values = ImmutableMap.of(CELL, VALUE_BYTES);
         kvs.putUnlessExists(TABLE_REF, values);
 
-        checkSpan("atlasdb-kvs.putUnlessExists(test.testTable, 1 values)");
+        checkSpan("atlasdb-kvs.putUnlessExists({table}, 1 values)");
         verify(delegate).putUnlessExists(TABLE_REF, values);
         verifyNoMoreInteractions(delegate);
     }
@@ -410,7 +375,7 @@ public class TracingKeyValueServiceTest {
         Multimap<Cell, Value> values = ImmutableMultimap.of(CELL, VALUE);
         kvs.putWithTimestamps(TABLE_REF, values);
 
-        checkSpan("atlasdb-kvs.putWithTimestamps(test.testTable, 1 values)");
+        checkSpan("atlasdb-kvs.putWithTimestamps({table}, 1 values)");
         verify(delegate).putWithTimestamps(TABLE_REF, values);
         verifyNoMoreInteractions(delegate);
     }
@@ -419,7 +384,7 @@ public class TracingKeyValueServiceTest {
     public void truncateTable() throws Exception {
         kvs.truncateTable(TABLE_REF);
 
-        checkSpan("atlasdb-kvs.truncateTable(test.testTable)");
+        checkSpan("atlasdb-kvs.truncateTable({table})");
         verify(delegate).truncateTable(TABLE_REF);
         verifyNoMoreInteractions(delegate);
     }
@@ -428,7 +393,7 @@ public class TracingKeyValueServiceTest {
     public void truncateTables() throws Exception {
         kvs.truncateTables(ImmutableSet.of(TABLE_REF));
 
-        checkSpan("atlasdb-kvs.truncateTables([test.testTable])");
+        checkSpan("atlasdb-kvs.truncateTables([{table}])");
         verify(delegate).truncateTables(ImmutableSet.of(TABLE_REF));
         verifyNoMoreInteractions(delegate);
     }

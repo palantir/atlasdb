@@ -156,6 +156,14 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     }
 
     @Override
+    protected boolean getBoolean(int col) throws PalantirSqlException {
+        if(ResultSets.getObject(results, col) == null) {
+            return false;
+        }
+        return ResultSets.getBoolean(results, col);
+    }
+
+    @Override
     @Deprecated // use the get by colname variant instead
     protected int getInteger(int col) throws PalantirSqlException {
         if(ResultSets.getObject(results, col) == null) {
@@ -223,6 +231,15 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
             return null;
         }
         return getDouble(col);
+    }
+
+    @Override
+    public Object getArray(String colname) throws PalantirSqlException {
+        return getArray(findColumn(colname));
+    }
+
+    private Object getArray(int col) throws PalantirSqlException {
+        return ResultSets.getArray(results, col);
     }
 
     @Override

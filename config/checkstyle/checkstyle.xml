@@ -45,5 +45,8 @@
             <property name="ignoreComments" value="true"/>
         </module>
     </module>
+    <module name="SuppressionFilter"> <!-- baseline-gradle: README.md -->
+        <property name="file" value=".baseline/checkstyle/checkstyle-suppressions.xml"/>
+    </module>
 
 </module>

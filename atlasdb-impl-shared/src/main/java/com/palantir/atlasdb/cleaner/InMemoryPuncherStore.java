@@ -45,6 +45,11 @@ final class InMemoryPuncherStore implements PuncherStore {
     }
 
     @Override
+    public boolean isInitialized() {
+        return true;
+    }
+
+    @Override
     public void put(long timestamp, long timeMillis) {
         map.put(timeMillis, timestamp);
     }

@@ -11,6 +11,7 @@ dependencies {
   runtime project(':atlasdb-dbkvs')
 
   // Unsupported KVSs (included for migration purposes)
+  runtime project(':atlasdb-hikari')
   runtime project(':atlasdb-jdbc')
 }
 

@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -35,14 +36,19 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
     private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
 
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
-    protected final TimestampCache timestampValidationReadCache = TimestampCache.create();
+    final TimestampCache timestampValidationReadCache;
     private volatile boolean closed = false;
+
+    AbstractTransactionManager(Supplier<Long> timestampCacheSize) {
+        this.timestampValidationReadCache = new TimestampCache(timestampCacheSize);
+    }
 
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
@@ -75,6 +81,9 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 log.info("[{}] Retrying transaction after {} failure(s).",
                         SafeArg.of("runId", runId),
                         SafeArg.of("failureCount", failureCount), e);
+            } catch (NotInitializedException e) {
+                log.info("TransactionManager is not initialized. Aborting transaction with runTaskWithRetry", e);
+                throw e;
             } catch (RuntimeException e) {
                 log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), e);
                 throw e;
@@ -83,7 +92,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
         }
     }
 
-    protected void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {
+    protected static void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {
         // no-op
     }
 

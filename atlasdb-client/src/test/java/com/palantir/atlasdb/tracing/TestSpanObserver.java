@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.palantir.remoting2.tracing.Span;
-import com.palantir.remoting2.tracing.SpanObserver;
+import com.palantir.remoting.api.tracing.Span;
+import com.palantir.remoting.api.tracing.SpanObserver;
 
 public class TestSpanObserver implements SpanObserver {
     private final List<Span> spans = new ArrayList<>();

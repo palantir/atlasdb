@@ -150,7 +150,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void leaderLosesLeadersipIfQuorumIsNotAlive() {
+    public void leaderLosesLeadershipIfQuorumIsNotAlive() {
         TestableTimelockServer leader = CLUSTER.currentLeader();
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
 
@@ -171,6 +171,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         bringAllNodesOnline();
         for (TestableTimelockServer server : CLUSTER.servers()) {
             server.kill();
+            waitForClusterToStabilize();
             CLUSTER.getFreshTimestamp();
             server.start();
         }
@@ -224,6 +225,15 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         CLUSTER.failoverToNewLeader();
 
         CLUSTER.getFreshTimestamp();
+    }
+
+    @Test
+    public void clientsCreatedDynamicallyOnLeaderAreFunctionalImmediately() {
+        String client = UUID.randomUUID().toString();
+
+        CLUSTER.currentLeader()
+                .timelockServiceForClient(client)
+                .getFreshTimestamp();
     }
 
     @Test

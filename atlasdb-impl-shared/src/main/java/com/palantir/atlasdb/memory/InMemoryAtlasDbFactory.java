@@ -19,21 +19,23 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.auto.service.AutoService;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
-import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -66,6 +68,14 @@ import com.palantir.timestamp.TimestampService;
  */
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory {
+    private static final Logger log = LoggerFactory.getLogger(InMemoryAtlasDbFactory.class);
+
+    /**
+     * @deprecated see usage below. Should be configured with the {@link InMemoryAtlasDbConfig}.
+     * To be removed whenever someone removes the deprecated constructors that don't know about atlas configs...
+     */
+    @Deprecated
+    private static final long DEFAULT_TIMESTAMP_CACHE_SIZE = AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE;
 
     /**
      * @deprecated see usage below. Should be configured with the {@link InMemoryAtlasDbConfig}.
@@ -73,22 +83,51 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     @Deprecated
     private static final int DEFAULT_MAX_CONCURRENT_RANGES = 64;
 
+    /**
+     * @deprecated see usage below. Should be configured with the {@link InMemoryAtlasDbConfig}.
+     */
+    @Deprecated
+    private static final int DEFAULT_GET_RANGES_CONCURRENCY = 8;
+
     @Override
     public String getType() {
         return "memory";
     }
 
+    /**
+     * Creates an InMemoryKeyValueService.
+     *
+     * @param config Configuration file.
+     * @param leaderConfig unused.
+     * @param unused unused.
+     * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
+     * @param unusedQosClient unused.
+     * @return The requested KeyValueService instance
+     */
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
-            Optional<String> unused) {
+            Optional<String> unused,
+            boolean initializeAsync,
+            QosClient unusedQosClient) {
+        if (initializeAsync) {
+            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+        }
+
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(
+            KeyValueService rawKvs,
+            Optional<TableReference> unused,
+            boolean initializeAsync) {
+        if (initializeAsync) {
+            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+        }
+
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryTimestampService();
     }
@@ -114,7 +153,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
     private static SerializableTransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
         TimestampService ts = new InMemoryTimestampService();
-        KeyValueService keyValueService = createTableMappingKv();
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
 
         schemas.forEach(s -> Schemas.createTablesAndIndexes(s, keyValueService));
         TransactionTables.createTables(keyValueService);
@@ -134,7 +173,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 client,
                 ImmutableList.of(follower),
                 transactionService).buildCleaner();
-        SerializableTransactionManager ret = new SerializableTransactionManager(
+        SerializableTransactionManager ret = SerializableTransactionManager.createForTest(
                 keyValueService,
                 ts,
                 client,
@@ -144,18 +183,10 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                DEFAULT_MAX_CONCURRENT_RANGES);
+                DEFAULT_MAX_CONCURRENT_RANGES,
+                DEFAULT_GET_RANGES_CONCURRENCY,
+                () -> DEFAULT_TIMESTAMP_CACHE_SIZE);
         cleaner.start(ret);
         return ret;
-    }
-
-    private static KeyValueService createTableMappingKv() {
-        KeyValueService kv = new InMemoryKeyValueService(false);
-        TableMappingService mapper = getMapper(kv);
-        return NamespaceMappingKeyValueService.create(TableRemappingKeyValueService.create(kv, mapper));
-    }
-
-    private static TableMappingService getMapper(KeyValueService kv) {
-        return StaticTableMappingService.create(kv);
     }
 }

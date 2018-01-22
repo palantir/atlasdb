@@ -69,7 +69,6 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -81,11 +80,11 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class InMemoryKeyValueService extends AbstractKeyValueService {
     private final ConcurrentMap<TableReference, Table> tables = Maps.newConcurrentMap();
     private final ConcurrentMap<TableReference, byte[]> tableMetadata = Maps.newConcurrentMap();
-    private volatile boolean createTablesAutomatically;
+    private final boolean createTablesAutomatically;
 
     public InMemoryKeyValueService(boolean createTablesAutomatically) {
         this(createTablesAutomatically,
-                Tracers.wrap(PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true))));
+                PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true)));
     }
 
     public InMemoryKeyValueService(boolean createTablesAutomatically,
@@ -167,11 +166,15 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             final RangeRequest range,
             final long timestamp) {
+        boolean reversed = range.isReverse();
         return getRangeInternal(tableRef, range, entries -> {
             Entry<Key, byte[]> lastEntry = null;
             while (entries.hasNext()) {
                 Entry<Key, byte[]> entry = entries.next();
-                if (entry.getKey().ts >= timestamp) {
+                if (reversed && entry.getKey().ts < timestamp) {
+                    lastEntry = entry;
+                    break;
+                } else if (!reversed && entry.getKey().ts >= timestamp) {
                     break;
                 }
                 lastEntry = entry;

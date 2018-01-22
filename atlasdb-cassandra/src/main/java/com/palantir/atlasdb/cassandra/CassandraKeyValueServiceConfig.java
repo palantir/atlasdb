@@ -28,9 +28,10 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
@@ -87,14 +88,21 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 20;
     }
 
+    /**
+     * The period between refreshing the Cassandra client pools.
+     * At every refresh, we check the health of the current blacklisted nodes — if they're healthy, we whitelist them.
+     */
     @Value.Default
     public int poolRefreshIntervalSeconds() {
-        return 5 * 60;
+        return 2 * 60;
     }
 
+    /**
+     * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
+     */
     @Value.Default
     public int unresponsiveHostBackoffTimeSeconds() {
-        return 2 * 60;
+        return 30;
     }
 
     /**
@@ -216,12 +224,12 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int schemaMutationTimeoutMillis() {
-        return 60 * 1000;
+        return 120 * 1000;
     }
 
     @Value.Default
     public int rangesConcurrency() {
-        return 64;
+        return 32;
     }
 
     @Value.Default
@@ -229,9 +237,21 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return false;
     }
 
+    /**
+     * Obsolete value, replaced by {@link SweepConfig#readLimit}.
+     *
+     * @deprecated this parameter is unused and should be removed from the configuration
+     */
+    @SuppressWarnings("DeprecatedIsStillUsed") // Used by immutable copy of this file
     @Value.Default
+    @Deprecated
     public Integer timestampsGetterBatchSize() {
         return 1_000;
+    }
+
+    @Value.Default
+    public Integer sweepReadThreads() {
+        return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
 
     public abstract Optional<CassandraJmxCompactionConfig> jmx();

@@ -19,10 +19,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.remoting2.servers.jersey.WebPreconditions;
+import com.palantir.remoting3.servers.jersey.WebPreconditions;
 
 public class KvsBackedPersistentLockService implements PersistentLockService {
     private static final Logger log = LoggerFactory.getLogger(KvsBackedPersistentLockService.class);
@@ -35,7 +35,11 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
     }
 
     public static PersistentLockService create(KeyValueService kvs) {
-        LockStore lockStore = LockStore.create(kvs);
+        return create(kvs, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static PersistentLockService create(KeyValueService kvs, boolean initializeAsync) {
+        LockStore lockStore = LockStoreImpl.create(kvs, initializeAsync);
         return new KvsBackedPersistentLockService(lockStore);
     }
 
@@ -47,7 +51,7 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
 
     @Override
     public void releaseBackupLock(PersistentLockId lockId) {
-        Preconditions.checkNotNull(lockId, "Please provide a PersistentLockId to release.");
+        WebPreconditions.checkNotNull(lockId, "Please provide a PersistentLockId to release.");
 
         LockEntry lockToRelease = lockStore.getLockEntryWithLockId(lockId);
 

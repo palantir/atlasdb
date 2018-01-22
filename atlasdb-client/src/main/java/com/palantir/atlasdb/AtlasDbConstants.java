@@ -20,6 +20,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
@@ -33,12 +34,19 @@ public final class AtlasDbConstants {
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub2");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
+    public static final TableReference SWEEP_PROGRESS_TABLE = TableReference.createWithEmptyNamespace("_sweep_progress3");
+    public static final TableReference TIMELOCK_TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
 
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace(
             "atlasdb_metadata");
+    public static final TableReference DEFAULT_SCHEMA_METADATA_TABLE = TableReference.createWithEmptyNamespace(
+            "_schema_metadata");
+
+    // Deprecated tables
+    public static final TableReference SWEEP_PROGRESS_V2 = TableReference.createWithEmptyNamespace("_sweep_progress2");
 
     public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
 
@@ -69,14 +77,17 @@ public final class AtlasDbConstants {
 
     public static final long DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS = 60_000;
 
-
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             PUNCH_TABLE,
+            OLD_SCRUB_TABLE,
             SCRUB_TABLE,
             NAMESPACE_TABLE,
             PARTITION_MAP_TABLE,
-            PERSISTED_LOCKS_TABLE);
+            PERSISTED_LOCKS_TABLE,
+            SWEEP_PROGRESS_TABLE,
+            DEFAULT_SCHEMA_METADATA_TABLE,
+            SWEEP_PROGRESS_V2);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
@@ -100,15 +111,19 @@ public final class AtlasDbConstants {
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 500L;
     public static final char OLD_SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
+    public static final boolean DEFAULT_INITIALIZE_ASYNC = AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC;
+
     public static final boolean DEFAULT_ENABLE_SWEEP = true;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
     public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
-    public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 1_000;
-    // TODO(gsheasby): Bump up this default once getRangeOfTimestamps has been replaced.
-    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 1;
-    public static final int DEFAULT_SWEEP_READ_LIMIT = 1_000;
+    public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 128;
+    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 128;
+    public static final int DEFAULT_SWEEP_READ_LIMIT = 128;
+    public static final int DEFAULT_SWEEP_CASSANDRA_READ_THREADS = 16;
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
+
+    public static final long DEFAULT_TIMESTAMP_CACHE_SIZE = 1_000_000;
 
     public static final int MAX_TABLE_PREFIX_LENGTH = 7;
     public static final int MAX_OVERFLOW_TABLE_PREFIX_LENGTH = 6;
@@ -117,4 +132,6 @@ public final class AtlasDbConstants {
 
     public static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
     public static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
+
+    public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
 }

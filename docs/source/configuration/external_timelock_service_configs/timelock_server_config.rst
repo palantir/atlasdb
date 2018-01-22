@@ -15,16 +15,11 @@ these may be configured in turn, as well as additional configuration parameters.
 Clients
 -------
 
-The ``clients`` block is a list of strings which corresponds to client namespaces that the server will respond to.
-Querying an endpoint for a client that does not exist will result in a 404.
-Note that client names must consist of only alphanumeric characters, dashes and
-underscores (succinctly, ``[a-zA-Z0-9_-]+``) and for backwards compatibility cannot be the reserved word ``leader``.
+.. note::
 
-   .. code:: yaml
-
-      clients:
-        - tom
-        - jerry
+   TimeLock previously required users to explicitly configure the namespaces that it would allow to be used,
+   returning 404s otherwise. From AtlasDB 0.54.0 onwards, though, TimeLock dynamically creates clients when a request
+   is made for that client for the first time.
 
 A single Timelock Server or cluster of Timelock Servers can support multiple AtlasDB clients. When querying a
 Timelock Server, clients must supply a namespace for which they are requesting timestamps or locks in the form of a
@@ -37,6 +32,9 @@ path variable. There are no guarantees of relationships between timestamps reque
 
 This is done for performance reasons: consider that if we maintained a global timestamp across all clients, then
 requests from each of these clients would need to all be synchronized.
+
+As far as the TimeLock Server is concerned, a client is created on the first request a user makes for the namespace
+in question.
 
 Cluster
 -------

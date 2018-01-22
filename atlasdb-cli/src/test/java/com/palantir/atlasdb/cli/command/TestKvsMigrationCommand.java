@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import static org.junit.Assert.assertFalse;
+
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -42,6 +44,16 @@ public class TestKvsMigrationCommand {
         String[] initArgs = new String[] { "migrate", "-fc", filePath, "-mc", filePath };
         String[] fullArgs = ObjectArrays.concat(initArgs, args, String.class);
         return AbstractTestRunner.buildCommand(KvsMigrationCommand.class, fullArgs);
+    }
+
+    @Test
+    public void doesNotSweepDuringMigration() throws Exception {
+        KvsMigrationCommand cmd = getCommand(new String[] { "-smv" });
+        AtlasDbServices fromServices = cmd.connectFromServices();
+        assertFalse(fromServices.getAtlasDbRuntimeConfig().sweep().enabled());
+
+        AtlasDbServices toServices = cmd.connectToServices();
+        assertFalse(toServices.getAtlasDbRuntimeConfig().sweep().enabled());
     }
 
     @Test

@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -25,7 +27,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 @JsonDeserialize(as = ImmutableSweepConfig.class)
 @JsonSerialize(as = ImmutableSweepConfig.class)
 @Value.Immutable
-public class SweepConfig {
+public abstract class SweepConfig {
     /**
      * If true, a background thread will periodically delete cells that
      * have been overwritten or deleted. This differs from scrubbing
@@ -57,10 +59,7 @@ public class SweepConfig {
     /**
      * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
      */
-    @Value.Default
-    public Integer candidateBatchHint() {
-        return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT;
-    }
+    public abstract Optional<Integer> candidateBatchHint();
 
     /**
      * The target number of (cell, timestamp) pairs to delete at once while sweeping.
@@ -75,8 +74,11 @@ public class SweepConfig {
                 .enabled(AtlasDbConstants.DEFAULT_ENABLE_SWEEP)
                 .pauseMillis(AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS)
                 .readLimit(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
-                .candidateBatchHint(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT)
                 .deleteBatchHint(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
                 .build();
+    }
+
+    public static SweepConfig disabled() {
+        return ImmutableSweepConfig.builder().enabled(false).build();
     }
 }

@@ -29,6 +29,7 @@ import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class OneNodeDownMetadataTest {
 
@@ -51,8 +52,10 @@ public class OneNodeDownMetadataTest {
         TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
                 new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE,
-                newTableMetadata.persistToBytes())).isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("At schema version UNREACHABLE");
+                newTableMetadata.persistToBytes()))
+                .isExactlyInstanceOf(AtlasDbDependencyException.class)
+                .hasCauseInstanceOf(IllegalStateException.class)
+                .hasStackTraceContaining("At schema version UNREACHABLE");
 
         canGetMetadataForTable();
     }
@@ -63,8 +66,9 @@ public class OneNodeDownMetadataTest {
                 new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putMetadataForTables(
                 ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes())))
-                .isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("At schema version UNREACHABLE");
+                .isExactlyInstanceOf(AtlasDbDependencyException.class)
+                .hasCauseInstanceOf(IllegalStateException.class)
+                .hasStackTraceContaining("At schema version UNREACHABLE");
 
         canGetMetadataForTable();
     }

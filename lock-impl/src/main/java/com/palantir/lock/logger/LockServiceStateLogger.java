@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -45,16 +46,20 @@ import com.palantir.lock.impl.LockServiceImpl;
 public class LockServiceStateLogger {
     private static Logger log = LoggerFactory.getLogger(LockServiceStateLogger.class);
 
-    private static final String LOCKSTATE_FILE_PREFIX = "lockstate-";
-    private static final String DESCRIPTORS_FILE_PREFIX = "descriptors-";
+    @VisibleForTesting
+    static final String LOCKSTATE_FILE_PREFIX = "lockstate-";
+    @VisibleForTesting
+    static final String DESCRIPTORS_FILE_PREFIX = "descriptors-";
+
+    @VisibleForTesting
+    static final String OUTSTANDING_LOCK_REQUESTS_TITLE = "OutstandingLockRequests";
+    @VisibleForTesting
+    static final String HELD_LOCKS_TITLE = "HeldLocks";
+
     private static final String WARNING_LOCK_DESCRIPTORS = "WARNING: Lock descriptors may contain sensitive information";
     private static final String FILE_NOT_CREATED_LOG_ERROR = "Destination file [{}] either already exists"
             + "or can't be created. This is a very unlikely scenario."
             + "Retrigger logging or check if process has permitions on the folder";
-
-
-    private static final String OUTSTANDING_LOCK_REQUESTS_TITLE = "OutstandingLockRequests";
-    private static final String HELD_LOCKS_TITLE = "HeldLocks";
 
     private final LockDescriptorMapper lockDescriptorMapper = new LockDescriptorMapper();
     private final long startTimestamp = System.currentTimeMillis();
@@ -115,7 +120,7 @@ public class LockServiceStateLogger {
 
     private Map<String, Object> generateHeldLocks(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
         Map<String, Object> mappedLocksToToken = Maps.newHashMap();
-        heldLocksTokenMap.forEach((token, locks) -> mappedLocksToToken.putAll(getDescriptorToTokenMap(token, locks)));
+        heldLocksTokenMap.values().forEach(locks -> mappedLocksToToken.putAll(getDescriptorToTokenMap(locks.getRealToken())));
 
         return nameObjectForYamlConvertion(HELD_LOCKS_TITLE, mappedLocksToToken);
     }
@@ -134,14 +139,13 @@ public class LockServiceStateLogger {
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Object> getDescriptorToTokenMap(HeldLocksToken heldLocksToken,
-            LockServiceImpl.HeldLocks<HeldLocksToken> heldLocks) {
+    private Map<String, Object> getDescriptorToTokenMap(HeldLocksToken realToken) {
         Map<String, Object> lockToLockInfo = Maps.newHashMap();
 
-        heldLocks.getRealToken().getLocks().forEach(
+        realToken.getLocks().forEach(
                 lock -> lockToLockInfo.put(
                             this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
-                            SimpleTokenInfo.of(heldLocksToken, lock.getLockMode()))
+                            SimpleTokenInfo.of(realToken, lock.getLockMode()))
         );
         return lockToLockInfo;
     }

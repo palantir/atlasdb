@@ -24,6 +24,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
 import java.util.Collection;
@@ -43,9 +50,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -56,6 +65,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -81,20 +92,21 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
+import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
@@ -113,12 +125,13 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.remoting2.tracing.Tracers;
 
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
-    protected final TimestampCache timestampCache = TimestampCache.create();
-    protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(4);
+    protected final TimestampCache timestampCache = new TimestampCache(
+            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+    protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
+    protected final int defaultGetRangesConcurrency = 2;
 
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
@@ -161,11 +174,24 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return delegate;
         }
     }
+
+    private static final PreCommitCondition ALWAYS_FAILS_CONDITION = new PreCommitCondition() {
+        @Override
+        public void throwIfConditionInvalid(long timestamp) {
+            throw new TransactionFailedRetriableException("Condition failed");
+        }
+
+        @Override
+        public void cleanup() {}
+    };
+
     static final TableReference TABLE = TableReference.createFromFullyQualifiedName("default.table");
     static final TableReference TABLE1 = TableReference.createFromFullyQualifiedName("default.table1");
     static final TableReference TABLE2 = TableReference.createFromFullyQualifiedName("default.table2");
 
     static final TableReference TABLE_SWEPT_THOROUGH = TableReference.createFromFullyQualifiedName("default.table2");
+
+    private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
     @Override
     @Before
@@ -187,7 +213,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testConcurrentWriteChangedConflicts() throws InterruptedException, ExecutionException {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         CompletionService<Void> executor = new ExecutorCompletionService<Void>(
-                Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
+                PTExecutors.newFixedThreadPool(8));
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
@@ -214,7 +240,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void testConcurrentWriteWriteConflicts() throws InterruptedException, ExecutionException {
         CompletionService<Void> executor = new ExecutorCompletionService<Void>(
-                Tracers.wrap(PTExecutors.newFixedThreadPool(8)));
+                PTExecutors.newFixedThreadPool(8));
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
@@ -282,7 +308,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
-                getRangesExecutor);
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueue);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -338,7 +366,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
-                getRangesExecutor);
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueue);
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
         snapshot.commit();
 
@@ -362,9 +392,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 lockService,
                 transactionService,
                 conflictDetectionManager,
-                sweepStrategyManager);
+                sweepStrategyManager,
+                sweepQueue);
 
-        ScheduledExecutorService service = Tracers.wrap(PTExecutors.newScheduledThreadPool(20));
+        ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
         for (int i = 0; i < 30; i++) {
             final int threadNumber = i;
@@ -565,7 +596,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         try {
             txManager.runTaskWithLocksThrowOnConflict(ImmutableList.of(getExpiredHeldLocksToken()), task.getRight());
             return Optional.of(task.getLeft());
-        } catch (TransactionFailedRetriableException expected) {
+        } catch (TransactionFailedNonRetriableException expected) {
             return Optional.empty();
         } catch (Exception e) {
             throw Throwables.propagate(e);
@@ -717,9 +748,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test (expected = IllegalArgumentException.class)
     public void disallowPutOnEmptyObject() {
-        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        t1.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Test
@@ -738,17 +768,225 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void noRetryOnExpiredLockTokens() throws InterruptedException {
-        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         HeldLocksToken expiredLockToken = getExpiredHeldLocksToken();
         try {
             txManager.runTaskWithLocksWithRetry(ImmutableList.of(expiredLockToken), () -> null, (tx, locks) -> {
-                tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
                 return null;
             });
-        } catch (TransactionLockTimeoutException e) {
+            fail();
+        } catch (TransactionLockTimeoutNonRetriableException e) {
             Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
             assertThat(e.getMessage(), containsString(expectedTokens.toString()));
             assertThat(e.getMessage(), containsString("Retry is not possible."));
+        }
+    }
+
+    @Test
+    public void commitIfPreCommitConditionSucceeds() {
+        serializableTxManager.runTaskWithConditionThrowOnConflict(PreCommitConditions.NO_OP, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+            return null;
+        });
+    }
+
+    @Test
+    public void failToCommitIfPreCommitConditionFails() {
+        try {
+            serializableTxManager.runTaskWithConditionThrowOnConflict(ALWAYS_FAILS_CONDITION, (tx, condition) -> {
+                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+                return null;
+            });
+            fail();
+        } catch (TransactionFailedRetriableException e) {
+            assertThat(e.getMessage(), containsString("Condition failed"));
+        }
+    }
+
+    @Test
+    public void commitWithPreCommitConditionOnRetry() {
+        Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
+        when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
+                .thenReturn(PreCommitConditions.NO_OP);
+        serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+            return null;
+        });
+    }
+
+    @Test
+    public void runWithRetryFailsOnNonRetriableException() {
+        PreCommitCondition nonRetriableFailure = new PreCommitCondition() {
+            @Override
+            public void throwIfConditionInvalid(long timestamp) {
+                throw new TransactionFailedNonRetriableException("Condition failed");
+            }
+
+            @Override
+            public void cleanup() {}
+        };
+        Supplier<PreCommitCondition> conditionSupplier = Suppliers.ofInstance(nonRetriableFailure);
+        try {
+            serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
+                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+                return null;
+            });
+            fail();
+        } catch (TransactionFailedNonRetriableException e) {
+            assertThat(e.getMessage(), containsString("Condition failed"));
+        }
+    }
+
+    @Test
+    public void readTransactionSucceedsIfConditionSucceeds() {
+        serializableTxManager.runTaskReadOnlyWithCondition(PreCommitConditions.NO_OP,
+                (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
+    }
+
+    @Test
+    public void readTransactionFailsIfConditionFails() {
+        try {
+            serializableTxManager.runTaskReadOnlyWithCondition(ALWAYS_FAILS_CONDITION,
+                    (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
+            fail();
+        } catch (TransactionFailedRetriableException e) {
+            assertThat(e.getMessage(), containsString("Condition failed"));
+        }
+    }
+
+    @Test
+    public void cleanupPreCommitConditionsOnSuccess() {
+        MutableLong counter = new MutableLong(0L);
+        PreCommitCondition succeedsCondition = new PreCommitCondition() {
+            @Override
+            public void throwIfConditionInvalid(long timestamp) {}
+
+            @Override
+            public void cleanup() {
+                counter.increment();
+            }
+        };
+
+        serializableTxManager.runTaskWithConditionThrowOnConflict(succeedsCondition, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+            return null;
+        });
+        assertThat(counter.intValue(), is(1));
+
+        serializableTxManager.runTaskReadOnlyWithCondition(succeedsCondition,
+                (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
+        assertThat(counter.intValue(), is(2));
+    }
+
+    @Test
+    public void cleanupPreCommitConditionsOnFailure() {
+        MutableLong counter = new MutableLong(0L);
+        PreCommitCondition failsCondition = new PreCommitCondition() {
+            @Override
+            public void throwIfConditionInvalid(long timestamp) {
+                throw new TransactionFailedRetriableException("Condition failed");
+            }
+
+            @Override
+            public void cleanup() {
+                counter.increment();
+            }
+        };
+
+        try {
+            serializableTxManager.runTaskWithConditionThrowOnConflict(failsCondition, (tx, condition) -> {
+                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+                return null;
+            });
+            fail();
+        } catch (TransactionFailedRetriableException e) {
+            // expected
+        }
+        assertThat(counter.intValue(), is(1));
+
+        try {
+            serializableTxManager.runTaskReadOnlyWithCondition(failsCondition,
+                    (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
+            fail();
+        } catch (TransactionFailedRetriableException e) {
+            // expected
+        }
+        assertThat(counter.intValue(), is(2));
+    }
+
+    @Test
+    public void committedWritesAreAddedToSweepQueue() {
+        List<WriteInfo> table1Writes = ImmutableList.of(
+                WriteInfo.of(Cell.create("a".getBytes(), "b".getBytes()), false, 2L),
+                WriteInfo.of(Cell.create("a".getBytes(), "c".getBytes()), false, 2L),
+                WriteInfo.of(Cell.create("a".getBytes(), "d".getBytes()), true, 2L),
+                WriteInfo.of(Cell.create("b".getBytes(), "d".getBytes()), false, 2L));
+        List<WriteInfo> table2Writes = ImmutableList.of(
+                WriteInfo.of(Cell.create("w".getBytes(), "x".getBytes()), false, 2L),
+                WriteInfo.of(Cell.create("y".getBytes(), "z".getBytes()), false, 2L),
+                WriteInfo.of(Cell.create("z".getBytes(), "z".getBytes()), true, 2L));
+
+        AtomicLong startTs = new AtomicLong(0);
+        txManager.runTaskWithRetry(txn -> {
+            table1Writes.forEach(write -> {
+                put(txn, TABLE1, write);
+            });
+            table2Writes.forEach(write -> {
+                put(txn, TABLE2, write);
+            });
+            return null;
+        });
+
+        verify(sweepQueue).enqueue(eq(TABLE1), eq(table1Writes));
+        verify(sweepQueue).enqueue(eq(TABLE2), eq(table2Writes));
+    }
+
+    @Test
+    public void noWritesAddedToSweepQueueOnConflict() {
+        Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
+        byte[] value = new byte[1];
+
+        Transaction t1 = txManager.createNewTransaction();
+        Transaction t2 = txManager.createNewTransaction();
+
+        t1.put(TABLE, ImmutableMap.of(cell, value));
+        t2.put(TABLE, ImmutableMap.of(cell, new byte[1]));
+
+        t1.commit();
+        verify(sweepQueue).enqueue(any(), any());
+
+        try {
+            t2.commit();
+            fail();
+        } catch (TransactionConflictException e) {
+            // expected
+        }
+
+        verifyNoMoreInteractions(sweepQueue);
+    }
+
+    @Test
+    public void noWritesAddedToSweepQueueOnException() {
+        Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
+        byte[] value = new byte[1];
+
+        try {
+            txManager.runTaskWithRetry(txn -> {
+                txn.put(TABLE, ImmutableMap.of(cell, value));
+                throw new RuntimeException("test");
+            });
+        } catch (RuntimeException e) {
+            // expected
+        }
+
+        verifyZeroInteractions(sweepQueue);
+    }
+
+    private void put(Transaction txn, TableReference table, WriteInfo write) {
+        if (write.isTombstone()) {
+            txn.delete(table, ImmutableSet.of(write.cell()));
+        } else {
+            txn.put(table, ImmutableMap.of(write.cell(), new byte[1]));
         }
     }
 
@@ -770,12 +1008,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 new ColumnMetadataDescription(),
                 ConflictHandler.RETRY_ON_WRITE_WRITE,
                 CachePriority.WARM,
-                PartitionStrategy.ORDERED,
                 false,
                 0,
                 false,
                 sweepStrategy,
-                ExpirationStrategy.NEVER,
                 false);
     }
 

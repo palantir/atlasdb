@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertThat;
@@ -27,7 +28,7 @@ import java.util.Optional;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public class TimeLockClientConfigTest {
     private static final String CLIENT = "testClient";
@@ -72,6 +73,18 @@ public class TimeLockClientConfigTest {
         ImmutableTimeLockClientConfig.builder()
                 .serversList(SERVERS_LIST)
                 .build();
+    }
+
+    @Test
+    public void tmelockClientCannotBeAnEmptyString() {
+        assertThatThrownBy(() -> ImmutableTimeLockClientConfig
+                .builder()
+                .client("")
+                .serversList(SERVERS_LIST)
+                .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("Timelock client string cannot be empty")));
     }
 
     @Test

@@ -18,10 +18,22 @@ package com.palantir.atlasdb.performance.benchmarks.table;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
 @State(Scope.Benchmark)
 public class VeryWideRowTable extends WideRowTable {
     @Override
+    public TableReference getTableRef() {
+        return TableReference.createFromFullyQualifiedName("performance.persistent_very_wide");
+    }
+
+    @Override
     public int getNumCols() {
         return 1_000_000;
+    }
+
+    @Override
+    public boolean isPersistent() {
+        return true;
     }
 }

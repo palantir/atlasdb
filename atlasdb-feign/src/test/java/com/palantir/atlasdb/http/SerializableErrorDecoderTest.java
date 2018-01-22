@@ -17,6 +17,11 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import javax.ws.rs.core.MediaType;
 
 import org.apache.http.HttpStatus;
@@ -89,6 +94,14 @@ public class SerializableErrorDecoderTest {
                 LockRequest.builder(ImmutableSortedMap.of(StringLockDescriptor.of(LOCK_ID), LockMode.WRITE))
                         .build();
         Response response = createResponseForEntity(lockRequest);
+
+        assertCanDecodeRuntimeException(response);
+    }
+
+    @Test
+    public void resilientToHttpRemoting3SerializableErrors() throws IOException {
+        Path filePath = Paths.get("src", "test", "resources", "remoting3-exception.json");
+        Response response = createResponse(HttpStatus.SC_SERVICE_UNAVAILABLE, Files.readAllBytes(filePath));
 
         assertCanDecodeRuntimeException(response);
     }

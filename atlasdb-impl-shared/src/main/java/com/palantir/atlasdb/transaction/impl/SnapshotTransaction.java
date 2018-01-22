@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -46,7 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -77,6 +77,7 @@ import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -97,12 +98,16 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.logging.LoggingArgs.SafeAndUnsafeTableReferences;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
@@ -112,7 +117,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbstractBatchingVisitable;
@@ -125,7 +130,7 @@ import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
-import com.palantir.common.concurrent.ConcurrentStreams;
+import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -178,10 +183,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     final TransactionService defaultTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
+    private static final MetricsManager metricsManager = new MetricsManager();
+
+    private final SweepQueueWriter sweepQueue;
 
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;
-    private final AdvisoryLockPreCommitCheck advisoryLockCheck;
+    private final PreCommitCondition preCommitCondition;
     protected final long timeCreated = System.currentTimeMillis();
 
     protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
@@ -204,15 +212,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final TimestampCache timestampValidationReadCache;
     protected final long lockAcquireTimeoutMs;
     protected final ExecutorService getRangesExecutor;
+    protected final int defaultGetRangesConcurrency;
 
-    private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
+    protected volatile boolean hasReads;
+
     private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
      *                           grab a read lock for it because we know that no writers exist.
-     * @param advisoryLockCheck This check must pass for this transaction to commit.  If these locks have
-     *                          expired then the commit will fail.
+     * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(KeyValueService keyValueService,
                                TimelockService timelockService,
@@ -223,14 +232,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                SweepStrategyManager sweepStrategyManager,
                                long immutableTimestamp,
                                Optional<LockToken> immutableTimestampLock,
-                               AdvisoryLockPreCommitCheck advisoryLockCheck,
+                               PreCommitCondition preCommitCondition,
                                AtlasDbConstraintCheckingMode constraintCheckingMode,
                                Long transactionTimeoutMillis,
                                TransactionReadSentinelBehavior readSentinelBehavior,
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampValidationReadCache,
                                long lockAcquireTimeoutMs,
-                               ExecutorService getRangesExecutor) {
+                               ExecutorService getRangesExecutor,
+                               int defaultGetRangesConcurrency,
+                               SweepQueueWriter sweepQueue) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -240,7 +251,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = sweepStrategyManager;
         this.immutableTimestamp = immutableTimestamp;
         this.immutableTimestampLock = immutableTimestampLock;
-        this.advisoryLockCheck = advisoryLockCheck;
+        this.preCommitCondition = preCommitCondition;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = transactionTimeoutMillis;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -248,6 +259,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.sweepQueue = sweepQueue;
+        this.hasReads = false;
     }
 
     // TEST ONLY
@@ -261,7 +275,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         AtlasDbConstraintCheckingMode constraintCheckingMode,
                         TransactionReadSentinelBehavior readSentinelBehavior,
                         TimestampCache timestampValidationReadCache,
-                        ExecutorService getRangesExecutor) {
+                        ExecutorService getRangesExecutor,
+                        int defaultGetRangesConcurrency,
+                        SweepQueueWriter sweepQueue) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -271,7 +287,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = 0;
         this.immutableTimestampLock = Optional.empty();
-        this.advisoryLockCheck = AdvisoryLockPreCommitCheck.NO_OP;
+        this.preCommitCondition = PreCommitConditions.NO_OP;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -279,6 +295,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
         this.getRangesExecutor = getRangesExecutor;
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.sweepQueue = sweepQueue;
+        this.hasReads = false;
     }
 
     protected SnapshotTransaction(KeyValueService keyValueService,
@@ -290,7 +309,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   boolean allowHiddenTableAccess,
                                   TimestampCache timestampValidationReadCache,
                                   long lockAcquireTimeoutMs,
-                                  ExecutorService getRangesExecutor) {
+                                  ExecutorService getRangesExecutor,
+                                  int defaultGetRangesConcurrency) {
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
@@ -300,7 +320,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = startTimeStamp;
         this.immutableTimestampLock = Optional.empty();
-        this.advisoryLockCheck = AdvisoryLockPreCommitCheck.NO_OP;
+        this.preCommitCondition = PreCommitConditions.NO_OP;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -308,6 +328,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.sweepQueue = SweepQueueWriter.NO_OP;
+        this.hasReads = false;
     }
 
     @Override
@@ -346,6 +369,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
+        hasReads = true;
         Map<Cell, byte[]> result = Maps.newHashMap();
         Map<Cell, Value> rawResults = Maps.newHashMap(
                 keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
@@ -365,7 +389,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
                     tableRef, Iterables.size(rows), results.size(), getRowsMillis);
         }
-        validateExternalAndCommitLocksIfNecessary(tableRef);
+        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         return results;
     }
 
@@ -378,6 +402,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
         }
+        hasReads = true;
         Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
                 columnRangeSelection, getStartTimestamp());
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> postFilteredResults =
@@ -401,6 +426,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
+        hasReads = true;
         RowColumnRangeIterator rawResults =
                 keyValueService.getRowsColumnRange(tableRef,
                                                    rows,
@@ -408,7 +434,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                    batchHint,
                                                    getStartTimestamp());
         if (!rawResults.hasNext()) {
-            validateExternalAndCommitLocksIfNecessary(tableRef);
+            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         } // else the postFiltered iterator will check for each batch.
 
         Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
@@ -419,6 +445,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
             return getPostFilteredColumns(tableRef, batchColumnRangeSelection, row, rawIterator);
         });
+
         return Iterators.concat(postFiltered);
     }
 
@@ -460,7 +487,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     rawBuilder.put(result);
                 }
                 Map<Cell, Value> raw = rawBuilder.build();
-                validateExternalAndCommitLocksIfNecessary(tableRef);
+                validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
@@ -514,8 +541,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 }
                 if (numConsumed > 0) {
                     log.warn("Not all columns for row {} were read. {} columns were discarded.",
-                             Arrays.toString(prevRowName),
-                             numConsumed);
+                             UnsafeArg.of("row", Arrays.toString(prevRowName)),
+                             SafeArg.of("numColumnsDiscarded", numConsumed));
                 }
             }
         };
@@ -529,13 +556,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
+        hasReads = true;
 
         Map<Cell, Value> rawResults = Maps.newHashMap(keyValueService.getRows(tableRef,
                 rows,
                 ColumnSelection.all(),
                 getStartTimestamp()));
 
-        validateExternalAndCommitLocksIfNecessary(tableRef);
+        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         return filterRowResults(tableRef, rawResults, Maps.newHashMap());
     }
 
@@ -573,6 +601,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(cells)) {
             return ImmutableMap.of();
         }
+        hasReads = true;
 
         Map<Cell, byte[]> result = Maps.newHashMap();
         SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
@@ -592,7 +621,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
                     tableRef, cells.size(), result.size(), getMillis);
         }
-        validateExternalAndCommitLocksIfNecessary(tableRef);
+        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
 
@@ -602,9 +631,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(cells)) {
             return ImmutableMap.of();
         }
+        hasReads = true;
 
         Map<Cell, byte[]> result = getFromKeyValueService(tableRef, cells);
-        validateExternalAndCommitLocksIfNecessary(tableRef);
+        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
 
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
@@ -641,13 +671,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("Passed {} ranges to getRanges({}, {})",
                     Iterables.size(rangeRequests), tableRef, rangeRequests);
         }
+        if (!Iterables.isEmpty(rangeRequests)) {
+            hasReads = true;
+        }
 
         return FluentIterable.from(Iterables.partition(rangeRequests, BATCH_SIZE_GET_FIRST_PAGE))
                 .transformAndConcat(input -> {
                     Timer.Context timer = getTimer("processedRangeMillis").time();
                     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstPages =
                             keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
-                    validateExternalAndCommitLocksIfNecessary(tableRef);
+                    validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
 
                     SortedMap<Cell, byte[]> postFiltered = postFilterPages(
                             tableRef,
@@ -692,7 +725,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     }
                     long processedRangeMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
                     log.trace("Processed {} range requests for {} in {}ms",
-                            input.size(), tableRef, processedRangeMillis);
+                            SafeArg.of("numRequests", input.size()),
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("millis", processedRangeMillis));
                     return ret;
                 });
     }
@@ -703,13 +738,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
-
-        List<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
+        if (!Iterables.isEmpty(rangeRequests)) {
+            hasReads = true;
+        }
+        Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
                 StreamSupport.stream(rangeRequests.spliterator(), false)
-                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)))
-                        .collect(Collectors.toList());
+                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)));
 
-        return ConcurrentStreams.map(
+        if (concurrencyLevel == 1 || isSingleton(rangeRequests)) {
+            return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()));
+        }
+
+        return MoreStreams.blockingStreamWithParallelism(
                 requestAndVisitables,
                 pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
                 getRangesExecutor,
@@ -717,8 +757,31 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
+    public <T> Stream<T> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+        if (!Iterables.isEmpty(rangeRequests)) {
+            hasReads = true;
+        }
+        return getRanges(tableRef, rangeRequests, defaultGetRangesConcurrency, visitableProcessor);
+    }
+
+    private static boolean isSingleton(Iterable<?> elements) {
+        Iterator<?> it = elements.iterator();
+        if (it.hasNext()) {
+            it.next();
+            return !it.hasNext();
+        }
+        return false;
+    }
+
+    @Override
     public Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
             final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
+        if (!Iterables.isEmpty(rangeRequests)) {
+            hasReads = true;
+        }
         return StreamSupport.stream(rangeRequests.spliterator(), false)
                 .map(rangeRequest -> getLazyRange(tableRef, rangeRequest));
     }
@@ -733,11 +796,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         };
     }
 
-    private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef) {
+    private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef, long timestamp) {
         if (!isValidationNecessary(tableRef)) {
             return;
         }
-        throwIfPreCommitRequirementsNotMet(null);
+        throwIfPreCommitRequirementsNotMet(null, timestamp);
     }
 
     private boolean isValidationNecessary(TableReference tableRef) {
@@ -759,10 +822,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 tableRef,
                 rangeRequest.getStartInclusive(),
                 endRowExclusive).entrySet();
-        return ImmutableList.copyOf(mergeInLocalWrites(
+        return mergeInLocalWrites(
                 postFilteredCells.iterator(),
                 localWritesInRange.iterator(),
-                rangeRequest.isReverse()));
+                rangeRequest.isReverse());
     }
 
     @Override
@@ -772,6 +835,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (range.isEmptyRange()) {
             return BatchingVisitables.emptyBatchingVisitable();
         }
+        hasReads = true;
 
         return new AbstractBatchingVisitable<RowResult<byte[]>>() {
             @Override
@@ -843,7 +907,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return RowResults.filterDeletedColumnsAndEmptyRows(mergeIterators);
     }
 
-    private static Iterator<Entry<Cell, byte[]>> mergeInLocalWrites(
+    private static List<Entry<Cell, byte[]>> mergeInLocalWrites(
             Iterator<Entry<Cell, byte[]>> postFilterIterator,
             Iterator<Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
@@ -852,8 +916,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 postFilterIterator, localWritesInRange,
                 isReverse ? ordering.reverse() : ordering,
                 from -> from.rhSide); // always override their value with written values
-        return Iterators.filter(mergeIterators,
-            Predicates.compose(Predicates.not(Value.IS_EMPTY), MapEntries.getValueFunction()));
+
+        return postFilterEmptyValues(mergeIterators);
+    }
+
+    private static List<Entry<Cell, byte[]>> postFilterEmptyValues(
+            Iterator<Entry<Cell, byte[]>> mergeIterators) {
+        List<Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
+        Predicate<Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value.IS_EMPTY),
+                MapEntries.getValueFunction());
+        long numEmptyValues = 0;
+        while (mergeIterators.hasNext()) {
+            Entry<Cell, byte[]> next = mergeIterators.next();
+            if (nonEmptyValuePredicate.apply(next)) {
+                mergedWritesWithoutEmptyValues.add(next);
+            } else {
+                numEmptyValues++;
+            }
+        }
+        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE).mark(numEmptyValues);
+        return mergedWritesWithoutEmptyValues;
     }
 
     protected <T> ClosableIterator<RowResult<T>> postFilterIterator(
@@ -869,7 +951,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Override
             protected Iterator<RowResult<T>> computeNext() {
                 List<RowResult<Value>> batch = results.getBatch();
-                validateExternalAndCommitLocksIfNecessary(tableRef);
+                validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
@@ -993,12 +1075,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
             log.warn("A single get had quite a few bytes: {} for table {}. The number of results was {}. "
                     + "Enable debug logging for more information.",
-                    bytes, tableRef.getQualifiedName(), rawResults.size());
+                    SafeArg.of("numBytes", bytes),
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("numResults", rawResults.size()));
             if (log.isDebugEnabled()) {
-                log.debug("The first 10 results of your request were {}.", Iterables.limit(rawResults.entrySet(), 10),
+                log.debug("The first 10 results of your request were {}.",
+                        UnsafeArg.of("results", Iterables.limit(rawResults.entrySet(), 10)),
                         new RuntimeException("This exception and stack trace are provided for debugging purposes."));
             }
+            getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ).update(bytes);
         }
+        // TODO(hsaraogi): add table names as a tag
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ).mark(rawResults.size());
 
         if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
             Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
@@ -1016,6 +1104,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             remainingResultsToPostfilter = getWithPostFilteringInternal(
                     tableRef, remainingResultsToPostfilter, results, transformer);
         }
+
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(results.size());
     }
 
     /**
@@ -1023,18 +1113,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * postFiltered keys to the results output param.
      */
     private <T> Map<Cell, Value> getWithPostFilteringInternal(TableReference tableRef,
-                                                              Map<Cell, Value> rawResults,
-                                                              @Output Map<Cell, T> results,
-                                                              Function<Value, T> transformer) {
+            Map<Cell, Value> rawResults,
+            @Output Map<Cell, T> results,
+            Function<Value, T> transformer) {
         Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
         Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
-        for (Map.Entry<Cell, Value> e :  rawResults.entrySet()) {
+        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
 
             if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
+                getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS).mark();
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
                 switch (getReadSentinelBehavior()) {
@@ -1056,6 +1147,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     if (shouldDeleteAndRollback()) {
                         // This is from a failed transaction so we can roll it back and then reload it.
                         keysToDelete.put(key, value.getTimestamp());
+                        getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS).mark();
                     }
                 } else if (theirCommitTimestamp > getStartTimestamp()) {
                     // The value's commit timestamp is after our start timestamp.
@@ -1063,6 +1155,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     // after our transaction began. We need to try reading at an
                     // earlier timestamp.
                     keysToReload.put(key, value.getTimestamp());
+                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS).mark();
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
@@ -1081,7 +1174,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (!keysToReload.isEmpty()) {
             Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
-            validateExternalAndCommitLocksIfNecessary(tableRef);
+            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
             return nextRawResults;
         } else {
             return ImmutableMap.of();
@@ -1098,26 +1191,21 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
-        put(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY), Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
+        putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         ensureNoEmptyValues(values);
-        put(tableRef, values, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
+        putInternal(tableRef, values);
     }
 
-    private void put(TableReference tableRef, Map<Cell, byte[]> values, long ttlDuration, TimeUnit ttlUnit) {
+    public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
         Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
         if (values.isEmpty()) {
             return;
         }
-
-        // todo (clockfort) also check if valid table for TTL
-        Map<Cell, byte[]> valuesToWrite = ttlDuration != Cell.INVALID_TTL && ttlUnit != Cell.INVALID_TTL_TYPE
-                ? createExpiringValues(values, ttlDuration, ttlUnit)
-                : values;
 
         numWriters.incrementAndGet();
         try {
@@ -1126,7 +1214,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             ConcurrentNavigableMap<Cell, byte[]> writes = getLocalWrites(tableRef);
 
-            putWritesAndLogIfTooLarge(valuesToWrite, writes);
+            putWritesAndLogIfTooLarge(values, writes);
         } finally {
             numWriters.decrementAndGet();
         }
@@ -1141,20 +1229,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-    private Map<Cell, byte[]> createExpiringValues(Map<Cell, byte[]> values,
-                                                   long ttlDuration,
-                                                   TimeUnit ttlUnit) {
-        Map<Cell, byte[]> expiringValues = Maps.newHashMapWithExpectedSize(values.size());
-        for (Entry<Cell, byte[]> cellEntry : values.entrySet()) {
-            Cell expiringCell = Cell.create(
-                    cellEntry.getKey().getRowName(),
-                    cellEntry.getKey().getColumnName(),
-                    ttlDuration, ttlUnit);
-            expiringValues.put(expiringCell, cellEntry.getValue());
-        }
-        return expiringValues;
-    }
-
     private void putWritesAndLogIfTooLarge(Map<Cell, byte[]> values, SortedMap<Cell, byte[]> writes) {
         for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
             byte[] val = MoreObjects.firstNonNull(e.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
@@ -1165,7 +1239,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (newVal >= TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES
                         && newVal - toAdd < TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
                     log.warn("A single transaction has put quite a few bytes: {}. "
-                            + "Enable debug logging for more information", newVal);
+                            + "Enable debug logging for more information",
+                            SafeArg.of("numBytes", newVal));
                     if (log.isDebugEnabled()) {
                         log.debug("This exception and stack trace are provided for debugging purposes.",
                                 new RuntimeException());
@@ -1184,7 +1259,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Preconditions.checkState(state.get() == State.UNCOMMITTED, "Transaction must be uncommitted.");
             if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
                 if (hasWrites()) {
-                    throwIfPreCommitRequirementsNotMet(null);
+                    throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
                 }
                 return;
             }
@@ -1275,6 +1350,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void commitWrites(TransactionService transactionService) {
         if (!hasWrites()) {
+            if (hasReads()) {
+                // verify any pre-commit conditions on the transaction
+                preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
+
+                // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
+                // to ensure that sweep hasn't thoroughly deleted cells we tried to read
+                // TODO(nziebart): we actually only need to do this if we've read from tables with THOROUGH
+                // sweep strategy
+                throwIfImmutableTsOrCommitLocksExpired(null);
+                return;
+            }
             return;
         }
 
@@ -1305,35 +1391,37 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             throwIfReadWriteConflictForSerializable(commitTimestamp);
 
-            // Verify that our locks are still valid before we actually commit;
-            // this throwIfLocksExpired is required by the transaction protocol for correctness
-            throwIfPreCommitRequirementsNotMet(commitLocksToken);
+            // Verify that our locks and pre-commit conditions are still valid before we actually commit;
+            // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness
+            throwIfPreCommitRequirementsNotMet(commitLocksToken, commitTimestamp);
 
             Timer.Context commitTsTimer = getTimer("commitPutCommitTs").time();
             putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
             long millisForCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTsTimer.stop());
 
-            Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
-            if (!expiredLocks.isEmpty()) {
-                final String baseMsg = "This isn't a bug but it should happen very infrequently. "
-                        + "Required locks are no longer valid but we have already committed successfully. ";
-                String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
-                log.error(baseMsg + "{}", expiredLocksErrorString,
-                        new TransactionFailedRetriableException(baseMsg + expiredLocksErrorString));
-            }
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
-            Histogram byteSizeTx = getHistogram("byteSizeTx");
-            byteSizeTx.update(byteCount.get());
+            getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
             if (perfLogger.isDebugEnabled()) {
+                SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
                 perfLogger.debug("Committed {} bytes with locks, start ts {}, commit ts {}, "
                         + "acquiring locks took {} ms, checking for conflicts took {} ms, "
                         + "writing took {} ms, punch took {} ms, putCommitTs took {} ms, "
                         + "total time since tx creation {} ms, tables: {}.",
-                        byteCount.get(), getStartTimestamp(),
-                        commitTimestamp, millisForLocks, millisCheckingForConflicts, millisForWrites,
-                        millisForPunch, millisForCommitTs, millisSinceCreation, writesByTable.keySet());
+                        SafeArg.of("numBytes", byteCount.get()),
+                        SafeArg.of("startTs", getStartTimestamp()),
+                        SafeArg.of("commitTs", commitTimestamp),
+                        SafeArg.of("millisForLocks", millisForLocks),
+                        SafeArg.of("millisCheckForConflicts", millisCheckingForConflicts),
+                        SafeArg.of("millisForWrites", millisForWrites),
+                        SafeArg.of("millisForPunch", millisForPunch),
+                        SafeArg.of("millisForCommitTs", millisForCommitTs),
+                        SafeArg.of("millisSinceCreation", millisSinceCreation),
+                        tableRefs.safeTableRefs(),
+                        tableRefs.unsafeTableRefs());
             }
+
+            sweepQueue.enqueue(writesByTable, getStartTimestamp());
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }
@@ -1354,6 +1442,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return hasWrites;
     }
 
+    protected boolean hasReads() {
+        return hasReads;
+    }
+
     protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
         return Preconditions.checkNotNull(conflictDetectionManager.get(tableRef),
             "Not a valid table for this transaction. Make sure this table name exists or has a valid namespace: %s",
@@ -1367,9 +1459,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             + "; the following locks are no longer valid: " + expiredLocks;
     }
 
-    private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken) {
+    private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
-        advisoryLockCheck.throwIfLocksExpired();
+        preCommitCondition.throwIfConditionInvalid(timestamp);
     }
 
     private void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
@@ -1444,6 +1536,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 || conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL
                 || conflictHandler == ConflictHandler.SERIALIZABLE) {
             if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
+                getTransactionConflictsMeter().mark();
                 throw TransactionConflictException.create(tableRef, getStartTimestamp(), spanningWrites,
                         dominatingWrites, System.currentTimeMillis() - timeCreated);
             }
@@ -1481,13 +1574,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
-                throwIfPreCommitRequirementsNotMet(commitLocksToken);
+                throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
                 Validate.isTrue(false, "Missing conflicting value for cell: " + cellToConflict.get(cell)
                         + " for table " + table);
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
-                throwIfPreCommitRequirementsNotMet(commitLocksToken);
+                throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
                 Validate.isTrue(false, "Wrong timestamp for cell in table " + table
                         + " Expected: " + cellToConflict.get(cell)
                         + " Actual: " + conflictingValues.get(cell));
@@ -1500,9 +1593,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 conflictingCells.add(cell);
             } else if (log.isInfoEnabled()) {
                 log.info("Another transaction committed to the same cell before us but their value was the same."
-                        + " Cell: {}"
-                        + " Table: {}",
-                        cell, table);
+                        + " Cell: {} Table: {}",
+                        UnsafeArg.of("cell", cell),
+                        LoggingArgs.tableRef(table));
             }
         }
         if (conflictingCells.isEmpty()) {
@@ -1511,6 +1604,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Predicate<CellConflict> conflicting = Predicates.compose(
                 Predicates.in(conflictingCells),
                 CellConflict.getCellFunction());
+        getTransactionConflictsMeter().mark();
         throw TransactionConflictException.create(table,
                 getStartTimestamp(),
                 Sets.filter(spanningWrites, conflicting),
@@ -1588,7 +1682,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TransactionService transactionService) {
         for (long startTs : Sets.newHashSet(keysToDelete.values())) {
             if (commitTimestamps.get(startTs) == null) {
-                log.warn("Rolling back transaction: {}", startTs);
+                log.warn("Rolling back transaction: {}", SafeArg.of("startTs", startTs));
                 if (!rollbackOtherTransaction(startTs, transactionService)) {
                     return false;
                 }
@@ -1598,7 +1692,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         try {
-            log.debug("For table: {} we are deleting values of an uncommitted transaction: {}", tableRef, keysToDelete);
+            log.debug("For table: {} we are deleting values of an uncommitted transaction: {}",
+                    LoggingArgs.tableRef(tableRef),
+                    UnsafeArg.of("keysToDelete", keysToDelete));
             keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
         } catch (RuntimeException e) {
             final String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are"
@@ -1607,9 +1703,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     + "Failed to delete keys for table: {} from an uncommitted transaction; "
                     + " sweep should eventually clean this when it processes this table.";
             if (log.isDebugEnabled()) {
-                log.warn(msg + " The keys that failed to be deleted during rollback were {}", tableRef, keysToDelete);
+                log.warn(msg + " The keys that failed to be deleted during rollback were {}",
+                        LoggingArgs.tableRef(tableRef),
+                        UnsafeArg.of("keysToDelete", keysToDelete));
             } else {
-                log.warn(msg, tableRef, e);
+                log.warn(msg, LoggingArgs.tableRef(tableRef), e);
             }
         }
 
@@ -1625,9 +1723,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
             return true;
         } catch (KeyAlreadyExistsException e) {
-            String msg = "Two transactions tried to roll back someone else's request with start: " + startTs;
-            log.error("This isn't a bug but it should be very infrequent. {}", msg,
-                    new TransactionFailedRetriableException(msg, e));
+            log.info("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
+                    + " else's request with start: {}",
+                    SafeArg.of("startTs", startTs),
+                    new TransactionFailedRetriableException(
+                            "Two transactions tried to roll back someone else's request with start: " + startTs, e));
             return false;
         }
     }
@@ -1770,12 +1870,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             waitForCommitToComplete(startTimestamps);
             long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
             perfLogger.debug("Waited {} ms to get commit timestamps for table {}.",
-                    waitForCommitTsMillis, tableRef);
+                    SafeArg.of("commitTsMillis", waitForCommitTsMillis),
+                    LoggingArgs.tableRef(tableRef));
         }
 
         log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
-                gets.size(), tableRef);
-        Map<Long, Long> rawResults = defaultTransactionService.get(gets);
+                SafeArg.of("numTimestamps", gets.size()),
+                LoggingArgs.tableRef(tableRef));
+        Map<Long, Long> rawResults = loadCommitTimestamps(gets);
+
         for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
             if (e.getValue() != null) {
                 long startTs = e.getKey();
@@ -1785,6 +1888,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
         return result;
+    }
+
+    private Map<Long, Long> loadCommitTimestamps(Set<Long> startTimestamps) {
+        // distinguish between a single timestamp and a batch, for more granular metrics
+        if (startTimestamps.size() == 1) {
+            long singleTs = startTimestamps.iterator().next();
+            Long commitTsOrNull = defaultTransactionService.get(singleTs);
+            return commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull);
+        } else {
+            return defaultTransactionService.get(startTimestamps);
+        }
     }
 
     /**
@@ -1836,7 +1950,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         } catch (TransactionFailedException e1) {
             throw e1;
         } catch (Exception e1) {
-            log.error("Failed to determine if we can retry this transaction. startTs: {}", getStartTimestamp(), e1);
+            log.error("Failed to determine if we can retry this transaction. startTs: {}",
+                    SafeArg.of("startTs", getStartTimestamp()),
+                    e1);
         }
         String msg = "Our commit was already rolled back at commit time."
                 + " Locking should prevent this from happening, but our locks may have timed out."
@@ -1909,12 +2025,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Timer getTimer(String name) {
-        return metricRegistry.timer(MetricRegistry.name(SnapshotTransaction.class, name));
+        return metricsManager.registerOrGetTimer(SnapshotTransaction.class, name);
     }
 
     private Histogram getHistogram(String name) {
-        return metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name));
+        return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
     }
+
+    private Meter getTransactionConflictsMeter() {
+        return getMeter("SnapshotTransactionConflict");
+    }
+
+    private static Meter getMeter(String name) {
+        // TODO(hsaraogi): add table names as a tag
+        return metricsManager.registerOrGetMeter(SnapshotTransaction.class, name);
+    }
+
 }
 
 

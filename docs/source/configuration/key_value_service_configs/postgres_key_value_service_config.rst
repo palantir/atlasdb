@@ -39,7 +39,7 @@ A minimal AtlasDB configuration for running against postgres will look like :
         type: postgres
         host: dbhost
         port: 5432
-        dbName: my-unique-db-name # must be unique per product 
+        dbName: my-unique-db-name # must be unique per product
         dbLogin: palantir
         dbPassword: palantir
 
@@ -60,8 +60,64 @@ A minimal AtlasDB configuration for running against postgres will look like :
 
 For more details on the leader block, see :ref:`Leader Configuration <leader-config>`.
 
-Connection parameters
----------------------
+Hikari Connection parameters
+----------------------------
+
+We also provide the following options, which are mapped to `Hikari connection options <https://github.com/brettwooldridge/HikariCP#configuration-knobs-baby>`__:
+
+.. list-table::
+    :widths: 20 20 20 80
+    :header-rows: 1
+
+    *    - Option
+         - Default
+         - Hikari config equivalent
+         - Description
+
+    *    - ``minConnections``
+         - 8
+         - ``minimumIdle``
+         - The number of connections in an idle Hikari pool.
+
+    *    - ``maxConnections``
+         - 256
+         - ``maximumPoolSize``
+         - The maximum size the pool is allowed to reach.
+
+    *    - ``maxConnectionAge``
+         - 1800
+         - ``maxLifetime``
+         - The maximum lifetime, in seconds, of a connection in the pool. ``maxLifetime`` is in ``ms``, so we multiply the provided value by 1000.
+
+    *    - ``maxIdleTime``
+         - 600
+         - ``idleTimeout``
+         - The maximum time, in seconds, a connection may sit idle in the pool. ``idleTimeout`` is in ``ms``, so we multiply the provided value by 1000.
+
+    *    - ``unreturnedConnectionTimeout``
+         - 0 (Disabled)
+         - ``leakDetectionThreshold``
+         - The time that a connection can be out of the pool before a message indicating a possible connection leak is logged. Lowest acceptable value is 2000 (ms).
+
+    *    - ``checkoutTimeout``
+         - 30000
+         - ``connectionTimeout``
+         - The maximum time, **in milliseconds**, we wait for a connection from the pool.
+
+For example, to double the size of the connection pool, apply the following configuration:
+
+.. code-block:: yaml
+
+  atlasdb:
+    keyValueService:
+      # as above - skipped for brevity
+      connection:
+        # as above - skipped for brevity
+        minConnections: 16
+        maxConnections: 512
+
+JDBC Connection parameters
+--------------------------
 
 If you would like to customise the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the ``connection`` section of the ``keyValueService`` config.
 An example is shown below; for full documentation on which parameters are available, check out `the JDBC docs <https://jdbc.postgresql.org/documentation/head/connect.html>`__.

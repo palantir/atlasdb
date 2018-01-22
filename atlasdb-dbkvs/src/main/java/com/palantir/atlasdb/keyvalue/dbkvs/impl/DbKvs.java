@@ -95,17 +95,20 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingStrategies;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ImmediateSingleBatchTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ParallelTaskRunner;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleCellTsPageLoader;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowValueLoader;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbkvsVersionException;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresCellTsPageLoader;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresPrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairLoader;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.DbKvsGetCandidateCellsForSweeping;
 import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
-import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
@@ -140,6 +143,7 @@ public final class DbKvs extends AbstractKeyValueService {
     private final BatchingTaskRunner batchingQueryRunner;
     private final OverflowValueLoader overflowValueLoader;
     private final DbKvsGetRange getRangeStrategy;
+    private final DbKvsGetCandidateCellsForSweeping getCandidateCellsForSweepingStrategy;
 
     public static DbKvs create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
         DbKvs dbKvs = createNoInit(config.ddl(), sqlConnSupplier);
@@ -178,6 +182,8 @@ public final class DbKvs extends AbstractKeyValueService {
         PostgresPrefixedTableNames prefixedTableNames = new PostgresPrefixedTableNames(config);
         DbTableFactory tableFactory = new PostgresDbTableFactory(config, prefixedTableNames);
         TableMetadataCache tableMetadataCache = new TableMetadataCache(tableFactory);
+        CellTsPairLoader cellTsPairLoader = new PostgresCellTsPageLoader(
+                prefixedTableNames, connections);
         return new DbKvs(
                 executor,
                 config,
@@ -185,7 +191,8 @@ public final class DbKvs extends AbstractKeyValueService {
                 connections,
                 new ParallelTaskRunner(newFixedThreadPool(config.poolSize()), config.fetchBatchSize()),
                 (conns, tbl, ids) -> Collections.emptyMap(), // no overflow on postgres
-                new PostgresGetRange(prefixedTableNames, connections, tableMetadataCache));
+                new PostgresGetRange(prefixedTableNames, connections, tableMetadataCache),
+                new DbKvsGetCandidateCellsForSweeping(cellTsPairLoader));
     }
 
     private static DbKvs createOracle(ExecutorService executor,
@@ -197,6 +204,8 @@ public final class DbKvs extends AbstractKeyValueService {
         OverflowValueLoader overflowValueLoader = new OracleOverflowValueLoader(oracleDdlConfig, tableNameGetter);
         DbKvsGetRange getRange = new OracleGetRange(
                 connections, overflowValueLoader, tableNameGetter, valueStyleCache, oracleDdlConfig);
+        CellTsPairLoader cellTsPageLoader = new OracleCellTsPageLoader(
+                connections, tableNameGetter, valueStyleCache, oracleDdlConfig);
         return new DbKvs(
                 executor,
                 oracleDdlConfig,
@@ -204,7 +213,8 @@ public final class DbKvs extends AbstractKeyValueService {
                 connections,
                 new ImmediateSingleBatchTaskRunner(),
                 overflowValueLoader,
-                getRange);
+                getRange,
+                new DbKvsGetCandidateCellsForSweeping(cellTsPageLoader));
     }
 
     private DbKvs(ExecutorService executor,
@@ -213,7 +223,8 @@ public final class DbKvs extends AbstractKeyValueService {
                   SqlConnectionSupplier connections,
                   BatchingTaskRunner batchingQueryRunner,
                   OverflowValueLoader overflowValueLoader,
-                  DbKvsGetRange getRangeStrategy) {
+                  DbKvsGetRange getRangeStrategy,
+                  DbKvsGetCandidateCellsForSweeping getCandidateCellsForSweepingStrategy) {
         super(executor);
         this.config = config;
         this.dbTables = dbTables;
@@ -221,6 +232,7 @@ public final class DbKvs extends AbstractKeyValueService {
         this.batchingQueryRunner = batchingQueryRunner;
         this.overflowValueLoader = overflowValueLoader;
         this.getRangeStrategy = getRangeStrategy;
+        this.getCandidateCellsForSweepingStrategy = getCandidateCellsForSweepingStrategy;
     }
 
     private static ThreadPoolExecutor newFixedThreadPool(int maxPoolSize) {
@@ -626,7 +638,8 @@ public final class DbKvs extends AbstractKeyValueService {
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
+        return ClosableIterators.wrap(
+                getCandidateCellsForSweepingStrategy.getCandidateCellsForSweeping(tableRef, request));
     }
 
     private TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getTimestampsPage(

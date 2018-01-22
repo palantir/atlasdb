@@ -20,6 +20,7 @@ import javax.inject.Singleton;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -27,6 +28,8 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -72,6 +75,7 @@ public class TransactionManagerModule {
                 .setBackgroundScrubThreads(atlasDbConfig.getBackgroundScrubThreads())
                 .setPunchIntervalMillis(atlasDbConfig.getPunchIntervalMillis())
                 .setTransactionReadTimeout(atlasDbConfig.getTransactionReadTimeoutMillis())
+                .setInitializeAsync(atlasDbConfig.initializeAsync())
                 .buildCleaner();
     }
 
@@ -94,8 +98,13 @@ public class TransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
+                TimestampTrackerImpl.createNoOpTracker(),
+                () -> config.atlasDbRuntimeConfig().getTimestampCacheSize(),
                 config.allowAccessToHiddenTables(),
-                config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize());
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
+                config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
+                SweepQueueWriter.NO_OP);
     }
 
 }

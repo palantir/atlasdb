@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.ws.rs.BadRequestException;
 
 import org.assertj.core.util.Lists;
+import org.awaitility.Awaitility;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -52,7 +53,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
@@ -137,6 +137,7 @@ public class PaxosTimeLockServerIntegrationTest {
                         // Returns true only if this node is ready to serve timestamps and locks on all clients.
                         CLIENTS.forEach(client -> getTimelockService(client).getFreshTimestamp());
                         CLIENTS.forEach(client -> getTimelockService(client).currentTimeMillis());
+                        CLIENTS.forEach(client -> getLockService(client).currentTimeMillis());
                         return leader.ping();
                     } catch (Throwable t) {
                         return false;
@@ -163,8 +164,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void throwsOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
-        List<LockService> lockServiceList = ImmutableList.of(
-                getLockService(CLIENT_1));
+        List<LockService> lockServiceList = ImmutableList.of(getLockService(CLIENT_1));
+
         int exceedingRequests = 10;
         int maxRequestsForOneClient = SHARED_TC_LIMIT;
 
@@ -438,8 +439,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
         // time / lock services
         metrics.assertContainsTimer(
-                "com.palantir.atlasdb.timelock.AsyncTimelockService.test.getFreshTimestamp");
-        metrics.assertContainsTimer("com.palantir.lock.LockService.test.currentTimeMillis");
+                "com.palantir.atlasdb.timelock.AsyncTimelockService.getFreshTimestamp");
+        metrics.assertContainsTimer("com.palantir.lock.LockService.currentTimeMillis");
 
         // local leader election classes
         metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.learn");
@@ -449,10 +450,10 @@ public class PaxosTimeLockServerIntegrationTest {
         metrics.assertContainsTimer("com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
 
         // local timestamp bound classes
-        metrics.assertContainsTimer("com.palantir.timestamp.TimestampBoundStore.test.getUpperLimit");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.test.getGreatestLearnedValue");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.test.accept");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.test.propose");
+        metrics.assertContainsTimer("com.palantir.timestamp.TimestampBoundStore.getUpperLimit");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.getGreatestLearnedValue");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.accept");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.propose");
 
         // async lock
         // TODO(nziebart): why does this flake on circle?

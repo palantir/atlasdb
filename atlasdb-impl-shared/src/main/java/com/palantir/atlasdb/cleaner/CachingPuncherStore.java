@@ -55,6 +55,11 @@ public final class CachingPuncherStore implements PuncherStore {
     }
 
     @Override
+    public boolean isInitialized() {
+        return puncherStore.isInitialized();
+    }
+
+    @Override
     public void put(long timestamp, long timeMillis) {
         puncherStore.put(timestamp, timeMillis);
     }

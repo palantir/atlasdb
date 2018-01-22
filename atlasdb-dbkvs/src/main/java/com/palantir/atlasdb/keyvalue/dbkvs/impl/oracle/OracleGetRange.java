@@ -45,11 +45,12 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangeBoundPredicates;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangeHelpers;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangePredicateHelper;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 
@@ -240,30 +241,39 @@ public class OracleGetRange implements DbKvsGetRange {
         }
 
         private FullQuery getRangeQuery(ConnectionSupplier conns) {
-            RangeBoundPredicates bounds = RangeBoundPredicates.builder(reverse)
-                    .startRowInclusive(startInclusive)
-                    .endRowExclusive(endExclusive)
-                    .columnSelection(columnSelection)
-                    .build();
             String direction = reverse ? "DESC" : "ASC";
             String shortTableName = getInternalShortTableName(conns);
-            String query = "/* GET_RANGE(" + shortTableName + ") */"
-                    + "  SELECT /*+ USE_NL(sub v) LEADING(sub) */ sub.row_name, sub.col_name, sub.ts"
-                    +     OracleQueryHelpers.getValueSubselect(haveOverflowValues, "v", true) + " FROM ("
-                    + "  SELECT /*+ INDEX_" + direction + "(m " + PrimaryKeyConstraintNames.get(shortTableName) + ")"
-                    + "             NO_INDEX_SS(m) */"
-                    + "      m.row_name, m.col_name, MAX(m.ts) AS ts,"
-                    + "        DENSE_RANK() OVER (ORDER BY m.row_name " + direction + ") AS rn"
-                    + "    FROM " + shortTableName + " m "
-                    + "    WHERE m.ts < ? " + bounds.predicates
-                    + "    GROUP BY m.row_name, m.col_name"
-                    + "    ORDER BY m.row_name " + direction + ", m.col_name " + direction
-                    + "  ) sub"
-                    + "  JOIN " + shortTableName + " v ON "
-                    + "    sub.row_name = v.row_name and sub.col_name = v.col_name and sub.ts = v.ts"
-                    + "  WHERE sub.rn <= " + maxRowsPerPage
-                    + "  ORDER BY sub.row_name " + direction + ", sub.col_name " + direction;
-            return new FullQuery(query).withArg(timestamp).withArgs(bounds.args);
+            String pkIndex = PrimaryKeyConstraintNames.get(shortTableName);
+            FullQuery.Builder queryBuilder = FullQuery.builder()
+                    .append("/* GET_RANGE(" + shortTableName + ") */")
+                    .append("  SELECT /*+ USE_NL(sub v)")
+                    .append("             LEADING(sub) ")
+                    .append("             INDEX(v ").append(pkIndex).append(")")
+                    .append("             NO_INDEX_SS(v ").append(pkIndex).append(")")
+                    .append("             NO_INDEX_FFS(v ").append(pkIndex).append(") */")
+                    .append("  sub.row_name, sub.col_name, sub.ts")
+                    .append(OracleQueryHelpers.getValueSubselect(haveOverflowValues, "v", true))
+                    .append("  FROM (")
+                    .append("    SELECT /*+ INDEX_").append(direction).append("(m ").append(pkIndex).append(")")
+                    .append("               NO_INDEX_SS(m ").append(pkIndex).append(")")
+                    .append("               NO_INDEX_FFS(m ").append(pkIndex).append(") */")
+                    .append("      m.row_name, m.col_name, MAX(m.ts) AS ts,")
+                    .append("        DENSE_RANK() OVER (ORDER BY m.row_name ").append(direction).append(") AS rn")
+                    .append("    FROM ").append(shortTableName).append(" m ")
+                    .append("    WHERE m.ts < ? ", timestamp);
+            RangePredicateHelper.create(reverse, DBType.ORACLE, queryBuilder)
+                    .startRowInclusive(startInclusive)
+                    .endRowExclusive(endExclusive)
+                    .columnSelection(columnSelection);
+            return queryBuilder
+                    .append("    GROUP BY m.row_name, m.col_name")
+                    .append("    ORDER BY m.row_name ").append(direction).append(", m.col_name ").append(direction)
+                    .append("  ) sub")
+                    .append("  JOIN ").append(shortTableName).append(" v ON ")
+                    .append("    sub.row_name = v.row_name and sub.col_name = v.col_name and sub.ts = v.ts")
+                    .append("  WHERE sub.rn <= ").append(maxRowsPerPage)
+                    .append("  ORDER BY sub.row_name ").append(direction).append(", sub.col_name ").append(direction)
+                    .build();
         }
 
         private String getInternalShortTableName(ConnectionSupplier conns) {

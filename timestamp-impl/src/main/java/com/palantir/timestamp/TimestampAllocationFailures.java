@@ -23,8 +23,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 
-import sun.misc.Contended;
-
 @ThreadSafe
 public class TimestampAllocationFailures {
 
@@ -34,7 +32,7 @@ public class TimestampAllocationFailures {
     private final Logger log;
 
     private volatile Throwable previousAllocationFailure;
-    @Contended private volatile boolean encounteredMultipleRunningTimestamps = false;
+    private volatile boolean encounteredMultipleRunningTimestamps = false;
 
     @VisibleForTesting
     TimestampAllocationFailures(Logger log) {

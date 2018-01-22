@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -36,11 +36,11 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
@@ -62,22 +62,22 @@ public final class Leaders {
      * Creates a LeaderElectionService using the supplied configuration and
      * registers appropriate endpoints for that service.
      */
-    public static LeaderElectionService create(Environment env, LeaderConfig config) {
+    public static LeaderElectionService create(Consumer<Object> env, LeaderConfig config) {
         return create(env, config, UserAgents.DEFAULT_USER_AGENT);
     }
 
-    public static LeaderElectionService create(Environment env, LeaderConfig config, String userAgent) {
+    public static LeaderElectionService create(Consumer<Object> env, LeaderConfig config, String userAgent) {
         return createAndRegisterLocalServices(env, config, userAgent).leaderElectionService();
     }
 
     public static LocalPaxosServices createAndRegisterLocalServices(
-            Environment env, LeaderConfig config, String userAgent) {
+            Consumer<Object> env, LeaderConfig config, String userAgent) {
         LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(config, userAgent);
 
-        env.register(localPaxosServices.ourAcceptor());
-        env.register(localPaxosServices.ourLearner());
-        env.register(localPaxosServices.pingableLeader());
-        env.register(new NotCurrentLeaderExceptionMapper());
+        env.accept(localPaxosServices.ourAcceptor());
+        env.accept(localPaxosServices.ourLearner());
+        env.accept(localPaxosServices.pingableLeader());
+        env.accept(new NotCurrentLeaderExceptionMapper());
         return localPaxosServices;
     }
 
@@ -125,7 +125,7 @@ public final class Leaders {
                 remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, userAgent);
 
         InstrumentedExecutorService proposerExecutorService = new InstrumentedExecutorService(
-                Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
                         .setNameFormat("atlas-proposer-%d")
                         .setDaemon(true)
                         .build()),
@@ -136,7 +136,7 @@ public final class Leaders {
                 leaderUuid, proposerExecutorService));
 
         InstrumentedExecutorService leaderElectionExecutor = new InstrumentedExecutorService(
-                Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
                         .setNameFormat("atlas-leaders-election-%d")
                         .setDaemon(true)
                         .build()),
@@ -186,7 +186,7 @@ public final class Leaders {
             Class<T> clazz,
             String userAgent) {
         return ImmutableList.copyOf(Iterables.concat(
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent),
+                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, true, clazz, userAgent),
                 ImmutableList.of(localObject)));
     }
 
@@ -200,7 +200,7 @@ public final class Leaders {
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
             PingableLeader remoteInterface = AtlasDbHttpClients
-                    .createProxy(sslSocketFactory, endpoint, PingableLeader.class, userAgent);
+                    .createProxy(sslSocketFactory, endpoint, true, PingableLeader.class, userAgent);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }

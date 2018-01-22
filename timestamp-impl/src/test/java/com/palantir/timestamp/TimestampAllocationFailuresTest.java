@@ -90,6 +90,7 @@ public class TimestampAllocationFailuresTest {
         allocationFailures.verifyWeShouldIssueMoreTimestamps();
     }
 
+    @SuppressWarnings("Slf4jConstantLogMessage")
     @Test public void
     shouldLogTheFirstOfATypeOfExceptionToError() {
         ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
@@ -97,6 +98,7 @@ public class TimestampAllocationFailuresTest {
         verify(log).error(anyString(), eq(FAILURE));
     }
 
+    @SuppressWarnings("Slf4jConstantLogMessage")
     @Test public void
     shouldLogTheSecondOfATypeOfExceptionToInfo() {
         ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
@@ -105,6 +107,7 @@ public class TimestampAllocationFailuresTest {
         verify(log).info(anyString(), eq(FAILURE));
     }
 
+    @SuppressWarnings("Slf4jConstantLogMessage")
     @Test public void
     shouldLog2DifferentExceptionsToError() {
         ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));

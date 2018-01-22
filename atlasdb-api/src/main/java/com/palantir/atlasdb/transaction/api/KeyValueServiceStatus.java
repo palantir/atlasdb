@@ -16,8 +16,18 @@
 package com.palantir.atlasdb.transaction.api;
 
 public enum KeyValueServiceStatus {
-    TERMINAL,
-    UNHEALTHY,
-    HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES,
-    HEALTHY_ALL_OPERATIONS
+    TERMINAL(false),
+    UNHEALTHY(false),
+    HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES(false),
+    HEALTHY_ALL_OPERATIONS(true);
+
+    private final boolean isHealthy;
+
+    KeyValueServiceStatus(boolean isHealthy) {
+        this.isHealthy = isHealthy;
+    }
+
+    public boolean isHealthy() {
+        return isHealthy;
+    }
 }

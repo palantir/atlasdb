@@ -10,19 +10,19 @@ function checkDocsBuild {
     make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
+CONTAINER_1=(':atlasdb-cassandra-integration-tests:check' ':atlasdb-cassandra-integration-tests:memorySensitiveTest')
 
 CONTAINER_2=(':atlasdb-ete-tests:check')
 
 CONTAINER_3=(':atlasdb-perf:postgresBenchmarkTest')
 
-CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check')
+CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check'  ':atlasdb-cassandra-integration-tests:longTest')
 
 CONTAINER_5=(':atlasdb-ete-tests:longTest' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
 
-CONTAINER_6=(':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check' ':atlasdb-jepsen-tests:check' ':atlasdb-cli:check')
+CONTAINER_6=(':atlasdb-ete-tests:startupIndependenceTest' ':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check' ':atlasdb-jepsen-tests:check' ':atlasdb-cli:check')
 
-CONTAINER_7=('compileJava' 'compileTestJava' ':atlasdb-cassandra-integration-tests:longTest')
+CONTAINER_7=('compileJava' 'compileTestJava')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}")
@@ -52,7 +52,11 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 # External builds have a 4GB limit so we have to tune everything so it fits in memory (only just!)
 if [[ $INTERNAL_BUILD == true ]]; then
     BASE_GRADLE_ARGS+=" --parallel"
-    export _JAVA_OPTIONS="-Xmx1024m ${JAVA_GC_LOGGING_OPTIONS}"
+    if [ "$CIRCLE_NODE_INDEX" -eq "7" ]; then
+        export _JAVA_OPTIONS="-Xmx2048m ${JAVA_GC_LOGGING_OPTIONS}"
+    else
+        export _JAVA_OPTIONS="-Xmx1024m ${JAVA_GC_LOGGING_OPTIONS}"
+    fi
     export CASSANDRA_MAX_HEAP_SIZE=512m
     export CASSANDRA_HEAP_NEWSIZE=64m
 else
@@ -65,19 +69,25 @@ fi
 
 ETE_EXCLUDES=('-x :atlasdb-ete-tests:longTest')
 
-# Timelock requires Docker 1.12; currently unavailable on external Circle. Might not be needed if we move to
-# CircleCI 2.0.
 if [[ $INTERNAL_BUILD != true ]]; then
+    # Timelock and Startup ordering require Docker 1.12; currently unavailable on external Circle. Might not be needed
+    # if we move to CircleCI 2.0.
     ETE_EXCLUDES+=('-x :atlasdb-ete-tests:timeLockTest')
+    ETE_EXCLUDES+=('-x :atlasdb-ete-tests:startupIndependenceTest')
+
+    # Sweep tests include a test that we do not OOM when writing a lot of data.
+    # Running this test is not feasible on external Circle owing to small size of the containers, but it gives good
+    # signal so it's worth keeping it around on internal runs.
+    ETE_EXCLUDES+=('-x :atlasdb-cassandra-integration-tests:memorySensitiveTest')
 fi
 
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
-    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ${ETE_EXCLUDES[@]};;
+    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ${ETE_EXCLUDES[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ${ETE_EXCLUDES[@]} -x :atlasdb-ete-tests:startupIndependenceTest;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} -x :atlasdb-perf:postgresBenchmarkTest;;
-    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} -x :atlasdb-jepsen-tests:jepsenTest && checkDocsBuild ;;
+    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ${ETE_EXCLUDES[@]} -x :atlasdb-jepsen-tests:jepsenTest && checkDocsBuild ;;
     7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} -PenableErrorProne=true ;;
 esac

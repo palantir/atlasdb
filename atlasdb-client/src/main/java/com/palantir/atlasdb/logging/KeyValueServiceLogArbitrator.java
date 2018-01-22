@@ -26,6 +26,11 @@ interface KeyValueServiceLogArbitrator {
         }
 
         @Override
+        public boolean isInternalTableReferenceSafe(String internalTableReference) {
+            return false;
+        }
+
+        @Override
         public boolean isRowComponentNameSafe(TableReference tableReference, String rowComponentName) {
             return false;
         }
@@ -37,6 +42,8 @@ interface KeyValueServiceLogArbitrator {
     };
 
     boolean isTableReferenceSafe(TableReference tableReference);
+
+    boolean isInternalTableReferenceSafe(String internalTableReference);
 
     boolean isRowComponentNameSafe(
             TableReference tableReference,

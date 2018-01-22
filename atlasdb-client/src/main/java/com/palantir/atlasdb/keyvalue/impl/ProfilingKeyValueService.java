@@ -20,16 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -50,40 +43,36 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.KvsProfilingLogger;
+import com.palantir.atlasdb.logging.KvsProfilingLogger.LoggingFunction;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public final class ProfilingKeyValueService implements KeyValueService {
-    @VisibleForTesting
-    static final String SLOW_LOGGER_NAME = "kvs-slow-log";
-
-    private static final Logger slowlogger = LoggerFactory.getLogger(SLOW_LOGGER_NAME);
-    private static final Logger log = LoggerFactory.getLogger(ProfilingKeyValueService.class);
 
     private final KeyValueService delegate;
-    private final Predicate<Stopwatch> slowLogPredicate;
+
+    public static ProfilingKeyValueService create(KeyValueService delegate) {
+        return new ProfilingKeyValueService(delegate);
+    }
 
     /**
-     * @deprecated in favour of ProfilingKeyValueService#create(KeyValueService delegate, long slowLogThresholdMillis).
+     * @deprecated in favour of ProfilingKeyValueService#create(KeyValueService delegate). Use
+     * {@link KvsProfilingLogger#setSlowLogThresholdMillis(long)} to configure the slow logging threshold.
      * @param delegate the KeyValueService to be profiled
      * Defaults to using a 1 second slowlog.
      * @return ProfilingKeyValueService that profiles the delegate KeyValueService
      */
     @Deprecated
-    public static ProfilingKeyValueService create(KeyValueService delegate) {
-        return new ProfilingKeyValueService(delegate, 1000);
-    }
-
     public static ProfilingKeyValueService create(KeyValueService delegate, long slowLogThresholdMillis) {
-        return new ProfilingKeyValueService(delegate, slowLogThresholdMillis);
+        KvsProfilingLogger.setSlowLogThresholdMillis(slowLogThresholdMillis);
+        return create(delegate);
     }
 
-    @FunctionalInterface
-    interface LoggingFunction {
-        void log(String fmt, Object... args);
+    private ProfilingKeyValueService(KeyValueService delegate) {
+        this.delegate = delegate;
     }
-
 
     private static BiConsumer<LoggingFunction, Stopwatch> logCellsAndSize(String method,
             TableReference tableRef,
@@ -123,6 +112,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} on table {} with range {} took {} ms.",
                         LoggingArgs.method(method),
+                        LoggingArgs.tableRef(tableRef),
                         LoggingArgs.range(tableRef, range),
                         LoggingArgs.durationMillis(stopwatch));
     }
@@ -136,102 +126,6 @@ public final class ProfilingKeyValueService implements KeyValueService {
             }
             logger.log("and returned {} bytes.", LoggingArgs.sizeInBytes(sizeInBytes));
         };
-    }
-
-
-    private void maybeLog(Runnable runnable, BiConsumer<LoggingFunction, Stopwatch> logger) {
-        maybeLog(() -> {
-            runnable.run();
-            return null;
-        }, logger);
-    }
-
-    private <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
-        return maybeLog(action, logger, (loggingFunction, result) -> { });
-    }
-
-    private static class Monitor<R> {
-        private final Stopwatch stopwatch;
-        private final BiConsumer<LoggingFunction, Stopwatch> primaryLogger;
-        private final BiConsumer<LoggingFunction, R> additionalLoggerWithAccessToResult;
-        private final Predicate<Stopwatch> slowLogPredicate;
-
-        private R result;
-        private Exception exception;
-
-        private Monitor(Stopwatch stopwatch,
-                BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
-                BiConsumer<LoggingFunction, R> additionalLoggerWithAccessToResult,
-                Predicate<Stopwatch> slowLogPredicate) {
-            this.stopwatch = stopwatch;
-            this.primaryLogger = primaryLogger;
-            this.additionalLoggerWithAccessToResult = additionalLoggerWithAccessToResult;
-            this.slowLogPredicate = slowLogPredicate;
-        }
-
-        static <V> Monitor<V> createMonitor(BiConsumer<LoggingFunction,
-                Stopwatch> primaryLogger,
-                BiConsumer<LoggingFunction, V> additionalLoggerWithAccessToResult,
-                Predicate<Stopwatch> slowLogPredicate) {
-            return new Monitor<>(Stopwatch.createStarted(),
-                    primaryLogger,
-                    additionalLoggerWithAccessToResult,
-                    slowLogPredicate);
-        }
-
-        void registerResult(R res) {
-            this.result = res;
-        }
-
-        void registerException(Exception ex) {
-            this.exception = ex;
-        }
-
-        void log() {
-            stopwatch.stop();
-            Consumer<LoggingFunction> logger = (loggingMethod) -> {
-                primaryLogger.accept(loggingMethod, stopwatch);
-                if (result != null) {
-                    additionalLoggerWithAccessToResult.accept(loggingMethod, result);
-                } else if (exception != null) {
-                    loggingMethod.log("This operation has thrown an exception {}", exception);
-                }
-            };
-
-            if (log.isTraceEnabled()) {
-                logger.accept(log::trace);
-            }
-            if (slowlogger.isWarnEnabled() && slowLogPredicate.test(stopwatch)) {
-                logger.accept(slowlogger::warn);
-            }
-        }
-    }
-
-    private <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
-            BiConsumer<LoggingFunction, T> additonalLoggerWithAccessToResult) {
-        if (log.isTraceEnabled() || slowlogger.isWarnEnabled()) {
-            Monitor<T> monitor = Monitor.createMonitor(
-                    primaryLogger,
-                    additonalLoggerWithAccessToResult,
-                    slowLogPredicate);
-            try {
-                T res = action.get();
-                monitor.registerResult(res);
-                return res;
-            } catch (Exception ex) {
-                monitor.registerException(ex);
-                throw ex;
-            } finally {
-                monitor.log();
-            }
-        } else {
-            return action.get();
-        }
-    }
-
-    private ProfilingKeyValueService(KeyValueService delegate, long slowLogThresholdMillis) {
-        this.delegate = delegate;
-        slowLogPredicate = stopwatch -> stopwatch.elapsed(TimeUnit.MILLISECONDS) > slowLogThresholdMillis;
     }
 
     @Override
@@ -270,6 +164,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        maybeLog(() -> delegate.deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell),
+                logTimeAndTable("deleteAllTimestamps", tableRef));
+    }
+
+    @Override
     public void dropTable(TableReference tableRef) {
         maybeLog(() -> delegate.dropTable(tableRef),
                 logTimeAndTable("dropTable", tableRef));
@@ -283,7 +183,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return maybeLog(() -> delegate.get(tableRef, timestampByCell),
+        return KvsProfilingLogger.maybeLog(() -> delegate.get(tableRef, timestampByCell),
                 (logger, stopwatch) ->
                         logger.log("Call to KVS.get on table {}, requesting {} cells took {} ms ",
                                 LoggingArgs.tableRef(tableRef),
@@ -358,7 +258,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection,
             long timestamp) {
-        return maybeLog(() -> delegate.getRows(tableRef, rows, columnSelection, timestamp),
+        return KvsProfilingLogger.maybeLog(() -> delegate.getRows(tableRef, rows, columnSelection, timestamp),
                 (logger, stopwatch) ->
                         logger.log(
                                 "Call to KVS.getRows on table {} requesting {} columns from {} rows took {} ms ",
@@ -460,6 +360,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean isInitialized() {
+        return maybeLog(delegate::isInitialized,
+                logTime("isInitialized"));
+    }
+
+    @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows,
@@ -488,6 +394,14 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.columnRangeSelection(tableRef, columnRangeSelection),
                         LoggingArgs.batchHint(cellBatchHint),
                         LoggingArgs.durationMillis(stopwatch)));
+    }
+
+    private  <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
+        return KvsProfilingLogger.maybeLog(action, logger);
+    }
+
+    private void maybeLog(Runnable runnable, BiConsumer<LoggingFunction, Stopwatch> logger) {
+        KvsProfilingLogger.maybeLog(runnable, logger);
     }
 
     private static <T> long byteSize(Map<Cell, T> values) {
