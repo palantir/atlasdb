@@ -24,12 +24,12 @@ import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 
-public class GenericStreamStoreRowHydrator {
-    public static final Logger log = LoggerFactory.getLogger(GenericStreamStoreRowHydrator.class);
+public class GenericStreamStoreRowCreator {
+    private static final Logger log = LoggerFactory.getLogger(GenericStreamStoreRowCreator.class);
 
     private final StreamStoreCleanupMetadata cleanupMetadata;
 
-    public GenericStreamStoreRowHydrator(StreamStoreCleanupMetadata cleanupMetadata) {
+    public GenericStreamStoreRowCreator(StreamStoreCleanupMetadata cleanupMetadata) {
         this.cleanupMetadata = cleanupMetadata;
     }
 
@@ -48,7 +48,7 @@ public class GenericStreamStoreRowHydrator {
         return EncodingUtils.add(hashComponent, streamIdComponent);
     }
 
-    public byte[] constructHashAidxTableRow(ByteString hashData) {
+    public byte[] constructHashTableRow(ByteString hashData) {
         return hashData.toByteArray();
     }
 }
