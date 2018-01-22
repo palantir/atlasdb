@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
 import com.palantir.atlasdb.schema.cleanup.CleanupMetadata;
 import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
@@ -31,6 +32,12 @@ public class FollowerGeneratingCleanupMetadataVisitor implements CleanupMetadata
     private static final Follower NO_OP_FOLLOWER = (txMgr, tableRef, cells, transactionType) -> {
         // As the name suggests, this doesn't need to do anything.
     };
+
+    private final TableReference tableToSweep;
+
+    public FollowerGeneratingCleanupMetadataVisitor(TableReference tableToSweep) {
+        this.tableToSweep = tableToSweep;
+    }
 
     @Override
     public Follower visit(NullCleanupMetadata cleanupMetadata) {
