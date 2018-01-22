@@ -28,7 +28,9 @@ import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 public class FollowerGeneratingCleanupMetadataVisitor implements CleanupMetadata.Visitor<Follower> {
     private static final Logger log = LoggerFactory.getLogger(FollowerGeneratingCleanupMetadataVisitor.class);
 
-    private static final Follower NO_OP_FOLLOWER = (txMgr, tableRef, cells, transactionType) -> {};
+    private static final Follower NO_OP_FOLLOWER = (txMgr, tableRef, cells, transactionType) -> {
+        // As the name suggests, this doesn't need to do anything.
+    };
 
     @Override
     public Follower visit(NullCleanupMetadata cleanupMetadata) {
