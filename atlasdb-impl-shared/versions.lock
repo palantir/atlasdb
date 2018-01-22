@@ -156,7 +156,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "2.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
@@ -371,6 +371,7 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.remoting3:jersey-servers",
                 "com.palantir.remoting3:tracing-okhttp3"
@@ -761,7 +762,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "2.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
@@ -976,6 +977,7 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.remoting3:jersey-servers",
                 "com.palantir.remoting3:tracing-okhttp3"

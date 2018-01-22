@@ -10,8 +10,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "2.6.0",
-            "requested": "2.6.0"
+            "locked": "3.5.1"
         },
         "net.jcip:jcip-annotations": {
             "locked": "1.0",
@@ -31,8 +30,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "2.6.0",
-            "requested": "2.6.0"
+            "locked": "3.5.1"
         },
         "net.jcip:jcip-annotations": {
             "locked": "1.0",

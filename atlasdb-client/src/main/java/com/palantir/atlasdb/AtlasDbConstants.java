@@ -42,6 +42,8 @@ public final class AtlasDbConstants {
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace(
             "atlasdb_metadata");
+    public static final TableReference DEFAULT_SCHEMA_METADATA_TABLE = TableReference.createWithEmptyNamespace(
+            "_schema_metadata");
 
     public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
 
@@ -81,7 +83,8 @@ public final class AtlasDbConstants {
             NAMESPACE_TABLE,
             PARTITION_MAP_TABLE,
             PERSISTED_LOCKS_TABLE,
-            SWEEP_PROGRESS_TABLE);
+            SWEEP_PROGRESS_TABLE,
+            DEFAULT_SCHEMA_METADATA_TABLE);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
@@ -113,6 +116,7 @@ public final class AtlasDbConstants {
     public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 128;
     public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 128;
     public static final int DEFAULT_SWEEP_READ_LIMIT = 128;
+    public static final int DEFAULT_SWEEP_CASSANDRA_READ_THREADS = 16;
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 
