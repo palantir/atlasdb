@@ -33,10 +33,10 @@ dependencies {
     }
     testCompile group: 'com.palantir.remoting-api', name: 'service-config'
 
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-core'
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-http2'
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-request-logging'
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     integTestCompile group: 'com.palantir.remoting3', name: 'http2-agent'
     integTestCompile group: 'com.palantir.remoting3', name: 'jersey-servers'
     integTestCompile (group: 'com.palantir.remoting3', name: 'jaxrs-clients') {
