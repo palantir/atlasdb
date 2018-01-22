@@ -65,6 +65,7 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
@@ -112,7 +113,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    SweepStrategyManager sweepStrategyManager,
                                    long immutableTimestamp,
                                    Optional<LockToken> immutableTsLock,
-                                   AdvisoryLockPreCommitCheck advisoryLockCheck,
+                                   PreCommitCondition preCommitCondition,
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,
                                    TransactionReadSentinelBehavior readSentinelBehavior,
@@ -131,7 +132,7 @@ public class SerializableTransaction extends SnapshotTransaction {
               sweepStrategyManager,
               immutableTimestamp,
               immutableTsLock,
-              advisoryLockCheck,
+              preCommitCondition,
               constraintCheckingMode,
               transactionTimeoutMillis,
               readSentinelBehavior,
@@ -321,7 +322,6 @@ public class SerializableTransaction extends SnapshotTransaction {
         // In that case the transaction will fail on commit if it has writes.
         return conflictDetectionManager.get(table) == ConflictHandler.SERIALIZABLE;
     }
-
 
     /**
      * This exists to transform the incoming byte[] to cloned one to ensure that all the byte array
@@ -709,7 +709,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 sweepStrategyManager,
                 immutableTimestamp,
                 Optional.empty(),
-                AdvisoryLockPreCommitCheck.NO_OP,
+                PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),
