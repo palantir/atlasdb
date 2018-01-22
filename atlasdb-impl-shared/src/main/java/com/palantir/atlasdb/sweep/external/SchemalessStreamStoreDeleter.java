@@ -28,11 +28,14 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class SchemalessStreamStoreDeleter {
     private static final Logger log = LoggerFactory.getLogger(SchemalessStreamStoreDeleter.class);
@@ -54,8 +57,14 @@ public class SchemalessStreamStoreDeleter {
 
     public void deleteStreams(Transaction tx, Set<GenericStreamIdentifier> streamIds) {
         if (streamIds.isEmpty()) {
+            log.debug("deleteStreams() was called with no identifiers, so we are returning.");
             return;
         }
+
+        // Safe, because these are longs.
+        log.info("Now attempting to delete streams from the {} stream store, with identifiers {}",
+                LoggingArgs.tableRef(getTableReference(StreamTableType.VALUE)),
+                SafeArg.of("streamIds", streamIds));
 
         Map<GenericStreamIdentifier, StreamMetadata> metadataInDb = metadataReader.readMetadata(tx, streamIds);
 
@@ -76,6 +85,14 @@ public class SchemalessStreamStoreDeleter {
         transactionallyDeleteCells(tx, StreamTableType.VALUE, valueTableCellsToDelete);
         transactionallyDeleteCells(tx, StreamTableType.METADATA, metadataTableCellsToDelete);
         transactionallyDeleteCells(tx, StreamTableType.HASH, hashTableCellsToDelete);
+
+        log.info("Cells to be deleted were {} from the {} table, {} from the {} table and {} from the {} table.",
+                UnsafeArg.of("valueCells", valueTableCellsToDelete),
+                LoggingArgs.tableRef("valueTable", getTableReference(StreamTableType.VALUE)),
+                UnsafeArg.of("metadataCells", metadataTableCellsToDelete),
+                LoggingArgs.tableRef("metadataTable", getTableReference(StreamTableType.METADATA)),
+                UnsafeArg.of("hashCells", hashTableCellsToDelete),
+                LoggingArgs.tableRef("hashTable", getTableReference(StreamTableType.HASH)));
     }
 
     private void transactionallyDeleteCells(Transaction tx, StreamTableType streamTableType, Set<Cell> cellsToDelete) {

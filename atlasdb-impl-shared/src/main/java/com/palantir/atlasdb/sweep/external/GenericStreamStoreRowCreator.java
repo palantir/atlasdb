@@ -30,7 +30,7 @@ public class GenericStreamStoreRowCreator {
     }
 
     public byte[] constructValueTableRow(GenericStreamIdentifier streamId, long blockId) {
-        byte[] hashComponent = StreamStoreHashEncodingUtils.getValueHashComponent(
+        byte[] hashComponent = StreamStoreHashEncodingUtils.getHashComponent(
                 cleanupMetadata.numHashedRowComponents(), streamId, blockId);
         byte[] streamIdComponent = streamId.data();
         byte[] blockIdComponent = ValueType.VAR_LONG.convertFromJava(blockId);
@@ -38,7 +38,7 @@ public class GenericStreamStoreRowCreator {
     }
 
     public byte[] constructIndexOrMetadataTableRow(GenericStreamIdentifier streamId) {
-        byte[] hashComponent = StreamStoreHashEncodingUtils.getGeneralHashComponent(
+        byte[] hashComponent = StreamStoreHashEncodingUtils.getHashComponentWithoutBlockId(
                 cleanupMetadata.numHashedRowComponents(), streamId);
         byte[] streamIdComponent = streamId.data();
         return EncodingUtils.add(hashComponent, streamIdComponent);

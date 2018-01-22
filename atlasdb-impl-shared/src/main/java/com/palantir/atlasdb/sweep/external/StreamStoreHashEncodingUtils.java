@@ -25,21 +25,11 @@ public final class StreamStoreHashEncodingUtils {
         // utility class
     }
 
-    // TODO (jkong): Sort out duplication between this and getValueHashComponent()
-    public static byte[] getGeneralHashComponent(int numHashedRowComponents, GenericStreamIdentifier streamId) {
-        switch (numHashedRowComponents) {
-            case 0:
-                return PtBytes.EMPTY_BYTE_ARRAY;
-            case 1:
-            case 2:
-                return computeHashFirstComponent(streamId);
-            default:
-                throw new IllegalStateException("Unexpected number of hashed components: " +
-                        numHashedRowComponents);
-        }
+    public static byte[] getHashComponentWithoutBlockId(int numHashedRowComponents, GenericStreamIdentifier streamId) {
+        return getHashComponent(Math.min(numHashedRowComponents, 1), streamId, Long.MIN_VALUE);
     }
 
-    public static byte[] getValueHashComponent(
+    public static byte[] getHashComponent(
             int numHashedRowComponents, GenericStreamIdentifier streamId, long blockId) {
         switch (numHashedRowComponents) {
             case 0:
