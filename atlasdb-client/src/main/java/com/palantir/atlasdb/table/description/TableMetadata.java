@@ -44,15 +44,31 @@ public class TableMetadata implements Persistable {
     final LogSafety nameLogSafety;
 
     public TableMetadata() {
+        this(LogSafety.UNSAFE);
+    }
+
+    public TableMetadata(LogSafety logSafety) {
         this(
                 new NameMetadataDescription(),
                 new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_WRITE_WRITE);
+                ConflictHandler.RETRY_ON_WRITE_WRITE,
+                logSafety);
     }
 
     public TableMetadata(NameMetadataDescription rowMetadata,
                          ColumnMetadataDescription columns,
                          ConflictHandler conflictHandler) {
+        this(
+                rowMetadata,
+                columns,
+                conflictHandler,
+                LogSafety.UNSAFE);
+    }
+
+    public TableMetadata(NameMetadataDescription rowMetadata,
+            ColumnMetadataDescription columns,
+            ConflictHandler conflictHandler,
+            LogSafety logSafety) {
         this(
                 rowMetadata,
                 columns,
@@ -63,7 +79,8 @@ public class TableMetadata implements Persistable {
                 0,
                 false,
                 SweepStrategy.CONSERVATIVE,
-                false);
+                false,
+                logSafety);
     }
 
     public TableMetadata(NameMetadataDescription rowMetadata,

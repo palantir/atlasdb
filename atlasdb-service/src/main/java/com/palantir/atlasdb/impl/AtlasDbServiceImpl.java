@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
@@ -66,7 +67,8 @@ public class AtlasDbServiceImpl implements AtlasDbService {
                     ImmutableList.of(new NameComponentDescription.Builder()
                             .componentName("col").type(ValueType.STRING).build())),
                     ColumnValueDescription.forType(ValueType.STRING))),
-            ConflictHandler.SERIALIZABLE);
+            ConflictHandler.SERIALIZABLE,
+            TableMetadataPersistence.LogSafety.SAFE);
 
     private final KeyValueService kvs;
     private final SerializableTransactionManager txManager;

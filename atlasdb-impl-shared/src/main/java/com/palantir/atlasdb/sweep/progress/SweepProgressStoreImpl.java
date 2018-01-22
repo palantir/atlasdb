@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -89,7 +90,8 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
                             ROW_AND_COLUMN_NAME,
                             "sweep_progress",
                             ColumnValueDescription.forType(ValueType.BLOB)))),
-            ConflictHandler.IGNORE_ALL);
+            ConflictHandler.IGNORE_ALL,
+            TableMetadataPersistence.LogSafety.SAFE);
 
     private SweepProgressStoreImpl(KeyValueService kvs) {
         this.kvs = kvs;

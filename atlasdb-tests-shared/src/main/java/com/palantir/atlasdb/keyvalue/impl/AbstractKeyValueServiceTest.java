@@ -77,6 +77,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
@@ -1637,7 +1638,8 @@ public abstract class AbstractKeyValueServiceTest {
                 new TableMetadata(
                         new NameMetadataDescription(),
                         new ColumnMetadataDescription(columns),
-                        ConflictHandler.RETRY_ON_WRITE_WRITE).persistToBytes());
+                        ConflictHandler.RETRY_ON_WRITE_WRITE,
+                        TableMetadataPersistence.LogSafety.SAFE).persistToBytes());
         keyValueService.truncateTable(tableRef);
         return tableRef;
     }

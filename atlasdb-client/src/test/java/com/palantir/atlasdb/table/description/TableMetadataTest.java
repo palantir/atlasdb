@@ -109,13 +109,6 @@ public class TableMetadataTest {
                 NAME_METADATA_DESCRIPTION,
                 COLUMN_METADATA_DESCRIPTION,
                 CONFLICT_HANDLER,
-                TableMetadataPersistence.CachePriority.WARM,
-                TableMetadataPersistence.PartitionStrategy.ORDERED,
-                false,
-                0,
-                false,
-                TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
-                false,
                 logSafety);
     }
 }
