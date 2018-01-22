@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.cleaner.external;
+package com.palantir.atlasdb.sweep.external;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

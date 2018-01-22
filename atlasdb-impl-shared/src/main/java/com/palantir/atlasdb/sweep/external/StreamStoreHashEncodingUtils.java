@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.cleaner.external;
+package com.palantir.atlasdb.sweep.external;
 
 import com.google.common.hash.Hashing;
 import com.palantir.atlasdb.encoding.PtBytes;
