@@ -101,6 +101,7 @@ import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.logging.LoggingArgs.SafeAndUnsafeTableReferences;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -183,6 +184,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Supplier<Long> startTimestamp;
     private static final MetricsManager metricsManager = new MetricsManager();
 
+    private final SweepQueueWriter sweepQueue;
+
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;
     private final AdvisoryLockPreCommitCheck advisoryLockCheck;
@@ -235,7 +238,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                TimestampCache timestampValidationReadCache,
                                long lockAcquireTimeoutMs,
                                ExecutorService getRangesExecutor,
-                               int defaultGetRangesConcurrency) {
+                               int defaultGetRangesConcurrency,
+                               SweepQueueWriter sweepQueue) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -254,6 +258,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.sweepQueue = sweepQueue;
     }
 
     // TEST ONLY
@@ -268,7 +273,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         TransactionReadSentinelBehavior readSentinelBehavior,
                         TimestampCache timestampValidationReadCache,
                         ExecutorService getRangesExecutor,
-                        int defaultGetRangesConcurrency) {
+                        int defaultGetRangesConcurrency,
+                        SweepQueueWriter sweepQueue) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -287,6 +293,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.lockAcquireTimeoutMs = AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.sweepQueue = sweepQueue;
     }
 
     protected SnapshotTransaction(KeyValueService keyValueService,
@@ -318,6 +325,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.sweepQueue = SweepQueueWriter.NO_OP;
     }
 
     @Override
@@ -1360,14 +1368,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
             long millisForCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTsTimer.stop());
 
-            Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
-            if (!expiredLocks.isEmpty()) {
-                final String baseMsg = "This isn't a bug but it should happen very infrequently. "
-                        + "Required locks are no longer valid but we have already committed successfully. ";
-                String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
-                log.error(baseMsg + "{}", expiredLocksErrorString,
-                        new TransactionFailedRetriableException(baseMsg + expiredLocksErrorString));
-            }
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
@@ -1389,6 +1389,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         tableRefs.safeTableRefs(),
                         tableRefs.unsafeTableRefs());
             }
+
+            sweepQueue.enqueue(writesByTable, getStartTimestamp());
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }

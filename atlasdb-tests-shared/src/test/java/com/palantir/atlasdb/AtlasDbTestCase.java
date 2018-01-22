@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb;
 
+import static org.mockito.Mockito.mock;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
@@ -34,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
@@ -53,7 +56,6 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -72,6 +74,9 @@ public class AtlasDbTestCase {
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
     protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
+    protected SweepQueueWriter sweepQueue = mock(SweepQueueWriter.class);
+    // default methods make mockito confusing, so we delegate just the important method to the mock
+    protected SweepQueueWriter wrappingSweepQueue = (table, writes) -> sweepQueue.enqueue(table, writes);
 
     @BeforeClass
     public static void setupLockClient() {
@@ -115,13 +120,14 @@ public class AtlasDbTestCase {
                 lockService,
                 transactionService,
                 conflictDetectionManager,
-                sweepStrategyManager);
+                sweepStrategyManager,
+                wrappingSweepQueue);
         txManager = new CachingTestTransactionManager(txManager);
     }
 
     protected KeyValueService getBaseKeyValueService() {
-        ExecutorService executor = Tracers.wrap(PTExecutors.newSingleThreadExecutor(
-                PTExecutors.newNamedThreadFactory(true)));
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor(
+                PTExecutors.newNamedThreadFactory(true));
         InMemoryKeyValueService inMemoryKvs = new InMemoryKeyValueService(false, executor);
         KeyValueService tracingKvs = TracingKeyValueService.create(inMemoryKvs);
         return AtlasDbMetrics.instrument(KeyValueService.class, tracingKvs);

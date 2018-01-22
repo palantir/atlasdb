@@ -31,7 +31,6 @@ import org.junit.rules.RuleChain;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.flake.ShouldRetry;
@@ -47,7 +46,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     private static final long ONE_MILLION = 1_000_000;
 
     private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
-            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+            CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG);
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
 

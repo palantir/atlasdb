@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -46,7 +47,6 @@ import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
 
 public class TableMigratorTest extends AtlasDbTestCase {
     @Test
@@ -97,7 +97,8 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 lockService,
                 transactionService,
                 cdm2,
-                ssm2);
+                ssm2,
+                SweepQueueWriter.NO_OP);
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
 
@@ -114,7 +115,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
             TableMigratorBuilder builder = new TableMigratorBuilder()
                     .srcTable(name)
                     .partitions(1)
-                    .executor(Tracers.wrap(PTExecutors.newSingleThreadExecutor()))
+                    .executor(PTExecutors.newSingleThreadExecutor())
                     .checkpointer(checkpointer)
                     .rangeMigrator(rangeMigrator);
             TableMigrator migrator = builder.build();
@@ -131,7 +132,8 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 lockService,
                 transactionService,
                 verifyCdm,
-                verifySsm);
+                verifySsm,
+                SweepQueueWriter.NO_OP);
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {
             verifyTxManager.runTaskReadOnly((TransactionTask<Void, RuntimeException>) txn -> {

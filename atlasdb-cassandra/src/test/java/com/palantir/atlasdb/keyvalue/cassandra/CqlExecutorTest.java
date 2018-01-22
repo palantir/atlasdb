@@ -34,9 +34,11 @@ import org.mockito.ArgumentMatcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.concurrent.PTExecutors;
 
 public class CqlExecutorTest {
 
@@ -73,11 +75,13 @@ public class CqlExecutorTest {
         String expected = "SELECT key, column1, column2 FROM \"foo__bar\""
                 + " WHERE key = ? LIMIT 100;";
 
-        executor.getTimestamps(TABLE_REF, ImmutableList.of(ROW, END_ROW), LIMIT);
+        int executorThreads = AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
+        executor.getTimestamps(TABLE_REF, ImmutableList.of(ROW, END_ROW), LIMIT,
+                PTExecutors.newFixedThreadPool(executorThreads), executorThreads);
 
         verify(queryExecutor).prepare(argThat(byteBufferMatcher(expected)), eq(ROW), any());
         verify(queryExecutor).executePrepared(eq(1), eq(ImmutableList.of(ByteBuffer.wrap(ROW))));
-
+        verify(queryExecutor).executePrepared(eq(1), eq(ImmutableList.of(ByteBuffer.wrap(END_ROW))));
     }
 
     @Test

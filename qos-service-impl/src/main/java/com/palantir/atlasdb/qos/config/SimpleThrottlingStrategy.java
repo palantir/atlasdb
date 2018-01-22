@@ -18,18 +18,18 @@ package com.palantir.atlasdb.qos.config;
 import java.util.Collection;
 import java.util.function.Supplier;
 
-import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
+import com.google.common.util.concurrent.RateLimiter;
 
 import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
 public class SimpleThrottlingStrategy implements ThrottlingStrategy {
-    private static final double ONCE_EVERY_HUNDRED_SECONDS = 0.01;
+    private static final double ONCE_EVERY_TEN_SECONDS = 0.1;
     private final RateLimiter rateLimiter;
     private double multiplier;
 
     public SimpleThrottlingStrategy() {
-        this.rateLimiter = RateLimiter.create(ONCE_EVERY_HUNDRED_SECONDS);
+        this.rateLimiter = RateLimiter.create(ONCE_EVERY_TEN_SECONDS);
         this.multiplier = 1.0;
     }
 

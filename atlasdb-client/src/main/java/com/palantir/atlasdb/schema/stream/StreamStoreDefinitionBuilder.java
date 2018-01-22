@@ -33,6 +33,7 @@ public class StreamStoreDefinitionBuilder {
             Maps.newHashMapWithExpectedSize(StreamTableType.values().length);
     private int inMemoryThreshold = AtlasDbConstants.DEFAULT_STREAM_IN_MEMORY_THRESHOLD;
     private boolean compressStream;
+    private int numberOfRowComponentsHashed = 0;
 
     /**
      * @param shortName The prefix of the table names in the DB.
@@ -75,6 +76,7 @@ public class StreamStoreDefinitionBuilder {
                         + "StreamStore internal tables use at most two row components.");
         streamTables.forEach((tableName, streamTableBuilder) ->
                 streamTableBuilder.hashFirstNRowComponents(numberOfComponentsHashed));
+        numberOfRowComponentsHashed = numberOfComponentsHashed;
         return this;
     }
 
@@ -123,7 +125,8 @@ public class StreamStoreDefinitionBuilder {
                 longName,
                 valueType,
                 inMemoryThreshold,
-                compressStream);
+                compressStream,
+                numberOfRowComponentsHashed);
     }
 
 }

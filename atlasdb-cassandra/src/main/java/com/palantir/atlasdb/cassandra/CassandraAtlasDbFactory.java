@@ -49,7 +49,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, namespace);
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(preprocessedConfig),
+                preprocessedConfig,
                 leaderConfig,
                 initializeAsync,
                 qosClient);

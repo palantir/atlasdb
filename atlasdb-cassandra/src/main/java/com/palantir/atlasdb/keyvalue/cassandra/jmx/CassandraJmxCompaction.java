@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import javax.management.remote.JMXConnector;
 
@@ -36,8 +35,8 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraJmxCompactionConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.common.concurrent.PTExecutors;
 
 public final class CassandraJmxCompaction {
     private static final Logger log = LoggerFactory.getLogger(CassandraJmxCompaction.class);
@@ -48,9 +47,8 @@ public final class CassandraJmxCompaction {
     }
 
     public static Optional<CassandraJmxCompactionManager> createJmxCompactionManager(
-            CassandraKeyValueServiceConfigManager configManager) {
-        Preconditions.checkNotNull(configManager, "configManager cannot be null");
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
+            CassandraKeyValueServiceConfig config) {
+        Preconditions.checkNotNull(config, "config cannot be null");
         CassandraJmxCompaction jmxCompaction = new CassandraJmxCompaction(config);
 
         Optional<CassandraJmxCompactionConfig> jmxConfig = config.jmx();
@@ -62,7 +60,7 @@ public final class CassandraJmxCompaction {
 
         jmxCompaction.setJmxSslProperty(jmxConfig.get());
         ImmutableSet<CassandraJmxCompactionClient> clients = jmxCompaction.createCompactionClients(jmxConfig.get());
-        ExecutorService exec = Executors.newFixedThreadPool(clients.size(),
+        ExecutorService exec = PTExecutors.newFixedThreadPool(clients.size(),
                 new ThreadFactoryBuilder().setNameFormat("Cassandra-Jmx-Compaction-ThreadPool-%d").build());
 
         return Optional.of(CassandraJmxCompactionManager.create(clients, exec));

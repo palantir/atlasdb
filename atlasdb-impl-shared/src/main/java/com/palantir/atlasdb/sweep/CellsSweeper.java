@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +27,15 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class CellsSweeper {
     private static final Logger log = LoggerFactory.getLogger(CellsSweeper.class);
@@ -90,6 +95,13 @@ public class CellsSweeper {
                     sentinelsToAdd);
         }
 
+        if (cellTsPairsToSweep.entries().stream().anyMatch(entry -> entry.getValue() == null)) {
+            log.error("When sweeping table {} found cells to sweep with the start timestamp null."
+                            + " This is unexpected. The cellTs pairs to sweep were: {}.",
+                    LoggingArgs.tableRef(tableRef),
+                    getLoggingArgForCells(tableRef, cellTsPairsToSweep));
+        }
+
         persistentLockManager.acquirePersistentLockWithRetry();
 
         try {
@@ -97,5 +109,27 @@ public class CellsSweeper {
         } finally {
             persistentLockManager.releasePersistentLock();
         }
+    }
+
+    private Arg<String> getLoggingArgForCells(TableReference tableRef,  Multimap<Cell, Long> cellTsPairsToSweep) {
+        String message = getMessage(cellTsPairsToSweep);
+
+        if (allComponentsAreSafe(tableRef, cellTsPairsToSweep)) {
+            return SafeArg.of("cellTsPairsToSweep", message);
+        } else {
+            return UnsafeArg.of("cellTsPairsToSweep", message);
+        }
+    }
+
+    private boolean allComponentsAreSafe(TableReference tableRef, Multimap<Cell, Long> cellTsPairsToSweep) {
+        // all or nothing
+        return cellTsPairsToSweep.keySet().stream().allMatch(cell -> LoggingArgs.isSafeForLogging(tableRef, cell));
+    }
+
+    private <T> String getMessage(Multimap<Cell, Long> cellTsPairsToSweep) {
+        return cellTsPairsToSweep.entries().stream()
+                .sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
+                .map(entry -> entry.getKey().toString() + "->" + entry.getValue())
+                .collect(Collectors.joining(", ", "[", "]"));
     }
 }
