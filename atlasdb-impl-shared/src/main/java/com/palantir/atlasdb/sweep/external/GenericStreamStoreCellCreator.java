@@ -20,9 +20,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -30,29 +27,27 @@ import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.stream.StreamTableDefinitionBuilder;
 
 public class GenericStreamStoreCellCreator {
-    private static final Logger log = LoggerFactory.getLogger(GenericStreamStoreRowCreator.class);
-
-    private final GenericStreamStoreRowCreator rowHydrator;
+    private final GenericStreamStoreRowCreator rowCreator;
 
     public GenericStreamStoreCellCreator(StreamStoreCleanupMetadata cleanupMetadata) {
-        this.rowHydrator = new GenericStreamStoreRowCreator(cleanupMetadata);
+        this.rowCreator = new GenericStreamStoreRowCreator(cleanupMetadata);
     }
 
-    public Set<Cell> constructValueTableCellSet(byte[] streamId, long numBlocks) {
+    public Set<Cell> constructValueTableCellSet(GenericStreamIdentifier streamId, long numBlocks) {
         return LongStream.range(0, numBlocks)
                 .boxed()
-                .map(blockId -> rowHydrator.constructValueTableRow(streamId, blockId))
+                .map(blockId -> rowCreator.constructValueTableRow(streamId, blockId))
                 .map(rowName -> Cell.create(rowName,
                         PtBytes.toCachedBytes(StreamTableDefinitionBuilder.VALUE_COLUMN_SHORT_NAME)))
                 .collect(Collectors.toSet());
     }
 
-    public Cell constructMetadataTableCell(byte[] streamId) {
-        return Cell.create(rowHydrator.constructIndexOrMetadataTableRow(streamId),
+    public Cell constructMetadataTableCell(GenericStreamIdentifier streamId) {
+        return Cell.create(rowCreator.constructIndexOrMetadataTableRow(streamId),
                 PtBytes.toCachedBytes(StreamTableDefinitionBuilder.METADATA_COLUMN_SHORT_NAME));
     }
 
-    public Cell constructHashTableCell(byte[] streamId, ByteString hash) {
-        return Cell.create(rowHydrator.constructHashTableRow(hash), streamId);
+    public Cell constructHashTableCell(GenericStreamIdentifier streamId, ByteString hash) {
+        return Cell.create(rowCreator.constructHashTableRow(hash), streamId.data());
     }
 }

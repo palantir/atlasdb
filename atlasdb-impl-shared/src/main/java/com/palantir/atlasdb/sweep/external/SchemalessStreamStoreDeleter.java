@@ -41,7 +41,7 @@ public class SchemalessStreamStoreDeleter {
 
     private final Namespace namespace;
     private final String streamStoreShortName;
-    private final GenericStreamStoreCellCreator cellHydrator;
+    private final GenericStreamStoreCellCreator cellCreator;
     private final StreamStoreMetadataReader metadataReader;
 
     public SchemalessStreamStoreDeleter(
@@ -50,11 +50,11 @@ public class SchemalessStreamStoreDeleter {
             StreamStoreCleanupMetadata cleanupMetadata) {
         this.namespace = namespace;
         this.streamStoreShortName = streamStoreShortName;
-        this.cellHydrator = new GenericStreamStoreCellCreator(cleanupMetadata);
-        this.metadataReader = new StreamStoreMetadataReader(getTableReference(StreamTableType.METADATA));
+        this.cellCreator = new GenericStreamStoreCellCreator(cleanupMetadata);
+        this.metadataReader = new StreamStoreMetadataReader(getTableReference(StreamTableType.METADATA), cellCreator);
     }
 
-    public void deleteStreams(Transaction tx, Set<byte[]> streamIds) {
+    public void deleteStreams(Transaction tx, Set<GenericStreamIdentifier> streamIds) {
         if (streamIds.isEmpty()) {
             return;
         }
@@ -69,10 +69,10 @@ public class SchemalessStreamStoreDeleter {
             byte[] streamId = metadata.getKey().getRowName();
             StreamPersistence.StreamMetadata streamMetadata = deserializeStreamMetadata(metadata.getValue());
 
-            valueTableCellsToDelete.addAll(cellHydrator.constructValueTableCellSet(
+            valueTableCellsToDelete.addAll(cellCreator.constructValueTableCellSet(
                     streamId, getNumberOfBlocksFromMetadata(streamMetadata)));
-            metadataTableCellsToDelete.add(cellHydrator.constructMetadataTableCell(streamId));
-            hashTableCellsToDelete.add(cellHydrator.constructHashTableCell(streamId, streamMetadata.getHash()));
+            metadataTableCellsToDelete.add(cellCreator.constructMetadataTableCell(streamId));
+            hashTableCellsToDelete.add(cellCreator.constructHashTableCell(streamId, streamMetadata.getHash()));
         }
 
         transactionallyDeleteCells(tx, StreamTableType.VALUE, valueTableCellsToDelete);
