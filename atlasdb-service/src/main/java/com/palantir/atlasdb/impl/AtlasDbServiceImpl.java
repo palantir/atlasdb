@@ -53,6 +53,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
+import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.atlasdb.transaction.impl.RawTransaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
@@ -193,7 +194,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public TransactionToken startTransaction() {
         String id = UUID.randomUUID().toString();
         TransactionToken token = new TransactionToken(id);
-        RawTransaction tx = txManager.setupRunTaskWithLocksThrowOnConflict(ImmutableList.of());
+        RawTransaction tx = txManager.setupRunTaskWithConditionThrowOnConflict(PreCommitConditions.NO_OP);
         transactions.put(token, tx);
         return token;
     }

@@ -46,6 +46,9 @@ public final class AtlasDbConstants {
     public static final TableReference DEFAULT_SCHEMA_METADATA_TABLE = TableReference.createWithEmptyNamespace(
             "_schema_metadata");
 
+    // Deprecated tables
+    public static final TableReference SWEEP_PROGRESS_V2 = TableReference.createWithEmptyNamespace("_sweep_progress2");
+
     public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
 
     private static final int ORACLE_NAME_LENGTH_LIMIT = 30;
@@ -76,7 +79,6 @@ public final class AtlasDbConstants {
 
     public static final long DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS = 60_000;
 
-
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             PUNCH_TABLE,
@@ -86,7 +88,8 @@ public final class AtlasDbConstants {
             PARTITION_MAP_TABLE,
             PERSISTED_LOCKS_TABLE,
             SWEEP_PROGRESS_TABLE,
-            DEFAULT_SCHEMA_METADATA_TABLE);
+            DEFAULT_SCHEMA_METADATA_TABLE,
+            SWEEP_PROGRESS_V2);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
