@@ -258,6 +258,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
+                "com.palantir.remoting3:tracing",
                 "com.palantir.tokens:auth-tokens"
             ]
         }
@@ -521,6 +522,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
+                "com.palantir.remoting3:tracing",
                 "com.palantir.tokens:auth-tokens"
             ]
         }

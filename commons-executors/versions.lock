@@ -71,11 +71,17 @@
                 "com.google.code.findbugs:annotations"
             ]
         },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
+        "com.google.guava:guava": {
+            "locked": "18.0",
             "transitive": [
-                "com.google.code.findbugs:annotations"
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.palantir.remoting3:tracing"
             ]
+        },
+        "com.palantir.remoting-api:tracing": {
+            "locked": "1.4.0",
+            "transitive": [
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
@@ -93,8 +99,14 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -172,11 +184,17 @@
                 "com.google.code.findbugs:annotations"
             ]
         },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
+        "com.google.guava:guava": {
+            "locked": "18.0",
             "transitive": [
-                "com.google.code.findbugs:annotations"
+                "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.palantir.remoting3:tracing"
             ]
+        },
+        "com.palantir.remoting-api:tracing": {
+            "locked": "1.4.0",
+            "transitive": [
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
@@ -194,8 +212,14 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]

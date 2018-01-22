@@ -128,8 +128,10 @@
             "requested": "3.2"
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.25"
-                "com.palantir.remoting3:tracing",
+            "locked": "1.7.25",
+            "transitive": [
+                "com.palantir.remoting3:tracing"
+            ]
         }
     },
     "runtime": {
@@ -261,8 +263,10 @@
             "requested": "3.2"
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.25"
-                "com.palantir.remoting3:tracing",
+            "locked": "1.7.25",
+            "transitive": [
+                "com.palantir.remoting3:tracing"
+            ]
         }
     }
 }

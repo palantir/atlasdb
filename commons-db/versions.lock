@@ -223,6 +223,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.remoting3:tracing",
                 "com.zaxxer:HikariCP"
             ]
         }
@@ -451,6 +452,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.remoting3:tracing",
                 "com.zaxxer:HikariCP"
             ]
         }

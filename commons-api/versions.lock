@@ -156,8 +156,8 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-                "com.palantir.remoting3:tracing",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting3:tracing"
             ]
         }
     },
@@ -318,8 +318,8 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-                "com.palantir.remoting3:tracing",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting3:tracing"
             ]
         }
     }
