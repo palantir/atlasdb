@@ -18,6 +18,7 @@ package com.palantir.common.collect;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
@@ -53,5 +54,15 @@ public class Maps2 {
             ret.put(k, v);
         }
         return ret;
+    }
+
+    public static <K1, V1, V2> Map<K1, V2> innerJoin(Map<K1, V1> first, Map<V1, V2> second) {
+        return first.entrySet()
+                .stream()
+                .filter(entry -> second.containsKey(entry.getValue()))
+                .collect(Collectors.toMap(
+                        Entry::getKey,
+                        entry -> second.get(entry.getValue())
+                ));
     }
 }
