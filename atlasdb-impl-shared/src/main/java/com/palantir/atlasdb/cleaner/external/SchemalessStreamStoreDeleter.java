@@ -84,7 +84,6 @@ public class SchemalessStreamStoreDeleter {
 
             ByteString hashString = streamMetadata.getHash();
             byte[] hashTableRow = rowHydrator.constructHashAidxTableRow(hashString);
-
         }
     }
 
