@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.external;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -58,12 +60,13 @@ public class StreamStoreMetadataReader {
         Map<Cell, byte[]> rawStreamMetadataMap = tx.get(streamStoreMetadataTableRef,
                 ImmutableSet.copyOf(streamIdsToCells.values()));
 
-        Map<Cell, StreamMetadata> streamMetadataMap = parseStreamMetadatas(rawStreamMetadataMap);
+        Map<Cell, StreamMetadata> streamMetadataMap = parseStreamMetadata(rawStreamMetadataMap);
 
         return Maps2.innerJoin(streamIdsToCells, streamMetadataMap);
     }
 
-    private Map<Cell, StreamMetadata> parseStreamMetadatas(Map<Cell, byte[]> rawStreamMetadataMap) {
+    @VisibleForTesting
+    Map<Cell, StreamMetadata> parseStreamMetadata(Map<Cell, byte[]> rawStreamMetadataMap) {
         Map<Cell, StreamMetadata> result = Maps.newHashMap();
         for (Map.Entry<Cell, byte[]> rawEntry : rawStreamMetadataMap.entrySet()) {
             try {
@@ -71,7 +74,7 @@ public class StreamStoreMetadataReader {
                 result.put(rawEntry.getKey(), metadata);
             } catch (InvalidProtocolBufferException e) {
                 log.warn("Found unparseable stream metadata of {} for the cell {}. Skipping.",
-                        UnsafeArg.of("streamMetadata", rawEntry.getValue()),
+                        UnsafeArg.of("streamMetadata", Arrays.toString(rawEntry.getValue())),
                         UnsafeArg.of("cell", rawEntry.getKey()));
             }
         }
