@@ -76,6 +76,12 @@ develop
            The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2887>`__)
 
+    *    - |fixed|
+         - Stop to sweep when the sweep thread is interrupted.
+           Previously, when services were shutting down, the background sweeper thread continuously logged warnings
+           due to a closed TransactionManager.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2900>`__)
+
 =======
 v0.73.0
 =======
