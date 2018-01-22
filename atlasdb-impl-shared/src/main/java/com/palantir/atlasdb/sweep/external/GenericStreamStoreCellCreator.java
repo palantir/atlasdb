@@ -43,13 +43,13 @@ public class GenericStreamStoreCellCreator {
                 .boxed()
                 .map(blockId -> rowHydrator.constructValueTableRow(streamId, blockId))
                 .map(rowName -> Cell.create(rowName,
-                        PtBytes.toBytes(StreamTableDefinitionBuilder.VALUE_COLUMN_SHORT_NAME)))
+                        PtBytes.toCachedBytes(StreamTableDefinitionBuilder.VALUE_COLUMN_SHORT_NAME)))
                 .collect(Collectors.toSet());
     }
 
     public Cell constructMetadataTableCell(byte[] streamId) {
         return Cell.create(rowHydrator.constructIndexOrMetadataTableRow(streamId),
-                PtBytes.toBytes(StreamTableDefinitionBuilder.METADATA_COLUMN_SHORT_NAME));
+                PtBytes.toCachedBytes(StreamTableDefinitionBuilder.METADATA_COLUMN_SHORT_NAME));
     }
 
     public Cell constructHashTableCell(byte[] streamId, ByteString hash) {

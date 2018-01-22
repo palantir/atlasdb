@@ -20,7 +20,6 @@ import static com.palantir.atlasdb.stream.GenericStreamStore.BLOCK_SIZE_IN_BYTES
 
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -43,8 +41,8 @@ public class SchemalessStreamStoreDeleter {
 
     private final Namespace namespace;
     private final String streamStoreShortName;
-    private final StreamStoreCleanupMetadata cleanupMetadata;
     private final GenericStreamStoreCellCreator cellHydrator;
+    private final StreamStoreMetadataReader metadataReader;
 
     public SchemalessStreamStoreDeleter(
             Namespace namespace,
@@ -52,8 +50,8 @@ public class SchemalessStreamStoreDeleter {
             StreamStoreCleanupMetadata cleanupMetadata) {
         this.namespace = namespace;
         this.streamStoreShortName = streamStoreShortName;
-        this.cleanupMetadata = cleanupMetadata;
         this.cellHydrator = new GenericStreamStoreCellCreator(cleanupMetadata);
+        this.metadataReader = new StreamStoreMetadataReader(getTableReference(StreamTableType.METADATA));
     }
 
     public void deleteStreams(Transaction tx, Set<byte[]> streamIds) {
@@ -61,15 +59,7 @@ public class SchemalessStreamStoreDeleter {
             return;
         }
 
-        // "md" is part of the v1 stream store schema
-        Set<Cell> metadataCells = streamIds.stream()
-                .map(id -> Cell.create(id, PtBytes.toCachedBytes("md")))
-                .collect(Collectors.toSet());
-
-        // get metadata for the relevant streamIds
-        Map<Cell, byte[]> metadataInDb =
-                tx.get(TableReference.create(namespace, StreamTableType.METADATA.getTableName(streamStoreShortName)),
-                        metadataCells);
+        Map<Cell, byte[]> metadataInDb = metadataReader.readMetadata(tx, streamIds);
 
         Set<Cell> valueTableCellsToDelete = Sets.newHashSet();
         Set<Cell> hashTableCellsToDelete = Sets.newHashSet();
@@ -77,21 +67,25 @@ public class SchemalessStreamStoreDeleter {
 
         for (Map.Entry<Cell, byte[]> metadata : metadataInDb.entrySet()) {
             byte[] streamId = metadata.getKey().getRowName();
-
             StreamPersistence.StreamMetadata streamMetadata = deserializeStreamMetadata(metadata.getValue());
-            long blocks = getNumberOfBlocksFromMetadata(streamMetadata);
 
-            valueTableCellsToDelete.addAll(cellHydrator.constructValueTableCellSet(streamId, blocks));
+            valueTableCellsToDelete.addAll(cellHydrator.constructValueTableCellSet(
+                    streamId, getNumberOfBlocksFromMetadata(streamMetadata)));
             metadataTableCellsToDelete.add(cellHydrator.constructMetadataTableCell(streamId));
             hashTableCellsToDelete.add(cellHydrator.constructHashTableCell(streamId, streamMetadata.getHash()));
         }
 
-        tx.delete(TableReference.create(namespace, StreamTableType.METADATA.getTableName(streamStoreShortName)),
-                metadataTableCellsToDelete);
-        tx.delete(TableReference.create(namespace, StreamTableType.VALUE.getTableName(streamStoreShortName)),
-                valueTableCellsToDelete);
-        tx.delete(TableReference.create(namespace, StreamTableType.HASH.getTableName(streamStoreShortName)),
-                hashTableCellsToDelete);
+        transactionallyDeleteCells(tx, StreamTableType.VALUE, valueTableCellsToDelete);
+        transactionallyDeleteCells(tx, StreamTableType.METADATA, metadataTableCellsToDelete);
+        transactionallyDeleteCells(tx, StreamTableType.HASH, hashTableCellsToDelete);
+    }
+
+    private void transactionallyDeleteCells(Transaction tx, StreamTableType streamTableType, Set<Cell> cellsToDelete) {
+        tx.delete(getTableReference(streamTableType), cellsToDelete);
+    }
+
+    private TableReference getTableReference(StreamTableType type) {
+        return TableReference.create(namespace, type.getTableName(streamStoreShortName));
     }
 
     private StreamPersistence.StreamMetadata deserializeStreamMetadata(byte[] value) {
