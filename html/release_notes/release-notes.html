@@ -196,6 +196,15 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>AtlasDB internal table names are now safe for logging.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2903">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><cite>AtlasDbConstants.GENERIC_TABLE_METADATA</cite> is now safe for logging, if you are using this as the metadata to
+create table names that shouldn’t be logged in the internal logging framework, do not use this metadata.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2903">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The <code class="docutils literal"><span class="pre">partitionStrategy</span></code> parameter in AtlasDB table metadata has been removed; products that explicitly specify partition strategies in their schemas will need to remove them.
 The value of this parameter was never actually read; behaviour would have been identical regardless of what this was specified to (if at all).
@@ -218,12 +227,16 @@ This change was made to simplify the API and also remove any illusion that speci
 <td>All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2874">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The LockAwareTransactionManager pre-commit checks that verify that locks are still held have been generalized to support arbitrary pre-commit checks.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2846">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fix a NPE in the sweep code.
 The regression was introduced with (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2860">#2860</a>).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2883">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Upgraded to protobuf 3.5.1.
 The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2887">Pull Request</a>)</td>
