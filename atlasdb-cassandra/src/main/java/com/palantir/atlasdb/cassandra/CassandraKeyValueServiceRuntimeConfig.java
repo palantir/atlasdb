@@ -34,16 +34,25 @@ public class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRun
         return "cassandra";
     }
 
+    /**
+     * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
+     */
     @Value.Default
     public int unresponsiveHostBackoffTimeSeconds() {
         return 30;
     }
 
+    /**
+     * The maximum amount of cells that each thread writes to Cassandra at a time.
+     */
     @Value.Default
     public int mutationBatchCount() {
         return 5000;
     }
 
+    /**
+     * The maximum amount of bytes that each thread writes to Cassandra at a time.
+     */
     @Value.Default
     public int mutationBatchSizeBytes() {
         return 4 * 1024 * 1024;
@@ -54,16 +63,26 @@ public class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRun
         return 5000;
     }
 
+    /**
+     * The number of threads Sweep uses to read values from Cassandra.
+     * Each thread fetches values from a distinct row.
+     */
     @Value.Default
     public Integer sweepReadThreads() {
         return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
 
+    /**
+     * The number of times a call to Cassandra retries a single host.
+     */
     @Value.Default
     public int numberOfRetriesOnSameHost() {
         return 3;
     }
 
+    /**
+     * The maximum number of times a call to Cassandra retries.
+     */
     @Value.Default
     public int numberOfRetriesOnAllHosts() {
         return 6;
