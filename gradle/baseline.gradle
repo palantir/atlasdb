@@ -27,6 +27,10 @@ if (enableErrorProne.toBoolean()) {
     configurations.errorprone {
         resolutionStrategy { force('com.google.guava:guava:21.0') }
     }
+
+    tasks.withType(JavaCompile) {
+        options.compilerArgs += ['-XepDisableWarningsInGeneratedCode']
+    }
 }
 
 apply plugin: 'com.palantir.baseline-eclipse'

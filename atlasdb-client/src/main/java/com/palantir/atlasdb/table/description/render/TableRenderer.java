@@ -154,7 +154,7 @@ public class TableRenderer {
                              SortedSet<IndexMetadata> indices) {
             Preconditions.checkArgument(
                     Schemas.isTableNameValid(rawTableName),
-                    "Invalid table name " + rawTableName);
+                    "Invalid table name %s", rawTableName);
             this.tableName = Renderers.getClassTableName(rawTableName, table);
             this.table = table.toTableMetadata();
             this.indices = indices;

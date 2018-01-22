@@ -1534,21 +1534,20 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         for (Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
             Cell cell = cellEntry.getKey();
             if (!writes.containsKey(cell)) {
-                Validate.isTrue(false, "Missing write for cell: " + cellToConflict.get(cell)
-                        + " for table " + table);
+                Validate.isTrue(false, "Missing write for cell: %s for table %s", cellToConflict.get(cell), table);
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
                 throwIfPreCommitRequirementsNotMet(commitLocksToken);
-                Validate.isTrue(false, "Missing conflicting value for cell: " + cellToConflict.get(cell)
-                        + " for table " + table);
+                Validate.isTrue(false, "Missing conflicting value for cell: %s for table %s", cellToConflict.get(cell),
+                        table);
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
                 throwIfPreCommitRequirementsNotMet(commitLocksToken);
-                Validate.isTrue(false, "Wrong timestamp for cell in table " + table
-                        + " Expected: " + cellToConflict.get(cell)
-                        + " Actual: " + conflictingValues.get(cell));
+                Validate.isTrue(false, "Wrong timestamp for cell in table %s Expected: %s Actual: %s", table,
+                        cellToConflict.get(cell),
+                        conflictingValues.get(cell));
             }
             @Nullable byte[] oldVal = oldValues.get(cell);
             byte[] writeVal = writes.get(cell);
@@ -1929,7 +1928,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Long, Long> commitTimestamps = getCommitTimestamps(null, Collections.singleton(getStartTimestamp()), false);
         long storedCommit = commitTimestamps.get(getStartTimestamp());
         if (storedCommit != commitTs && storedCommit != TransactionConstants.FAILED_COMMIT_TS) {
-            Validate.isTrue(false, "Commit value is wrong. startTs " + getStartTimestamp() + "  commitTs: " + commitTs);
+            Validate.isTrue(false, "Commit value is wrong. startTs %s  commitTs: %s", getStartTimestamp(), commitTs);
         }
         return storedCommit == commitTs;
     }

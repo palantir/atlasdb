@@ -97,7 +97,7 @@ public class TableClassRendererV2 {
             TableDefinition table) {
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(rawTableName),
-                "Invalid table name " + rawTableName);
+                "Invalid table name %s", rawTableName);
         this.packageName = packageName;
         this.namespace = namespace;
         this.rawTableName = rawTableName;
