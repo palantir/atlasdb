@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
+           To check which parameters are live-reloadable, check the `CassandraKeyValueServiceRuntimeConfig` class.
+           Docs about this config can be found `here<insert docs url>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
+
     *    - |devbreak|
          - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
