@@ -19,8 +19,6 @@ package com.palantir.atlasdb.cleaner.external;
 import com.google.common.hash.Hashing;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
-import com.palantir.atlasdb.table.description.ValueType;
 
 public final class StreamStoreHashEncodingUtils {
     private StreamStoreHashEncodingUtils() {
@@ -28,45 +26,43 @@ public final class StreamStoreHashEncodingUtils {
     }
 
     // TODO (jkong): Sort out duplication between this and getValueHashComponent()
-    public static byte[] getGeneralHashComponent(StreamStoreCleanupMetadata cleanupMetadata, long streamId) {
-        switch (cleanupMetadata.numHashedRowComponents()) {
+    public static byte[] getGeneralHashComponent(int numHashedRowComponents, byte[] streamId) {
+        switch (numHashedRowComponents) {
             case 0:
                 return PtBytes.EMPTY_BYTE_ARRAY;
             case 1:
             case 2:
-                return computeHashFirstComponent(cleanupMetadata.streamIdType(), streamId);
+                return computeHashFirstComponent(streamId);
             default:
                 throw new IllegalStateException("Unexpected number of hashed components: " +
-                        cleanupMetadata.numHashedRowComponents());
+                        numHashedRowComponents);
         }
     }
 
     public static byte[] getValueHashComponent(
-            StreamStoreCleanupMetadata cleanupMetadata, long streamId, long blockId) {
-        switch (cleanupMetadata.numHashedRowComponents()) {
+            int numHashedRowComponents, byte[] streamId, long blockId) {
+        switch (numHashedRowComponents) {
             case 0:
                 return PtBytes.EMPTY_BYTE_ARRAY;
             case 1:
-                return computeHashFirstComponent(cleanupMetadata.streamIdType(), streamId);
+                return computeHashFirstComponent(streamId);
             case 2:
-                return computeHashFirstComponents(cleanupMetadata.streamIdType(), streamId, blockId);
+                return computeHashFirstComponents(streamId, blockId);
             default:
                 throw new IllegalStateException("Unexpected number of hashed components: " +
-                        cleanupMetadata.numHashedRowComponents());
+                        numHashedRowComponents);
         }
     }
 
-    private static byte[] computeHashFirstComponent(ValueType streamIdType, long streamId) {
-        byte[] streamIdBytes = streamIdType.convertFromJava(streamId);
-        return applyBitwiseXorWithMinValueAndConvert(computeMurmurHash(streamIdBytes));
+    private static byte[] computeHashFirstComponent(byte[] streamId) {
+        return applyBitwiseXorWithMinValueAndConvert(computeMurmurHash(streamId));
     }
 
-    private static byte[] computeHashFirstComponents(ValueType streamIdType, long streamId, long blockId) {
-        byte[] streamIdBytes = streamIdType.convertFromJava(streamId);
+    private static byte[] computeHashFirstComponents(byte[] streamId, long blockId) {
         // This is always VAR_LONG, regardless of the stream id type.
         // See StreamTableDefinitionBuilder#build() for case VALUE
         byte[] blockIdBytes = EncodingUtils.encodeUnsignedVarLong(blockId);
-        return applyBitwiseXorWithMinValueAndConvert(computeMurmurHash(streamIdBytes, blockIdBytes));
+        return applyBitwiseXorWithMinValueAndConvert(computeMurmurHash(streamId, blockIdBytes));
     }
 
     private static byte[] applyBitwiseXorWithMinValueAndConvert(long input) {
