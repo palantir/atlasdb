@@ -363,6 +363,7 @@ public final class PTExecutors {
      * @throws NullPointerException if <tt>workQueue</tt> or <tt>threadFactory</tt> or
      *         <tt>handler</tt> are null.
      */
+    @SuppressWarnings("DangerousThreadPoolExecutorUsage")
     public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
             long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue,
             ThreadFactory threadFactory, RejectedExecutionHandler handler) {
@@ -428,6 +429,7 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
      * @throws NullPointerException if threadFactory or handler is null
      */
+    @SuppressWarnings("DangerousThreadPoolExecutorUsage")
     public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
             ThreadFactory threadFactory, RejectedExecutionHandler handler) {
         if (corePoolSize == 0) {
