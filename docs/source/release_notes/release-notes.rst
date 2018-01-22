@@ -50,6 +50,15 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |logs|
+         - AtlasDB internal table names are now safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
+
+    *    - |devbreak|
+         - `AtlasDbConstants.GENERIC_TABLE_METADATA` is now safe for logging, if you are using this as the metadata to
+           create table names that shouldn't be logged in the internal logging framework, do not use this metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
+
     *    - |devbreak| |improved|
          - The ``partitionStrategy`` parameter in AtlasDB table metadata has been removed; products that explicitly specify partition strategies in their schemas will need to remove them.
            The value of this parameter was never actually read; behaviour would have been identical regardless of what this was specified to (if at all).

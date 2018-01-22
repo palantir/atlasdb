@@ -20,6 +20,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -65,7 +66,8 @@ public final class AtlasDbConstants {
 
     public static final TableReference PARTITION_MAP_TABLE = TableReference.createWithEmptyNamespace("_partition_map");
     public static final byte[] EMPTY_TABLE_METADATA = {}; // use carefully
-    public static final byte[] GENERIC_TABLE_METADATA = new TableMetadata().persistToBytes();
+    public static final byte[] GENERIC_TABLE_METADATA = new TableMetadata(TableMetadataPersistence.LogSafety.SAFE)
+            .persistToBytes();
 
     public static final int MINIMUM_COMPRESSION_BLOCK_SIZE_KB = 4;
     public static final int DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB = 4;
