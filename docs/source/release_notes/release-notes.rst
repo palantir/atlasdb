@@ -50,6 +50,15 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |logs|
+         - AtlasDB internal table names are now safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
+
+    *    - |devbreak|
+         - `AtlasDbConstants.GENERIC_TABLE_METADATA` is now safe for logging, if you are using this as the metadata to
+           create table names that shouldn't be logged in the internal logging framework, do not use this metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
+
     *    - |devbreak|
          - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
