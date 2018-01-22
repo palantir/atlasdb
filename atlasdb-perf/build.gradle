@@ -51,11 +51,6 @@ task cassandraBenchmarkTest(type:Exec) {
     commandLine project.buildDir.toString() + "/install/atlasdb-perf/bin/atlasdb-perf", "SweepBenchmarks.batchedSingleSweepRun", "--test-run", "--backend", "CASSANDRA"
 }
 
-compileJava {
-    options.compilerArgs += ['-Xep:PreconditionsConstantMessage:OFF']
-    options.compilerArgs += ['-Xep:ValidateConstantMessage:OFF']
-}
-
 test.dependsOn postgresBenchmarkTest
 test.dependsOn cassandraBenchmarkTest
 
