@@ -99,8 +99,12 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
+     *
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
+     * live-reloadable.
      */
     @Value.Default
+    @Deprecated
     public int unresponsiveHostBackoffTimeSeconds() {
         return 30;
     }
@@ -151,6 +155,10 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public abstract int replicationFactor();
 
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
+     * live-reloadable.
+     */
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
@@ -158,6 +166,10 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 5000;
     }
 
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchSizeBytes()} to make this value
+     * live-reloadable.
+     */
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
@@ -165,6 +177,10 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 4 * 1024 * 1024;
     }
 
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#fetchBatchCount()} to make this value
+     * live-reloadable.
+     */
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
@@ -255,7 +271,10 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 1_000;
     }
 
-    @SuppressWarnings("DeprecatedIsStillUsed")
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#sweepReadThreads()} to make this value
+     * live-reloadable.
+     */
     @Value.Default
     @Deprecated
     public Integer sweepReadThreads() {

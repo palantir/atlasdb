@@ -50,8 +50,8 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
      * Creates a ConnectionManagerAwareDbKvs.
      *
      * @param config Configuration file.
-     * @param runtimeConfig
-     *@param leaderConfig unused.
+     * @param runtimeConfig unused.
+     * @param leaderConfig unused.
      * @param namespace unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
      * @param unusedQosClient unused.     @return The requested KeyValueService instance

@@ -25,11 +25,11 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = CassandraKeyValueServiceConfig.class)
-public class CassandraReloadableKVSConfig extends AutoDelegate_CassandraKeyValueServiceConfig {
+public class CassandraReloadableKvsConfig extends AutoDelegate_CassandraKeyValueServiceConfig {
     private final CassandraKeyValueServiceConfig config;
     private final Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig;
 
-    public CassandraReloadableKVSConfig(CassandraKeyValueServiceConfig config,
+    public CassandraReloadableKvsConfig(CassandraKeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
         this.config = config;
         this.runtimeConfig = runtimeConfig;
@@ -81,9 +81,9 @@ public class CassandraReloadableKVSConfig extends AutoDelegate_CassandraKeyValue
         if (!runtimeConfigOptional.isPresent()) {
             return null;
         }
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
+        CassandraKeyValueServiceRuntimeConfig ckvsRuntimeConfig =
                 (CassandraKeyValueServiceRuntimeConfig) runtimeConfigOptional.get();
 
-        return function.apply(runtimeConfig);
+        return function.apply(ckvsRuntimeConfig);
     }
 }

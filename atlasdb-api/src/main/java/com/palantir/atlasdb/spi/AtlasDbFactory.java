@@ -50,7 +50,6 @@ public interface AtlasDbFactory {
      *
      * @param config Configuration file.
      * @param runtimeConfig Runtime configuration file.
-     * @param runtimeConfig Runtime configuration file.
      * @param leaderConfig If the implementation supports it, the optional leader configuration.
      * @param namespace If the implementation supports it, this is the namespace to use when the namespace in config is
      * absent. If both are present, they must match.

@@ -72,7 +72,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         CassandraKeyValueServiceConfig configWithNamespace = CassandraKeyValueServiceConfigs
                 .copyWithKeyspace(cassandraConfig, desiredKeyspace);
 
-        return new CassandraReloadableKVSConfig(configWithNamespace, runtimeConfig);
+        return new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
     }
 
     @VisibleForTesting
@@ -91,7 +91,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @SuppressWarnings("unchecked")
     private static <T> T checkAndCast(Object obj, Class<T> clazz) {
         Preconditions.checkArgument(clazz.isInstance(obj),
-                "CassandraAtlasDbFactory expects a type %s, found %s", clazz.getClass(), obj.getClass());
+                "CassandraAtlasDbFactory expects an instance of type %s, found %s", clazz.getClass(), obj.getClass());
         return (T) obj;
     }
 
