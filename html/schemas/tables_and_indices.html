@@ -479,8 +479,8 @@ of the objects, in the above example), they can have partitions
 explicitly created for them by specifying <code class="docutils literal"><span class="pre">explicit(...)</span></code>. Note that
 use of <code class="docutils literal"><span class="pre">partition()</span></code> assumes the order storage of rows; if there is no
 good way to partition the rows uniformly and range requests are not
-needed, then perhaps <code class="docutils literal"><span class="pre">partitionStrategy(PartitionStrategy.HASH)</span></code> is a
-better idea for your table.</p>
+needed, then hashing the first (or first-N) row components of
+your table would likely be a good idea.</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">The most significant component of any
@@ -653,19 +653,6 @@ components must contain the same value.</li>
 </div>
 <p>The conflict handler parameter specifies the MVCC transaction semantics
 for the table.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">partitionStrategy</span><span class="p">(</span><span class="n">PartitionStrategy</span> <span class="n">strategy</span> <span class="o">=</span> <span class="n">PartitionStrategy</span><span class="o">.</span><span class="n">ORDERED</span><span class="p">);</span>
-</pre></div>
-</div>
-<p>Specifies the strategy for how rows in the table will be partitioned
-across database shards.</p>
-<ul class="simple">
-<li><strong>ORDERED</strong> means that rows will be partitioned into contiguous
-chunks of the table space. This is useful if your table needs range
-scans. See the partitions section for more information.</li>
-<li><strong>HASH</strong> means that rows will be partitioned based on the hashes of
-their row. This avoids hotspotting, but makes range scans rather
-difficult.</li>
-</ul>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">cachePriority</span><span class="p">(</span><span class="n">CachePriority</span> <span class="n">priority</span> <span class="o">=</span> <span class="n">CachePriority</span><span class="o">.</span><span class="n">WARM</span><span class="p">);</span>
 </pre></div>
 </div>
