@@ -109,14 +109,14 @@ public class MetricsManager {
     Map<String, String> getTableNameTagFor(TableReference tableRef) {
         String tableName = tableRef.getTablename();
         if (!isSafeToLog.apply(tableRef)) {
-            tableName = "unsafeTableRef_" + obfuscate(tableRef);
+            tableName = "unsafeTable_" + obfuscate(tableRef);
         }
 
         return ImmutableMap.of("tableName", tableName);
     }
 
     private String obfuscate(TableReference tableRef) {
-        return Sha256Hash.computeHash(tableRef.getTablename().getBytes()).serializeToHexString().substring(0, 8);
+        return Sha256Hash.computeHash(tableRef.getTablename().getBytes()).serializeToHexString().substring(0, 16);
     }
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {
