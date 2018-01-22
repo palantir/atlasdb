@@ -121,6 +121,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
             while (true) {
+                if (Thread.currentThread().isInterrupted()) {
+                    break;
+                }
+
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
                 log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
