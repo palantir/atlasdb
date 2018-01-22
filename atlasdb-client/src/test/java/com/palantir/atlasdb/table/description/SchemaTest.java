@@ -320,6 +320,7 @@ public class SchemaTest {
     public void v2SchemaTablesCanBeGeneratedWithAllRowAndColumnComponents() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         schema.addTableDefinition(TEST_TABLE_NAME, new TableDefinition() {{
+            enableV2Table();
             ignoreHotspottingChecks();
             rowName();
             Arrays.stream(ValueType.values())
@@ -327,7 +328,6 @@ public class SchemaTest {
                     .forEach(valueType -> rowComponent(valueType.name(), valueType));
             columns();
             Arrays.stream(ValueType.values())
-                    .filter(valueType -> valueType != ValueType.STRING && valueType != ValueType.BLOB)
                     .forEach(valueType -> column(valueType.name(), valueType.name() + "-long", valueType));
         }});
 
