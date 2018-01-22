@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.cleaner.external;
+package com.palantir.atlasdb.sweep.external;
 
 /**
  * Created by jkong on 22/01/2018.
