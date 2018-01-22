@@ -1,11 +1,5 @@
 {
     "compileClasspath": {
-        "ch.qos.logback:logback-access": {
-            "locked": "1.1.7",
-            "transitive": [
-                "io.dropwizard:dropwizard-request-logging"
-            ]
-        },
         "ch.qos.logback:logback-classic": {
             "locked": "1.1.7",
             "transitive": [
@@ -17,7 +11,6 @@
         "ch.qos.logback:logback-core": {
             "locked": "1.1.7",
             "transitive": [
-                "ch.qos.logback:logback-access",
                 "ch.qos.logback:logback-classic",
                 "io.dropwizard:dropwizard-logging"
             ]
@@ -131,7 +124,8 @@
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk7": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -142,8 +136,7 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing",
-                "com.palantir.tokens:auth-tokens",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
@@ -157,8 +150,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.remoting2:jackson-support",
-                "com.palantir.remoting3:jackson-support",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base": {
@@ -907,16 +899,16 @@
             ]
         },
         "io.dropwizard:dropwizard-configuration": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-core": {
-            "locked": "1.0.6"
+            "locked": "0.9.3"
         },
         "io.dropwizard:dropwizard-jackson": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard:dropwizard-configuration",
@@ -927,54 +919,46 @@
             ]
         },
         "io.dropwizard:dropwizard-jersey": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-jetty": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
-                "io.dropwizard:dropwizard-core",
-                "io.dropwizard:dropwizard-request-logging"
+                "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-lifecycle": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-metrics"
             ]
         },
         "io.dropwizard:dropwizard-logging": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-jersey",
-                "io.dropwizard:dropwizard-jetty",
-                "io.dropwizard:dropwizard-request-logging"
+                "io.dropwizard:dropwizard-jetty"
             ]
         },
         "io.dropwizard:dropwizard-metrics": {
-            "locked": "1.0.6",
-            "transitive": [
-                "io.dropwizard:dropwizard-core"
-            ]
-        },
-        "io.dropwizard:dropwizard-request-logging": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-servlets": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-util": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-jackson",
@@ -984,7 +968,7 @@
             ]
         },
         "io.dropwizard:dropwizard-validation": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-configuration",
                 "io.dropwizard:dropwizard-core",
@@ -1108,7 +1092,7 @@
             ]
         },
         "net.sourceforge.argparse4j:argparse4j": {
-            "locked": "0.7.0",
+            "locked": "0.6.0",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
@@ -1174,14 +1158,14 @@
             ]
         },
         "org.eclipse.jetty:jetty-continuation": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey",
                 "org.eclipse.jetty:jetty-servlets"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty:jetty-server",
@@ -1189,20 +1173,20 @@
             ]
         },
         "org.eclipse.jetty:jetty-io": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "org.eclipse.jetty:jetty-server",
                 "org.eclipse.jetty:jetty-servlets"
             ]
         },
         "org.eclipse.jetty:jetty-security": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "org.eclipse.jetty:jetty-servlet"
             ]
         },
         "org.eclipse.jetty:jetty-server": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-jetty",
@@ -1211,20 +1195,20 @@
             ]
         },
         "org.eclipse.jetty:jetty-servlet": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
         "org.eclipse.jetty:jetty-servlets": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty"
             ]
         },
         "org.eclipse.jetty:jetty-util": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-logging",
                 "org.eclipse.jetty:jetty-http",
@@ -1234,13 +1218,13 @@
             ]
         },
         "org.eclipse.jetty:jetty-webapp": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "org.eclipse.jetty:jetty-xml": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "org.eclipse.jetty:jetty-webapp"
             ]
@@ -1310,7 +1294,7 @@
             ]
         },
         "org.glassfish.jersey.containers:jersey-container-servlet": {
-            "locked": "2.23.2",
+            "locked": "2.22.1",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
@@ -1349,13 +1333,13 @@
             ]
         },
         "org.glassfish.jersey.ext:jersey-bean-validation": {
-            "locked": "2.23.2",
+            "locked": "2.22.1",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "org.glassfish.jersey.ext:jersey-metainf-services": {
-            "locked": "2.23.2",
+            "locked": "2.22.1",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
@@ -1486,12 +1470,6 @@
         }
     },
     "runtime": {
-        "ch.qos.logback:logback-access": {
-            "locked": "1.1.7",
-            "transitive": [
-                "io.dropwizard:dropwizard-request-logging"
-            ]
-        },
         "ch.qos.logback:logback-classic": {
             "locked": "1.1.7",
             "transitive": [
@@ -1503,7 +1481,6 @@
         "ch.qos.logback:logback-core": {
             "locked": "1.1.7",
             "transitive": [
-                "ch.qos.logback:logback-access",
                 "ch.qos.logback:logback-classic",
                 "io.dropwizard:dropwizard-logging"
             ]
@@ -1617,7 +1594,8 @@
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk7": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -1628,8 +1606,7 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing",
-                "com.palantir.tokens:auth-tokens",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
@@ -1643,8 +1620,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.remoting2:jackson-support",
-                "com.palantir.remoting3:jackson-support",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.remoting3:jackson-support"
             ]
         },
         "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base": {
@@ -2393,16 +2369,16 @@
             ]
         },
         "io.dropwizard:dropwizard-configuration": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-core": {
-            "locked": "1.0.6"
+            "locked": "0.9.3"
         },
         "io.dropwizard:dropwizard-jackson": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard:dropwizard-configuration",
@@ -2413,54 +2389,46 @@
             ]
         },
         "io.dropwizard:dropwizard-jersey": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-jetty": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
-                "io.dropwizard:dropwizard-core",
-                "io.dropwizard:dropwizard-request-logging"
+                "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-lifecycle": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-metrics"
             ]
         },
         "io.dropwizard:dropwizard-logging": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-jersey",
-                "io.dropwizard:dropwizard-jetty",
-                "io.dropwizard:dropwizard-request-logging"
+                "io.dropwizard:dropwizard-jetty"
             ]
         },
         "io.dropwizard:dropwizard-metrics": {
-            "locked": "1.0.6",
-            "transitive": [
-                "io.dropwizard:dropwizard-core"
-            ]
-        },
-        "io.dropwizard:dropwizard-request-logging": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-servlets": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-util": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-jackson",
@@ -2470,7 +2438,7 @@
             ]
         },
         "io.dropwizard:dropwizard-validation": {
-            "locked": "1.0.6",
+            "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-configuration",
                 "io.dropwizard:dropwizard-core",
@@ -2594,7 +2562,7 @@
             ]
         },
         "net.sourceforge.argparse4j:argparse4j": {
-            "locked": "0.7.0",
+            "locked": "0.6.0",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
@@ -2660,14 +2628,14 @@
             ]
         },
         "org.eclipse.jetty:jetty-continuation": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey",
                 "org.eclipse.jetty:jetty-servlets"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty:jetty-server",
@@ -2675,20 +2643,20 @@
             ]
         },
         "org.eclipse.jetty:jetty-io": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "org.eclipse.jetty:jetty-server",
                 "org.eclipse.jetty:jetty-servlets"
             ]
         },
         "org.eclipse.jetty:jetty-security": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "org.eclipse.jetty:jetty-servlet"
             ]
         },
         "org.eclipse.jetty:jetty-server": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-jetty",
@@ -2697,20 +2665,20 @@
             ]
         },
         "org.eclipse.jetty:jetty-servlet": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
         "org.eclipse.jetty:jetty-servlets": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty"
             ]
         },
         "org.eclipse.jetty:jetty-util": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-logging",
                 "org.eclipse.jetty:jetty-http",
@@ -2720,13 +2688,13 @@
             ]
         },
         "org.eclipse.jetty:jetty-webapp": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "org.eclipse.jetty:jetty-xml": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.2.17.v20160517",
             "transitive": [
                 "org.eclipse.jetty:jetty-webapp"
             ]
@@ -2796,7 +2764,7 @@
             ]
         },
         "org.glassfish.jersey.containers:jersey-container-servlet": {
-            "locked": "2.23.2",
+            "locked": "2.22.1",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
@@ -2835,13 +2803,13 @@
             ]
         },
         "org.glassfish.jersey.ext:jersey-bean-validation": {
-            "locked": "2.23.2",
+            "locked": "2.22.1",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "org.glassfish.jersey.ext:jersey-metainf-services": {
-            "locked": "2.23.2",
+            "locked": "2.22.1",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
