@@ -23,6 +23,7 @@ import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.util.crypto.Sha256Hash;
 
 public class GenericStreamStoreRowCreator {
     private static final Logger log = LoggerFactory.getLogger(GenericStreamStoreRowCreator.class);
@@ -48,7 +49,11 @@ public class GenericStreamStoreRowCreator {
         return EncodingUtils.add(hashComponent, streamIdComponent);
     }
 
-    public byte[] constructHashTableRow(ByteString hashData) {
-        return hashData.toByteArray();
+    public byte[] constructHashTableRow(ByteString streamHash) {
+        Sha256Hash hash = Sha256Hash.EMPTY;
+        if (streamHash != ByteString.EMPTY) {
+            hash = new Sha256Hash(streamHash.toByteArray());
+        }
+        return hash.getBytes();
     }
 }
