@@ -42,7 +42,11 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
     }
 
     public static boolean isStreamStoreValueTable(TableReference tableReference) {
-        return tableReference.getQualifiedName().endsWith(StreamTableType.VALUE.tableSuffix);
+        return isStreamStoreTableOfSpecificType(VALUE, tableReference);
+    }
+
+    public static boolean isStreamStoreTableOfSpecificType(StreamTableType type, TableReference tableReference) {
+        return tableReference.getQualifiedName().endsWith(type.tableSuffix);
     }
 
     public static TableReference getIndexTableFromValueTable(TableReference tableReference) {
