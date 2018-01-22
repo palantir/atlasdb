@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak| |improved|
+         - The ``partitionStrategy`` parameter in AtlasDB table metadata has been removed; products that explicitly specify partition strategies in their schemas will need to remove them.
+           The value of this parameter was never actually read; behaviour would have been identical regardless of what this was specified to (if at all).
+           This change was made to simplify the API and also remove any illusion that specifying the ``partitionStrategy`` would have done anything.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2864>`__)
+
     *    - |devbreak|
          - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
@@ -181,12 +187,6 @@ v0.73.0-rc1
     *    - |improved|
          - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
-
-    *    - |devbreak| |improved|
-         - The ``partitionStrategy`` parameter in AtlasDB table metadata has been removed; products that explicitly specify partition strategies in their schemas will need to remove them.
-           The value of this parameter was never actually read; behaviour would have been identical regardless of what this was specified to (if at all).
-           This change was made to simplify the API and also remove any illusion that specifying the ``partitionStrategy`` would have done anything.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2864>`__)
 
 
 =======
