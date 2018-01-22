@@ -20,6 +20,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -45,6 +46,9 @@ public final class AtlasDbConstants {
     public static final TableReference DEFAULT_SCHEMA_METADATA_TABLE = TableReference.createWithEmptyNamespace(
             "_schema_metadata");
 
+    // Deprecated tables
+    public static final TableReference SWEEP_PROGRESS_V2 = TableReference.createWithEmptyNamespace("_sweep_progress2");
+
     public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
 
     private static final int ORACLE_NAME_LENGTH_LIMIT = 30;
@@ -62,7 +66,8 @@ public final class AtlasDbConstants {
 
     public static final TableReference PARTITION_MAP_TABLE = TableReference.createWithEmptyNamespace("_partition_map");
     public static final byte[] EMPTY_TABLE_METADATA = {}; // use carefully
-    public static final byte[] GENERIC_TABLE_METADATA = new TableMetadata().persistToBytes();
+    public static final byte[] GENERIC_TABLE_METADATA = new TableMetadata(TableMetadataPersistence.LogSafety.SAFE)
+            .persistToBytes();
 
     public static final int MINIMUM_COMPRESSION_BLOCK_SIZE_KB = 4;
     public static final int DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB = 4;
@@ -74,7 +79,6 @@ public final class AtlasDbConstants {
 
     public static final long DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS = 60_000;
 
-
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             PUNCH_TABLE,
@@ -84,7 +88,8 @@ public final class AtlasDbConstants {
             PARTITION_MAP_TABLE,
             PERSISTED_LOCKS_TABLE,
             SWEEP_PROGRESS_TABLE,
-            DEFAULT_SCHEMA_METADATA_TABLE);
+            DEFAULT_SCHEMA_METADATA_TABLE,
+            SWEEP_PROGRESS_V2);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
