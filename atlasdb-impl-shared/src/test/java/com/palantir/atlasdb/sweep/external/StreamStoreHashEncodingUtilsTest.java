@@ -24,11 +24,11 @@ import org.junit.Test;
 import com.palantir.atlasdb.table.description.ValueType;
 
 public class StreamStoreHashEncodingUtilsTest {
-    private final GenericStreamIdentifier IDENTIFIER = ImmutableGenericStreamIdentifier.of(ValueType.FIXED_LONG,
+    private static final GenericStreamIdentifier IDENTIFIER = ImmutableGenericStreamIdentifier.of(ValueType.FIXED_LONG,
             ValueType.FIXED_LONG.convertFromJava(1L));
 
-    private final byte[] ENCODED_IDENTIFIER = {-114, -58, -91, 70, 112, 92, 76, 40};
-    private final byte[] ENCODED_IDENTIFIER_AND_BLOCK_ONE = {-35, 121, 15, -77, -86, -93, 113, -107};
+    private static final byte[] ENCODED_IDENTIFIER = {-114, -58, -91, 70, 112, 92, 76, 40};
+    private static final byte[] ENCODED_IDENTIFIER_AND_BLOCK_ONE = {-35, 121, 15, -77, -86, -93, 113, -107};
 
     @Test
     public void getZeroHashComponentsReturnsEmptyByteArray() {
