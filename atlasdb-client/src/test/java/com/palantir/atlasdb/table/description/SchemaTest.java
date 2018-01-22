@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -313,6 +314,24 @@ public class SchemaTest {
                 schema,
                 StreamTableType.INDEX.getTableName(shortName),
                 ARBITRARY_CLEANUP_METADATA_ASSERTION);
+    }
+
+    @Test
+    public void v2SchemaTablesCanBeGeneratedWithAllRowAndColumnComponents() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        schema.addTableDefinition(TEST_TABLE_NAME, new TableDefinition() {{
+            ignoreHotspottingChecks();
+            rowName();
+            Arrays.stream(ValueType.values())
+                    .filter(valueType -> valueType != ValueType.STRING && valueType != ValueType.BLOB)
+                    .forEach(valueType -> rowComponent(valueType.name(), valueType));
+            columns();
+            Arrays.stream(ValueType.values())
+                    .filter(valueType -> valueType != ValueType.STRING && valueType != ValueType.BLOB)
+                    .forEach(valueType -> column(valueType.name(), valueType.name() + "-long", valueType));
+        }});
+
+        schema.validate();
     }
 
     private Schema getSchemaWithSimpleTestTable() {
