@@ -24,17 +24,15 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
+import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.logsafe.UnsafeArg;
 
 public class SchemalessStreamStoreDeleter {
     private static final Logger log = LoggerFactory.getLogger(SchemalessStreamStoreDeleter.class);
@@ -59,18 +57,18 @@ public class SchemalessStreamStoreDeleter {
             return;
         }
 
-        Map<Cell, byte[]> metadataInDb = metadataReader.readMetadata(tx, streamIds);
+        Map<GenericStreamIdentifier, StreamMetadata> metadataInDb = metadataReader.readMetadata(tx, streamIds);
 
         Set<Cell> valueTableCellsToDelete = Sets.newHashSet();
         Set<Cell> hashTableCellsToDelete = Sets.newHashSet();
         Set<Cell> metadataTableCellsToDelete = Sets.newHashSet();
 
-        for (Map.Entry<Cell, byte[]> metadata : metadataInDb.entrySet()) {
-            byte[] streamId = metadata.getKey().getRowName();
-            StreamPersistence.StreamMetadata streamMetadata = deserializeStreamMetadata(metadata.getValue());
+        for (Map.Entry<GenericStreamIdentifier, StreamMetadata> entry : metadataInDb.entrySet()) {
+            GenericStreamIdentifier streamId = entry.getKey();
+            StreamMetadata streamMetadata = entry.getValue();
 
             valueTableCellsToDelete.addAll(cellCreator.constructValueTableCellSet(
-                    streamId, getNumberOfBlocksFromMetadata(streamMetadata)));
+                    streamId, getNumberOfBlocksFromMetadata(entry.getValue())));
             metadataTableCellsToDelete.add(cellCreator.constructMetadataTableCell(streamId));
             hashTableCellsToDelete.add(cellCreator.constructHashTableCell(streamId, streamMetadata.getHash()));
         }
@@ -86,16 +84,6 @@ public class SchemalessStreamStoreDeleter {
 
     private TableReference getTableReference(StreamTableType type) {
         return TableReference.create(namespace, type.getTableName(streamStoreShortName));
-    }
-
-    private StreamPersistence.StreamMetadata deserializeStreamMetadata(byte[] value) {
-        try {
-            return StreamPersistence.StreamMetadata.parseFrom(value);
-        } catch (InvalidProtocolBufferException e) {
-            log.warn("Attempted to deserialize stream metadata {}, but failed",
-                    UnsafeArg.of("streamMetadata", value));
-            throw Throwables.propagate(e);
-        }
     }
 
     private long getNumberOfBlocksFromMetadata(StreamPersistence.StreamMetadata metadata) {
