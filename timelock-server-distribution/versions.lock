@@ -292,6 +292,7 @@
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-processors",
+                "com.palantir.atlasdb:qos-service-impl",
                 "com.palantir.atlasdb:timelock-agent",
                 "com.palantir.common:streams",
                 "com.palantir.config.crypto:encrypted-config-value",
