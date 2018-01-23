@@ -217,7 +217,7 @@ public abstract class TransactionManagers {
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(
                         config.keyValueService(),
-                        JavaSuppliers.compose(AtlasDbRuntimeConfig::kvs, runtimeConfigSupplier),
+                        JavaSuppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier),
                         config.leader(),
                         config.namespace(),
                         config.initializeAsync(),

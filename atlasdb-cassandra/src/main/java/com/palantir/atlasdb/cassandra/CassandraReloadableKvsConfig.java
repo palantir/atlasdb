@@ -27,12 +27,12 @@ import com.palantir.processors.AutoDelegate;
 @AutoDelegate(typeToExtend = CassandraKeyValueServiceConfig.class)
 public class CassandraReloadableKvsConfig extends AutoDelegate_CassandraKeyValueServiceConfig {
     private final CassandraKeyValueServiceConfig config;
-    private final Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig;
+    private final Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigSupplier;
 
     public CassandraReloadableKvsConfig(CassandraKeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
         this.config = config;
-        this.runtimeConfig = runtimeConfig;
+        this.runtimeConfigSupplier = runtimeConfig;
     }
 
     @Override
@@ -78,7 +78,7 @@ public class CassandraReloadableKvsConfig extends AutoDelegate_CassandraKeyValue
     }
 
     private <T> T unwrapRuntimeConfig(Function<CassandraKeyValueServiceRuntimeConfig, T> function) {
-        Optional<KeyValueServiceRuntimeConfig> runtimeConfigOptional = runtimeConfig.get();
+        Optional<KeyValueServiceRuntimeConfig> runtimeConfigOptional = runtimeConfigSupplier.get();
         if (!runtimeConfigOptional.isPresent()) {
             return null;
         }
