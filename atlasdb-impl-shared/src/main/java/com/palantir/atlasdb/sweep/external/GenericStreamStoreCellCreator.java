@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -29,11 +31,17 @@ import com.palantir.atlasdb.schema.stream.StreamTableDefinitionBuilder;
 public class GenericStreamStoreCellCreator {
     private final GenericStreamStoreRowCreator rowCreator;
 
+    @VisibleForTesting
+    GenericStreamStoreCellCreator(GenericStreamStoreRowCreator rowCreator) {
+        this.rowCreator = rowCreator;
+    }
+
     public GenericStreamStoreCellCreator(StreamStoreCleanupMetadata cleanupMetadata) {
         this.rowCreator = new GenericStreamStoreRowCreator(cleanupMetadata);
     }
 
     public Set<Cell> constructValueTableCellSet(GenericStreamIdentifier streamId, long numBlocks) {
+        Preconditions.checkState(numBlocks >= 0, "Streams cannot contain a negative number of blocks.");
         return LongStream.range(0, numBlocks)
                 .boxed()
                 .map(blockId -> rowCreator.constructValueTableRow(streamId, blockId))
