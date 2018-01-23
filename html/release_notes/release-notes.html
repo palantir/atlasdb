@@ -246,6 +246,11 @@ The protobuf library has been upgraded to 3.5.1. Dependent projects will need to
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2887">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>V2 Schemas which use <code class="docutils literal"><span class="pre">ValueType.BLOB</span></code> will now compile.
+Previously, compilation failed with an <code class="docutils literal"><span class="pre">IllegalArgumentException</span></code> from Java Poet, as we assumed Java versions of <code class="docutils literal"><span class="pre">ValueType</span></code> were always associated with object types.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2899">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Stop to sweep when the sweep thread is interrupted.
 Previously, when services were shutting down, the background sweeper thread continuously logged warnings
 due to a closed TransactionManager.

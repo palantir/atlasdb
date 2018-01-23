@@ -100,6 +100,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2887>`__)
 
     *    - |fixed|
+         - V2 Schemas which use ``ValueType.BLOB`` will now compile.
+           Previously, compilation failed with an ``IllegalArgumentException`` from Java Poet, as we assumed Java versions of ``ValueType`` were always associated with object types.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2899>`__)
+
+    *    - |fixed|
          - Stop to sweep when the sweep thread is interrupted.
            Previously, when services were shutting down, the background sweeper thread continuously logged warnings
            due to a closed TransactionManager.
