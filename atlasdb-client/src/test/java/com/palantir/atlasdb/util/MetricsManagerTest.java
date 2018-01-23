@@ -201,7 +201,7 @@ public class MetricsManagerTest {
         Map<String, String> tag = metricsManager.getTableNameTagFor(table("unsafe"));
         assertThat(tag.size()).isEqualTo(1);
         assertThat(tag).containsKey("tableName");
-        assertThat(tag.get("tableName")).isEqualTo("unsafeTableRef_629e3fc9");
+        assertThat(tag.get("tableName")).isEqualTo("unsafeTable_629e3fc948fb5ca5");
     }
 
     private TableReference table(String tableName) {
