@@ -66,6 +66,8 @@ public abstract class AbstractBenchmark {
             return getStatistics();
         } catch (InterruptedException ex) {
             throw new RuntimeException(ex);
+        } finally {
+            cleanup();
         }
     }
 
@@ -86,6 +88,7 @@ public abstract class AbstractBenchmark {
         }
     }
 
+    // TODO(gmaretic): get useful errors when they occur, maybe also get logs
     private void runTestForSingleClient() {
         try {
             recordTimesForSingleClient();
@@ -130,6 +133,9 @@ public abstract class AbstractBenchmark {
     protected abstract void performOneCall();
 
     protected void setup() { }
+
+    // TODO(gmaretic): implement cleanup -- truncate tables, etc.
+    protected void cleanup() { }
 
     protected Map<String, Object> getExtraParameters() {
         return ImmutableMap.of();

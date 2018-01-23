@@ -32,7 +32,7 @@ public interface BenchmarksService {
 
     @GET
     @Path("/write-txn-rows")
-    Map<String, Object> writeTransactionRows(
+    Map<String, Object> transactionWriteRows(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient,
             @QueryParam("numRows") int numRows,
@@ -40,7 +40,7 @@ public interface BenchmarksService {
 
     @GET
     @Path("/write-txn-dynamic-columns")
-    Map<String, Object> writeTransactionDynamicColumns(
+    Map<String, Object> transactionWriteDynamicColumns(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient,
             @QueryParam("numRows") int numRows,
@@ -48,7 +48,7 @@ public interface BenchmarksService {
 
     @GET
     @Path("/contended-write-txn")
-    Map<String, Object> contendedWriteTransaction(
+    Map<String, Object> transactionWriteContended(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
@@ -68,7 +68,7 @@ public interface BenchmarksService {
 
     @GET
     @Path("/read-txn-rows")
-    Map<String, Object> readTransactionRows(
+    Map<String, Object> transactionReadRows(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient,
             @QueryParam("numRows") int numRows,
@@ -82,7 +82,7 @@ public interface BenchmarksService {
 
     @GET
     @Path("/kvs-cas")
-    Map<String, Object> kvsCas(
+    Map<String, Object> kvsPutUnlessExists(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 

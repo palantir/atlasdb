@@ -17,40 +17,36 @@ package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
-import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable;
-import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsColumn;
-import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsColumnValue;
-import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsRow;
+import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
+import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsTable;
+import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsTable.BlobsRow;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public final class DynamicColumnsWriteTransactionBenchmark extends AbstractWriteTransactionBenchmark {
+public final class TransactionWriteRowsBenchmark extends AbstractWriteTransactionBenchmark {
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient, int numRows, int dataSize) {
-        return new DynamicColumnsWriteTransactionBenchmark(txnManager, numClients, requestsPerClient, numRows,
+        return new TransactionWriteRowsBenchmark(txnManager, numClients, requestsPerClient, numRows,
                 dataSize).execute();
     }
 
-    private DynamicColumnsWriteTransactionBenchmark(TransactionManager txnManager, int numClients,
-            int requestsPerClient,
+    private TransactionWriteRowsBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient,
             int numRows, int dataSize) {
         super(txnManager, numClients, requestsPerClient, numRows, dataSize);
     }
 
     @Override
     protected void writeValues(Transaction txn, List<byte[]> values) {
-        String bucket = UUID.randomUUID().toString();
-        KvDynamicColumnsTable table = tableFactory.getKvDynamicColumnsTable(txn);
+        BlobsTable table = tableFactory.getBlobsTable(txn);
 
-        long id = 1;
         for (byte[] value : values) {
-            table.put(
-                    KvDynamicColumnsRow.of(bucket),
-                    KvDynamicColumnsColumnValue.of(KvDynamicColumnsColumn.of(id++), value));
+            table.putData(
+                    BlobsRow.of(RandomBytes.ofLength(16)),
+                    value);
         }
     }
+
 }

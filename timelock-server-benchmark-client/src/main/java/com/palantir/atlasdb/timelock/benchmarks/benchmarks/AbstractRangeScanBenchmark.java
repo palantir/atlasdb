@@ -41,7 +41,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
  * A base class for implementing range scan benchmarks. A primary function of this class is to store metadata
  * about previous data that has been written, so that multiple benchmarks with the same parameters will just
  * read the same data rather than writing new data for each benchmarks. Besides optimizing the time taken, this
- * allows us to run compactions the KVS before reading the data.
+ * allows us to run compactions on the KVS before reading the data.
  */
 public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
 

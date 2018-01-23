@@ -25,16 +25,17 @@ import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public final class KvsCasBenchmark extends AbstractBenchmark {
+public final class KvsPutUnlessExistsBenchmark extends AbstractBenchmark {
 
     private final KeyValueService keyValueService;
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient) {
-        return new KvsCasBenchmark(txnManager.getKeyValueService(), numClients, requestsPerClient).execute();
+        return new KvsPutUnlessExistsBenchmark(txnManager.getKeyValueService(), numClients, requestsPerClient)
+                .execute();
     }
 
-    private KvsCasBenchmark(KeyValueService keyValueService, int numClients, int numRequestsPerClient) {
+    private KvsPutUnlessExistsBenchmark(KeyValueService keyValueService, int numClients, int numRequestsPerClient) {
         super(numClients, numRequestsPerClient);
         this.keyValueService = keyValueService;
     }

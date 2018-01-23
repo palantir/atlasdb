@@ -41,22 +41,22 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
     public void writeTransactionRows() {
-        runAndPrintResults(() -> client.writeTransactionRows(1, 20, 1000, 200));
+        runAndPrintResults(() -> client.transactionWriteRows(1, 20, 1000, 200));
     }
 
     @Test
     public void writeTransactionDynamicColumns() {
-        runAndPrintResults(() -> client.writeTransactionDynamicColumns(1, 20, 1000, 200));
+        runAndPrintResults(() -> client.transactionWriteDynamicColumns(1, 20, 1000, 200));
     }
 
     @Test
     public void readTransactionRows() {
-        runAndPrintResults(() -> client.readTransactionRows(1, 20, 10_000, 200));
+        runAndPrintResults(() -> client.transactionReadRows(1, 20, 10_000, 200));
     }
 
     @Test
     public void kvsCas() {
-        runAndPrintResults(client::kvsCas, 1, 5000);
+        runAndPrintResults(client::kvsPutUnlessExists, 1, 5000);
     }
 
     @Test
@@ -71,7 +71,7 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
     public void contendedWriteTransaction() {
-        runAndPrintResults(client::contendedWriteTransaction, 2000, 1);
+        runAndPrintResults(client::transactionWriteContended, 2000, 1);
     }
 
     @Test

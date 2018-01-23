@@ -36,7 +36,7 @@ public class SlaVerifier extends BenchmarkRunnerBase {
     public static void warmUp() {
         client.timestamp(1, 20_000);
         client.timestamp(16, 2_000);
-        client.writeTransactionRows(1, 100, 1, 100);
+        client.transactionWriteRows(1, 100, 1, 100);
     }
 
     @Test
@@ -68,7 +68,7 @@ public class SlaVerifier extends BenchmarkRunnerBase {
 
     @Test
     public void writeTransactionHighContentionBurst() {
-        Map<String, Object> results = client.contendedWriteTransaction(4096, 1);
+        Map<String, Object> results = client.transactionWriteContended(4096, 1);
         assertThat((Double) results.get("totalTime")).isLessThan(60_000);
     }
 
@@ -77,7 +77,7 @@ public class SlaVerifier extends BenchmarkRunnerBase {
         ExecutorService executor = Executors.newFixedThreadPool(8);
         List<Future<Map<String, Object>>> futures = IntStream.range(0, 8)
                 .mapToObj(i -> executor.submit(
-                        () -> client.contendedWriteTransaction(512, 1)))
+                        () -> client.transactionWriteContended(512, 1)))
                 .collect(Collectors.toList());
 
         futures.stream()

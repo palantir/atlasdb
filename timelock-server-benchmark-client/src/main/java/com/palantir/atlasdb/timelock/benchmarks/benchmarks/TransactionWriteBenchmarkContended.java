@@ -30,9 +30,9 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializab
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public final class ContendedWriteTransactionBenchmark extends AbstractBenchmark {
+public final class TransactionWriteBenchmarkContended extends AbstractBenchmark {
 
-    private static final Logger log = LoggerFactory.getLogger(ContendedWriteTransactionBenchmark.class);
+    private static final Logger log = LoggerFactory.getLogger(TransactionWriteBenchmarkContended.class);
 
     private static final BenchmarksTableFactory tableFactory = BenchmarksTableFactory.of();
 
@@ -41,12 +41,13 @@ public final class ContendedWriteTransactionBenchmark extends AbstractBenchmark 
             RandomBytes.ofLength(16), RandomBytes.ofLength(16),
             RandomBytes.ofLength(16), RandomBytes.ofLength(16));
 
+    // TODO(gmaretic): currently does not work for requestsPerClient > 1 since we never update originalValuesByKey
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient) {
-        return new ContendedWriteTransactionBenchmark(txnManager, numClients, requestsPerClient).execute();
+        return new TransactionWriteBenchmarkContended(txnManager, numClients, requestsPerClient).execute();
     }
 
-    private ContendedWriteTransactionBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient) {
+    private TransactionWriteBenchmarkContended(TransactionManager txnManager, int numClients, int requestsPerClient) {
         super(numClients, requestsPerClient);
 
         this.txnManager = txnManager;
@@ -56,9 +57,7 @@ public final class ContendedWriteTransactionBenchmark extends AbstractBenchmark 
     public void setup() {
         txnManager.runTaskWithRetry(txn -> {
             BlobsSerializableTable table = tableFactory.getBlobsSerializableTable(txn);
-            originalValuesByKey.forEach((key, value) -> {
-                table.putData(BlobsSerializableRow.of(key), value);
-            });
+            originalValuesByKey.forEach((key, value) -> table.putData(BlobsSerializableRow.of(key), value));
             return null;
         });
     }
