@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed| |metrics|
+         - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/xxxx>`__)
+
     *    - |improved| |logs|
          - AtlasDB internal table names are now safe for logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
