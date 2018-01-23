@@ -42,41 +42,42 @@ public class CassandraReloadableKvsConfig extends AutoDelegate_CassandraKeyValue
 
     @Override
     public int unresponsiveHostBackoffTimeSeconds() {
-        return MoreObjects.firstNonNull(
-                ifRuntimeConfigPresent(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds),
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds,
                 config.unresponsiveHostBackoffTimeSeconds());
     }
 
 
     @Override
     public int mutationBatchCount() {
-        return MoreObjects.firstNonNull(
-                ifRuntimeConfigPresent(CassandraKeyValueServiceRuntimeConfig::mutationBatchCount),
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::mutationBatchCount,
                 config.mutationBatchCount());
     }
 
     @Override
     public int mutationBatchSizeBytes() {
-        return MoreObjects.firstNonNull(
-                ifRuntimeConfigPresent(CassandraKeyValueServiceRuntimeConfig::mutationBatchSizeBytes),
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::mutationBatchSizeBytes,
                 config.mutationBatchSizeBytes());
     }
 
     @Override
     public int fetchBatchCount() {
-        return MoreObjects.firstNonNull(
-                ifRuntimeConfigPresent(CassandraKeyValueServiceRuntimeConfig::fetchBatchCount),
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::fetchBatchCount,
                 config.fetchBatchCount());
     }
 
     @Override
     public Integer sweepReadThreads() {
-        return MoreObjects.firstNonNull(
-                ifRuntimeConfigPresent(CassandraKeyValueServiceRuntimeConfig::sweepReadThreads),
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::sweepReadThreads,
                 config.sweepReadThreads());
     }
 
-    private <T> T ifRuntimeConfigPresent(Function<CassandraKeyValueServiceRuntimeConfig, T> function) {
+    private <T> T chooseConfig(Function<CassandraKeyValueServiceRuntimeConfig, T> runtimeConfig, T installConfig) {
+        return MoreObjects.firstNonNull(
+                unwrapRuntimeConfig(runtimeConfig),
+                installConfig);
+    }
+
+    private <T> T unwrapRuntimeConfig(Function<CassandraKeyValueServiceRuntimeConfig, T> function) {
         Optional<KeyValueServiceRuntimeConfig> runtimeConfigOptional = runtimeConfig.get();
         if (!runtimeConfigOptional.isPresent()) {
             return null;

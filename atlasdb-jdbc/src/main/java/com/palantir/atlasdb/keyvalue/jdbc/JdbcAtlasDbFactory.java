@@ -48,8 +48,8 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
      * Creates a JdbcKeyValueService.
      *
      * @param config Configuration file.
-     * @param runtimeConfig
-     *@param leaderConfig unused.
+     * @param runtimeConfig unused.
+     * @param leaderConfig unused.
      * @param unused unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
      * @param unusedQosClient unused.

@@ -66,7 +66,10 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             KeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
-        CassandraKeyValueServiceConfig cassandraConfig = checkAndCast(config, CassandraKeyValueServiceConfig.class);
+        Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
+                "CassandraAtlasDbFactory expects an instance of type %s, found %s",
+                CassandraKeyValueServiceConfig.class, config.getClass());
+        CassandraKeyValueServiceConfig cassandraConfig = (CassandraKeyValueServiceConfig) config;
 
         String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
         CassandraKeyValueServiceConfig configWithNamespace = CassandraKeyValueServiceConfigs
@@ -80,19 +83,15 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
         return () -> {
             Optional<KeyValueServiceRuntimeConfig> configOptional = runtimeConfig.get();
-            if (configOptional.isPresent()) {
-                return checkAndCast(configOptional.get(), CassandraKeyValueServiceRuntimeConfig.class);
-            }
 
-            return CassandraKeyValueServiceRuntimeConfig.getDefault();
+            return configOptional.map(config -> {
+                Preconditions.checkArgument(config instanceof CassandraKeyValueServiceRuntimeConfig,
+                        "CassandraAtlasDbFactory expects an instance of type %s, found %s",
+                        CassandraKeyValueServiceRuntimeConfig.class, config.getClass());
+
+                return (CassandraKeyValueServiceRuntimeConfig) config;
+            }).orElse(CassandraKeyValueServiceRuntimeConfig.getDefault());
         };
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T checkAndCast(Object obj, Class<T> clazz) {
-        Preconditions.checkArgument(clazz.isInstance(obj),
-                "CassandraAtlasDbFactory expects an instance of type %s, found %s", clazz.getClass(), obj.getClass());
-        return (T) obj;
     }
 
     @Override
