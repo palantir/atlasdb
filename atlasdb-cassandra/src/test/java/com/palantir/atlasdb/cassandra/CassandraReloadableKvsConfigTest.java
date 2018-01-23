@@ -16,43 +16,61 @@
 
 package com.palantir.atlasdb.cassandra;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
+import org.junit.Before;
 import org.junit.Test;
 
 public class CassandraReloadableKvsConfigTest {
-    private static CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
+    private CassandraKeyValueServiceConfig config;
+    private CassandraKeyValueServiceRuntimeConfig runtimeConfig;
 
-    private CassandraKeyValueServiceRuntimeConfig runtimeConfig = mock(
-            CassandraKeyValueServiceRuntimeConfig.class);
-
-    private CassandraReloadableKvsConfig reloadableConfig = new CassandraReloadableKvsConfig(
-            config,
-            () -> Optional.of(runtimeConfig));
+    @Before
+    public void setUp() {
+        config = mock(CassandraKeyValueServiceConfig.class);
+        runtimeConfig = mock(CassandraKeyValueServiceRuntimeConfig.class);
+    }
 
     @Test
     public void ifNoRuntimeConfig_resolvesToInstallConfig() {
-        CassandraReloadableKvsConfig reloadableConfig = new CassandraReloadableKvsConfig(config, Optional::empty);
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithEmptyRuntimeConfig();
+
+        boolean installConfigParam = true;
+        when(config.autoRefreshNodes()).thenReturn(installConfigParam);
+        assertThat(reloadableConfig.autoRefreshNodes(), is(installConfigParam));
     }
 
     @Test
     public void ifInstallAndRuntimeConfig_resolvesToRuntimeConfig() {
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
 
+        int installConfigParam = 1;
+        when(config.sweepReadThreads()).thenReturn(installConfigParam);
+
+        int runtimeConfigParam = 2;
+        when(runtimeConfig.sweepReadThreads()).thenReturn(runtimeConfigParam);
+
+        assertThat(reloadableConfig.sweepReadThreads(), is(runtimeConfigParam));
     }
 
     @Test
     public void ifRuntimeConfigIsModified_reloadableConfigIsAlsoModified() {
-
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
+        when(runtimeConfig.sweepReadThreads()).thenReturn(1, 2);
+        assertThat(reloadableConfig.sweepReadThreads(), is(1));
+        assertThat(reloadableConfig.sweepReadThreads(), is(2));
     }
 
     private CassandraReloadableKvsConfig getReloadableConfigWithEmptyRuntimeConfig() {
         return new CassandraReloadableKvsConfig(config, Optional::empty);
     }
 
-    private CassandraReloadableKvsConfig getReloadableConfigWithRuntimeConfig(
-            CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
+    private CassandraReloadableKvsConfig getReloadableConfigWithRuntimeConfig() {
         return new CassandraReloadableKvsConfig(config, () -> Optional.of(runtimeConfig));
     }
 }
