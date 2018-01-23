@@ -24,7 +24,6 @@ import com.palantir.atlasdb.qos.config.ImmutableQosCassandraMetricsRuntimeConfig
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
-import com.palantir.atlasdb.qos.config.QosPriority;
 
 public class QosServiceRuntimeConfigTest {
     @Test
@@ -42,30 +41,30 @@ public class QosServiceRuntimeConfigTest {
     @Test
     public void canBuildFromSingleClientLimitWithoutCasandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(QosPriority.LOW)))
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig()))
                 .qosCassandraMetricsConfig(getCassandraMetricsConfig());
     }
 
     @Test
     public void canBuildFromSingleClientLimitWithCasandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(QosPriority.LOW)))
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig()))
                 .build();
     }
 
     @Test
     public void canBuildFromMultipleClientLimitsWithoutCassandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(QosPriority.LOW),
-                        "test_client2", getQosClientLimitsConfig(QosPriority.LOW)))
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(),
+                        "test_client2", getQosClientLimitsConfig()))
                 .build();
     }
 
     @Test
     public void canBuildFromMultipleClientLimitsWithCassandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(QosPriority.LOW),
-                        "test_client2", getQosClientLimitsConfig(QosPriority.LOW)))
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(),
+                        "test_client2", getQosClientLimitsConfig()))
                 .qosCassandraMetricsConfig(getCassandraMetricsConfig())
                 .build();
     }
@@ -82,13 +81,12 @@ public class QosServiceRuntimeConfigTest {
                 .build();
     }
 
-    private ImmutableQosClientLimitsConfig getQosClientLimitsConfig(QosPriority priority) {
+    private ImmutableQosClientLimitsConfig getQosClientLimitsConfig() {
         return ImmutableQosClientLimitsConfig.builder()
                 .limits(ImmutableQosLimitsConfig.builder()
                         .readBytesPerSecond(10L)
                         .writeBytesPerSecond(10L)
                         .build())
-                .clientPriority(priority)
                 .build();
     }
 }

@@ -34,7 +34,6 @@ import com.palantir.atlasdb.qos.config.ImmutableQosCassandraMetricsRuntimeConfig
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
-import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 
 public class QosServerRuntimeConfigDeserializationTest {
@@ -77,20 +76,18 @@ public class QosServerRuntimeConfigDeserializationTest {
     }
 
     private ImmutableMap<String, ImmutableQosClientLimitsConfig> getTestClientLimits() {
-        return ImmutableMap.of("test", getQosClientLimitsConfig(10, 20, QosPriority.HIGH),
-                "test2", getQosClientLimitsConfig(30, 40, QosPriority.MEDIUM),
-                "test3", getQosClientLimitsConfig(50, 50, QosPriority.LOW));
+        return ImmutableMap.of("test", getQosClientLimitsConfig(10, 20),
+                "test2", getQosClientLimitsConfig(30, 40),
+                "test3", getQosClientLimitsConfig(50, 50));
     }
 
     private ImmutableQosClientLimitsConfig getQosClientLimitsConfig(long readLimit,
-            long writeLimit,
-            QosPriority priority) {
+            long writeLimit) {
         return ImmutableQosClientLimitsConfig.builder()
                 .limits(ImmutableQosLimitsConfig.builder()
                         .readBytesPerSecond(readLimit)
                         .writeBytesPerSecond(writeLimit)
                         .build())
-                .clientPriority(priority)
                 .build();
     }
 }
