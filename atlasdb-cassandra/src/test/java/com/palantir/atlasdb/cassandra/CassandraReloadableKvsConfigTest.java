@@ -61,9 +61,12 @@ public class CassandraReloadableKvsConfigTest {
     @Test
     public void ifRuntimeConfigIsModified_reloadableConfigIsAlsoModified() {
         CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
-        when(runtimeConfig.sweepReadThreads()).thenReturn(1, 2);
-        assertThat(reloadableConfig.sweepReadThreads(), is(1));
-        assertThat(reloadableConfig.sweepReadThreads(), is(2));
+
+        int firstValue = 1;
+        int secondValue = 2;
+        when(runtimeConfig.sweepReadThreads()).thenReturn(firstValue, secondValue);
+        assertThat(reloadableConfig.sweepReadThreads(), is(firstValue));
+        assertThat(reloadableConfig.sweepReadThreads(), is(secondValue));
     }
 
     private CassandraReloadableKvsConfig getReloadableConfigWithEmptyRuntimeConfig() {
