@@ -56,6 +56,14 @@ public final class Value implements Serializable {
         return contents;
     }
 
+    public boolean isEmpty() {
+        return contents.length == 0;
+    }
+
+    public static boolean isTombstone(byte[] value) {
+        return value.length == 0;
+    }
+
     /**
      * The timestamp of the value.
      */

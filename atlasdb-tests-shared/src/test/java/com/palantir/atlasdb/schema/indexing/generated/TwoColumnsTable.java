@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -56,11 +57,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
@@ -1543,22 +1541,22 @@ public final class TwoColumnsTable implements
         /**
          * <pre>
          * FooToIdIdxRow {
-         *   {@literal Long firstComponentHash};
+         *   {@literal Long hashOfRowComponents};
          *   {@literal Long foo};
          * }
          * </pre>
          */
         public static final class FooToIdIdxRow implements Persistable, Comparable<FooToIdIdxRow> {
-            private final long firstComponentHash;
+            private final long hashOfRowComponents;
             private final long foo;
 
             public static FooToIdIdxRow of(long foo) {
-                long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.FIXED_LONG.convertFromJava(foo)).asLong();
-                return new FooToIdIdxRow(firstComponentHash, foo);
+                long hashOfRowComponents = computeHashFirstComponents(foo);
+                return new FooToIdIdxRow(hashOfRowComponents, foo);
             }
 
-            private FooToIdIdxRow(long firstComponentHash, long foo) {
-                this.firstComponentHash = firstComponentHash;
+            private FooToIdIdxRow(long hashOfRowComponents, long foo) {
+                this.hashOfRowComponents = hashOfRowComponents;
                 this.foo = foo;
             }
 
@@ -1586,27 +1584,32 @@ public final class TwoColumnsTable implements
 
             @Override
             public byte[] persistToBytes() {
-                byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+                byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
                 byte[] fooBytes = PtBytes.toBytes(Long.MIN_VALUE ^ foo);
-                return EncodingUtils.add(firstComponentHashBytes, fooBytes);
+                return EncodingUtils.add(hashOfRowComponentsBytes, fooBytes);
             }
 
             public static final Hydrator<FooToIdIdxRow> BYTES_HYDRATOR = new Hydrator<FooToIdIdxRow>() {
                 @Override
                 public FooToIdIdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
-                    Long firstComponentHash = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                    Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
                     Long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return new FooToIdIdxRow(firstComponentHash, foo);
+                    return new FooToIdIdxRow(hashOfRowComponents, foo);
                 }
             };
+
+            public static long computeHashFirstComponents(long foo) {
+                byte[] fooBytes = PtBytes.toBytes(Long.MIN_VALUE ^ foo);
+                return Hashing.murmur3_128().hashBytes(EncodingUtils.add(fooBytes)).asLong();
+            }
 
             @Override
             public String toString() {
                 return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("firstComponentHash", firstComponentHash)
+                    .add("hashOfRowComponents", hashOfRowComponents)
                     .add("foo", foo)
                     .toString();
             }
@@ -1623,19 +1626,19 @@ public final class TwoColumnsTable implements
                     return false;
                 }
                 FooToIdIdxRow other = (FooToIdIdxRow) obj;
-                return Objects.equal(firstComponentHash, other.firstComponentHash) && Objects.equal(foo, other.foo);
+                return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(foo, other.foo);
             }
 
             @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
-                return Arrays.deepHashCode(new Object[]{ firstComponentHash, foo });
+                return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, foo });
             }
 
             @Override
             public int compareTo(FooToIdIdxRow o) {
                 return ComparisonChain.start()
-                    .compare(this.firstComponentHash, o.firstComponentHash)
+                    .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                     .compare(this.foo, o.foo)
                     .result();
             }
@@ -2143,11 +2146,8 @@ public final class TwoColumnsTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -2218,8 +2218,9 @@ public final class TwoColumnsTable implements
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "JGRQX5KSxWmtSHt8Ei+KMQ==";
+    static String __CLASS_HASH = "rbO2fCJIg3E2QBd6AuiYKg==";
 }

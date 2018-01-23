@@ -36,6 +36,7 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
 @Path("/timelock")
@@ -57,7 +58,7 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("fresh-timestamps")
-    public TimestampRange getFreshTimestamps(@QueryParam("number") int numTimestampsRequested) {
+    public TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested) {
         return timelock.getFreshTimestamps(numTimestampsRequested);
     }
 

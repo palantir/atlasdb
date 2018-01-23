@@ -101,4 +101,8 @@ public class PaxosLeadershipCreator {
                 .randomWaitBeforeProposingLeadershipMs(paxosRuntimeConfiguration.pingRateMs())
                 .build();
     }
+
+    public Supplier<LeaderPingHealthCheck> getHealthCheck() {
+        return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
+    }
 }

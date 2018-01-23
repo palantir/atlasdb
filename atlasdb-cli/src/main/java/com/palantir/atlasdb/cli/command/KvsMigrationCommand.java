@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -154,7 +155,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     public AtlasDbServices connectFromServices() throws IOException {
         AtlasDbConfig fromConfig = AtlasDbConfigs.load(fromConfigFile, configRoot);
-        ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(fromConfig));
+        ServicesConfigModule scm = ServicesConfigModule.create(
+                makeOfflineIfNecessary(fromConfig), AtlasDbRuntimeConfig.withSweepDisabled());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
@@ -162,7 +164,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
         AtlasDbConfig toConfig = toConfigFile != null
                 ? AtlasDbConfigs.load(toConfigFile, configRoot)
                 : AtlasDbConfigs.loadFromString(inlineConfig, null);
-        ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(toConfig));
+        ServicesConfigModule scm = ServicesConfigModule.create(
+                makeOfflineIfNecessary(toConfig), AtlasDbRuntimeConfig.withSweepDisabled());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 

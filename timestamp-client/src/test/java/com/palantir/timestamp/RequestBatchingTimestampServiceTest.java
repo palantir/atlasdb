@@ -16,6 +16,10 @@
 package com.palantir.timestamp;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -24,9 +28,21 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
 
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
 
 public class RequestBatchingTimestampServiceTest {
+    @Test
+    public void delegatesInitializationCheck() {
+        TimestampService delegate = mock(TimestampService.class);
+        RequestBatchingTimestampService service = new RequestBatchingTimestampService(delegate);
+
+        when(delegate.isInitialized())
+                .thenReturn(false)
+                .thenReturn(true);
+
+        assertFalse(service.isInitialized());
+        assertTrue(service.isInitialized());
+    }
+
     @Test
     public void testRateLimiting() throws Exception {
         final long minRequestMillis = 100L;
@@ -38,7 +54,7 @@ public class RequestBatchingTimestampServiceTest {
         final AtomicLong timestampsGenerated = new AtomicLong(0);
         final long startMillis = System.currentTimeMillis();
 
-        ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool());
+        ExecutorService executor = PTExecutors.newCachedThreadPool();
         try {
             for (int i = 0; i < numThreads; ++i) {
                 executor.submit(() -> {

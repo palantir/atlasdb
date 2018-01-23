@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.SafeArg;
 
 import io.airlift.airline.Command;
 
@@ -71,7 +72,7 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
             } catch (IllegalStateException e) {
                 //this should never happen
                 printer.error("Found a row in the transactions table that didn't have 1"
-                        + " and only 1 column value: start={}", startTs);
+                        + " and only 1 column value: start={}", SafeArg.of("startTs", startTs));
                 continue;
             }
 
@@ -81,7 +82,7 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
             }
 
             printer.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
-                    startTs, commitTs);
+                    SafeArg.of("startTs", startTs), SafeArg.of("commitTs", commitTs));
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
             toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L

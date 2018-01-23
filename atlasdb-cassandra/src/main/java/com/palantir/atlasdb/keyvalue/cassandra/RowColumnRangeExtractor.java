@@ -24,10 +24,13 @@ import java.util.Set;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
+import com.codahale.metrics.Meter;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -70,6 +73,10 @@ class RowColumnRangeExtractor {
     private final Map<byte[], Column> rowsToLastCompositeColumns = Maps.newHashMap();
     private final Map<byte[], Integer> rowsToRawColumnCount = Maps.newHashMap();
     private final Set<byte[]> emptyRows = Sets.newHashSet();
+    private final MetricsManager metricsManager = new MetricsManager();
+    private final Meter notLatestVisibleValueCellFilterMeter = metricsManager.registerOrGetMeter(
+            RowColumnRangeExtractor.class,
+            AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
 
     public void extractResults(Iterable<byte[]> canonicalRows,
                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
@@ -80,15 +87,16 @@ class RowColumnRangeExtractor {
             byte[] rawRow = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
             byte[] row = canonicalRowsByHash.get(Sha256Hash.computeHash(rawRow));
             List<ColumnOrSuperColumn> columns = colEntry.getValue();
+
             if (!columns.isEmpty()) {
-                rowsToLastCompositeColumns.put(row, columns.get(columns.size() - 1).column);
+                rowsToLastCompositeColumns.put(row, columns.get(columns.size() - 1).getColumn());
             } else {
                 emptyRows.add(row);
             }
             rowsToRawColumnCount.put(row, columns.size());
-            for (ColumnOrSuperColumn c : colEntry.getValue()) {
-                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.column);
-                internalExtractResult(startTs, row, pair.lhSide, c.column.getValue(), pair.rhSide);
+            for (ColumnOrSuperColumn c : columns) {
+                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
+                internalExtractResult(startTs, row, pair.lhSide, c.getColumn().getValue(), pair.rhSide);
             }
         }
     }
@@ -97,15 +105,20 @@ class RowColumnRangeExtractor {
         if (ts < startTs) {
             Cell cell = Cell.create(row, col);
             if (!collector.containsKey(row)) {
-                collector.put(row, new LinkedHashMap<Cell, Value>());
+                collector.put(row, new LinkedHashMap<>());
                 collector.get(row).put(cell, Value.create(val, ts));
             } else if (!collector.get(row).containsKey(cell)) {
                 collector.get(row).put(cell, Value.create(val, ts));
+            } else {
+                notLatestVisibleValueCellFilterMeter.mark();
             }
+        } else {
+            notLatestVisibleValueCellFilterMeter.mark();
         }
     }
 
     public RowColumnRangeResult getRowColumnRangeResult() {
         return new RowColumnRangeResult(collector, rowsToLastCompositeColumns, emptyRows, rowsToRawColumnCount);
     }
+
 }

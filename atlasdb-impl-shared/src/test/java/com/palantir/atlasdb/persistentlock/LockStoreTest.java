@@ -42,17 +42,17 @@ public class LockStoreTest {
     private static final String OTHER_REASON = "bar";
 
     private InMemoryKeyValueService kvs;
-    private LockStore lockStore;
+    private LockStoreImpl lockStore;
 
     @Before
     public void setUp() throws Exception {
         kvs = spy(new InMemoryKeyValueService(false));
-        lockStore = LockStore.create(kvs);
+        lockStore = LockStoreImpl.createImplForTest(kvs);
     }
 
     @Test
     public void createsPersistedLocksTable() {
-        LockStore.create(kvs);
+        LockStoreImpl.create(kvs);
         verify(kvs, atLeastOnce()).createTable(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), any(byte[].class));
     }
 
@@ -60,14 +60,14 @@ public class LockStoreTest {
     public void lockIsInitiallyOpen() {
         Set<LockEntry> lockEntries = lockStore.allLockEntries();
 
-        assertThat(lockEntries, contains(LockStore.LOCK_OPEN));
+        assertThat(lockEntries, contains(LockStoreImpl.LOCK_OPEN));
     }
 
     @Test
     public void noErrorIfLockOpenedWhileCreatingTable() {
         doThrow(new CheckAndSetException("foo", null, null, ImmutableList.of())).when(kvs).checkAndSet(anyObject());
 
-        new LockStore.LockStorePopulator(kvs).populate(); // should not throw
+        new LockStoreImpl.LockStorePopulator(kvs).populate(); // should not throw
     }
 
     @Test
@@ -91,7 +91,7 @@ public class LockStoreTest {
 
     @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockThatWasTakenOutByAnotherStore() throws Exception {
-        LockStore otherLockStore = LockStore.create(kvs);
+        LockStore otherLockStore = LockStoreImpl.create(kvs);
         otherLockStore.acquireBackupLock("grabbed by other store");
 
         lockStore.acquireBackupLock(REASON);
@@ -99,7 +99,7 @@ public class LockStoreTest {
 
     @Test
     public void canViewLockAcquiredByAnotherLockStore() {
-        LockStore otherLockStore = LockStore.create(kvs);
+        LockStore otherLockStore = LockStoreImpl.create(kvs);
         LockEntry otherLockEntry = otherLockStore.acquireBackupLock("grabbed by other store");
 
         assertThat(lockStore.allLockEntries(), contains(otherLockEntry));
@@ -110,7 +110,7 @@ public class LockStoreTest {
         LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
         lockStore.releaseLock(lockEntry);
 
-        assertThat(lockStore.allLockEntries(), contains(LockStore.LOCK_OPEN));
+        assertThat(lockStore.allLockEntries(), contains(LockStoreImpl.LOCK_OPEN));
     }
 
     @Test(expected = CheckAndSetException.class)

@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.logsafe.SafeArg;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -61,15 +62,13 @@ public class FetchTimestamp extends AbstractTimestampCommand {
         printer.warn(
                 "This CLI has been deprecated. Please use the timestamp/fresh-timestamp endpoint instead.");
 
-        String name;
         if (immutable) {
             timestamp = services.getTransactionManager().getImmutableTimestamp();
-            name = IMMUTABLE_STRING;
+            printer.info("The immutable timestamp is: {}", SafeArg.of("timestamp", timestamp));
         } else {
             timestamp = services.getTimestampService().getFreshTimestamp();
-            name = FRESH_STRING;
+            printer.info("The fresh timestamp is: {}", SafeArg.of("timestamp", timestamp));
         }
-        printer.info("The {} timestamp is: {}", name, timestamp);
         writeTimestampToFileIfSpecified();
 
         if (dateTime) {
@@ -77,7 +76,9 @@ public class FetchTimestamp extends AbstractTimestampCommand {
                     services.getKeyValueService(), timestamp);
             DateTime dt = new DateTime(timeMillis);
             String stringTime = ISODateTimeFormat.dateTime().print(dt);
-            printer.info("Wall clock datetime of {} timestamp is: {}", name, stringTime);
+            printer.info("Wall clock datetime of {} timestamp is: {}",
+                    SafeArg.of("timestamp type", immutable ? IMMUTABLE_STRING : FRESH_STRING),
+                    SafeArg.of("dateTime", stringTime));
         }
 
         printer.info("Timestamp command completed succesfully.");

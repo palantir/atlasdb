@@ -25,8 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.Renderers;
@@ -39,7 +37,6 @@ public class IndexMetadata {
     final ImmutableList<IndexComponent> colComponents;
     @Nullable final String columnNameToGetData;
     final CachePriority cachePriority;
-    final PartitionStrategy partitionStrategy;
     boolean rangeScanAllowed;
     int explicitCompressionBlockSizeKB;
     boolean negativeLookups;
@@ -47,15 +44,13 @@ public class IndexMetadata {
     final IndexCondition indexCondition;
     IndexType indexType;
     final SweepStrategy sweepStrategy;
-    private final ExpirationStrategy expirationStrategy;
     private boolean appendHeavyAndReadLight;
-    private final boolean hashFirstRowComponent;
+    private final int numberOfComponentsHashed;
 
     public static IndexMetadata createIndex(String name,
                                             String javaName,
                                             Iterable<IndexComponent> rowComponents,
                                             CachePriority cachePriority,
-                                            PartitionStrategy partitionStrategy,
                                             ConflictHandler conflictHandler,
                                             boolean rangeScanAllowed,
                                             int explicitCompressionBlockSizeKB,
@@ -63,9 +58,8 @@ public class IndexMetadata {
                                             IndexCondition indexCondition,
                                             IndexType indexType,
                                             SweepStrategy sweepStrategy,
-                                            ExpirationStrategy expirationStrategy,
                                             boolean appendHeavyAndReadLight,
-                                            boolean hashFirstRowComponent) {
+                                            int numberOfComponentsHashed) {
         Validate.isTrue(!Iterables.isEmpty(rowComponents));
         Iterable<IndexComponent> colComponents = ImmutableList.<IndexComponent>of();
         return new IndexMetadata(
@@ -75,7 +69,6 @@ public class IndexMetadata {
                 colComponents,
                 getColNameToAccessFrom(rowComponents, colComponents, indexCondition),
                 cachePriority,
-                partitionStrategy,
                 conflictHandler,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
@@ -83,9 +76,8 @@ public class IndexMetadata {
                 indexCondition,
                 indexType,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight,
-                hashFirstRowComponent);
+                numberOfComponentsHashed);
     }
 
     public static IndexMetadata createDynamicIndex(String name,
@@ -93,7 +85,6 @@ public class IndexMetadata {
                                                    Iterable<IndexComponent> rowComponents,
                                                    Iterable<IndexComponent> colComponents,
                                                    CachePriority cachePriority,
-                                                   PartitionStrategy partitionStrategy,
                                                    ConflictHandler conflictHandler,
                                                    boolean rangeScanAllowed,
                                                    int explicitCompressionBlockSizeKB,
@@ -101,9 +92,8 @@ public class IndexMetadata {
                                                    IndexCondition indexCondition,
                                                    IndexType indexType,
                                                    SweepStrategy sweepStrategy,
-                                                   ExpirationStrategy expirationStrategy,
                                                    boolean appendHeavyAndReadLight,
-                                                   boolean hashFirstRowComponent) {
+                                                   int numberOfComponentsHashed) {
         Validate.isTrue(!Iterables.isEmpty(rowComponents));
         Validate.isTrue(!Iterables.isEmpty(colComponents));
         return new IndexMetadata(
@@ -113,7 +103,6 @@ public class IndexMetadata {
                 colComponents,
                 getColNameToAccessFrom(rowComponents, colComponents, indexCondition),
                 cachePriority,
-                partitionStrategy,
                 conflictHandler,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
@@ -121,9 +110,8 @@ public class IndexMetadata {
                 indexCondition,
                 indexType,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight,
-                hashFirstRowComponent);
+                numberOfComponentsHashed);
     }
 
     private IndexMetadata(String name,
@@ -132,7 +120,6 @@ public class IndexMetadata {
                           Iterable<IndexComponent> colComponents,
                           String colNameToAccessFrom,
                           CachePriority cachePriority,
-                          PartitionStrategy partitionStrategy,
                           ConflictHandler conflictHandler,
                           boolean rangeScanAllowed,
                           int explicitCompressionBlockSizeKB,
@@ -140,16 +127,14 @@ public class IndexMetadata {
                           IndexCondition indexCondition,
                           IndexType indexType,
                           SweepStrategy sweepStrategy,
-                          ExpirationStrategy expirationStrategy,
                           boolean appendHeavyAndReadLight,
-                          boolean hashFirstRowComponent) {
+                          int numberOfComponentsHashed) {
         this.name = name;
         this.javaName = javaName;
         this.rowComponents = ImmutableList.copyOf(rowComponents);
         this.colComponents = ImmutableList.copyOf(colComponents);
         this.columnNameToGetData = colNameToAccessFrom;
         this.cachePriority = cachePriority;
-        this.partitionStrategy = partitionStrategy;
         this.conflictHandler = conflictHandler;
         this.rangeScanAllowed = rangeScanAllowed;
         this.explicitCompressionBlockSizeKB = explicitCompressionBlockSizeKB;
@@ -157,9 +142,8 @@ public class IndexMetadata {
         this.indexCondition = indexCondition;
         this.indexType = indexType;
         this.sweepStrategy = sweepStrategy;
-        this.expirationStrategy = expirationStrategy;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
-        this.hashFirstRowComponent = hashFirstRowComponent;
+        this.numberOfComponentsHashed = numberOfComponentsHashed;
     }
 
     private static String getColNameToAccessFrom(Iterable<IndexComponent> rowComponents,
@@ -220,16 +204,14 @@ public class IndexMetadata {
             throw new IllegalArgumentException("Unknown index type " + indexType);
         }
         return new TableMetadata(
-                NameMetadataDescription.create(rowDescList, hashFirstRowComponent),
+                NameMetadataDescription.create(rowDescList, numberOfComponentsHashed),
                 column,
                 conflictHandler,
                 cachePriority,
-                partitionStrategy,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight);
     }
 

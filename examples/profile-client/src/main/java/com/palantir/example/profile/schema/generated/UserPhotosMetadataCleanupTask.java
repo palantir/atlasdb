@@ -27,7 +27,7 @@ public class UserPhotosMetadataCleanupTask implements OnCleanupTask {
         UserPhotosStreamMetadataTable metaTable = tables.getUserPhotosStreamMetadataTable(t);
         Collection<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> rows = Lists.newArrayListWithCapacity(cells.size());
         for (Cell cell : cells) {
-            rows.add(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.of((Long) ValueType.VAR_LONG.convertToJava(cell.getRowName(), 0)));
+            rows.add(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();

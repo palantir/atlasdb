@@ -34,7 +34,7 @@ import com.google.common.collect.Maps;
 
 public abstract class AbstractBenchmark {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractBenchmark.class);
+    protected static final Logger log = LoggerFactory.getLogger(AbstractBenchmark.class);
 
     private final int numClients;
     private final int requestsPerClient;

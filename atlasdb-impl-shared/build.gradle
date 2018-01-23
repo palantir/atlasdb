@@ -20,22 +20,27 @@ dependencies {
   compile project(":timestamp-api")
   compile project(":timestamp-client")
   compile project(":atlasdb-client")
+  compile project(":qos-service-api")
+
 
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
-  compile group: 'com.palantir.remoting2', name: 'tracing'
-  compile (group: 'com.palantir.remoting2', name: 'jersey-servers') {
+  compile group: 'com.palantir.common', name: 'streams'
+  compile group: 'com.palantir.remoting3', name: 'tracing'
+  compile (group: 'com.palantir.remoting3', name: 'jersey-servers') {
     exclude module: 'jersey-server'
   }
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
+  processor project(":atlasdb-processors")
 
-  testCompile group: 'com.palantir.remoting2', name: 'jaxrs-clients'
+  testCompile group: 'com.palantir.remoting3', name: 'jaxrs-clients'
   testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+  testCompile group: 'org.awaitility', name: 'awaitility'
 
   testRuntime group: 'ch.qos.logback', name: 'logback-classic'
 }

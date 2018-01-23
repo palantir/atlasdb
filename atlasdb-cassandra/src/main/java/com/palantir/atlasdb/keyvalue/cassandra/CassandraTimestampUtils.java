@@ -81,7 +81,7 @@ public final class CassandraTimestampUtils {
         // utility class
     }
 
-    public static ByteBuffer constructCheckAndSetMultipleQuery(Map<String, Pair<byte[], byte[]>> checkAndSetRequest) {
+    public static CqlQuery constructCheckAndSetMultipleQuery(Map<String, Pair<byte[], byte[]>> checkAndSetRequest) {
         StringBuilder builder = new StringBuilder();
         builder.append("BEGIN UNLOGGED BATCH\n"); // Safe, because all updates are on the same partition key
 
@@ -92,15 +92,15 @@ public final class CassandraTimestampUtils {
             builder.append(constructCheckAndSetQuery(columnName, expected, target));
         });
         builder.append("APPLY BATCH;");
-        return toByteBuffer(builder.toString());
+        return new CqlQuery(builder.toString());
     }
 
     public static boolean isValidTimestampData(byte[] data) {
         return data != null && data.length == Long.BYTES;
     }
 
-    public static ByteBuffer constructSelectFromTimestampTableQuery() {
-        return toByteBuffer(String.format(
+    public static CqlQuery constructSelectFromTimestampTableQuery() {
+        return new CqlQuery(String.format(
                 "SELECT %s, %s FROM %s WHERE key=%s;",
                 COLUMN_NAME_COLUMN,
                 VALUE_COLUMN,

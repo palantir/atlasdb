@@ -26,27 +26,30 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.concurrent.InterruptibleFuture;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.remoting2.tracing.Tracers;
 
 /**
  * Tests for {@link ClientAwareReadWriteLockImpl}.
  *
  * @author jtamer
  */
+@ShouldRetry
 public final class ClientAwareLockTest {
 
-    private static final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(ClientAwareLockTest.class.getName(), true)));
+    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(ClientAwareLockTest.class.getName(), true));
 
     private final LockClient client = LockClient.of("client");
     private ClientAwareReadWriteLock readWriteLock;
@@ -55,6 +58,9 @@ public final class ClientAwareLockTest {
     private KnownClientLock knownClientReadLock;
     private KnownClientLock knownClientWriteLock;
     private CyclicBarrier barrier;
+
+    @Rule
+    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     /** Sets up the tests. */
     @Before public void setUp() {
@@ -182,7 +188,7 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that a timed try lock can fail and wake up blocking threads. */
-    @Test @Ignore public void testTimedTryLockCanFail() throws Exception {
+    @Test public void testTimedTryLockCanFail() throws Exception {
         anonymousReadLock.lock();
         Assert.assertNull(anonymousReadLock.tryLock());
         anonymousReadLock.unlock();
@@ -299,9 +305,9 @@ public final class ClientAwareLockTest {
             /* Expected. */
         }
         futureToCancel.cancel(true);
+        futureToCancel.get(1000, TimeUnit.MILLISECONDS);
         anonymousWriteLock.unlock();
         futureToSucceed.get(1000, TimeUnit.MILLISECONDS);
-        futureToCancel.get(1000, TimeUnit.MILLISECONDS);
         anonymousReadLock.unlock();
         Assert.assertNull(knownClientWriteLock.tryLock());
         knownClientWriteLock.unlock();

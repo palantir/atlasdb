@@ -161,6 +161,13 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
     protected abstract Long getLongObject(int col) throws PalantirSqlException;
 
     @Override
+    public boolean getBoolean(String colname) throws PalantirSqlException {
+        return getBoolean(findColumn(colname));
+    }
+
+    protected abstract boolean getBoolean(int col) throws PalantirSqlException;
+
+    @Override
     public int getInteger(String colname) throws PalantirSqlException {
         return getInteger(findColumn(colname));
     }

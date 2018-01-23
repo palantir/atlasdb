@@ -40,6 +40,11 @@ Ways to Sweep
   Long-running AtlasDB instances with large data scale may want to manually sweep specific tables before enabling the background sweeper.
   Given that the background sweep job chooses which tables it sweeps, you can ensure that a one-off large sweep job occurs during non-peak usage hours.
 
+Tracking if Sweep Progress
+--------------------------
+
+In order to track sweep's general workflow, and which log lines you should expect, see :ref:`Sweep Logs<sweep-logs>`.
+
 .. _sweep_tunable_parameters:
 
 Tunable Configuration Options
@@ -54,40 +59,35 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
    :widths: 20, 20, 40, 200
 
    ``enabled``, "Only specified in config", "true", "Whether the background sweeper should run."
-   ``readLimit``, ``maxCellTsPairsToExamine``, "1,000", "Target number of (cell, timestamp) pairs to examine in a single run."
-   ``candidateBatchHint``, ``candidateBatchSize``, "1", "Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
-   ``deleteBatchHint``, ``deleteBatchSize``, "1,000", "Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance."
+   ``readLimit``, ``maxCellTsPairsToExamine``, "128", "Target number of (cell, timestamp) pairs to examine in a batch of sweep."
+   ``candidateBatchHint``, ``candidateBatchSize``, "128", "Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
+   ``deleteBatchHint``, ``deleteBatchSize``, "128", "Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance."
    ``pauseMillis``, "Only specified in config", "5000 ms", "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours."
-
-.. csv-table::
-   :header: "CasandraKeyValueService Config", "Endpoint Option", "Default", "Description"
-   :widths: 20, 20, 40, 200
-
-   ``timestampsGetterBatchSize``, "Only specified in config", "1,000", "Specify a limit on the maximum number of columns to fetch in a single database query. Set this to a number fewer than your number of columns if your Cassandra OOMs when attempting to run sweep with even a small row batch size. This parameter should be used when tuning Sweep for cells with many historical versions."
 
 Following is more information about when each of the batching parameters is useful.
 In short, the recommendation is:
 
 - Decrease ``candidateBatchHint`` and ``readLimit`` if there is memory pressure on the client.
-- Decrease ``timestampsGetterBatchSize`` if there is memory pressure on Cassandra even after setting ``candidateBatchHint`` down to 1.
+- Decrease ``candidateBatchHint`` if there is memory pressure on the KVS.
 
 Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Since the number of columns per row can vary widely between tables, only setting a row batch size can lead to sweep batches containing different numbers of cells; setting ``candidateBatchHint`` can even this out.
-For example, consider a database that has one table with 1000 rows and 10 columns, a second table with 1000 rows and 100 columns, and that performs best when sweeping at most 10,000 cells at a time.
-In this setup, limiting ``candidateBatchHint`` to 100 would ensure that at most 10,000 cells are swept at a time, but would split the first table in 10 batches when only 1 was necessary.
-Instead, setting ``readLimit`` to 10,000 would allow both tables to be swept in optimal batches.
+``candidateBatchHint`` specifies the number of values to load from the KVS on each round-trip. ``readLimit`` specifies the number of values that should be swept in a batch, potentially fetching them through multiple KVS round-trips.
+If each batch takes little time, it's advisable to increase the ``readLimit`` and ``deleteBatchHint``, to make sweep's batches bigger.
+If the client is OOMing, it's advisable to decrease the ``readLimit``, to have a lower number of values per batches.
+Since each batch contains at least ``candidateBatchHint`` values, if ``readLimit`` reaches the same value as ``candidateBatchHint`` you should reduce the ``candidateBatchSize`` config.
+Note that since sweep still needs to sweep at least a full row on every batch, it might be the case that the client is OOMing because the row it's trying to sweep is very large. Please contact the AtlasDB team if you think you're hitting this issue.
 
-Memory pressure in Cassandra: decrease timestampsGetterBatchSize
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Memory pressure in the backing KVS: decrease candidateBatchHint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The sweep job works by requesting at least one full row at a time from the KVS, including all historical versions of each cell in the row.
-In some rare cases, the Cassandra KVS will not be able to construct a single full row in memory, likely due to specific cells being overwritten many times and/or containing very large values.
-This situation will manifest with Cassandra OOMing during sweep even if ``sweepBatchSize`` is set to 1.
-If that happens, you can use ``timestampsGetterBatchSize`` to instruct Cassandra to read a smaller number of columns at a time before aggregating them into a single row metadata to pass on to the sweeper.
-If ``timestampsGetterBatchSize`` is set, Cassandra will read at most one row at a time.
-The other batch parameters are still respected, but their values are unlikely to make a difference because the execution time will be dominated by the single-row reads.
+The sweep job works by requesting ``candidateBatchHint`` values from the KVS in each round-trip.
+In some rare cases, the Cassandra KVS will not be able to fetch ``candidateBatchHint`` values, likely due to specific cells being overwritten many times and/or containing very large values.
+If that happens, KVS requests from AtlasDB will fail and sweep will reduce ``candidateBatchHint`` automatically, trying to fetch fewer values in the following round-trips to the KVS.
+If subsequent KVS round-trips are successful, the value of ``candidateBatchHint`` is slowly increased back to the configured value, which is also the maximum it reaches. Therefore, if the configured value is too high, failures will happen again.
+
+You can check the sweep logs to verify if this is happening frequently — and if this is the case — reduce this config to a value that the load on the KVS doesn't trigger failures and sweep is able to run.
 
 .. toctree::
     :maxdepth: 1
@@ -96,3 +96,4 @@ The other batch parameters are still respected, but their values are unlikely to
     sweep/background-sweep
     sweep/sweep-endpoints
     sweep/sweep-cli
+    sweep/sweep-logs

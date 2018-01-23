@@ -15,10 +15,13 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
@@ -34,6 +37,16 @@ public class DelegatingManagedTimestampServiceTest {
     private final ManagedTimestampService managedTimestampService = new DelegatingManagedTimestampService(
             timestampService,
             timestampManagementService);
+
+    @Test
+    public void testIsInitializedDefersToTimestampService() {
+        when(timestampService.isInitialized())
+                .thenReturn(false)
+                .thenReturn(true);
+
+        assertFalse(managedTimestampService.isInitialized());
+        assertTrue(managedTimestampService.isInitialized());
+    }
 
     @Test
     public void testGetFreshTimestampDefersToTimestampService() {

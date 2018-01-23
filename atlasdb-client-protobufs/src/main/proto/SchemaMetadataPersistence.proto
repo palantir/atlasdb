@@ -1,0 +1,51 @@
+package com.palantir.atlasdb.protos.generated;
+
+// Don't want to duplicate ValueType, but moving things whilst not doing a dev break seems nontrivial.
+import "TableMetadataPersistence.proto";
+
+message SchemaMetadata {
+    // Using this rather than map, to avoid introducing a dependency on proto3
+    // TODO (jkong): Eventually coordinate a shift to proto3
+    repeated SchemaDependentTableMetadataEntry tableMetadata = 1;
+}
+
+message SchemaDependentTableMetadataEntry {
+    optional TableReference tableReference = 1;
+    optional SchemaDependentTableMetadata schemaDependentTableMetadata = 2;
+}
+
+message TableReference {
+    optional string namespace = 1;
+    optional string tableName = 2;
+}
+
+message SchemaDependentTableMetadata {
+    oneof cleanupMetadata {
+        // These parameters use snake case for the parameter names, so that the code gen generates enum cases using
+        // SCREAMING_SNAKE_CASE as opposed to ALLUPPERCASE.
+        NullCleanupMetadata null_cleanup_metadata = 1;
+        StreamStoreCleanupMetadata stream_store_cleanup_metadata = 2;
+        ArbitraryCleanupMetadata arbitrary_cleanup_metadata = 3;
+    }
+}
+
+message NullCleanupMetadata {
+    // Used for tables without cleanup tasks.
+}
+
+message StreamStoreCleanupMetadata {
+    // Used for stream store tables which have cleanup tasks.
+
+    // Note that we expect to have multiple versions of the metadata as a sweeper service with a single version of
+    // AtlasDB should still be able to operate (to the best of its ability) even if AtlasDB users upgrade past it.
+    optional StreamStoreCleanupV1Metadata v1Metadata = 1;
+}
+
+message StreamStoreCleanupV1Metadata {
+    optional int32 numHashedRowComponents = 1 [default = 0];
+    optional ValueType streamIdType = 2;
+}
+
+message ArbitraryCleanupMetadata {
+    // Used for tables with arbitrary cleanup tasks.
+}

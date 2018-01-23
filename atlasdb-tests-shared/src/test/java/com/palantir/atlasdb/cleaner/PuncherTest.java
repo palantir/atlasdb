@@ -42,7 +42,7 @@ public class PuncherTest {
         InMemoryKeyValueService cachingKvsPuncherStoreKvs = new InMemoryKeyValueService(false);
 
         InMemoryPuncherStore inMemoryPuncherStore = InMemoryPuncherStore.create();
-        KeyValueServicePuncherStore keyValueServicePuncherStore =
+        PuncherStore puncherStore =
                 KeyValueServicePuncherStore.create(kvsPuncherStoreKvs);
         CachingPuncherStore cachingInMemoryPuncherStore =
                 CachingPuncherStore.create(InMemoryPuncherStore.create(), GRANULARITY_MILLIS);
@@ -50,7 +50,7 @@ public class PuncherTest {
                 KeyValueServicePuncherStore.create(cachingKvsPuncherStoreKvs),
                 GRANULARITY_MILLIS);
         Object[][] parameters = new Object[][] { { inMemoryPuncherStore, null },
-                { keyValueServicePuncherStore, kvsPuncherStoreKvs },
+                { puncherStore, kvsPuncherStoreKvs },
                 { cachingInMemoryPuncherStore, null },
                 { cachingKeyValueServicePuncherStore, cachingKvsPuncherStoreKvs } };
         return ImmutableList.copyOf(parameters);

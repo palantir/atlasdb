@@ -31,6 +31,8 @@ import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
 import com.palantir.tritium.event.log.LoggingLevel;
 import com.palantir.tritium.event.metrics.MetricsInvocationEventHandler;
 import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.tritium.proxy.Instrumentation;
 
 public final class AtlasDbMetrics {
@@ -42,11 +44,24 @@ public final class AtlasDbMetrics {
     @VisibleForTesting
     static final AtomicReference<MetricRegistry> metrics = new AtomicReference<>(null);
 
+    @VisibleForTesting
+    static final AtomicReference<TaggedMetricRegistry> taggedMetrics = new AtomicReference<>(null);
 
     private AtlasDbMetrics() {}
 
-    public static synchronized void setMetricRegistry(MetricRegistry metricRegistry) {
+    public static synchronized void setMetricRegistries(MetricRegistry metricRegistry,
+            TaggedMetricRegistry taggedMetricRegistry) {
+        if (metricRegistry != metrics.get()) {
+            log.warn("The MetricsRegistry was re-set to a different value: the previous registry will be ignored"
+                    + " and metrics may be lost.");
+        }
+        if (taggedMetricRegistry != taggedMetrics.get()) {
+            log.warn("The TaggedMetricsRegistry was re-set to a different value: the previous registry will be ignored"
+                    + " and metrics may be lost.");
+        }
+
         metrics.set(Preconditions.checkNotNull(metricRegistry, "Metric registry cannot be null"));
+        taggedMetrics.set(Preconditions.checkNotNull(taggedMetricRegistry, "Tagged Metric registry cannot be null"));
     }
 
     // Using this means that all atlasdb clients will report to the same registry, which may give confusing stats
@@ -54,6 +69,15 @@ public final class AtlasDbMetrics {
         return metrics.updateAndGet(registry -> {
             if (registry == null) {
                 return createDefaultMetrics();
+            }
+            return registry;
+        });
+    }
+
+    public static TaggedMetricRegistry getTaggedMetricRegistry() {
+        return taggedMetrics.updateAndGet(registry -> {
+            if (registry == null) {
+                return DefaultTaggedMetricRegistry.getDefault();
             }
             return registry;
         });
@@ -92,5 +116,4 @@ public final class AtlasDbMetrics {
                     metricsPrefix, existingMetrics);
         }
     }
-
 }

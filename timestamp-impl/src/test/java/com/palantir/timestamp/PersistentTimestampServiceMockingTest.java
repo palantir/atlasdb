@@ -29,7 +29,7 @@ import java.util.concurrent.Executors;
 
 import org.junit.Test;
 
-// Mock AvailableTimestamps to test PersistentTimestampService.
+// Mock AvailableTimestamps to test PersistentTimestampServiceImpl.
 // See also PersistentTimestampServiceTests for end-to-end style tests.
 public class PersistentTimestampServiceMockingTest {
 
@@ -41,7 +41,7 @@ public class PersistentTimestampServiceMockingTest {
 
     private PersistentTimestamp timestamp = mock(PersistentTimestamp.class);
     private ExecutorService executor = Executors.newSingleThreadExecutor();
-    private PersistentTimestampService timestampService = new PersistentTimestampService(timestamp);
+    private PersistentTimestampServiceImpl timestampService = new PersistentTimestampServiceImpl(timestamp);
 
     @Test
     public void

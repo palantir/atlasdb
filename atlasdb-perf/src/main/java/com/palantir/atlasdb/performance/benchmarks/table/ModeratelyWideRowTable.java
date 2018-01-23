@@ -18,10 +18,22 @@ package com.palantir.atlasdb.performance.benchmarks.table;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
 @State(Scope.Benchmark)
 public class ModeratelyWideRowTable extends WideRowTable {
     @Override
+    public TableReference getTableRef() {
+        return Tables.TABLE_REF;
+    }
+
+    @Override
     public int getNumCols() {
         return 50_000;
+    }
+
+    @Override
+    public boolean isPersistent() {
+        return false;
     }
 }

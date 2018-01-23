@@ -115,10 +115,8 @@ public class TestSweepCommand {
 
             Scanner scanner = new Scanner(stdout);
             final long cellValuesExamined = Long.parseLong(scanner.findInLine("\\d+ cell values").split(" ")[0]);
-            final long deletedCells = dryRun
-                    ? Long.parseLong(
-                            scanner.findInLine("would have deleted \\d+ stale versions of those cells").split(" ")[3])
-                    : Long.parseLong(scanner.findInLine("deleted \\d+ stale versions of those cells").split(" ")[1]);
+            final long deletedCells = Long.parseLong(
+                    scanner.findInLine("deleted \\d+ stale versions of those cells").split(" ")[1]);
             Assert.assertEquals(2, cellValuesExamined);
             Assert.assertEquals(1, deletedCells);
 

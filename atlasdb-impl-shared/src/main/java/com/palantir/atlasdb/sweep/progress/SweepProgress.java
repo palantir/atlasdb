@@ -15,10 +15,18 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
+@JsonSerialize(as = ImmutableSweepProgress.class)
+@JsonDeserialize(as = ImmutableSweepProgress.class)
 @Value.Immutable
 public interface SweepProgress {
 
@@ -26,10 +34,28 @@ public interface SweepProgress {
 
     byte[] startRow();
 
+    // This is currently not used, but it is included for potential future sweep optimizations
+    byte[] startColumn();
+
     long staleValuesDeleted();
 
     long cellTsPairsExamined();
 
     long minimumSweptTimestamp();
 
+    long timeInMillis();
+
+    long startTimeInMillis();
+
+    @JsonIgnore
+    default SweepResults getPreviousResults() {
+        return SweepResults.builder()
+                .staleValuesDeleted(staleValuesDeleted())
+                .cellTsPairsExamined(cellTsPairsExamined())
+                .minSweptTimestamp(minimumSweptTimestamp())
+                .nextStartRow(Optional.of(startRow()))
+                .timeInMillis(timeInMillis())
+                .timeSweepStarted(startTimeInMillis())
+                .build();
+    }
 }

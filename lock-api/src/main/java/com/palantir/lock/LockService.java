@@ -27,7 +27,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.annotations.Beta;
-import com.marathon.util.spring.CancelableServerCall;
+import com.palantir.annotations.remoting.CancelableServerCall;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.logsafe.Safe;

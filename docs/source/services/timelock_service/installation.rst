@@ -85,7 +85,6 @@ Add client(s) to Timelock
 
    atlasdb:
       timelock:
-        client: tom
         serversList:
           servers:
             - palantir-1.com:8080
@@ -94,17 +93,14 @@ Add client(s) to Timelock
           sslConfiguration:
             trustStorePath: var/security/truststore.jks
 
-10. Configure Timelock to respond to your clients.
-    Add each client as a named entry in the ``clients`` block of your :ref:`timelock-server-configuration`.
+10. (Optional) For verification purposes, you may retrieve a timestamp from each client you are configuring to use TimeLock.
+    This can typically be performed with the Fetch Timestamp CLI or Dropwizard bundle. For example, using the Dropwizard bundle:
 
+.. code-block:: bash
 
-.. code-block:: yaml
+   ./service/bin/<service> atlasdb timestamp fetch
 
-   clients:
-      - tom
-      - jerry
-
-10. As a verification step, request a fresh timestamp from each client. We will use these values later to check that the migration is complete.
+    Note down the value of the timestamp returned; we will subsequently use these values to ensure that migration took place.
 
 11. Shut down each client that has been newly added.
 
@@ -118,5 +114,5 @@ Add client(s) to Timelock
 
 14. Restart each client.
 
-15. To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
+15. (Optional) To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
     For each client, the timestamp returned should be strictly greater than the corresponding timestamp obtained in step 10.

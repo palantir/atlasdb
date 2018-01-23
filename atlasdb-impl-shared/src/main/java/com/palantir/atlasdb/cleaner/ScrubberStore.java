@@ -30,6 +30,10 @@ import com.palantir.common.base.BatchingVisitable;
  * @author ejin
  */
 public interface ScrubberStore {
+    default boolean isInitialized() {
+        return true;
+    }
+
     void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp, int batchSize);
 
     void markCellsAsScrubbed(Map<TableReference, Multimap<Cell, Long>> cellToScrubTimestamp, int batchSize);

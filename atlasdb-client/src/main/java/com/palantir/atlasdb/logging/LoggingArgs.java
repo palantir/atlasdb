@@ -16,14 +16,21 @@
 
 package com.palantir.atlasdb.logging;
 
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -38,6 +45,19 @@ import com.palantir.logsafe.UnsafeArg;
  * Always returns unsafe, until hydrated.
  */
 public final class LoggingArgs {
+
+    private static final String PLACEHOLDER_TABLE_NAME = "{table}";
+
+    @VisibleForTesting
+    public static final TableReference PLACEHOLDER_TABLE_REFERENCE =
+            TableReference.createWithEmptyNamespace(PLACEHOLDER_TABLE_NAME);
+
+    @Value.Immutable
+    public interface SafeAndUnsafeTableReferences {
+        SafeArg<List<TableReference>> safeTableRefs();
+        UnsafeArg<List<TableReference>> unsafeTableRefs();
+    }
+
     private static volatile KeyValueServiceLogArbitrator logArbitrator = KeyValueServiceLogArbitrator.ALL_UNSAFE;
 
     private LoggingArgs() {
@@ -53,15 +73,64 @@ public final class LoggingArgs {
         logArbitrator = arbitrator;
     }
 
+    public static SafeAndUnsafeTableReferences tableRefs(Collection<TableReference> tableReferences) {
+        List<TableReference> safeTableRefs = new ArrayList<>();
+        List<TableReference> unsafeTableRefs = new ArrayList<>();
+
+        for (TableReference tableRef : tableReferences) {
+            if (logArbitrator.isTableReferenceSafe(tableRef)) {
+                safeTableRefs.add(tableRef);
+            } else {
+                unsafeTableRefs.add(tableRef);
+            }
+        }
+
+        return ImmutableSafeAndUnsafeTableReferences.builder()
+                .safeTableRefs(SafeArg.of("safeTableRefs", safeTableRefs))
+                .unsafeTableRefs(UnsafeArg.of("unsafeTableRefs", unsafeTableRefs))
+                .build();
+    }
+
+    public static Iterable<TableReference> safeTablesOrPlaceholder(Collection<TableReference> tables) {
+        //noinspection StaticPseudoFunctionalStyleMethod - Use lazy iterator.
+        return Iterables.transform(tables, LoggingArgs::safeTableOrPlaceholder);
+    }
+
     /**
      * Returns a safe or unsafe arg corresponding to the supplied table reference, with name "tableRef".
      */
-    public static Arg<TableReference> tableRef(TableReference tableReference) {
+    public static Arg<String> tableRef(TableReference tableReference) {
         return tableRef("tableRef", tableReference);
     }
 
-    public static Arg<TableReference> tableRef(String argName, TableReference tableReference) {
-        return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
+    /**
+     * If table is safe, returns the table. If unsafe, returns a placeholder.
+     */
+    public static TableReference safeTableOrPlaceholder(TableReference tableReference) {
+        if (logArbitrator.isTableReferenceSafe(tableReference)) {
+            return tableReference;
+        } else {
+            return PLACEHOLDER_TABLE_REFERENCE;
+        }
+    }
+
+    /**
+     * If table is safe, returns the table. If unsafe, returns a placeholder name.
+     */
+    public static String safeInternalTableNameOrPlaceholder(String internalTableReference) {
+        if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
+            return internalTableReference;
+        } else {
+            return PLACEHOLDER_TABLE_NAME;
+        }
+    }
+
+    public static Arg<String> tableRef(String argName, TableReference tableReference) {
+        return getArg(argName, tableReference.toString(), logArbitrator.isTableReferenceSafe(tableReference));
+    }
+
+    public static Arg<String> customTableName(TableReference tableReference, String tableName) {
+        return getArg("tableName", tableName, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
     public static Arg<String> rowComponent(String argName, TableReference tableReference, String rowComponentName) {
@@ -74,6 +143,14 @@ public final class LoggingArgs {
         return getArg(argName,
                 columnName,
                 logArbitrator.isColumnNameSafe(tableReference, columnName));
+    }
+
+    public static boolean isSafeForLogging(TableReference tableRef, Cell cell) {
+        String rowName = new String(cell.getRowName(), Charset.defaultCharset());
+        String columnName = new String(cell.getColumnName(), Charset.defaultCharset());
+
+        return logArbitrator.isRowComponentNameSafe(tableRef, rowName)
+                && logArbitrator.isColumnNameSafe(tableRef, columnName);
     }
 
     public static Arg<Long> durationMillis(Stopwatch stopwatch) {
@@ -93,7 +170,7 @@ public final class LoggingArgs {
     }
 
     public static Arg<Integer> rowCount(int rowCount) {
-        return getArg("tableCount", rowCount, true);
+        return getArg("rowCount", rowCount, true);
     }
 
     public static Arg<Long> sizeInBytes(long sizeInBytes) {

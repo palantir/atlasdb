@@ -29,11 +29,11 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.protobuf.AbstractMessage;
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
-import com.google.protobuf.GeneratedMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.googlecode.protobuf.format.JsonFormat;
@@ -125,11 +125,11 @@ public final class ColumnValueDescription {
         return new ColumnValueDescription(Format.PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
-    public static ColumnValueDescription forProtoMessage(Class<? extends GeneratedMessage> clazz) {
+    public static ColumnValueDescription forProtoMessage(Class<? extends AbstractMessage> clazz) {
         return forProtoMessage(clazz, Compression.NONE);
     }
 
-    public static ColumnValueDescription forProtoMessage(Class<? extends GeneratedMessage> clazz,
+    public static ColumnValueDescription forProtoMessage(Class<? extends AbstractMessage> clazz,
                                                          Compression compression) {
         return new ColumnValueDescription(
                 Format.PROTO,
@@ -139,7 +139,7 @@ public final class ColumnValueDescription {
                 getDescriptor(clazz));
     }
 
-    private static <T extends GeneratedMessage> Descriptor getDescriptor(Class<T> clazz) {
+    private static <T extends AbstractMessage> Descriptor getDescriptor(Class<T> clazz) {
         try {
             Method method = clazz.getMethod("getDescriptor");
             return (Descriptor) method.invoke(null);
@@ -199,6 +199,27 @@ public final class ColumnValueDescription {
         return type.getJavaObjectClassName();
     }
 
+    public Class getJavaTypeClass() {
+        if (format == Format.PERSISTER) {
+            return getPersister().getPersistingClassType();
+        }
+        if (canonicalClassName != null) {
+            try {
+                return Class.forName(canonicalClassName);
+            } catch (ClassNotFoundException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+        return type.getJavaClass();
+    }
+
+    public Class getJavaObjectTypeClass() {
+        if (format == Format.PERSISTER || canonicalClassName != null) {
+            return getJavaTypeClass();
+        }
+        return type.getJavaObjectClass();
+    }
+
     public Persister<?> getPersister() {
         Preconditions.checkArgument(Format.PERSISTER == format);
             @SuppressWarnings("unchecked")
@@ -249,7 +270,7 @@ public final class ColumnValueDescription {
                 throw new IllegalArgumentException("Tried to write json to a Persister that isn't for JsonNode.");
             }
         } else if (format == Format.PROTO) {
-            GeneratedMessage.Builder<?> builder = createBuilder(classLoader);
+            Message.Builder builder = createBuilder(classLoader);
             // This will have issues with base64 blobs
             JsonFormat.merge(str, builder);
             bytes = builder.build().toByteArray();
@@ -259,10 +280,10 @@ public final class ColumnValueDescription {
         return CompressionUtils.compress(bytes, compression);
     }
 
-    private GeneratedMessage.Builder<?> createBuilder(ClassLoader classLoader) {
+    private Message.Builder createBuilder(ClassLoader classLoader) {
         try {
             Method method = getImportClass(classLoader).getMethod("newBuilder");
-            return (GeneratedMessage.Builder<?>) method.invoke(null);
+            return (Message.Builder) method.invoke(null);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -274,7 +295,7 @@ public final class ColumnValueDescription {
 
     public Class<?> getImportClass(ClassLoader classLoader) {
         if (className == null) {
-            return type.getTypeClass();
+            return type.getJavaClass();
         }
         try {
             return Class.forName(className, true, classLoader);
@@ -320,7 +341,7 @@ public final class ColumnValueDescription {
     @SuppressWarnings("unchecked")
     public Message hydrateProto(ClassLoader classLoader, byte[] value) {
         Preconditions.checkState(format == Format.PROTO, "Column value is not a protocol buffer.");
-        return ColumnValues.parseProtoBuf((Class<? extends GeneratedMessage>) getImportClass(classLoader), CompressionUtils.decompress(value, compression));
+        return ColumnValues.parseProtoBuf((Class<? extends AbstractMessage>) getImportClass(classLoader), CompressionUtils.decompress(value, compression));
     }
 
     public TableMetadataPersistence.ColumnValueDescription.Builder persistToProto() {

@@ -61,7 +61,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     @Value.Default
     public boolean enableShrinkOnOracleStandardEdition() {
-        return true;
+        return false;
     }
 
     @Value.Default

@@ -21,8 +21,20 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.logsafe.Safe;
+
 @Path("/timestamp")
 public interface TimestampService {
+    /**
+     * Used for TimestampServices that can be initialized asynchronously; other TimestampServices can keep the default
+     * implementation, and return true (they're trivially fully initialized).
+     *
+     * @return true iff the TimestampService has been fully initialized and is ready to use
+     */
+    default boolean isInitialized() {
+        return true;
+    }
+
     /**
      * A request to this method should return a timestamp greater than any timestamp
      * that may have been observed before the request was initiated.
@@ -39,5 +51,5 @@ public interface TimestampService {
     @POST // This has to be POST because we can't allow caching.
     @Path("fresh-timestamps")
     @Produces(MediaType.APPLICATION_JSON)
-    TimestampRange getFreshTimestamps(@QueryParam("number") int numTimestampsRequested);
+    TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 }

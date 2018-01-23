@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.List;
+
 import javax.annotation.concurrent.GuardedBy;
 
 import org.slf4j.Logger;
@@ -25,9 +27,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
 // TODO move to persistentlock package?
@@ -53,7 +57,7 @@ public class PersistentLockManager {
         this.persistentLockService = persistentLockService;
         this.persistentLockRetryWaitMillis = persistentLockRetryWaitMillis;
         this.metricsManager = new MetricsManager();
-        this.lockFailureMeter = metricsManager.registerMeter(this.getClass(), null, ACQUIRE_FAILURE_METRIC_NAME);
+        this.lockFailureMeter = metricsManager.registerOrGetMeter(this.getClass(), null, ACQUIRE_FAILURE_METRIC_NAME);
         this.lockId = null;
     }
 
@@ -74,18 +78,39 @@ public class PersistentLockManager {
         }
     }
 
-    private synchronized boolean tryAcquirePersistentLock() {
+    @VisibleForTesting
+    synchronized boolean tryAcquirePersistentLock() {
         Preconditions.checkState(!isShutDown,
                 "This PersistentLockManager is shut down, and cannot be used to acquire locks.");
-        Preconditions.checkState(lockId == null, "Acquiring a lock is unsupported when we've already acquired a lock");
 
         try {
             lockId = persistentLockService.acquireBackupLock("Sweep");
-            log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lock id", lockId));
+            log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lockId", lockId));
             return true;
         } catch (CheckAndSetException e) {
+            List<byte[]> actualValues = e.getActualValues();
+            if (!actualValues.isEmpty()) {
+                // This should be the only element, otherwise something really odd happened.
+                LockEntry actualEntry = LockEntry.fromStoredValue(actualValues.get(0));
+                log.debug("CAS failed on lock acquire. We thought the lockId was {}, and the database has {}",
+                        SafeArg.of("lockId", lockId),
+                        SafeArg.of("actualEntry", actualEntry));
+                if (lockId != null && actualEntry.instanceId().equals(lockId.value())) {
+                    // We tried to acquire while already holding the lock. Welp - but we still have the lock.
+                    log.info("Attempted to acquire the a new lock when we already held a lock."
+                            + " The acquire failed, but our lock is still valid, so we still hold the lock.");
+                    return true;
+                } else {
+                    // In this case, some other process holds the lock. Therefore, we don't hold the lock.
+                    lockId = null;
+                }
+            }
+
             lockFailureMeter.mark();
             log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
+            return false;
+        } catch (NotInitializedException e) {
+            log.info("The LockStore is not initialized yet. Waiting and retrying.");
             return false;
         }
     }
@@ -96,14 +121,15 @@ public class PersistentLockManager {
             return;
         }
 
-        log.info("Releasing persistent lock {}", lockId);
+        log.info("Releasing persistent lock {}", SafeArg.of("lockId", lockId));
         try {
             persistentLockService.releaseBackupLock(lockId);
             lockId = null;
         } catch (CheckAndSetException e) {
-            log.error("Failed to release persistent lock {}. "
-                    + "Either the lock was already released, or communications with the database failed.",
-                    SafeArg.of("lock id", lockId), e);
+            log.error("Failed to release persistent lock {}. The lock must have been released from under us. "
+                            + "Future sweeps should correctly be able to re-acquire the lock.",
+                    SafeArg.of("lockId", lockId), e);
+            lockId = null;
         }
     }
 

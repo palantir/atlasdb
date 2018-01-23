@@ -21,13 +21,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
-import org.apache.log4j.Logger;
-
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.BasicSQL;
 
 public class PreparedStatements {
-    private static final Logger sqlExceptionlog = Logger.getLogger("sqlException." + PreparedStatements.class.getName());
     public static int getUpdateCount(PreparedStatement ps) throws PalantirSqlException {
         try {
             return ps.getUpdateCount();

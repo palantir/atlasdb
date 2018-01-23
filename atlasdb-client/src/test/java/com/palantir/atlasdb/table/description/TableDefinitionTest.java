@@ -24,7 +24,6 @@ import org.junit.Test;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
@@ -134,8 +133,7 @@ public class TableDefinitionTest {
         TableDefinition definition = new TableDefinition() {{
             javaTableName(TABLE_REF.getTablename());
             rowName();
-            rowComponent(
-                    ROW_NAME, ValueType.STRING, TableMetadataPersistence.ValueByteOrder.ASCENDING, LogSafety.SAFE);
+            rowComponent(ROW_NAME, ValueType.STRING, LogSafety.SAFE);
             columns();
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
@@ -150,8 +148,7 @@ public class TableDefinitionTest {
             namedComponentsSafeByDefault();
             javaTableName(TABLE_REF.getTablename());
             rowName();
-            rowComponent(
-                    ROW_NAME, ValueType.STRING, TableMetadataPersistence.ValueByteOrder.ASCENDING, LogSafety.UNSAFE);
+            rowComponent(ROW_NAME, ValueType.STRING, LogSafety.UNSAFE);
             columns();
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
@@ -166,8 +163,7 @@ public class TableDefinitionTest {
             allSafeForLoggingByDefault();
             javaTableName(TABLE_REF.getTablename());
             rowName();
-            rowComponent(
-                    ROW_NAME, ValueType.STRING, TableMetadataPersistence.ValueByteOrder.ASCENDING, LogSafety.UNSAFE);
+            rowComponent(ROW_NAME, ValueType.STRING, LogSafety.UNSAFE);
             columns();
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
@@ -207,8 +203,7 @@ public class TableDefinitionTest {
             allSafeForLoggingByDefault();
             javaTableName(TABLE_REF.getTablename());
             rowName();
-            rowComponent(
-                    ROW_NAME, ValueType.STRING, TableMetadataPersistence.ValueByteOrder.ASCENDING, LogSafety.UNSAFE);
+            rowComponent(ROW_NAME, ValueType.STRING, LogSafety.UNSAFE);
             columns();
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};

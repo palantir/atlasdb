@@ -34,16 +34,16 @@ import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
 
 // This class should be removed and replaced by DbKvs when InDbTimestampStore depends directly on DbKvs
-public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
+public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
     private final DbKvs kvs;
     private final ConnectionManager connManager;
+    private final SqlConnectionSupplier sqlConnectionSupplier;
 
     public static ConnectionManagerAwareDbKvs create(DbKeyValueServiceConfig config) {
         HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection());
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
-
-        return new ConnectionManagerAwareDbKvs(DbKvs.create(config, sqlConnSupplier), connManager);
+        return new ConnectionManagerAwareDbKvs(DbKvs.create(config, sqlConnSupplier), connManager, sqlConnSupplier);
     }
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
@@ -91,9 +91,13 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
         };
     }
 
-    public ConnectionManagerAwareDbKvs(DbKvs dbKvs, ConnectionManager connManager) {
-        this.kvs = dbKvs;
+    private ConnectionManagerAwareDbKvs(
+                DbKvs kvs,
+                ConnectionManager connManager,
+                SqlConnectionSupplier sqlConnectionSupplier) {
+        this.kvs = kvs;
         this.connManager = connManager;
+        this.sqlConnectionSupplier = sqlConnectionSupplier;
     }
 
     @VisibleForTesting
@@ -104,6 +108,10 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
 
     public ConnectionManager getConnectionManager() {
         return connManager;
+    }
+
+    public SqlConnectionSupplier getSqlConnectionSupplier() {
+        return sqlConnectionSupplier;
     }
 
     public String getTablePrefix() {

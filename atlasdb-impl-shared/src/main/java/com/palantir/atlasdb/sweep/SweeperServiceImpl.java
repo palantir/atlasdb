@@ -17,72 +17,89 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.BaseEncoding;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
-import com.palantir.atlasdb.sweep.progress.SweepProgress;
-import com.palantir.remoting2.servers.jersey.WebPreconditions;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.remoting3.servers.jersey.WebPreconditions;
 
 public final class SweeperServiceImpl implements SweeperService {
-    private SpecificTableSweeper specificTableSweeper;
+    private static final Logger log = LoggerFactory.getLogger(SweeperServiceImpl.class);
 
-    public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper) {
+    private final SpecificTableSweeper specificTableSweeper;
+    private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
+
+    public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         this.specificTableSweeper = specificTableSweeper;
+        this.sweepBatchConfigSource = sweepBatchConfigSource;
     }
 
     @Override
-    public void sweepTable(String tableName) {
+    public SweepTableResponse sweepTable(
+            String tableName,
+            Optional<String> startRow,
+            Optional<Boolean> fullSweep,
+            Optional<Integer> maxCellTsPairsToExamine,
+            Optional<Integer> candidateBatchSize,
+            Optional<Integer> deleteBatchSize) {
         TableReference tableRef = getTableRef(tableName);
         checkTableExists(tableName, tableRef);
 
-        runSweepWithoutSavingResults(tableRef);
+        byte[] decodedStartRow = startRow.map(PtBytes::decodeHexString).orElse(PtBytes.EMPTY_BYTE_ARRAY);
+        SweepBatchConfig config = buildConfigWithOverrides(maxCellTsPairsToExamine, candidateBatchSize,
+                deleteBatchSize);
+
+        return SweepTableResponse.from(runSweep(fullSweep, tableRef, decodedStartRow, config));
     }
 
-    @Override
-    public void sweepTableFromStartRow(String tableName, @Nonnull String startRow) {
-        WebPreconditions.checkArgument(startRow != null, "startRow must not be null.");
+    private SweepResults runSweep(Optional<Boolean> fullSweep, TableReference tableRef, byte[] decodedStartRow,
+            SweepBatchConfig config) {
+        if (!fullSweep.isPresent()) {
+            log.warn("fullSweep parameter was not specified, defaulting to true");
+        }
 
-        TableReference tableRef = getTableRef(tableName);
-        checkTableExists(tableName, tableRef);
-
-        ImmutableSweepProgress sweepProgress = getSweepProgress(startRow, tableRef);
-
-        runSweepWithoutSavingResults(tableRef, sweepProgress);
+        if (fullSweep.orElse(true)) {
+            log.info("Running sweep of full table {}, "
+                            + "with maxCellTsPairsToExamine: {}, candidateBatchSize: {}, deleteBatchSize: {}, "
+                            + "starting from row {}",
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("maxCellTsPairsToExamine", config.maxCellTsPairsToExamine()),
+                    SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
+                    SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
+                    UnsafeArg.of("decodedStartRow", decodedStartRow));
+            return runFullSweepWithoutSavingResults(tableRef, decodedStartRow, config);
+        } else {
+            log.info("Running sweep of a single batch on table {}, "
+                            + "with maxCellTsPairsToExamine: {}, candidateBatchSize: {}, deleteBatchSize: {}, "
+                            + "starting from row {}",
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("maxCellTsPairsToExamine", config.maxCellTsPairsToExamine()),
+                    SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
+                    SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
+                    UnsafeArg.of("decodedStartRow", decodedStartRow));
+            return runOneBatchWithoutSavingResults(tableRef, decodedStartRow, config);
+        }
     }
 
-    @Override
-    public void sweepTableFromStartRowWithBatchConfig(String tableName,
-            @Nullable String startRow,
-            @Nullable Integer maxCellTsPairsToExamine,
-            @Nullable Integer candidateBatchSize,
-            @Nullable Integer deleteBatchSize) {
-        TableReference tableRef = getTableRef(tableName);
-        checkTableExists(tableName, tableRef);
+    private SweepBatchConfig buildConfigWithOverrides(
+            Optional<Integer> maxCellTsPairsToExamine,
+            Optional<Integer> candidateBatchSize,
+            Optional<Integer> deleteBatchSize) {
+        ImmutableSweepBatchConfig.Builder batchConfigBuilder = ImmutableSweepBatchConfig.builder()
+                .from(sweepBatchConfigSource.getAdjustedSweepConfig());
 
-        ImmutableSweepProgress sweepProgress = getSweepProgress(startRow, tableRef);
+        maxCellTsPairsToExamine.ifPresent(batchConfigBuilder::maxCellTsPairsToExamine);
+        candidateBatchSize.ifPresent(batchConfigBuilder::candidateBatchSize);
+        deleteBatchSize.ifPresent(batchConfigBuilder::deleteBatchSize);
 
-        WebPreconditions.checkArgument(
-                !(maxCellTsPairsToExamine == null && candidateBatchSize == null && deleteBatchSize == null),
-                "No batch size config parameters were provided");
-
-        ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(
-                        maxCellTsPairsToExamine == null
-                                ? AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT : maxCellTsPairsToExamine)
-                .candidateBatchSize(
-                        candidateBatchSize == null
-                                ? AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT : candidateBatchSize)
-                .deleteBatchSize(deleteBatchSize == null
-                        ? AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT : deleteBatchSize)
-                .build();
-
-        runSweepWithoutSavingResults(tableRef, sweepProgress, Optional.of(sweepBatchConfig));
+        return batchConfigBuilder.build();
     }
 
     private TableReference getTableRef(String tableName) {
@@ -96,41 +113,35 @@ public final class SweeperServiceImpl implements SweeperService {
                 String.format("Table requested to sweep %s does not exist", tableName));
     }
 
-    private ImmutableSweepProgress getSweepProgress(String startRow, TableReference tableRef) {
-        return ImmutableSweepProgress.builder()
-                .tableRef(tableRef)
-                .staleValuesDeleted(0)
-                .cellTsPairsExamined(0)
-                .minimumSweptTimestamp(0)
-                .startRow(decodeStartRow(startRow))
-                .build();
-    }
-
-    private byte[] decodeStartRow(String startRow) {
-        if (startRow == null) {
-            return PtBytes.EMPTY_BYTE_ARRAY;
-        }
-        return BaseEncoding.base16().decode(startRow);
-    }
-
-    private void runSweepWithoutSavingResults(TableReference tableRef) {
-        runSweepWithoutSavingResults(tableRef, null);
-    }
-
-    private void runSweepWithoutSavingResults(TableReference tableRef, SweepProgress sweepProgress) {
-        runSweepWithoutSavingResults(tableRef, sweepProgress, Optional.empty());
-    }
-
-    private void runSweepWithoutSavingResults(
+    private SweepResults runFullSweepWithoutSavingResults(
             TableReference tableRef,
-            SweepProgress sweepProgress,
-            Optional<SweepBatchConfig> sweepBatchConfig) {
-        TableToSweep tableToSweep = getTableToSweep(tableRef, sweepProgress);
-        specificTableSweeper.runOnceForTable(tableToSweep, sweepBatchConfig, false);
+            byte[] startRow,
+            SweepBatchConfig sweepBatchConfig) {
+        SweepResults cumulativeResults = SweepResults.createEmptySweepResult(Optional.of(startRow));
+
+        while (cumulativeResults.getNextStartRow().isPresent()) {
+            SweepResults results = runOneBatchWithoutSavingResults(
+                    tableRef,
+                    cumulativeResults.getNextStartRow().get(),
+                    sweepBatchConfig);
+
+            cumulativeResults = cumulativeResults.accumulateWith(results);
+        }
+
+        specificTableSweeper.updateMetricsFullTable(cumulativeResults, tableRef);
+
+        return cumulativeResults;
     }
 
-    private TableToSweep getTableToSweep(TableReference tableRef, SweepProgress sweepProgress) {
-        return new TableToSweep(tableRef, sweepProgress);
+    private SweepResults runOneBatchWithoutSavingResults(
+            TableReference tableRef,
+            byte[] startRow,
+            SweepBatchConfig sweepBatchConfig) {
+        return specificTableSweeper.runOneIteration(
+                    tableRef,
+                    startRow,
+                    sweepBatchConfig);
     }
+
 }
 

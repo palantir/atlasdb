@@ -18,21 +18,16 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.mutable.MutableLong;
-
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
-import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -61,33 +56,31 @@ public class GetCandidateCellsForSweepingShim {
                 CandidateCellForSweepingRequest request) {
         RangeRequest range = RangeRequest.builder()
                 .startRowInclusive(request.startRowInclusive())
-                .batchHint(request.batchSizeHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
+                .batchHint(request.batchSizeHint().orElse(
+                        AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
                 .build();
         try (ReleasableCloseable<ClosableIterator<RowResult<Value>>> valueResults = new ReleasableCloseable<>(
-                    getValues(tableRef, range, request.sweepTimestamp(), request.shouldCheckIfLatestValueIsEmpty()));
+                    getValues(tableRef, range, request.maxTimestampExclusive(), request.shouldCheckIfLatestValueIsEmpty()));
              ReleasableCloseable<ClosableIterator<RowResult<Set<Long>>>> tsResults = new ReleasableCloseable<>(
-                     keyValueService.getRangeOfTimestamps(tableRef, range, request.sweepTimestamp()))) {
+                     keyValueService.getRangeOfTimestamps(tableRef, range, request.maxTimestampExclusive()))) {
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults.get());
-            MutableLong numExamined = new MutableLong(0);
-            Set<Long> timestampsToIgnore = ImmutableSet.copyOf(Longs.asList(request.timestampsToIgnore()));
+            Set<Long> timestampsToIgnore = request.timestampsToIgnore();
             Iterator<List<RowResult<Set<Long>>>> tsBatches = Iterators.partition(tsResults.get(), range.getBatchHint());
             Iterator<List<CandidateCellForSweeping>> candidates = Iterators.transform(tsBatches, tsBatch -> {
                 List<CandidateCellForSweeping> candidateBatch = Lists.newArrayList();
                 for (RowResult<Set<Long>> rr : tsBatch) {
                     for (Map.Entry<byte[], Set<Long>> e : rr.getColumns().entrySet()) {
                         byte[] colName = e.getKey();
-                        Set<Long> timestamps = Sets.difference(e.getValue(), timestampsToIgnore);
-                        long[] timestampArr = Longs.toArray(timestamps);
-                        Arrays.sort(timestampArr);
+                        List<Long> sortedTimestamps = e.getValue().stream()
+                                .filter(ts -> !timestampsToIgnore.contains(ts))
+                                .sorted()
+                                .collect(Collectors.toList());
                         Cell cell = Cell.create(rr.getRowName(), colName);
                         boolean latestValEmpty = isLatestValueEmpty(cell, peekingValues);
-                        numExamined.add(timestampArr.length);
-                        boolean candidate = isCandidate(timestampArr, latestValEmpty, request);
                         candidateBatch.add(ImmutableCandidateCellForSweeping.builder()
                                 .cell(cell)
-                                .sortedTimestamps(candidate ? timestampArr : EMPTY_LONG_ARRAY)
+                                .sortedTimestamps(sortedTimestamps)
                                 .isLatestValueEmpty(latestValEmpty)
-                                .numCellsTsPairsExamined(numExamined.longValue())
                                 .build());
                     }
                 }
@@ -107,18 +100,6 @@ public class GetCandidateCellsForSweepingShim {
             c.release();
         }
         return closer;
-    }
-
-    private static boolean isCandidate(long[] timestamps,
-                                       boolean lastValEmpty,
-                                       CandidateCellForSweepingRequest request) {
-        return timestamps.length > 1
-            || (request.shouldCheckIfLatestValueIsEmpty() && lastValEmpty)
-            || (timestamps.length == 1 && timestampIsPotentiallySweepable(timestamps[0], request));
-    }
-
-    private static boolean timestampIsPotentiallySweepable(long ts, CandidateCellForSweepingRequest request) {
-        return ts == Value.INVALID_VALUE_TIMESTAMP || ts >= request.minUncommittedStartTimestamp();
     }
 
     private ClosableIterator<RowResult<Value>> getValues(TableReference tableRef,
@@ -175,5 +156,4 @@ public class GetCandidateCellsForSweepingShim {
         }
     }
 
-    private static final long[] EMPTY_LONG_ARRAY = new long[0];
 }

@@ -1,0 +1,8 @@
+{
+  "errorCode": "INVALID_ARGUMENT",
+  "errorName": "MyApplication:DatasetNotFound",
+  "errorInstanceId": "xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx",
+  "parameters": {
+    "datasetId": "123abc",
+  }
+}

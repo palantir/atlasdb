@@ -26,7 +26,8 @@ import okhttp3.OkHttpClient;
 public class FeignOkHttpClientsTest {
     @Test
     public void clientDoesNotRetryAtTheOkHttpLevel() {
-        OkHttpClient okHttpClient = FeignOkHttpClients.newRawOkHttpClient(Optional.empty(), "userAgent");
+        OkHttpClient okHttpClient = FeignOkHttpClients.newRawOkHttpClient(Optional.empty(),
+                Optional.empty(), "userAgent");
         assertThat(okHttpClient.retryOnConnectionFailure()).isFalse();
     }
 }

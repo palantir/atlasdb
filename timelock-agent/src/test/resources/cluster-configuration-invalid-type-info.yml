@@ -1,0 +1,8 @@
+type: this-is-not-a-type
+cluster:
+  uris:
+    - https://server-1:8421
+    - https://server-2:8421
+    - https://server-3:8421
+
+local-server: https://server-2:8421

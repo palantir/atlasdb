@@ -18,9 +18,15 @@ import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 @JsonSerialize(as = ImmutableTimeLockInstallConfiguration.class)
 @Value.Immutable
 public interface TimeLockInstallConfiguration {
+
     PaxosInstallConfiguration paxos();
 
     ClusterConfiguration cluster();
+
+    @Value.Default
+    default TsBoundPersisterConfiguration timestampBoundPersistence() {
+        return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
+    }
 
     @Value.Default
     default AsyncLockConfiguration asyncLock() {

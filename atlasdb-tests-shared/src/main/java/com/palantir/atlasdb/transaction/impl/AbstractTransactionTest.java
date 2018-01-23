@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -22,6 +23,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -56,13 +58,13 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -79,6 +81,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -86,13 +89,19 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
-    protected final TimestampCache timestampCache = TimestampCache.create();
+    protected final TimestampCache timestampCache = new TimestampCache(
+            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected boolean supportsReverse() {
         return true;
     }
 
-    protected static final int GET_RANGES_CONCURRENCY = 16;
-    protected static final ExecutorService GET_RANGES_EXECUTOR = Executors.newFixedThreadPool(GET_RANGES_CONCURRENCY);
+    // Duplicates of TransactionTestConstants since this is currently (incorrectly) in main
+    // rather than test. Can use the former once we resolve the dependency issues.
+    public static final int GET_RANGES_THREAD_POOL_SIZE = 16;
+    public static final int DEFAULT_GET_RANGES_CONCURRENCY = 4;
+
+    protected static final ExecutorService GET_RANGES_EXECUTOR =
+            Executors.newFixedThreadPool(GET_RANGES_THREAD_POOL_SIZE);
 
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
@@ -109,7 +118,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
-                GET_RANGES_EXECUTOR);
+                GET_RANGES_EXECUTOR,
+                DEFAULT_GET_RANGES_CONCURRENCY,
+                SweepQueueWriter.NO_OP);
     }
 
     @Test
@@ -163,13 +174,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Cell cell = Cell.create("r1".getBytes(), TransactionConstants.COMMIT_TS_COLUMN);
         keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
             ImmutableMap.of(cell, "v1".getBytes()));
-        try {
-            keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
-                ImmutableMap.of(cell, "v2".getBytes()));
-            fail();
-        } catch (KeyAlreadyExistsException e) {
-            //expected
-        }
+
+        assertThatThrownBy(() ->
+                keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
+                        ImmutableMap.of(cell, "v2".getBytes())))
+                .isInstanceOf(AtlasDbDependencyException.class);
     }
 
     @Test
@@ -1094,14 +1103,19 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     public void testGetRanges() {
         Transaction t = startTransaction();
         byte[] row1Bytes = PtBytes.toBytes("row1");
-        Cell k = Cell.create(row1Bytes, PtBytes.toBytes("col"));
-        byte[] v = PtBytes.toBytes("v");
-        t.put(TEST_TABLE, ImmutableMap.of(k, v));
+        Cell row1Key = Cell.create(row1Bytes, PtBytes.toBytes("col"));
+        byte[] row1Value = PtBytes.toBytes("value1");
+        byte[] row2Bytes = PtBytes.toBytes("row2");
+        Cell row2Key = Cell.create(row2Bytes, PtBytes.toBytes("col"));
+        byte[] row2Value = PtBytes.toBytes("value2");
+        t.put(TEST_TABLE, ImmutableMap.of(row1Key, row1Value, row2Key, row2Value));
         t.commit();
 
         t = startTransaction();
-        List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row1Bytes).build());
-        verifyAllGetRangesImplsNumRanges(t, ranges, 1);
+        List<RangeRequest> ranges = ImmutableList.of(
+                RangeRequest.builder().prefixRange(row1Bytes).build(),
+                RangeRequest.builder().prefixRange(row2Bytes).build());
+        verifyAllGetRangesImplsNumRanges(t, ranges, ImmutableList.of("value1", "value2"));
     }
 
     @Test
@@ -1126,7 +1140,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         t = startTransaction();
         byte[] rangeEnd = RangeRequests.nextLexicographicName(row00Bytes);
         List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row0Bytes).endRowExclusive(rangeEnd).batchHint(1).build());
-        verifyAllGetRangesImplsNumRanges(t, ranges, 1);
+        verifyAllGetRangesImplsNumRanges(t, ranges, ImmutableList.of("v"));
     }
 
     @Test
@@ -1177,7 +1191,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         }
     }
 
-    private void verifyAllGetRangesImplsNumRanges(Transaction t, Iterable<RangeRequest> rangeRequests, int expectedNumberOfRows) {
+    private void verifyAllGetRangesImplsNumRanges(Transaction t, Iterable<RangeRequest> rangeRequests, List<String> expectedValues) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithPrefetchingImpl =
                 t.getRanges(TEST_TABLE, rangeRequests);
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInParallelImpl =
@@ -1185,8 +1199,15 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
                 t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
-        assertEquals(expectedNumberOfRows, BatchingVisitables.concat(getRangesWithPrefetchingImpl).count());
-        assertEquals(expectedNumberOfRows, BatchingVisitables.concat(getRangesInParallelImpl).count());
-        assertEquals(expectedNumberOfRows, BatchingVisitables.concat(getRangesLazyImpl).count());
+        assertEquals(expectedValues, extractStringsFromVisitables(getRangesWithPrefetchingImpl));
+        assertEquals(expectedValues, extractStringsFromVisitables(getRangesInParallelImpl));
+        assertEquals(expectedValues, extractStringsFromVisitables(getRangesLazyImpl));
+    }
+
+    private List<String> extractStringsFromVisitables(Iterable<BatchingVisitable<RowResult<byte[]>>> visitables) {
+        return BatchingVisitables.concat(visitables)
+                .transform(RowResult::getOnlyColumnValue)
+                .transform(bytes -> new String(bytes, StandardCharsets.UTF_8))
+                .immutableCopy();
     }
 }

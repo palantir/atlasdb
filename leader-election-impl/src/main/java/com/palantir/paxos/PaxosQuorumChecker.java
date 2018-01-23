@@ -21,7 +21,6 @@ import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 
 public final class PaxosQuorumChecker {
 
@@ -46,7 +46,7 @@ public final class PaxosQuorumChecker {
 
     // used to cancel outstanding reqeusts after we have already achieved a quorum or otherwise finished collecting
     // responses
-    private static final ScheduledExecutorService CANCELLATION_EXECUTOR = Executors.newSingleThreadScheduledExecutor(
+    private static final ScheduledExecutorService CANCELLATION_EXECUTOR = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("paxos-quorum-checker-canceller", true));
     private static final long OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS = 2;
 
@@ -228,5 +228,19 @@ public final class PaxosQuorumChecker {
 
     public static boolean hasQuorum(List<? extends PaxosResponse> responses, int quorumSize) {
         return Collections2.filter(responses, PaxosResponses.isSuccessfulPredicate()).size() >= quorumSize;
+    }
+
+    public static PaxosQuorumStatus getQuorumResult(List<PaxosResponse> responses, int quorumSize) {
+        if (hasQuorum(responses, quorumSize)) {
+            return PaxosQuorumStatus.QUORUM_AGREED;
+        } else if (hasAnyDisagreements(responses)) {
+            return PaxosQuorumStatus.SOME_DISAGREED;
+        }
+
+        return PaxosQuorumStatus.NO_QUORUM;
+    }
+
+    private static boolean hasAnyDisagreements(List<PaxosResponse> responses) {
+        return responses.stream().anyMatch(response -> !response.isSuccessful());
     }
 }

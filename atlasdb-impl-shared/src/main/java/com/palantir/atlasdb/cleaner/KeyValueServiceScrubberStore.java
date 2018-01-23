@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -48,43 +49,76 @@ import com.palantir.common.base.AbstractBatchingVisitable;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.processors.AutoDelegate;
 
 /**
  *
  * A ScrubberStore implemented as a table in the KeyValueService.
  *
- *
- * @author ejin
  */
+@AutoDelegate(typeToExtend = ScrubberStore.class)
 public final class KeyValueServiceScrubberStore implements ScrubberStore {
+    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_ScrubberStore {
+        @Override
+        public ScrubberStore delegate() {
+            checkInitialized();
+            return KeyValueServiceScrubberStore.this;
+        }
+
+        @Override
+        protected void tryInitialize() {
+            KeyValueServiceScrubberStore.this.tryInitialize();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return "KeyValueServiceScrubberStore";
+        }
+    }
+
     private static final byte[] EMPTY_CONTENTS = new byte[] {1};
+    private final InitializingWrapper wrapper = new InitializingWrapper();
     private final KeyValueService keyValueService;
 
     public static ScrubberStore create(KeyValueService keyValueService) {
-        TableMetadata scrubTableMeta = new TableMetadata(
-                NameMetadataDescription.create(ImmutableList.of(
-                        new NameComponentDescription.Builder()
-                            .componentName("row")
-                            .type(ValueType.BLOB)
-                            .build())),
-                new ColumnMetadataDescription(new DynamicColumnDescription(
-                        NameMetadataDescription.create(ImmutableList.of(
-                                new NameComponentDescription.Builder()
-                                    .componentName("table")
-                                    .type(ValueType.VAR_STRING)
-                                    .build(),
-                                new NameComponentDescription.Builder()
-                                    .componentName("col")
-                                    .type(ValueType.BLOB)
-                                    .build())),
-                        ColumnValueDescription.forType(ValueType.VAR_LONG))),
-                ConflictHandler.IGNORE_ALL);
-        keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());
-        return new KeyValueServiceScrubberStore(keyValueService);
+        return create(keyValueService, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static ScrubberStore create(KeyValueService keyValueService, boolean initializeAsync) {
+        KeyValueServiceScrubberStore scrubberStore = new KeyValueServiceScrubberStore(keyValueService);
+        scrubberStore.wrapper.initialize(initializeAsync);
+        return scrubberStore.wrapper.isInitialized() ? scrubberStore : scrubberStore.wrapper;
     }
 
     private KeyValueServiceScrubberStore(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;
+    }
+
+    private void tryInitialize() {
+        TableMetadata scrubTableMeta = new TableMetadata(
+                NameMetadataDescription.create(ImmutableList.of(
+                        new NameComponentDescription.Builder()
+                                .componentName("row")
+                                .type(ValueType.BLOB)
+                                .build())),
+                new ColumnMetadataDescription(new DynamicColumnDescription(
+                        NameMetadataDescription.create(ImmutableList.of(
+                                new NameComponentDescription.Builder()
+                                        .componentName("table")
+                                        .type(ValueType.VAR_STRING)
+                                        .build(),
+                                new NameComponentDescription.Builder()
+                                        .componentName("col")
+                                        .type(ValueType.BLOB)
+                                        .build())),
+                        ColumnValueDescription.forType(ValueType.VAR_LONG))),
+                ConflictHandler.IGNORE_ALL);
+        keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return wrapper.isInitialized();
     }
 
     @Override

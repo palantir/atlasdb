@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 
@@ -32,7 +33,13 @@ public class StreamStoreDefinitionBuilder {
             Maps.newHashMapWithExpectedSize(StreamTableType.values().length);
     private int inMemoryThreshold = AtlasDbConstants.DEFAULT_STREAM_IN_MEMORY_THRESHOLD;
     private boolean compressStream;
+    private int numberOfRowComponentsHashed = 0;
 
+    /**
+     * @param shortName The prefix of the table names in the DB.
+     * @param longName The prefix of the generated Java class names.
+     * @param valueType The type of the column that will store the stream ID internally. Usually a VAR_LONG.
+     */
     public StreamStoreDefinitionBuilder(String shortName, String longName, ValueType valueType) {
         for (StreamTableType tableType : StreamTableType.values()) {
             streamTables.put(tableType.getTableName(shortName),
@@ -44,8 +51,38 @@ public class StreamStoreDefinitionBuilder {
         this.compressStream = false;
     }
 
+    /**
+     * We recommend using hashRowComponents() instead as it has the additional benefit of preventing hotspotting
+     * within a stream. However, do not change this flag for an existing store schema as we currently do not support
+     * StreamStore migrations.
+     */
     public StreamStoreDefinitionBuilder hashFirstRowComponent() {
-        streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.hashFirstRowComponent());
+        return hashFirstNRowComponents(1);
+    }
+
+    /**
+     * We recommend that this flag is set in order to prevent hotspotting in the underlying table which stores
+     * the data blocks. The effect of this method is that row keys will be prefixed by the hashed
+     * concatenation of the stream id and block id. AtlasDB does not have support for StreamStore migrations,
+     * so if you are adding this flag for an existing StreamStore you will have to implement the migration as well.
+     */
+    public StreamStoreDefinitionBuilder hashRowComponents() {
+        return hashFirstNRowComponents(2);
+    }
+
+    private StreamStoreDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
+        Preconditions.checkArgument(numberOfComponentsHashed <= 2,
+                "The number of components specified must be less than two as "
+                        + "StreamStore internal tables use at most two row components.");
+        streamTables.forEach((tableName, streamTableBuilder) ->
+                streamTableBuilder.hashFirstNRowComponents(numberOfComponentsHashed));
+        numberOfRowComponentsHashed = numberOfComponentsHashed;
+        return this;
+    }
+
+    public StreamStoreDefinitionBuilder tableNameLogSafety(TableMetadataPersistence.LogSafety logSafety) {
+        streamTables.forEach((tableName, streamTableBuilder) ->
+                streamTableBuilder.tableNameLogSafety(logSafety));
         return this;
     }
 
@@ -54,6 +91,11 @@ public class StreamStoreDefinitionBuilder {
         return this;
     }
 
+    /**
+     * @deprecated use {@link #compressStreamInClient()} instead, because that will compress before sending the data
+     * over the network to Cassandra.
+     */
+    @Deprecated
     public StreamStoreDefinitionBuilder compressBlocksInDb() {
         streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.compressBlocksInDb());
         return this;
@@ -83,7 +125,8 @@ public class StreamStoreDefinitionBuilder {
                 longName,
                 valueType,
                 inMemoryThreshold,
-                compressStream);
+                compressStream,
+                numberOfRowComponentsHashed);
     }
 
 }

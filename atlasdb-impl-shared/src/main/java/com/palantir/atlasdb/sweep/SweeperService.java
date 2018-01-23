@@ -15,47 +15,52 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.Optional;
+
+import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.logsafe.Safe;
+
 /**
  * Provides endpoints for sweeping a specific table.
  */
 @Path("/sweep")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 public interface SweeperService {
+
+    default SweepTableResponse sweepTableFully(String tableName) {
+        return sweepTable(tableName, Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty());
+    }
+
+    default SweepTableResponse sweepTableFrom(String tableName, String startRow) {
+        return sweepTable(tableName, Optional.of(startRow), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty());
+    }
+
     /**
-     * Sweep a particular table from EMPTY startRow with default {@link SweepBatchConfig}.
+     * Sweeps a particular table.
+     *
+     * @param tableName the table to sweep, in the format namespace.table_name (e.g. myapp.users)
+     * @param startRow (Optional) the row to start from, encoded as a hex string (e.g. 12345abcde)
+     * @param fullSweep (Optional; default true) whether to sweep the full table; if false just runs one batch
+     * @param maxCellTsPairsToExamine (Optional) see {@link SweepBatchConfig#maxCellTsPairsToExamine()}
+     * @param candidateBatchSize (Optional) see {@link SweepBatchConfig#candidateBatchSize()}
+     * @param deleteBatchSize (Optional) see {@link SweepBatchConfig#deleteBatchSize()}
      */
     @POST
     @Path("sweep-table")
-    @Produces(MediaType.APPLICATION_JSON)
-    void sweepTable(@QueryParam("tablename") String tableName);
-
-    /**
-     * Sweep a particular table from specified startRow with default {@link SweepBatchConfig}.
-     */
-    @POST
-    @Path("sweep-table-from-row")
-    @Produces(MediaType.APPLICATION_JSON)
-    void sweepTableFromStartRow(
+    SweepTableResponse sweepTable(
             @QueryParam("tablename") String tableName,
-            @Nonnull @QueryParam("startRow") String startRow);
-
-    /**
-     * Sweep a particular table from specified startRow with specified {@link SweepBatchConfig} parameters.
-     */
-    @POST
-    @Path("sweep-table-from-row-with-batch")
-    @Produces(MediaType.APPLICATION_JSON)
-    void sweepTableFromStartRowWithBatchConfig(
-            @QueryParam("tablename") String tableName,
-            @Nullable @QueryParam("startRow") String startRow,
-            @Nullable @QueryParam("maxCellTsPairsToExamine") Integer maxCellTsPairsToExamine,
-            @Nullable @QueryParam("candidateBatchSize") Integer candidateBatchSize,
-            @Nullable @QueryParam("deleteBatchSize") Integer deleteBatchSize);
+            @QueryParam("startRow") Optional<String> startRow,
+            @Safe @QueryParam("fullSweep") Optional<Boolean> fullSweep,
+            @Safe @QueryParam("maxCellTsPairsToExamine") Optional<Integer> maxCellTsPairsToExamine,
+            @Safe @QueryParam("candidateBatchSize") Optional<Integer> candidateBatchSize,
+            @Safe @QueryParam("deleteBatchSize") Optional<Integer> deleteBatchSize);
 }

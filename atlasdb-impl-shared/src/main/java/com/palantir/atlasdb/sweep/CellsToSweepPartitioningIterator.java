@@ -64,7 +64,7 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
         } else {
             List<CellToSweep> batch = Lists.newArrayList();
             int cellTsPairsToDelete = 0;
-            long numCellTsPairsExaminedSoFar = 0;
+            long numCellTsPairsExamined = 0;
             Cell lastCellExamined = null;
             while (cellTsPairsToDelete < deleteBatchSize && cellsToSweep.hasNext()) {
                 BatchOfCellsToSweep sourceBatch = cellsToSweep.next();
@@ -72,9 +72,9 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
                 for (CellToSweep cell : sourceBatch.cells()) {
                     cellTsPairsToDelete += cell.sortedTimestamps().size();
                 }
-                numCellTsPairsExaminedSoFar = sourceBatch.numCellTsPairsExaminedSoFar();
+                numCellTsPairsExamined += sourceBatch.numCellTsPairsExamined();
                 lastCellExamined = sourceBatch.lastCellExamined();
-                if (limit.examinedEnoughCells(numCellTsPairsExaminedSoFar, lastCellExamined)) {
+                if (limit.examinedEnoughCells(numCellTsPairsExamined, lastCellExamined)) {
                     limitReached = true;
                     break;
                 }
@@ -83,7 +83,7 @@ public class CellsToSweepPartitioningIterator extends AbstractIterator<BatchOfCe
                     ? endOfData()
                     : ImmutableBatchOfCellsToSweep.builder()
                             .cells(batch)
-                            .numCellTsPairsExaminedSoFar(numCellTsPairsExaminedSoFar)
+                            .numCellTsPairsExamined(numCellTsPairsExamined)
                             .lastCellExamined(lastCellExamined)
                             .build();
         }

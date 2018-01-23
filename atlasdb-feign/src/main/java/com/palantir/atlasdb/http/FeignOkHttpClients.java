@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.http;
 
 import java.io.IOException;
+import java.net.ProxySelector;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -95,19 +96,35 @@ public final class FeignOkHttpClients {
      * Returns a feign {@link Client} wrapping a {@link okhttp3.OkHttpClient} client with optionally
      * specified {@link SSLSocketFactory}.
      */
-    public static <T> Client newOkHttpClient(
+    public static Client newOkHttpClient(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
             String userAgent) {
-        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, userAgent));
+        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+    }
+
+    /**
+     * Returns a Feign {@link Client} wrapping an {@link okhttp3.OkHttpClient}, which re-creates
+     * itself periodically (by default, every ScheduledRefreshingClient.STANDARD_REFRESH_INTERVAL time).
+     */
+    public static Client newRefreshingOkHttpClient(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
+            String userAgent) {
+        return CounterBackedRefreshingClient.createRefreshingClient(
+                () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
     }
 
     @VisibleForTesting
-    static okhttp3.OkHttpClient newRawOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory,
+    static okhttp3.OkHttpClient newRawOkHttpClient(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
             String userAgent) {
         // Don't allow retrying on connection failures - see ticket #2194
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
                 .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
+                .proxySelector(proxySelector.orElse(ProxySelector.getDefault()))
                 .retryOnConnectionFailure(false);
         if (sslSocketFactory.isPresent()) {
             builder.sslSocketFactory(sslSocketFactory.get());

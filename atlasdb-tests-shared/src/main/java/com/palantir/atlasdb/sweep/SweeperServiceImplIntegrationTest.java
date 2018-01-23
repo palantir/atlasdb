@@ -30,7 +30,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
     @Before
     public void setup() {
         super.setup();
-        sweeperService = new SweeperServiceImpl(specificTableSweeper);
+        sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
         putManyCells(TABLE_1, 103, 113);
         putManyCells(TABLE_1, 105, 115);
         sweepTimestamp.set(150);
-        sweeperService.sweepTable(TABLE_1.getQualifiedName());
+        sweeperService.sweepTableFully(TABLE_1.getQualifiedName());
         verifyTableSwept(TABLE_1, 75, true);
     }
 

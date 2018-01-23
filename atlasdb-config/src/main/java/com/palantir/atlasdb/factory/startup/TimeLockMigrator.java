@@ -15,38 +15,57 @@
  */
 package com.palantir.atlasdb.factory.startup;
 
+import java.util.function.Supplier;
+
+import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
-public class TimeLockMigrator {
+@SuppressWarnings("FinalClass")
+public class TimeLockMigrator extends AsyncInitializer {
     private final TimestampStoreInvalidator source;
     private final TimestampManagementService destination;
+    private final boolean initializeAsync;
 
-    public TimeLockMigrator(TimestampStoreInvalidator source, TimestampManagementService destination) {
+    private TimeLockMigrator(
+            TimestampStoreInvalidator source,
+            TimestampManagementService destination,
+            boolean initializeAsync) {
         this.source = source;
         this.destination = destination;
+        this.initializeAsync = initializeAsync;
     }
 
     public static TimeLockMigrator create(
-            TimeLockClientConfig config,
+            ServerListConfig serverListConfig,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
+        return create(() -> serverListConfig, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static TimeLockMigrator create(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            TimestampStoreInvalidator invalidator,
+            String userAgent,
+            boolean initializeAsync) {
         TimestampManagementService remoteTimestampManagementService =
-                createRemoteManagementService(config, userAgent);
-        return new TimeLockMigrator(invalidator, remoteTimestampManagementService);
+                createRemoteManagementService(
+                        serverListConfigSupplier, userAgent);
+        return new TimeLockMigrator(invalidator, remoteTimestampManagementService, initializeAsync);
     }
 
     /**
      * Migration works as follows:
      * 1. Ping the destination Timelock Server. If this fails, throw.
      * 2. Backup and invalidate the Timestamp Bound, returning TS.
-     *    At this point, the database should contain an invalidated timestamp bound, plus a backup bound of TS.
+     * At this point, the database should contain an invalidated timestamp bound, plus a backup bound of TS.
      * 3. Fast-forward the destination to TS.
-     *
+     * <p>
      * The purpose of step 1 is largely to handle cases where users accidentally mis-configure their AtlasDB clients to
      * attempt to talk to Timelock; we want to ensure there's a legitimate Timelock Server present before doing the
      * invalidation. In the event of a failure between steps 2 and 3, rerunning this method is safe, because
@@ -54,22 +73,32 @@ public class TimeLockMigrator {
      * is unreadable.
      */
     @Idempotent
-    @SuppressWarnings("CheckReturnValue") // errorprone doesn't pick up "when=NEVER"
     public void migrate() {
+        initialize(initializeAsync);
+    }
+
+    private static TimestampManagementService createRemoteManagementService(
+            Supplier<ServerListConfig> serverListConfig,
+            String userAgent) {
+        return new ServiceCreator<>(TimestampManagementService.class, userAgent)
+                .applyDynamic(serverListConfig);
+    }
+
+    @Override
+    @SuppressWarnings({"CheckReturnValue", "ResultOfMethodCallIgnored"}) // errorprone doesn't pick up "when=NEVER"
+    protected synchronized void tryInitialize() {
         try {
             destination.ping();
         } catch (Exception e) {
-            throw new IllegalStateException("Could not contact the Timelock Server.", e);
+            throw new AtlasDbDependencyException("Could not contact the Timelock Server.", e);
         }
         long currentTimestamp = source.backupAndInvalidate();
         destination.fastForwardTimestamp(currentTimestamp);
     }
 
-    private static TimestampManagementService createRemoteManagementService(
-            TimeLockClientConfig timelockConfig,
-            String userAgent) {
-        ServerListConfig serverListConfig = timelockConfig.toNamespacedServerList();
-        return new ServiceCreator<>(TimestampManagementService.class, userAgent)
-                .apply(serverListConfig);
+    @Override
+    protected String getInitializingClassName() {
+        return TimeLockMigrator.class.getSimpleName();
     }
 }
+

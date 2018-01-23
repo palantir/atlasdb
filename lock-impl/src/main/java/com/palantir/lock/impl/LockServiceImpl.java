@@ -102,7 +102,6 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.JMXUtils;
 
 /**
@@ -130,8 +129,8 @@ public final class LockServiceImpl
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
 
     /** Executor for the reaper threads. */
-    private final ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(LockServiceImpl.class.getName(), true)));
+    private final ExecutorService executor = PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(LockServiceImpl.class.getName(), true));
 
     private static final Function<HeldLocksToken, String> TOKEN_TO_ID =
             from -> from.getTokenId().toString(Character.MAX_RADIX);
@@ -278,7 +277,9 @@ public final class LockServiceImpl
             }
             log.error("Lock ID collision! "
                     + "Count of held tokens = {}"
-                    + "; random bit count = {}", heldLocksTokenMap.size(), RANDOM_BIT_COUNT);
+                    + "; random bit count = {}",
+                    SafeArg.of("heldTokenCount", heldLocksTokenMap.size()),
+                    SafeArg.of("randomBitCount", RANDOM_BIT_COUNT));
         }
     }
 
@@ -297,7 +298,9 @@ public final class LockServiceImpl
             }
             log.error("Lock ID collision! "
                     + "Count of held grants = {}"
-                    + "; random bit count = {}", heldLocksGrantMap.size(), RANDOM_BIT_COUNT);
+                    + "; random bit count = {}",
+                    SafeArg.of("heldTokenCount", heldLocksTokenMap.size()),
+                    SafeArg.of("randomBitCount", RANDOM_BIT_COUNT));
         }
     }
 
@@ -327,7 +330,8 @@ public final class LockServiceImpl
         long startTime = System.currentTimeMillis();
         if (requestLogger.isDebugEnabled()) {
             requestLogger.debug("LockServiceImpl processing lock request {} for requesting thread {}",
-                    request, request.getCreatingThreadName());
+                    UnsafeArg.of("lockRequest", request),
+                    SafeArg.of("requestingThread", request.getCreatingThreadName()));
         }
         Map<ClientAwareReadWriteLock, LockMode> locks = Maps.newLinkedHashMap();
         if (isShutDown.get()) {
@@ -504,7 +508,7 @@ public final class LockServiceImpl
 
         // Note: The construction of params is pushed into the branches, as it may be expensive.
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
-            SlowLockLogger.logger.info(slowLockLogMessage,
+            SlowLockLogger.logger.warn(slowLockLogMessage,
                     constructSlowLockLogParams(lockId, currentHolder, durationMillis));
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
             log.debug(slowLockLogMessage, constructSlowLockLogParams(lockId, currentHolder, durationMillis));
@@ -618,7 +622,8 @@ public final class LockServiceImpl
         long heldDuration = System.currentTimeMillis() - token.getCreationDateMs();
         if (requestLogger.isDebugEnabled()) {
             requestLogger.debug("Releasing locks {} after holding for {} ms",
-                    heldLocks, heldDuration);
+                    UnsafeArg.of("heldLocks", heldLocks),
+                    SafeArg.of("heldDuration", heldDuration));
         }
         @Nullable LockClient client = heldLocks.realToken.getClient();
         if (client == null) {
@@ -767,7 +772,9 @@ public final class LockServiceImpl
         if (log.isInfoEnabled()) {
             long age = now - token.getCreationDateMs();
             if (age > maxNormalLockAge.toMillis()) {
-                log.debug("Token refreshed which is {} ms old: {}", age, description.get());
+                log.debug("Token refreshed which is {} ms old: {}",
+                        SafeArg.of("ageMillis", age),
+                        UnsafeArg.of("description", description.get()));
             }
         }
     }
@@ -782,13 +789,17 @@ public final class LockServiceImpl
         Preconditions.checkNotNull(token);
         @Nullable HeldLocks<HeldLocksToken> heldLocks = heldLocksTokenMap.remove(token);
         if (heldLocks == null) {
-            log.warn("Cannot convert to grant; invalid token: {}", token);
+            log.warn("Cannot convert to grant; invalid token: {} (token ID {})",
+                    UnsafeArg.of("token", token),
+                    SafeArg.of("tokenId", token.getTokenId()));
             throw new IllegalArgumentException("token is invalid: " + token);
         }
         if (isFrozen(heldLocks.locks.getKeys())) {
             heldLocksTokenMap.put(token, heldLocks);
             lockTokenReaperQueue.add(token);
-            log.warn("Cannot convert to grant because token is frozen: {}", token);
+            log.warn("Cannot convert to grant because token is frozen: {} (token ID {})",
+                    UnsafeArg.of("token", token),
+                    SafeArg.of("tokenId", token.getTokenId()));
             throw new IllegalArgumentException("token is frozen: " + token);
         }
         try {
@@ -797,7 +808,10 @@ public final class LockServiceImpl
         } catch (IllegalMonitorStateException e) {
             heldLocksTokenMap.put(token, heldLocks);
             lockTokenReaperQueue.add(token);
-            log.warn("Failure converting {} to grant", token, e);
+            log.warn("Failure converting {} (token ID {}) to grant",
+                    UnsafeArg.of("token", token),
+                    SafeArg.of("tokenId", token.getTokenId()),
+                    e);
             throw e;
         }
         lockClientMultimap.remove(heldLocks.realToken.getClient(), token);
@@ -805,7 +819,11 @@ public final class LockServiceImpl
                 heldLocks.locks, heldLocks.realToken.getLockTimeout(),
                 heldLocks.realToken.getVersionId());
         if (log.isTraceEnabled()) {
-            log.trace(".convertToGrant({}) returns {}", token, grant);
+            log.trace(".convertToGrant({}) (token ID {}) returns {} (grant ID {})",
+                    UnsafeArg.of("token", token),
+                    SafeArg.of("tokenId", token.getTokenId()),
+                    UnsafeArg.of("grant", grant),
+                    SafeArg.of("grantId", grant.getGrantId()));
         }
         return grant;
     }
@@ -817,7 +835,9 @@ public final class LockServiceImpl
         Preconditions.checkNotNull(grant);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.remove(grant);
         if (heldLocks == null) {
-            log.warn("Tried to use invalid grant: {}", grant);
+            log.warn("Tried to use invalid grant: {} (grant ID {})",
+                    UnsafeArg.of("grant", grant),
+                    SafeArg.of("grantId", grant.getGrantId()));
             throw new IllegalArgumentException("grant is invalid: " + grant);
         }
         HeldLocksGrant realGrant = heldLocks.realToken;
@@ -826,7 +846,12 @@ public final class LockServiceImpl
                 heldLocks.locks, realGrant.getLockTimeout(), realGrant.getVersionId(),
                 "Converted from Grant, Missing Thread Name");
         if (log.isTraceEnabled()) {
-            log.trace(".useGrant({}, {}) returns {}", client, grant, token);
+            log.trace(".useGrant({}, {}) (grant ID {}) returns {} (token ID {})",
+                    SafeArg.of("client", client),
+                    UnsafeArg.of("grant", grant),
+                    SafeArg.of("grantId", grant.getGrantId()),
+                    UnsafeArg.of("token", token),
+                    SafeArg.of("tokenId", token.getTokenId()));
         }
         return token;
     }
@@ -961,7 +986,9 @@ public final class LockServiceImpl
                         - maxAllowedClockDrift.toMillis()) {
                     queue.add(realToken);
                 } else {
-                    log.warn("Lock token {} was not properly refreshed and is now being reaped.", realToken);
+                    // TODO (jkong): Make both types of lock tokens identifiable.
+                    log.warn("Lock token {} was not properly refreshed and is now being reaped.",
+                            UnsafeArg.of("token", realToken));
                     unlockInternal(realToken, heldLocksMap);
                 }
             } catch (Throwable t) {
@@ -1017,7 +1044,7 @@ public final class LockServiceImpl
         logString.append("maxAllowedLockTimeout = ").append(maxAllowedLockTimeout).append("\n");
         logString.append("maxAllowedClockDrift = ").append(maxAllowedClockDrift).append("\n");
         logString.append("descriptorToLockMap.size = ").append(descriptorToLockMap.size()).append("\n");
-        logString.append("outstandingLockRequestMultimap.size = ").append(descriptorToLockMap.size()).append("\n");
+        logString.append("outstandingLockRequestMultimap.size = ").append(outstandingLockRequestMultimap.size()).append("\n");
         logString.append("heldLocksTokenMap.size = ").append(heldLocksTokenMap.size()).append("\n");
         logString.append("heldLocksGrantMap.size = ").append(heldLocksGrantMap.size()).append("\n");
         logString.append("lockTokenReaperQueue.size = ").append(lockTokenReaperQueue.size()).append("\n");

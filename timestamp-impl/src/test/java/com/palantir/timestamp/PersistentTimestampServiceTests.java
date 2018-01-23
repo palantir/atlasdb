@@ -26,7 +26,7 @@ import org.junit.rules.ExpectedException;
 import com.palantir.atlasdb.timestamp.AbstractTimestampServiceTests;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 
-// Test PersistentTimestampService by fully instantiating it with an InMemoryTimestampBoundStore.
+// Test PersistentTimestampServiceImpl by fully instantiating it with an InMemoryTimestampBoundStore.
 // See also PersistentTimestampServiceMockingTest that mocks AvailableTimestamps instead.
 public class PersistentTimestampServiceTests extends AbstractTimestampServiceTests {
     @Rule
@@ -48,7 +48,7 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
     private PersistentTimestampService getSingletonTimestampService() {
         if (timestampBoundStore == null || persistentTimestampService == null) {
             timestampBoundStore = new InMemoryTimestampBoundStore();
-            persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
+            persistentTimestampService = PersistentTimestampServiceImpl.create(timestampBoundStore);
         }
         return persistentTimestampService;
     }

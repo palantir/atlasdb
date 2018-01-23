@@ -15,7 +15,26 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.exception.NotInitializedException;
+
 public interface TransactionManager extends AutoCloseable {
+    /**
+     * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,
+     * and is ready to service transactions.
+     *
+     * If an attempt is made to execute a transaction when this method returns {@code false}, a
+     * {@link NotInitializedException} will be thrown.
+     *
+     * This method is used for TransactionManagers that can be initialized asynchronously (i.e. those extending
+     * {@link com.palantir.async.initializer.AsyncInitializer}; other TransactionManagers can keep the default
+     * implementation, and return true (they're trivially fully initialized).
+     *
+     * @return true if and only if the TransactionManager has been fully initialized
+     */
+    default boolean isInitialized() {
+        return true;
+    }
+
     /**
      * Runs the given {@link TransactionTask}. If the task completes successfully
      * and does not call {@link Transaction#commit()} or {@link Transaction#abort()},
@@ -49,7 +68,7 @@ public interface TransactionManager extends AutoCloseable {
     /**
      * {@link #runTaskWithRetry(TransactionTask)} should be preferred over
      * {@link #runTaskThrowOnConflict(TransactionTask)}.
-     * This method should be used unless {@link #runTaskWithRetry(TransactionTask)} cannot be used becuase the arguments
+     * This method should be used unless {@link #runTaskWithRetry(TransactionTask)} cannot be used because the arguments
      * passed are not immutable and will be modified by the transaction so doing automatic retry is unsafe.
      *
      * Runs the given {@link TransactionTask}. If the task completes successfully
@@ -76,8 +95,9 @@ public interface TransactionManager extends AutoCloseable {
             throws E, TransactionFailedRetriableException;
 
     /**
-     * This will open and run a read only transaction.  Read transactions are just like normal
-     * transactions, but will throw if any write operations are called.
+     * This will open and run a read-only transaction. Read-only transactions are similar to other
+     * transactions, but will throw if any write operations are called. Furthermore, they often
+     * make fewer network calls than their read/write counterparts so should be used where possible.
      *
      * @param task task to run
      *
@@ -90,7 +110,7 @@ public interface TransactionManager extends AutoCloseable {
     /**
      * Most AtlasDB TransactionManagers will provide {@link Transaction} objects that have less than full
      * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp
-     * and an open transaction can only read values that were committed before it's start timestamp.
+     * and an open transaction can only read values that were committed before its start timestamp.
      * <p>
      * This method will return a timestamp that is before any uncommited/aborted open start timestamps.
      * <p>
@@ -106,9 +126,15 @@ public interface TransactionManager extends AutoCloseable {
     long getImmutableTimestamp();
 
     /**
-     * Return the {@link KeyValueServiceStatus} depending on the availability of the underlying key-value store.
-     *
-     * @return status of the key value service, can be used by the application to decide its own health
+     * Provides a {@link KeyValueServiceStatus}, indicating the current availability of the key value store.
+     * This can be used to infer product health - in the usual, conservative case, products can call
+     * {@link KeyValueServiceStatus#isHealthy()}, which returns true only if all KVS nodes are up.
+     * <p>
+     * Products that use AtlasDB only for reads and writes (no schema mutations or deletes, including having sweep and
+     * scrub disabled) can also treat {@link KeyValueServiceStatus#HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES} as
+     * healthy.
+     * <p>
+     * This call must be implemented so that it completes synchronously.
      */
     KeyValueServiceStatus getKeyValueServiceStatus();
 

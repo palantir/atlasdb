@@ -16,22 +16,41 @@ jacocoTestReport {
 check.dependsOn integTest
 
 dependencies {
-    compile project(":timelock-agent")
-    compile project(":timelock-impl")
+    compile (project(":timelock-agent"))
 
     compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
     compile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
     compile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
     compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
-    compile group: 'com.palantir.remoting2', name: 'jersey-servers'
-    compile group: 'com.palantir.remoting2', name: 'ssl-config'
-    compile group: 'com.palantir.remoting2', name: 'tracing'
+    compile group: 'com.palantir.remoting-api', name: 'ssl-config'
+    compile group: 'com.palantir.remoting3', name: 'tracing'
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
+
+    compile (group: 'com.palantir.remoting3', name: 'jersey-servers')
 
     processor group: 'org.immutables', name: 'value'
 
-    testCompile project(":atlasdb-tests-shared")
+    runtime project(":atlasdb-jdbc")
+    runtime project(":atlasdb-hikari")
+    runtime (project(":atlasdb-cassandra")) {
+        exclude(module:'log4j-over-slf4j')
+        exclude(module:'jcl-over-slf4j')
+    }
+    runtime project(":atlasdb-dbkvs")
+    // TODO:   runtime "org.postgresql:postgresql:${postgresJdbcDriverVersion}"
+    // TODO:   add runtime depencency on the dbkvs-oracle-driver internally
 
+    testCompile (project(":atlasdb-tests-shared")) {
+        exclude group: 'com.fasterxml.jackson.jaxrs'
+    }
+
+    testCompile project(":atlasdb-tests-shared")
+    testCompile project(":atlasdb-dbkvs")
+    testCompile (project(":atlasdb-cassandra")) {
+        exclude(module:'log4j-over-slf4j')
+        exclude(module:'jcl-over-slf4j')
+    }
+    testCompile project(":flake-rule")
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
         exclude group: 'org.hamcrest'

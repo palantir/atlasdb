@@ -33,6 +33,11 @@ public class ForwardingRunnableFuture<V> extends ForwardingFuture<V> implements 
         future = futureTask;
     }
 
+    public ForwardingRunnableFuture(Runnable runnable, Future<V> future) {
+        this.runnable = runnable;
+        this.future = future;
+    }
+
     public ForwardingRunnableFuture(Future<V> future) {
         if (!(future instanceof Runnable)) {
             throw new IllegalArgumentException();

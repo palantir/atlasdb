@@ -46,6 +46,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.Maps2;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public final class CassandraVerifier {
     private static final Logger log = LoggerFactory.getLogger(CassandraVerifier.class);
@@ -54,8 +56,8 @@ public final class CassandraVerifier {
         // Utility class
     }
 
-    static final FunctionCheckedException<Cassandra.Client, Void, Exception> healthCheck = client -> {
-        client.describe_version();
+    static final FunctionCheckedException<CassandraClient, Void, Exception> healthCheck = client -> {
+        client.rawClient().describe_version();
         return null;
     };
 
@@ -120,10 +122,15 @@ public final class CassandraVerifier {
                 || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + tableName);
     }
 
+    /**
+     * If {@code shouldLogAndNotThrow} is set, log the {@code errorMessage} at error.
+     * The {@code errorMessage} is considered safe to be logged.
+     * If {@code shouldLogAndNotThrow} is not set, an IllegalStateException is thrown with message {@code errorMessage}.
+     */
     static void logErrorOrThrow(String errorMessage, boolean shouldLogAndNotThrow) {
         if (shouldLogAndNotThrow) {
             log.error("{} This would have normally resulted in Palantir exiting however "
-                    + "safety checks have been disabled.", errorMessage);
+                    + "safety checks have been disabled.", SafeArg.of("errorMessage", errorMessage));
         } else {
             throw new IllegalStateException(errorMessage);
         }
@@ -172,12 +179,14 @@ public final class CassandraVerifier {
                 } else {
                     throw ire;
                 }
-            } catch (Exception f) {
+            } catch (Exception exception) {
                 log.warn("Couldn't use host {} to create keyspace."
                         + " It returned exception \"{}\" during the attempt."
                         + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
-                        + " See the debug-level log for the stack trace.", host, f.toString(), f);
-                log.debug("Specifically, creating the keyspace failed with the following stack trace", f);
+                        + " See the debug-level log for the stack trace.",
+                        SafeArg.of("host", CassandraLogHelper.host(host)),
+                        UnsafeArg.of("exceptionMessage", exception.toString()));
+                log.debug("Specifically, creating the keyspace failed with the following stack trace", exception);
             }
         }
         return false;
@@ -189,6 +198,11 @@ public final class CassandraVerifier {
         try {
             Client client = CassandraClientFactory.getClientInternal(host, config);
             client.describe_keyspace(config.getKeyspaceOrThrow());
+            CassandraKeyValueServices.waitForSchemaVersions(
+                    config,
+                    client,
+                    "(checking if schemas diverged on startup)",
+                    true);
             return true;
         } catch (NotFoundException e) {
             return false;
@@ -207,11 +221,12 @@ public final class CassandraVerifier {
                 config);
         ks.setDurable_writes(true);
         client.system_add_keyspace(ks);
-        log.info("Created keyspace: {}", config.getKeyspaceOrThrow());
+        log.info("Created keyspace: {}", UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
         CassandraKeyValueServices.waitForSchemaVersions(
+                config,
                 client,
                 "(adding the initial empty keyspace)",
-                config.schemaMutationTimeoutMillis());
+                true);
     }
 
     private static boolean attemptedToCreateKeyspaceTwice(InvalidRequestException ex) {
@@ -228,13 +243,13 @@ public final class CassandraVerifier {
 
     private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
             throws TException {
-        clientPool.runWithRetry((FunctionCheckedException<Client, Void, TException>) client -> {
-            KsDef originalKsDef = client.describe_keyspace(config.getKeyspaceOrThrow());
+        clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, TException>) client -> {
+            KsDef originalKsDef = client.rawClient().describe_keyspace(config.getKeyspaceOrThrow());
             // there was an existing keyspace
             // check and make sure it's definition is up to date with our config
             KsDef modifiedKsDef = originalKsDef.deepCopy();
             checkAndSetReplicationFactor(
-                    client,
+                    client.rawClient(),
                     modifiedKsDef,
                     false,
                     config);
@@ -242,11 +257,11 @@ public final class CassandraVerifier {
             if (!modifiedKsDef.equals(originalKsDef)) {
                 // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 modifiedKsDef.setCf_defs(ImmutableList.of());
-                client.system_update_keyspace(modifiedKsDef);
+                client.rawClient().system_update_keyspace(modifiedKsDef);
                 CassandraKeyValueServices.waitForSchemaVersions(
-                        client,
-                        "(updating the existing keyspace)",
-                        config.schemaMutationTimeoutMillis());
+                        config,
+                        client.rawClient(),
+                        "(updating the existing keyspace)");
             }
 
             return null;
@@ -295,7 +310,7 @@ public final class CassandraVerifier {
         sanityCheckReplicationFactor(ks, config, dcs);
     }
 
-    static void currentRfOnKeyspaceMatchesDesiredRf(Client client, CassandraKeyValueServiceConfig config)
+    static void currentRfOnKeyspaceMatchesDesiredRf(Cassandra.Client client, CassandraKeyValueServiceConfig config)
             throws TException {
         KsDef ks = client.describe_keyspace(config.getKeyspaceOrThrow());
         Set<String> dcs = sanityCheckDatacenters(client, config);
@@ -321,11 +336,12 @@ public final class CassandraVerifier {
         }
     }
 
-    static final FunctionCheckedException<Cassandra.Client, Boolean, UnsupportedOperationException>
+    static final FunctionCheckedException<CassandraClient, Boolean, UnsupportedOperationException>
             underlyingCassandraClusterSupportsCASOperations = client -> {
                 try {
-                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
-                    log.debug("Connected cassandra thrift version is: {}", serverVersion);
+                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.rawClient().describe_version());
+                    log.debug("Connected cassandra thrift version is: {}",
+                            SafeArg.of("cassandraVersion", serverVersion));
                     return serverVersion.supportsCheckAndSet();
                 } catch (TException ex) {
                     throw new UnsupportedOperationException("Couldn't determine underlying cassandra version;"

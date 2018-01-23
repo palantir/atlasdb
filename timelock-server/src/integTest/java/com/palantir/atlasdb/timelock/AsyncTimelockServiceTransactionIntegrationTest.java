@@ -16,14 +16,11 @@
 
 package com.palantir.atlasdb.timelock;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -42,22 +39,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
-import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
@@ -74,22 +64,9 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
 
     public AsyncTimelockServiceTransactionIntegrationTest(TestableTimelockCluster cluster) {
         super(cluster);
+        cluster.waitUntilLeaderIsElected();
 
-        List<String> serverUris = cluster.servers().stream()
-                .map(server -> server.serverHolder().getTimelockUri())
-                .collect(Collectors.toList());
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .namespace("test")
-                .keyValueService(new InMemoryAtlasDbConfig())
-                .timelock(ImmutableTimeLockClientConfig.builder()
-                        .serversList(ImmutableServerListConfig.builder()
-                                .servers(serverUris)
-                                .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
-                                .build())
-                        .build())
-                .build();
-        txnManager = TransactionManagers.create(config, () -> Optional.empty(), ImmutableSet.of(),
-                ignored -> { }, false);
+        txnManager = TimeLockTestUtils.createTransactionManager(cluster);
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
@@ -143,5 +120,4 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
 
         assertThatThrownBy(failingTxn).isInstanceOf(TransactionLockTimeoutException.class);
     }
-
 }

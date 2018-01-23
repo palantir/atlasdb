@@ -54,9 +54,7 @@ public abstract class WideRowTable {
         return services.getKeyValueService();
     }
 
-    public TableReference getTableRef() {
-        return Tables.TABLE_REF;
-    }
+    public abstract TableReference getTableRef();
 
     public Map<Cell, Long> getAllCellsAtMaxTimestamp() {
         return allCellsAtMaxTimestamp;
@@ -76,21 +74,27 @@ public abstract class WideRowTable {
 
     public abstract int getNumCols();
 
+    public abstract boolean isPersistent();
+
     @Setup
     public void setup(AtlasDbServicesConnector conn) throws UnsupportedEncodingException {
         this.connector = conn;
         services = conn.connect();
-        tableRef = Benchmarks.createTableWithDynamicColumns(
-                services.getKeyValueService(),
-                getTableRef(),
-                Tables.ROW_COMPONENT,
-                Tables.COLUMN_COMPONENT);
-        storeData();
+        if (!services.getKeyValueService().getAllTableNames().contains(getTableRef())) {
+            tableRef = Benchmarks.createTableWithDynamicColumns(
+                    services.getKeyValueService(),
+                    getTableRef(),
+                    Tables.ROW_COMPONENT,
+                    Tables.COLUMN_COMPONENT);
+            storeData();
+        }
     }
 
     @TearDown
     public void cleanup() throws Exception {
-        services.getKeyValueService().dropTables(Sets.newHashSet(tableRef));
+        if (!isPersistent()) {
+            services.getKeyValueService().dropTables(Sets.newHashSet(tableRef));
+        }
         connector.close();
     }
 

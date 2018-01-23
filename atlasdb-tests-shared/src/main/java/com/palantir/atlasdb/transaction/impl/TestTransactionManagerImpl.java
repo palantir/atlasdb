@@ -19,10 +19,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
+import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -30,51 +33,63 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.timestamp.TimestampService;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
 
-    private static final int GET_RANGES_CONCURRENCY = 16;
-
+    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(KeyValueService keyValueService,
-                                      TimestampService timestampService,
-                                      LockClient lockClient,
-                                      LockService lockService,
-                                      TransactionService transactionService,
-                                      ConflictDetectionManager conflictDetectionManager,
-                                      SweepStrategyManager sweepStrategyManager) {
+            TimestampService timestampService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            SweepQueueWriter sweepQueue) {
         super(
                 createAssertKeyValue(keyValueService, lockService),
-                timestampService,
-                lockClient,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                GET_RANGES_CONCURRENCY);
+                TimestampTrackerImpl.createNoOpTracker(),
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                sweepQueue);
     }
 
+    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(KeyValueService keyValueService,
-                                      TimestampService timestampService,
-                                      LockClient lockClient,
-                                      LockService lockService,
-                                      TransactionService transactionService,
-                                      AtlasDbConstraintCheckingMode constraintCheckingMode) {
+            TimestampService timestampService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            AtlasDbConstraintCheckingMode constraintCheckingMode) {
         super(
                 createAssertKeyValue(keyValueService, lockService),
-                timestampService,
-                lockClient,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(constraintCheckingMode),
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                GET_RANGES_CONCURRENCY);
+                TimestampTrackerImpl.createNoOpTracker(),
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                SweepQueueWriter.NO_OP);
     }
 
     @Override
@@ -107,7 +122,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 constraintModeSupplier.get(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampValidationReadCache,
-                getRangesExecutor);
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueueWriter);
     }
 
     @Override

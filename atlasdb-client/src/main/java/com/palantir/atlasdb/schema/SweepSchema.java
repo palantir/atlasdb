@@ -39,30 +39,6 @@ public enum SweepSchema implements AtlasSchema {
                 NAMESPACE,
                 OptionalType.JAVA8);
 
-        // This table tracks progress on a sweep job of a single table.
-        schema.addTableDefinition("progress", new TableDefinition() {{
-            javaTableName("SweepProgress");
-            allSafeForLoggingByDefault();
-            rowName();
-                // This table has at most one row.
-                rowComponent("dummy", ValueType.VAR_LONG);
-            columns();
-                // The name of the table being swept.
-                column("full_table_name", "n", ValueType.STRING);
-                // The minimum swept timestamp, used to determine min
-                // timestamp for transaction table sweep
-                column("minimum_swept_timestamp", "m", ValueType.VAR_SIGNED_LONG);
-                // The row to start sweeping from if sweeping
-                // is paused and resumed.
-                column("start_row", "s", ValueType.BLOB);
-                // The number of cells deleted so far.
-                column("cells_deleted", "d", ValueType.VAR_LONG);
-                // The number of cells examined so far.
-                column("cells_examined", "e", ValueType.VAR_LONG);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-            ignoreHotspottingChecks();
-        }});
-
         // This table tracks stats about tables that are relevant
         // in determining when and in which order they should be swept.
         schema.addTableDefinition("priority", new TableDefinition() {{

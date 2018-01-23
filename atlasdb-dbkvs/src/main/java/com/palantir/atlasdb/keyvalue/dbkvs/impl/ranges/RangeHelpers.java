@@ -33,4 +33,5 @@ public final class RangeHelpers {
     public static <T> ImmutableSortedMap.Builder<byte[], T> newColumnMap() {
         return ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
     }
+
 }

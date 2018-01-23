@@ -1,11 +1,11 @@
 atlasdb:
-  namespace: test
+  namespace: brian
 
   keyValueService:
     type: memory
 
   timelock:
-    client: test
+    client: brian
     serversList:
       servers:
         - timelock1:8080

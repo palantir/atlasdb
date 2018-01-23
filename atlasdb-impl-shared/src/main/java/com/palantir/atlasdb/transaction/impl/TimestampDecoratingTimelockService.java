@@ -39,6 +39,11 @@ public class TimestampDecoratingTimelockService implements TimelockService {
     }
 
     @Override
+    public boolean isInitialized() {
+        return delegate.isInitialized() && decoratedTimestamps.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return decoratedTimestamps.getFreshTimestamp();
     }

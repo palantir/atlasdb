@@ -16,12 +16,16 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -34,9 +38,41 @@ public class TimestampDecoratingTimelockServiceTest {
     private final TimelockService decoratingService =
             new TimestampDecoratingTimelockService(delegate, decoratedTimestamps);
 
+    @Before
+    public void setUp() {
+        when(delegate.isInitialized()).thenReturn(true);
+        when(decoratedTimestamps.isInitialized()).thenReturn(true);
+    }
+
     @After
     public void verifyNoOtherCallsOnDelegates() {
         verifyNoMoreInteractions(delegate, decoratedTimestamps);
+    }
+
+
+    @Test
+    public void isInitializedWhenPrerequisitesAreInitialized() {
+        assertTrue(decoratingService.isInitialized());
+
+        verify(delegate).isInitialized();
+        verify(decoratedTimestamps).isInitialized();
+    }
+
+    @Test
+    public void isNotInitializedWhenScrubberIsNotInitialized() {
+        when(delegate.isInitialized()).thenReturn(false);
+        assertFalse(decoratingService.isInitialized());
+
+        verify(delegate).isInitialized();
+    }
+
+    @Test
+    public void isInitializedWhenPuncherIsNotInitialized() {
+        when(decoratedTimestamps.isInitialized()).thenReturn(false);
+        assertFalse(decoratingService.isInitialized());
+
+        verify(delegate).isInitialized();
+        verify(decoratedTimestamps).isInitialized();
     }
 
     @Test

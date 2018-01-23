@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 
@@ -41,7 +41,7 @@ public final class PaxosRemotingUtils {
     }
 
     public static ImmutableSet<String> getClusterAddresses(TimeLockInstallConfiguration install) {
-        return ImmutableSet.copyOf(getClusterConfiguration(install).cluster().uris());
+        return ImmutableSet.copyOf(getClusterConfiguration(install).clusterMembers());
     }
 
     public static Set<String> getRemoteServerAddresses(TimeLockInstallConfiguration install) {

@@ -37,6 +37,8 @@ class TimestampExtractor extends ResultsExtractor<Set<Long>> {
                                       long ts) {
         if (ts < startTs && selection.contains(col)) {
             collector.put(Cell.create(row, col), ts);
+        } else {
+            getNotlatestVisibleValueCellFilterMeter(TimestampExtractor.class).mark();
         }
     }
 

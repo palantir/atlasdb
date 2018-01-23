@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -43,6 +44,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.Futures;
@@ -58,14 +60,13 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.logsafe.UnsafeArg;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -88,8 +89,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     public AbstractKeyValueService(ExecutorService executor) {
         this.executor = executor;
         this.tracingPrefs = new TracingPrefsConfig();
-        this.scheduledExecutor = Tracers.wrap(PTExecutors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true)));
+        this.scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
+                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true));
         this.scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
     }
 
@@ -104,7 +105,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         ThreadPoolExecutor executor = PTExecutors.newFixedThreadPool(poolSize,
                 new NamedThreadFactory(threadNamePrefix, false));
         executor.setKeepAliveTime(1, TimeUnit.MINUTES);
-        return Tracers.wrap(executor);
+        return executor;
     }
 
     @Override
@@ -210,20 +211,34 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         }
     }
 
-    protected <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
+    protected static <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
                                                              final int maximumCountPerPartition,
                                                              final long maximumBytesPerPartition,
                                                              final TableReference tableRef,
                                                              final Function<T, Long> sizingFunction) {
         return partitionByCountAndBytes(iterable, maximumCountPerPartition, maximumBytesPerPartition,
-                tableRef.getQualifiedName(), sizingFunction);
+                tableRef.getQualifiedName(), sizingFunction, log);
     }
 
-    protected <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
+    protected static <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
+            final int maximumCountPerPartition,
+            final long maximumBytesPerPartition,
+            final String tableNameForLoggingPurposesOnly,
+            final Function<T, Long> sizingFunction) {
+        return partitionByCountAndBytes(iterable, maximumCountPerPartition, maximumBytesPerPartition,
+                tableNameForLoggingPurposesOnly, sizingFunction, log);
+    }
+
+    // FIXME: The tableNameForLoggingPurposesOnly is *not* always a valid tableName
+    // This string should *not* be used or treated as a real tableName, even though sometimes it is.
+    // For example, CassandraKVS multiPuts can cause this string to include *multiple* tableNames
+    @VisibleForTesting
+    protected static <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
                                                              final int maximumCountPerPartition,
                                                              final long maximumBytesPerPartition,
-                                                             final String tableName,
-                                                             final Function<T, Long> sizingFunction) {
+                                                             final String tableNameForLoggingPurposesOnly,
+                                                             final Function<T, Long> sizingFunction,
+                                                             final Logger log) {
         return () -> new UnmodifiableIterator<List<T>>() {
             PeekingIterator<T> pi = Iterators.peekingIterator(iterable.iterator());
             private int remainingEntries = Iterables.size(iterable);
@@ -248,17 +263,17 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                 if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
 
                     if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(
-                            TableReference.createWithEmptyNamespace(tableName))) {
+                            TableReference.createWithEmptyNamespace(tableNameForLoggingPurposesOnly))) {
                         log.warn(ENTRY_TOO_BIG_MESSAGE, sizingFunction.apply(firstEntry),
-                                maximumBytesPerPartition, tableName);
+                                maximumBytesPerPartition, tableNameForLoggingPurposesOnly);
                     } else {
                         final String longerMessage = ENTRY_TOO_BIG_MESSAGE
                                 + " This can potentially cause out-of-memory errors.";
                         log.warn(longerMessage,
                                 SafeArg.of("approximatePutSize", sizingFunction.apply(firstEntry)),
                                 SafeArg.of("maximumPutSize", maximumBytesPerPartition),
-                                LoggingArgs.tableRef("table",
-                                        TableReference.createFromFullyQualifiedName(tableName)));
+                                // FIXME: This must be an unsafe arg because it is not necessarily a real tableName
+                                UnsafeArg.of("tableName", tableNameForLoggingPurposesOnly));
                     }
                 }
 
@@ -294,6 +309,33 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                 delete(tableRef, cellsToDelete);
             }
         }
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef,
+            Map<Cell, Long> maxTimestampExclusiveByCell) {
+        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell);
+    }
+
+    public static void deleteAllTimestampsDefaultImpl(KeyValueService kvs, TableReference tableRef,
+            Map<Cell, Long> maxTimestampByCell) {
+        if (maxTimestampByCell.isEmpty()) {
+            return;
+        }
+
+        long maxTimestampExclusive = maxTimestampByCell.values().stream().max(Long::compare).get();
+
+        Multimap<Cell, Long> timestampsByCell = kvs.getAllTimestamps(tableRef, maxTimestampByCell.keySet(),
+                maxTimestampExclusive);
+
+        Multimap<Cell, Long> timestampsByCellExcludingSentinels = Multimaps.filterEntries(timestampsByCell, entry -> {
+            long maxTimestampForCell = maxTimestampByCell.get(entry.getKey());
+
+            long timestamp = entry.getValue();
+            return timestamp < maxTimestampForCell && timestamp != Value.INVALID_VALUE_TIMESTAMP;
+        });
+
+        kvs.delete(tableRef, timestampsByCellExcludingSentinels);
     }
 
     @Override

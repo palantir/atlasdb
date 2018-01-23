@@ -19,31 +19,30 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
 class CassandraTables {
     private final CassandraClientPool clientPool;
-    private final CassandraKeyValueServiceConfigManager configManager;
+    private final CassandraKeyValueServiceConfig config;
 
-    CassandraTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfigManager configManager) {
+    CassandraTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
         this.clientPool = clientPool;
-        this.configManager = configManager;
+        this.config = config;
     }
 
     Set<String> getExisting() {
-        String keyspace = configManager.getConfig().getKeyspaceOrThrow();
+        String keyspace = config.getKeyspaceOrThrow();
 
         try {
-            return clientPool.runWithRetry(new FunctionCheckedException<Cassandra.Client, Set<String>, Exception>() {
+            return clientPool.runWithRetry(new FunctionCheckedException<CassandraClient, Set<String>, Exception>() {
                 @Override
-                public Set<String> apply(Cassandra.Client client) throws Exception {
+                public Set<String> apply(CassandraClient client) throws Exception {
                     return getExisting(client, keyspace);
                 }
 
@@ -57,25 +56,25 @@ class CassandraTables {
         }
     }
 
-    private Set<String> getExisting(Cassandra.Client client, String keyspace) throws TException {
+    private Set<String> getExisting(CassandraClient client, String keyspace) throws TException {
         return getTableNames(client, keyspace, CfDef::getName);
     }
 
     Set<String> getExistingLowerCased() throws TException {
-        return getExistingLowerCased(configManager.getConfig().getKeyspaceOrThrow());
+        return getExistingLowerCased(config.getKeyspaceOrThrow());
     }
 
     private Set<String> getExistingLowerCased(String keyspace) throws TException {
         return clientPool.runWithRetry((client) -> getExistingLowerCased(client, keyspace));
     }
 
-    private Set<String> getExistingLowerCased(Cassandra.Client client, String keyspace) throws TException {
+    private Set<String> getExistingLowerCased(CassandraClient client, String keyspace) throws TException {
         return getTableNames(client, keyspace, cf -> cf.getName().toLowerCase());
     }
 
-    private Set<String> getTableNames(Cassandra.Client client, String keyspace,
+    private Set<String> getTableNames(CassandraClient client, String keyspace,
             Function<CfDef, String> nameGetter) throws TException {
-        KsDef ks = client.describe_keyspace(keyspace);
+        KsDef ks = client.rawClient().describe_keyspace(keyspace);
 
         return ks.getCf_defs().stream()
                 .map(nameGetter)

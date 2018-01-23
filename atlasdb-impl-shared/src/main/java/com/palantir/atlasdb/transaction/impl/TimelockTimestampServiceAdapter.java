@@ -29,6 +29,11 @@ public class TimelockTimestampServiceAdapter implements TimestampService {
     }
 
     @Override
+    public boolean isInitialized() {
+        return timelockService.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return timelockService.getFreshTimestamp();
     }
