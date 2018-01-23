@@ -52,7 +52,11 @@ develop
 
     *    - |improved| |logs| |metrics|
          - TokenRangeWrite metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/xxxx>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2910>`__)
+
+    *    - |fixed| |metrics|
+         - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2889>`__)
 
     *    - |improved| |logs|
          - AtlasDB internal table names are now safe for logging.
@@ -98,6 +102,11 @@ develop
          - Upgraded to protobuf 3.5.1.
            The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2887>`__)
+
+    *    - |fixed|
+         - V2 Schemas which use ``ValueType.BLOB`` will now compile.
+           Previously, compilation failed with an ``IllegalArgumentException`` from Java Poet, as we assumed Java versions of ``ValueType`` were always associated with object types.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2899>`__)
 
     *    - |fixed|
          - Stop to sweep when the sweep thread is interrupted.
