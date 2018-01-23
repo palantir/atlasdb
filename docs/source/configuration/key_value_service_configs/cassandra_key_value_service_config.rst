@@ -28,6 +28,9 @@ An example AtlasDB configuration for running against cassandra will look like th
 
 For a complete list and description of the below parameters, see `CassandraKeyValueServiceConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-cassandra/src/main/java/com/palantir/atlasdb/cassandra/CassandraKeyValueServiceConfig.java>`__.
 
+It is recommended to make use of the live-reloaded parameters in the `CassandraKeyValueServiceRuntimeConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-cassandra/src/main/java/com/palantir/atlasdb/cassandra/CassandraKeyValueServiceRuntimeConfig.java>`__.
+This block should be specified under the AtlasDB runtime block.
+
 Importantly - your lock creator must be consistent across all nodes. If you do not provide a lock creator, it will default to the first host
 in the leaders list. If you do not specify a lock creator, the leaders block should be exactly the same across all nodes.
 
@@ -67,6 +70,11 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
           - https://host1:3828 # If ssl is not enabled, then the hosts must be specified as http
           - https://host2:3828
           - https://host3:3828
+
+    atlasdb-runtime:
+      type: cassandra
+      sweepReadThreads: 16
+
 
 .. _cass-config-ssl:
 
