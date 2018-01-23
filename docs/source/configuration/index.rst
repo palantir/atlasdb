@@ -89,3 +89,6 @@ Example Configuration
     atlasdb-runtime:
       timestampClient:
         enableTimestampBatching: true
+      keyValueService:
+        type: cassandra
+        sweepReadThreads: 16

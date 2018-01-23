@@ -68,7 +68,7 @@ public abstract class AtlasDbRuntimeConfig {
     }
 
     @Value.Default
-    public Optional<KeyValueServiceRuntimeConfig> kvs() {
+    public Optional<KeyValueServiceRuntimeConfig> keyValueService() {
         return Optional.empty();
     }
 
