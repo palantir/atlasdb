@@ -19,6 +19,10 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class PersistentUpperLimit {
 
+    /**
+     * Some internal atlas clients have behavior tied to this value and will need to
+     * be updated if the value changes.
+     */
     @VisibleForTesting
     static final long BUFFER = 1_000_000;
 

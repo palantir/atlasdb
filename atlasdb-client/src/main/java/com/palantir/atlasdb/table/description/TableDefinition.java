@@ -232,8 +232,7 @@ public class TableDefinition extends AbstractDefinition {
     /**
      * Passing an empty list of partitioners means that this type is not able to be partitioned. This is sometimes
      * needed if the value type doesn't support the {@link UniformRowNamePartitioner}.  If the first entry in the table
-     * cannot be partitioned then it is likely this table will cause hot spots.  Consider adding
-     * partitionStrategy(HASH) in this case which will allow the DB to break it up however it wants.
+     * cannot be partitioned then it is likely this table will cause hot spots.
      * <p>
      * If no partition() is specified the default is to use a {@link UniformRowNamePartitioner}
      */
@@ -413,7 +412,6 @@ public class TableDefinition extends AbstractDefinition {
                 getColumnMetadataDescription(),
                 conflictHandler,
                 cachePriority,
-                partitionStrategy,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKb,
                 negativeLookups,

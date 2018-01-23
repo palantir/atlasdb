@@ -121,6 +121,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
             while (true) {
+                // InterruptedException might be wrapped in RuntimeException (i.e. AtlasDbDependencyException),
+                // which would be caught downstream.
+                // We throw InterruptedException here to register that BackgroundSweeper was shutdown
+                // on the catch block.
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("The background sweeper thread is interrupted.");
+                }
+
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
                 log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
