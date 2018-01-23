@@ -58,9 +58,9 @@ public class BlobSchema implements AtlasSchema {
 
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder("data", "Data", ValueType.VAR_LONG)
-                .hashRowComponents()
+                        .hashRowComponents()
                         .tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
-                .build());
+                        .build());
 
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder("hotspottyData", "HotspottyData", ValueType.VAR_SIGNED_LONG)
