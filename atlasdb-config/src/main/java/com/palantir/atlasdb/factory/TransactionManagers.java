@@ -75,6 +75,8 @@ import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
+import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
+import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
@@ -241,9 +243,12 @@ public abstract class TransactionManagers {
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
+        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(rawKvs,
+                config.initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 kvs,
                 schemas(),
+                schemaMetadataService,
                 config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 kvs,

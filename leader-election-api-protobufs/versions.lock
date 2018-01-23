@@ -4,8 +4,7 @@
             "locked": "2.0.3"
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "2.6.0",
-            "requested": "2.6.0"
+            "locked": "3.5.1"
         }
     },
     "runtime": {
@@ -13,8 +12,7 @@
             "locked": "2.0.3"
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "2.6.0",
-            "requested": "2.6.0"
+            "locked": "3.5.1"
         }
     }
 }

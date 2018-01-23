@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -90,7 +91,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                         ROW_AND_COLUMN_NAME,
                         "current_max_ts",
                         ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-            ConflictHandler.IGNORE_ALL);
+            ConflictHandler.IGNORE_ALL,
+            TableMetadataPersistence.LogSafety.SAFE);
 
     @GuardedBy("this")
     private long currentLimit = -1;

@@ -214,6 +214,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
 
+    protected volatile boolean hasReads;
+
     private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
 
     /**
@@ -259,6 +261,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = sweepQueue;
+        this.hasReads = false;
     }
 
     // TEST ONLY
@@ -294,6 +297,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = sweepQueue;
+        this.hasReads = false;
     }
 
     protected SnapshotTransaction(KeyValueService keyValueService,
@@ -326,6 +330,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = SweepQueueWriter.NO_OP;
+        this.hasReads = false;
     }
 
     @Override
@@ -364,6 +369,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
+        hasReads = true;
         Map<Cell, byte[]> result = Maps.newHashMap();
         Map<Cell, Value> rawResults = Maps.newHashMap(
                 keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
@@ -396,6 +402,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
         }
+        hasReads = true;
         Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
                 columnRangeSelection, getStartTimestamp());
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> postFilteredResults =
@@ -419,6 +426,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
+        hasReads = true;
         RowColumnRangeIterator rawResults =
                 keyValueService.getRowsColumnRange(tableRef,
                                                    rows,
@@ -548,6 +556,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(rows)) {
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
+        hasReads = true;
 
         Map<Cell, Value> rawResults = Maps.newHashMap(keyValueService.getRows(tableRef,
                 rows,
@@ -592,6 +601,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(cells)) {
             return ImmutableMap.of();
         }
+        hasReads = true;
 
         Map<Cell, byte[]> result = Maps.newHashMap();
         SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
@@ -621,6 +631,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (Iterables.isEmpty(cells)) {
             return ImmutableMap.of();
         }
+        hasReads = true;
 
         Map<Cell, byte[]> result = getFromKeyValueService(tableRef, cells);
         validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
@@ -659,6 +670,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug("Passed {} ranges to getRanges({}, {})",
                     Iterables.size(rangeRequests), tableRef, rangeRequests);
+        }
+        if (!Iterables.isEmpty(rangeRequests)) {
+            hasReads = true;
         }
 
         return FluentIterable.from(Iterables.partition(rangeRequests, BATCH_SIZE_GET_FIRST_PAGE))
@@ -724,6 +738,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+        if (!Iterables.isEmpty(rangeRequests)) {
+            hasReads = true;
+        }
         Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
                 StreamSupport.stream(rangeRequests.spliterator(), false)
                         .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)));
@@ -744,6 +761,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+        if (!Iterables.isEmpty(rangeRequests)) {
+            hasReads = true;
+        }
         return getRanges(tableRef, rangeRequests, defaultGetRangesConcurrency, visitableProcessor);
     }
 
@@ -759,6 +779,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
             final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
+        if (!Iterables.isEmpty(rangeRequests)) {
+            hasReads = true;
+        }
         return StreamSupport.stream(rangeRequests.spliterator(), false)
                 .map(rangeRequest -> getLazyRange(tableRef, rangeRequest));
     }
@@ -812,6 +835,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (range.isEmptyRange()) {
             return BatchingVisitables.emptyBatchingVisitable();
         }
+        hasReads = true;
 
         return new AbstractBatchingVisitable<RowResult<byte[]>>() {
             @Override
@@ -1326,13 +1350,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void commitWrites(TransactionService transactionService) {
         if (!hasWrites()) {
-            // verify any pre-commit conditions on the transaction
-            preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
+            if (hasReads()) {
+                // verify any pre-commit conditions on the transaction
+                preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
 
-            // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
-            // to ensure that sweep hasn't thoroughly deleted cells we tried to read
-            // TODO(nziebart): we actually only need to do this if we've read from tables with THOROUGH sweep strategy
-            throwIfImmutableTsOrCommitLocksExpired(null);
+                // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
+                // to ensure that sweep hasn't thoroughly deleted cells we tried to read
+                // TODO(nziebart): we actually only need to do this if we've read from tables with THOROUGH
+                // sweep strategy
+                throwIfImmutableTsOrCommitLocksExpired(null);
+                return;
+            }
             return;
         }
 
@@ -1371,14 +1399,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
             long millisForCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTsTimer.stop());
 
-            Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
-            if (!expiredLocks.isEmpty()) {
-                final String baseMsg = "This isn't a bug but it should happen very infrequently. "
-                        + "Required locks are no longer valid but we have already committed successfully. ";
-                String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
-                log.error(baseMsg + "{}", expiredLocksErrorString,
-                        new TransactionFailedRetriableException(baseMsg + expiredLocksErrorString));
-            }
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
@@ -1420,6 +1440,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
         return hasWrites;
+    }
+
+    protected boolean hasReads() {
+        return hasReads;
     }
 
     protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
