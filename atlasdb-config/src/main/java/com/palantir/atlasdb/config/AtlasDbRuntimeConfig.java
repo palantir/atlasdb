@@ -72,6 +72,11 @@ public abstract class AtlasDbRuntimeConfig {
         return Optional.empty();
     }
 
+    @Value.Default
+    public LoadSimulationConfig loadSimulationConfig() {
+        return LoadSimulationConfig.defaultLoadSimulationConfig();
+    }
+
     /**
      * Runtime live-reloadable parameters for communicating with TimeLock.
      *
