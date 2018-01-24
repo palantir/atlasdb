@@ -53,7 +53,7 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 if [[ $INTERNAL_BUILD == true ]]; then
     BASE_GRADLE_ARGS+=" --parallel"
     if [ "$CIRCLE_NODE_INDEX" -eq "7" ]; then
-        export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
+        export _JAVA_OPTIONS="-Xms2g -Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
     else
         export _JAVA_OPTIONS="-Xmx1024m ${JAVA_GC_LOGGING_OPTIONS}"
     fi
