@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -68,31 +67,38 @@ public class SchemalessStreamStoreDeleter {
                 SafeArg.of("streamIds", streamIds));
 
         Map<GenericStreamIdentifier, StreamMetadata> metadataInDb = metadataReader.readMetadata(tx, streamIds);
+        StreamStoreCellDeletion deletion = findCellsToPropagateDeletes(metadataInDb);
+        executeCellDeletion(tx, deletion);
+    }
 
-        Set<Cell> valueTableCellsToDelete = Sets.newHashSet();
-        Set<Cell> hashTableCellsToDelete = Sets.newHashSet();
-        Set<Cell> metadataTableCellsToDelete = Sets.newHashSet();
+    private StreamStoreCellDeletion findCellsToPropagateDeletes(
+            Map<GenericStreamIdentifier, StreamMetadata> streamIdentifierToMetadata) {
+        ImmutableStreamStoreCellDeletion.Builder builder = ImmutableStreamStoreCellDeletion.builder();
 
-        for (Map.Entry<GenericStreamIdentifier, StreamMetadata> entry : metadataInDb.entrySet()) {
+        for (Map.Entry<GenericStreamIdentifier, StreamMetadata> entry : streamIdentifierToMetadata.entrySet()) {
             GenericStreamIdentifier streamId = entry.getKey();
             StreamMetadata streamMetadata = entry.getValue();
 
-            valueTableCellsToDelete.addAll(cellCreator.constructValueTableCellSet(
+            builder.addAllValueTableCellsToDelete(cellCreator.constructValueTableCellSet(
                     streamId, getNumberOfBlocksFromMetadata(entry.getValue())));
-            metadataTableCellsToDelete.add(cellCreator.constructMetadataTableCell(streamId));
-            hashTableCellsToDelete.add(cellCreator.constructHashTableCell(streamId, streamMetadata.getHash()));
+            builder.addMetadataTableCellsToDelete(cellCreator.constructMetadataTableCell(streamId));
+            builder.addHashTableCellsToDelete(cellCreator.constructHashTableCell(streamId, streamMetadata.getHash()));
         }
 
-        transactionallyDeleteCells(tx, StreamTableType.VALUE, valueTableCellsToDelete);
-        transactionallyDeleteCells(tx, StreamTableType.METADATA, metadataTableCellsToDelete);
-        transactionallyDeleteCells(tx, StreamTableType.HASH, hashTableCellsToDelete);
+        return builder.build();
+    }
 
-        log.info("Cells to be deleted were {} from the {} table, {} from the {} table and {} from the {} table.",
-                UnsafeArg.of("valueCells", valueTableCellsToDelete),
+    private void executeCellDeletion(Transaction tx, StreamStoreCellDeletion deletion) {
+        transactionallyDeleteCells(tx, StreamTableType.VALUE, deletion.valueTableCellsToDelete());
+        transactionallyDeleteCells(tx, StreamTableType.METADATA, deletion.metadataTableCellsToDelete());
+        transactionallyDeleteCells(tx, StreamTableType.HASH, deletion.hashTableCellsToDelete());
+
+        log.info("Cells deleted were {} from the {} table, {} from the {} table and {} from the {} table.",
+                UnsafeArg.of("valueCells", deletion.valueTableCellsToDelete()),
                 LoggingArgs.tableRef("valueTable", getTableReference(StreamTableType.VALUE)),
-                UnsafeArg.of("metadataCells", metadataTableCellsToDelete),
+                UnsafeArg.of("metadataCells", deletion.metadataTableCellsToDelete()),
                 LoggingArgs.tableRef("metadataTable", getTableReference(StreamTableType.METADATA)),
-                UnsafeArg.of("hashCells", hashTableCellsToDelete),
+                UnsafeArg.of("hashCells", deletion.hashTableCellsToDelete()),
                 LoggingArgs.tableRef("hashTable", getTableReference(StreamTableType.HASH)));
     }
 

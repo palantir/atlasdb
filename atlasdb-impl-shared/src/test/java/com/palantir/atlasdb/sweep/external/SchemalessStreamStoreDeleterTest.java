@@ -23,7 +23,9 @@ import org.junit.Test;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
+import com.palantir.atlasdb.schema.cleanup.ImmutableStreamStoreCleanupMetadata;
 import com.palantir.atlasdb.stream.GenericStreamStore;
+import com.palantir.atlasdb.table.description.ValueType;
 
 public class SchemalessStreamStoreDeleterTest {
     private static final ByteString BYTE_STRING = ByteString.copyFrom(new byte[] { 1, 2, 3 });
@@ -35,7 +37,10 @@ public class SchemalessStreamStoreDeleterTest {
     private final SchemalessStreamStoreDeleter deleter = new SchemalessStreamStoreDeleter(
             NAMESPACE,
             SHORT_NAME,
-            null);
+            ImmutableStreamStoreCleanupMetadata.builder()
+                .numHashedRowComponents(1)
+                .streamIdType(ValueType.VAR_LONG)
+                .build());
 
     @Test
     public void getNumberOfBlocksFromMetadata_Normal() {
