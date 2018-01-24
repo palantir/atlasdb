@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -159,7 +160,7 @@ public class CqlExecutorImpl implements CqlExecutor {
     }
 
     private void cancelFutures(List<Future<CqlResult>> futures) {
-        futures.forEach(f -> f.cancel(true));
+        futures.stream().filter(Objects::nonNull).forEach(f -> f.cancel(true));
     }
 
     /**

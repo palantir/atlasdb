@@ -67,8 +67,10 @@ public final class TokenRangeWritesLogger {
         }
     }
 
-    void markWritesForTable(Set<Cell> entries, TableReference tableRef) {
-        statsPerTable.putIfAbsent(tableRef, new TokenRangeWrites(tableRef, ranges));
+    public void markWritesForTable(Set<Cell> entries, TableReference tableRef) {
+        if (!statsPerTable.containsKey(tableRef)) {
+            statsPerTable.put(tableRef, new TokenRangeWrites(tableRef, ranges));
+        }
         TokenRangeWrites tokenRangeWrites = statsPerTable.get(tableRef);
         entries.forEach(entry -> tokenRangeWrites.markWrite(entry));
         tokenRangeWrites.maybeLog();

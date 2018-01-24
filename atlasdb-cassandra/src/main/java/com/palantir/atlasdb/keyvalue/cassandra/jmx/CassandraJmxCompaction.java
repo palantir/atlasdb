@@ -35,7 +35,6 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraJmxCompactionConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.common.concurrent.PTExecutors;
 
@@ -48,9 +47,8 @@ public final class CassandraJmxCompaction {
     }
 
     public static Optional<CassandraJmxCompactionManager> createJmxCompactionManager(
-            CassandraKeyValueServiceConfigManager configManager) {
-        Preconditions.checkNotNull(configManager, "configManager cannot be null");
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
+            CassandraKeyValueServiceConfig config) {
+        Preconditions.checkNotNull(config, "config cannot be null");
         CassandraJmxCompaction jmxCompaction = new CassandraJmxCompaction(config);
 
         Optional<CassandraJmxCompactionConfig> jmxConfig = config.jmx();

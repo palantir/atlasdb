@@ -121,7 +121,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "2.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb.examples:profile-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -626,7 +626,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "2.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb.examples:profile-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-client",

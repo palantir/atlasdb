@@ -39,6 +39,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -61,7 +62,8 @@ public final class CassandraTimestampUtils {
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
                             "current_max_ts",
                             ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-            ConflictHandler.IGNORE_ALL);
+            ConflictHandler.IGNORE_ALL,
+            TableMetadataPersistence.LogSafety.SAFE);
 
     public static final String ROW_AND_COLUMN_NAME = "ts";
     public static final String BACKUP_COLUMN_NAME = "oldTs";

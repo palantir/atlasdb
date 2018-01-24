@@ -50,6 +50,37 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed| |metrics|
+         - Fixed metric re-registration log spam in TokenRangeWriteLogger.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2913>`__)
+
+    *    - |fixed| |metrics|
+         - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2889>`__)
+
+    *    - |improved| |logs|
+         - AtlasDB internal table names are now safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
+
+    *    - |devbreak|
+         - `AtlasDbConstants.GENERIC_TABLE_METADATA` is now safe for logging, if you are using this as the metadata to
+           create table names that shouldn't be logged in the internal logging framework, do not use this metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
+
+    *    - |devbreak| |improved|
+         - The ``partitionStrategy`` parameter in AtlasDB table metadata has been removed; products that explicitly specify partition strategies in their schemas will need to remove them.
+           The value of this parameter was never actually read; behaviour would have been identical regardless of what this was specified to (if at all).
+           This change was made to simplify the API and also remove any illusion that specifying the ``partitionStrategy`` would have done anything.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2864>`__)
+
+    *    - |devbreak|
+         - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
+
+    *    - |improved| |metrics|
+         - BackgroundSweeperImpl now logs if there's an uncaught exception.  Added 2 new outcomes for normal and abnormal shutdown to allow closer monitoring.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2884>`__)
+
     *    - |fixed|
          - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
@@ -68,6 +99,35 @@ develop
            Also, users with scripts that depend on supplying a default runtime configuration may need to be careful to ensure that TimeLock configuration is preserved when such scripts are run.
            That said, AtlasDB will fail to start if trying to access a key-value service where TimeLock has been used as a source of timestamps without going through TimeLock, so we don't think there is a risk of data corruption.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
+
+    *    - |fixed|
+         - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2874>`__)
+
+    *    - |improved|
+         - The LockAwareTransactionManager pre-commit checks that verify that locks are still held have been generalized to support arbitrary pre-commit checks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2846>`__)
+
+    *    - |fixed|
+         - Fix a NPE in the sweep code.
+           The regression was introduced with (`#2860 <https://github.com/palantir/atlasdb/pull/2860>`__).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2883>`__)
+
+    *    - |devbreak|
+         - Upgraded to protobuf 3.5.1.
+           The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2887>`__)
+
+    *    - |fixed|
+         - V2 Schemas which use ``ValueType.BLOB`` will now compile.
+           Previously, compilation failed with an ``IllegalArgumentException`` from Java Poet, as we assumed Java versions of ``ValueType`` were always associated with object types.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2899>`__)
+
+    *    - |fixed|
+         - Stop to sweep when the sweep thread is interrupted.
+           Previously, when services were shutting down, the background sweeper thread continuously logged warnings
+           due to a closed TransactionManager.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2900>`__)
 
 =======
 v0.73.0
@@ -105,7 +165,7 @@ v0.73.0-rc2
     *    - Type
          - Change
 
-    *    - |devbreak|
+    *    - |new|
          - Qos Service: AtlasDB now supports a QosService which can rate-limit clients.
            Please note that this feature is currently experimental; if you wish to use it, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2700>`__)
@@ -175,9 +235,6 @@ v0.73.0-rc1
          - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
 
-    *    - |fixed|
-         - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2868>`__)
 
 =======
 v0.72.0

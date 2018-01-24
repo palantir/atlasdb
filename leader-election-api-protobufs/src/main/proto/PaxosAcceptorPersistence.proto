@@ -1,0 +1,35 @@
+package com.palantir.paxos.persistence.generated.remoting;
+
+import "PaxosPersistence.proto";
+
+message AcceptorRequestProto {
+    required AcceptorMethodProto method = 1;
+    repeated bytes arguments = 2;
+}
+
+message AcceptorResponseProto {
+    repeated bytes response = 1;
+    optional ExceptionProto exception = 2;
+}
+
+enum AcceptorMethodProto {
+    PREPARE = 1;
+    ACCEPT = 2;
+    GET_LATEST_SEQUENCE_PREPARED_OR_ACCEPTED = 3;
+}
+
+message PaxosPromiseProto {
+    required bool ack = 1;
+    required PaxosProposalId promisedId = 2;
+    optional PaxosProposalId lastAcceptedId = 3;
+    optional PaxosValue lastAcceptedValue = 4;
+}
+
+message PaxosProposal {
+    required PaxosProposalId id = 1;
+    required PaxosValue val = 2;
+}
+
+message PaxosResponse {
+    required bool ack = 1;
+}
