@@ -51,10 +51,10 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 
 # External builds have a 4GB limit so we have to tune everything so it fits in memory (only just!)
 if [[ $INTERNAL_BUILD == true ]]; then
-    BASE_GRADLE_ARGS+=" --parallel"
     if [ "$CIRCLE_NODE_INDEX" -eq "7" ]; then
         export _JAVA_OPTIONS="-Xms2g -Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
     else
+        BASE_GRADLE_ARGS+=" --parallel"
         export _JAVA_OPTIONS="-Xmx1024m ${JAVA_GC_LOGGING_OPTIONS}"
     fi
     export CASSANDRA_MAX_HEAP_SIZE=512m
