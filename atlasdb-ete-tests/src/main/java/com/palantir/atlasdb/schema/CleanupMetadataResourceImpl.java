@@ -18,6 +18,7 @@ package com.palantir.atlasdb.schema;
 
 import java.util.Optional;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -30,6 +31,11 @@ import com.palantir.exception.NotInitializedException;
 
 public class CleanupMetadataResourceImpl implements CleanupMetadataResource {
     private final Supplier<SchemaMetadataService> schemaMetadataServiceSupplier;
+
+    @VisibleForTesting
+    CleanupMetadataResourceImpl(Supplier<SchemaMetadataService> schemaMetadataServiceSupplier) {
+        this.schemaMetadataServiceSupplier = schemaMetadataServiceSupplier;
+    }
 
     public CleanupMetadataResourceImpl(TransactionManager transactionManager, boolean initializeAsync) {
         Preconditions.checkState(transactionManager instanceof SerializableTransactionManager,
@@ -48,7 +54,8 @@ public class CleanupMetadataResourceImpl implements CleanupMetadataResource {
     public Optional<SerializableCleanupMetadata> get(
             String schemaName,
             String tableName) {
-        return schemaMetadataServiceSupplier.get().loadSchemaMetadata(schemaName)
+        return schemaMetadataServiceSupplier.get()
+                .loadSchemaMetadata(schemaName)
                 .map(SchemaMetadata::schemaDependentTableMetadata)
                 .flatMap(metadataMap -> Optional.ofNullable(metadataMap.get(
                         TableReference.createFromFullyQualifiedName(tableName))))
