@@ -66,6 +66,11 @@ public abstract class AtlasDbRuntimeConfig {
         return QosClientConfig.DEFAULT;
     }
 
+    @Value.Default
+    public LoadSimulationConfig loadSimulationConfig() {
+        return LoadSimulationConfig.defaultLoadSimulationConfig();
+    }
+
     /**
      * Runtime live-reloadable parameters for communicating with TimeLock.
      *

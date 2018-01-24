@@ -18,6 +18,8 @@ package com.palantir.atlasdb.factory;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -48,6 +50,7 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.config.LoadSimulationConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
@@ -96,6 +99,8 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.InvocationCapturingTransactionManager;
+import com.palantir.atlasdb.transaction.impl.InvocationReplayer;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -292,6 +297,19 @@ public abstract class TransactionManagers {
                 config.initializeAsync(),
                 () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
                 SweepQueueWriter.NO_OP);
+        LoadSimulationConfig loadSimulationConfig = JavaSuppliers.compose(
+                AtlasDbRuntimeConfig::loadSimulationConfig, runtimeConfigSupplier).get();
+        if (loadSimulationConfig.enabled()) {
+            InvocationReplayer replayer = new InvocationReplayer(
+                    Executors.newSingleThreadExecutor(),
+                    transactionManager,
+                    loadSimulationConfig.replayCount());
+            transactionManager = new InvocationCapturingTransactionManager(
+                    transactionManager,
+                    replayer,
+                    () -> ThreadLocalRandom.current().nextFloat() * 100 < loadSimulationConfig.capturePercentage()
+            );
+        }
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
