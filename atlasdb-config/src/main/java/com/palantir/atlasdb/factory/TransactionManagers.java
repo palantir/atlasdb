@@ -358,6 +358,7 @@ public abstract class TransactionManagers {
         LoadSimulationConfig loadSimulationConfig = JavaSuppliers.compose(
                 AtlasDbRuntimeConfig::loadSimulationConfig, runtimeConfigSupplier).get();
         if (loadSimulationConfig.enabled()) {
+            log.warn("Enabling load simulation.");
             InvocationReplayer replayer = new InvocationReplayer(
                     Executors.newSingleThreadExecutor(),
                     transactionManager,
@@ -367,6 +368,8 @@ public abstract class TransactionManagers {
                     replayer,
                     () -> ThreadLocalRandom.current().nextFloat() * 100 < loadSimulationConfig.capturePercentage()
             );
+        } else {
+            log.warn("Load simulation disabled.");
         }
         return transactionManager;
     }

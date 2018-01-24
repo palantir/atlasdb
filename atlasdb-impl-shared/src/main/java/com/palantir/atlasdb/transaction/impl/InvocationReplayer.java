@@ -20,12 +20,17 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 
 public class InvocationReplayer implements Consumer<List<Consumer<Transaction>>> {
+    private final static Logger log = LoggerFactory.getLogger(InvocationReplayer.class);
+
     private final ExecutorService executor;
     private final SerializableTransactionManager manager;
     private final int repetitions;
@@ -42,27 +47,30 @@ public class InvocationReplayer implements Consumer<List<Consumer<Transaction>>>
     }
 
     protected void accept(List<Consumer<Transaction>> invocations, int repetitions) {
-        executor.submit(() -> manager.runTaskWithConditionThrowOnConflict(new PreCommitCondition() {
-            @Override
-            public void throwIfConditionInvalid(long timestamp) {
-                throw new TransactionFailedNonRetriableException("failing to commit replayed transaction");
-            }
+        if (repetitions > 0) {
+            log.warn("submitting task");
+            executor.submit(() -> manager.runTaskWithConditionThrowOnConflict(new PreCommitCondition() {
+                @Override
+                public void throwIfConditionInvalid(long timestamp) {
+                    log.warn("failing task");
+                    throw new TransactionFailedNonRetriableException("failing to commit replayed transaction");
+                }
 
-            @Override
-            public void cleanup() {}
-        }, createTransactionTask(invocations, repetitions)));
+                @Override
+                public void cleanup() {}
+            }, createTransactionTask(invocations, repetitions)));
+        }
     }
 
     private ConditionAwareTransactionTask<Void, PreCommitCondition, Exception> createTransactionTask(
             List<Consumer<Transaction>> invocations, int repetitions) {
         return (transaction, condition) -> {
             try {
+                log.warn("running another replay transaction");
                 invocations.forEach(invocation -> invocation.accept(transaction));
                 return null;
             } finally {
-                if (repetitions > 0) {
-                    accept(invocations, repetitions - 1);
-                }
+                accept(invocations, repetitions - 1);
             }
         };
     }

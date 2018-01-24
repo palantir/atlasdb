@@ -47,6 +47,7 @@ public class InvocationCapturingTransactionManager extends AutoDelegate_Serializ
     public RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         RawTransaction raw = super.setupRunTaskWithConditionThrowOnConflict(condition);
         if (shouldCaptureFilter.get()) {
+            log.warn("wrapping transaction.");
             return new InvocationCapturingTransaction(raw);
         }
         return raw;
@@ -59,6 +60,7 @@ public class InvocationCapturingTransactionManager extends AutoDelegate_Serializ
             return delegate().finishRunTaskWithLockThrowOnConflict(tx, task);
         } finally {
             if (tx instanceof InvocationCapturingTransaction) {
+                log.warn("passing through captured invocations.");
                 invocationConsumer.accept(((InvocationCapturingTransaction) tx).invocations());
             }
         }
