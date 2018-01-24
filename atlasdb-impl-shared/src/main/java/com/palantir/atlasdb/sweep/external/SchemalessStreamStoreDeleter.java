@@ -16,14 +16,14 @@
 
 package com.palantir.atlasdb.sweep.external;
 
-import static com.palantir.atlasdb.stream.GenericStreamStore.BLOCK_SIZE_IN_BYTES;
-
 import java.util.Map;
 import java.util.Set;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -33,6 +33,7 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
+import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -99,11 +100,21 @@ public class SchemalessStreamStoreDeleter {
         tx.delete(getTableReference(streamTableType), cellsToDelete);
     }
 
-    private TableReference getTableReference(StreamTableType type) {
+    @VisibleForTesting
+    TableReference getTableReference(StreamTableType type) {
         return TableReference.create(namespace, type.getTableName(streamStoreShortName));
     }
 
-    private long getNumberOfBlocksFromMetadata(StreamPersistence.StreamMetadata metadata) {
-        return (metadata.getLength() + BLOCK_SIZE_IN_BYTES - 1) / BLOCK_SIZE_IN_BYTES;
+    @VisibleForTesting
+    long getNumberOfBlocksFromMetadata(StreamPersistence.StreamMetadata metadata) {
+        return (metadata.getLength() + GenericStreamStore.BLOCK_SIZE_IN_BYTES - 1)
+                / GenericStreamStore.BLOCK_SIZE_IN_BYTES;
+    }
+
+    @Value.Immutable
+    interface StreamStoreCellDeletion {
+        Set<Cell> valueTableCellsToDelete();
+        Set<Cell> hashTableCellsToDelete();
+        Set<Cell> metadataTableCellsToDelete();
     }
 }
