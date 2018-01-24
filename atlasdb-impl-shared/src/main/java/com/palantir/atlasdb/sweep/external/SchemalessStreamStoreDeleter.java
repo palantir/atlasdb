@@ -55,6 +55,7 @@ public class SchemalessStreamStoreDeleter {
         this.metadataReader = new StreamStoreMetadataReader(getTableReference(StreamTableType.METADATA), cellCreator);
     }
 
+    // TODO (jkong): Main method needs tests, both unit tests and an integration test!
     public void deleteStreams(Transaction tx, Set<GenericStreamIdentifier> streamIds) {
         if (streamIds.isEmpty()) {
             log.debug("deleteStreams() was called with no identifiers, so we are returning.");

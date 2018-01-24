@@ -18,12 +18,16 @@ package com.palantir.atlasdb.sweep.external;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+
 import org.junit.Test;
 
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.schema.cleanup.ImmutableStreamStoreCleanupMetadata;
+import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.table.description.ValueType;
 
@@ -41,6 +45,13 @@ public class SchemalessStreamStoreDeleterTest {
                 .numHashedRowComponents(1)
                 .streamIdType(ValueType.VAR_LONG)
                 .build());
+
+    @Test
+    public void getTableReferencePropagatesNamespace() {
+        Arrays.stream(StreamTableType.values()).forEach(type ->
+                assertThat(deleter.getTableReference(type))
+                        .isEqualTo(TableReference.create(NAMESPACE, type.getTableName(SHORT_NAME))));
+    }
 
     @Test
     public void getNumberOfBlocksFromMetadata_Normal() {
