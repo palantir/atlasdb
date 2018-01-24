@@ -47,7 +47,7 @@ public class FollowerGeneratingCleanupMetadataVisitor implements CleanupMetadata
     @Override
     public Follower visit(StreamStoreCleanupMetadata cleanupMetadata) {
         // TODO (jkong): Fill me in
-        return null;
+        throw new UnsupportedOperationException("Stream stores are not supported yet.");
     }
 
     // Note: Arbitrary is unsupported, but I'm overriding this for logging and to provide clearer output
