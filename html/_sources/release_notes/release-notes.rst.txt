@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |logs|
+         - Log message for lost sweep/backup log is now WARN rather than INFO. 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2912>`__)
+ 
     *    - |improved| |logs| |metrics|
          - TokenRangeWrite metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2910>`__)

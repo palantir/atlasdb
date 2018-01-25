@@ -196,52 +196,56 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>Log message for lost sweep/backup log is now WARN rather than INFO.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2912">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>TokenRangeWrite metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2910">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>Fixed metric re-registration log spam in TokenRangeWriteLogger.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2913">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2889">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>AtlasDB internal table names are now safe for logging.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2903">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><cite>AtlasDbConstants.GENERIC_TABLE_METADATA</cite> is now safe for logging, if you are using this as the metadata to
 create table names that shouldn’t be logged in the internal logging framework, do not use this metadata.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2903">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The <code class="docutils literal"><span class="pre">partitionStrategy</span></code> parameter in AtlasDB table metadata has been removed; products that explicitly specify partition strategies in their schemas will need to remove them.
 The value of this parameter was never actually read; behaviour would have been identical regardless of what this was specified to (if at all).
 This change was made to simplify the API and also remove any illusion that specifying the <code class="docutils literal"><span class="pre">partitionStrategy</span></code> would have done anything.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2864">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Removed <code class="docutils literal"><span class="pre">CassandraKeyValueServiceConfigManager</span></code>. If you’re affected by this, please contact the AtlasDB team.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2872">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>BackgroundSweeperImpl now logs if there’s an uncaught exception.  Added 2 new outcomes for normal and abnormal shutdown to allow closer monitoring.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2884">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2872">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>AtlasDB will now <em>fail to start</em> if a TimeLock block is included in the initial runtime configuration, but the install configuration is set up with a leader block or with remote timestamp and lock blocks.
 Previously, AtlasDB would start successfully under these conditions, but the TimeLock block in the runtime configuration would be silently ignored.
 Note that the decision on whether to use TimeLock or another source of timestamps and locks is made at install-time.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2850">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
 <td><p class="first">AtlasDB users can now specify the usage of TimeLock Server purely by including a TimeLock block in the initial runtime configuration.
 Previously, AtlasDB users would need to specify that they were using TimeLock in the install configuration, possibly with an empty object (<code class="docutils literal"><span class="pre">timelock:</span> <span class="pre">{}</span></code>).
 This is a change from previous behaviour in cases where users specified an embedded install configuration but a TimeLock block in the runtime configuration; previously, the embedded configuration would have been selected, while now the TimeLock configuration will be selected.</p>
@@ -250,30 +254,30 @@ That said, AtlasDB will fail to start if trying to access a key-value service wh
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2850">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2874">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The LockAwareTransactionManager pre-commit checks that verify that locks are still held have been generalized to support arbitrary pre-commit checks.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2846">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fix a NPE in the sweep code.
 The regression was introduced with (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2860">#2860</a>).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2883">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Upgraded to protobuf 3.5.1.
 The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2887">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>V2 Schemas which use <code class="docutils literal"><span class="pre">ValueType.BLOB</span></code> will now compile.
 Previously, compilation failed with an <code class="docutils literal"><span class="pre">IllegalArgumentException</span></code> from Java Poet, as we assumed Java versions of <code class="docutils literal"><span class="pre">ValueType</span></code> were always associated with object types.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2899">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Stop to sweep when the sweep thread is interrupted.
 Previously, when services were shutting down, the background sweeper thread continuously logged warnings
 due to a closed TransactionManager.
