@@ -47,6 +47,7 @@ public final class AtlasDbConstants {
             "_schema_metadata");
 
     // Deprecated tables
+    public static final TableReference SWEEP_PROGRESS_V1_5 = TableReference.createWithEmptyNamespace("_sweep_progress1_5");
     public static final TableReference SWEEP_PROGRESS_V2 = TableReference.createWithEmptyNamespace("_sweep_progress2");
 
     public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
@@ -89,7 +90,8 @@ public final class AtlasDbConstants {
             PERSISTED_LOCKS_TABLE,
             SWEEP_PROGRESS_TABLE,
             DEFAULT_SCHEMA_METADATA_TABLE,
-            SWEEP_PROGRESS_V2);
+            SWEEP_PROGRESS_V2,
+            SWEEP_PROGRESS_V1_5);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
