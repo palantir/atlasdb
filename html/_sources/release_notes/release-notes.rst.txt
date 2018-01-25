@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |logs| |metrics|
+         - TokenRangeWrite metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2910>`__)
+
     *    - |fixed| |metrics|
          - Fixed metric re-registration log spam in TokenRangeWriteLogger.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2913>`__)
