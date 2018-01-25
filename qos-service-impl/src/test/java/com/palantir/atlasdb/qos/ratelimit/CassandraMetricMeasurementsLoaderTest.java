@@ -35,10 +35,10 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.qos.config.HealthMetric;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
-import com.palantir.atlasdb.qos.config.ImmutableHealthMetric;
+import com.palantir.atlasdb.qos.config.HealthMetric;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
+import com.palantir.atlasdb.qos.config.ImmutableHealthMetric;
 import com.palantir.atlasdb.qos.metrics.MetricsService;
 
 public class CassandraMetricMeasurementsLoaderTest {

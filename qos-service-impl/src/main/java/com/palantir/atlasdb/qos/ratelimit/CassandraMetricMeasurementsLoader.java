@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.qos.config.HealthMetric;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
+import com.palantir.atlasdb.qos.config.HealthMetric;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.metrics.MetricsService;
 
