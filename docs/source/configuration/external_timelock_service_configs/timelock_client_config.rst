@@ -90,9 +90,10 @@ We support live reloading of the ``ServerListConfiguration`` for TimeLock. This 
 Note that if this block is present, then the ``ServerListConfiguration`` in the install configuration will be ignored.
 
 Also, although we support live-reloading of the server configuration, AtlasDB needs to know at install time that it
-should talk to TimeLock - thus, the install configuration must contain a ``timelock`` block (even if said block is
-possibly empty). Specifying an empty block in the configuration is done in the same way as specifying an empty block in
-YAML i.e. ``{}``.
+should talk to TimeLock. In versions of Atlas before 0.74.0, this is done by specifying an empty YAML object
+for the timelock block in the install configuration (i.e. ``timelock: {}``); in more recent versions, the presence
+of a ``timelockRuntime`` block is enough - *however*, it must already be present at install time, or AtlasDB
+will attempt to start up using embedded services.
 
 .. list-table::
     :widths: 5 40
@@ -158,6 +159,11 @@ Here is an example of an AtlasDB configuration with the ``timelock`` block.
 Install Configuration
 ~~~~~~~~~~~~~~~~~~~~~
 
+.. note::
+
+    In versions of AtlasDB before 0.74.0, you will need to specify an empty ``timelock`` block as a child of the
+    ``atlasdb`` block. This block looks like the following: ``timelock: {}``.
+
 .. code-block:: yaml
 
     namespace: yourapp
@@ -181,13 +187,16 @@ Install Configuration
 
       initializeAsync: true
 
-      timelock: {}
-
 The example above uses the ``namespace`` parameter; the ``client`` we will use when connecting to TimeLock will be ``yourapp``.
 We don't know the URLs of the TimeLock servers nor how we will talk to them, but that is okay.
 
 Runtime Configuration
 ~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+
+    In versions of AtlasDB before 0.74.0, if the ``timelock`` block was absent in the install configuration, then this
+    block would be ignored, and AtlasDB would start up using embedded timestamp and lock services.
 
 .. code-block:: yaml
 
@@ -211,6 +220,3 @@ ignored, because we consider the ``serversList`` block in the runtime configurat
 It is permitted for the ``serversList`` block here to be absent as well. In this case, AtlasDB will start up with
 knowledge of zero TimeLock nodes. Attempts to initialize a ``TransactionManager`` will fail, but will continue
 asynchronously in the background. Once the ``serversList`` block has been populated, initialization can proceed.
-
-Also, note that if the ``timelock`` block was absent in the install configuration, then this block would be ignored,
-and AtlasDB would start up using embedded timestamp and lock services.

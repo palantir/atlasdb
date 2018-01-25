@@ -53,10 +53,18 @@ develop
     *    - |improved| |logs|
          - Log message for lost sweep/backup log is now WARN rather than INFO. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2912>`__)
+ 
+    *    - |improved| |logs| |metrics|
+         - TokenRangeWrite metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2910>`__)
+
+    *    - |fixed| |metrics|
+         - Fixed metric re-registration log spam in TokenRangeWriteLogger.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2913>`__)
 
     *    - |fixed| |metrics|
          - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/xxxx>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2889>`__)
 
     *    - |improved| |logs|
          - AtlasDB internal table names are now safe for logging.
@@ -84,6 +92,21 @@ develop
     *    - |fixed|
          - Qos clients will query the service every 2 seconds instead of every client request. This should prevent too many requests to the service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
+
+    *    - |fixed| |userbreak|
+         - AtlasDB will now *fail to start* if a TimeLock block is included in the initial runtime configuration, but the install configuration is set up with a leader block or with remote timestamp and lock blocks.
+           Previously, AtlasDB would start successfully under these conditions, but the TimeLock block in the runtime configuration would be silently ignored.
+           Note that the decision on whether to use TimeLock or another source of timestamps and locks is made at install-time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
+
+    *    - |improved| |userbreak|
+         - AtlasDB users can now specify the usage of TimeLock Server purely by including a TimeLock block in the initial runtime configuration.
+           Previously, AtlasDB users would need to specify that they were using TimeLock in the install configuration, possibly with an empty object (``timelock: {}``).
+           This is a change from previous behaviour in cases where users specified an embedded install configuration but a TimeLock block in the runtime configuration; previously, the embedded configuration would have been selected, while now the TimeLock configuration will be selected.
+
+           Also, users with scripts that depend on supplying a default runtime configuration may need to be careful to ensure that TimeLock configuration is preserved when such scripts are run.
+           That said, AtlasDB will fail to start if trying to access a key-value service where TimeLock has been used as a source of timestamps without going through TimeLock, so we don't think there is a risk of data corruption.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
 
     *    - |fixed|
          - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
