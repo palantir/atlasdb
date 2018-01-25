@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |logs|
+         - Log message for lost sweep/backup log is now WARN rather than INFO. 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2912>`__)
+
     *    - |fixed| |metrics|
          - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/xxxx>`__)
