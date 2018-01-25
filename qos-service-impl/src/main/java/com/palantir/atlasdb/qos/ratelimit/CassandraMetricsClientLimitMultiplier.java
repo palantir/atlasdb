@@ -50,7 +50,8 @@ public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultipl
                 installConfig.throttlingStrategy());
 
         CassandraMetricMeasurementsLoader cassandraMetricMeasurementsLoader = new CassandraMetricMeasurementsLoader(
-                () -> runtimeConfig.get().cassandraHealthMetrics(), metricsService, metricsLoaderExecutor);
+                () -> runtimeConfig.get().cassandraHealthMetrics(), metricsService, metricsLoaderExecutor,
+                installConfig.sharedSecret());
         return new CassandraMetricsClientLimitMultiplier(throttlingStrategy, cassandraMetricMeasurementsLoader);
     }
 

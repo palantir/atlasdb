@@ -47,6 +47,7 @@ public class QosServiceInstallConfigTest {
                         .addUris("uri1")
                         .security(SslConfiguration.of(Paths.get("trustStore.jks")))
                         .build())
+                .sharedSecret("shared-secret")
                 .throttlingStrategy(ThrottlingStrategyEnum.SIMPLE)
                 .build();
     }

@@ -57,6 +57,7 @@ public class QosServerInstallConfigDeserializationTest {
                                 .security(SslConfiguration.of(Paths.get("trustStore.jks")))
                                 .build())
                         .throttlingStrategy(ThrottlingStrategyEnum.SIMPLE)
+                        .sharedSecret("secret")
                         .build())
                 .build())
                 .isEqualTo(configuration);
