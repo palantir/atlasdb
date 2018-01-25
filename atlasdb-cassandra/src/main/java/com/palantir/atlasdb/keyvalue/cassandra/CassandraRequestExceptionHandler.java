@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
@@ -58,7 +59,7 @@ class CassandraRequestExceptionHandler {
 
     @SuppressWarnings("unchecked")
     <K extends Exception> void handleExceptionFromRequest(
-                RetryableCassandraRequest<?, K> req,
+                RetryableCassandraRequest<?, K> retryableRequest,
                 InetSocketAddress hostTried,
                 Exception ex)
             throws K {
@@ -66,8 +67,8 @@ class CassandraRequestExceptionHandler {
             throw (K) ex;
         }
 
-        req.triedOnHost(hostTried);
-        int numberOfAttempts = req.getNumberOfAttempts();
+        retryableRequest.triedOnHost(hostTried);
+        int numberOfAttempts = retryableRequest.getNumberOfAttempts();
 
         if (numberOfAttempts >= maxTriesTotal.get()) {
             logAndThrowException(numberOfAttempts, ex);
@@ -78,8 +79,8 @@ class CassandraRequestExceptionHandler {
         }
 
         logNumberOfAttempts(ex, numberOfAttempts);
-        handleBackoff(req, hostTried, ex);
-        handleRetryOnDifferentHosts(req, hostTried, ex);
+        handleBackoff(retryableRequest, hostTried, ex);
+        handleRetryOnDifferentHosts(retryableRequest, hostTried, ex);
     }
 
     @SuppressWarnings("unchecked")
@@ -166,14 +167,14 @@ class CassandraRequestExceptionHandler {
 
     @VisibleForTesting
     boolean shouldBackoff(Exception ex) {
-        return isConnectionException(ex) || isIndicativeOfCassandraLoad(ex);
+        return isConnectionException(ex) || isIndicativeOfCassandraLoad(ex) || isTransientException(ex);
     }
 
     @VisibleForTesting
     boolean shouldRetryOnDifferentHost(Exception ex, int numberOfAttempts) {
         return isFastFailoverException(ex)
-                || (numberOfAttempts >= maxTriesSameHost.get()
-                && (isConnectionException(ex) || isIndicativeOfCassandraLoad(ex)));
+                || isIndicativeOfCassandraLoad(ex)
+                || numberOfAttempts >= maxTriesSameHost.get();
     }
 
     // Group exceptions by type.
@@ -190,8 +191,8 @@ class CassandraRequestExceptionHandler {
         return ex != null
                 // There's a problem with the connection to Cassandra.
                 && (ex instanceof TTransportException
-                // Cassandra timeout. Maybe took too long to CAS, or Cassandra is under load.
-                || ex instanceof TimedOutException
+                // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
+                || ex instanceof UnavailableException
                 // Not enough Cassandra nodes are up.
                 || ex instanceof InsufficientConsistencyException
                 || isTransientException(ex.getCause()));
@@ -201,8 +202,8 @@ class CassandraRequestExceptionHandler {
         return ex != null
                 // pool for this node is fully in use
                 && (ex instanceof NoSuchElementException
-                // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
-                || ex instanceof UnavailableException
+                // Cassandra timeout. Maybe took too long to CAS, or Cassandra is under load.
+                || ex instanceof TimedOutException
                 || isIndicativeOfCassandraLoad(ex.getCause()));
     }
 
