@@ -54,9 +54,16 @@ Additional options for the builder include:
     *   - ``inMemoryThreshold``
         - Specifies the largest size object (in bytes) which AtlasDB will cache in memory in order to boost retrieval performance.
 
+    *   - ``tableNameLogSafety``
+        - Specifies the if the table name is safe to added to logs and metrics. By default, the table is considered ``UNSAFE``.
+
 .. note::
 
     If using Cassandra KVS, we *strongly* recommend that ``hashRowComponents()`` is set, in order to avoid hotspotting.
+
+.. note::
+
+    We *strongly* recommend using ``tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)`` if the table has a safe name.
 
 For an example of streams in use, see the ``user_profile`` table and ``user_photos`` stream store in `ProfileSchema`_, and the ``updateImage`` method in `ProfileStore`_.
 

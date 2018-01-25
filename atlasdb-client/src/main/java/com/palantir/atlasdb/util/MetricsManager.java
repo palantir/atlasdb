@@ -18,6 +18,7 @@ package com.palantir.atlasdb.util;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.crypto.Sha256Hash;
 
 public class MetricsManager {
 
@@ -44,6 +46,7 @@ public class MetricsManager {
     private final MetricRegistry metricRegistry;
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final Set<String> registeredMetrics;
+    private final Function<TableReference, Boolean> isSafeToLog;
 
     public MetricsManager() {
         this(AtlasDbMetrics.getMetricRegistry(), AtlasDbMetrics.getTaggedMetricRegistry());
@@ -51,9 +54,16 @@ public class MetricsManager {
 
     @VisibleForTesting
     MetricsManager(MetricRegistry metricRegistry, TaggedMetricRegistry taggedMetricRegistry) {
+        this(metricRegistry, taggedMetricRegistry, new HashSet<>(), LoggingArgs::isSafe);
+    }
+
+    @VisibleForTesting
+    MetricsManager(MetricRegistry metricRegistry, TaggedMetricRegistry taggedMetricRegistry,
+            Set<String> registeredMetrics, Function<TableReference, Boolean> isSafeToLog) {
         this.metricRegistry = metricRegistry;
         this.taggedMetricRegistry = taggedMetricRegistry;
-        this.registeredMetrics = new HashSet<>();
+        this.registeredMetrics = registeredMetrics;
+        this.isSafeToLog = isSafeToLog;
     }
 
     public MetricRegistry getRegistry() {
@@ -76,26 +86,37 @@ public class MetricsManager {
         registerMetric(clazz, metricName, (Metric) gauge);
     }
 
-    public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
-        taggedMetricRegistry.gauge(MetricName.builder()
-                        .safeName(MetricRegistry.name(clazz, metricName))
-                        .safeTags(tag)
-                        .build(),
-                gauge);
-    }
-
     public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
-        Map<String, String> tag = getTagFor(tableRef);
-
-        taggedMetricRegistry.gauge(MetricName.builder()
-                        .safeName(MetricRegistry.name(clazz, metricName))
-                        .safeTags(tag)
-                        .build(),
-                gauge);
+        Map<String, String> tag = getTableNameTagFor(tableRef);
+        registerMetric(clazz, metricName, gauge, tag);
     }
 
-    private Map<String, String> getTagFor(TableReference tableRef) {
-        return ImmutableMap.of("tableName", LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName());
+    public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+        MetricName metricToAdd = MetricName.builder()
+                .safeName(MetricRegistry.name(clazz, metricName))
+                .safeTags(tag)
+                .build();
+        if (taggedMetricRegistry.getMetrics().containsKey(metricToAdd)) {
+            log.warn("Replacing the metric [ {} ]. This will happen if you are trying to re-register metrics "
+                            + "or have two tagged metrics with the same name across the application.",
+                    SafeArg.of("metricName", metricName));
+            taggedMetricRegistry.remove(metricToAdd);
+        }
+        taggedMetricRegistry.gauge(metricToAdd, gauge);
+    }
+
+    @VisibleForTesting
+    Map<String, String> getTableNameTagFor(TableReference tableRef) {
+        String tableName = tableRef.getTablename();
+        if (!isSafeToLog.apply(tableRef)) {
+            tableName = "unsafeTable_" + obfuscate(tableRef);
+        }
+
+        return ImmutableMap.of("tableName", tableName);
+    }
+
+    private String obfuscate(TableReference tableRef) {
+        return Sha256Hash.computeHash(tableRef.getTablename().getBytes()).serializeToHexString().substring(0, 16);
     }
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {

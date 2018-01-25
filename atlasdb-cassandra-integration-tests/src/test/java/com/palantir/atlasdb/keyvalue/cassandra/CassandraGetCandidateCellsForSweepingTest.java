@@ -24,7 +24,6 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -40,7 +39,7 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
     @Override
     protected KeyValueService createKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+                CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG,
                 Mockito.mock(Logger.class));
     }

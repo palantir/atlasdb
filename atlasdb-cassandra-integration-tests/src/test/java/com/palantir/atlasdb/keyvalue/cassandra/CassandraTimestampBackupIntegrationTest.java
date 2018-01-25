@@ -23,17 +23,20 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.TimestampBoundStore;
 
+@ShouldRetry
 public class CassandraTimestampBackupIntegrationTest {
     private static final long INITIAL_VALUE = CassandraTimestampUtils.INITIAL_VALUE;
     private static final long TIMESTAMP_1 = INITIAL_VALUE + 1000;
@@ -45,10 +48,13 @@ public class CassandraTimestampBackupIntegrationTest {
             .with(new CassandraContainer());
 
     private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
-            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+            CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG);
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
     private final CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
+
+    @Rule
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv);
 
     @Before
     public void setUp() {

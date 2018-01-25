@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -41,7 +40,7 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
 
         CassandraKeyValueServiceConfig config = getCassandraKvsConfig();
         CassandraKeyValueService ckvs = CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
+                config,
                 Optional.empty(),
                 getAtlasDbConfig().initializeAsync());
 

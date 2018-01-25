@@ -132,7 +132,6 @@ public class SafeLoggableDataUtilsTest {
                 columnMetadataDescription,
                 ConflictHandler.RETRY_ON_WRITE_WRITE,
                 TableMetadataPersistence.CachePriority.WARM,
-                TableMetadataPersistence.PartitionStrategy.ORDERED,
                 false,
                 0,
                 false,

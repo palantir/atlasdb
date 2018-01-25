@@ -22,18 +22,44 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence;
+import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.ImmutableStreamStoreCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
 
 public class SchemaDependentTableMetadataTest {
     @Test
-    public void canSerializeAndDeserializeMetadataWithVariousCleanupRequirements() {
-        Arrays.stream(SchemaMetadataPersistence.CleanupRequirement.values())
-                .forEach(cleanupRequirement -> {
-                    SchemaDependentTableMetadata tableMetadata = ImmutableSchemaDependentTableMetadata.builder()
-                            .cleanupRequirement(cleanupRequirement)
+    public void canSerializeAndDeserializeWithStreamStoreCleanupMetadata() {
+        Arrays.stream(ValueType.values())
+                .forEach(valueType -> {
+                    SchemaDependentTableMetadata metadata = ImmutableSchemaDependentTableMetadata.builder()
+                            .cleanupMetadata(ImmutableStreamStoreCleanupMetadata.builder()
+                                    .numHashedRowComponents(1)
+                                    .streamIdType(valueType)
+                                    .build())
                             .build();
-                    assertThat(SchemaDependentTableMetadata.HYDRATOR.hydrateFromBytes(tableMetadata.persistToBytes()))
-                            .isEqualTo(tableMetadata);
+                    assertEqualAfterSerializationAndDeserialization(metadata);
                 });
+    }
+
+    @Test
+    public void canSerializeAndDeserializeWithNullCleanupMetadata() {
+        SchemaDependentTableMetadata metadata = ImmutableSchemaDependentTableMetadata.builder()
+                .cleanupMetadata(new NullCleanupMetadata())
+                .build();
+        assertEqualAfterSerializationAndDeserialization(metadata);
+    }
+
+    @Test
+    public void canSerializeAndDeserializeWithArbitraryCleanupMetadata() {
+        SchemaDependentTableMetadata metadata = ImmutableSchemaDependentTableMetadata.builder()
+                .cleanupMetadata(new ArbitraryCleanupMetadata())
+                .build();
+        assertEqualAfterSerializationAndDeserialization(metadata);
+    }
+
+    private void assertEqualAfterSerializationAndDeserialization(SchemaDependentTableMetadata metadata) {
+        assertThat(SchemaDependentTableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
+                .isEqualTo(metadata);
     }
 }

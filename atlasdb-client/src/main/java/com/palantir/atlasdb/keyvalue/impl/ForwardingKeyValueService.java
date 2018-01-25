@@ -76,6 +76,11 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        delegate().deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell);
+    }
+
+    @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
         return delegate().getAllTimestamps(tableRef, keys, timestamp);
     }

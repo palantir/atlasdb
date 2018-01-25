@@ -39,7 +39,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.logsafe.SafeArg;
 
 class SweepPriorityCalculator {
     private static final Logger log = LoggerFactory.getLogger(SweepPriorityCalculator.class);
@@ -172,8 +171,8 @@ class SweepPriorityCalculator {
         LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafeTableReferences = LoggingArgs.tableRefs(unsweptTables);
 
         log.debug("Unswept tables: {} and {}",
-                SafeArg.of("tables", safeAndUnsafeTableReferences.safeTableRefs()),
-                SafeArg.of("unsafeTables", safeAndUnsafeTableReferences.unsafeTableRefs()));
+                safeAndUnsafeTableReferences.safeTableRefs(),
+                safeAndUnsafeTableReferences.unsafeTableRefs());
     }
 
     private double getSweepPriorityScore(SweepPriority oldPriority, SweepPriority newPriority) {

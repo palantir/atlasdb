@@ -62,8 +62,10 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
@@ -111,7 +113,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    SweepStrategyManager sweepStrategyManager,
                                    long immutableTimestamp,
                                    Optional<LockToken> immutableTsLock,
-                                   AdvisoryLockPreCommitCheck advisoryLockCheck,
+                                   PreCommitCondition preCommitCondition,
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,
                                    TransactionReadSentinelBehavior readSentinelBehavior,
@@ -119,7 +121,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    TimestampCache timestampCache,
                                    long lockAcquireTimeoutMs,
                                    ExecutorService getRangesExecutor,
-                                   int defaultGetRangesConcurrency) {
+                                   int defaultGetRangesConcurrency,
+                                   SweepQueueWriter sweepQueue) {
         super(keyValueService,
               timelockService,
               transactionService,
@@ -129,7 +132,7 @@ public class SerializableTransaction extends SnapshotTransaction {
               sweepStrategyManager,
               immutableTimestamp,
               immutableTsLock,
-              advisoryLockCheck,
+              preCommitCondition,
               constraintCheckingMode,
               transactionTimeoutMillis,
               readSentinelBehavior,
@@ -137,7 +140,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               timestampCache,
               lockAcquireTimeoutMs,
               getRangesExecutor,
-              defaultGetRangesConcurrency);
+              defaultGetRangesConcurrency,
+              sweepQueue);
     }
 
     @Override
@@ -318,7 +322,6 @@ public class SerializableTransaction extends SnapshotTransaction {
         // In that case the transaction will fail on commit if it has writes.
         return conflictDetectionManager.get(table) == ConflictHandler.SERIALIZABLE;
     }
-
 
     /**
      * This exists to transform the incoming byte[] to cloned one to ensure that all the byte array
@@ -706,7 +709,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 sweepStrategyManager,
                 immutableTimestamp,
                 Optional.empty(),
-                AdvisoryLockPreCommitCheck.NO_OP,
+                PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),
@@ -714,7 +717,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs,
                 getRangesExecutor,
-                defaultGetRangesConcurrency) {
+                defaultGetRangesConcurrency,
+                SweepQueueWriter.NO_OP) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

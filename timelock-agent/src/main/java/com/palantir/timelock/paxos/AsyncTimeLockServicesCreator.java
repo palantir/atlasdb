@@ -16,13 +16,13 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
@@ -36,6 +36,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.JavaSuppliers;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 
@@ -82,16 +83,16 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private static AsyncTimelockService createRawAsyncTimelockService(
             String client,
             Supplier<ManagedTimestampService> timestampServiceSupplier) {
-        ScheduledExecutorService reaperExecutor = Executors.newSingleThreadScheduledExecutor(
-                new ThreadFactoryBuilder()
+        ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
+                PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-reaper-" + client + "-%d")
                         .setDaemon(true)
-                        .build());
-        ScheduledExecutorService timeoutExecutor = Executors.newSingleThreadScheduledExecutor(
-                new ThreadFactoryBuilder()
+                        .build()), AtlasDbMetrics.getMetricRegistry(), "async-lock-reaper");
+        ScheduledExecutorService timeoutExecutor = new InstrumentedScheduledExecutorService(
+                PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-timeouts-" + client + "-%d")
                         .setDaemon(true)
-                        .build());
+                        .build()), AtlasDbMetrics.getMetricRegistry(), "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
                 AsyncLockService.createDefault(reaperExecutor, timeoutExecutor),
                 timestampServiceSupplier.get());

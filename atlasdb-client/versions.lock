@@ -93,7 +93,10 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting-api:errors",
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:refresh-utils"
             ]
         },
         "com.google.guava:guava": {
@@ -113,8 +116,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "2.6.0",
-            "requested": "2.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
             ]
@@ -240,6 +242,7 @@
         "com.palantir.remoting3:jaxrs-clients": {
             "locked": "3.5.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:qos-service-api"
             ]
         },
@@ -265,6 +268,7 @@
         "com.palantir.remoting3:tracing": {
             "locked": "3.5.1",
             "transitive": [
+                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.remoting3:tracing-okhttp3"
             ]
         },
@@ -298,7 +302,7 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -308,7 +312,7 @@
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -317,31 +321,31 @@
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.8.4"
+            "locked": "0.9.0"
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-proxy": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-registry": {
-            "locked": "0.8.4"
+            "locked": "0.9.0"
         },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-tracing": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
@@ -350,6 +354,21 @@
             "locked": "3.8.1",
             "transitive": [
                 "com.palantir.remoting3:okhttp-clients"
+            ]
+        },
+        "com.squareup.okhttp3:okhttp": {
+            "locked": "3.8.1",
+            "transitive": [
+                "com.netflix.feign:feign-okhttp",
+                "com.palantir.remoting3:okhttp-clients",
+                "com.palantir.remoting3:tracing-okhttp3",
+                "com.squareup.okhttp3:logging-interceptor"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.13.0",
+            "transitive": [
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "com.squareup:javapoet": {
@@ -535,7 +554,10 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting-api:errors",
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:refresh-utils"
             ]
         },
         "com.google.guava:guava": {
@@ -555,8 +577,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "2.6.0",
-            "requested": "2.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client-protobufs"
             ]
@@ -682,6 +703,7 @@
         "com.palantir.remoting3:jaxrs-clients": {
             "locked": "3.5.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:qos-service-api"
             ]
         },
@@ -707,6 +729,7 @@
         "com.palantir.remoting3:tracing": {
             "locked": "3.5.1",
             "transitive": [
+                "com.palantir.atlasdb:commons-executors",
                 "com.palantir.remoting3:tracing-okhttp3"
             ]
         },
@@ -740,7 +763,7 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -750,7 +773,7 @@
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -759,31 +782,31 @@
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.8.4"
+            "locked": "0.9.0"
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-proxy": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-registry": {
-            "locked": "0.8.4"
+            "locked": "0.9.0"
         },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-tracing": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
@@ -792,6 +815,21 @@
             "locked": "3.8.1",
             "transitive": [
                 "com.palantir.remoting3:okhttp-clients"
+            ]
+        },
+        "com.squareup.okhttp3:okhttp": {
+            "locked": "3.8.1",
+            "transitive": [
+                "com.netflix.feign:feign-okhttp",
+                "com.palantir.remoting3:okhttp-clients",
+                "com.palantir.remoting3:tracing-okhttp3",
+                "com.squareup.okhttp3:logging-interceptor"
+            ]
+        },
+        "com.squareup.okio:okio": {
+            "locked": "1.13.0",
+            "transitive": [
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "com.squareup:javapoet": {

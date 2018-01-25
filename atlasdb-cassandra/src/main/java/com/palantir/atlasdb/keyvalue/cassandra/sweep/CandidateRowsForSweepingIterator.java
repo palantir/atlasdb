@@ -20,6 +20,7 @@ import java.util.List;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -37,18 +38,21 @@ public class CandidateRowsForSweepingIterator extends AbstractIterator<List<Cand
     private final CandidateCellForSweepingRequest request;
 
     byte[] nextStartRow;
+    private CassandraKeyValueServiceConfig config;
 
     public CandidateRowsForSweepingIterator(
             ValuesLoader valuesLoader,
             CqlExecutor cqlExecutor,
             RowGetter rowGetter,
             TableReference table,
-            CandidateCellForSweepingRequest request) {
+            CandidateCellForSweepingRequest request,
+            CassandraKeyValueServiceConfig config) {
         this.valuesLoader = valuesLoader;
         this.cqlExecutor = cqlExecutor;
         this.rowGetter = rowGetter;
         this.table = table;
         this.request = request;
+        this.config = config;
 
         nextStartRow = request.startRowInclusive();
     }
@@ -67,7 +71,12 @@ public class CandidateRowsForSweepingIterator extends AbstractIterator<List<Cand
     }
 
     private List<CandidateRowForSweeping> getCandidateCellsForSweepingBatch() {
-        return new GetCandidateRowsForSweeping(valuesLoader, cqlExecutor, rowGetter, table,
-                request.withStartRow(nextStartRow)).execute();
+        return new GetCandidateRowsForSweeping(valuesLoader,
+                cqlExecutor,
+                rowGetter,
+                table,
+                request.withStartRow(nextStartRow),
+                config)
+                .execute();
     }
 }

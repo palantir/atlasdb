@@ -13,23 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos;
 
-import java.util.function.Supplier;
-
-import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
+import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosClientConfigLoader;
+import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
+import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
 
 public class QosResource implements QosService {
+    private final QosClientConfigLoader qosClientConfigLoader;
+    private final ClientLimitMultiplier clientLimitMultiplier;
 
-    private Supplier<QosServiceRuntimeConfig> config;
-
-    public QosResource(Supplier<QosServiceRuntimeConfig> config) {
-        this.config = config;
+    public QosResource(QosClientConfigLoader qosClientConfigLoader, ClientLimitMultiplier clientLimitMultiplier) {
+        this.qosClientConfigLoader = qosClientConfigLoader;
+        this.clientLimitMultiplier = clientLimitMultiplier;
     }
 
     @Override
-    public long getLimit(String client) {
-        return config.get().clientLimits().getOrDefault(client, Long.MAX_VALUE);
+    public long readLimit(String client) {
+        QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
+        return (long) (clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
+                * qosClientLimitsConfig.limits().readBytesPerSecond());
+    }
+
+    @Override
+    public long writeLimit(String client) {
+        QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
+        return (long) (clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
+                * qosClientLimitsConfig.limits().writeBytesPerSecond());
     }
 }

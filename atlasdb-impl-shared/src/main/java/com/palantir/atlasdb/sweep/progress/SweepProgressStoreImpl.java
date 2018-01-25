@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -89,7 +90,8 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
                             ROW_AND_COLUMN_NAME,
                             "sweep_progress",
                             ColumnValueDescription.forType(ValueType.BLOB)))),
-            ConflictHandler.IGNORE_ALL);
+            ConflictHandler.IGNORE_ALL,
+            TableMetadataPersistence.LogSafety.SAFE);
 
     private SweepProgressStoreImpl(KeyValueService kvs) {
         this.kvs = kvs;
@@ -149,15 +151,13 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
 
     private static Optional<SweepProgress> hydrateProgress(Map<Cell, Value> result) {
         if (result.isEmpty()) {
-            log.info("No persisted intermittent SweepProgress information found. "
-                    + "Sweep will choose a new table to sweep.");
+            log.info("No persisted SweepProgress information found.");
             return Optional.empty();
         }
         try {
             return Optional.of(OBJECT_MAPPER.readValue(result.get(CELL).getContents(), SweepProgress.class));
         } catch (Exception e) {
-            log.warn("Error deserializing SweepProgress object while attempting to load intermediate result. "
-                    + "Sweep will choose a new table to sweep.", e);
+            log.warn("Error deserializing SweepProgress object.", e);
             return Optional.empty();
         }
     }

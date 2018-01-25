@@ -21,12 +21,13 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -34,13 +35,19 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import com.palantir.flake.ShouldRetry;
 
 @RunWith(Parameterized.class)
+@ShouldRetry // Some tests can fail with "could not stop heartbeat" - see also HeartbeatServiceIntegrationTest.
 public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
     public static final Containers CONTAINERS = new Containers(
                 CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class)
             .with(new CassandraContainer());
+
+    @Rule
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
+            getKeyValueService());
 
     @Parameterized.Parameter
     public boolean useColumnBatchSize;
@@ -50,7 +57,6 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         return Arrays.asList(true, false);
     }
 
-
     @Override
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = useColumnBatchSize
@@ -58,8 +64,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
                         .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
 
-        return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraContainer.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.create(config, CassandraContainer.LEADER_CONFIG);
     }
 
     @Test

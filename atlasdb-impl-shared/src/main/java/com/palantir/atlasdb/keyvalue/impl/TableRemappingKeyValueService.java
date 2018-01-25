@@ -115,6 +115,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        try {
+            delegate().deleteAllTimestamps(tableMapper.getMappedTableName(tableRef), maxTimestampExclusiveByCell);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public void dropTable(TableReference tableRef) {
         dropTables(ImmutableSet.of(tableRef));
     }

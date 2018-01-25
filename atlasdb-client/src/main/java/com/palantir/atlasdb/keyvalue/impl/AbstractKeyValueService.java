@@ -44,6 +44,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.Futures;
@@ -66,7 +67,6 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.remoting3.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -89,8 +89,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     public AbstractKeyValueService(ExecutorService executor) {
         this.executor = executor;
         this.tracingPrefs = new TracingPrefsConfig();
-        this.scheduledExecutor = Tracers.wrap(PTExecutors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true)));
+        this.scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
+                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true));
         this.scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
     }
 
@@ -105,7 +105,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         ThreadPoolExecutor executor = PTExecutors.newFixedThreadPool(poolSize,
                 new NamedThreadFactory(threadNamePrefix, false));
         executor.setKeepAliveTime(1, TimeUnit.MINUTES);
-        return Tracers.wrap(executor);
+        return executor;
     }
 
     @Override
@@ -309,6 +309,33 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                 delete(tableRef, cellsToDelete);
             }
         }
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef,
+            Map<Cell, Long> maxTimestampExclusiveByCell) {
+        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell);
+    }
+
+    public static void deleteAllTimestampsDefaultImpl(KeyValueService kvs, TableReference tableRef,
+            Map<Cell, Long> maxTimestampByCell) {
+        if (maxTimestampByCell.isEmpty()) {
+            return;
+        }
+
+        long maxTimestampExclusive = maxTimestampByCell.values().stream().max(Long::compare).get();
+
+        Multimap<Cell, Long> timestampsByCell = kvs.getAllTimestamps(tableRef, maxTimestampByCell.keySet(),
+                maxTimestampExclusive);
+
+        Multimap<Cell, Long> timestampsByCellExcludingSentinels = Multimaps.filterEntries(timestampsByCell, entry -> {
+            long maxTimestampForCell = maxTimestampByCell.get(entry.getKey());
+
+            long timestamp = entry.getValue();
+            return timestamp < maxTimestampForCell && timestamp != Value.INVALID_VALUE_TIMESTAMP;
+        });
+
+        kvs.delete(tableRef, timestampsByCellExcludingSentinels);
     }
 
     @Override

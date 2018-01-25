@@ -50,6 +50,7 @@ dependencies {
         exclude(module:'log4j-over-slf4j')
         exclude(module:'jcl-over-slf4j')
     }
+    testCompile project(":flake-rule")
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
         exclude group: 'org.hamcrest'

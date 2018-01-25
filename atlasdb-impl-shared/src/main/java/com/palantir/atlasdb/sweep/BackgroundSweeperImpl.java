@@ -32,11 +32,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -121,6 +121,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
             while (true) {
+                // InterruptedException might be wrapped in RuntimeException (i.e. AtlasDbDependencyException),
+                // which would be caught downstream.
+                // We throw InterruptedException here to register that BackgroundSweeper was shutdown
+                // on the catch block.
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("The background sweeper thread is interrupted.");
+                }
+
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
                 log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
@@ -132,6 +140,11 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
+            sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.SHUTDOWN);
+        } catch (Throwable t) {
+            log.error("BackgroundSweeper failed fatally and will not rerun until restarted: {}",
+                    UnsafeArg.of("message", t.getMessage()), t);
+            sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.FATAL);
         }
     }
 
@@ -223,20 +236,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     // and try to lambda refactor this unless you live far enough in the future that this isn't an issue
     private Optional<TableToSweep> getTableToSweep() {
         return specificTableSweeper.getTxManager().runTaskWithRetry(
-                new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
-                    @Override
-                    public Optional<TableToSweep> execute(Transaction tx) {
-                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
-                        if (progress.isPresent()) {
-                            return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
-                        } else {
-                            Optional<TableReference> nextTable = getNextTableToSweep(tx);
-                            if (nextTable.isPresent()) {
-                                return Optional.of(new TableToSweep(nextTable.get(), Optional.empty()));
-                            } else {
-                                return Optional.empty();
-                            }
-                        }
+                tx -> {
+                    Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
+                    if (progress.isPresent()) {
+                        return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
+                    } else {
+                        log.info("Sweep is choosing a new table to sweep.");
+                        Optional<TableReference> nextTable = getNextTableToSweep(tx);
+                        return nextTable.map(tableReference -> new TableToSweep(tableReference, Optional.empty()));
                     }
                 });
     }
@@ -278,6 +285,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @Override
     public synchronized void shutdown() {
+        sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.SHUTDOWN);
         if (daemon == null) {
             return;
         }
@@ -293,12 +301,16 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     public enum SweepOutcome {
         SUCCESS, NOTHING_TO_SWEEP, DISABLED, UNABLE_TO_ACQUIRE_LOCKS,
-        NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR
+        NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR,
+        SHUTDOWN, FATAL
     }
 
     private class SweepOutcomeMetrics {
         private final MetricsManager metricsManager = new MetricsManager();
         private final SlidingTimeWindowReservoir reservoir;
+
+        private boolean shutdown;
+        private boolean fatal;
 
         SweepOutcomeMetrics() {
             Arrays.stream(SweepOutcome.values()).forEach(outcome ->
@@ -306,15 +318,33 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                             () -> getOutcomeCount(outcome))
             );
             reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
+            shutdown = false;
+            fatal = false;
         }
 
         private Long getOutcomeCount(SweepOutcome outcome) {
+            if (outcome == SweepOutcome.SHUTDOWN) {
+                return shutdown ? 1L : 0L;
+            }
+            if (outcome == SweepOutcome.FATAL) {
+                return fatal ? 1L : 0L;
+            }
+
             return Arrays.stream(reservoir.getSnapshot().getValues())
                     .filter(l -> l == outcome.ordinal())
                     .count();
         }
 
         void registerOccurrenceOf(SweepOutcome outcome) {
+            if (outcome == SweepOutcome.SHUTDOWN) {
+                shutdown = true;
+                return;
+            }
+            if (outcome == SweepOutcome.FATAL) {
+                fatal = true;
+                return;
+            }
+
             reservoir.update(outcome.ordinal());
         }
     }

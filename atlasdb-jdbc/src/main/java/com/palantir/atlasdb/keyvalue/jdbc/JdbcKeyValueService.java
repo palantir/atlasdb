@@ -124,6 +124,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.jdbc.impl.MultiTimestampPutBatch;
@@ -686,6 +687,11 @@ public class JdbcKeyValueService implements KeyValueService {
                 delete(tableRef, cellsToDelete);
             }
         }
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        AbstractKeyValueService.deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell);
     }
 
     @Override
