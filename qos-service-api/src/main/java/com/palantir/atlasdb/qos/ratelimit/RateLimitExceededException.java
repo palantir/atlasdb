@@ -25,7 +25,4 @@ public class RateLimitExceededException extends RuntimeException {
         super(msg);
     }
 
-    public RateLimitExceededException(String msg, Throwable throwable) {
-        super(msg, throwable);
-    }
 }

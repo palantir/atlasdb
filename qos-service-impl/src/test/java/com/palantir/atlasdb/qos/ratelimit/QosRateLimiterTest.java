@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
+import com.palantir.remoting.api.errors.QosException;
 
 public class QosRateLimiterTest {
 
@@ -94,8 +95,9 @@ public class QosRateLimiterTest {
         limiter.consumeWithBackoff(1_000);
 
         assertThatThrownBy(() -> limiter.consumeWithBackoff(100))
-                .isInstanceOf(RateLimitExceededException.class)
-                .hasMessageContaining("Rate limited");
+                .isInstanceOf(QosException.Throttle.class)
+                .hasMessageContaining(
+                        "Suggesting request throttling with optional retryAfter duration: Optional.empty");
     }
 
     @Test

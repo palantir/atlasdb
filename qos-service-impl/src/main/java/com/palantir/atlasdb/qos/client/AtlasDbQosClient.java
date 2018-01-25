@@ -31,7 +31,7 @@ import com.palantir.atlasdb.qos.QueryWeight;
 import com.palantir.atlasdb.qos.metrics.QosMetrics;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
-import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
+import com.palantir.remoting.api.errors.QosException;
 
 public class AtlasDbQosClient implements QosClient {
 
@@ -77,8 +77,8 @@ public class AtlasDbQosClient implements QosClient {
                 Duration waitTime = rateLimiter.consumeWithBackoff(estimatedWeight.numBytes());
                 metrics.recordBackoffMicros(TimeUnit.NANOSECONDS.toMicros(waitTime.toNanos()));
             }
-        } catch (RateLimitExceededException ex) {
-            metrics.recordRateLimitedException();
+        } catch (QosException.Throttle ex) {
+            metrics.recordThrottleExceptions();
             throw ex;
         }
 
