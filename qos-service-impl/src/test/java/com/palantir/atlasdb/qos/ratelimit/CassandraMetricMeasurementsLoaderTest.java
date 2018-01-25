@@ -39,6 +39,7 @@ import com.palantir.atlasdb.qos.config.CassandraHealthMetric;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetric;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
+import com.palantir.cassandra.sidecar.SharedSecretHeader;
 import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
 
 public class CassandraMetricMeasurementsLoaderTest {
@@ -57,6 +58,8 @@ public class CassandraMetricMeasurementsLoaderTest {
     private Supplier<List<CassandraHealthMetric>> healthMetricSupplier;
     private CassandraMetricsService cassandraMetricClient;
     private CassandraMetricMeasurementsLoader cassandraMetricMeasurementsLoader;
+    private static final String HEADER_STRING = "header";
+    private static final SharedSecretHeader HEADER = SharedSecretHeader.valueOf("header");
 
     @Before
     public void setup() {
@@ -65,16 +68,18 @@ public class CassandraMetricMeasurementsLoaderTest {
         scheduledExecutorService = new DeterministicScheduler();
 
         cassandraMetricMeasurementsLoader = new CassandraMetricMeasurementsLoader(
-                healthMetricSupplier, cassandraMetricClient, scheduledExecutorService);
+                healthMetricSupplier, cassandraMetricClient, scheduledExecutorService, HEADER_STRING);
 
         when(healthMetricSupplier.get()).thenReturn(ImmutableList.of(
                 getCassandraMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1),
                 getCassandraMetric(METRIC_TYPE_2, METRIC_NAME_2, METRIC_ATTRIBUTE_2)));
 
-        when(cassandraMetricClient.getMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1, ImmutableMap.of()))
+        when(cassandraMetricClient.getMetric(HEADER, METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1,
+                ImmutableMap.of()))
                 .thenReturn(METRIC_VALUE_1);
 
-        when(cassandraMetricClient.getMetric(METRIC_TYPE_2, METRIC_NAME_2, METRIC_ATTRIBUTE_2, ImmutableMap.of()))
+        when(cassandraMetricClient.getMetric(HEADER, METRIC_TYPE_2, METRIC_NAME_2, METRIC_ATTRIBUTE_2,
+                ImmutableMap.of()))
                 .thenReturn(METRIC_VALUE_2);
     }
 
@@ -118,7 +123,8 @@ public class CassandraMetricMeasurementsLoaderTest {
     }
 
     private void assertThatMetricsReturnedAreEmptyIfCassandraMetricsServiceThrows(Class clazz) {
-        when(cassandraMetricClient.getMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1, ImmutableMap.of()))
+        when(cassandraMetricClient.getMetric(HEADER, METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1,
+                ImmutableMap.of()))
                 .thenThrow(clazz);
 
         scheduledExecutorService.tick(3, TimeUnit.SECONDS);

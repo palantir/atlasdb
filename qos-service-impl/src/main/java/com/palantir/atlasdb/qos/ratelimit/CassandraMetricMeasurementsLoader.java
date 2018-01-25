@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetric;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
+import com.palantir.cassandra.sidecar.SharedSecretHeader;
 import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
 
 public class CassandraMetricMeasurementsLoader {
@@ -37,11 +38,14 @@ public class CassandraMetricMeasurementsLoader {
     private final Supplier<List<CassandraHealthMetric>> cassandraHealthMetrics;
     private final CassandraMetricsService cassandraMetricClient;
     private List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements;
+    private final String header;
 
     public CassandraMetricMeasurementsLoader(Supplier<List<CassandraHealthMetric>> cassandraHealthMetrics,
-            CassandraMetricsService cassandraMetricClient, ScheduledExecutorService scheduledExecutorService) {
+            CassandraMetricsService cassandraMetricClient, ScheduledExecutorService scheduledExecutorService,
+            String header) {
         this.cassandraHealthMetrics = cassandraHealthMetrics;
         this.cassandraMetricClient = cassandraMetricClient;
+        this.header = header;
         this.cassandraHealthMetricMeasurements = new ArrayList<>();
         scheduledExecutorService
                 .scheduleWithFixedDelay(() -> {
@@ -58,6 +62,7 @@ public class CassandraMetricMeasurementsLoader {
         cassandraHealthMetricMeasurements = this.cassandraHealthMetrics.get().stream().map(metric ->
                 ImmutableCassandraHealthMetricMeasurement.builder()
                         .currentValue(this.cassandraMetricClient.getMetric(
+                                SharedSecretHeader.valueOf(header),
                                 metric.type(),
                                 metric.name(),
                                 metric.attribute(),

@@ -31,6 +31,9 @@ public abstract class QosCassandraMetricsInstallConfig {
     @JsonProperty("cassandra-service-config")
     public abstract ServiceConfiguration cassandraServiceConfig();
 
+    @JsonProperty("shared-secret")
+    public abstract String sharedSecret();
+
     @JsonProperty("throttling-strategy")
     public abstract ThrottlingStrategyEnum throttlingStrategy();
 }

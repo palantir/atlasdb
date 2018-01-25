@@ -4,4 +4,5 @@ qos-cassandra-metrics:
       - https://localhost:9161/cassandra-sidecar/api/
     security:
       trustStorePath: trustStore.jks
+  shared-secret: secret
   throttling-strategy: SIMPLE
