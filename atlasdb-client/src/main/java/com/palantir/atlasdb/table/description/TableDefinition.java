@@ -23,7 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.AbstractMessage;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -197,6 +197,12 @@ public class TableDefinition extends AbstractDefinition {
         ignoreHotspottingChecks = true;
     }
 
+    /**
+     * Returns the number of components to hash as a prefix to row keys.
+     */
+    public int getNumberOfComponentsHashed() {
+        return numberOfComponentsHashed;
+    }
 
     public void rowComponent(String componentName, ValueType valueType) {
         rowComponent(componentName, valueType, defaultNamedComponentLogSafety);
@@ -226,8 +232,7 @@ public class TableDefinition extends AbstractDefinition {
     /**
      * Passing an empty list of partitioners means that this type is not able to be partitioned. This is sometimes
      * needed if the value type doesn't support the {@link UniformRowNamePartitioner}.  If the first entry in the table
-     * cannot be partitioned then it is likely this table will cause hot spots.  Consider adding
-     * partitionStrategy(HASH) in this case which will allow the DB to break it up however it wants.
+     * cannot be partitioned then it is likely this table will cause hot spots.
      * <p>
      * If no partition() is specified the default is to use a {@link UniformRowNamePartitioner}
      */
@@ -407,7 +412,6 @@ public class TableDefinition extends AbstractDefinition {
                 getColumnMetadataDescription(),
                 conflictHandler,
                 cachePriority,
-                partitionStrategy,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKb,
                 negativeLookups,
@@ -438,7 +442,7 @@ public class TableDefinition extends AbstractDefinition {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private ColumnValueDescription getColumnValueDescription(Class protoOrPersistable, Compression compression) {
-        if (GeneratedMessage.class.isAssignableFrom(protoOrPersistable)) {
+        if (AbstractMessage.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forProtoMessage(protoOrPersistable, compression);
         } else if (Persister.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forPersister(protoOrPersistable, compression);

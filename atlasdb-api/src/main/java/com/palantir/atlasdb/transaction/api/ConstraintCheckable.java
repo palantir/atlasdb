@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 public interface ConstraintCheckable {
     /**
      * This method checks row, table, and foreign-key constraints on the values given in writes.
-     * This method may require additional reads from the database, dependong on the value of
+     * This method may require additional reads from the database, depending on the value of
      * constraintCheckingMode. This is intended to be used to check constraints on writes.
      */
     List<String> findConstraintFailures(

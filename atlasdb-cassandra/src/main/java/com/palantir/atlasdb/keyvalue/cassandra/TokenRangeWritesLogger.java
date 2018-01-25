@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,9 +44,9 @@ public final class TokenRangeWritesLogger {
     private static final Logger log = LoggerFactory.getLogger(TokenRangeWritesLogger.class);
 
     @VisibleForTesting
-    static final long THRESHOLD_WRITES_PER_TABLE = 1_000_000L;
+    static final long THRESHOLD_WRITES_PER_TABLE = 1_000L;
     @VisibleForTesting
-    static final long TIME_UNTIL_LOG_MILLIS = 24 * 60 * 60 * 1000L;
+    static final long TIME_UNTIL_LOG_MILLIS = Duration.ofHours(6).toMillis();
     private static final double CONFIDENCE_FOR_LOGGING = 0.99;
 
     private final ConcurrentMap<TableReference, TokenRangeWrites> statsPerTable = new ConcurrentHashMap<>();
@@ -67,19 +68,22 @@ public final class TokenRangeWritesLogger {
         }
     }
 
-    void markWritesForTable(Set<Cell> entries, TableReference tableRef) {
-        statsPerTable.putIfAbsent(tableRef, new TokenRangeWrites(tableRef, ranges));
+    public void markWritesForTable(Set<Cell> entries, TableReference tableRef) {
+        if (!statsPerTable.containsKey(tableRef)) {
+            statsPerTable.put(tableRef, new TokenRangeWrites(tableRef, ranges));
+        }
         TokenRangeWrites tokenRangeWrites = statsPerTable.get(tableRef);
         entries.forEach(entry -> tokenRangeWrites.markWrite(entry));
-        tokenRangeWrites.maybeLog();
+        tokenRangeWrites.maybeEmitTelemetry();
     }
 
     private static final class TokenRangeWrites {
         private final TableReference tableRef;
         private final RangeMap<LightweightOppToken, AtomicLong> writesPerRange;
-        private final AtomicLong writesSinceLastLog = new AtomicLong(0);
+        private final AtomicLong writesSinceLastCalculation = new AtomicLong(0);
         private long lastLoggedTime = System.currentTimeMillis();
         private double probabilityDistributionIsNotUniform = 0.0;
+        private long numberOfWritesUsedToCalculateDistribution = 0;
 
         private TokenRangeWrites(TableReference tableRef, Set<Range<LightweightOppToken>> ranges) {
             this.tableRef = tableRef;
@@ -97,38 +101,46 @@ public final class TokenRangeWritesLogger {
 
         private void markWrite(Cell cell) {
             writesPerRange.get(LightweightOppToken.of(cell)).incrementAndGet();
-            writesSinceLastLog.incrementAndGet();
+            writesSinceLastCalculation.incrementAndGet();
         }
 
-        private void maybeLog() {
+        private void maybeEmitTelemetry() {
+            if (shouldRecalculate()) {
+                tryRecalculate();
+            }
             if (shouldLog()) {
                 tryLog();
             }
         }
 
+        private boolean shouldRecalculate() {
+            return writesSinceLastCalculation.get() > THRESHOLD_WRITES_PER_TABLE;
+        }
+
+        private synchronized void tryRecalculate() {
+            if (shouldRecalculate()) {
+                List<Long> values = writesPerRange.asMapOfRanges().values().stream().map(AtomicLong::get)
+                        .collect(Collectors.toList());
+                numberOfWritesUsedToCalculateDistribution = values.stream().mapToLong(x -> x).sum();
+                probabilityDistributionIsNotUniform = Distributions.confidenceThatDistributionIsNotUniform(values);
+
+                writesSinceLastCalculation.set(0);
+            }
+        }
+
+        private boolean shouldLog() {
+            return (System.currentTimeMillis() - lastLoggedTime) > TIME_UNTIL_LOG_MILLIS;
+        }
+
         private synchronized void tryLog() {
             if (shouldLog()) {
-                refreshProbabilityDistributionNotUniform();
-
                 if (probabilityDistributionIsNotUniform > CONFIDENCE_FOR_LOGGING) {
                     logNotUniform();
                 } else {
                     logUniform();
                 }
-                writesSinceLastLog.set(0);
                 lastLoggedTime = System.currentTimeMillis();
             }
-        }
-
-        private boolean shouldLog() {
-            return writesSinceLastLog.get() > THRESHOLD_WRITES_PER_TABLE
-                    && (System.currentTimeMillis() - lastLoggedTime) > TIME_UNTIL_LOG_MILLIS;
-        }
-
-        private void refreshProbabilityDistributionNotUniform() {
-            List<Long> values = writesPerRange.asMapOfRanges().values().stream().map(AtomicLong::get)
-                    .collect(Collectors.toList());
-            probabilityDistributionIsNotUniform = Distributions.confidenceThatDistributionIsNotUniform(values);
         }
 
         private void logNotUniform() {
@@ -139,9 +151,9 @@ public final class TokenRangeWritesLogger {
         }
 
         private void logUniform() {
-            log.info("There were at least {} writes into the table {} since the last statistical analysis. The "
-                            + "distribution of writes over token ranges does not appear to be skewed.",
-                    SafeArg.of("numberOfWrites", writesSinceLastLog.get()),
+            log.info("The distribution of writes over token ranges does not appear to be skewed"
+                            + " based on {} writes to table {}.",
+                    SafeArg.of("numberOfWrites", numberOfWritesUsedToCalculateDistribution),
                     LoggingArgs.tableRef(tableRef));
         }
 
@@ -169,6 +181,7 @@ public final class TokenRangeWritesLogger {
 
     @VisibleForTesting
     long getNumberOfWritesTotal(TableReference tableRef) {
-        return statsPerTable.get(tableRef).writesSinceLastLog.get();
+        return statsPerTable.get(tableRef).numberOfWritesUsedToCalculateDistribution
+                + statsPerTable.get(tableRef).writesSinceLastCalculation.get();
     }
 }

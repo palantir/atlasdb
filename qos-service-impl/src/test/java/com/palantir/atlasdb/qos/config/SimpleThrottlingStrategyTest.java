@@ -76,7 +76,7 @@ public class SimpleThrottlingStrategyTest {
                 ImmutableList.of(getMetricMeasurement(5, 10, 8), getMetricMeasurement(4, 8, 6));
 
         assertThat(simpleThrottlingStrategy.getClientLimitMultiplier(unhealthyMetricMeasurements)).isEqualTo(0.5);
-        Uninterruptibles.sleepUninterruptibly(100, TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
         assertThat(simpleThrottlingStrategy.getClientLimitMultiplier(healthyMetricMeasurements)).isEqualTo(0.55);
     }
 

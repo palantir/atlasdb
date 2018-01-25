@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.qos.server;
 
-import java.util.concurrent.Executors;
-
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosAgent;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.dropwizard.Application;
@@ -41,7 +40,7 @@ public class QosServerLauncher extends Application<QosServerConfig> {
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
 
         QosAgent agent = new QosAgent(configuration::runtime, configuration.install(),
-                Executors.newSingleThreadScheduledExecutor(), environment.jersey()::register);
+                PTExecutors.newSingleThreadScheduledExecutor(), environment.jersey()::register);
         agent.createAndRegisterResources();
     }
 }

@@ -77,17 +77,17 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      * pooled object can block on {@link CassandraClientFactory#create()}} before being added
      * to the client pool.
      */
-    protected int getOpenRequests() {
+    public int getOpenRequests() {
         return openRequests.get();
     }
 
     // returns negative if not available; only expected use is debugging
-    protected int getActiveCheckouts() {
+    public int getActiveCheckouts() {
         return clientPool.getNumActive();
     }
 
     // returns negative if unbounded; only expected use is debugging
-    protected int getPoolSize() {
+    public int getPoolSize() {
         return clientPool.getMaxTotal();
     }
 

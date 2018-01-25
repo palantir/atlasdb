@@ -47,6 +47,7 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
@@ -72,10 +73,11 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.QosService;
 import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
-import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
+import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
+import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
@@ -90,6 +92,7 @@ import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -240,9 +243,12 @@ public abstract class TransactionManagers {
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
+        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(rawKvs,
+                config.initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 kvs,
                 schemas(),
+                schemaMetadataService,
                 config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 kvs,
@@ -285,7 +291,8 @@ public abstract class TransactionManagers {
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.keyValueService().defaultGetRangesConcurrency(),
                 config.initializeAsync(),
-                () -> runtimeConfigSupplier.get().getTimestampCacheSize());
+                () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
+                SweepQueueWriter.NO_OP);
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
@@ -312,18 +319,13 @@ public abstract class TransactionManagers {
                     ClientConfigurations.of(qosServiceConfig.get()));
             rateLimiters = QosRateLimiters.create(
                     JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
-                    () -> {
-                        long readLimit = qosService.readLimit(config().getNamespaceString());
-                        long writeLimit = qosService.writeLimit(config().getNamespaceString());
-                        return ImmutableQosLimitsConfig.builder()
-                                .readBytesPerSecond(readLimit)
-                                .writeBytesPerSecond(writeLimit)
-                                .build();
-                    });
+                    () -> qosService.readLimit(config().getNamespaceString()),
+                    () -> qosService.writeLimit(config().getNamespaceString()));
         } else {
             rateLimiters = QosRateLimiters.create(
                     JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
-                    JavaSuppliers.compose(QosClientConfig::limits, config));
+                    JavaSuppliers.compose(conf -> conf.limits().readBytesPerSecond(), config),
+                    JavaSuppliers.compose(conf -> conf.limits().writeBytesPerSecond(), config));
         }
         return AtlasDbQosClient.create(rateLimiters);
     }
@@ -518,15 +520,34 @@ public abstract class TransactionManagers {
             com.google.common.base.Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
+        AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
+        assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
             return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
-        } else if (config.timelock().isPresent()) {
+        } else if (config.timelock().isPresent() || initialRuntimeConfig.timelockRuntime().isPresent()) {
             return createRawServicesFromTimeLock(config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);
         }
+    }
+
+    private static void assertNoSpuriousTimeLockBlockInRuntimeConfig(
+            AtlasDbConfig config,
+            AtlasDbRuntimeConfig initialRuntimeConfig) {
+        // Note: The other direction (timelock install config without a runtime block) should be maintained for
+        // backwards compatibility.
+        if (remoteTimestampAndLockOrLeaderBlocksPresent(config) && initialRuntimeConfig.timelockRuntime().isPresent()) {
+            throw new IllegalStateException("Found a service configured not to use timelock, with a timelock"
+                    + " block in the runtime config! This is unexpected. If you wish to use non-timelock services,"
+                    + " please remove the timelock block from the runtime config; if you wish to use timelock,"
+                    + " please remove the leader, remote timestamp or remote lock configuration blocks.");
+        }
+    }
+
+    private static boolean remoteTimestampAndLockOrLeaderBlocksPresent(AtlasDbConfig config) {
+        return (config.timestamp().isPresent() && config.lock().isPresent()) || config.leader().isPresent();
     }
 
     private static LockAndTimestampServices createRawServicesFromTimeLock(
@@ -547,9 +568,9 @@ public abstract class TransactionManagers {
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        Preconditions.checkState(config.timelock().isPresent(),
-                "Cannot create raw services from timelock without a timelock block!");
-        TimeLockClientConfig clientConfig = config.timelock().get();
+        Preconditions.checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
+                "Cannot create raw services from timelock with another source of timestamps/locks configured!");
+        TimeLockClientConfig clientConfig = config.timelock().orElse(ImmutableTimeLockClientConfig.builder().build());
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
         return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
                 clientConfig,

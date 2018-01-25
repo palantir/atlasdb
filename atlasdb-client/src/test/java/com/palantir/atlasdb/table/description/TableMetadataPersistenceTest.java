@@ -147,7 +147,6 @@ public class TableMetadataPersistenceTest {
             // setting everything explicitly to test serialization
             conflictHandler(ConflictHandler.SERIALIZABLE);
             sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
-            partitionStrategy(TableMetadataPersistence.PartitionStrategy.HASH);
             cachePriority(TableMetadataPersistence.CachePriority.COLD);
             explicitCompressionBlockSizeKB(CUSTOM_COMPRESSION_BLOCK_SIZE);
             negativeLookups();

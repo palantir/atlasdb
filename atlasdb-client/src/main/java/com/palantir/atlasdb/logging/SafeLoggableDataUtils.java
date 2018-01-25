@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -54,6 +55,8 @@ public final class SafeLoggableDataUtils {
         if (IS_SAFE.test(tableMetadata.getNameLogSafety())) {
             builder.addPermittedTableReferences(ref);
         }
+        // this is a system table with empty metadata, but safe for logging.
+        builder.addPermittedTableReferences(AtlasDbConstants.DEFAULT_METADATA_TABLE);
 
         Set<String> loggableRowComponentNames = tableMetadata.getRowMetadata()
                 .getRowParts()

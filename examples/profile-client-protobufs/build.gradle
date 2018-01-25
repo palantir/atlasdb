@@ -6,24 +6,13 @@ apply plugin: 'com.google.protobuf'
 
 protobuf {
   protoc {
-    artifact = 'com.google.protobuf:protoc:2.6.1'
+    artifact = "com.google.protobuf:protoc:${libVersions.protoc}"
   }
   generatedFilesBaseDir = "$projectDir/src"
 }
 
-sourceSets {
-  main {
-    proto {
-      srcDir '../..'
-
-      setIncludes(['examples/profile-client/**/*.proto'])
-    }
-  }
-}
-
-
 dependencies {
-  compile(group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0") {
-    transitive = false
-  }
+  compile group: "com.google.protobuf", name: "protobuf-java"
 }
+
+project.tasks.idea.dependsOn('generateProto')

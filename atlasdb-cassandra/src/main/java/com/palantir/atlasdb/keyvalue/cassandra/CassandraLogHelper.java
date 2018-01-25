@@ -29,12 +29,12 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 
-final class CassandraLogHelper {
+public final class CassandraLogHelper {
     private CassandraLogHelper() {
         // Utility class.
     }
 
-    static String host(InetSocketAddress host) {
+    public static String host(InetSocketAddress host) {
         return host.getHostString();
     }
 
@@ -50,7 +50,7 @@ final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    static List<String> tokenMap(RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
+    public static List<String> tokenMap(RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
         return tokenMap.asMapOfRanges().entrySet().stream()
                 .map(rangeListToHostEntry -> String.format("range from %s to %s is on host %s",
                         getLowerEndpoint(rangeListToHostEntry.getKey()),

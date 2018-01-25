@@ -23,7 +23,7 @@ import org.apache.cassandra.thrift.TokenRange;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 
-final class CassandraUtils {
+public final class CassandraUtils {
     private CassandraUtils() {}
 
     public static FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner(

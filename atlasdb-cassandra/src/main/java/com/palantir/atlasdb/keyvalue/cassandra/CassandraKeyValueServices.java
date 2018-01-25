@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
@@ -102,20 +104,28 @@ public final class CassandraKeyValueServices {
 
         StringBuilder schemaVersions = new StringBuilder();
         for (Entry<String, List<String>> version : versions.entrySet()) {
-            schemaVersions.append(String.format("%nAt schema version %s:", version.getKey()));
-            for (String node : version.getValue()) {
-                schemaVersions.append(String.format("%n\tNode: %s", node));
-            }
+            schemaVersions = addNodeInformation(schemaVersions,
+                    String.format("%nAt schema version %s:", version.getKey()),
+                    version.getValue());
         }
+
+        String configNodes = addNodeInformation(new StringBuilder(),
+                "Nodes specified in config file:",
+                config.servers().stream().map(InetSocketAddress::getHostName).collect(Collectors.toList()))
+                .toString();
+
         String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions,"
                         + " after attempting to modify table %s. %s"
-                        + " \nFind the nodes above that diverge from the majority schema"
-                        + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
-                        + " and examine their logs to determine the issue."
+                        + " \nFind the nodes above that diverge from the majority schema and examine their logs to"
+                        + " determine the issue. If nodes have schema 'UNKNOWN', they are likely down/unresponsive."
                         + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
-                        + " You can quick-check this with 'nodetool describecluster'.",
+                        + " You can quick-check this with 'nodetool describecluster'."
+                        + " \nIf nodes are specified in the config file, but do not have a schema version listed"
+                        + " above, then they may have never joined the cluster. Verify your configuration is correct"
+                        + " and that the nodes specified in the config are up and joined the cluster. %s",
                 tableName,
-                schemaVersions.toString());
+                schemaVersions.toString(),
+                configNodes);
         throw new IllegalStateException(errorMessage);
     }
 
@@ -127,7 +137,7 @@ public final class CassandraKeyValueServices {
             boolean allowQuorumAgreement,
             CassandraKeyValueServiceConfig config,
             Map<String, List<String>> versions) {
-        if (getNumberOfReachableSchemas(versions) > 1) {
+        if (getNumberOfDistinctReachableSchemas(versions) > 1) {
             return false;
         }
 
@@ -140,13 +150,21 @@ public final class CassandraKeyValueServices {
         return numberOfVisibleNodes == numberOfServers;
     }
 
-    private static long getNumberOfReachableSchemas(Map<String, List<String>> versions) {
+    private static long getNumberOfDistinctReachableSchemas(Map<String, List<String>> versions) {
         return versions.keySet().stream().filter(schema -> !schema.equals(VERSION_UNREACHABLE)).count();
     }
 
     private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
         return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
                 .map(Entry::getValue).mapToInt(List::size).sum();
+    }
+
+    private static StringBuilder addNodeInformation(StringBuilder builder, String message, List<String> nodes) {
+        builder.append(message);
+        for (String node : nodes) {
+            builder.append(String.format("%n\tNode: %s", node));
+        }
+        return builder;
     }
 
     /**

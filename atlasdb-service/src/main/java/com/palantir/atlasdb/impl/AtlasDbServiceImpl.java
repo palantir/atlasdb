@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
@@ -52,6 +53,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
+import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.atlasdb.transaction.impl.RawTransaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
@@ -66,7 +68,8 @@ public class AtlasDbServiceImpl implements AtlasDbService {
                     ImmutableList.of(new NameComponentDescription.Builder()
                             .componentName("col").type(ValueType.STRING).build())),
                     ColumnValueDescription.forType(ValueType.STRING))),
-            ConflictHandler.SERIALIZABLE);
+            ConflictHandler.SERIALIZABLE,
+            TableMetadataPersistence.LogSafety.SAFE);
 
     private final KeyValueService kvs;
     private final SerializableTransactionManager txManager;
@@ -191,7 +194,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public TransactionToken startTransaction() {
         String id = UUID.randomUUID().toString();
         TransactionToken token = new TransactionToken(id);
-        RawTransaction tx = txManager.setupRunTaskWithLocksThrowOnConflict(ImmutableList.of());
+        RawTransaction tx = txManager.setupRunTaskWithConditionThrowOnConflict(PreCommitConditions.NO_OP);
         transactions.put(token, tx);
         return token;
     }

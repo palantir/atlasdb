@@ -87,7 +87,6 @@ import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -130,7 +129,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
 
     private Cluster cluster;
     private Cluster longRunningQueryCluster;
-    private final CassandraKeyValueServiceConfigManager configManager;
+    private final CassandraKeyValueServiceConfig config;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
@@ -145,26 +144,25 @@ public class CqlKeyValueService extends AbstractKeyValueService {
 
     private boolean limitBatchSizesToServerDefaults = false;
 
-    public static CqlKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
+    public static CqlKeyValueService create(CassandraKeyValueServiceConfig config) {
         Optional<CassandraJmxCompactionManager> compactionManager =
-                CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        final CqlKeyValueService ret = new CqlKeyValueService(configManager, compactionManager);
+                CassandraJmxCompaction.createJmxCompactionManager(config);
+        final CqlKeyValueService ret = new CqlKeyValueService(config, compactionManager);
         ret.initializeConnectionPool();
         ret.performInitialSetup();
         return ret;
     }
 
-    protected CqlKeyValueService(CassandraKeyValueServiceConfigManager configManager,
+    protected CqlKeyValueService(CassandraKeyValueServiceConfig config,
                                  Optional<CassandraJmxCompactionManager> compactionManager) {
-        super(AbstractKeyValueService.createFixedThreadPool("Atlas CQL KVS", configManager.getConfig().poolSize()));
-        fieldNameProvider = new CqlFieldNameProvider(configManager.getConfig());
-        this.configManager = configManager;
+        super(AbstractKeyValueService.createFixedThreadPool("Atlas CQL KVS", config.poolSize()));
+        fieldNameProvider = new CqlFieldNameProvider(config);
+        this.config = config;
         this.compactionManager = compactionManager;
     }
 
     @SuppressWarnings("CyclomaticComplexity")
     protected void initializeConnectionPool() {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Collection<InetSocketAddress> configuredHosts = config.servers();
         Cluster.Builder clusterBuilder = Cluster.builder();
         clusterBuilder.addContactPointsWithPorts(configuredHosts);
@@ -277,7 +275,6 @@ public class CqlKeyValueService extends AbstractKeyValueService {
     protected void performInitialSetup() {
         Metadata metadata = cluster.getMetadata();
 
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         CassandraVerifier.validatePartitioner(metadata.getPartitioner(), config);
 
         Set<Peer> peers = CqlKeyValueServices.getPeers(session);
@@ -349,7 +346,6 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                                                     final long startTs) throws Exception {
         int rowCount = 0;
         Map<Cell, Value> result = Maps.newHashMap();
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         int fetchBatchCount = config.fetchBatchCount();
         List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithExpectedSize(rowCount);
 
@@ -427,8 +423,6 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                             boolean loadAllTs,
                             final Visitor<Multimap<Cell, Value>> visitor,
                             final ConsistencyLevel consistency) throws Exception {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-
         List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithCapacity(cells.size());
         SortedSetMultimap<byte[], Cell> cellsByCol =
                 TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
@@ -513,7 +507,6 @@ public class CqlKeyValueService extends AbstractKeyValueService {
 
     private Map<Cell, Long> getLatestTimestampsInternal(final TableReference tableRef,
                                                         Map<Cell, Long> timestampByCell) throws Exception {
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
         int fetchBatchCount = config.fetchBatchCount();
         Iterable<List<Cell>> partitions = Iterables.partition(
                 timestampByCell.keySet(),
@@ -604,7 +597,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
 
     @Override
     protected int getMultiPutBatchCount() {
-        return configManager.getConfig().mutationBatchCount();
+        return config.mutationBatchCount();
     }
 
     @Override
@@ -662,10 +655,10 @@ public class CqlKeyValueService extends AbstractKeyValueService {
             int ttl,
             boolean recursive) throws Exception {
         List<ResultSetFuture> resultSetFutures = Lists.newArrayList();
-        int mutationBatchCount = configManager.getConfig().mutationBatchCount();
+        int mutationBatchCount = config.mutationBatchCount();
         long mutationBatchSizeBytes = limitBatchSizesToServerDefaults
                 ? CqlKeyValueServices.UNCONFIGURED_DEFAULT_BATCH_SIZE_BYTES
-                : configManager.getConfig().mutationBatchSizeBytes();
+                : config.mutationBatchSizeBytes();
         for (List<Entry<Cell, Value>> partition : partitionByCountAndBytes(
                 values,
                 mutationBatchCount,
@@ -817,7 +810,6 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                 + " WHERE " + fieldNameProvider.row() + " = ?"
                 + " AND " + fieldNameProvider.column() + " = ?"
                 + " AND " + fieldNameProvider.timestamp() + " = ?";
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
         int fetchBatchCount = config.fetchBatchCount();
         for (final List<Cell> batch : Iterables.partition(keys.keySet(), fetchBatchCount)) {
             cellCount += batch.size();
@@ -859,7 +851,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             long timestamp) {
-        int concurrency = configManager.getConfig().rangesConcurrency();
+        int concurrency = config.rangesConcurrency();
         return KeyValueServices.getFirstBatchForRangesUsingGetRangeConcurrent(
                 executor,
                 this,
@@ -1039,7 +1031,6 @@ public class CqlKeyValueService extends AbstractKeyValueService {
 
     private void createKeyspace(String keyspaceName, Set<String> dcsInCluster) {
         String createKeyspace = "create keyspace if not exists %s with replication = %s and durable_writes = true";
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
 
         String replication = dcsInCluster.stream()
                 .map(datacenter -> "'" + datacenter + "' : " + config.replicationFactor())
@@ -1062,7 +1053,6 @@ public class CqlKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void createTables(final Map<TableReference, byte[]> tableRefsToTableMetadata) {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Collection<com.datastax.driver.core.TableMetadata> tables = cluster.getMetadata()
                 .getKeyspace(config.getKeyspaceOrThrow()).getTables();
         Set<TableReference> existingTables = Sets.newHashSet(Iterables.transform(tables,
@@ -1096,7 +1086,6 @@ public class CqlKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
         List<Row> rows = session.execute(cqlStatementCache.normalQuery.getUnchecked(
                 "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name = ?")
                 .bind(config.getKeyspaceOrThrow()))
@@ -1203,14 +1192,13 @@ public class CqlKeyValueService extends AbstractKeyValueService {
     }
 
     String getFullTableName(TableReference tableRef) {
-        return configManager.getConfig().getKeyspaceOrThrow() + ".\"" + internalTableName(tableRef) + "\"";
+        return config.getKeyspaceOrThrow() + ".\"" + internalTableName(tableRef) + "\"";
     }
 
     @Override
     public void compactInternally(TableReference tableRef) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
                 "tableName:[%s] should not be null or empty", tableRef);
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
         if (!compactionManager.isPresent()) {
             log.error("No compaction client was configured, but compact was called."
                     + " If you actually want to clear deleted data immediately"

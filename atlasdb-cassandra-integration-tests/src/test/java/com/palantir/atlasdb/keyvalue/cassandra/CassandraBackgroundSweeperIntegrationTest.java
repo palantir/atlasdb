@@ -21,7 +21,6 @@ import org.junit.ClassRule;
 import org.junit.runners.Parameterized;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -48,7 +47,7 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
                     .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
+                config,
                 CassandraContainer.LEADER_CONFIG);
     }
 }

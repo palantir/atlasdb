@@ -93,26 +93,26 @@ public class CassandraKeyValueServicesTest {
     @Test
     public void waitThrowsForAllUnknownSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of());
-        assertWaitForSchemaVersionsThrows();
+        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
     public void waitThrowsForAllUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ALL_NODES));
-        assertWaitForSchemaVersionsThrows();
+        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
     public void waitThrowsForFewerThanQuorumOnSameVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrows();
+        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
     public void waitThrowsForQuorumOfUnreachableNodes() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrows();
+        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
@@ -132,7 +132,7 @@ public class CassandraKeyValueServicesTest {
     public void waitThrowsForDifferentSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrows();
+        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
@@ -155,9 +155,10 @@ public class CassandraKeyValueServicesTest {
         verify(waitingClient, times(expectedAttempts)).describe_schema_versions();
     }
 
-    private void assertWaitForSchemaVersionsThrows() {
+    private void assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation() {
         assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, requiresQuorum))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(FIVE_SERVERS.iterator().next().getHostName());
     }
 
     private void assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll() throws TException {

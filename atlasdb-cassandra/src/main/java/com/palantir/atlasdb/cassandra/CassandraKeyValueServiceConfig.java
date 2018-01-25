@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
@@ -236,9 +237,21 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return false;
     }
 
+    /**
+     * Obsolete value, replaced by {@link SweepConfig#readLimit}.
+     *
+     * @deprecated this parameter is unused and should be removed from the configuration
+     */
+    @SuppressWarnings("DeprecatedIsStillUsed") // Used by immutable copy of this file
     @Value.Default
+    @Deprecated
     public Integer timestampsGetterBatchSize() {
         return 1_000;
+    }
+
+    @Value.Default
+    public Integer sweepReadThreads() {
+        return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
 
     public abstract Optional<CassandraJmxCompactionConfig> jmx();
