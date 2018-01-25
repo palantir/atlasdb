@@ -18,17 +18,20 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Test;
 
 import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -46,11 +49,11 @@ public class MetricsManagerTest {
     private static final String METER_NAME = "meterName";
 
     private static final Gauge GAUGE = () -> 1L;
-    private static final Meter METER = new Meter();
 
     private final MetricRegistry registry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
-    private final MetricsManager metricsManager = new MetricsManager(registry, taggedMetricRegistry);
+    private final MetricsManager metricsManager = new MetricsManager(registry, taggedMetricRegistry,
+            new HashSet<>(), tableReference -> tableReference.getTablename().equals("safe"));
 
     @Test
     public void registersMetricsByName() {
@@ -183,6 +186,26 @@ public class MetricsManagerTest {
         metricsManager.registerOrGetMeter(LIST_CLASS, ERROR_OUT_OF_BOUNDS);
 
         assertThat(registry.getNames()).containsExactly("java.util.List.error.outofbounds");
+    }
+
+    @Test
+    public void getTableNameTagFor_usesSafeTableNames() {
+        Map<String, String> tag = metricsManager.getTableNameTagFor(table("safe"));
+        assertThat(tag.size()).isEqualTo(1);
+        assertThat(tag).containsKey("tableName");
+        assertThat(tag.get("tableName")).isEqualTo("safe");
+    }
+
+    @Test
+    public void getTableNameTagFor_obfuscatesUnsafeTables() {
+        Map<String, String> tag = metricsManager.getTableNameTagFor(table("unsafe"));
+        assertThat(tag.size()).isEqualTo(1);
+        assertThat(tag).containsKey("tableName");
+        assertThat(tag.get("tableName")).isEqualTo("unsafeTable_629e3fc948fb5ca5");
+    }
+
+    private TableReference table(String tableName) {
+        return TableReference.create(Namespace.create("foo"), tableName);
     }
 
     @After

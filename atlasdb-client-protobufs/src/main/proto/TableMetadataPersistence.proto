@@ -5,7 +5,7 @@ message TableMetadata {
     required ColumnMetadataDescription columns = 2;
     required TableConflictHandler conflictHandler = 3;
     optional CachePriority cachePriority = 4;
-    optional PartitionStrategy partitionStrategy = 5;
+    // Tag number 5 was previously used.
     optional bool rangeScanAllowed = 6;
     optional bool explicitCompression = 7 [deprecated = true];
     optional bool negativeLookups = 8;
@@ -112,11 +112,6 @@ enum CachePriority {
     WARM = 64;
     HOT = 96;
     HOTTEST = 127;
-}
-
-enum PartitionStrategy {
-    ORDERED = 0;
-    HASH = 1;
 }
 
 enum SweepStrategy {

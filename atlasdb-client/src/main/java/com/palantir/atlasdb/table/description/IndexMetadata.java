@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.Renderers;
@@ -38,7 +37,6 @@ public class IndexMetadata {
     final ImmutableList<IndexComponent> colComponents;
     @Nullable final String columnNameToGetData;
     final CachePriority cachePriority;
-    final PartitionStrategy partitionStrategy;
     boolean rangeScanAllowed;
     int explicitCompressionBlockSizeKB;
     boolean negativeLookups;
@@ -53,7 +51,6 @@ public class IndexMetadata {
                                             String javaName,
                                             Iterable<IndexComponent> rowComponents,
                                             CachePriority cachePriority,
-                                            PartitionStrategy partitionStrategy,
                                             ConflictHandler conflictHandler,
                                             boolean rangeScanAllowed,
                                             int explicitCompressionBlockSizeKB,
@@ -72,7 +69,6 @@ public class IndexMetadata {
                 colComponents,
                 getColNameToAccessFrom(rowComponents, colComponents, indexCondition),
                 cachePriority,
-                partitionStrategy,
                 conflictHandler,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
@@ -89,7 +85,6 @@ public class IndexMetadata {
                                                    Iterable<IndexComponent> rowComponents,
                                                    Iterable<IndexComponent> colComponents,
                                                    CachePriority cachePriority,
-                                                   PartitionStrategy partitionStrategy,
                                                    ConflictHandler conflictHandler,
                                                    boolean rangeScanAllowed,
                                                    int explicitCompressionBlockSizeKB,
@@ -108,7 +103,6 @@ public class IndexMetadata {
                 colComponents,
                 getColNameToAccessFrom(rowComponents, colComponents, indexCondition),
                 cachePriority,
-                partitionStrategy,
                 conflictHandler,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
@@ -126,7 +120,6 @@ public class IndexMetadata {
                           Iterable<IndexComponent> colComponents,
                           String colNameToAccessFrom,
                           CachePriority cachePriority,
-                          PartitionStrategy partitionStrategy,
                           ConflictHandler conflictHandler,
                           boolean rangeScanAllowed,
                           int explicitCompressionBlockSizeKB,
@@ -142,7 +135,6 @@ public class IndexMetadata {
         this.colComponents = ImmutableList.copyOf(colComponents);
         this.columnNameToGetData = colNameToAccessFrom;
         this.cachePriority = cachePriority;
-        this.partitionStrategy = partitionStrategy;
         this.conflictHandler = conflictHandler;
         this.rangeScanAllowed = rangeScanAllowed;
         this.explicitCompressionBlockSizeKB = explicitCompressionBlockSizeKB;
@@ -216,7 +208,6 @@ public class IndexMetadata {
                 column,
                 conflictHandler,
                 cachePriority,
-                partitionStrategy,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
                 negativeLookups,

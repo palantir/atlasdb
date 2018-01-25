@@ -323,7 +323,6 @@ public class SerializableTransaction extends SnapshotTransaction {
         return conflictDetectionManager.get(table) == ConflictHandler.SERIALIZABLE;
     }
 
-
     /**
      * This exists to transform the incoming byte[] to cloned one to ensure that all the byte array
      * comparisons are valid.
