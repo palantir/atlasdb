@@ -24,7 +24,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 
-@Path("/qos")
+@Path("/")
 public interface QosService {
     /**
      * Get the read limit for a client.
