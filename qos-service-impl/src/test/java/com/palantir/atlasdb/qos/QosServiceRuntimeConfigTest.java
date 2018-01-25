@@ -19,7 +19,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetric;
+import com.palantir.atlasdb.qos.config.ImmutableHealthMetric;
 import com.palantir.atlasdb.qos.config.ImmutableQosCassandraMetricsRuntimeConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
@@ -71,7 +71,7 @@ public class QosServiceRuntimeConfigTest {
 
     private ImmutableQosCassandraMetricsRuntimeConfig getCassandraMetricsConfig() {
         return ImmutableQosCassandraMetricsRuntimeConfig.builder()
-                .cassandraHealthMetrics(ImmutableList.of(ImmutableCassandraHealthMetric.builder()
+                .cassandraHealthMetrics(ImmutableList.of(ImmutableHealthMetric.builder()
                         .type("CommitLog")
                         .name("PendingTasks")
                         .attribute("Value")

@@ -35,9 +35,9 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.qos.config.CassandraHealthMetric;
+import com.palantir.atlasdb.qos.config.HealthMetric;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
-import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetric;
+import com.palantir.atlasdb.qos.config.ImmutableHealthMetric;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.metrics.MetricsService;
 
@@ -54,7 +54,7 @@ public class CassandraMetricMeasurementsLoaderTest {
     private static final String METRIC_ATTRIBUTE_2 = "metricAttribute2";
 
     private DeterministicScheduler scheduledExecutorService;
-    private Supplier<List<CassandraHealthMetric>> healthMetricSupplier;
+    private Supplier<List<HealthMetric>> healthMetricSupplier;
     private MetricsService cassandraMetricClient;
     private CassandraMetricMeasurementsLoader cassandraMetricMeasurementsLoader;
 
@@ -129,9 +129,9 @@ public class CassandraMetricMeasurementsLoaderTest {
         assertThat(ImmutableList.of()).isEqualTo(cassandraHealthMetricMeasurements);
     }
 
-    private CassandraHealthMetric getCassandraMetric(String metricType, String metricName,
+    private HealthMetric getCassandraMetric(String metricType, String metricName,
             String metricAttribute) {
-        return ImmutableCassandraHealthMetric.builder()
+        return ImmutableHealthMetric.builder()
                 .type(metricType)
                 .name(metricName)
                 .attribute(metricAttribute)
