@@ -23,7 +23,6 @@ import java.util.function.Supplier;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.QosCassandraMetricsInstallConfig;
 import com.palantir.atlasdb.qos.config.QosCassandraMetricsRuntimeConfig;
-import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.ThrottlingStrategy;
 import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
 import com.palantir.remoting3.clients.ClientConfigurations;
@@ -55,11 +54,7 @@ public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultipl
         return new CassandraMetricsClientLimitMultiplier(throttlingStrategy, cassandraMetricMeasurementsLoader);
     }
 
-    public double getClientLimitMultiplier(QosPriority qosPriority) {
-        if (qosPriority == QosPriority.HIGH) {
-            return 1.0; // don't lower the limit for HIGH priority clients.
-        }
-
+    public double getClientLimitMultiplier() {
         return throttlingStrategy.getClientLimitMultiplier(getCassandraHealthMetricMeasurements());
     }
 

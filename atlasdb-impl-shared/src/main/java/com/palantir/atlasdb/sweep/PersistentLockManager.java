@@ -106,8 +106,12 @@ public class PersistentLockManager {
                 }
             }
 
+            // This is expected if backups are currently being taken.
+            // Not expected if we this continues to be logged for a long period of time — indicates a log has been
+            // lost (a service has been bounced and the shutdown hook did not run), and we need to manually clear it,
+            // via the CLI or the endpoint.
             lockFailureMeter.mark();
-            log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
+            log.warn("Failed to acquire persistent lock for sweep. Waiting and retrying.");
             return false;
         } catch (NotInitializedException e) {
             log.info("The LockStore is not initialized yet. Waiting and retrying.");

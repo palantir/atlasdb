@@ -19,7 +19,7 @@ package com.palantir.atlasdb.schema.cleanup;
 import com.palantir.common.persist.Persistable;
 
 public interface CleanupMetadata extends Persistable {
-    void accept(CleanupMetadata.Visitor visitor);
+    <T> T accept(CleanupMetadata.Visitor<T> visitor);
 
     interface Visitor<T> {
         default T visit(NullCleanupMetadata cleanupMetadata) {

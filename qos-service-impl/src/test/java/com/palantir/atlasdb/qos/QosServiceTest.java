@@ -34,7 +34,6 @@ import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosClientConfigLo
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
-import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.ratelimit.CassandraMetricsClientLimitMultiplier;
 import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
@@ -77,7 +76,6 @@ public class QosServiceTest {
     public void canScaleDownLimits() {
         QosClientConfigLoader qosClientConfigLoader = QosClientConfigLoader.create(() -> ImmutableMap.of("foo",
                 ImmutableQosClientLimitsConfig.builder()
-                        .clientPriority(QosPriority.MEDIUM)
                         .limits(ImmutableQosLimitsConfig.builder()
                                 .readBytesPerSecond(100)
                                 .writeBytesPerSecond(20)
@@ -85,7 +83,7 @@ public class QosServiceTest {
                         .build()));
         CassandraMetricsClientLimitMultiplier clientLimitMultiplier = mock(CassandraMetricsClientLimitMultiplier.class);
         resource = new QosResource(qosClientConfigLoader, clientLimitMultiplier);
-        when(clientLimitMultiplier.getClientLimitMultiplier(QosPriority.MEDIUM)).thenReturn(1.0, 1.0, 0.5, 0.5, 0.25,
+        when(clientLimitMultiplier.getClientLimitMultiplier()).thenReturn(1.0, 1.0, 0.5, 0.5, 0.25,
                 0.25);
         assertEquals(100L, resource.readLimit("foo"));
         assertEquals(20L, resource.writeLimit("foo"));
@@ -99,7 +97,6 @@ public class QosServiceTest {
     public void canScaleDownAndScaleUpLimits() {
         QosClientConfigLoader qosClientConfigLoader = QosClientConfigLoader.create(() -> ImmutableMap.of("foo",
                 ImmutableQosClientLimitsConfig.builder()
-                        .clientPriority(QosPriority.MEDIUM)
                         .limits(ImmutableQosLimitsConfig.builder()
                                 .readBytesPerSecond(100)
                                 .writeBytesPerSecond(20)
@@ -107,7 +104,7 @@ public class QosServiceTest {
                         .build()));
         CassandraMetricsClientLimitMultiplier clientLimitMultiplier = mock(CassandraMetricsClientLimitMultiplier.class);
         resource = new QosResource(qosClientConfigLoader, clientLimitMultiplier);
-        when(clientLimitMultiplier.getClientLimitMultiplier(QosPriority.MEDIUM)).thenReturn(1.0, 1.0, 0.5, 0.5, 0.55,
+        when(clientLimitMultiplier.getClientLimitMultiplier()).thenReturn(1.0, 1.0, 0.5, 0.5, 0.55,
                 0.55);
         assertEquals(100L, resource.readLimit("foo"));
         assertEquals(20L, resource.writeLimit("foo"));
@@ -125,7 +122,6 @@ public class QosServiceTest {
                                         .writeBytesPerSecond(entry.getValue())
                                         .readBytesPerSecond(entry.getValue())
                                         .build())
-                                .clientPriority(QosPriority.HIGH)
                                 .build()));
     }
 }
