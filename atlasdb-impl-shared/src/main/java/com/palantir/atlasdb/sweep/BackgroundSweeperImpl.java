@@ -319,8 +319,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
         SweepOutcomeMetrics() {
             Arrays.stream(SweepOutcome.values()).forEach(outcome ->
-                    metricsManager.registerMetric(BackgroundSweeperImpl.class, "outcome",
-                            () -> getOutcomeCount(outcome), ImmutableMap.of("status", outcome.name()))
+                    metricsManager.registerMetric(BackgroundSweeperImpl.class, outcome.name(),
+                            () -> getOutcomeCount(outcome))
             );
             reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
             shutdown = false;
