@@ -126,26 +126,26 @@ public class TokenRangeWritesLoggerTest {
     }
 
     @Test
-    public void markDoesNotLogAndDoesNotResetTimeIfInsufficientWrites() {
+    public void markLogsWhenTimeElapsedButFewWrites() {
         markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
-        long lastLoggedTime = setOneDayPassedForTable(TABLE_REFERENCE);
+        long lastLoggedTime = setLastLoggedTimeBeyondLoggingWindow(TABLE_REFERENCE);
         markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(0, 2, 0, 0, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(2, TABLE_REFERENCE);
         assertLastLoggedTimeEquals(TABLE_REFERENCE, lastLoggedTime);
-        assertNoLogging();
+        assertLoggedUniform(0);
     }
 
     @Test
     public void markResetsNumberOfWritesAndTimeAndLogsNotUniform() {
         markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
-        setOneDayPassedForTable(TABLE_REFERENCE);
+        setLastLoggedTimeBeyondLoggingWindow(TABLE_REFERENCE);
         markWritesPerRangeForTable(LIMIT, 1, 0, 4, TABLE_REFERENCE);
         markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(LIMIT, 3, 0, 4, TABLE_REFERENCE);
-        assertTotalNumberOfWritesForTable(1, TABLE_REFERENCE);
+        assertTotalNumberOfWritesForTable(LIMIT + 7, TABLE_REFERENCE);
         assertLastLoggedTimeWithinDeltaOfCurrent(TABLE_REFERENCE);
         assertLoggedNotUniform(LIMIT, 2, 0, 4, TABLE_REFERENCE);
     }
@@ -154,11 +154,11 @@ public class TokenRangeWritesLoggerTest {
     public void markLogsWhenEnoughTimePassesIfEnoughWritesInPast() {
         markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
         markWritesPerRangeForTable(LIMIT, 1, 0, 4, TABLE_REFERENCE);
-        setOneDayPassedForTable(TABLE_REFERENCE);
+        setLastLoggedTimeBeyondLoggingWindow(TABLE_REFERENCE);
         markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(LIMIT, 3, 0, 4, TABLE_REFERENCE);
-        assertTotalNumberOfWritesForTable(0, TABLE_REFERENCE);
+        assertTotalNumberOfWritesForTable(LIMIT + 7, TABLE_REFERENCE);
         assertLastLoggedTimeWithinDeltaOfCurrent(TABLE_REFERENCE);
         assertLoggedNotUniform(LIMIT, 3, 0, 4, TABLE_REFERENCE);
     }
@@ -166,53 +166,32 @@ public class TokenRangeWritesLoggerTest {
     @Test
     public void markResetsNumberOfWritesAndTimeAndLogsUniform() {
         markWritesPerRangeForTable(3, 3, 3, 3, TABLE_REFERENCE);
-        setOneDayPassedForTable(TABLE_REFERENCE);
+        setLastLoggedTimeBeyondLoggingWindow(TABLE_REFERENCE);
         markWritesPerRangeForTable(QUARTER, QUARTER, QUARTER, QUARTER, TABLE_REFERENCE);
         markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(QUARTER + 3, QUARTER + 4, QUARTER + 3, QUARTER + 3, TABLE_REFERENCE);
-        assertTotalNumberOfWritesForTable(1, TABLE_REFERENCE);
+        assertTotalNumberOfWritesForTable(1013, TABLE_REFERENCE);
         assertLastLoggedTimeWithinDeltaOfCurrent(TABLE_REFERENCE);
         assertLoggedUniform(4 * QUARTER + 12);
     }
 
     @Test
-    public void markLogsOnlyForTableThatExceedsThreshold() {
-        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE);
-        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE2);
-        long lastLoggedTimeTableOne = setOneDayPassedForTable(TABLE_REFERENCE);
-        setOneDayPassedForTable(TABLE_REFERENCE2);
-        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE);
-        markWritesPerRangeForTable(LIMIT, 2, 2, 2, TABLE_REFERENCE2);
-        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE);
-        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE2);
-
-        assertWritesPerRangeForTable(6, 6, 6, 6, TABLE_REFERENCE);
-        assertWritesPerRangeForTable(LIMIT + 4, 6, 6, 6, TABLE_REFERENCE2);
-        assertTotalNumberOfWritesForTable(24, TABLE_REFERENCE);
-        assertTotalNumberOfWritesForTable(8, TABLE_REFERENCE2);
-        assertLastLoggedTimeEquals(TABLE_REFERENCE, lastLoggedTimeTableOne);
-        assertLastLoggedTimeWithinDeltaOfCurrent(TABLE_REFERENCE2);
-        assertLoggedNotUniform(LIMIT + 2, 4, 4, 4, TABLE_REFERENCE2);
-    }
-
-    @Test
     public void testUpdateDoesNotResetCountsWhenSameRanges() {
         markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
-        long lastLoggedTime = setOneDayPassedForTable(TABLE_REFERENCE);
+        long lastLoggedTime = setLastLoggedTimeBeyondLoggingWindow(TABLE_REFERENCE);
         writesLogger.updateTokenRanges(ImmutableSet.of(RANGE_2, RANGE_1, RANGE_4, RANGE_3));
         markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(2, 3, 2, 2, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(9, TABLE_REFERENCE);
         assertLastLoggedTimeEquals(TABLE_REFERENCE, lastLoggedTime);
-        assertNoLogging();
     }
 
     @Test
     public void testUpdateResetsCountsAndTimeWhenNewRanges() {
         markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
-        setOneDayPassedForTable(TABLE_REFERENCE);
+        setLastLoggedTimeBeyondLoggingWindow(TABLE_REFERENCE);
         writesLogger.updateTokenRanges(ImmutableSet.of(Range.all()));
         markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE);
 
@@ -241,7 +220,7 @@ public class TokenRangeWritesLoggerTest {
         }
     }
 
-    private long setOneDayPassedForTable(TableReference tableRef) {
+    private long setLastLoggedTimeBeyondLoggingWindow(TableReference tableRef) {
         long newTime = System.currentTimeMillis() - TIME_UNTIL_LOG_MILLIS - 5;
         writesLogger.setLastLoggedTime(tableRef, newTime);
         return newTime;
@@ -263,7 +242,8 @@ public class TokenRangeWritesLoggerTest {
     }
 
     private void assertLastLoggedTimeEquals(TableReference tableRef, long lastLoggedTime) {
-        Assert.assertThat(writesLogger.getLastLoggedTime(tableRef), Matchers.equalTo(lastLoggedTime));
+        Assert.assertThat(writesLogger.getLastLoggedTime(tableRef),
+                Matchers.greaterThan(lastLoggedTime - 1000L));
     }
 
     private void assertLastLoggedTimeWithinDeltaOfCurrent(TableReference tableRef) {
