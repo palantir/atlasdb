@@ -282,9 +282,10 @@ TimeLock.</p>
 <code class="docutils literal"><span class="pre">timelockRuntime</span></code> block under AtlasDB’s runtime configuration root.</p>
 <p>Note that if this block is present, then the <code class="docutils literal"><span class="pre">ServerListConfiguration</span></code> in the install configuration will be ignored.</p>
 <p>Also, although we support live-reloading of the server configuration, AtlasDB needs to know at install time that it
-should talk to TimeLock - thus, the install configuration must contain a <code class="docutils literal"><span class="pre">timelock</span></code> block (even if said block is
-possibly empty). Specifying an empty block in the configuration is done in the same way as specifying an empty block in
-YAML i.e. <code class="docutils literal"><span class="pre">{}</span></code>.</p>
+should talk to TimeLock. In versions of Atlas before 0.74.0, this is done by specifying an empty YAML object
+for the timelock block in the install configuration (i.e. <code class="docutils literal"><span class="pre">timelock:</span> <span class="pre">{}</span></code>); in more recent versions, the presence
+of a <code class="docutils literal"><span class="pre">timelockRuntime</span></code> block is enough - <em>however</em>, it must already be present at install time, or AtlasDB
+will attempt to start up using embedded services.</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -345,6 +346,11 @@ adding a <code class="docutils literal"><span class="pre">timelock</span></code>
 </div>
 <div class="section" id="install-configuration">
 <h3>Install Configuration<a class="headerlink" href="#install-configuration" title="Permalink to this headline">¶</a></h3>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">In versions of AtlasDB before 0.74.0, you will need to specify an empty <code class="docutils literal"><span class="pre">timelock</span></code> block as a child of the
+<code class="docutils literal"><span class="pre">atlasdb</span></code> block. This block looks like the following: <code class="docutils literal"><span class="pre">timelock:</span> <span class="pre">{}</span></code>.</p>
+</div>
 <div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">namespace</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
 
 <span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
@@ -365,8 +371,6 @@ adding a <code class="docutils literal"><span class="pre">timelock</span></code>
     <span class="l l-Scalar l-Scalar-Plain">autoRefreshNodes</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
 
   <span class="l l-Scalar l-Scalar-Plain">initializeAsync</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-
-  <span class="l l-Scalar l-Scalar-Plain">timelock</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">{}</span>
 </pre></div>
 </div>
 <p>The example above uses the <code class="docutils literal"><span class="pre">namespace</span></code> parameter; the <code class="docutils literal"><span class="pre">client</span></code> we will use when connecting to TimeLock will be <code class="docutils literal"><span class="pre">yourapp</span></code>.
@@ -374,6 +378,11 @@ We don’t know the URLs of the TimeLock servers nor how we will talk to them, b
 </div>
 <div class="section" id="id3">
 <h3>Runtime Configuration<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">In versions of AtlasDB before 0.74.0, if the <code class="docutils literal"><span class="pre">timelock</span></code> block was absent in the install configuration, then this
+block would be ignored, and AtlasDB would start up using embedded timestamp and lock services.</p>
+</div>
 <div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">timelockRuntime</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">serversList</span><span class="p p-Indicator">:</span>
     <span class="l l-Scalar l-Scalar-Plain">servers</span><span class="p p-Indicator">:</span>
@@ -393,8 +402,6 @@ ignored, because we consider the <code class="docutils literal"><span class="pre
 <p>It is permitted for the <code class="docutils literal"><span class="pre">serversList</span></code> block here to be absent as well. In this case, AtlasDB will start up with
 knowledge of zero TimeLock nodes. Attempts to initialize a <code class="docutils literal"><span class="pre">TransactionManager</span></code> will fail, but will continue
 asynchronously in the background. Once the <code class="docutils literal"><span class="pre">serversList</span></code> block has been populated, initialization can proceed.</p>
-<p>Also, note that if the <code class="docutils literal"><span class="pre">timelock</span></code> block was absent in the install configuration, then this block would be ignored,
-and AtlasDB would start up using embedded timestamp and lock services.</p>
 </div>
 </div>
 </div>
