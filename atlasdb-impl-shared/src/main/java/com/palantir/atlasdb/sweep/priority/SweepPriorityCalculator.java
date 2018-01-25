@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import java.time.Duration;
-import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -33,15 +31,20 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.logsafe.SafeArg;
 
 class SweepPriorityCalculator {
     private static final Logger log = LoggerFactory.getLogger(SweepPriorityCalculator.class);
+
+    // log once every 10 minutes
+    private static final RateLimiter loggingRateLimiter = RateLimiter.create(1.0/(10 * 60));
 
     private static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
     private static final Duration WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE = Duration.ofDays(3);
@@ -54,7 +57,6 @@ class SweepPriorityCalculator {
 
     private final KeyValueService kvs;
     private final SweepPriorityStore sweepPriorityStore;
-    private ZonedDateTime lastLogTime = ZonedDateTime.now().minusYears(1);
 
     SweepPriorityCalculator(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
         this.kvs = kvs;
@@ -117,13 +119,7 @@ class SweepPriorityCalculator {
     }
 
     private boolean decideWhetherToLogAllPriorities() {
-        ZonedDateTime now = ZonedDateTime.now();
-        boolean shouldLog = Duration.between(lastLogTime, now).compareTo(Duration.of(10, ChronoUnit.MINUTES)) > 0;
-        if (shouldLog) {
-            lastLogTime = now;
-        }
-
-        return shouldLog;
+        return loggingRateLimiter.tryAcquire();
     }
 
     private void logSweepPriority(boolean shouldLog, TableReference tableRef,
