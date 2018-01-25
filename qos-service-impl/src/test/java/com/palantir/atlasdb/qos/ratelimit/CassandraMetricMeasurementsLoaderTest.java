@@ -39,7 +39,7 @@ import com.palantir.atlasdb.qos.config.CassandraHealthMetric;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetric;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
-import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
+import com.palantir.atlasdb.qos.metrics.MetricsService;
 
 public class CassandraMetricMeasurementsLoaderTest {
     private static final double LOWER_LIMIT = 0.0;
@@ -55,13 +55,13 @@ public class CassandraMetricMeasurementsLoaderTest {
 
     private DeterministicScheduler scheduledExecutorService;
     private Supplier<List<CassandraHealthMetric>> healthMetricSupplier;
-    private CassandraMetricsService cassandraMetricClient;
+    private MetricsService cassandraMetricClient;
     private CassandraMetricMeasurementsLoader cassandraMetricMeasurementsLoader;
 
     @Before
     public void setup() {
         healthMetricSupplier = mock(Supplier.class);
-        cassandraMetricClient = mock(CassandraMetricsService.class);
+        cassandraMetricClient = mock(MetricsService.class);
         scheduledExecutorService = new DeterministicScheduler();
 
         cassandraMetricMeasurementsLoader = new CassandraMetricMeasurementsLoader(

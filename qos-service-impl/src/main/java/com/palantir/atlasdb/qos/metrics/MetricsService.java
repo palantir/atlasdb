@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.cassandra.sidecar.metrics;
+package com.palantir.atlasdb.qos.metrics;
 
 import java.util.Map;
 
@@ -34,7 +34,7 @@ import com.palantir.logsafe.Safe;
 @Path("/metrics")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public interface CassandraMetricsService {
+public interface MetricsService {
     /**
      * Get the value for a particular Cassandra metric. The possible metric combinations can be found in
      * http://cassandra.apache.org/doc/latest/operating/metrics.html.
