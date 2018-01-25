@@ -39,6 +39,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.qos.ThriftObjectSizeUtils;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
@@ -69,12 +70,18 @@ public class ProfilingCassandraClient implements CassandraClient {
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<Map<ByteBuffer, List<ColumnOrSuperColumn>>, TException>)
                         () -> client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level),
-                (logger, timer) -> logger.log("client.multiget_slice({}, {}, {}, {}) on kvs.{}",
+                (logger, timer) -> logger.log("CassandraClient.multiget_slice({}, {}, {}, {}) on kvs.{} took {} ms",
                         LoggingArgs.tableRef(tableRef),
-                        SafeArg.of("number of keys", numberOfKeys),
-                        SafeArg.of("number of columns", numberOfColumns),
+                        LoggingArgs.rowCount(numberOfKeys),
+                        LoggingArgs.columnCount(numberOfColumns),
                         SafeArg.of("consistency", consistency_level.toString()),
-                        SafeArg.of("kvsMethodName", kvsMethodName)));
+                        SafeArg.of("kvsMethodName", kvsMethodName),
+                        LoggingArgs.durationMillis(timer)),
+                (logger, rowsToColumns) -> logger.log("and returned {} cells in {} rows with {} bytes",
+                        LoggingArgs.cellCount(
+                                rowsToColumns.values().stream().mapToInt(value -> value.size()).sum()),
+                        LoggingArgs.rowCount(rowsToColumns.size()),
+                        LoggingArgs.sizeInBytes(ThriftObjectSizeUtils.getApproximateSizeOfColsByKey(rowsToColumns))));
     }
 
     @Override
@@ -90,12 +97,16 @@ public class ProfilingCassandraClient implements CassandraClient {
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<List<KeySlice>, TException>)
                         () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
-                (logger, timer) -> logger.log("client.get_range_slices({}, {}, {}, {}) on kvs.{}",
+                (logger, timer) -> logger.log("CassandraClient.get_range_slices({}, {}, {}, {}) on kvs.{} took {} ms",
                         LoggingArgs.tableRef(tableRef),
-                        SafeArg.of("number of keys", numberOfKeys),
-                        SafeArg.of("number of columns", numberOfColumns),
+                        LoggingArgs.rowCount(numberOfKeys),
+                        LoggingArgs.columnCount(numberOfColumns),
                         SafeArg.of("consistency", consistency_level.toString()),
-                        SafeArg.of("kvsMethodName", kvsMethodName)));
+                        SafeArg.of("kvsMethodName", kvsMethodName),
+                        LoggingArgs.durationMillis(timer)),
+                (logger, rows) -> logger.log("and returned {} rows with {} bytes",
+                        LoggingArgs.rowCount(rows.size()),
+                        LoggingArgs.sizeInBytes(ThriftObjectSizeUtils.getApproximateSizeOfKeySlices(rows))));
     }
 
     @Override
@@ -103,19 +114,24 @@ public class ProfilingCassandraClient implements CassandraClient {
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        // TODO(ssouza): log more info than just the numberOfRowsMutated.
-        int numberOfRowsMutated = mutation_map.size();
-
         KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<Void, TException>)
                         () -> {
                             client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
                             return null;
                         },
-                (logger, timer) -> logger.log("client.batch_mutate({}, {}) on kvs.{}",
-                        SafeArg.of("number of mutations", numberOfRowsMutated),
-                        SafeArg.of("consistency", consistency_level.toString()),
-                        SafeArg.of("kvsMethodName", kvsMethodName)));
+                (logger, timer) -> {
+                    logger.log("CassandraClient.batch_mutate(");
+                    ThriftObjectSizeUtils.computeSizePerTable(mutation_map).forEach((tableName, size) -> {
+                        logger.log("{} -> {}",
+                                LoggingArgs.safeInternalTableNameOrPlaceholder(tableName),
+                                LoggingArgs.sizeInBytes(size));
+                    });
+                    logger.log(") with consistency {} on kvs.{} took {} ms",
+                            SafeArg.of("consistency", consistency_level.toString()),
+                            SafeArg.of("kvsMethodName", kvsMethodName),
+                            LoggingArgs.durationMillis(timer));
+                });
     }
 
     @Override
@@ -127,7 +143,7 @@ public class ProfilingCassandraClient implements CassandraClient {
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<ColumnOrSuperColumn, TException>)
                         () -> client.get(tableReference, key, column, consistency_level),
-                (logger, timer) -> logger.log("client.get({}, {}) took {} ms",
+                (logger, timer) -> logger.log("CassandraClient.get({}, {}) took {} ms",
                         LoggingArgs.tableRef(tableReference),
                         SafeArg.of("consistency", consistency_level.toString()),
                         LoggingArgs.durationMillis(timer)));
@@ -145,7 +161,7 @@ public class ProfilingCassandraClient implements CassandraClient {
                 (KvsProfilingLogger.CallableCheckedException<CASResult, TException>)
                         () -> client.cas(tableReference, key, expected, updates, serial_consistency_level,
                                 commit_consistency_level),
-                (logger, timer) -> logger.log("client.cas({}) took {} ms",
+                (logger, timer) -> logger.log("CassandraClient.cas({}) took {} ms",
                         LoggingArgs.tableRef(tableReference),
                         LoggingArgs.durationMillis(timer)));
     }
@@ -158,11 +174,7 @@ public class ProfilingCassandraClient implements CassandraClient {
                 (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
                         () -> client.execute_cql3_query(cqlQuery, compression, consistency),
                 (logger, timer) -> cqlQuery.logSlowResult(logger, timer),
-                this::logResultSize);
-    }
-
-    private void logResultSize(KvsProfilingLogger.LoggingFunction log, CqlResult result) {
-        log.log("and returned {} rows",
-                SafeArg.of("numRows", result.getRows().size()));
+                (logger, cqlResult) -> logger.log("and returned {} rows",
+                        SafeArg.of("numRows", cqlResult.getRows().size())));
     }
 }
