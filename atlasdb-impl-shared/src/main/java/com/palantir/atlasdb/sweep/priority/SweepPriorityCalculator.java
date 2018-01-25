@@ -44,7 +44,7 @@ class SweepPriorityCalculator {
     private static final Logger log = LoggerFactory.getLogger(SweepPriorityCalculator.class);
 
     // log once every 10 minutes
-    private static final RateLimiter loggingRateLimiter = RateLimiter.create(1.0/(10 * 60));
+    private static final RateLimiter loggingRateLimiter = RateLimiter.create(1.0 / (10 * 60));
 
     private static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
     private static final Duration WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE = Duration.ofDays(3);
