@@ -239,6 +239,11 @@ That said, AtlasDB will fail to start if trying to access a key-value service wh
 <td>TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2889">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>CassandraClient kvs-slow-logs have been improved. They now contain the duration of the call and information
+about the results from the KVS.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2924">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
