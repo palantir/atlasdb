@@ -54,7 +54,8 @@ public final class ThriftObjectSizeUtils {
         return approxBytesForKeys + approxBytesForValues;
     }
 
-    public static Map<String,Long> computeSizePerTable(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map) {
+    public static Map<String,Long> getSizeOfMutationPerTable(
+            Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map) {
         Map<String, Long> tableToSize = new HashMap<>();
 
         mutation_map.forEach((key, tableToMutations) -> {

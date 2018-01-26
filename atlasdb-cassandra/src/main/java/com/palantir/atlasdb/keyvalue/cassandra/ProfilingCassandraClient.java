@@ -122,7 +122,7 @@ public class ProfilingCassandraClient implements CassandraClient {
                         },
                 (logger, timer) -> {
                     logger.log("CassandraClient.batch_mutate(");
-                    ThriftObjectSizeUtils.computeSizePerTable(mutation_map).forEach((tableName, size) -> {
+                    ThriftObjectSizeUtils.getSizeOfMutationPerTable(mutation_map).forEach((tableName, size) -> {
                         logger.log("{} -> {}",
                                 LoggingArgs.safeInternalTableNameOrPlaceholder(tableName),
                                 LoggingArgs.sizeInBytes(size));
