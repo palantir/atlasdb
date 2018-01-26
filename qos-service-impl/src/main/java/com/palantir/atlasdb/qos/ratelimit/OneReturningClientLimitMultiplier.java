@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.qos.ratelimit;
 
-import com.palantir.atlasdb.qos.config.QosPriority;
-
 public enum OneReturningClientLimitMultiplier implements ClientLimitMultiplier {
     INSTANCE;
 
     @Override
-    public double getClientLimitMultiplier(QosPriority qosPriority) {
+    public double getClientLimitMultiplier() {
         return 1.0;
     }
 

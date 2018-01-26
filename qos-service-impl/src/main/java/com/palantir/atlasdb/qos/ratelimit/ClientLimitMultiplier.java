@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.qos.ratelimit;
 
-import com.palantir.atlasdb.qos.config.QosPriority;
-
 public interface ClientLimitMultiplier {
-    double getClientLimitMultiplier(QosPriority qosPriority);
+    double getClientLimitMultiplier();
 }

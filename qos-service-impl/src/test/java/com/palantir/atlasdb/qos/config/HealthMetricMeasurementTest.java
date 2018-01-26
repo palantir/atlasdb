@@ -21,7 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-public class CassandraHealthMetricMeasurementTest {
+public class HealthMetricMeasurementTest {
     @Test
     public void canCreateAValidMetricMeasurementWithValueHigherThanUpperLimit() {
         ImmutableCassandraHealthMetricMeasurement measurement = ImmutableCassandraHealthMetricMeasurement.builder()

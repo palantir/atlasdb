@@ -25,9 +25,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 
 @Value.Immutable
-@JsonDeserialize(as = ImmutableCassandraHealthMetric.class)
-@JsonSerialize(as = ImmutableCassandraHealthMetric.class)
-public abstract class CassandraHealthMetric {
+@JsonDeserialize(as = ImmutableHealthMetric.class)
+@JsonSerialize(as = ImmutableHealthMetric.class)
+public abstract class HealthMetric {
     public abstract String type();
     public abstract String name();
     public abstract String attribute();

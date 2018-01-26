@@ -21,14 +21,14 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
-public class CassandraHealthMetricsTest {
+public class HealthMetricsTest {
     private static final String TEST_NAME = "metricName";
     private static final String TEST_TYPE = "metricType";
     private static final String TEST_ATTRIBUTE = "attribute";
 
     @Test
     public void canCreateMetricMeasurementWithLowerLimitLessThanUpperLimit() {
-        ImmutableCassandraHealthMetric.builder()
+        ImmutableHealthMetric.builder()
                 .lowerLimit(10)
                 .upperLimit(20)
                 .name(TEST_NAME)
@@ -40,7 +40,7 @@ public class CassandraHealthMetricsTest {
 
     @Test
     public void canNotCreateMetricMeasurementWithLowerLimitMoreThanUpperLimit() {
-        assertThatThrownBy(() -> ImmutableCassandraHealthMetric.builder()
+        assertThatThrownBy(() -> ImmutableHealthMetric.builder()
                 .lowerLimit(20)
                 .upperLimit(10)
                 .name(TEST_NAME)

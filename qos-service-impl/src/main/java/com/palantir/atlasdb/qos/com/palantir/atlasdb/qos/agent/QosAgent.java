@@ -22,7 +22,6 @@ import java.util.function.Supplier;
 import com.palantir.atlasdb.qos.QosResource;
 import com.palantir.atlasdb.qos.config.QosServiceInstallConfig;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
-import com.palantir.atlasdb.qos.ratelimit.CassandraMetricsClientLimitMultiplier;
 import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
 import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
@@ -32,7 +31,8 @@ public class QosAgent {
     private ScheduledExecutorService managedMetricsLoaderExecutor;
     private final Consumer<Object> registrar;
 
-    public QosAgent(Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier, QosServiceInstallConfig installConfig,
+    public QosAgent(Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier,
+            QosServiceInstallConfig installConfig,
             ScheduledExecutorService managedMetricsLoaderExecutor,
             Consumer<Object> registrar) {
         this.runtimeConfigSupplier = runtimeConfigSupplier;
@@ -49,10 +49,7 @@ public class QosAgent {
     }
 
     private ClientLimitMultiplier createClientLimitMultiplier() {
-        return installConfig.qosCassandraMetricsConfig().map(
-                config -> CassandraMetricsClientLimitMultiplier.create(
-                        () -> runtimeConfigSupplier.get().qosCassandraMetricsConfig(),
-                        config, managedMetricsLoaderExecutor))
-                .orElseGet(OneReturningClientLimitMultiplier::create);
+        // "Temporary", until we have a stub implementation for MetricsService
+        return OneReturningClientLimitMultiplier.create();
     }
 }
