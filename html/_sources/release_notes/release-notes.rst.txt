@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |metrics|
+         - Use tags in sweep outcome metrics instead of using each name per outcome.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2927>`__)
+
     *    - |fixed| |userbreak|
          - AtlasDB will now *fail to start* if a TimeLock block is included in the initial runtime configuration, but the install configuration is set up with a leader block or with remote timestamp and lock blocks.
            Previously, AtlasDB would start successfully under these conditions, but the TimeLock block in the runtime configuration would be silently ignored.
