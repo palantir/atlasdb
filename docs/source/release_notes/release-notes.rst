@@ -93,6 +93,11 @@ develop
          - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2889>`__)
 
+    *    - |improved| |logs|
+         - CassandraClient kvs-slow-logs have been improved. They now contain the duration of the call and information
+           about the results from the KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2924>`__)
+
 =======
 v0.74.0
 =======
