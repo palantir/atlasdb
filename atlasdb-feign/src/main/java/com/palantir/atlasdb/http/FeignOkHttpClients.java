@@ -47,7 +47,7 @@ public final class FeignOkHttpClients {
      * adds additional settings to the http clients.
      */
     @Deprecated
-    public static volatile Consumer<okhttp3.OkHttpClient.Builder> globalClientSetttings = (client) -> { };
+    public static volatile Consumer<okhttp3.OkHttpClient.Builder> globalClientSettings = (client) -> { };
 
     public static final ImmutableList<ConnectionSpec> CONNECTION_SPEC_WITH_CYPHER_SUITES = ImmutableList.of(
             new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
@@ -131,7 +131,7 @@ public final class FeignOkHttpClients {
         }
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
 
-        globalClientSetttings.accept(builder);
+        globalClientSettings.accept(builder);
         return builder.build();
     }
 

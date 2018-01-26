@@ -51,7 +51,7 @@ public class TimelockBenchmarkServerLauncher extends Application<TimelockBenchma
 
     @Override
     public void run(TimelockBenchmarkServerConfig configuration, Environment environment) throws Exception {
-        FeignOkHttpClients.globalClientSetttings = client -> client.hostnameVerifier((ig, nored) -> true);
+        FeignOkHttpClients.globalClientSettings = client -> client.hostnameVerifier((ig, nored) -> true);
 
         TimeLockAgent agent = TimeLockAgent.create(
                 configuration.install(),
