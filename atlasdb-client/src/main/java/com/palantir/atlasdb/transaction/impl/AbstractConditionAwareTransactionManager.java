@@ -31,7 +31,7 @@ import com.palantir.logsafe.SafeArg;
 public abstract class AbstractConditionAwareTransactionManager extends AbstractTransactionManager
         implements ConditionAwareTransactionManager {
 
-    private static final PreCommitCondition NO_OP_CONDITION = new PreCommitCondition() {
+    protected static final PreCommitCondition NO_OP_CONDITION = new PreCommitCondition() {
         @Override
         public void throwIfConditionInvalid(long timestamp) {}
 
