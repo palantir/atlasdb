@@ -80,7 +80,7 @@ develop
     *    - |improved| |logs|
          - Log message for leaked sweep/backup lock is now WARN rather than INFO.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2912>`__)
- 
+
     *    - |improved| |logs| |metrics|
          - TokenRangeWrite metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2910>`__)
@@ -88,10 +88,6 @@ develop
     *    - |fixed| |metrics|
          - Fixed metric re-registration log spam in TokenRangeWriteLogger.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2913>`__)
-
-    *    - |fixed| |metrics|
-         - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2889>`__)
 
     *    - |improved| |logs|
          - CassandraClient kvs-slow-logs have been improved. They now contain the duration of the call and information
@@ -144,8 +140,12 @@ v0.74.0
            Previously, compilation failed with an ``IllegalArgumentException`` from Java Poet, as we assumed Java versions of ``ValueType`` were always associated with object types.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2899>`__)
 
+    *    - |fixed| |metrics|
+         - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2889>`__)
+
     *    - |fixed|
-         - Stop to sweep when the sweep thread is interrupted.
+         - Stop sweeping when the sweep thread is interrupted.
            Previously, when services were shutting down, the background sweeper thread continuously logged warnings
            due to a closed TransactionManager.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2900>`__)
