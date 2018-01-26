@@ -24,9 +24,7 @@ import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.QosCassandraMetricsInstallConfig;
 import com.palantir.atlasdb.qos.config.QosCassandraMetricsRuntimeConfig;
 import com.palantir.atlasdb.qos.config.ThrottlingStrategy;
-import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
-import com.palantir.remoting3.clients.ClientConfigurations;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
+import com.palantir.atlasdb.qos.metrics.MetricsService;
 
 @SuppressWarnings("checkstyle:FinalClass") // Required for testing
 public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultiplier {
@@ -41,11 +39,9 @@ public class CassandraMetricsClientLimitMultiplier implements ClientLimitMultipl
     }
 
     public static ClientLimitMultiplier create(Supplier<QosCassandraMetricsRuntimeConfig> runtimeConfig,
-            QosCassandraMetricsInstallConfig installConfig, ScheduledExecutorService metricsLoaderExecutor) {
-        CassandraMetricsService metricsService = JaxRsClient.create(
-                CassandraMetricsService.class,
-                "qos-service",
-                ClientConfigurations.of(installConfig.cassandraServiceConfig()));
+            QosCassandraMetricsInstallConfig installConfig,
+            MetricsService metricsService,
+            ScheduledExecutorService metricsLoaderExecutor) {
         ThrottlingStrategy throttlingStrategy = ThrottlingStrategies.getThrottlingStrategy(
                 installConfig.throttlingStrategy());
 
