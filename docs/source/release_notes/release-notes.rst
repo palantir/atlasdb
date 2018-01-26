@@ -66,7 +66,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
 
     *    - |fixed| |metrics|
-         - Fixed metric re-registration log spam in TokenRangeWriteLogger.
+         - Fixed metric re-registration log spam in ``TokenRangeWriteLogger``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2913>`__)
 
     *    - |fixed| |devbreak|
@@ -86,11 +86,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2912>`__)
 
     *    - |improved| |logs| |metrics|
-         - TokenRangeWrite metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
+         - ``TokenRangeWrite`` metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2910>`__)
 
     *    - |improved| |logs|
-         - CassandraClient kvs-slow-logs have been improved. They now contain the duration of the call and information
+         - ``CassandraClient`` kvs-slow-logs have been improved. They now contain the duration of the call and information
            about the results from the KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2924>`__)
 
@@ -121,15 +121,15 @@ v0.74.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
 
     *    - |improved| |metrics|
-         - BackgroundSweeperImpl now logs if there's an uncaught exception.  Added 2 new outcomes for normal and abnormal shutdown to allow closer monitoring.
+         - ``BackgroundSweeperImpl`` now logs if there's an uncaught exception.  Added 2 new outcomes for normal and abnormal shutdown to allow closer monitoring.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2884>`__)
 
     *    - |improved|
-         - The LockAwareTransactionManager pre-commit checks that verify that locks are still held have been generalized to support arbitrary pre-commit checks.
+         - The ``LockAwareTransactionManager`` pre-commit checks that verify that locks are still held have been generalized to support arbitrary pre-commit checks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2846>`__)
 
     *    - |devbreak|
-         - `AtlasDbConstants.GENERIC_TABLE_METADATA` is now safe for logging, if you are using this as the metadata to
+         - ``AtlasDbConstants.GENERIC_TABLE_METADATA`` is now safe for logging, if you are using this as the metadata to
            create table names that shouldn't be logged in the internal logging framework, do not use this metadata.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
 
@@ -140,8 +140,7 @@ v0.74.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2864>`__)
 
     *    - |devbreak|
-         - Upgraded to protobuf 3.5.1.
-           The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
+         - The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2887>`__)
 
     *    - |fixed|
@@ -150,13 +149,13 @@ v0.74.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2899>`__)
 
     *    - |fixed| |metrics|
-         - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
+         - ``TokenRangeWriteLogger`` now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2889>`__)
 
     *    - |fixed|
          - Stop sweeping when the sweep thread is interrupted.
            Previously, when services were shutting down, the background sweeper thread continuously logged warnings
-           due to a closed TransactionManager.
+           due to a closed ``TransactionManager``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2900>`__)
 
 =======
