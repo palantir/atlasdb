@@ -94,6 +94,15 @@ develop
            about the results from the KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2924>`__)
 
+    *    - |changed|
+         - Updated our Guava dependency from 18.0 to 20.0. This should unblock downstream products from upgrading to Guava 22.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2926>`__)
+
+    *    - |changed|
+         - Updated our http-remoting dependency from 3.5.1 to 3.14.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2926>`__)
+
+
 =======
 v0.74.0
 =======
