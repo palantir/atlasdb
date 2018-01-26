@@ -55,10 +55,10 @@ public final class ThriftObjectSizeUtils {
     }
 
     public static Map<String,Long> getSizeOfMutationPerTable(
-            Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map) {
+            Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
         Map<String, Long> tableToSize = new HashMap<>();
 
-        mutation_map.forEach((key, tableToMutations) -> {
+        batchMutateMap.forEach((key, tableToMutations) -> {
             long keySize = ThriftObjectSizeUtils.getByteBufferSize(key);
 
             tableToMutations.forEach((table, mutations) -> {

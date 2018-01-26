@@ -212,7 +212,6 @@ public class ThriftObjectSizeUtilsTest {
                         TEST_NAME,
                         ImmutableList.of(new Mutation().setColumn_or_supercolumn(EMPTY_COLUMN_OR_SUPERCOLUMN))));
 
-        // Deletion is 1 int.
         long expectedSize = TEST_NAME_BYTES_SIZE
                 + TEST_NAME_SIZE
                 + NULL_SIZE
