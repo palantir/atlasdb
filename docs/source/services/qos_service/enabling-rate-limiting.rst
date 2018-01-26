@@ -19,7 +19,7 @@ QoS also publishes client level metrics (meters) for the following:
         `com.palantir.atlasdb.qos.metrics.QosMetrics.writeTime`
         `com.palantir.atlasdb.qos.metrics.QosMetrics.rowsWritten`
         `com.palantir.atlasdb.qos.metrics.QosMetrics.backoffTime`
-        `com.palantir.atlasdb.qos.metrics.QosMetrics.rateLimitedExceptions`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.throttleExceptions`
 
 A client should ideally look at the historical values of the ``bytesRead`` and ``bytesWritten`` metrics to determine the limits.
 

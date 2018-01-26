@@ -45,7 +45,7 @@ public class QosMetrics {
     private final Meter rowsWritten;
 
     private final Meter backoffTime;
-    private final Meter rateLimitedExceptions;
+    private final Meter throttleExceptions;
 
     public QosMetrics() {
         readRequestCount = metricsManager.registerOrGetMeter(QosMetrics.class, "numReadRequests");
@@ -62,7 +62,7 @@ public class QosMetrics {
         rowsWritten = metricsManager.registerOrGetMeter(QosMetrics.class, "rowsWritten");
 
         backoffTime = metricsManager.registerOrGetMeter(QosMetrics.class, "backoffTime");
-        rateLimitedExceptions = metricsManager.registerOrGetMeter(QosMetrics.class, "rateLimitedExceptions");
+        throttleExceptions = metricsManager.registerOrGetMeter(QosMetrics.class, "throttleExceptions");
     }
 
     public void recordReadEstimate(QueryWeight weight) {
@@ -91,10 +91,10 @@ public class QosMetrics {
         }
     }
 
-    public void recordRateLimitedException() {
+    public void recordThrottleExceptions() {
         log.info("Rate limit exceeded and backoff time would be more than the configured maximum. "
                 + "Throwing a throttling exception");
-        rateLimitedExceptions.mark();
+        throttleExceptions.mark();
     }
 
 }
