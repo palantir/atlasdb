@@ -61,11 +61,7 @@ public final class ThriftObjectSizeUtils {
             long keySize = ThriftObjectSizeUtils.getByteBufferSize(key);
 
             tableToMutations.forEach((table, mutations) -> {
-                if (!tableToSize.containsKey(table)) {
-                    tableToSize.put(table, 0L);
-                }
-
-                Long size = tableToSize.get(table);
+                Long size = tableToSize.getOrDefault(table, 0L);
                 size += keySize;
                 size += getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize);
 
