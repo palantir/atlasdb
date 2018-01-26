@@ -50,18 +50,6 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed| |devbreak|
-         - AtlasDB clients will receive a ``QosException.Throttle`` for requests that are throttled and http-remoting
-           should handle them appropriately based on the backOff strategy provided by the application. Note that this is
-           an experimental feature and we do not expect it to be enabled anywhere. This is a dev break as the exception type
-           has changed from ``RateLimitExceededException`` to ``QosException.Throttle``.
-           (`Throttle <https://github.com/palantir/http-remoting/blob/a14a0894c2f5d1a415c5ee2727e9c79d73255b7b/okhttp-clients/src/main/java/com/palantir/remoting3/okhttp/RemotingOkHttpCall.java#L221-L233>`__)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2926>`__)
-
-    *    - |improved| |metrics|
-         - Use tags in sweep outcome metrics instead of using each name per outcome.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2927>`__)
-
     *    - |fixed| |userbreak|
          - AtlasDB will now *fail to start* if a TimeLock block is included in the initial runtime configuration, but the install configuration is set up with a leader block or with remote timestamp and lock blocks.
            Previously, AtlasDB would start successfully under these conditions, but the TimeLock block in the runtime configuration would be silently ignored.
@@ -77,6 +65,22 @@ develop
            That said, AtlasDB will fail to start if trying to access a key-value service where TimeLock has been used as a source of timestamps without going through TimeLock, so we don't think there is a risk of data corruption.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
 
+    *    - |fixed| |metrics|
+         - Fixed metric re-registration log spam in TokenRangeWriteLogger.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2913>`__)
+
+    *    - |fixed| |devbreak|
+         - AtlasDB clients will receive a ``QosException.Throttle`` for requests that are throttled and http-remoting
+           should handle them appropriately based on the backOff strategy provided by the application. Note that this is
+           an experimental feature and we do not expect it to be enabled anywhere. This is a dev break as the exception type
+           has changed from ``RateLimitExceededException`` to ``QosException.Throttle``.
+           (`Throttle <https://github.com/palantir/http-remoting/blob/a14a0894c2f5d1a415c5ee2727e9c79d73255b7b/okhttp-clients/src/main/java/com/palantir/remoting3/okhttp/RemotingOkHttpCall.java#L221-L233>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2926>`__)
+
+    *    - |improved| |metrics|
+         - Use tags in sweep outcome metrics instead of using each name per outcome.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2927>`__)
+
     *    - |improved| |logs|
          - Log message for leaked sweep/backup lock is now WARN rather than INFO.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2912>`__)
@@ -84,10 +88,6 @@ develop
     *    - |improved| |logs| |metrics|
          - TokenRangeWrite metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2910>`__)
-
-    *    - |fixed| |metrics|
-         - Fixed metric re-registration log spam in TokenRangeWriteLogger.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2913>`__)
 
     *    - |improved| |logs|
          - CassandraClient kvs-slow-logs have been improved. They now contain the duration of the call and information
