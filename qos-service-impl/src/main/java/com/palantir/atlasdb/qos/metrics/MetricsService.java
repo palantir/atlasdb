@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.cassandra.sidecar.metrics;
+package com.palantir.atlasdb.qos.metrics;
 
 import java.util.Map;
 
@@ -27,20 +27,15 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 
-/**
- * Copied from internal sls Cassandra project.
- */
-
 @Path("/metrics")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public interface CassandraMetricsService {
+public interface MetricsService {
     /**
-     * Get the value for a particular Cassandra metric. The possible metric combinations can be found in
-     * http://cassandra.apache.org/doc/latest/operating/metrics.html.
+     * Get the value for a particular metric.
      *
-     * @param type The type of the Cassandra metric, mostly a sub-type of the metric name eg: CommitLog
-     * @param name The name of the Cassandra metric eg: PendingTasks
+     * @param type The type of the metric, mostly a sub-type of the metric name eg: CommitLog
+     * @param name The name of the metric eg: PendingTasks
      * @param attr The attribute you require for the metric eg: Value, p99 etc.
      * @param additionalParams Any other parameters to make the metric more specific eg: scope:keyspace
      * @return the metric object for the queried metric

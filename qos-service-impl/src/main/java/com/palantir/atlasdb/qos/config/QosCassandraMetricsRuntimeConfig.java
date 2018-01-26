@@ -32,7 +32,7 @@ public abstract class QosCassandraMetricsRuntimeConfig {
 
     @JsonProperty("cassandra-health-metrics")
     @Value.Default
-    public List<CassandraHealthMetric> cassandraHealthMetrics() {
+    public List<HealthMetric> cassandraHealthMetrics() {
         return ImmutableList.of();
     }
 }

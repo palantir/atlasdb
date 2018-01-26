@@ -29,7 +29,7 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetric;
+import com.palantir.atlasdb.qos.config.ImmutableHealthMetric;
 import com.palantir.atlasdb.qos.config.ImmutableQosCassandraMetricsRuntimeConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
@@ -63,7 +63,7 @@ public class QosServerRuntimeConfigDeserializationTest {
         assertThat(ImmutableQosServiceRuntimeConfig.builder()
                 .clientLimits(getTestClientLimits())
                 .qosCassandraMetricsConfig(ImmutableQosCassandraMetricsRuntimeConfig.builder()
-                        .cassandraHealthMetrics(ImmutableList.of(ImmutableCassandraHealthMetric.builder()
+                        .cassandraHealthMetrics(ImmutableList.of(ImmutableHealthMetric.builder()
                                 .type("CommitLog")
                                 .name("PendingTasks")
                                 .attribute("Value")

@@ -27,6 +27,7 @@ import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
@@ -314,9 +315,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
         SweepOutcomeMetrics() {
             Arrays.stream(SweepOutcome.values()).forEach(outcome ->
-                    metricsManager.registerMetric(BackgroundSweeperImpl.class, outcome.name(),
-                            () -> getOutcomeCount(outcome))
-            );
+                    metricsManager.registerMetric(BackgroundSweeperImpl.class, "outcome",
+                            () -> getOutcomeCount(outcome), ImmutableMap.of("status", outcome.name())));
             reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
             shutdown = false;
             fatal = false;
