@@ -29,7 +29,7 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
 public abstract class AbstractConditionAwareTransactionManager extends AbstractTransactionManager
-        implements ConditionAwareTransactionManager{
+        implements ConditionAwareTransactionManager {
 
     private static final PreCommitCondition NO_OP_CONDITION = new PreCommitCondition() {
         @Override
@@ -89,7 +89,16 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
 
     @Override
     public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
-        checkOpen();
         return runTaskWithConditionThrowOnConflict(NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
+        return runTaskWithConditionWithRetry(() -> NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
+        return runTaskReadOnlyWithCondition(NO_OP_CONDITION, (transaction, condition) -> task.execute(transaction));
     }
 }
