@@ -107,7 +107,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Value.Default
     @Deprecated
     public int unresponsiveHostBackoffTimeSeconds() {
-        return 30;
+        return CassandraConstants.DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS;
     }
 
     /**
@@ -164,7 +164,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Value.Default
     @Deprecated
     public int mutationBatchCount() {
-        return 5000;
+        return CassandraConstants.DEFAULT_MUTATION_BATCH_COUNT;
     }
 
     /**
@@ -175,7 +175,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Value.Default
     @Deprecated
     public int mutationBatchSizeBytes() {
-        return 4 * 1024 * 1024;
+        return CassandraConstants.DEFAULT_MUTATION_BATCH_SIZE_BYTES;
     }
 
     /**
@@ -186,7 +186,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Value.Default
     @Deprecated
     public int fetchBatchCount() {
-        return 5000;
+        return CassandraConstants.DEFAULT_FETCH_BATCH_COUNT;
     }
 
     @Value.Default

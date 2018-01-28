@@ -22,13 +22,15 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 
 @AutoService(KeyValueServiceRuntimeConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceRuntimeConfig.class)
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceRuntimeConfig.class)
 @Value.Immutable
-public class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
+public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
+
     @Override
     public String type() {
         return "cassandra";
@@ -39,7 +41,7 @@ public class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRun
      */
     @Value.Default
     public int unresponsiveHostBackoffTimeSeconds() {
-        return 30;
+        return CassandraConstants.DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS;
     }
 
     /**
@@ -47,7 +49,7 @@ public class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRun
      */
     @Value.Default
     public int mutationBatchCount() {
-        return 5000;
+        return CassandraConstants.DEFAULT_MUTATION_BATCH_COUNT;
     }
 
     /**
@@ -55,12 +57,12 @@ public class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRun
      */
     @Value.Default
     public int mutationBatchSizeBytes() {
-        return 4 * 1024 * 1024;
+        return CassandraConstants.DEFAULT_MUTATION_BATCH_SIZE_BYTES;
     }
 
     @Value.Default
     public int fetchBatchCount() {
-        return 5000;
+        return CassandraConstants.DEFAULT_FETCH_BATCH_COUNT;
     }
 
     /**

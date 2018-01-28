@@ -81,6 +81,11 @@ public final class CassandraConstants {
 
     static final int SCHEMA_MUTATION_LOCK_TIMEOUT_MULTIPLIER = 10;
 
+    public static final int DEFAULT_FETCH_BATCH_COUNT = 5000;
+    public static final int DEFAULT_MUTATION_BATCH_SIZE_BYTES = 4 * 1024 * 1024;
+    public static final int DEFAULT_MUTATION_BATCH_COUNT = 5000;
+    public static final int DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS = 30;
+
     private CassandraConstants() {
         // Utility class
     }

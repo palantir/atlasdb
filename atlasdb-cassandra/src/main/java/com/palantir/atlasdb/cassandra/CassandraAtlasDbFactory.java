@@ -44,8 +44,9 @@ import com.palantir.util.OptionalResolver;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
-    private Logger log = LoggerFactory.getLogger(CassandraAtlasDbFactory.class);
-    private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig;
+    private static Logger log = LoggerFactory.getLogger(CassandraAtlasDbFactory.class);
+    private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
+            CassandraKeyValueServiceRuntimeConfig.getDefault();
 
     @Override
     public KeyValueService createRawKeyValueService(
@@ -73,8 +74,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
         Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
-                "CassandraAtlasDbFactory expects an instance of type %s, found %s",
-                CassandraKeyValueServiceConfig.class, config.getClass());
+                "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
+                        + " CassandraKeyValueServiceConfig, found %s.", config.getClass());
         CassandraKeyValueServiceConfig cassandraConfig = (CassandraKeyValueServiceConfig) config;
 
         String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
@@ -92,8 +93,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
             return configOptional.map(config -> {
                 if(!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
-                    log.error("Invalid KeyValueServiceRuntimeConfig."
-                                    + " Expected an instance of type CassandraKeyValueServiceRuntimeConfig, found %s."
+                    log.error("Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of type"
+                                    + " CassandraKeyValueServiceRuntimeConfig, found %s."
                                     + " Using latest valid CassandraKeyValueServiceRuntimeConfig.",
                             config.getClass());
                     return latestValidRuntimeConfig;
