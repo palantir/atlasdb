@@ -92,7 +92,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Optional<KeyValueServiceRuntimeConfig> configOptional = runtimeConfig.get();
 
             return configOptional.map(config -> {
-                if(!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
+                if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
                     log.error("Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of type"
                                     + " CassandraKeyValueServiceRuntimeConfig, found %s."
                                     + " Using latest valid CassandraKeyValueServiceRuntimeConfig.",
