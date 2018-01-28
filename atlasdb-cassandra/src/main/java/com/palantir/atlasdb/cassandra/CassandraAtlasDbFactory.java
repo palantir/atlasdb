@@ -18,6 +18,9 @@ package com.palantir.atlasdb.cassandra;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -41,6 +44,9 @@ import com.palantir.util.OptionalResolver;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
+    private Logger log = LoggerFactory.getLogger(CassandraAtlasDbFactory.class);
+    private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig;
+
     @Override
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
@@ -85,11 +91,16 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Optional<KeyValueServiceRuntimeConfig> configOptional = runtimeConfig.get();
 
             return configOptional.map(config -> {
-                Preconditions.checkArgument(config instanceof CassandraKeyValueServiceRuntimeConfig,
-                        "CassandraAtlasDbFactory expects an instance of type %s, found %s",
-                        CassandraKeyValueServiceRuntimeConfig.class, config.getClass());
+                if(!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
+                    log.error("Invalid KeyValueServiceRuntimeConfig."
+                                    + " Expected an instance of type CassandraKeyValueServiceRuntimeConfig, found %s."
+                                    + " Using latest valid CassandraKeyValueServiceRuntimeConfig.",
+                            config.getClass());
+                    return latestValidRuntimeConfig;
+                }
 
-                return (CassandraKeyValueServiceRuntimeConfig) config;
+                latestValidRuntimeConfig = (CassandraKeyValueServiceRuntimeConfig) config;
+                return latestValidRuntimeConfig;
             }).orElse(CassandraKeyValueServiceRuntimeConfig.getDefault());
         };
     }
