@@ -42,7 +42,7 @@ import com.palantir.atlasdb.qos.metrics.QosMetrics;
 import com.palantir.atlasdb.qos.ratelimit.ImmutableQosRateLimiters;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
-import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
+import com.palantir.remoting.api.errors.QosException;
 
 @RunWith(Parameterized.class)
 public final class AtlasDbQosClientTest {
@@ -181,7 +181,7 @@ public final class AtlasDbQosClientTest {
             throw new TestCheckedException();
         }, weigher)).isInstanceOf(TestCheckedException.class);
 
-        verify(metrics, never()).recordRateLimitedException();
+        verify(metrics, never()).recordThrottleExceptions();
     }
 
     @Test
@@ -194,11 +194,11 @@ public final class AtlasDbQosClientTest {
 
     @Test
     public void recordsBackoffExceptions() {
-        when(readLimiter.consumeWithBackoff(anyLong())).thenThrow(new RateLimitExceededException("rate limited"));
+        when(readLimiter.consumeWithBackoff(anyLong())).thenThrow(QosException.throttle());
         assertThatThrownBy(() -> qosClient.executeRead(() -> "foo", weigher)).isInstanceOf(
-                RateLimitExceededException.class);
+                QosException.Throttle.class);
 
-        verify(metrics).recordRateLimitedException();
+        verify(metrics).recordThrottleExceptions();
     }
 
     @Test
@@ -207,7 +207,7 @@ public final class AtlasDbQosClientTest {
         assertThatThrownBy(() -> qosClient.executeRead(() -> "foo", weigher)).isInstanceOf(
                 RuntimeException.class);
 
-        verify(metrics, never()).recordRateLimitedException();
+        verify(metrics, never()).recordThrottleExceptions();
     }
 
     static class TestCheckedException extends Exception {}

@@ -34,7 +34,7 @@ import org.junit.Test;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
-import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
+import com.palantir.remoting.api.errors.QosException;
 
 public class QosCassandraWriteEteTest extends QosCassandraEteTestSetup {
 
@@ -74,13 +74,13 @@ public class QosCassandraWriteEteTest extends QosCassandraEteTestSetup {
         writeNTodosOfSize(1, 100_000);
 
         assertThatThrownBy(() -> writeNTodosOfSize(1, 100_000))
-                .isInstanceOf(RateLimitExceededException.class)
-                .hasMessage("Rate limited. Available capacity has been exhausted.");
+                .isInstanceOf(QosException.Throttle.class)
+                .hasMessage("Suggesting request throttling with optional retryAfter duration: Optional.empty");
 
         // One write smaller than the rate limit should also be rate limited.
         assertThatThrownBy(() -> writeNTodosOfSize(5, 10))
-                .isInstanceOf(RateLimitExceededException.class)
-                .hasMessage("Rate limited. Available capacity has been exhausted.");
+                .isInstanceOf(QosException.Throttle.class)
+                .hasMessage("Suggesting request throttling with optional retryAfter duration: Optional.empty");
     }
 
     @Test
@@ -117,7 +117,7 @@ public class QosCassandraWriteEteTest extends QosCassandraEteTestSetup {
             try {
                 future.get();
             } catch (ExecutionException e) {
-                if (e.getCause() instanceof RateLimitExceededException) {
+                if (e.getCause() instanceof QosException.Throttle) {
                     exceptionCounter.getAndIncrement();
                 }
             } catch (InterruptedException e) {

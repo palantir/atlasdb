@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -68,6 +69,7 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
@@ -216,7 +218,7 @@ public class TransactionManagersTest {
 
     @Test
     public void userAgentsPresentOnRequestsToTimelockServer() {
-        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+        setUpTimeLockBlockInInstallConfig();
 
         availableServer.stubFor(post(urlMatching("/")).willReturn(aResponse().withStatus(200).withBody("3")));
         availableServer.stubFor(TIMELOCK_LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("4")));
@@ -226,15 +228,14 @@ public class TransactionManagersTest {
 
     @Test
     public void userAgentsPresentOnRequestsToRemoteTimestampAndLockServices() {
-        when(config.timestamp()).thenReturn(Optional.of(rawRemoteServerConfig));
-        when(config.lock()).thenReturn(Optional.of(rawRemoteServerConfig));
+        setUpRemoteTimestampAndLockBlocksInConfig();
 
         verifyUserAgentOnRawTimestampAndLockRequests();
     }
 
     @Test
     public void userAgentsPresentOnRequestsWithLeaderBlockConfigured() throws IOException {
-        setupLeaderBlockInConfig();
+        setUpLeaderBlockInConfig();
 
         verifyUserAgentOnRawTimestampAndLockRequests();
     }
@@ -242,7 +243,7 @@ public class TransactionManagersTest {
     @Test
     public void remoteCallsStillMadeIfPingableLeader404s() throws IOException, InterruptedException {
         setUpForRemoteServices();
-        setupLeaderBlockInConfig();
+        setUpLeaderBlockInConfig();
 
         TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
@@ -259,7 +260,7 @@ public class TransactionManagersTest {
     @Test
     public void remoteCallsElidedIfTalkingToLocalServer() throws IOException, InterruptedException {
         setUpForLocalServices();
-        setupLeaderBlockInConfig();
+        setUpLeaderBlockInConfig();
 
         TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
@@ -310,7 +311,7 @@ public class TransactionManagersTest {
 
     @Test
     public void batchesRequestsIfBatchingEnabled() throws InterruptedException {
-        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+        setUpTimeLockBlockInInstallConfig();
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
 
         createLockAndTimestampServicesForConfig(config, runtimeConfig).timestamp().getFreshTimestamp();
@@ -320,7 +321,7 @@ public class TransactionManagersTest {
 
     @Test
     public void doesNotBatchRequestsIfBatchingNotEnabled() {
-        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+        setUpTimeLockBlockInInstallConfig();
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
 
         createLockAndTimestampServicesForConfig(config, runtimeConfig).timelock().getFreshTimestamp();
@@ -371,7 +372,7 @@ public class TransactionManagersTest {
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingLocalService() throws IOException, InterruptedException {
         setUpForLocalServices();
-        setupLeaderBlockInConfig();
+        setUpLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 LOCK_SERVICE_CURRENT_TIME_METRIC);
@@ -380,7 +381,7 @@ public class TransactionManagersTest {
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingRemoteService() throws IOException, InterruptedException {
         setUpForRemoteServices();
-        setupLeaderBlockInConfig();
+        setUpLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 LOCK_SERVICE_CURRENT_TIME_METRIC);
@@ -388,7 +389,7 @@ public class TransactionManagersTest {
 
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingTimelockService() {
-        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+        setUpTimeLockBlockInInstallConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
                 TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
@@ -396,7 +397,7 @@ public class TransactionManagersTest {
 
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingTimelockServiceWithRequestBatching() {
-        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+        setUpTimeLockBlockInInstallConfig();
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
@@ -426,6 +427,48 @@ public class TransactionManagersTest {
         assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
     }
 
+    @Test
+    public void usesTimeLockIfInstallConfigIsUnspecifiedButInitialRuntimeConfigContainsTimeLockBlock() {
+        setUpTimeLockBlockInRuntimeConfig();
+        verifyUsingTimeLockByGettingAFreshTimestamp();
+    }
+
+    @Test
+    public void throwsIfInstallConfigHasLeaderBlockButInitialRuntimeConfigContainsTimeLockBlock() throws IOException {
+        setUpLeaderBlockInConfig();
+        setUpTimeLockBlockInRuntimeConfig();
+        assertGetLockAndTimestampServicesThrows();
+    }
+
+    @Test
+    public void throwsIfInstallConfigHasRemoteBlockButInitialRuntimeConfigContainsTimeLockBlock() {
+        setUpRemoteTimestampAndLockBlocksInConfig();
+        setUpTimeLockBlockInRuntimeConfig();
+        assertGetLockAndTimestampServicesThrows();
+    }
+
+    @Test
+    public void usesTimeLockIfInstallConfigIsTimeLockAndInitialRuntimeConfigContainsTimeLockBlock() {
+        setUpTimeLockBlockInInstallConfig();
+        setUpTimeLockBlockInRuntimeConfig();
+        verifyUsingTimeLockByGettingAFreshTimestamp();
+    }
+
+    @Test
+    public void usesTimeLockIfInstallConfigIsTimeLockAndInitialRuntimeConfigDoesNotContainTimeLockBlock() {
+        setUpTimeLockBlockInInstallConfig();
+        verifyUsingTimeLockByGettingAFreshTimestamp();
+
+        assertTrue("Runtime config was not expected to contain a timelock block",
+                !runtimeConfig.timelockRuntime().isPresent());
+    }
+
+    private void verifyUsingTimeLockByGettingAFreshTimestamp() {
+        when(config.namespace()).thenReturn(Optional.of(CLIENT));
+        getLockAndTimestampServices().timelock().getFreshTimestamp();
+        availableServer.verify(1, postRequestedFor(urlMatching(TIMELOCK_TIMESTAMP_PATH)));
+    }
+
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
         assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(0L)));
         assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(0L)));
@@ -447,15 +490,31 @@ public class TransactionManagersTest {
                     .withBody(("\"" + localPingableLeader.getUUID().toString() + "\"").getBytes())));
             return null;
         }).when(environment).accept(isA(PingableLeader.class));
-        setupLeaderBlockInConfig();
+        setUpLeaderBlockInConfig();
     }
 
     private void setUpForRemoteServices() throws IOException {
         availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(404)));
-        setupLeaderBlockInConfig();
+        setUpLeaderBlockInConfig();
     }
 
-    private void setupLeaderBlockInConfig() throws IOException {
+    private void setUpTimeLockBlockInInstallConfig() {
+        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+    }
+
+    private void setUpTimeLockBlockInRuntimeConfig() {
+        when(runtimeConfig.timelockRuntime()).thenReturn(
+                Optional.of(ImmutableTimeLockRuntimeConfig.builder()
+                        .serversList(rawRemoteServerConfig)
+                        .build()));
+    }
+
+    private void setUpRemoteTimestampAndLockBlocksInConfig() {
+        when(config.timestamp()).thenReturn(Optional.of(rawRemoteServerConfig));
+        when(config.lock()).thenReturn(Optional.of(rawRemoteServerConfig));
+    }
+
+    private void setUpLeaderBlockInConfig() throws IOException {
         when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
                 .localServer(getUriForPort(availablePort))
                 .addLeaders(getUriForPort(availablePort))
@@ -506,6 +565,13 @@ public class TransactionManagersTest {
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
         availableServer.verify(postRequestedFor(urlMatching(lockPath))
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+    }
+
+    private void assertGetLockAndTimestampServicesThrows() {
+        String expectedErrorPrefix = "Found a service configured not to use timelock, with a timelock block in"
+                + " the runtime config!";
+        assertThatThrownBy(this::getLockAndTimestampServices).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(expectedErrorPrefix);
     }
 
     private static String getUriForPort(int port) {

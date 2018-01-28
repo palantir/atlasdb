@@ -603,6 +603,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
     }
 
+    @SuppressWarnings("CheckReturnValue")
     private List<Pair<String, LockAwareTransactionTask<Void, Exception>>> getThoroughTableReadTasks() {
         ImmutableList.Builder<Pair<String, LockAwareTransactionTask<Void, Exception>>> tasks = ImmutableList.builder();
         final int batchHint = 1;

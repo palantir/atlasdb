@@ -35,11 +35,11 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.qos.config.CassandraHealthMetric;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
-import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetric;
+import com.palantir.atlasdb.qos.config.HealthMetric;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
-import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
+import com.palantir.atlasdb.qos.config.ImmutableHealthMetric;
+import com.palantir.atlasdb.qos.metrics.MetricsService;
 
 public class CassandraMetricMeasurementsLoaderTest {
     private static final double LOWER_LIMIT = 0.0;
@@ -54,14 +54,14 @@ public class CassandraMetricMeasurementsLoaderTest {
     private static final String METRIC_ATTRIBUTE_2 = "metricAttribute2";
 
     private DeterministicScheduler scheduledExecutorService;
-    private Supplier<List<CassandraHealthMetric>> healthMetricSupplier;
-    private CassandraMetricsService cassandraMetricClient;
+    private Supplier<List<HealthMetric>> healthMetricSupplier;
+    private MetricsService cassandraMetricClient;
     private CassandraMetricMeasurementsLoader cassandraMetricMeasurementsLoader;
 
     @Before
     public void setup() {
         healthMetricSupplier = mock(Supplier.class);
-        cassandraMetricClient = mock(CassandraMetricsService.class);
+        cassandraMetricClient = mock(MetricsService.class);
         scheduledExecutorService = new DeterministicScheduler();
 
         cassandraMetricMeasurementsLoader = new CassandraMetricMeasurementsLoader(
@@ -129,9 +129,9 @@ public class CassandraMetricMeasurementsLoaderTest {
         assertThat(ImmutableList.of()).isEqualTo(cassandraHealthMetricMeasurements);
     }
 
-    private CassandraHealthMetric getCassandraMetric(String metricType, String metricName,
+    private HealthMetric getCassandraMetric(String metricType, String metricName,
             String metricAttribute) {
-        return ImmutableCassandraHealthMetric.builder()
+        return ImmutableHealthMetric.builder()
                 .type(metricType)
                 .name(metricName)
                 .attribute(metricAttribute)

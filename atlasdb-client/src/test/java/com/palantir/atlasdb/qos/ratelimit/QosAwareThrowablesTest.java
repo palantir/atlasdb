@@ -25,17 +25,17 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.remoting.api.errors.QosException;
 
 public class QosAwareThrowablesTest {
-    private static final Exception RATE_LIMIT_EXCEEDED_EXCEPTION =
-            new RateLimitExceededException("Stop!");
+    private static final Exception THROTTLE_EXCEPTION = QosException.throttle();
     private static final Exception ATLASDB_DEPENDENCY_EXCEPTION =
             new AtlasDbDependencyException("The TimeLock is dead, long live the TimeLock");
 
     @Test
     public void unwrapAndThrowRateLimitExceededOrAtlasDbDependencyExceptionCanThrowRateLimitExceededException() {
         assertThatThrownBy(() -> QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(
-                RATE_LIMIT_EXCEEDED_EXCEPTION)).isEqualTo(RATE_LIMIT_EXCEEDED_EXCEPTION);
+                THROTTLE_EXCEPTION)).isEqualTo(THROTTLE_EXCEPTION);
     }
 
     @Test
@@ -47,9 +47,9 @@ public class QosAwareThrowablesTest {
     @Test
     public void unwrapAndThrowRateLimitExceededOrAtlasDbDependencyExceptionThrowsWrappedRateLimitExceededExceptions() {
         assertThatThrownBy(() -> QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(
-                new ExecutionException(RATE_LIMIT_EXCEEDED_EXCEPTION))).isEqualTo(RATE_LIMIT_EXCEEDED_EXCEPTION);
+                new ExecutionException(THROTTLE_EXCEPTION))).isEqualTo(THROTTLE_EXCEPTION);
         assertThatThrownBy(() -> QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(
-                new InvocationTargetException(RATE_LIMIT_EXCEEDED_EXCEPTION))).isEqualTo(RATE_LIMIT_EXCEEDED_EXCEPTION);
+                new InvocationTargetException(THROTTLE_EXCEPTION))).isEqualTo(THROTTLE_EXCEPTION);
     }
 
     @Test
