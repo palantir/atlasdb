@@ -94,7 +94,6 @@ develop
     *    - |fixed| |metrics|
          - Fixed metric re-registration log spam in TokenRangeWriteLogger.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2913>`__)
->>>>>>> 3e9a77e51253b97594c0a12a415e74295f43b482
 
     *    - |fixed| |metrics|
          - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
