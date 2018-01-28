@@ -153,6 +153,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * and these inactive nodes will be removed afterwards.
  */
 @AutoDelegate(typeToExtend = CassandraKeyValueService.class)
+@SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
