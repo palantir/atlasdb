@@ -211,6 +211,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CassandraTables cassandraTables;
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
+    public static boolean forceBatchDeletes;
 
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfig config,
@@ -1371,7 +1372,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             mutation.setDeletion(del);
 
                             mutationMap.addMutationForCell(cellVersions.getKey(), tableRef, mutation);
-                            mapIndex++;
+                            if (!forceBatchDeletes) {
+                                mapIndex++;
+                            }
                             numVersions += cellVersions.getValue().size();
                         }
                     }

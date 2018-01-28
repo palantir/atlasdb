@@ -63,6 +63,8 @@ public class SweepTaskRunner {
     private final SweepStrategyManager sweepStrategyManager;
     private final CellsSweeper cellsSweeper;
 
+    public static SweepStrategy staticSweepStrategy;
+
     public SweepTaskRunner(
             KeyValueService keyValueService,
             LongSupplier unreadableTimestampSupplier,
@@ -133,6 +135,10 @@ public class SweepTaskRunner {
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
+        if (staticSweepStrategy != null) {
+            sweepStrategy = staticSweepStrategy;
+        }
+
         Optional<Sweeper> sweeper = Sweeper.of(sweepStrategy);
         if (!sweeper.isPresent()) {
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
