@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - The sweep-table endpoint now returns HTTP status 400 instead of 500, when asked to sweep a non-existent table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2936>`__)
 
 =======
 v0.75.0
