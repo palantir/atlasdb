@@ -90,7 +90,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
             if (runtimeConfigFile != null) {
                 runtimeConfig = parseAtlasDbConfig(runtimeConfigFile, AtlasDbRuntimeConfig.class);
             } else {
-                throw new IllegalArgumentException("Required option '-r' for runtime config is missing");
+                runtimeConfig = AtlasDbRuntimeConfig.defaultRuntimeConfig();
             }
         }
         return runtimeConfig;
