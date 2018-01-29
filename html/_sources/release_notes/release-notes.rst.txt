@@ -50,17 +50,21 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed| |devbreak|
-         - AtlasDB clients will receive a ``QosException.Throttle`` for requests that are throttled and http-remoting
-           should handle them appropriately based on the backOff strategy provided by the application. Note that this is
-           an experimental feature and we do not expect it to be enabled anywhere. This is a dev break as the exception type
-           has changed from ``RateLimitExceededException`` to ``QosException.Throttle``.
-           (`Throttle <https://github.com/palantir/http-remoting/blob/a14a0894c2f5d1a415c5ee2727e9c79d73255b7b/okhttp-clients/src/main/java/com/palantir/remoting3/okhttp/RemotingOkHttpCall.java#L221-L233>`__)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2926>`__)
+    *    -
+         -
 
-    *    - |improved| |metrics|
-         - Use tags in sweep outcome metrics instead of using each name per outcome.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2927>`__)
+=======
+v0.75.0
+=======
+
+29 January 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed| |userbreak|
          - AtlasDB will now *fail to start* if a TimeLock block is included in the initial runtime configuration, but the install configuration is set up with a leader block or with remote timestamp and lock blocks.
@@ -77,26 +81,43 @@ develop
            That said, AtlasDB will fail to start if trying to access a key-value service where TimeLock has been used as a source of timestamps without going through TimeLock, so we don't think there is a risk of data corruption.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2850>`__)
 
+    *    - |fixed| |metrics|
+         - Fixed metric re-registration log spam in ``TokenRangeWriteLogger``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2913>`__)
+
+    *    - |fixed| |devbreak|
+         - AtlasDB clients will receive a ``QosException.Throttle`` for requests that are throttled and http-remoting
+           should handle them appropriately based on the backOff strategy provided by the application. Note that this is
+           an experimental feature and we do not expect it to be enabled anywhere. This is a dev break as the exception type
+           has changed from ``RateLimitExceededException`` to ``QosException.Throttle``.
+           (`Throttle <https://github.com/palantir/http-remoting/blob/a14a0894c2f5d1a415c5ee2727e9c79d73255b7b/okhttp-clients/src/main/java/com/palantir/remoting3/okhttp/RemotingOkHttpCall.java#L221-L233>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2926>`__)
+
+    *    - |improved| |metrics|
+         - Use tags in sweep outcome metrics instead of using each name per outcome.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2927>`__)
+
     *    - |improved| |logs|
          - Log message for leaked sweep/backup lock is now WARN rather than INFO.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2912>`__)
- 
+
     *    - |improved| |logs| |metrics|
-         - TokenRangeWrite metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
+         - ``TokenRangeWrite`` metrics are calculated every 1000 writes so we can chart metrics for smaller tables.  Logging now happens every 6 hours regardless of number of writes (although there must be at least 1).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2910>`__)
 
-    *    - |fixed| |metrics|
-         - Fixed metric re-registration log spam in TokenRangeWriteLogger.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2913>`__)
-
-    *    - |fixed| |metrics|
-         - TokenRangeWriteLogger now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2889>`__)
-
     *    - |improved| |logs|
-         - CassandraClient kvs-slow-logs have been improved. They now contain the duration of the call and information
+         - ``CassandraClient`` kvs-slow-logs have been improved. They now contain the duration of the call and information
            about the results from the KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2924>`__)
+
+    *    - |changed|
+         - Updated our Guava dependency from 18.0 to 20.0. This should unblock downstream products from upgrading to Guava 22.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2926>`__)
+
+    *    - |changed|
+         - Updated our http-remoting dependency from 3.5.1 to 3.14.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2926>`__)
+
 
 =======
 v0.74.0
@@ -116,15 +137,15 @@ v0.74.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
 
     *    - |improved| |metrics|
-         - BackgroundSweeperImpl now logs if there's an uncaught exception.  Added 2 new outcomes for normal and abnormal shutdown to allow closer monitoring.
+         - ``BackgroundSweeperImpl`` now logs if there's an uncaught exception.  Added 2 new outcomes for normal and abnormal shutdown to allow closer monitoring.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2884>`__)
 
     *    - |improved|
-         - The LockAwareTransactionManager pre-commit checks that verify that locks are still held have been generalized to support arbitrary pre-commit checks.
+         - The ``LockAwareTransactionManager`` pre-commit checks that verify that locks are still held have been generalized to support arbitrary pre-commit checks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2846>`__)
 
     *    - |devbreak|
-         - `AtlasDbConstants.GENERIC_TABLE_METADATA` is now safe for logging, if you are using this as the metadata to
+         - ``AtlasDbConstants.GENERIC_TABLE_METADATA`` is now safe for logging, if you are using this as the metadata to
            create table names that shouldn't be logged in the internal logging framework, do not use this metadata.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2903>`__)
 
@@ -135,8 +156,7 @@ v0.74.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2864>`__)
 
     *    - |devbreak|
-         - Upgraded to protobuf 3.5.1.
-           The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
+         - The protobuf library has been upgraded to 3.5.1. Dependent projects will need to update their dependencies.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2887>`__)
 
     *    - |fixed|
@@ -144,10 +164,14 @@ v0.74.0
            Previously, compilation failed with an ``IllegalArgumentException`` from Java Poet, as we assumed Java versions of ``ValueType`` were always associated with object types.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2899>`__)
 
+    *    - |fixed| |metrics|
+         - ``TokenRangeWriteLogger`` now registers different metric names per table even if all are unsafe.  We instead tag with an obfuscated version of the name which is safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2889>`__)
+
     *    - |fixed|
-         - Stop to sweep when the sweep thread is interrupted.
+         - Stop sweeping when the sweep thread is interrupted.
            Previously, when services were shutting down, the background sweeper thread continuously logged warnings
-           due to a closed TransactionManager.
+           due to a closed ``TransactionManager``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2900>`__)
 
 =======
