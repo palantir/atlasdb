@@ -137,6 +137,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
         timestampValidationReadCache.clear();
     }
 
+    @SuppressWarnings("DangerousThreadPoolExecutorUsage")
     ExecutorService createGetRangesExecutor(int numThreads) {
         BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>() {
             private final RateLimiter warningRateLimiter = RateLimiter.create(1);

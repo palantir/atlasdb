@@ -94,6 +94,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
+    @SuppressWarnings({"CheckReturnValue"}) // Consume all remaining values of iterator.
     public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                     ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = Maps.newHashMap();
@@ -356,6 +357,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         @Nullable T apply(Iterator<Entry<Key, byte[]>> timestampValues);
     }
 
+    @SuppressWarnings({"CheckReturnValue"}) // Consume all remaining values of iterator.
     private static <T> void collectValueForTimestamp(byte[] col,
                                                      Iterator<Entry<Key, byte[]>> timestampValues,
                                                      @Output ImmutableSortedMap.Builder<byte[], T> results,
