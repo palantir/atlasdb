@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.jdbc;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampService;
@@ -46,6 +48,7 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
      * Creates a JdbcKeyValueService.
      *
      * @param config Configuration file.
+     * @param runtimeConfig unused.
      * @param leaderConfig unused.
      * @param unused unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
@@ -55,6 +58,7 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     @Override
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
             boolean initializeAsync,
