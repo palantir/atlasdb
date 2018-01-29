@@ -344,7 +344,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 clientPool,
                 queryRunner,
                 writeConsistency,
-                schemaMutationLockTable,
+                schemaMutationLockTable::getOnlyTable,
                 new HeartbeatService(
                         clientPool,
                         queryRunner,

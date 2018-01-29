@@ -82,7 +82,7 @@ final class SchemaMutationLock {
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel writeConsistency,
-            UniqueSchemaMutationLockTable uniqueLockTable,
+            Supplier<TableReference> lockTable,
             HeartbeatService heartbeatService,
             int deadHeartbeatTimeoutThreshold) {
         this.supportsCas = supportsCas;
@@ -90,7 +90,7 @@ final class SchemaMutationLock {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.writeConsistency = writeConsistency;
-        this.lockTable = uniqueLockTable::getOnlyTable;
+        this.lockTable = lockTable;
         this.heartbeatService = heartbeatService;
         this.deadHeartbeatTimeoutThreshold = deadHeartbeatTimeoutThreshold;
     }
