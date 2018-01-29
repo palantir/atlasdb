@@ -50,6 +50,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+=======
+v0.75.0
+=======
+
+29 January 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed| |userbreak|
          - AtlasDB will now *fail to start* if a TimeLock block is included in the initial runtime configuration, but the install configuration is set up with a leader block or with remote timestamp and lock blocks.
            Previously, AtlasDB would start successfully under these conditions, but the TimeLock block in the runtime configuration would be silently ignored.
