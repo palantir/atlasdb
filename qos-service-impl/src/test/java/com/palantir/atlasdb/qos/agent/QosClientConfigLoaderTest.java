@@ -38,7 +38,7 @@ public class QosClientConfigLoaderTest {
 
     @Test
     public void configLoaderReturnsTheConfig() throws Exception {
-        com.palantir.atlasdb.qos.agent.QosClientConfigLoader clientConfigLoader = new com.palantir.atlasdb.qos.agent.QosClientConfigLoader(
+        QosClientConfigLoader clientConfigLoader = new QosClientConfigLoader(
                 () -> ImmutableMap.of(TEST_CLIENT, TEST_LIMITS));
         assertThat(clientConfigLoader.getConfigForClient(TEST_CLIENT)).isEqualTo(TEST_LIMITS);
         assertThat(clientConfigLoader.getConfigForClient(UNSPECIFIED_CLIENT)).isEqualTo(
@@ -48,7 +48,7 @@ public class QosClientConfigLoaderTest {
     @Test
     public void configLoaderIsLiveReloadable() throws Exception {
         Supplier<Map<String, QosClientLimitsConfig>> configSupplier = mock(Supplier.class);
-        com.palantir.atlasdb.qos.agent.QosClientConfigLoader clientConfigLoader = new com.palantir.atlasdb.qos.agent.QosClientConfigLoader(configSupplier);
+        QosClientConfigLoader clientConfigLoader = new QosClientConfigLoader(configSupplier);
         when(configSupplier.get())
                 .thenReturn(ImmutableMap.of(TEST_CLIENT, configWithLimits(5)))
                 .thenReturn(ImmutableMap.of(TEST_CLIENT, configWithLimits(20)))
