@@ -208,6 +208,8 @@
 <span id="cassandra-kvs-config"></span><h2>Configuring a Running Application to Use Cassandra<a class="headerlink" href="#configuring-a-running-application-to-use-cassandra" title="Permalink to this headline">¶</a></h2>
 <p>An example AtlasDB configuration for running against cassandra will look like the below.</p>
 <p>For a complete list and description of the below parameters, see <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-cassandra/src/main/java/com/palantir/atlasdb/cassandra/CassandraKeyValueServiceConfig.java">CassandraKeyValueServiceConfig.java</a>.</p>
+<p>It is recommended to make use of the live-reloaded parameters in the <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-cassandra/src/main/java/com/palantir/atlasdb/cassandra/CassandraKeyValueServiceRuntimeConfig.java">CassandraKeyValueServiceRuntimeConfig.java</a>.
+This block should be specified under the AtlasDB runtime block.</p>
 <p>Importantly - your lock creator must be consistent across all nodes. If you do not provide a lock creator, it will default to the first host
 in the leaders list. If you do not specify a lock creator, the leaders block should be exactly the same across all nodes.</p>
 <div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
@@ -244,6 +246,10 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span>
+
+<span class="l l-Scalar l-Scalar-Plain">atlasdb-runtime</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
+  <span class="l l-Scalar l-Scalar-Plain">sweepReadThreads</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">16</span>
 </pre></div>
 </div>
 <p id="cass-config-ssl">For more details on the leader block, see <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>

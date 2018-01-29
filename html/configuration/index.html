@@ -214,6 +214,7 @@ Previously, users’ Cassandra keyspaces and TimeLock clients were configured in
 <p>A second root configuration block can be specified for live-reloadable configs.
 Parameters related to <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">Sweep</span></a> can be specified there and will be reloaded in each sweep run.
 Parameters concerning batching of timestamp requests may also be configured; see <a class="reference internal" href="timestamp_client.html#timestamp-client-config"><span class="std std-ref">Timestamp Client</span></a> for more details.
+Some of the KeyValueService parameters can be live-reloadable if specified in this block under the <code class="docutils literal"><span class="pre">keyValueService</span></code> config.
 For a full list of the configurations available at this block, see
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java">AtlasDbRuntimeConfig.java</a>.</p>
 </div>
@@ -258,6 +259,9 @@ For a full list of the configurations available at this block, see
 <span class="l l-Scalar l-Scalar-Plain">atlasdb-runtime</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">timestampClient</span><span class="p p-Indicator">:</span>
     <span class="l l-Scalar l-Scalar-Plain">enableTimestampBatching</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
+    <span class="l l-Scalar l-Scalar-Plain">sweepReadThreads</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">16</span>
 </pre></div>
 </div>
 </div>
