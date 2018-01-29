@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed| |userbreak|
+         - AtlasDB CLIs now require a runtime config to be passed in.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2937>`__)
 
 =======
 v0.75.0
