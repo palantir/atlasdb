@@ -38,12 +38,7 @@ import com.palantir.logsafe.SafeArg;
 public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
 
-    /**
-     * Note that this executor cannot be shutdown after the object has been initialized, as there might have been
-     * a {@code cancelInitialization} call to the initializing object, and we need to be able to process its handler.
-     */
     private final ScheduledExecutorService singleThreadedExecutor = getExecutorService();
-
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
     private volatile boolean initialized = false;
     private volatile boolean canceledInitialization = false;
@@ -129,6 +124,8 @@ public abstract class AsyncInitializer {
                 handler.run();
             }
         });
+
+        singleThreadedExecutor.shutdown();
     }
 
     protected final void checkInitialized() {
@@ -140,6 +137,11 @@ public abstract class AsyncInitializer {
     private void tryInitializeInternal() {
         tryInitialize();
         initialized = true;
+
+        // Close calls after this point will be handled by the object itself.
+        // There might be a close call already scheduled, so we need to schedule this shutdown to run after this
+        // possible close call.
+        singleThreadedExecutor.schedule(singleThreadedExecutor::shutdown, 0, TimeUnit.MILLISECONDS);
     }
 
     // Not final for tests.
