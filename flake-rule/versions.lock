@@ -10,7 +10,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "18.0"
+            "locked": "20.0"
         },
         "junit:junit": {
             "locked": "4.12"
@@ -42,7 +42,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "18.0"
+            "locked": "20.0"
         },
         "junit:junit": {
             "locked": "4.12"
