@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Added a TimeLock healthcheck for signalling that no leader election has been triggered.
+           This will allow TimeLock itself to broadcast a HEALTHY status even without a leader.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2939>`__)
 
 =======
 v0.75.0
