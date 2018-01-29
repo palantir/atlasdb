@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent;
+package com.palantir.atlasdb.qos.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -38,7 +38,7 @@ public class QosClientConfigLoaderTest {
 
     @Test
     public void configLoaderReturnsTheConfig() throws Exception {
-        QosClientConfigLoader clientConfigLoader = new QosClientConfigLoader(
+        com.palantir.atlasdb.qos.agent.QosClientConfigLoader clientConfigLoader = new com.palantir.atlasdb.qos.agent.QosClientConfigLoader(
                 () -> ImmutableMap.of(TEST_CLIENT, TEST_LIMITS));
         assertThat(clientConfigLoader.getConfigForClient(TEST_CLIENT)).isEqualTo(TEST_LIMITS);
         assertThat(clientConfigLoader.getConfigForClient(UNSPECIFIED_CLIENT)).isEqualTo(
@@ -48,7 +48,7 @@ public class QosClientConfigLoaderTest {
     @Test
     public void configLoaderIsLiveReloadable() throws Exception {
         Supplier<Map<String, QosClientLimitsConfig>> configSupplier = mock(Supplier.class);
-        QosClientConfigLoader clientConfigLoader = new QosClientConfigLoader(configSupplier);
+        com.palantir.atlasdb.qos.agent.QosClientConfigLoader clientConfigLoader = new com.palantir.atlasdb.qos.agent.QosClientConfigLoader(configSupplier);
         when(configSupplier.get())
                 .thenReturn(ImmutableMap.of(TEST_CLIENT, configWithLimits(5)))
                 .thenReturn(ImmutableMap.of(TEST_CLIENT, configWithLimits(20)))
