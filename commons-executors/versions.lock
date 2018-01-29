@@ -63,7 +63,13 @@
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "com.google.guava:guava": {
             "locked": "18.0",
@@ -93,8 +99,14 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -164,7 +176,13 @@
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "com.google.guava:guava": {
             "locked": "18.0",
@@ -194,8 +212,14 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]

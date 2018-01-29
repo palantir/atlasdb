@@ -123,7 +123,6 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
-import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -2517,9 +2516,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             try {
                 //Callable<Void> returns null, so can't use immutable list
                 return Collections.singletonList(tasks.get(0).call());
-            } catch (RateLimitExceededException e) {
-                // Prioritise over
-                throw e;
             } catch (Exception e) {
                 throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
             }

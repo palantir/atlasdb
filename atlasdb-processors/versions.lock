@@ -1,7 +1,13 @@
 {
     "compileClasspath": {
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "com.google.guava:guava": {
             "locked": "18.0"
@@ -9,11 +15,23 @@
         "com.squareup:javapoet": {
             "locked": "1.9.0",
             "requested": "1.9.0"
+        },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         }
     },
     "runtime": {
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "com.google.guava:guava": {
             "locked": "18.0"
@@ -21,6 +39,12 @@
         "com.squareup:javapoet": {
             "locked": "1.9.0",
             "requested": "1.9.0"
+        },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         }
     }
 }

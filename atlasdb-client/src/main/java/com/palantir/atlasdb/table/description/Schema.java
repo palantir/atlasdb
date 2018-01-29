@@ -132,7 +132,7 @@ public class Schema {
                 "Table already defined: %s", tableName);
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(tableName),
-                "Invalid table name " + tableName);
+                "Invalid table name %s", tableName);
         validateTableNameLength(tableName);
         tableDefinitions.put(tableName, definition);
     }
@@ -227,7 +227,7 @@ public class Schema {
         for (IndexType type : IndexType.values()) {
             Preconditions.checkArgument(
                     !idxName.endsWith(type.getIndexSuffix()),
-                    "Index name cannot end with '" + type.getIndexSuffix() + "'.");
+                    "Index name cannot end with '%s'.", type.getIndexSuffix());
             String indexName = idxName + type.getIndexSuffix();
             Preconditions.checkArgument(
                     !tableDefinitions.containsKey(indexName) && !indexDefinitions.containsKey(indexName),
@@ -238,7 +238,7 @@ public class Schema {
                 "Index source table undefined.");
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(idxName),
-                "Invalid table name " + idxName);
+                "Invalid table name %s", idxName);
         Preconditions.checkArgument(
                 !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns()
                         || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),

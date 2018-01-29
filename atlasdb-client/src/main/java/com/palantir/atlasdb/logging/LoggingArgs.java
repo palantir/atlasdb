@@ -186,6 +186,10 @@ public final class LoggingArgs {
                 ? "all" : Iterables.size(columnSelection.getSelectedColumns()), true);
     }
 
+    public static Arg<?> columnCount(int numberOfColumns) {
+        return getArg("columnCount", numberOfColumns == Integer.MAX_VALUE ? "all" : numberOfColumns, true);
+    }
+
     public static Arg<Integer> batchHint(int batchHint) {
         return getArg("batchHint", batchHint, true);
     }

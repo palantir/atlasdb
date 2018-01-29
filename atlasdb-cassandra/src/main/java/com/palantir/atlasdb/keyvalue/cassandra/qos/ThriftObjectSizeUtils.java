@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.qos;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -51,6 +52,25 @@ public final class ThriftObjectSizeUtils {
                         + getCollectionSize(currentMap.values(),
                             mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
         return approxBytesForKeys + approxBytesForValues;
+    }
+
+    public static Map<String, Long> getSizeOfMutationPerTable(
+            Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
+        Map<String, Long> tableToSize = new HashMap<>();
+
+        batchMutateMap.forEach((key, tableToMutations) -> {
+            long keySize = ThriftObjectSizeUtils.getByteBufferSize(key);
+
+            tableToMutations.forEach((table, mutations) -> {
+                Long size = tableToSize.getOrDefault(table, 0L);
+                size += keySize;
+                size += getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize);
+
+                tableToSize.put(table, size);
+            });
+        });
+
+        return tableToSize;
     }
 
     public static long getApproximateSizeOfColsByKey(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {

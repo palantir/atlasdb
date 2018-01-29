@@ -69,7 +69,13 @@
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "com.google.guava:guava": {
             "locked": "18.0",
@@ -231,6 +237,12 @@
                 "com.palantir.remoting3:jaxrs-clients"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "org.jvnet:animal-sniffer-annotation": {
             "locked": "1.0",
             "transitive": [
@@ -238,7 +250,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.remoting3:error-handling",
@@ -320,7 +332,13 @@
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "com.google.guava:guava": {
             "locked": "18.0",
@@ -482,6 +500,12 @@
                 "com.palantir.remoting3:jaxrs-clients"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "org.jvnet:animal-sniffer-annotation": {
             "locked": "1.0",
             "transitive": [
@@ -489,7 +513,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.remoting3:error-handling",
