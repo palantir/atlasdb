@@ -23,6 +23,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -69,7 +70,7 @@ final class SchemaMutationLock {
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
     private final ConsistencyLevel writeConsistency;
-    private final UniqueSchemaMutationLockTable lockTable;
+    private final Supplier<TableReference> lockTable;
     private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
     private final HeartbeatService heartbeatService;
     private final int deadHeartbeatTimeoutThreshold;
@@ -81,7 +82,7 @@ final class SchemaMutationLock {
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel writeConsistency,
-            UniqueSchemaMutationLockTable lockTable,
+            UniqueSchemaMutationLockTable uniqueLockTable,
             HeartbeatService heartbeatService,
             int deadHeartbeatTimeoutThreshold) {
         this.supportsCas = supportsCas;
@@ -89,7 +90,7 @@ final class SchemaMutationLock {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.writeConsistency = writeConsistency;
-        this.lockTable = lockTable;
+        this.lockTable = uniqueLockTable::getOnlyTable;
         this.heartbeatService = heartbeatService;
         this.deadHeartbeatTimeoutThreshold = deadHeartbeatTimeoutThreshold;
     }
@@ -201,7 +202,7 @@ final class SchemaMutationLock {
                         if (existingColumn == null) {
                             throw new IllegalStateException("Something is wrong with underlying locks."
                                     + " Contact support for guidance on manually examining and clearing"
-                                    + " locks from " + lockTable.getOnlyTable() + " table.");
+                                    + " locks from " + lockTable.get() + " table.");
                         }
                         if (!existingColumn.equals(lastSeenColumn)) {
                             lastSeenColumn = existingColumn;
@@ -342,7 +343,7 @@ final class SchemaMutationLock {
     }
 
     private Optional<Column> queryExistingLockColumn(CassandraClient client) throws TException {
-        TableReference lockTableRef = lockTable.getOnlyTable();
+        TableReference lockTableRef = lockTable.get();
         Column existingColumn = null;
         ConsistencyLevel localQuorum = ConsistencyLevel.LOCAL_QUORUM;
         try {
@@ -367,7 +368,7 @@ final class SchemaMutationLock {
             CassandraClient client,
             List<Column> expectedLockValue,
             Column newLockValue) throws TException {
-        TableReference lockTableRef = lockTable.getOnlyTable();
+        TableReference lockTableRef = lockTable.get();
         return queryRunner.run(client, lockTableRef,
                 () -> client.cas(
                         lockTableRef,
