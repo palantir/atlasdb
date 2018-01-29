@@ -79,7 +79,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "18.0",
+            "locked": "20.0",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -105,19 +105,19 @@
             "project": true
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.4.0",
+            "locked": "1.7.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.5.1",
+            "locked": "3.14.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.5.1",
+            "locked": "3.14.0",
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
@@ -250,7 +250,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "18.0",
+            "locked": "20.0",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -276,19 +276,19 @@
             "project": true
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.4.0",
+            "locked": "1.7.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.5.1",
+            "locked": "3.14.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.5.1",
+            "locked": "3.14.0",
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
