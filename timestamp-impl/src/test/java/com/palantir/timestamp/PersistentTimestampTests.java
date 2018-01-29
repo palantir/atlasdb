@@ -16,10 +16,10 @@
 
 package com.palantir.timestamp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.longThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.internal.hamcrest.HamcrestArgumentMatcher;
 
 public class PersistentTimestampTests {
 
@@ -73,7 +74,7 @@ public class PersistentTimestampTests {
         timestamp.increaseTo(newMinimum);
 
         assertThat(timestamp.incrementBy(1).getLowerBound(), is(newMinimum + 1L));
-        verify(upperLimit).increaseToAtLeast(longThat(is(greaterThan(newMinimum))));
+        verify(upperLimit).increaseToAtLeast(longThat(new HamcrestArgumentMatcher<>(is(greaterThan(newMinimum)))));
     }
 
 }

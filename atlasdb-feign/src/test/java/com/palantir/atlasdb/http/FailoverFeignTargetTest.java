@@ -17,10 +17,6 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.longThat;
@@ -37,6 +33,10 @@ import java.util.List;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
+import org.mockito.internal.matchers.And;
+import org.mockito.internal.matchers.GreaterOrEqual;
+import org.mockito.internal.matchers.LessThan;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
@@ -176,7 +176,7 @@ public class FailoverFeignTargetTest {
         }
 
         verify(spiedTarget, times(1)).pauseForBackoff(any(),
-                longThat(is(both(greaterThanOrEqualTo(LOWER_BACKOFF_BOUND)).and(lessThan(UPPER_BACKOFF_BOUND)))));
+                longThat(isWithinBounds(LOWER_BACKOFF_BOUND, UPPER_BACKOFF_BOUND)));
     }
 
     @Test
@@ -187,7 +187,7 @@ public class FailoverFeignTargetTest {
         }
 
         verify(spiedTarget, times(3)).pauseForBackoff(any(),
-                longThat(is(both(greaterThanOrEqualTo(LOWER_BACKOFF_BOUND)).and(lessThan(UPPER_BACKOFF_BOUND)))));
+                longThat(isWithinBounds(LOWER_BACKOFF_BOUND, UPPER_BACKOFF_BOUND)));
     }
 
     @Test
@@ -212,7 +212,7 @@ public class FailoverFeignTargetTest {
             int expectedNumOfCalls = i + 1;
             long cap = Math.round(Math.pow(GOLDEN_RATIO, expectedNumOfCalls));
             verify(spiedTarget, times(expectedNumOfCalls)).pauseForBackoff(any(),
-                    longThat(is(both(greaterThanOrEqualTo(0L)).and(lessThan(cap)))));
+                    longThat(isWithinBounds(0L, cap)));
         }
     }
 
@@ -220,5 +220,13 @@ public class FailoverFeignTargetTest {
         // This method is called as a part of a request being invoked.
         // We need to update the mostRecentServerIndex, for the FailoverFeignTarget to track failures properly.
         target.url();
+    }
+
+    @SuppressWarnings("unchecked")
+    private ArgumentMatcher<Long> isWithinBounds(long lowerBoundInclusive, long upperBoundExclusive) {
+        return new And(ImmutableList.of(
+                new GreaterOrEqual<>(lowerBoundInclusive),
+                new LessThan<>(upperBoundExclusive)
+        ));
     }
 }

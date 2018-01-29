@@ -118,7 +118,7 @@
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -150,10 +150,9 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
+                "com.google.code.findbugs:annotations",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting-api:errors",
-                "com.palantir.remoting3:jaxrs-clients",
-                "com.palantir.remoting3:refresh-utils"
+                "com.palantir.remoting-api:errors"
             ]
         },
         "com.google.guava:guava": {
@@ -660,6 +659,12 @@
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",
             "transitive": [
@@ -667,7 +672,7 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.1",
+            "locked": "3.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:commons-db"
@@ -704,7 +709,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -856,7 +861,7 @@
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -888,10 +893,9 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
+                "com.google.code.findbugs:annotations",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting-api:errors",
-                "com.palantir.remoting3:jaxrs-clients",
-                "com.palantir.remoting3:refresh-utils"
+                "com.palantir.remoting-api:errors"
             ]
         },
         "com.google.guava:guava": {
@@ -1398,6 +1402,12 @@
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",
             "transitive": [
@@ -1405,7 +1415,7 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.1",
+            "locked": "3.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:commons-db"
@@ -1442,7 +1452,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",

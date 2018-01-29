@@ -161,6 +161,7 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
         }
     }
 
+    @SuppressWarnings("ValidateConstantMessage")
     private void fail(String message) {
         switch (strictness) {
             case ASSERT_AND_LOG:

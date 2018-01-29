@@ -21,4 +21,3 @@ dependencies {
     processor group: 'org.immutables', name: 'value'
 
 }
-

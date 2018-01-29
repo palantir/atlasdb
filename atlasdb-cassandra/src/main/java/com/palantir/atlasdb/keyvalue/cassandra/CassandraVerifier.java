@@ -115,11 +115,13 @@ public final class CassandraVerifier {
         return dataCenterToRack.keySet();
     }
 
+    @SuppressWarnings("ValidateConstantMessage") // https://github.com/palantir/gradle-baseline/pull/175
     static void sanityCheckTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         Validate.isTrue(!(tableName.startsWith("_") && tableName.contains("."))
                 || AtlasDbConstants.hiddenTables.contains(tableRef)
-                || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + tableName);
+                || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
+                "invalid tableName: %s", tableName);
     }
 
     /**
