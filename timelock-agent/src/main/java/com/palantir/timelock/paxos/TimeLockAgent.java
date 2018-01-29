@@ -121,7 +121,7 @@ public class TimeLockAgent {
     @SuppressWarnings("unused") // used by external health checks
     public TimeLockStatus getStatus() {
         if (resource.numberOfClients() == 0) {
-            return TimeLockStatus.NO_CLIENTS;
+            return TimeLockStatus.PENDING_ELECTION;
         }
 
         return healthCheckSupplier.get().getStatus();

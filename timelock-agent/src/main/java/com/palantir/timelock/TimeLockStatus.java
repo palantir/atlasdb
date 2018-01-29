@@ -21,7 +21,8 @@ public enum TimeLockStatus {
     NO_LEADER("There are no leaders in the Paxos cluster"),
     MULTIPLE_LEADERS("Multiple nodes in the Paxos cluster believe themselves to be the leader."),
     NO_QUORUM("Less than a quorum of nodes responded to a ping request."),
-    NO_CLIENTS("No clients have been registered yet. A leader is elected upon the registration of the first client.");
+    PENDING_ELECTION("No leader election has been triggered yet. A leader is elected upon the registration"
+            + " of the first client, so this might indicate that no clients have been registered yet.");
 
     private final String message;
 
