@@ -56,6 +56,7 @@ public class TimeLockAgent {
     private final TimeLockServicesCreator timelockCreator;
 
     private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
+    private TimeLockResource resource;
 
     public static TimeLockAgent create(TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
@@ -110,15 +111,19 @@ public class TimeLockAgent {
 
         // Finally, register the health check, and endpoints associated with the clients.
         healthCheckSupplier = leadershipCreator.getHealthCheck();
-        registrar.accept(
-                new TimeLockResource(this::createInvalidatingTimeLockServices,
-                        JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime)));
+        resource = new TimeLockResource(this::createInvalidatingTimeLockServices,
+                JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime));
+        registrar.accept(resource);
 
         ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
     }
 
     @SuppressWarnings("unused") // used by external health checks
     public TimeLockStatus getStatus() {
+        if (resource.numberOfClients() == 0) {
+            return TimeLockStatus.NO_CLIENTS;
+        }
+
         return healthCheckSupplier.get().getStatus();
     }
 
