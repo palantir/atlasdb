@@ -97,7 +97,7 @@ public class PostgresConfigLoadingTest {
         // Palantir internal runs this test from the jar rather than from source. This means that the resource
         // cannot be loaded as a file. Instead it must be loaded as a stream.
         try (InputStream stream = getClass().getClassLoader().getResourceAsStream("postgresTestConfig.yml")) {
-            return AtlasDbConfigs.load(stream);
+            return AtlasDbConfigs.load(stream, AtlasDbConfig.class);
         }
     }
 

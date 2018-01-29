@@ -21,6 +21,7 @@ import java.util.concurrent.Callable;
 
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
@@ -29,10 +30,16 @@ public abstract class AbstractCommand implements Callable<Integer> {
     public static final String ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH = "/atlas";
 
     @Option(name = {"-c", "--config"},
-            title = "CONFIG PATH",
+            title = "INSTALL CONFIG PATH",
             type = OptionType.GLOBAL,
-            description = "path to yaml configuration file for atlasdb")
+            description = "path to yaml install configuration file for atlasdb")
     private File configFile;
+
+    @Option(name = {"-r", "--runtime-config"},
+            title = "RUNTIME CONFIG PATH",
+            type = OptionType.GLOBAL,
+            description = "path to yaml runtime configuration file for atlasdb")
+    private File runtimeConfigFile;
 
     // TODO(bgrabham): Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
     @Option(name = {"--inline-config"},
@@ -54,16 +61,17 @@ public abstract class AbstractCommand implements Callable<Integer> {
     private boolean offline = false;
 
     private AtlasDbConfig config;
+    private AtlasDbRuntimeConfig runtimeConfig;
 
     protected AtlasDbConfig getAtlasDbConfig() {
         if (config == null) {
             try {
                 if (configFile != null) {
-                    config = parseAtlasDbConfig();
+                    config = parseAtlasDbConfig(configFile, AtlasDbConfig.class);
                 } else if (inlineConfig != null) {
-                    config = AtlasDbConfigs.loadFromString(inlineConfig, "");
+                    config = AtlasDbConfigs.loadFromString(inlineConfig, "", AtlasDbConfig.class);
                 } else {
-                    throw new IllegalArgumentException("Required option '-c' is missing");
+                    throw new IllegalArgumentException("Required option '-c' for install config is missing");
                 }
                 if (offline) {
                     config = config.toOfflineConfig();
@@ -77,12 +85,23 @@ public abstract class AbstractCommand implements Callable<Integer> {
         return config;
     }
 
-    private AtlasDbConfig parseAtlasDbConfig() {
+    protected AtlasDbRuntimeConfig getAtlasDbRuntimeConfig() {
+        if (runtimeConfig == null) {
+            if (runtimeConfigFile != null) {
+                runtimeConfig = parseAtlasDbConfig(runtimeConfigFile, AtlasDbRuntimeConfig.class);
+            } else {
+                throw new IllegalArgumentException("Required option '-r' for runtime config is missing");
+            }
+        }
+        return runtimeConfig;
+    }
+
+    private <T> T parseAtlasDbConfig(File confFile, Class<T> clazz) {
         try {
-            return AtlasDbConfigs.load(configFile, configRoot);
+            return AtlasDbConfigs.load(confFile, configRoot, clazz);
         } catch (Exception e) {
             try {
-                return AtlasDbConfigs.load(configFile, ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH);
+                return AtlasDbConfigs.load(confFile, ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH, clazz);
             } catch (Exception ex) {
                 throw new RuntimeException("Failed to load the atlasdb config. One possibility"
                         + " is that the AtlasDB block root in the config is not '/atlasdb' nor '/atlas'."

@@ -81,7 +81,7 @@ public class AtlasDbConsoleCommandTest {
             @Override
             protected void runAtlasDbConsole(List<String> allArgs) {
                 try {
-                    cliConfig.set(AtlasDbConfigs.loadFromString(allArgs.get(2), null));
+                    cliConfig.set(AtlasDbConfigs.loadFromString(allArgs.get(2), null, AtlasDbConfig.class));
                 } catch (IOException e) {
                     throw Throwables.propagate(e);
                 }

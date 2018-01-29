@@ -192,7 +192,7 @@ public class AtlasDbCommandUtilsTest {
                         .build())
                 .build();
         String configAsString = AtlasDbCommandUtils.serialiseConfiguration(bigConfig);
-        AtlasDbConfig deserializedConfig = AtlasDbConfigs.loadFromString(configAsString, "");
+        AtlasDbConfig deserializedConfig = AtlasDbConfigs.loadFromString(configAsString, "", AtlasDbConfig.class);
 
         assertThat(bigConfig).isEqualTo(deserializedConfig);
     }
