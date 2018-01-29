@@ -55,6 +55,12 @@ develop
            This will allow TimeLock itself to broadcast a HEALTHY status even without a leader.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2939>`__)
 
+    *    - |improved|
+         - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
+           To check which parameters are live-reloadable, check the `CassandraKeyValueServiceRuntimeConfig` class.
+           Docs about this config can be found `here<atlas-config>` and `here<cassandra-configuration>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
+
 =======
 v0.75.0
 =======
