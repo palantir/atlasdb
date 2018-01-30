@@ -2111,21 +2111,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void cleanUpSchemaMutationLockTablesState() throws TException {
-        Set<TableReference> tables = lockTables.getAllLockTables();
-        java.util.Optional<TableReference> tableToKeep = tables.stream().findFirst();
-        if (!tableToKeep.isPresent()) {
-            log.info("No lock tables to clean up.");
-            return;
-        }
-        tables.remove(tableToKeep.get());
-        if (tables.size() > 0) {
-            cassandraTableDropper.dropTables(tables);
-            LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(tables);
-            log.info("Dropped tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
-        }
-        schemaMutationLock.cleanLockState();
-        log.info("Reset the schema mutation lock in table [{}]",
-                LoggingArgs.tableRef(tableToKeep.get()));
+        new CassandraSchemaLockCleaner(lockTables, schemaMutationLock, cassandraTableDropper).cleanLocksState();
     }
 
     private static class TableCellAndValue {
