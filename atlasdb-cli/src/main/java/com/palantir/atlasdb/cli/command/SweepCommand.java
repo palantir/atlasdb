@@ -36,7 +36,9 @@ import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -110,6 +112,14 @@ public class SweepCommand extends SingleBackendCommand {
                     + " (throttles long-running sweep jobs, default: 0)")
     long sleepTimeInMs = 0;
 
+    @Option(name = {"--force-thorough-sweep"},
+            description = "Force thorough sweep")
+    Boolean forceThoroughSweep = false;
+
+    @Option(name = {"--force-batch-deletes"},
+            description = "Force batch deletes")
+    Boolean forceBatchDeletes = false;
+
     @Option(name = {"--dry-run"},
             description = "Run sweep in dry run mode to get how much would have been deleted and check safety."
                     + " This will not delete any data.")
@@ -122,6 +132,18 @@ public class SweepCommand extends SingleBackendCommand {
 
     @Override
     public int execute(final AtlasDbServices services) {
+        if (forceThoroughSweep) {
+            SweepTaskRunner.staticSweepStrategy = TableMetadataPersistence.SweepStrategy.THOROUGH;
+        }
+        if (forceBatchDeletes) {
+            CassandraKeyValueServiceImpl.forceBatchDeletes = true;
+        }
+
+        printer.info("Using staticSweepStrategy = {}",
+                SafeArg.of("strategy", SweepTaskRunner.staticSweepStrategy));
+        printer.info("Using forceBatchDeletes = {}",
+                SafeArg.of("batch deletes", CassandraKeyValueServiceImpl.forceBatchDeletes));
+
         SweepTaskRunner sweepRunner = services.getSweepTaskRunner();
 
         if (!((namespace != null) ^ (table != null) ^ sweepAllTables)) {
