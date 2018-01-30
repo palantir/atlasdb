@@ -1042,7 +1042,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private void putInternal(final String kvsMethodName,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
-        Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = partitionMapByHost(values);
+        Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = new HostPartitioner<Value>(clientPool)
+                .partitionMapByHost(values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
@@ -1345,7 +1346,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost = partitionMapByHost(keys.asMap().entrySet());
+        Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost =
+                new HostPartitioner<Collection<Long>>(clientPool).partitionMapByHost(keys.asMap().entrySet());
         for (Map.Entry<InetSocketAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
             deleteOnSingleHost(entry.getKey(), tableRef, entry.getValue());
         }
@@ -2059,7 +2061,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
-        Map<InetSocketAddress, Map<Cell, Long>> keysByHost = partitionMapByHost(maxTimestampExclusiveByCell.entrySet());
+        Map<InetSocketAddress, Map<Cell, Long>> keysByHost = new HostPartitioner<Long>(clientPool).partitionMapByHost(
+                maxTimestampExclusiveByCell.entrySet());
         for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
             deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue());
         }
@@ -2486,10 +2489,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         schemaMutationLock.cleanLockState();
         log.info("Reset the schema mutation lock in table [{}]",
                 LoggingArgs.tableRef(tableToKeep.get()));
-    }
-
-    private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
-        return new HostPartitioner<V>(clientPool).partitionMapByHost(cells);
     }
 
     /*
