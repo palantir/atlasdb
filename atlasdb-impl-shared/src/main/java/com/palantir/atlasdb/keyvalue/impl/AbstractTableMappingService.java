@@ -67,7 +67,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
 
     protected void validateShortName(TableReference tableRef, TableReference shortName) {
         Validate.isTrue(Schemas.isTableNameValid(shortName.getQualifiedName()),
-                "Table mapper has an invalid table name for table reference " + tableRef + ": " + shortName);
+                "Table mapper has an invalid table name for table reference %s: %s", tableRef, shortName);
     }
 
     private TableReference getFullTableName(TableReference shortTableName) {
@@ -76,7 +76,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
         } else {
             updateTableMap();
             Validate.isTrue(tableMap.get().containsValue(shortTableName),
-                    "Unable to resolve full name for table " + shortTableName);
+                    "Unable to resolve full name for table %s", shortTableName);
             return tableMap.get().inverse().get(shortTableName);
         }
     }

@@ -109,6 +109,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.DbKvsGetCandidateCellsForS
 import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
@@ -379,7 +380,7 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, boolean idempotent) {
-        Iterable<List<Entry<Cell, byte[]>>> batches = partitionByCountAndBytes(
+        Iterable<List<Entry<Cell, byte[]>>> batches = IterablePartitioner.partitionByCountAndBytes(
                 values.entrySet(),
                 config.mutationBatchCount(),
                 config.mutationBatchSizeBytes(),
@@ -455,7 +456,7 @@ public final class DbKvs extends AbstractKeyValueService {
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        Iterable<List<Entry<Cell, Value>>> batches = partitionByCountAndBytes(
+        Iterable<List<Entry<Cell, Value>>> batches = IterablePartitioner.partitionByCountAndBytes(
                 cellValues.entries(),
                 config.mutationBatchCount(),
                 config.mutationBatchSizeBytes(),
@@ -511,7 +512,7 @@ public final class DbKvs extends AbstractKeyValueService {
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         // QA-86494: We sort our deletes here because we have seen oracle deadlock errors here.
         ImmutableList<Entry<Cell, Long>> sorted = ORDERING.immutableSortedCopy(keys.entries());
-        Iterable<List<Entry<Cell, Long>>> partitions = partitionByCountAndBytes(
+        Iterable<List<Entry<Cell, Long>>> partitions = IterablePartitioner.partitionByCountAndBytes(
                 sorted,
                 10000,
                 getMultiPutBatchSizeBytes(),

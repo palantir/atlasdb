@@ -1,13 +1,25 @@
 {
     "compileClasspath": {
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "commons-io:commons-io": {
             "locked": "2.1"
         },
         "junit:junit": {
             "locked": "4.12"
+        },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "org.hamcrest:hamcrest-all": {
             "locked": "1.3"
@@ -21,13 +33,25 @@
     },
     "runtime": {
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "commons-io:commons-io": {
             "locked": "2.1"
         },
         "junit:junit": {
             "locked": "4.12"
+        },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "org.hamcrest:hamcrest-all": {
             "locked": "1.3"

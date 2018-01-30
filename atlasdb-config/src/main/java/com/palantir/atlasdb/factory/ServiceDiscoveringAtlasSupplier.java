@@ -41,6 +41,7 @@ import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
@@ -58,7 +59,11 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        this(config, leaderConfig, Optional.empty(), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+        this(config,
+                Optional::empty,
+                leaderConfig,
+                Optional.empty(),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 FakeQosClient.INSTANCE);
     }
 
@@ -67,21 +72,28 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> timestampTable) {
-        this(config, leaderConfig, namespace, timestampTable, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+        this(config,
+                Optional::empty,
+                leaderConfig,
+                namespace,
+                timestampTable,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 FakeQosClient.INSTANCE);
     }
 
     public ServiceDiscoveringAtlasSupplier(
             KeyValueServiceConfig config,
+            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             boolean initializeAsync,
             QosClient qosClient) {
-        this(config, leaderConfig, namespace, Optional.empty(), initializeAsync, qosClient);
+        this(config, runtimeConfig, leaderConfig, namespace, Optional.empty(), initializeAsync, qosClient);
     }
 
     public ServiceDiscoveringAtlasSupplier(
             KeyValueServiceConfig config,
+            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> timestampTable,
@@ -100,6 +112,7 @@ public class ServiceDiscoveringAtlasSupplier {
         keyValueService = Suppliers.memoize(
                 () -> atlasFactory.createRawKeyValueService(
                         config,
+                        runtimeConfig,
                         leaderConfig,
                         namespace,
                         initializeAsync,

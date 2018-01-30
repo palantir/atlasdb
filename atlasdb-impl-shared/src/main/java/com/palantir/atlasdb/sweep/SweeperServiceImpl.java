@@ -110,7 +110,7 @@ public final class SweeperServiceImpl implements SweeperService {
 
     private void checkTableExists(String tableName, TableReference tableRef) {
         Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
-                String.format("Table requested to sweep %s does not exist", tableName));
+                "Table requested to sweep %s does not exist", tableName);
     }
 
     private SweepResults runFullSweepWithoutSavingResults(
