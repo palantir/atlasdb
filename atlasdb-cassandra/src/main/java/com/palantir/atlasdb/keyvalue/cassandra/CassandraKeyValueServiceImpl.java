@@ -17,8 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -203,6 +201,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TimestampsLoader timestampsLoader;
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
+    private final CassandraTableDropper cassandraTableDropper;
 
     private final CassandraTables cassandraTables;
 
@@ -319,6 +318,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.timestampsLoader = new TimestampsLoader(cellLoader);
         this.cellValuePutter = new CellValuePutter(config, clientPool, taskRunner, wrappingQueryRunner,
                 writeConsistency);
+        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, timestampsLoader, cellValuePutter,
+                wrappingQueryRunner, deleteConsistency);
 
         if (!compactionManager.isPresent()) {
             logLackOfCompactionManager(config.getKeyspaceOrThrow());
@@ -376,7 +377,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     client.rawClient().describe_keyspace(config.getKeyspaceOrThrow()).getCf_defs());
 
             for (CfDef clusterSideCf : knownCfs) {
-                TableReference tableRef = tableReferenceFromCfDef(clusterSideCf);
+                TableReference tableRef = CassandraKeyValueServices.tableReferenceFromCfDef(clusterSideCf);
                 if (metadataForTables.containsKey(tableRef)) {
                     byte[] clusterSideMetadata = metadataForTables.get(tableRef);
                     CfDef clientSideCf = getCfForTable(tableRef, clusterSideMetadata,
@@ -1310,45 +1311,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
-        schemaMutationLock.runWithLock(() -> dropTablesInternal(tablesToDrop));
-    }
-
-    private void dropTablesInternal(final Set<TableReference> tablesToDrop) {
-        try {
-            clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, Exception>) client -> {
-                KsDef ks = client.rawClient().describe_keyspace(config.getKeyspaceOrThrow());
-                Set<TableReference> existingTables = Sets.newHashSet();
-
-                existingTables.addAll(ks.getCf_defs().stream()
-                        .map(this::tableReferenceFromCfDef)
-                        .collect(Collectors.toList()));
-
-                for (TableReference table : tablesToDrop) {
-                    CassandraVerifier.sanityCheckTableName(table);
-                    if (existingTables.contains(table)) {
-                        client.rawClient().system_drop_column_family(internalTableName(table));
-                        putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
-                    } else {
-                        log.warn("Ignored call to drop a table ({}) that did not exist.",
-                                LoggingArgs.tableRef(table));
-                    }
-                }
-                CassandraKeyValueServices.waitForSchemaVersions(
-                        config,
-                        client.rawClient(),
-                        "(all tables in a call to dropTables)");
-                return null;
-            });
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "Dropping tables requires all Cassandra nodes to be up and available.", e);
-        } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
-        }
-    }
-
-    private TableReference tableReferenceFromCfDef(CfDef cf) {
-        return fromInternalTableName(cf.getName());
+        schemaMutationLock.runWithLock(() -> cassandraTableDropper.dropTables(tablesToDrop));
     }
 
     /**
@@ -1451,7 +1414,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Map<TableReference, byte[]> filteredTables = Maps.newHashMap();
         try {
             Set<TableReference> existingTablesLowerCased = cassandraTables.getExistingLowerCased().stream()
-                    .map(AbstractKeyValueService::fromInternalTableName)
+                    .map(TableReference::fromInternalTableName)
                     .collect(Collectors.toSet());
 
             for (Entry<TableReference, byte[]> tableAndMetadataPair : tableNamesToTableMetadata.entrySet()) {
@@ -1588,7 +1551,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 for (Entry<Cell, Value> entry : cells) {
                     Value value = entry.getValue();
-                    TableReference tableRef = tableReferenceFromBytes(entry.getKey().getRowName());
+                    TableReference tableRef = CassandraKeyValueServices.tableReferenceFromBytes(entry.getKey().getRowName());
                     byte[] contents;
                     if (value == null) {
                         contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
@@ -1611,24 +1574,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private Stream<TableReference> getTableReferencesWithoutFiltering() {
         return cassandraTables.getExisting().stream()
-                .map(AbstractKeyValueService::fromInternalTableName);
-    }
-
-    private static Cell getMetadataCell(TableReference tableRef) {
-        // would have preferred an explicit charset, but thrift uses default internally
-        return Cell.create(
-                tableReferenceToBytes(tableRef),
-                "m".getBytes(StandardCharsets.UTF_8));
-    }
-
-    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
-    private static TableReference tableReferenceFromBytes(byte[] name) {
-        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()));
-    }
-
-    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
-    private static byte[] tableReferenceToBytes(TableReference tableRef) {
-        return tableRef.getQualifiedName().getBytes(Charset.defaultCharset());
+                .map(TableReference::fromInternalTableName);
     }
 
     /**
@@ -1674,7 +1620,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         Map<Cell, byte[]> metadataRequestedForUpdate = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
-            metadataRequestedForUpdate.put(getMetadataCell(tableEntry.getKey()), tableEntry.getValue());
+            metadataRequestedForUpdate.put(CassandraKeyValueServices.getMetadataCell(tableEntry.getKey()), tableEntry.getValue());
         }
 
         Map<Cell, Long> requestForLatestDbSideMetadata = Maps.transformValues(
@@ -1693,7 +1639,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             if (updatedMetadataFound(persistedMetadata.get(entry.getKey()), entry.getValue())) {
                 updatedMetadata.put(entry.getKey(), entry.getValue());
                 updatedCfs.add(getCfForTable(
-                        tableReferenceFromBytes(entry.getKey().getRowName()),
+                        CassandraKeyValueServices.tableReferenceFromBytes(entry.getKey().getRowName()),
                         entry.getValue(),
                         config.gcGraceSeconds()));
             }
@@ -1736,22 +1682,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
-
-    private void putMetadataWithoutChangingSettings(final TableReference tableRef, final byte[] meta) {
-        long ts = System.currentTimeMillis();
-
-        Multimap<Cell, Long> oldVersions = getAllTimestamps(
-                AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableSet.of(getMetadataCell(tableRef)),
-                ts);
-
-        put(AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(getMetadataCell(tableRef), meta),
-                ts);
-
-        delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
-    }
-
 
     @Override
     public void deleteRange(final TableReference tableRef, final RangeRequest range) {
@@ -2191,7 +2121,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
         tables.remove(tableToKeep.get());
         if (tables.size() > 0) {
-            dropTablesInternal(tables);
+            cassandraTableDropper.dropTables(tables);
             LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(tables);
             log.info("Dropped tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
         }

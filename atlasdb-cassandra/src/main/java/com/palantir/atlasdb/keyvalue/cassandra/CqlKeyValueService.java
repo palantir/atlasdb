@@ -1093,7 +1093,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                 .all();
 
         Set<TableReference> existingTables = Sets.newHashSet(Iterables.transform(rows,
-                row -> fromInternalTableName(row.getString("columnfamily_name"))));
+                row -> TableReference.fromInternalTableName(row.getString("columnfamily_name"))));
 
         return Sets.filter(existingTables, tableRef ->
                 !tableRef.getQualifiedName().startsWith("_")
