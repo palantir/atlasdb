@@ -259,7 +259,7 @@ public class SchemaMutationLockIntegrationTest {
                 clientPool,
                 queryRunner,
                 writeConsistency,
-                lockTable,
+                lockTable::getOnlyTable,
                 heartbeatService,
                 defaultDeadHeartbeatTimeoutThresholdMillis);
     }

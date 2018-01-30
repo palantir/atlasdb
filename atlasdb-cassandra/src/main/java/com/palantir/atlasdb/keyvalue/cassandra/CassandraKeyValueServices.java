@@ -18,6 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.commons.lang3.Validate;
@@ -43,6 +46,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.Throwables;
@@ -287,6 +291,36 @@ public final class CassandraKeyValueServices {
             }
         }
         return sb.toString();
+    }
+
+    static Column createColumn(Cell cell, Value value) {
+        byte[] contents = value.getContents();
+        long timestamp = value.getTimestamp();
+        ByteBuffer colName = makeCompositeBuffer(cell.getColumnName(), timestamp);
+        Column col = new Column();
+        col.setName(colName);
+        col.setValue(contents);
+        col.setTimestamp(timestamp);
+        return col;
+    }
+
+    static Cell getMetadataCell(TableReference tableRef) {
+        // would have preferred an explicit charset, but thrift uses default internally
+        return Cell.create(tableReferenceToBytes(tableRef), "m".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    private static byte[] tableReferenceToBytes(TableReference tableRef) {
+        return tableRef.getQualifiedName().getBytes(Charset.defaultCharset());
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    static TableReference tableReferenceFromBytes(byte[] name) {
+        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()));
+    }
+
+    static TableReference tableReferenceFromCfDef(CfDef cf) {
+        return TableReference.fromInternalTableName(cf.getName());
     }
 
     interface ThreadSafeResultVisitor extends Visitor<Map<ByteBuffer, List<ColumnOrSuperColumn>>> {

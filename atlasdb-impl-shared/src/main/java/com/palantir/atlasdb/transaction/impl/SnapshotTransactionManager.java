@@ -191,12 +191,6 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskReadOnlyWithCondition(PreCommitConditions.NO_OP,
-                (transaction, condition) -> task.execute(transaction));
-    }
-
-    @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();

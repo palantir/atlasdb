@@ -110,6 +110,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
+import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
@@ -610,7 +611,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
             NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
 
 
-            Iterable<List<Entry<Cell, byte[]>>> partitions = partitionByCountAndBytes(
+            Iterable<List<Entry<Cell, byte[]>>> partitions = IterablePartitioner.partitionByCountAndBytes(
                     sortedMap.entrySet(),
                     getMultiPutBatchCount(),
                     getMultiPutBatchSizeBytes(),
@@ -659,7 +660,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         long mutationBatchSizeBytes = limitBatchSizesToServerDefaults
                 ? CqlKeyValueServices.UNCONFIGURED_DEFAULT_BATCH_SIZE_BYTES
                 : config.mutationBatchSizeBytes();
-        for (List<Entry<Cell, Value>> partition : partitionByCountAndBytes(
+        for (List<Entry<Cell, Value>> partition : IterablePartitioner.partitionByCountAndBytes(
                 values,
                 mutationBatchCount,
                 mutationBatchSizeBytes,
@@ -1092,7 +1093,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                 .all();
 
         Set<TableReference> existingTables = Sets.newHashSet(Iterables.transform(rows,
-                row -> fromInternalTableName(row.getString("columnfamily_name"))));
+                row -> TableReference.fromInternalTableName(row.getString("columnfamily_name"))));
 
         return Sets.filter(existingTables, tableRef ->
                 !tableRef.getQualifiedName().startsWith("_")

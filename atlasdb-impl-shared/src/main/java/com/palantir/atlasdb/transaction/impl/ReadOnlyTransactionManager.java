@@ -23,9 +23,10 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -41,7 +42,7 @@ import com.palantir.lock.v2.TimelockService;
  * committed values stored by a {@link SnapshotTransactionManager}. This does not provide snapshot
  * isolation but will always read the most recently committed value for any {@link Cell}.
  */
-public class ReadOnlyTransactionManager extends AbstractTransactionManager implements LockAwareTransactionManager {
+public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
     protected final KeyValueService keyValueService;
     protected final TransactionService transactionService;
     protected final AtlasDbConstraintCheckingMode constraintCheckingMode;
@@ -111,18 +112,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        checkOpen();
-        SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
-                keyValueService,
-                transactionService,
-                startTimestamp.get(),
-                constraintCheckingMode,
-                readSentinelBehavior,
-                allowHiddenTableAccess,
-                timestampValidationReadCache,
-                getRangesExecutor,
-                defaultGetRangesConcurrency);
-        return runTaskThrowOnConflict(task, new ReadTransaction(txn, txn.sweepStrategyManager));
+        return runTaskReadOnlyWithCondition(NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
     }
 
     @Override
@@ -190,9 +180,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     }
 
     @Override
-    public void clearTimestampCache() {
-
-    }
+    public void clearTimestampCache() {}
 
     @Override
     public LockService getLockService() {
@@ -202,5 +190,29 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     @Override
     public TimelockService getTimelockService() {
         return null;
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(C condition,
+            ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
+        throw new UnsupportedOperationException("this manager is read only");
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(C condition,
+            ConditionAwareTransactionTask<T, C, E> task) throws E {
+        checkOpen();
+        SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
+                keyValueService,
+                transactionService,
+                startTimestamp.get(),
+                constraintCheckingMode,
+                readSentinelBehavior,
+                allowHiddenTableAccess,
+                timestampValidationReadCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency);
+        return runTaskThrowOnConflict((transaction) -> task.execute(transaction, condition),
+                new ReadTransaction(txn, txn.sweepStrategyManager));
     }
 }

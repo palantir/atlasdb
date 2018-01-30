@@ -51,8 +51,14 @@ develop
          - Change
 
     *    - |fixed| |userbreak|
-         - AtlasDB CLIs now require a runtime config to be passed in.
+         - AtlasDB CLIs now allows a runtime config to be passed in.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2937>`__)
+
+    *    - |improved|
+         - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
+           To check which parameters are live-reloadable, check the `CassandraKeyValueServiceRuntimeConfig` class.
+           Docs about this config can be found `here<atlas-config>` and `here<cassandra-configuration>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
 
 =======
 v0.75.0
