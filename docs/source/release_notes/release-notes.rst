@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Close AsyncInitializer executors. This should reduce memory pressure of clients after startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2945>`__)
+
     *    - |improved|
          - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
            To check which parameters are live-reloadable, check the `CassandraKeyValueServiceRuntimeConfig` class.
