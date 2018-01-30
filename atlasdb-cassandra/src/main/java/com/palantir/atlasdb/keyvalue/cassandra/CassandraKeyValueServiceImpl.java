@@ -94,7 +94,6 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.AllTimestampsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
@@ -205,6 +204,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
     private final CellLoader cellLoader;
+    private final TimestampsLoader timestampsLoader;
     private final TaskRunner taskRunner;
 
     private final CassandraTables cassandraTables;
@@ -319,6 +319,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
+        this.timestampsLoader = new TimestampsLoader(cellLoader);
 
         if (!compactionManager.isPresent()) {
             logLackOfCompactionManager(config.getKeyspaceOrThrow());
@@ -2008,9 +2009,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
-        AllTimestampsCollector collector = new AllTimestampsCollector();
-        cellLoader.loadWithTs("getAllTimestamps", tableRef, cells, ts, true, collector, deleteConsistency);
-        return collector.getCollectedResults();
+        return timestampsLoader.getAllTimestamps(tableRef, cells, ts, deleteConsistency);
     }
 
     /**
