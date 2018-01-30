@@ -41,7 +41,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.common.base.FunctionCheckedException;
 
-class CassandraTableDropper {
+public class CassandraTableDropper {
     private static final Logger log = LoggerFactory.getLogger(CassandraTableDropper.class);
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
@@ -50,7 +50,7 @@ class CassandraTableDropper {
     private WrappingQueryRunner wrappingQueryRunner;
     private ConsistencyLevel deleteConsistency;
 
-    CassandraTableDropper(CassandraKeyValueServiceConfig config,
+    public CassandraTableDropper(CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             CellLoader cellLoader,
             CellValuePutter cellValuePutter,

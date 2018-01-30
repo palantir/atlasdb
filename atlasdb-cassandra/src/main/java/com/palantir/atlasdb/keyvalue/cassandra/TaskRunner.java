@@ -25,10 +25,10 @@ import java.util.concurrent.Future;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 
-class TaskRunner {
+public class TaskRunner {
     private ExecutorService executor;
 
-    TaskRunner(ExecutorService executor) {
+    public TaskRunner(ExecutorService executor) {
         this.executor = executor;
     }
 

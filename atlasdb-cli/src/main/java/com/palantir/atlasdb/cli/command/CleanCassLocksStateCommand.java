@@ -15,36 +15,86 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraSchemaLockCleaner;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraTableDropper;
+import com.palantir.atlasdb.keyvalue.cassandra.CellLoader;
+import com.palantir.atlasdb.keyvalue.cassandra.CellValuePutter;
+import com.palantir.atlasdb.keyvalue.cassandra.HeartbeatService;
+import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLock;
+import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
+import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner;
+import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
+import com.palantir.atlasdb.keyvalue.cassandra.WrappingQueryRunner;
+import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 
 import io.airlift.airline.Command;
 
 @Command(name = "clean-cass-locks-state", description = "Clean up and get the schema mutation "
         + "locks for the CassandraKVS into a good state")
 public class CleanCassLocksStateCommand extends AbstractCommand {
-    private static final OutputPrinter printer = new OutputPrinter(
-            LoggerFactory.getLogger(CleanCassLocksStateCommand.class));
+    private static final Logger log = LoggerFactory.getLogger(CleanCassLocksStateCommand.class);
+    private static final OutputPrinter printer = new OutputPrinter(log);
 
     @Override
     public Integer call() throws Exception {
         Preconditions.checkState(isOffline(), "This CLI can only be run offline");
 
         CassandraKeyValueServiceConfig config = getCassandraKvsConfig();
-        CassandraKeyValueService ckvs = CassandraKeyValueServiceImpl.create(
-                config,
-                Optional.empty(),
-                getAtlasDbConfig().initializeAsync());
 
-        ckvs.cleanUpSchemaMutationLockTablesState();
+        CassandraClientPool clientPool = CassandraClientPoolImpl.create(config);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
+
+        TracingQueryRunner tracingQueryRunner = new TracingQueryRunner(log, new TracingPrefsConfig());
+
+        HeartbeatService heartbeatService = new HeartbeatService(
+                clientPool,
+                tracingQueryRunner,
+                HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS,
+                getLockTable(lockTables),
+                ConsistencyLevel.QUORUM);
+        SchemaMutationLock schemaMutationLock = new SchemaMutationLock(true,
+                config,
+                clientPool,
+                tracingQueryRunner,
+                ConsistencyLevel.QUORUM,
+                () -> getLockTable(lockTables),
+                heartbeatService,
+                SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
+
+        WrappingQueryRunner wrappingQueryRunner = new WrappingQueryRunner(tracingQueryRunner);
+        ExecutorService executorService = PTExecutors.newFixedThreadPool(config.poolSize(),
+                new NamedThreadFactory("Atlas CleanCassLocksState", false));
+        TaskRunner taskRunner = new TaskRunner(executorService);
+        CellLoader cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
+
+        CellValuePutter cellValuePutter = new CellValuePutter(config, clientPool, taskRunner,
+                wrappingQueryRunner, ConsistencyLevel.QUORUM);
+
+        CassandraTableDropper cassandraTableDropper = new CassandraTableDropper(config,
+                clientPool,
+                cellLoader,
+                cellValuePutter,
+                wrappingQueryRunner,
+                ConsistencyLevel.ALL);
+
+        new CassandraSchemaLockCleaner(lockTables, schemaMutationLock, cassandraTableDropper).cleanLocksState();
         printer.info("Schema mutation lock cli completed successfully.");
         return 0;
     }
@@ -59,4 +109,12 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
         return (CassandraKeyValueServiceConfig) kvsConfig;
     }
 
+    private TableReference getLockTable(SchemaMutationLockTables lockTables) {
+        try {
+            return lockTables.getAllLockTables().stream().findAny().orElseThrow(
+                    () -> new IllegalStateException("Couldn't find a lock table!"));
+        } catch (TException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
 }

@@ -49,7 +49,7 @@ import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
 
-class CellLoader {
+public class CellLoader {
     private static final Logger log = LoggerFactory.getLogger(CellLoader.class);
 
     private final CassandraKeyValueServiceConfig config;
@@ -57,7 +57,7 @@ class CellLoader {
     private final WrappingQueryRunner queryRunner;
     private final TaskRunner taskRunner;
 
-    CellLoader(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool, WrappingQueryRunner queryRunner,
+    public CellLoader(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool, WrappingQueryRunner queryRunner,
             TaskRunner taskRunner) {
         this.config = config;
         this.clientPool = clientPool;

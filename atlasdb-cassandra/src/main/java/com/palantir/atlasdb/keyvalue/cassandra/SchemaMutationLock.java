@@ -51,7 +51,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 
-final class SchemaMutationLock {
+public final class SchemaMutationLock {
     public static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
     public static final int DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS = 60000;
 
@@ -75,7 +75,7 @@ final class SchemaMutationLock {
     private final HeartbeatService heartbeatService;
     private final int deadHeartbeatTimeoutThreshold;
 
-    SchemaMutationLock(
+    public SchemaMutationLock(
             // TODO(ssouza): get rid of non-cas, since we've dropped support for Cassandra 1.2.
             boolean supportsCas,
             CassandraKeyValueServiceConfig config,
