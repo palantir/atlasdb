@@ -63,40 +63,57 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
 
         TracingQueryRunner tracingQueryRunner = new TracingQueryRunner(log, new TracingPrefsConfig());
 
-        HeartbeatService heartbeatService = new HeartbeatService(
-                clientPool,
-                tracingQueryRunner,
-                HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS,
-                getLockTable(lockTables),
-                ConsistencyLevel.QUORUM);
-        SchemaMutationLock schemaMutationLock = new SchemaMutationLock(true,
-                config,
-                clientPool,
-                tracingQueryRunner,
-                ConsistencyLevel.QUORUM,
-                () -> getLockTable(lockTables),
-                heartbeatService,
-                SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
+        SchemaMutationLock schemaMutationLock = getSchemaMutationLock(config, clientPool, lockTables,
+                tracingQueryRunner);
 
+        CassandraTableDropper cassandraTableDropper = getCassandraTableDropper(config, clientPool, tracingQueryRunner,
+                "Atlas CleanCassLocksState");
+
+        new CassandraSchemaLockCleaner(lockTables, schemaMutationLock, cassandraTableDropper).cleanLocksState();
+        printer.info("Schema mutation lock cli completed successfully.");
+        return 0;
+    }
+
+    private CassandraTableDropper getCassandraTableDropper(
+            CassandraKeyValueServiceConfig config,
+            CassandraClientPool clientPool,
+            TracingQueryRunner tracingQueryRunner,
+            String purpose) {
         WrappingQueryRunner wrappingQueryRunner = new WrappingQueryRunner(tracingQueryRunner);
         ExecutorService executorService = PTExecutors.newFixedThreadPool(config.poolSize(),
-                new NamedThreadFactory("Atlas CleanCassLocksState", false));
+                new NamedThreadFactory(purpose, false));
         TaskRunner taskRunner = new TaskRunner(executorService);
         CellLoader cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
 
         CellValuePutter cellValuePutter = new CellValuePutter(config, clientPool, taskRunner,
                 wrappingQueryRunner, ConsistencyLevel.QUORUM);
 
-        CassandraTableDropper cassandraTableDropper = new CassandraTableDropper(config,
+        return new CassandraTableDropper(config,
                 clientPool,
                 cellLoader,
                 cellValuePutter,
                 wrappingQueryRunner,
                 ConsistencyLevel.ALL);
+    }
 
-        new CassandraSchemaLockCleaner(lockTables, schemaMutationLock, cassandraTableDropper).cleanLocksState();
-        printer.info("Schema mutation lock cli completed successfully.");
-        return 0;
+    private SchemaMutationLock getSchemaMutationLock(CassandraKeyValueServiceConfig config,
+            CassandraClientPool clientPool, SchemaMutationLockTables lockTables,
+            TracingQueryRunner tracingQueryRunner) {
+        HeartbeatService heartbeatService = new HeartbeatService(
+                clientPool,
+                tracingQueryRunner,
+                HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS,
+                getLockTable(lockTables),
+                ConsistencyLevel.QUORUM);
+        return new SchemaMutationLock(true,
+                config,
+                clientPool,
+                tracingQueryRunner,
+                ConsistencyLevel.QUORUM,
+                // TODO we should pass in the real value... but we don't know it yet :'(
+                () -> getLockTable(lockTables),
+                heartbeatService,
+                SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
     }
 
     private CassandraKeyValueServiceConfig getCassandraKvsConfig() {

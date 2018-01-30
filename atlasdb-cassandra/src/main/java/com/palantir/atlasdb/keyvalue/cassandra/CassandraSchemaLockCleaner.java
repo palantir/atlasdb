@@ -54,6 +54,9 @@ public class CassandraSchemaLockCleaner {
             LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(tables);
             log.info("Dropped tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
         }
+
+        // TODO We want to make the SchemaMutationLock object, now that we know which table to use
+
         schemaMutationLock.cleanLockState();
         log.info("Reset the schema mutation lock in table [{}]",
                 LoggingArgs.tableRef(tableToKeep.get()));
