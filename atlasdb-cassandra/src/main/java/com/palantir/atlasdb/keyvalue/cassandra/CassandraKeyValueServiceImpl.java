@@ -108,6 +108,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -951,7 +952,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             public Void apply(CassandraClient client) throws Exception {
                 int mutationBatchCount = config.mutationBatchCount();
                 int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
-                for (List<Entry<Cell, Value>> partition : partitionByCountAndBytes(values, mutationBatchCount,
+                for (List<Entry<Cell, Value>> partition : IterablePartitioner.partitionByCountAndBytes(values,
+                        mutationBatchCount,
                         mutationBatchSizeBytes, tableRef, ENTRY_SIZING_FUNCTION)) {
                     MutationMap map = new MutationMap();
                     for (Map.Entry<Cell, Value> e : partition) {
@@ -1014,7 +1016,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                                Collection<TableCellAndValue> values,
                                                                final long timestamp) {
         Iterable<List<TableCellAndValue>> partitioned =
-                partitionByCountAndBytes(values,
+                IterablePartitioner.partitionByCountAndBytes(values,
                         getMultiPutBatchCount(),
                         getMultiPutBatchSizeBytes(),
                         extractTableNames(values).toString(),

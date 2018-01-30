@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -33,20 +32,14 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -65,17 +58,12 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(KeyValueService.class);
-    private static final String ENTRY_TOO_BIG_MESSAGE = "Encountered an entry of approximate size {} bytes,"
-            + " larger than maximum size of {} defined per entire batch,"
-            + " while doing a write to {}. Attempting to batch anyways.";
 
     protected ExecutorService executor;
 
@@ -171,8 +159,12 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
 
 
-            Iterable<List<Entry<Cell, byte[]>>> partitions = partitionByCountAndBytes(sortedMap.entrySet(),
-                    getMultiPutBatchCount(), getMultiPutBatchSizeBytes(), table, entry -> {
+            Iterable<List<Entry<Cell, byte[]>>> partitions = IterablePartitioner.partitionByCountAndBytes(
+                    sortedMap.entrySet(),
+                    getMultiPutBatchCount(),
+                    getMultiPutBatchSizeBytes(),
+                    table,
+                    entry -> {
                         long totalSize = 0;
                         totalSize += entry.getValue().length;
                         totalSize += Cells.getApproxSizeOfCell(entry.getKey());
@@ -209,85 +201,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                 throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
             }
         }
-    }
-
-    protected static <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
-                                                             final int maximumCountPerPartition,
-                                                             final long maximumBytesPerPartition,
-                                                             final TableReference tableRef,
-                                                             final Function<T, Long> sizingFunction) {
-        return partitionByCountAndBytes(iterable, maximumCountPerPartition, maximumBytesPerPartition,
-                tableRef.getQualifiedName(), sizingFunction, log);
-    }
-
-    protected static <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
-            final int maximumCountPerPartition,
-            final long maximumBytesPerPartition,
-            final String tableNameForLoggingPurposesOnly,
-            final Function<T, Long> sizingFunction) {
-        return partitionByCountAndBytes(iterable, maximumCountPerPartition, maximumBytesPerPartition,
-                tableNameForLoggingPurposesOnly, sizingFunction, log);
-    }
-
-    // FIXME: The tableNameForLoggingPurposesOnly is *not* always a valid tableName
-    // This string should *not* be used or treated as a real tableName, even though sometimes it is.
-    // For example, CassandraKVS multiPuts can cause this string to include *multiple* tableNames
-    @VisibleForTesting
-    protected static <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
-                                                             final int maximumCountPerPartition,
-                                                             final long maximumBytesPerPartition,
-                                                             final String tableNameForLoggingPurposesOnly,
-                                                             final Function<T, Long> sizingFunction,
-                                                             final Logger log) {
-        return () -> new UnmodifiableIterator<List<T>>() {
-            PeekingIterator<T> pi = Iterators.peekingIterator(iterable.iterator());
-            private int remainingEntries = Iterables.size(iterable);
-
-            @Override
-            public boolean hasNext() {
-                return pi.hasNext();
-            }
-            @Override
-            public List<T> next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                List<T> entries =
-                        Lists.newArrayListWithCapacity(Math.min(maximumCountPerPartition, remainingEntries));
-                long runningSize = 0;
-
-                // limit on: maximum count, pending data, maximum size, but allow at least one even if it's too huge
-                T firstEntry = pi.next();
-                runningSize += sizingFunction.apply(firstEntry);
-                entries.add(firstEntry);
-                if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
-
-                    if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(
-                            TableReference.createWithEmptyNamespace(tableNameForLoggingPurposesOnly))) {
-                        log.warn(ENTRY_TOO_BIG_MESSAGE, sizingFunction.apply(firstEntry),
-                                maximumBytesPerPartition, tableNameForLoggingPurposesOnly);
-                    } else {
-                        final String longerMessage = ENTRY_TOO_BIG_MESSAGE
-                                + " This can potentially cause out-of-memory errors.";
-                        log.warn(longerMessage,
-                                SafeArg.of("approximatePutSize", sizingFunction.apply(firstEntry)),
-                                SafeArg.of("maximumPutSize", maximumBytesPerPartition),
-                                // FIXME: This must be an unsafe arg because it is not necessarily a real tableName
-                                UnsafeArg.of("tableName", tableNameForLoggingPurposesOnly));
-                    }
-                }
-
-                while (pi.hasNext() && entries.size() < maximumCountPerPartition) {
-                    runningSize += sizingFunction.apply(pi.peek());
-                    if (runningSize > maximumBytesPerPartition) {
-                        break;
-                    }
-                    entries.add(pi.next());
-                }
-                remainingEntries -= entries.size();
-                return entries;
-            }
-        };
     }
 
     @Override
