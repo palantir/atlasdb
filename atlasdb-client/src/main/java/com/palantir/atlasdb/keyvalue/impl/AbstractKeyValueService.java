@@ -29,9 +29,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -63,8 +60,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
-    private static final Logger log = LoggerFactory.getLogger(KeyValueService.class);
-
     protected ExecutorService executor;
 
     protected final TracingPrefsConfig tracingPrefs;
@@ -158,19 +153,12 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             // We sort here because some key value stores are more efficient if you store adjacent keys together.
             NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
 
-
             Iterable<List<Entry<Cell, byte[]>>> partitions = IterablePartitioner.partitionByCountAndBytes(
                     sortedMap.entrySet(),
                     getMultiPutBatchCount(),
                     getMultiPutBatchSizeBytes(),
                     table,
-                    entry -> {
-                        long totalSize = 0;
-                        totalSize += entry.getValue().length;
-                        totalSize += Cells.getApproxSizeOfCell(entry.getKey());
-                        return totalSize;
-                    });
-
+                    entry -> entry == null ? 0 : entry.getValue().length + Cells.getApproxSizeOfCell(entry.getKey()));
 
             for (final List<Entry<Cell, byte[]>> p : partitions) {
                 callables.add(() -> {
