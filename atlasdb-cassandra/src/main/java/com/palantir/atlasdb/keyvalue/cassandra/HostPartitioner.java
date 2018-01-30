@@ -28,16 +28,15 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
-class HostPartitioner<V> {
-    private final CassandraClientPool cassandraClientPool;
-
-    HostPartitioner(CassandraClientPool cassandraClientPool) {
-        this.cassandraClientPool = cassandraClientPool;
+final class HostPartitioner {
+    private HostPartitioner() {
+        // Static class
     }
 
-    public Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
+    static <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(CassandraClientPool clientPool,
+            Iterable<Map.Entry<Cell, V>> cells) {
         Map<InetSocketAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
-                partitionByHost(cells, entry -> entry.getKey().getRowName());
+                partitionByHost(clientPool, cells, entry -> entry.getKey().getRowName());
         Map<InetSocketAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
         for (Map.Entry<InetSocketAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
             Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());
@@ -49,7 +48,7 @@ class HostPartitioner<V> {
         return cellsByHost;
     }
 
-    public <V> Map<InetSocketAddress, List<V>> partitionByHost(
+    static <V> Map<InetSocketAddress, List<V>> partitionByHost(CassandraClientPool clientPool,
             Iterable<V> iterable,
             Function<V, byte[]> keyExtractor) {
         // Ensure that the same key goes to the same partition. This is important when writing multiple columns
@@ -61,7 +60,7 @@ class HostPartitioner<V> {
         }
         ListMultimap<InetSocketAddress, V> valuesByHost = ArrayListMultimap.create();
         for (ByteBuffer key : partitionedByKey.keySet()) {
-            InetSocketAddress host = cassandraClientPool.getRandomHostForKey(key.array());
+            InetSocketAddress host = clientPool.getRandomHostForKey(key.array());
             valuesByHost.putAll(host, partitionedByKey.get(key));
         }
         return Multimaps.asMap(valuesByHost);

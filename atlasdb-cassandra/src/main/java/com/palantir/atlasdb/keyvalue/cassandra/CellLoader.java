@@ -72,8 +72,8 @@ class CellLoader {
             boolean loadAllTs,
             CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             ConsistencyLevel consistency) {
-        Map<InetSocketAddress, List<Cell>> hostsAndCells = new HostPartitioner<>(clientPool).partitionByHost(
-                cells, Cells.getRowFunction());
+        Map<InetSocketAddress, List<Cell>> hostsAndCells = HostPartitioner.partitionByHost(clientPool, cells,
+                Cells.getRowFunction());
         int totalPartitions = hostsAndCells.keySet().size();
 
         if (log.isTraceEnabled()) {

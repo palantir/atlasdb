@@ -66,8 +66,7 @@ public class CellValuePutter {
     void put(final String kvsMethodName,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
-        Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = new HostPartitioner<Value>(clientPool)
-                .partitionMapByHost(values);
+        Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,

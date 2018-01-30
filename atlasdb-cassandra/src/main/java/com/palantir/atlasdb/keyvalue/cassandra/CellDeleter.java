@@ -53,8 +53,8 @@ class CellDeleter {
     }
 
     void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost =
-                new HostPartitioner<Collection<Long>>(clientPool).partitionMapByHost(keys.asMap().entrySet());
+        Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost = HostPartitioner.partitionMapByHost(clientPool,
+                keys.asMap().entrySet());
         for (Map.Entry<InetSocketAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
             deleteOnSingleHost(entry.getKey(), tableRef, entry.getValue());
         }

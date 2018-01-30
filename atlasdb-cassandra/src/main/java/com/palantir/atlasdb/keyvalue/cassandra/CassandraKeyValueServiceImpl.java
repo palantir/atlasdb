@@ -471,8 +471,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
 
-        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
-                new HostPartitioner<>(clientPool).partitionByHost(rows, Functions.identity()).entrySet();
+        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(clientPool, rows,
+                Functions.identity()).entrySet();
         List<Callable<Map<Cell, Value>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
@@ -633,8 +633,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                                   Iterable<byte[]> rows,
                                                                   BatchColumnRangeSelection batchColumnRangeSelection,
                                                                   long timestamp) {
-        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
-                new HostPartitioner<>(clientPool).partitionByHost(rows, Functions.identity()).entrySet();
+        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(clientPool, rows,
+                Functions.identity()).entrySet();
         List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
@@ -944,8 +944,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 flattened.add(new TableCellAndValue(tableAndValues.getKey(), entry.getKey(), entry.getValue()));
             }
         }
-        Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost = new HostPartitioner<>(clientPool)
-                .partitionByHost(flattened, TableCellAndValue.EXTRACT_ROW_NAME_FUNCTION);
+        Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost = HostPartitioner.partitionByHost(clientPool,
+                flattened, TableCellAndValue.EXTRACT_ROW_NAME_FUNCTION);
 
         List<Callable<Void>> callables = Lists.newArrayList();
         for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
@@ -1702,8 +1702,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
-        Map<InetSocketAddress, Map<Cell, Long>> keysByHost = new HostPartitioner<Long>(clientPool).partitionMapByHost(
-                maxTimestampExclusiveByCell.entrySet());
+        Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
+                clientPool, maxTimestampExclusiveByCell.entrySet());
         for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
             deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue());
         }
