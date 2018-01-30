@@ -39,7 +39,6 @@ import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KsDef;
@@ -71,8 +70,6 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.google.common.collect.TreeMultimap;
-import com.google.common.primitives.UnsignedBytes;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -99,7 +96,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.AllTimestampsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadSafeResultVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
@@ -208,6 +204,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
+    private final CellLoader cellLoader;
     private final TaskRunner taskRunner;
 
     private final CassandraTables cassandraTables;
@@ -321,6 +318,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
+        this.cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
 
         if (!compactionManager.isPresent()) {
             logLackOfCompactionManager(config.getKeyspaceOrThrow());
@@ -558,7 +556,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         StartTsResultsCollector collector = new StartTsResultsCollector(startTs);
-        loadWithTs("getRows", tableRef, cells, startTs, false, collector, readConsistency);
+        cellLoader.loadWithTs("getRows", tableRef, cells, startTs, false, collector, readConsistency);
         return collector.getCollectedResults();
     }
 
@@ -596,7 +594,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(ts);
-                loadWithTs("get", tableRef, cellsByTs.get(ts), ts, false, collector, readConsistency);
+                cellLoader.loadWithTs("get", tableRef, cellsByTs.get(ts), ts, false, collector, readConsistency);
                 builder.putAll(collector.getCollectedResults());
             }
             return builder.build();
@@ -608,123 +606,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private Map<Cell, Value> get(String kvsMethodName, TableReference tableRef, Set<Cell> cells,
             long maxTimestampExclusive) {
         StartTsResultsCollector collector = new StartTsResultsCollector(maxTimestampExclusive);
-        loadWithTs(kvsMethodName, tableRef, cells, maxTimestampExclusive, false, collector, readConsistency);
+        cellLoader.loadWithTs(kvsMethodName, tableRef, cells, maxTimestampExclusive, false, collector, readConsistency);
         return collector.getCollectedResults();
-    }
-
-    private void loadWithTs(String kvsMethodName,
-            TableReference tableRef,
-            Set<Cell> cells,
-            long startTs,
-            boolean loadAllTs,
-            ThreadSafeResultVisitor visitor,
-            ConsistencyLevel consistency) {
-        Map<InetSocketAddress, List<Cell>> hostsAndCells =  new HostPartitioner<>(clientPool).partitionByHost(cells,
-                Cells.getRowFunction());
-        int totalPartitions = hostsAndCells.keySet().size();
-
-        if (log.isTraceEnabled()) {
-            log.trace("Loading {} cells from {} {}starting at timestamp {}, partitioned across {} nodes.",
-                    SafeArg.of("cells", cells.size()),
-                    LoggingArgs.tableRef(tableRef),
-                    SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
-                    SafeArg.of("startTs", startTs),
-                    SafeArg.of("totalPartitions", totalPartitions));
-        }
-
-        List<Callable<Void>> tasks = Lists.newArrayList();
-        for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
-            if (log.isTraceEnabled()) {
-                log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
-                        SafeArg.of("cells", hostsAndCells.values().size()),
-                        LoggingArgs.tableRef(tableRef),
-                        SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
-                        SafeArg.of("startTs", startTs),
-                        SafeArg.of("ipPort", hostAndCells.getKey()));
-            }
-
-            tasks.addAll(getLoadWithTsTasksForSingleHost(kvsMethodName,
-                    hostAndCells.getKey(),
-                    tableRef,
-                    hostAndCells.getValue(),
-                    startTs,
-                    loadAllTs,
-                    visitor,
-                    consistency));
-        }
-        taskRunner.runAllTasksCancelOnFailure(tasks);
-    }
-
-    // TODO(unknown): after cassandra api change: handle different column select per row
-    private List<Callable<Void>> getLoadWithTsTasksForSingleHost(final String kvsMethodName,
-                                                                 final InetSocketAddress host,
-                                                                 final TableReference tableRef,
-                                                                 final Collection<Cell> cells,
-                                                                 final long startTs,
-                                                                 final boolean loadAllTs,
-                                                                 final ThreadSafeResultVisitor visitor,
-                                                                 final ConsistencyLevel consistency) {
-        final ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-        Multimap<byte[], Cell> cellsByCol =
-                TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
-        for (Cell cell : cells) {
-            cellsByCol.put(cell.getColumnName(), cell);
-        }
-        List<Callable<Void>> tasks = Lists.newArrayList();
-        int fetchBatchCount = config.fetchBatchCount();
-        for (Entry<byte[], Collection<Cell>> entry : Multimaps.asMap(cellsByCol).entrySet()) {
-            final byte[] col = entry.getKey();
-            Collection<Cell> columnCells = entry.getValue();
-            if (columnCells.size() > fetchBatchCount) {
-                log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to "
-                                + "multiget {} rows; this may indicate overly-large batching on a higher level.\n{}",
-                        SafeArg.of("host", CassandraLogHelper.host(host)),
-                        LoggingArgs.tableRef(tableRef),
-                        SafeArg.of("rows", columnCells.size()),
-                        SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
-            }
-            for (final List<Cell> partition : Lists.partition(ImmutableList.copyOf(columnCells), fetchBatchCount)) {
-                Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(host,
-                        new FunctionCheckedException<CassandraClient, Void, Exception>() {
-                            @Override
-                            public Void apply(CassandraClient client) throws Exception {
-                                Range range = Range.singleColumn(col, startTs);
-                                Limit limit = loadAllTs ? Limit.NO_LIMIT : Limit.ONE;
-                                SlicePredicate predicate = SlicePredicates.create(range, limit);
-
-                                List<ByteBuffer> rowNames = Lists.newArrayListWithCapacity(partition.size());
-                                for (Cell c : partition) {
-                                    rowNames.add(ByteBuffer.wrap(c.getRowName()));
-                                }
-
-                                if (log.isTraceEnabled()) {
-                                    log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
-                                            SafeArg.of("cells", partition.size()),
-                                            LoggingArgs.tableRef(tableRef),
-                                            SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
-                                            SafeArg.of("startTs", startTs),
-                                            SafeArg.of("host", CassandraLogHelper.host(host)));
-                                }
-
-                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results = wrappingQueryRunner.multiget(
-                                        kvsMethodName, client, tableRef, rowNames, predicate, consistency);
-                                visitor.visit(results);
-                                return null;
-                            }
-
-                            @Override
-                            public String toString() {
-                                return "multiget_slice(" + host + ", " + colFam + ", "
-                                        + partition.size() + " cells" + ")";
-                            }
-
-                        });
-                tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
-                        "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
-                        multiGetCallable));
-            }
-        }
-        return tasks;
     }
 
     /**
@@ -2126,7 +2009,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
-        loadWithTs("getAllTimestamps", tableRef, cells, ts, true, collector, deleteConsistency);
+        cellLoader.loadWithTs("getAllTimestamps", tableRef, cells, ts, true, collector, deleteConsistency);
         return collector.getCollectedResults();
     }
 
