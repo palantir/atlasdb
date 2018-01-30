@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -209,6 +208,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
+    private final TaskRunner taskRunner;
+
     private final CassandraTables cassandraTables;
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
@@ -319,6 +320,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
+        this.taskRunner = new TaskRunner(executor);
 
         if (!compactionManager.isPresent()) {
             logLackOfCompactionManager(config.getKeyspaceOrThrow());
@@ -479,7 +481,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             + " rows from " + tableRef + " on " + hostAndRows.getKey(),
                     () -> getRowsForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs)));
         }
-        List<Map<Cell, Value>> perHostResults = runAllTasksCancelOnFailure(tasks);
+        List<Map<Cell, Value>> perHostResults = taskRunner.runAllTasksCancelOnFailure(tasks);
         Map<Cell, Value> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
         for (Map<Cell, Value> perHostResult : perHostResults) {
             result.putAll(perHostResult);
@@ -650,7 +652,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     visitor,
                     consistency));
         }
-        runAllTasksCancelOnFailure(tasks);
+        taskRunner.runAllTasksCancelOnFailure(tasks);
     }
 
     // TODO(unknown): after cassandra api change: handle different column select per row
@@ -761,7 +763,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             batchColumnRangeSelection,
                             timestamp)));
         }
-        List<Map<byte[], RowColumnRangeIterator>> perHostResults = runAllTasksCancelOnFailure(tasks);
+        List<Map<byte[], RowColumnRangeIterator>> perHostResults = taskRunner.runAllTasksCancelOnFailure(tasks);
         Map<byte[], RowColumnRangeIterator> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
         for (Map<byte[], RowColumnRangeIterator> perHostResult : perHostResults) {
             result.putAll(perHostResult);
@@ -1055,7 +1057,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         return null;
                     }));
         }
-        runAllTasksCancelOnFailure(tasks);
+        taskRunner.runAllTasksCancelOnFailure(tasks);
     }
 
     private void putForSingleHostInternal(String kvsMethodName,
@@ -1123,7 +1125,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
             callables.addAll(getMultiPutTasksForSingleHost(entry.getKey(), entry.getValue(), timestamp));
         }
-        runAllTasksCancelOnFailure(callables);
+        taskRunner.runAllTasksCancelOnFailure(callables);
     }
 
     private List<Callable<Void>> getMultiPutTasksForSingleHost(final InetSocketAddress host,
@@ -2448,39 +2450,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         schemaMutationLock.cleanLockState();
         log.info("Reset the schema mutation lock in table [{}]",
                 LoggingArgs.tableRef(tableToKeep.get()));
-    }
-
-    /*
-     * Similar to executor.invokeAll, but cancels all remaining tasks if one fails and doesn't spawn new threads if
-     * there is only one task
-     */
-    private <V> List<V> runAllTasksCancelOnFailure(List<Callable<V>> tasks) {
-        if (tasks.size() == 1) {
-            try {
-                //Callable<Void> returns null, so can't use immutable list
-                return Collections.singletonList(tasks.get(0).call());
-            } catch (Exception e) {
-                throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
-            }
-        }
-
-        List<Future<V>> futures = Lists.newArrayListWithCapacity(tasks.size());
-        for (Callable<V> task : tasks) {
-            futures.add(executor.submit(task));
-        }
-        try {
-            List<V> results = Lists.newArrayListWithCapacity(tasks.size());
-            for (Future<V> future : futures) {
-                results.add(future.get());
-            }
-            return results;
-        } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
-        } finally {
-            for (Future<V> future : futures) {
-                future.cancel(true);
-            }
-        }
     }
 
     private static class TableCellAndValue {
