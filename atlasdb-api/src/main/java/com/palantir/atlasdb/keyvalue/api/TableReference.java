@@ -79,8 +79,8 @@ public final class TableReference {
         this.tablename = tablename;
     }
 
-    /** @deprecated uses TableReference.createUnsafe, which is itself deprecated.
-     *
+    /**
+     * @deprecated uses {@link TableReference#createUnsafe}, which is itself deprecated.
      */
     @Deprecated
     public static TableReference fromInternalTableName(String tableName) {
