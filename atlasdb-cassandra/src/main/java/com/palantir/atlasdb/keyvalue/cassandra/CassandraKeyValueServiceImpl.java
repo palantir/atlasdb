@@ -58,7 +58,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -66,7 +65,6 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -470,7 +468,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
 
-        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost = partitionByHost(rows, Functions.identity()).entrySet();
+        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
+                new HostPartitioner<>(clientPool).partitionByHost(rows, Functions.identity()).entrySet();
         List<Callable<Map<Cell, Value>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
@@ -620,7 +619,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             boolean loadAllTs,
             ThreadSafeResultVisitor visitor,
             ConsistencyLevel consistency) {
-        Map<InetSocketAddress, List<Cell>> hostsAndCells =  partitionByHost(cells, Cells.getRowFunction());
+        Map<InetSocketAddress, List<Cell>> hostsAndCells =  new HostPartitioner<>(clientPool).partitionByHost(cells,
+                Cells.getRowFunction());
         int totalPartitions = hostsAndCells.keySet().size();
 
         if (log.isTraceEnabled()) {
@@ -751,7 +751,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                                   BatchColumnRangeSelection batchColumnRangeSelection,
                                                                   long timestamp) {
         Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
-                partitionByHost(rows, Functions.<byte[]>identity()).entrySet();
+                new HostPartitioner<>(clientPool).partitionByHost(rows, Functions.identity()).entrySet();
         List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
@@ -1117,8 +1117,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 flattened.add(new TableCellAndValue(tableAndValues.getKey(), entry.getKey(), entry.getValue()));
             }
         }
-        Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost =
-                partitionByHost(flattened, TableCellAndValue.EXTRACT_ROW_NAME_FUNCTION);
+        Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost = new HostPartitioner<>(clientPool)
+                .partitionByHost(flattened, TableCellAndValue.EXTRACT_ROW_NAME_FUNCTION);
 
         List<Callable<Void>> callables = Lists.newArrayList();
         for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
@@ -2489,35 +2489,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
-        Map<InetSocketAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
-                partitionByHost(cells, entry -> entry.getKey().getRowName());
-        Map<InetSocketAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
-        for (Map.Entry<InetSocketAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
-            Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());
-            for (Map.Entry<Cell, V> entry : hostAndCells.getValue()) {
-                cellsForHost.put(entry.getKey(), entry.getValue());
-            }
-            cellsByHost.put(hostAndCells.getKey(), cellsForHost);
-        }
-        return cellsByHost;
-    }
-
-    private <V> Map<InetSocketAddress, List<V>> partitionByHost(
-            Iterable<V> iterable,
-            Function<V, byte[]> keyExtractor) {
-        // Ensure that the same key goes to the same partition. This is important when writing multiple columns
-        // to the same row, since this is a normally a single write in cassandra, whereas splitting the columns
-        // into different requests results in multiple writes.
-        ListMultimap<ByteBuffer, V> partitionedByKey = ArrayListMultimap.create();
-        for (V value : iterable) {
-            partitionedByKey.put(ByteBuffer.wrap(keyExtractor.apply(value)), value);
-        }
-        ListMultimap<InetSocketAddress, V> valuesByHost = ArrayListMultimap.create();
-        for (ByteBuffer key : partitionedByKey.keySet()) {
-            InetSocketAddress host = clientPool.getRandomHostForKey(key.array());
-            valuesByHost.putAll(host, partitionedByKey.get(key));
-        }
-        return Multimaps.asMap(valuesByHost);
+        return new HostPartitioner<V>(clientPool).partitionMapByHost(cells);
     }
 
     /*
