@@ -40,7 +40,6 @@ import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
@@ -67,7 +66,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -1190,71 +1188,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost =
-                new HostPartitioner<Collection<Long>>(clientPool).partitionMapByHost(keys.asMap().entrySet());
-        for (Map.Entry<InetSocketAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
-            deleteOnSingleHost(entry.getKey(), tableRef, entry.getValue());
-        }
-    }
-
-    private void deleteOnSingleHost(final InetSocketAddress host,
-                                    final TableReference tableRef,
-                                    final Map<Cell, Collection<Long>> cellVersionsMap) {
-        try {
-            clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
-                private int numVersions = 0;
-
-                @Override
-                public Void apply(CassandraClient client) throws Exception {
-                    // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
-                    // atomically so we have to potentially do many deletes if there are many timestamps for the
-                    // same key.
-                    Map<Integer, MutationMap> mutationMaps = Maps.newTreeMap();
-
-                    for (Entry<Cell, Collection<Long>> cellVersions : cellVersionsMap.entrySet()) {
-                        int mapIndex = 0;
-                        for (long ts : Ordering.natural().immutableSortedCopy(cellVersions.getValue())) {
-                            if (!mutationMaps.containsKey(mapIndex)) {
-                                mutationMaps.put(mapIndex, new MutationMap());
-                            }
-                            MutationMap mutationMap = mutationMaps.get(mapIndex);
-                            ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(
-                                    cellVersions.getKey().getColumnName(),
-                                    ts);
-                            SlicePredicate pred = new SlicePredicate();
-                            pred.setColumn_names(Arrays.asList(colName));
-                            Deletion del = new Deletion();
-                            del.setPredicate(pred);
-                            del.setTimestamp(Long.MAX_VALUE);
-                            Mutation mutation = new Mutation();
-                            mutation.setDeletion(del);
-
-                            mutationMap.addMutationForCell(cellVersions.getKey(), tableRef, mutation);
-                            mapIndex++;
-                            numVersions += cellVersions.getValue().size();
-                        }
-                    }
-                    for (MutationMap map : mutationMaps.values()) {
-                        // NOTE: we run with ConsistencyLevel.ALL here instead of ConsistencyLevel.QUORUM
-                        // because we want to remove all copies of this data
-                        wrappingQueryRunner.batchMutate("delete", client, ImmutableSet.of(tableRef), map,
-                                deleteConsistency);
-                    }
-                    return null;
-                }
-
-                @Override
-                public String toString() {
-                    return "delete_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
-                            + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
-                }
-            });
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.",
-                    e);
-        } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
-        }
+        new CellDeleter(clientPool, wrappingQueryRunner, deleteConsistency).delete(tableRef, keys);
     }
 
     @VisibleForTesting
