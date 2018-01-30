@@ -182,9 +182,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final Logger log;
 
-    private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
-            input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
-
     private final CassandraKeyValueServiceConfig config;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     private final CassandraClientPool clientPool;
@@ -205,6 +202,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CellLoader cellLoader;
     private final TimestampsLoader timestampsLoader;
     private final TaskRunner taskRunner;
+    private final CellValuePutter cellValuePutter;
 
     private final CassandraTables cassandraTables;
 
@@ -319,6 +317,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
         this.timestampsLoader = new TimestampsLoader(cellLoader);
+        this.cellValuePutter = new CellValuePutter(config, clientPool, taskRunner, wrappingQueryRunner,
+                writeConsistency);
 
         if (!compactionManager.isPresent()) {
             logLackOfCompactionManager(config.getKeyspaceOrThrow());
@@ -890,7 +890,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp) {
         try {
-            putInternal("put", tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
+            cellValuePutter.put("put", tableRef,
+                    KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
@@ -910,7 +911,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
         try {
-            putInternal("putWithTimestamps", tableRef, values.entries());
+            cellValuePutter.put("putWithTimestamps", tableRef, values.entries());
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
@@ -919,66 +920,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     protected int getMultiPutBatchCount() {
         return config.mutationBatchCount();
-    }
-
-    private void putInternal(final String kvsMethodName,
-            final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
-        Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = new HostPartitioner<Value>(clientPool)
-                .partitionMapByHost(values);
-        List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
-        for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
-            tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
-                    "Atlas putInternal " + entry.getValue().size()
-                            + " cell values to " + tableRef + " on " + entry.getKey(),
-                    () -> {
-                        putForSingleHostInternal(kvsMethodName,
-                                entry.getKey(),
-                                tableRef,
-                                entry.getValue().entrySet());
-                        clientPool.markWritesForTable(entry.getValue(), tableRef);
-                        return null;
-                    }));
-        }
-        taskRunner.runAllTasksCancelOnFailure(tasks);
-    }
-
-    private void putForSingleHostInternal(String kvsMethodName,
-            final InetSocketAddress host,
-            final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
-        clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
-            @Override
-            public Void apply(CassandraClient client) throws Exception {
-                int mutationBatchCount = config.mutationBatchCount();
-                int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
-                for (List<Entry<Cell, Value>> partition : IterablePartitioner.partitionByCountAndBytes(values,
-                        mutationBatchCount,
-                        mutationBatchSizeBytes, tableRef, ENTRY_SIZING_FUNCTION)) {
-                    MutationMap map = new MutationMap();
-                    for (Map.Entry<Cell, Value> e : partition) {
-                        Cell cell = e.getKey();
-                        Column col = createColumn(cell, e.getValue());
-
-                        ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
-                        colOrSup.setColumn(col);
-                        Mutation mutation = new Mutation();
-                        mutation.setColumn_or_supercolumn(colOrSup);
-
-                        map.addMutationForCell(cell, tableRef, mutation);
-                    }
-                    wrappingQueryRunner.batchMutate(kvsMethodName, client, ImmutableSet.of(tableRef), map,
-                            writeConsistency);
-                }
-                return null;
-            }
-
-            @Override
-            public String toString() {
-                return "batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
-                        + Iterables.size(values) + " values)";
-            }
-        });
     }
 
     /**
@@ -1063,7 +1004,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         MutationMap mutationMap = new MutationMap();
         for (TableCellAndValue tableCellAndValue : batch) {
             Cell cell = tableCellAndValue.cell;
-            Column col = createColumn(cell, Value.create(tableCellAndValue.value, timestamp));
+            Column col = CassandraKeyValueServices.createColumn(cell, Value.create(tableCellAndValue.value, timestamp));
 
             ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
             colOrSup.setColumn(col);
@@ -1073,17 +1014,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             mutationMap.addMutationForCell(cell, tableCellAndValue.tableRef, mutation);
         }
         return mutationMap;
-    }
-
-    private Column createColumn(Cell cell, Value value) {
-        byte[] contents = value.getContents();
-        long timestamp = value.getTimestamp();
-        ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(cell.getColumnName(), timestamp);
-        Column col = new Column();
-        col.setName(colName);
-        col.setValue(contents);
-        col.setTimestamp(timestamp);
-        return col;
     }
 
     /**
@@ -1921,7 +1851,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-            putInternal("addGarbageCollectionSentinelValues",
+            cellValuePutter.put("addGarbageCollectionSentinelValues",
                     tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);

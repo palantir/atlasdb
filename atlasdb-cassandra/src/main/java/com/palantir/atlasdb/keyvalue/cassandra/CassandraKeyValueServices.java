@@ -289,6 +289,17 @@ public final class CassandraKeyValueServices {
         return sb.toString();
     }
 
+    static Column createColumn(Cell cell, Value value) {
+        byte[] contents = value.getContents();
+        long timestamp = value.getTimestamp();
+        ByteBuffer colName = makeCompositeBuffer(cell.getColumnName(), timestamp);
+        Column col = new Column();
+        col.setName(colName);
+        col.setValue(contents);
+        col.setTimestamp(timestamp);
+        return col;
+    }
+
     interface ThreadSafeResultVisitor extends Visitor<Map<ByteBuffer, List<ColumnOrSuperColumn>>> {
         // marker
     }
