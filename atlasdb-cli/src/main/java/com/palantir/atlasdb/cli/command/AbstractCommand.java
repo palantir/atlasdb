@@ -49,10 +49,16 @@ public abstract class AbstractCommand implements Callable<Integer> {
     private String inlineConfig;
 
     @Option(name = {"--config-root"},
-            title = "CONFIG ROOT",
+            title = "INSTALL CONFIG ROOT",
             type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
-    private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
+    private String installConfigRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
+
+    @Option(name = {"--runtime-config-root"},
+            title = "RUNTIME CONFIG ROOT",
+            type = OptionType.GLOBAL,
+            description = "field in the config yaml file that contains the atlasdb configuration root")
+    private String runtimeConfigRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 
     @Option(name = {"--offline"},
             title = "OFFLINE",
@@ -67,7 +73,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
         if (config == null) {
             try {
                 if (configFile != null) {
-                    config = parseAtlasDbConfig(configFile, AtlasDbConfig.class);
+                    config = parseAtlasDbConfig(configFile, AtlasDbConfig.class, installConfigRoot);
                 } else if (inlineConfig != null) {
                     config = AtlasDbConfigs.loadFromString(inlineConfig, "", AtlasDbConfig.class);
                 } else {
@@ -88,7 +94,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
     protected AtlasDbRuntimeConfig getAtlasDbRuntimeConfig() {
         if (runtimeConfig == null) {
             if (runtimeConfigFile != null) {
-                runtimeConfig = parseAtlasDbConfig(runtimeConfigFile, AtlasDbRuntimeConfig.class);
+                runtimeConfig = parseAtlasDbConfig(runtimeConfigFile, AtlasDbRuntimeConfig.class, runtimeConfigRoot);
             } else {
                 runtimeConfig = AtlasDbRuntimeConfig.defaultRuntimeConfig();
             }
@@ -96,7 +102,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
         return runtimeConfig;
     }
 
-    private <T> T parseAtlasDbConfig(File confFile, Class<T> clazz) {
+    private <T> T parseAtlasDbConfig(File confFile, Class<T> clazz, String configRoot) {
         try {
             return AtlasDbConfigs.load(confFile, configRoot, clazz);
         } catch (Exception e) {
@@ -105,8 +111,8 @@ public abstract class AbstractCommand implements Callable<Integer> {
             } catch (Exception ex) {
                 throw new RuntimeException("Failed to load the atlasdb config. One possibility"
                         + " is that the AtlasDB block root in the config is not '/atlasdb' nor '/atlas'."
-                        + " You can specify a different config root by specifying the --config-root option"
-                        + " before the command (i.e. sweep, migrate).",
+                        + " You can specify a different config root by specifying the --config-root "
+                        + " and the --runtime-config-root options before the command (i.e. sweep, migrate).",
                         ex);
             }
         }
