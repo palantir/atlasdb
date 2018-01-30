@@ -65,6 +65,14 @@ class CellLoader {
         this.taskRunner = taskRunner;
     }
 
+    Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts,
+            ConsistencyLevel consistency) {
+        CassandraKeyValueServices.AllTimestampsCollector collector =
+                new CassandraKeyValueServices.AllTimestampsCollector();
+        loadWithTs("getAllTimestamps", tableRef, cells, ts, true, collector, consistency);
+        return collector.getCollectedResults();
+    }
+
     void loadWithTs(String kvsMethodName,
             TableReference tableRef,
             Set<Cell> cells,

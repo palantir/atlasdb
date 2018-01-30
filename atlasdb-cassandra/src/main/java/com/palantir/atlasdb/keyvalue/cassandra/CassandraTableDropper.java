@@ -45,20 +45,20 @@ class CassandraTableDropper {
     private static final Logger log = LoggerFactory.getLogger(CassandraTableDropper.class);
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
-    private TimestampsLoader timestampsLoader;
+    private CellLoader cellLoader;
     private CellValuePutter cellValuePutter;
     private WrappingQueryRunner wrappingQueryRunner;
     private ConsistencyLevel deleteConsistency;
 
     CassandraTableDropper(CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
-            TimestampsLoader timestampsLoader,
+            CellLoader cellLoader,
             CellValuePutter cellValuePutter,
             WrappingQueryRunner wrappingQueryRunner,
             ConsistencyLevel deleteConsistency) {
         this.config = config;
         this.clientPool = clientPool;
-        this.timestampsLoader = timestampsLoader;
+        this.cellLoader = cellLoader;
         this.cellValuePutter = cellValuePutter;
         this.wrappingQueryRunner = wrappingQueryRunner;
         this.deleteConsistency = deleteConsistency;
@@ -105,8 +105,9 @@ class CassandraTableDropper {
     private void putMetadataWithoutChangingSettings(final TableReference tableRef, final byte[] meta) {
         long ts = System.currentTimeMillis();
 
-        Multimap<Cell, Long> oldVersions = timestampsLoader.getAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableSet.of(CassandraKeyValueServices.getMetadataCell(tableRef)), ts, deleteConsistency);
+        Multimap<Cell, Long> oldVersions = cellLoader.getAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableSet.of(CassandraKeyValueServices.getMetadataCell(tableRef)), ts, deleteConsistency
+        );
 
         try {
             cellValuePutter.put("put", AtlasDbConstants.DEFAULT_METADATA_TABLE,

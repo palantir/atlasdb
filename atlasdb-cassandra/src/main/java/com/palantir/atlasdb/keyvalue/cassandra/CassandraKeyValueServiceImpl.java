@@ -198,7 +198,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
     private final CellLoader cellLoader;
-    private final TimestampsLoader timestampsLoader;
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
     private final CassandraTableDropper cassandraTableDropper;
@@ -315,10 +314,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
-        this.timestampsLoader = new TimestampsLoader(cellLoader);
         this.cellValuePutter = new CellValuePutter(config, clientPool, taskRunner, wrappingQueryRunner,
                 writeConsistency);
-        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, timestampsLoader, cellValuePutter,
+        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellLoader, cellValuePutter,
                 wrappingQueryRunner, deleteConsistency);
 
         if (!compactionManager.isPresent()) {
@@ -1805,7 +1803,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
-        return timestampsLoader.getAllTimestamps(tableRef, cells, ts, deleteConsistency);
+        return cellLoader.getAllTimestamps(tableRef, cells, ts, deleteConsistency);
     }
 
     /**
