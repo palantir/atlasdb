@@ -33,11 +33,11 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 public interface LoadSimulation {
     @Path("capture")
     @POST
-    void capture(@PathParam("condition")TransactionTaskCondition condition);
+    boolean capture(@PathParam("condition")TransactionTaskCondition condition);
 
     @Path("replay")
     @POST
-    void replay(@PathParam("repetition")ReplayRepetition repetition);
+    boolean replay(@PathParam("repetition")ReplayRepetition repetition);
 
     SerializableTransactionManager wrap(SerializableTransactionManager delegate);
 }
