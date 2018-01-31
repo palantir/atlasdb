@@ -47,18 +47,15 @@ public class LoadSimulator implements LoadSimulation {
     }
 
     @Override
-    public boolean capture(TransactionTaskCondition condition) {
+    public void capture(TransactionTaskCondition condition) {
         captureCondition.refresh(condition);
-        return true;
     }
 
     @Override
-    public boolean replay(ReplayRepetition repetition) {
+    public void replay(ReplayRepetition repetition) {
         replayRepetition.refresh(repetition);
-        return true;
     }
 
-    @Override
     public SerializableTransactionManager wrap(SerializableTransactionManager delegate) {
         return new WrappingSerializableTransactionManager(
                 delegate,
