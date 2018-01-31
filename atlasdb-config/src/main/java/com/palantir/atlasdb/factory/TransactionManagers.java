@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -53,7 +51,6 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.config.LoadSimulationConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
@@ -83,6 +80,9 @@ import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
+import com.palantir.atlasdb.simulated.LoadSimulator;
+import com.palantir.atlasdb.simulated.config.LoadSimulatorConfig;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
@@ -101,8 +101,6 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
-import com.palantir.atlasdb.transaction.impl.InvocationCapturingTransactionManager;
-import com.palantir.atlasdb.transaction.impl.InvocationReplayer;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -301,6 +299,7 @@ public abstract class TransactionManagers {
         CleanupFollower follower = CleanupFollower.create(schemas());
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         Cleaner cleaner = initializeCloseable(() -> new DefaultCleanerBuilder(
                         keyValueService,
                         lockAndTimestampServices.timelock(),
@@ -355,21 +354,46 @@ public abstract class TransactionManagers {
                         persistentLockManager),
                 closeables);
 
-        LoadSimulationConfig loadSimulationConfig = JavaSuppliers.compose(
-                AtlasDbRuntimeConfig::loadSimulationConfig, runtimeConfigSupplier).get();
+        Cleaner cleaner = new DefaultCleanerBuilder(
+                kvs,
+                lockAndTimestampServices.timelock(),
+                ImmutableList.of(follower),
+                transactionService)
+                .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
+                .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
+                .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
+                .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
+                .setPunchIntervalMillis(config.getPunchIntervalMillis())
+                .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
+                .setInitializeAsync(config.initializeAsync())
+                .buildCleaner();
+
+        SerializableTransactionManager transactionManager = SerializableTransactionManager.create(
+                kvs,
+                lockAndTimestampServices.timelock(),
+                lockAndTimestampServices.lock(),
+                transactionService,
+                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
+                conflictManager,
+                sweepStrategyManager,
+                cleaner,
+                () -> areTransactionManagerInitializationPrerequisitesSatisfied(initializer, lockAndTimestampServices),
+                allowHiddenTableAccess(),
+                () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
+                config.keyValueService().concurrentGetRangesThreadPoolSize(),
+                config.keyValueService().defaultGetRangesConcurrency(),
+                config.initializeAsync(),
+                () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
+                SweepQueueWriter.NO_OP
+        );
+
+        LoadSimulatorConfig loadSimulationConfig = JavaSuppliers.compose(
+                AtlasDbRuntimeConfig::loadSimulatorConfig, runtimeConfigSupplier).get();
         if (loadSimulationConfig.enabled()) {
             log.warn("Enabling load simulation.");
-            InvocationReplayer replayer = new InvocationReplayer(
-                    Executors.newSingleThreadExecutor(),
-                    transactionManager,
-                    loadSimulationConfig.replayCount());
-            transactionManager = new InvocationCapturingTransactionManager(
-                    transactionManager,
-                    replayer,
-                    () -> ThreadLocalRandom.current().nextFloat() * 100 < loadSimulationConfig.capturePercentage()
-            );
-        } else {
-            log.warn("Load simulation disabled.");
+            LoadSimulator simulator = new LoadSimulator(loadSimulationConfig);
+            registrar().accept(simulator);
+            transactionManager = simulator.wrap(transactionManager);
         }
         return transactionManager;
     }
