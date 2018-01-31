@@ -20,9 +20,13 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.flake.FlakeRetryingRule;
 
 /**
@@ -30,18 +34,22 @@ import com.palantir.flake.FlakeRetryingRule;
  * Note that this cleanup is done regardless of the nature of the failure.
  */
 public class SchemaMutationLockReleasingRule implements TestRule {
-    private final CassandraKeyValueService kvs;
+    private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockReleasingRule.class);
 
-    public SchemaMutationLockReleasingRule(CassandraKeyValueService kvs) {
+    private final CassandraKeyValueService kvs;
+    private final CassandraKeyValueServiceConfig config;
+
+    public SchemaMutationLockReleasingRule(CassandraKeyValueService kvs, CassandraKeyValueServiceConfig config) {
         this.kvs = kvs;
+        this.config = config;
     }
 
-    public static RuleChain createChainedReleaseAndRetry(KeyValueService kvs) {
+    public static RuleChain createChainedReleaseAndRetry(KeyValueService kvs, CassandraKeyValueServiceConfig config) {
         // The ordering is important. If an attempt fails, we want to release the schema mutation lock BEFORE retrying.
         Preconditions.checkArgument(kvs instanceof CassandraKeyValueService,
                 "SchemaMutationLockReleasingRule requires a Cassandra KVS");
         return RuleChain.outerRule(new FlakeRetryingRule())
-                .around(new SchemaMutationLockReleasingRule((CassandraKeyValueService) kvs));
+                .around(new SchemaMutationLockReleasingRule((CassandraKeyValueService) kvs, config));
     }
 
     @Override
@@ -52,7 +60,12 @@ public class SchemaMutationLockReleasingRule implements TestRule {
                 try {
                     base.evaluate();
                 } catch (Throwable t) {
-                    kvs.cleanUpSchemaMutationLockTablesState();
+                    CassandraClientPool clientPool = kvs.getClientPool();
+                    SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
+                    TracingQueryRunner tracingQueryRunner = new TracingQueryRunner(log, new TracingPrefsConfig());
+
+                    CassandraSchemaLockCleaner.create(config, clientPool, lockTables, tracingQueryRunner)
+                            .cleanLocksState();
                     throw t;
                 }
             }
