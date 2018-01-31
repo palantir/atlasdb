@@ -41,7 +41,6 @@ public class SweepMetricsFactory {
                 createHistogram(namePrefix, UpdateEventType.FULL_TABLE, false));
     }
 
-
     public SweepMetric createGaugeForTableBeingSwept(String namePrefix) {
         return createCurrentValueString(namePrefix, UpdateEventType.ONE_ITERATION, false);
     }
