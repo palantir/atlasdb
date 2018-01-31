@@ -15,9 +15,11 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
@@ -42,6 +44,11 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
         Preconditions.checkState(isOffline(), "This CLI can only be run offline");
 
         CassandraKeyValueServiceConfig config = getCassandraKvsConfig();
+        return runWithConfig(config);
+    }
+
+    @VisibleForTesting
+    public Integer runWithConfig(CassandraKeyValueServiceConfig config) throws TException {
         CassandraClientPool clientPool = CassandraClientPoolImpl.create(config);
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         TracingQueryRunner tracingQueryRunner = new TracingQueryRunner(log, new TracingPrefsConfig());
