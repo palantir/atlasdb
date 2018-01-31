@@ -47,13 +47,15 @@ public class LoadSimulator implements LoadSimulation {
     }
 
     @Override
-    public void capture(TransactionTaskCondition condition) {
+    public boolean capture(TransactionTaskCondition condition) {
         captureCondition.refresh(condition);
+        return true;
     }
 
     @Override
-    public void replay(ReplayRepetition repetition) {
+    public boolean replay(ReplayRepetition repetition) {
         replayRepetition.refresh(repetition);
+        return true;
     }
 
     @Override
@@ -63,7 +65,7 @@ public class LoadSimulator implements LoadSimulation {
                 new SuccessfulTaskInvocationCapture(
                         captureCondition,
                         new TransactionReplayer(
-                                Executors.newSingleThreadExecutor(),
+                                Executors.newFixedThreadPool(config.executorThreads()),
                                 delegate,
                                 replayRepetition
                         )
