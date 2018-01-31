@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
@@ -39,10 +40,15 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
         Preconditions.checkState(isOffline(), "This CLI can only be run offline");
 
         CassandraKeyValueServiceConfig config = getCassandraKvsConfig();
+        return runWithConfig(config, getAtlasDbConfig().initializeAsync());
+    }
+
+    @VisibleForTesting
+    public Integer runWithConfig(CassandraKeyValueServiceConfig config, boolean initializeAsync) throws Exception {
         CassandraKeyValueService ckvs = CassandraKeyValueServiceImpl.create(
                 config,
                 Optional.empty(),
-                getAtlasDbConfig().initializeAsync());
+                initializeAsync);
 
         ckvs.cleanUpSchemaMutationLockTablesState();
         printer.info("Schema mutation lock cli completed successfully.");
