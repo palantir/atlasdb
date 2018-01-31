@@ -19,8 +19,6 @@ package com.palantir.atlasdb.simulation;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.transaction.api.ReplayRepetition;
@@ -28,13 +26,13 @@ import com.palantir.atlasdb.transaction.api.TransactionTaskCondition;
 
 @Path("/simulation")
 @Consumes(MediaType.APPLICATION_JSON)
-@Produces(MediaType.APPLICATION_JSON)
 public interface LoadSimulation {
+    @POST
     @Path("capture")
-    @POST
-    void capture(@PathParam("condition")TransactionTaskCondition condition);
+    void capture(TransactionTaskCondition condition);
 
-    @Path("replay")
     @POST
-    void replay(@PathParam("repetition")ReplayRepetition repetition);
+    @Path("replay")
+    void replay(ReplayRepetition repetition);
 }
+
