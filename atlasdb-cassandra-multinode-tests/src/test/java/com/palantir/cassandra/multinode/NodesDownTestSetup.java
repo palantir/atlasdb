@@ -26,7 +26,6 @@ import org.junit.ClassRule;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
@@ -62,6 +61,9 @@ public abstract class NodesDownTestSetup {
     static final long DEFAULT_TIMESTAMP = 2L;
     static final long OLD_TIMESTAMP = 1L;
     static final Value DEFAULT_VALUE = Value.create(DEFAULT_CONTENTS, DEFAULT_TIMESTAMP);
+    static final ImmutableCassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig
+            .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
+            .withSchemaMutationTimeoutMillis(3_000);
 
     static CassandraKeyValueService kvs;
 
@@ -95,12 +97,7 @@ public abstract class NodesDownTestSetup {
     }
 
     protected static CassandraKeyValueService createCassandraKvs() {
-        CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
-                .withSchemaMutationTimeoutMillis(3_000);
-        return CassandraKeyValueServiceImpl.create(
-                config,
-                ThreeNodeCassandraCluster.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.create(CONFIG, ThreeNodeCassandraCluster.LEADER_CONFIG);
     }
 
     private static void degradeCassandraCluster(List<String> nodesToKill) {
