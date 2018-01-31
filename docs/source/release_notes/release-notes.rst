@@ -52,7 +52,7 @@ develop
 
     *    - |fixed|
          - Fixed a bug where the CleanCassLocksState CLI would not start because the Cassandra locks were in a bad state.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2943>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2948>`__)
 
     *    - |improved|
          - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
