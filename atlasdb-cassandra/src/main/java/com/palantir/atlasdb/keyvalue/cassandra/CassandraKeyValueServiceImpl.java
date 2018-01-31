@@ -188,7 +188,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final Optional<LeaderConfig> leaderConfig;
     private final HiddenTables hiddenTables;
 
-    private final SchemaMutationLockTables lockTables;
     private final UniqueSchemaMutationLockTable schemaMutationLockTable;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
@@ -306,7 +305,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
 
-        this.lockTables = new SchemaMutationLockTables(clientPool, config);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
@@ -2104,14 +2103,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public boolean performanceIsSensitiveToTombstones() {
         return true;
-    }
-
-    /**
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     */
-    @Override
-    public void cleanUpSchemaMutationLockTablesState() throws TException {
-        new CassandraSchemaLockCleaner(lockTables, schemaMutationLock, cassandraTableDropper).cleanLocksState();
     }
 
     private static class TableCellAndValue {
