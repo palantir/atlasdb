@@ -35,10 +35,10 @@ import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
  * Executes Thrift queries using the supplied {@link TracingQueryRunner}, wrapping {@link UnavailableException} with
  * {@link InsufficientConsistencyException}.
  */
-public class WrappingQueryRunner {
+class WrappingQueryRunner {
     private final TracingQueryRunner queryRunner;
 
-    public WrappingQueryRunner(TracingQueryRunner queryRunner) {
+    WrappingQueryRunner(TracingQueryRunner queryRunner) {
         this.queryRunner = queryRunner;
     }
 
