@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |new| |metrics|
+         - Sweep now exposes a metric with the name of the table being swept, if it is safe for logging.
+           The exposed metric, with the common prefix of ``com.palantir.atlasdb.sweep.metrics.SweepMetric.`` is ``tableBeingSwept.currentValue.currentIteration``.
+
     *    - |improved|
          - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
            To check which parameters are live-reloadable, check the ``CassandraKeyValueServiceRuntimeConfig`` class.

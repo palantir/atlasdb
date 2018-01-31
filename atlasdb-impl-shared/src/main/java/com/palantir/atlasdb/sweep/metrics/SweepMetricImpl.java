@@ -24,15 +24,15 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class SweepMetricImpl implements SweepMetric {
+public class SweepMetricImpl<T> implements SweepMetric<T> {
     private final String name;
     private final MetricRegistry metricRegistry;
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final UpdateEventType updateEventType;
     private final boolean tagWithTableName;
-    private final SweepMetricAdapter<?> metricAdapter;
+    private final SweepMetricAdapter<?, T> metricAdapter;
 
-    SweepMetricImpl(SweepMetricConfig config) {
+    SweepMetricImpl(SweepMetricConfig<T> config) {
         this.name = config.name();
         this.metricRegistry = config.metricRegistry();
         this.taggedMetricRegistry = config.taggedMetricRegistry();
@@ -42,13 +42,13 @@ public class SweepMetricImpl implements SweepMetric {
     }
 
     @Override
-    public void update(long value, TableReference tableRef, UpdateEventType eventInstance) {
+    public void update(T value, TableReference tableRef, UpdateEventType eventInstance) {
         if (updateEventType.equals(eventInstance)) {
             updateMetric(value, tableRef);
         }
     }
 
-    private void updateMetric(long value, TableReference tableRef) {
+    private void updateMetric(T value, TableReference tableRef) {
         if (!tagWithTableName) {
             metricAdapter.updateNonTaggedMetric(metricRegistry, name, value);
         } else {

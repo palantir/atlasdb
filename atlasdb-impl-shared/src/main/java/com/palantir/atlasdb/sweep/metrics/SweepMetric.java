@@ -18,6 +18,6 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public interface SweepMetric {
-    void update(long value, TableReference tableRef, UpdateEventType updateEvent);
+public interface SweepMetric<T> {
+    void update(T value, TableReference tableRef, UpdateEventType updateEvent);
 }

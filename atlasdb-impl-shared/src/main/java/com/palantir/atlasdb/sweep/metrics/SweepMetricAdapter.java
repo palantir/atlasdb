@@ -31,30 +31,30 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @Value.Immutable
-public abstract class SweepMetricAdapter<M extends Metric> {
+public abstract class SweepMetricAdapter<M extends Metric, T> {
     public abstract String getNameComponent();
     public abstract BiFunction<MetricRegistry, String, M> getMetricConstructor();
     public abstract BiFunction<TaggedMetricRegistry, MetricName, M> getTaggedMetricConstructor();
-    public abstract BiConsumer<M, Long> getUpdateMethod();
+    public abstract BiConsumer<M, T> getUpdateMethod();
 
-    public void updateNonTaggedMetric(MetricRegistry metricRegistry, String name, Long value) {
+    public void updateNonTaggedMetric(MetricRegistry metricRegistry, String name, T value) {
         getUpdateMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
     }
 
-    public void updateTaggedMetric(TaggedMetricRegistry taggedMetricRegistry, MetricName metricName, Long value) {
+    public void updateTaggedMetric(TaggedMetricRegistry taggedMetricRegistry, MetricName metricName, T value) {
         getUpdateMethod().accept(getTaggedMetricConstructor().apply(taggedMetricRegistry, metricName), value);
     }
 
-    public static final SweepMetricAdapter<Meter> METER_ADAPTER =
-            ImmutableSweepMetricAdapter.<Meter>builder()
+    public static final SweepMetricAdapter<Meter, Long> METER_ADAPTER =
+            ImmutableSweepMetricAdapter.<Meter, Long>builder()
                     .nameComponent("meter")
                     .metricConstructor(MetricRegistry::meter)
                     .taggedMetricConstructor(TaggedMetricRegistry::meter)
                     .updateMethod(Meter::mark)
                     .build();
 
-    public static final SweepMetricAdapter<Histogram> HISTOGRAM_ADAPTER =
-            ImmutableSweepMetricAdapter.<Histogram>builder()
+    public static final SweepMetricAdapter<Histogram, Long> HISTOGRAM_ADAPTER =
+            ImmutableSweepMetricAdapter.<Histogram, Long>builder()
                     .nameComponent("histogram")
                     .metricConstructor((metricRegistry, name) ->
                             metricRegistry.histogram(name, () -> new Histogram(new HdrHistogramReservoir())))
@@ -62,15 +62,22 @@ public abstract class SweepMetricAdapter<M extends Metric> {
                     .updateMethod(Histogram::update)
                     .build();
 
+    public static final SweepMetricAdapter<CurrentValueMetric<Long>, Long> CURRENT_VALUE_ADAPTER_LONG =
+            getCurrentValueAdapterForClass();
+
+    public static final SweepMetricAdapter<CurrentValueMetric<String>, String> CURRENT_VALUE_ADAPTER_STRING =
+            getCurrentValueAdapterForClass();
+
     // We know that the unchecked casts will be fine.
     @SuppressWarnings("unchecked")
-    public static final SweepMetricAdapter<CurrentValueMetric<Long>> CURRENT_VALUE_ADAPTER =
-            ImmutableSweepMetricAdapter.<CurrentValueMetric<Long>>builder()
-                    .nameComponent("currentValue")
-                    .metricConstructor((metricRegistry, name) ->
-                            (CurrentValueMetric<Long>) metricRegistry.gauge(name, CurrentValueMetric::new))
-                    .taggedMetricConstructor((taggedMetricRegistry, metricName) -> (CurrentValueMetric<Long>)
-                            taggedMetricRegistry.gauge(metricName, new CurrentValueMetric<Long>()))
-                    .updateMethod(CurrentValueMetric::setValue)
-                    .build();
+    private static <T> SweepMetricAdapter<CurrentValueMetric<T>, T> getCurrentValueAdapterForClass() {
+        return ImmutableSweepMetricAdapter.<CurrentValueMetric<T>, T>builder()
+                .nameComponent("currentValue")
+                .metricConstructor((metricRegistry, name) ->
+                        (CurrentValueMetric<T>) metricRegistry.gauge(name, CurrentValueMetric::new))
+                .taggedMetricConstructor((taggedMetricRegistry, metricName) -> (CurrentValueMetric<T>)
+                        taggedMetricRegistry.gauge(metricName, new CurrentValueMetric<T>()))
+                .updateMethod(CurrentValueMetric::setValue)
+                .build();
+    }
 }

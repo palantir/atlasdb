@@ -37,8 +37,13 @@ public class SweepMetricsFactory {
 
     SweepMetric createMetricsForTimeElapsed(String namePrefix) {
         return new SweepMetricsFactory.ListOfMetrics(
-                createCurrentValue(namePrefix, UpdateEventType.ONE_ITERATION, false),
+                createCurrentValueLong(namePrefix, UpdateEventType.ONE_ITERATION, false),
                 createHistogram(namePrefix, UpdateEventType.FULL_TABLE, false));
+    }
+
+
+    public SweepMetric createGaugeForTableBeingSwept(String namePrefix) {
+        return createCurrentValueString(namePrefix, UpdateEventType.ONE_ITERATION, false);
     }
 
     /**
@@ -84,13 +89,17 @@ public class SweepMetricsFactory {
      *                         tagged.
      * @return SweepMetric backed by a CurrentValueMetric
      */
-    SweepMetric createCurrentValue(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
-        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.CURRENT_VALUE_ADAPTER);
+    SweepMetric createCurrentValueLong(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
+        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_LONG);
     }
 
-    private SweepMetric createMetric(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName,
-            SweepMetricAdapter<?> metricAdapter) {
-        return new SweepMetricImpl(ImmutableSweepMetricConfig.builder()
+    SweepMetric createCurrentValueString(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
+        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_STRING);
+    }
+
+    private <T> SweepMetric<T> createMetric(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName,
+            SweepMetricAdapter<?, T> metricAdapter) {
+        return new SweepMetricImpl<>(ImmutableSweepMetricConfig.<T>builder()
                 .namePrefix(namePrefix)
                 .metricRegistry(metricRegistry)
                 .taggedMetricRegistry(taggedMetricRegistry)
@@ -100,15 +109,16 @@ public class SweepMetricsFactory {
                 .build());
     }
 
-    static class ListOfMetrics implements SweepMetric {
-        private final List<SweepMetric> metricsList;
+    static class ListOfMetrics implements SweepMetric<Long> {
+        private final List<SweepMetric<Long>> metricsList;
 
-        ListOfMetrics(SweepMetric... metrics) {
+        @SafeVarargs
+        ListOfMetrics(SweepMetric<Long>... metrics) {
             this.metricsList = Arrays.asList(metrics);
         }
 
         @Override
-        public void update(long value, TableReference tableRef, UpdateEventType updateEvent) {
+        public void update(Long value, TableReference tableRef, UpdateEventType updateEvent) {
             metricsList.forEach(metric -> metric.update(value, tableRef, updateEvent));
         }
     }

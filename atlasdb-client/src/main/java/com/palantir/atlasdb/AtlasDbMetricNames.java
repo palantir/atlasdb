@@ -40,6 +40,7 @@ public final class AtlasDbMetricNames {
 
     public static final String CELLS_EXAMINED = "cellTimestampPairsExamined";
     public static final String CELLS_SWEPT = "staleValuesDeleted";
+    public static final String TABLE_BEING_SWEPT = "tableBeingSwept";
     public static final String TIME_SPENT_SWEEPING = "sweepTimeSweeping";
     public static final String TIME_ELAPSED_SWEEPING = "sweepTimeElapsedSinceStart";
     public static final String SWEEP_ERROR = "sweepError";

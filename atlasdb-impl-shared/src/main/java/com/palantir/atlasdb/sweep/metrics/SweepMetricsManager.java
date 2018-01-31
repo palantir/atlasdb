@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
@@ -31,21 +32,22 @@ public class SweepMetricsManager {
     private final SweepMetric cellsSweptMetric = factory.createDefault(AtlasDbMetricNames.CELLS_EXAMINED);
     private final SweepMetric cellsDeletedMetric = factory.createDefault(AtlasDbMetricNames.CELLS_SWEPT);
     private final SweepMetric sweepTimeSweepingMetric = factory.createDefault(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
-
+    private final SweepMetric tableBeingSwept =
+            factory.createGaugeForTableBeingSwept(AtlasDbMetricNames.TABLE_BEING_SWEPT);
     private final SweepMetric sweepTimeElapsedMetric =
             factory.createMetricsForTimeElapsed(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
-
     private final SweepMetric sweepErrorMetric =
             factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEventType.ERROR, false);
 
     public void updateMetrics(SweepResults sweepResults, TableReference tableRef, UpdateEventType updateEvent) {
         cellsSweptMetric.update(sweepResults.getCellTsPairsExamined(), tableRef, updateEvent);
         cellsDeletedMetric.update(sweepResults.getStaleValuesDeleted(), tableRef, updateEvent);
+        tableBeingSwept.update(LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName(), tableRef, updateEvent);
         sweepTimeSweepingMetric.update(sweepResults.getTimeInMillis(), tableRef, updateEvent);
         sweepTimeElapsedMetric.update(sweepResults.getTimeElapsedSinceStartedSweeping(), tableRef, updateEvent);
     }
 
     public void sweepError() {
-        sweepErrorMetric.update(1, DUMMY, UpdateEventType.ERROR);
+        sweepErrorMetric.update(1L, DUMMY, UpdateEventType.ERROR);
     }
 }

@@ -242,6 +242,47 @@ public class SweepMetricsManagerTest {
         assertThat(meter.getCount(), equalTo(2L));
     }
 
+    @Test
+    public void tableBeingSweptIsRecordedForOneIterationAndSafeTable() {
+        assertTableBeingSweptEqualTo(null);
+
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        assertTableBeingSweptEqualTo(TABLE_REF.getQualifiedName());
+    }
+
+    @Test
+    public void tableBeingSweptIsRecordedForOneIterationAndUnSafeTable() {
+        LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF, UNSAFE_METADATA));
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        assertTableBeingSweptEqualTo(LoggingArgs.PLACEHOLDER_TABLE_REFERENCE.getQualifiedName());
+    }
+
+    @Test
+    public void tableBeingSweptIsRecordedAsUnsafeWhenMetadataUnavailable() {
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
+        assertTableBeingSweptEqualTo(LoggingArgs.PLACEHOLDER_TABLE_REFERENCE.getQualifiedName());
+    }
+
+    @Test
+    public void tableBeingSweptIsUpdatedOnEveryIterationForSafeTable() {
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        assertTableBeingSweptEqualTo(TABLE_REF.getQualifiedName());
+
+        LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF2, SAFE_METADATA));
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
+        assertTableBeingSweptEqualTo(TABLE_REF2.getQualifiedName());
+    }
+
+    @Test
+    public void tableBeingSweptIsUpdatedOnEveryIterationForUnsafeTable() {
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        assertTableBeingSweptEqualTo(TABLE_REF.getQualifiedName());
+
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
+        assertTableBeingSweptEqualTo(LoggingArgs.PLACEHOLDER_TABLE_REFERENCE.getQualifiedName());
+    }
+
+
     private void assertRecordedHistogramTaggedSafeOneIteration(String name, TableReference tableRef, Long... values) {
         Histogram histogram = getHistogram(name, tableRef, UpdateEventType.ONE_ITERATION, true);
         assertThat(Longs.asList(histogram.getSnapshot().getValues()), containsInAnyOrder(values));
@@ -266,6 +307,11 @@ public class SweepMetricsManagerTest {
     private void assertSweepTimeElapsedCurrentValueWithinMarginOfError(long timeSweepStarted) {
         Gauge<Long> gauge = getCurrentValueMetric(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
         assertWithinErrorMarginOf(gauge.getValue(), System.currentTimeMillis() - timeSweepStarted);
+    }
+
+    private void assertTableBeingSweptEqualTo(String test) {
+        Gauge<String> gauge = getCurrentValueMetric(AtlasDbMetricNames.TABLE_BEING_SWEPT);
+        assertThat(gauge.getValue(), equalTo(test));
     }
 
     private void assertSweepTimeElapsedHistogramWithinMarginOfError(Long... timeSweepStarted) {
@@ -295,7 +341,7 @@ public class SweepMetricsManagerTest {
     private Gauge getCurrentValueMetric(String namePrefix) {
         return metricRegistry.gauge(
                 MetricRegistry.name(SweepMetric.class, namePrefix,
-                        SweepMetricAdapter.CURRENT_VALUE_ADAPTER.getNameComponent(),
+                        SweepMetricAdapter.CURRENT_VALUE_ADAPTER_LONG.getNameComponent(),
                         UpdateEventType.ONE_ITERATION.getNameComponent()),
                 CurrentValueMetric::new);
     }

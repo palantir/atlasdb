@@ -22,13 +22,13 @@ import com.codahale.metrics.MetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @Value.Immutable
-public abstract class SweepMetricConfig {
+public abstract class SweepMetricConfig<T> {
     public abstract String namePrefix();
     public abstract MetricRegistry metricRegistry();
     public abstract TaggedMetricRegistry taggedMetricRegistry();
     public abstract UpdateEventType updateEvent();
     public abstract boolean tagWithTableName();
-    public abstract SweepMetricAdapter<?> metricAdapter();
+    public abstract SweepMetricAdapter<?, T> metricAdapter();
 
     @Value.Derived
     public String name() {
