@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
+import com.palantir.atlasdb.simulated.config.LoadSimulatorConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
@@ -67,8 +68,8 @@ public abstract class AtlasDbRuntimeConfig {
     }
 
     @Value.Default
-    public LoadSimulationConfig loadSimulationConfig() {
-        return LoadSimulationConfig.defaultLoadSimulationConfig();
+    public LoadSimulatorConfig loadSimulatorConfig() {
+        return LoadSimulatorConfig.DEFAULT;
     }
 
     /**

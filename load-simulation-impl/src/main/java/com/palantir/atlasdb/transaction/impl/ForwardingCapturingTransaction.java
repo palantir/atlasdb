@@ -17,16 +17,13 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -34,18 +31,27 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.CapturedTransaction;
+import com.palantir.atlasdb.transaction.api.CapturingTransaction;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
+import com.palantir.atlasdb.transaction.api.Invocation;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 
-public class InvocationCapturingTransaction extends RawTransaction {
-    private final ConcurrentLinkedQueue<Consumer<Transaction>> invocations = new ConcurrentLinkedQueue<>();
+public class ForwardingCapturingTransaction extends ForwardingTransaction implements CapturingTransaction {
+    private final ConcurrentLinkedQueue<Invocation> invocations = new ConcurrentLinkedQueue<>();
+    private final Transaction delegate;
 
-    public InvocationCapturingTransaction(RawTransaction delegate) {
-        super(delegate.delegate(), delegate.getImmutableTsLock());
+    public ForwardingCapturingTransaction(Transaction delegate) {
+        this.delegate = delegate;
+    }
+
+    @Override
+    public Transaction delegate() {
+        return delegate;
     }
 
     @Override
@@ -88,6 +94,7 @@ public class InvocationCapturingTransaction extends RawTransaction {
     }
 
     @Override
+    @Deprecated
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(TableReference tableRef,
             Iterable<RangeRequest> rangeRequests) {
         invocations.add(transaction -> transaction.getRanges(tableRef, rangeRequests));
@@ -182,7 +189,9 @@ public class InvocationCapturingTransaction extends RawTransaction {
         return super.getTransactionType();
     }
 
-    public List<Consumer<Transaction>> invocations() {
-        return ImmutableList.copyOf(invocations);
+    public CapturedTransaction captured() {
+        return CapturedTransaction.builder().addAllInvocations(invocations)
+                .timestamp(super.getTimestamp())
+                .build();
     }
 }
