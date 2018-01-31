@@ -25,7 +25,6 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.transaction.api.ReplayRepetition;
 import com.palantir.atlasdb.transaction.api.TransactionTaskCondition;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 @Path("/simulation")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -33,11 +32,9 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 public interface LoadSimulation {
     @Path("capture")
     @POST
-    boolean capture(@PathParam("condition")TransactionTaskCondition condition);
+    void capture(@PathParam("condition")TransactionTaskCondition condition);
 
     @Path("replay")
     @POST
-    boolean replay(@PathParam("repetition")ReplayRepetition repetition);
-
-    SerializableTransactionManager wrap(SerializableTransactionManager delegate);
+    void replay(@PathParam("repetition")ReplayRepetition repetition);
 }
