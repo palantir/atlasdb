@@ -52,7 +52,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
             title = "INSTALL CONFIG ROOT",
             type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
-    private String installConfigRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
+    private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 
     @Option(name = {"--runtime-config-root"},
             title = "RUNTIME CONFIG ROOT",
@@ -73,7 +73,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
         if (config == null) {
             try {
                 if (configFile != null) {
-                    config = parseAtlasDbConfig(configFile, AtlasDbConfig.class, installConfigRoot);
+                    config = parseAtlasDbConfig(configFile, AtlasDbConfig.class, configRoot);
                 } else if (inlineConfig != null) {
                     config = AtlasDbConfigs.loadFromString(inlineConfig, "", AtlasDbConfig.class);
                 } else {
@@ -102,9 +102,9 @@ public abstract class AbstractCommand implements Callable<Integer> {
         return runtimeConfig;
     }
 
-    private <T> T parseAtlasDbConfig(File confFile, Class<T> clazz, String configRoot) {
+    private <T> T parseAtlasDbConfig(File confFile, Class<T> clazz, String confRoot) {
         try {
-            return AtlasDbConfigs.load(confFile, configRoot, clazz);
+            return AtlasDbConfigs.load(confFile, confRoot, clazz);
         } catch (Exception e) {
             try {
                 return AtlasDbConfigs.load(confFile, ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH, clazz);
