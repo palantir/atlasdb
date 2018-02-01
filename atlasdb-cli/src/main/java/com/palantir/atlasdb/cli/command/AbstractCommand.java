@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -27,6 +28,7 @@ import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 
 public abstract class AbstractCommand implements Callable<Integer> {
+
     public static final String ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH = "/atlas";
 
     @Option(name = {"-c", "--config"},
@@ -91,7 +93,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
         return config;
     }
 
-    protected AtlasDbRuntimeConfig getAtlasDbRuntimeConfig() {
+    protected AtlasDbRuntimeConfig getAtlasDbRuntimeConfig() throws JsonProcessingException {
         if (runtimeConfig == null) {
             if (runtimeConfigFile != null) {
                 runtimeConfig = parseAtlasDbConfig(runtimeConfigFile, AtlasDbRuntimeConfig.class, runtimeConfigRoot);
