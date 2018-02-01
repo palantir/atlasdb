@@ -20,6 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -27,7 +28,10 @@ import com.google.common.base.Preconditions;
 @Value.Immutable
 @JsonSerialize(as = ImmutableSamplingTransactionCondition.class)
 @JsonDeserialize(as = ImmutableSamplingTransactionCondition.class)
+@JsonTypeName(SamplingTransactionCondition.TYPE)
 public interface SamplingTransactionCondition extends TransactionCondition {
+    String TYPE = "sampling";
+
     SamplingTransactionCondition NEVER_SAMPLE = SamplingTransactionCondition.of(0d);
 
     @Value.Default

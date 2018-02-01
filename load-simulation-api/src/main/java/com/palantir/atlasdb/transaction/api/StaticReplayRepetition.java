@@ -18,13 +18,16 @@ package com.palantir.atlasdb.transaction.api;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableStaticReplayRepetition.class)
 @JsonSerialize(as = ImmutableStaticReplayRepetition.class)
+@JsonTypeName(StaticReplayRepetition.TYPE)
 public interface StaticReplayRepetition extends ReplayRepetition {
+    String TYPE = "static";
     StaticReplayRepetition NO_REPETITIONS = StaticReplayRepetition.of(0);
 
     @Value.Default

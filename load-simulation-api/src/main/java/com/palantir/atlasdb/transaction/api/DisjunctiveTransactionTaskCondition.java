@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.api;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.HeldLocksToken;
@@ -25,7 +26,10 @@ import com.palantir.lock.HeldLocksToken;
 @Value.Immutable
 @JsonSerialize(as = ImmutableDisjunctiveTransactionTaskCondition.class)
 @JsonDeserialize(as = ImmutableDisjunctiveTransactionTaskCondition.class)
+@JsonTypeName(DisjunctiveTransactionTaskCondition.TYPE)
 public interface DisjunctiveTransactionTaskCondition extends TransactionTaskCondition {
+    String TYPE = "disjunctive";
+
     TransactionTaskCondition a();
     TransactionTaskCondition b();
 
