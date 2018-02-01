@@ -23,7 +23,8 @@ import org.immutables.value.Value;
 import com.palantir.atlasdb.transaction.impl.AlwaysFailingReplayCondition;
 
 @Value.Immutable
-public interface CapturedTransaction extends ConditionAwareTransactionTask<Void, AlwaysFailingReplayCondition, DeliberatelyFailedNonRetriableException> {
+public interface CapturedTransaction extends ConditionAwareTransactionTask<Void, AlwaysFailingReplayCondition,
+        DeliberatelyFailedNonRetriableException> {
     List<Invocation> invocations();
     long timestamp();
 
