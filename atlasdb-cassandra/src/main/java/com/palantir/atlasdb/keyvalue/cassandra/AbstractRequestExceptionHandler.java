@@ -19,9 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.time.Duration;
 import java.util.NoSuchElementException;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.InvalidRequestException;
@@ -38,9 +36,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public abstract class AbstractRequestExceptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-
-    private static final Duration backoffDuration = Duration.ofSeconds(1);
+    static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
     final Supplier<Integer> maxTriesSameHost;
     final Supplier<Integer> maxTriesTotal;
@@ -98,8 +94,7 @@ public abstract class AbstractRequestExceptionHandler {
     }
 
     @SuppressWarnings("unchecked")
-    <K extends Exception> void logNumberOfAttempts(Exception ex,
-            int numberOfAttempts) throws K {
+    <K extends Exception> void logNumberOfAttempts(Exception ex, int numberOfAttempts) throws K {
         // Only log the actual exception the first time
         if (numberOfAttempts > 1) {
             log.info("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
@@ -115,38 +110,14 @@ public abstract class AbstractRequestExceptionHandler {
         }
     }
 
-    <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
+    abstract boolean shouldBlacklist(Exception ex, int numberOfAttempts);
+
+    abstract <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
             InetSocketAddress hostTried,
-            Exception ex) {
-        if (!shouldBackoff(ex)) {
-            return;
-        }
+            Exception ex);
 
-        int numberOfAttempts = req.getNumberOfAttempts();
-        long backoffPeriod = backoffDuration.toMillis();
-        // And value between -500 and +500ms to backoff to better spread load on failover
-        long sleepDuration =
-                numberOfAttempts * backoffPeriod + (ThreadLocalRandom.current().nextInt(1000) - 500);
-        log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
-                UnsafeArg.of("queryString", req.getFunction().toString()),
-                SafeArg.of("sleepDuration", sleepDuration),
-                SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
-
-        try {
-            Thread.sleep(sleepDuration);
-        } catch (InterruptedException i) {
-            throw new RuntimeException(i);
-        }
-    }
-
-    <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried, Exception ex) {
-        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttempts())) {
-            log.info("Retrying with on a different host a query intended for host {}.",
-                    SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
-            req.giveUpOnPreferredHost();
-        }
-    }
+    abstract <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
+            InetSocketAddress hostTried, Exception ex);
 
     // Determine the behavior we want from each type of exception.
 
@@ -156,23 +127,6 @@ public abstract class AbstractRequestExceptionHandler {
                 || isTransientException(ex)
                 || isIndicativeOfCassandraLoad(ex)
                 || isFastFailoverException(ex);
-    }
-
-    @VisibleForTesting
-    boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
-        return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
-    }
-
-    @VisibleForTesting
-    boolean shouldBackoff(Exception ex) {
-        return isConnectionException(ex) || isIndicativeOfCassandraLoad(ex);
-    }
-
-    @VisibleForTesting
-    boolean shouldRetryOnDifferentHost(Exception ex, int numberOfAttempts) {
-        return isFastFailoverException(ex)
-                || (numberOfAttempts >= maxTriesSameHost.get()
-                && (isConnectionException(ex) || isIndicativeOfCassandraLoad(ex)));
     }
 
     // Group exceptions by type.
@@ -196,7 +150,7 @@ public abstract class AbstractRequestExceptionHandler {
                 || isTransientException(ex.getCause()));
     }
 
-    private boolean isIndicativeOfCassandraLoad(Throwable ex) {
+    boolean isIndicativeOfCassandraLoad(Throwable ex) {
         return ex != null
                 // pool for this node is fully in use
                 && (ex instanceof NoSuchElementException
@@ -205,7 +159,7 @@ public abstract class AbstractRequestExceptionHandler {
                 || isIndicativeOfCassandraLoad(ex.getCause()));
     }
 
-    private boolean isFastFailoverException(Throwable ex) {
+    boolean isFastFailoverException(Throwable ex) {
         return ex != null
                 // underlying cassandra table does not exist. The table might exist on other cassandra nodes.
                 && (ex instanceof InvalidRequestException

@@ -52,7 +52,7 @@ public class CassandraRequestExceptionHandlerTest {
             new UnavailableException());
     private Set<Exception> fastFailoverExceptions = Sets.newHashSet(new InvalidRequestException());
 
-    private CassandraRequestExceptionHandler exceptionHandler = new CassandraRequestExceptionHandler(
+    private DefaultRequestExceptionHandler exceptionHandler = new DefaultRequestExceptionHandler(
             () -> MAX_RETRIES_PER_HOST,
             () -> MAX_RETRIES_TOTAL,
             new Blacklist(config));

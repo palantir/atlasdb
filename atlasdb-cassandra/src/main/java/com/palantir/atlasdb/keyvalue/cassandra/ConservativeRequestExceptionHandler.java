@@ -27,30 +27,22 @@ class ConservativeRequestExceptionHandler extends AbstractRequestExceptionHandle
         super(maxTriesSameHost, maxTriesTotal, blacklist);
     }
 
-    @SuppressWarnings("unchecked")
-    <K extends Exception> void handleExceptionFromRequest(
-            RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried,
-            Exception ex)
-            throws K {
-        if (!isRetryable(ex)) {
-            throw (K) ex;
-        }
+    @Override
+    boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
+        // TODO
+        return false;
+    }
 
-        req.triedOnHost(hostTried);
-        int numberOfAttempts = req.getNumberOfAttempts();
+    @Override
+    <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req, InetSocketAddress hostTried,
+            Exception ex) {
+        // TODO
+    }
 
-        if (numberOfAttempts >= maxTriesTotal.get()) {
-            logAndThrowException(numberOfAttempts, ex);
-        }
-
-        if (shouldBlacklist(ex, numberOfAttempts)) {
-            blacklist.add(hostTried);
-        }
-
-        logNumberOfAttempts(ex, numberOfAttempts);
-        handleBackoff(req, hostTried, ex);
-        handleRetryOnDifferentHosts(req, hostTried, ex);
+    @Override
+    <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
+            InetSocketAddress hostTried, Exception ex) {
+        // TODO
     }
 }
 

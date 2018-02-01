@@ -17,9 +17,17 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+
 class DefaultRequestExceptionHandler extends AbstractRequestExceptionHandler {
+    private static final Duration backoffDuration = Duration.ofSeconds(1);
+
     DefaultRequestExceptionHandler(
             Supplier<Integer> maxTriesSameHost,
             Supplier<Integer> maxTriesTotal,
@@ -27,29 +35,55 @@ class DefaultRequestExceptionHandler extends AbstractRequestExceptionHandler {
         super(maxTriesSameHost, maxTriesTotal, blacklist);
     }
 
-    @SuppressWarnings("unchecked")
-    <K extends Exception> void handleExceptionFromRequest(
-            RetryableCassandraRequest<?, K> req,
+    @Override
+    <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
             InetSocketAddress hostTried,
-            Exception ex)
-            throws K {
-        if (!isRetryable(ex)) {
-            throw (K) ex;
+            Exception ex) {
+        if (!shouldBackoff(ex)) {
+            return;
         }
 
-        req.triedOnHost(hostTried);
         int numberOfAttempts = req.getNumberOfAttempts();
+        long backoffPeriod = backoffDuration.toMillis();
+        // And value between -500 and +500ms to backoff to better spread load on failover
+        long sleepDuration =
+                numberOfAttempts * backoffPeriod + (ThreadLocalRandom.current().nextInt(1000) - 500);
+        log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
+                UnsafeArg.of("queryString", req.getFunction().toString()),
+                SafeArg.of("sleepDuration", sleepDuration),
+                SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
 
-        if (numberOfAttempts >= maxTriesTotal.get()) {
-            logAndThrowException(numberOfAttempts, ex);
+        try {
+            Thread.sleep(sleepDuration);
+        } catch (InterruptedException i) {
+            throw new RuntimeException(i);
         }
+    }
 
-        if (shouldBlacklist(ex, numberOfAttempts)) {
-            blacklist.add(hostTried);
+    @Override
+    <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
+            InetSocketAddress hostTried, Exception ex) {
+        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttempts())) {
+            log.info("Retrying with on a different host a query intended for host {}.",
+                    SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
+            req.giveUpOnPreferredHost();
         }
+    }
 
-        logNumberOfAttempts(ex, numberOfAttempts);
-        handleBackoff(req, hostTried, ex);
-        handleRetryOnDifferentHosts(req, hostTried, ex);
+    @Override
+    boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
+        return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
+    }
+
+    @VisibleForTesting
+    boolean shouldBackoff(Exception ex) {
+        return isConnectionException(ex) || isIndicativeOfCassandraLoad(ex);
+    }
+
+    @VisibleForTesting
+    boolean shouldRetryOnDifferentHost(Exception ex, int numberOfAttempts) {
+        return isFastFailoverException(ex)
+                || (numberOfAttempts >= maxTriesSameHost.get()
+                && (isConnectionException(ex) || isIndicativeOfCassandraLoad(ex)));
     }
 }
