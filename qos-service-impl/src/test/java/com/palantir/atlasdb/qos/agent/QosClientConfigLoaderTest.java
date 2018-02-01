@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent;
+package com.palantir.atlasdb.qos.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
