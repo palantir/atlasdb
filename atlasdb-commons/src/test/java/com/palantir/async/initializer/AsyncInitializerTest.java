@@ -38,7 +38,7 @@ public class AsyncInitializerTest {
 
     private class AlwaysFailingInitializer extends AsyncInitializer {
         volatile int initializationAttempts = 0;
-        DeterministicScheduler deterministicScheduler;
+        DeterministicSchedulerShutdownAware deterministicScheduler;
 
         @Override
         public void tryInitialize() {
@@ -58,8 +58,17 @@ public class AsyncInitializerTest {
 
         @Override
         ScheduledExecutorService getExecutorService() {
-            deterministicScheduler = new DeterministicScheduler();
+            deterministicScheduler = new DeterministicSchedulerShutdownAware();
             return deterministicScheduler;
+        }
+    }
+
+    private class DeterministicSchedulerShutdownAware extends DeterministicScheduler {
+        volatile int numberOfTimesShutdownCalled = 0;
+
+        @Override
+        public void shutdown() {
+            numberOfTimesShutdownCalled++;
         }
     }
 
@@ -132,7 +141,9 @@ public class AsyncInitializerTest {
         Runnable cleanupTask = mock(Runnable.class);
         doNothing().when(cleanupTask).run();
 
+        assertThat(initializer.deterministicScheduler.numberOfTimesShutdownCalled).isEqualTo(0);
         initializeAsyncCancelAndVerifyCancelled(initializer, cleanupTask);
+        assertThat(initializer.deterministicScheduler.numberOfTimesShutdownCalled).isEqualTo(1);
         verify(cleanupTask, never()).run();
     }
 
@@ -149,6 +160,7 @@ public class AsyncInitializerTest {
 
         initializeAsyncCancelAndVerifyCancelled(successfulInitializer, cleanupTask);
         verify(cleanupTask).run();
+        assertThat(successfulInitializer.deterministicScheduler.numberOfTimesShutdownCalled).isEqualTo(1);
     }
 
     private AsyncInitializer getMockedInitializer() {

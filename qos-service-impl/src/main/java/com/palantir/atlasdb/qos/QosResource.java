@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.qos;
 
-import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosClientConfigLoader;
+import com.palantir.atlasdb.qos.agent.QosClientConfigLoader;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
 import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
 import com.palantir.atlasdb.util.MetricsManager;
