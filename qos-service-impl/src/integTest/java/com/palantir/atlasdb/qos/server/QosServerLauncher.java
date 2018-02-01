@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.qos.server;
 
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosAgent;
+import com.palantir.atlasdb.qos.agent.QosAgent;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 
