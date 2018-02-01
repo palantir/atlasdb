@@ -52,10 +52,10 @@ CLI Options
          - No
 
     *    - ``--runtime-config-root``
-         - The AtlasDB config root for your runtimr config. The CLI will by default look for ``atlasdb``/``atlas`` blocks in the config, but services can name these blocks arbitrarily.
-           This can usually be found by cracking open the install config file and searching for parameters defined in
+         - The AtlasDB config root for your runtime config. The CLI will by default look for ``atlasdb``/``atlas`` blocks in the config, but services can name these blocks arbitrarily.
+           This can usually be found by cracking open the runtime config file and searching for parameters defined in
            `Atlas Runtime config <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java>`__.
-           The parent of these parameters will be the install config root. If you do not have any AtlasDB runtime config,
+           The parent of these parameters will be the runtime config root. If you do not have any AtlasDB runtime config,
            you should get rid of the ``runtime-config`` option to the CLI and Atlas will assume the default config.
          - No
 
