@@ -18,7 +18,9 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.function.Consumer;
 
-import com.palantir.atlasdb.transaction.api.TransactionTaskCondition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.atlasdb.transaction.api.CapturedTransaction;
 import com.palantir.atlasdb.transaction.api.CapturingTransaction;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
@@ -26,9 +28,12 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.api.TransactionTaskCondition;
 import com.palantir.atlasdb.transaction.api.TransactionTaskWrapper;
 
 public class SuccessfulTaskInvocationCapture implements TransactionTaskWrapper {
+    private final static Logger log = LoggerFactory.getLogger(SuccessfulTaskInvocationCapture.class);
+
     private final TransactionTaskCondition transactionTaskCondition;
     private final Consumer<CapturedTransaction> consumer;
 
@@ -57,12 +62,23 @@ public class SuccessfulTaskInvocationCapture implements TransactionTaskWrapper {
 
     private <T, E extends Exception> T wrapInternal(Transaction transaction, boolean shouldCapture,
             TransactionTask<T, E> task) throws E {
-        if (shouldCapture) {
+        if (!shouldCapture) {
             return task.execute(transaction);
         }
+
+        long timestamp = transaction.getTimestamp();
+
+        log.debug("capturing transaction with timestamp {}.", timestamp);
         CapturingTransaction capturing = new ForwardingCapturingTransaction(transaction);
-        // If an error is thrown during execute'ion then the transaction is deliberately never captured.
-        T result = task.execute(capturing);
+        T result;
+        try {
+            result = task.execute(capturing);
+        } catch (Exception exception) {
+            log.debug("exception thrown whilst executing task");
+            throw exception;
+        }
+
+        log.debug("transaction with timestamp {} successfully executed, passing to consumer.", timestamp);
         consumer.accept(capturing.captured());
         return result;
     }
