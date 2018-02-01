@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.api;
 
-import com.palantir.atlasdb.transaction.api.DeliberatelyFailedNonRetriableException;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-
-public final class AlwaysFailingReplayCondition implements PreCommitCondition {
-
-    @Override
-    public void throwIfConditionInvalid(long timestamp) {
-        throw new DeliberatelyFailedNonRetriableException("deliberate condition failure.");
+public class DeliberatelyFailedNonRetriableException extends TransactionFailedNonRetriableException {
+    public DeliberatelyFailedNonRetriableException(String message, Throwable cause) {
+        super(message, cause);
     }
 
-    @Override
-    public void cleanup() {}
+    public DeliberatelyFailedNonRetriableException(String message) {
+        super(message);
+    }
 }

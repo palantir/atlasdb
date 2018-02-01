@@ -19,11 +19,17 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.atlasdb.transaction.api.CapturedTransaction;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.DeliberatelyFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.ReplayRepetition;
 
 public class TransactionReplayer implements Consumer<CapturedTransaction> {
+    private static final Logger log = LoggerFactory.getLogger(TransactionReplayer.class);
+
     private final ExecutorService executor;
     private final ReplayRepetition repetition;
     private final ConditionAwareTransactionManager manager;
@@ -37,17 +43,22 @@ public class TransactionReplayer implements Consumer<CapturedTransaction> {
 
     @Override
     public void accept(CapturedTransaction captured) {
-        accept(captured, repetition.repetitions(captured));
+        int repetitions = repetition.repetitions(captured);
+        log.debug("repeating captured transaction with {} timestamp {} times.", captured.timestamp(), repetitions);
+        accept(captured, repetitions);
     }
 
     private void accept(CapturedTransaction captured, int repetitions) {
         if (repetitions > 0) {
             executor.submit(() -> {
                 try {
+                    log.trace("running captured transaction with {} timestamp; {} repetitions remaining",
+                            captured.timestamp(), repetitions - 1);
                     manager.runTaskWithConditionThrowOnConflict(new AlwaysFailingReplayCondition(), captured);
-                } catch (Exception e) {
-                    // TODO(cbh): decide what we should on a failed transaction
+                } catch (DeliberatelyFailedNonRetriableException exception) {
+                    // Ignore exceptions we expect to be occurring.
                 }
+                log.trace("successfully ran captured transaction with {} timestamp.", captured.timestamp());
                 accept(captured, repetitions - 1);
             });
         }
