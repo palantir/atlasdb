@@ -51,6 +51,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Fixed a bug where the CleanCassLocksState CLI would not start because the Cassandra locks were in a bad state.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2948>`__)
+
+    *    - |fixed|
          - Close AsyncInitializer executors. This should reduce memory pressure of clients after startup.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2945>`__)
 
