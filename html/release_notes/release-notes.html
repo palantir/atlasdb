@@ -196,7 +196,11 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Close AsyncInitializer executors. This should reduce memory pressure of clients after startup.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2945">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Make some values of <code class="docutils literal"><span class="pre">CassandraKeyValueServiceConfig</span></code> live-reloadable.
 To check which parameters are live-reloadable, check the <code class="docutils literal"><span class="pre">CassandraKeyValueServiceRuntimeConfig</span></code> class.
 Docs about this config can be found <a class="reference internal" href="../configuration/index.html#atlas-config"><span class="std std-ref">here</span></a> and <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">here</span></a>.
