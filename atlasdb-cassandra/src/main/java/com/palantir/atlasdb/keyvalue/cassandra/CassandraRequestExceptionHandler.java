@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
-import java.net.SocketTimeoutException;
 import java.util.function.Supplier;
 
 class CassandraRequestExceptionHandler {
@@ -53,13 +52,4 @@ class CassandraRequestExceptionHandler {
             defaultRequestExceptionHandler.handleExceptionFromRequest(req, hostTried, ex);
         }
     }
-
-    static boolean isConnectionException(Throwable ex) {
-        return ex != null
-                // tcp socket timeout, possibly indicating network flake, long GC, or restarting server.
-                && (ex instanceof SocketTimeoutException
-                || ex instanceof CassandraClientFactory.ClientCreationFailedException
-                || isConnectionException(ex.getCause()));
-    }
-
 }
