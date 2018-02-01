@@ -32,12 +32,13 @@ import com.palantir.atlasdb.transaction.api.TransactionTaskCondition;
 import com.palantir.atlasdb.transaction.api.TransactionTaskWrapper;
 
 public class SuccessfulTaskInvocationCapture implements TransactionTaskWrapper {
-    private final static Logger log = LoggerFactory.getLogger(SuccessfulTaskInvocationCapture.class);
+    private static final Logger log = LoggerFactory.getLogger(SuccessfulTaskInvocationCapture.class);
 
     private final TransactionTaskCondition transactionTaskCondition;
     private final Consumer<CapturedTransaction> consumer;
 
-    public SuccessfulTaskInvocationCapture(TransactionTaskCondition transactionTaskCondition, Consumer<CapturedTransaction> consumer) {
+    public SuccessfulTaskInvocationCapture(TransactionTaskCondition transactionTaskCondition,
+            Consumer<CapturedTransaction> consumer) {
         this.transactionTaskCondition = transactionTaskCondition;
         this.consumer = consumer;
     }
@@ -49,15 +50,17 @@ public class SuccessfulTaskInvocationCapture implements TransactionTaskWrapper {
 
     @Override
     public <T, E extends Exception> LockAwareTransactionTask<T, E> wrap(LockAwareTransactionTask<T, E> task) {
-        return (transaction, heldLocks) -> wrapInternal(transaction,
-                transactionTaskCondition.test(transaction, heldLocks, task), wrapped -> task.execute(wrapped, heldLocks));
+        return (transaction, heldLocks) ->
+                wrapInternal(transaction, transactionTaskCondition.test(transaction, heldLocks, task),
+                        wrapped -> task.execute(wrapped, heldLocks));
     }
 
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> ConditionAwareTransactionTask<T, C, E> wrap(
             ConditionAwareTransactionTask<T, C, E> task) {
-        return (transaction, condition) -> wrapInternal(transaction,
-                transactionTaskCondition.test(transaction, condition, task), wrapped -> task.execute(wrapped, condition));
+        return (transaction, condition) ->
+                wrapInternal(transaction, transactionTaskCondition.test(transaction, condition, task),
+                        wrapped -> task.execute(wrapped, condition));
     }
 
     private <T, E extends Exception> T wrapInternal(Transaction transaction, boolean shouldCapture,

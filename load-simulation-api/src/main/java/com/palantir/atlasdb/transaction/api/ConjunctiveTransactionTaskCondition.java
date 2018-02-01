@@ -30,28 +30,29 @@ import com.palantir.lock.HeldLocksToken;
 public interface ConjunctiveTransactionTaskCondition extends TransactionTaskCondition {
     String TYPE = "conjunctive";
 
-    TransactionTaskCondition a();
-    TransactionTaskCondition b();
+    TransactionTaskCondition first();
+    TransactionTaskCondition second();
 
     @Override
     default <T, E extends Exception> boolean test(Transaction transaction, TransactionTask<T, E> task) {
-        return a().test(transaction, task) && b().test(transaction, task);
+        return first().test(transaction, task) && second().test(transaction, task);
     }
 
     @Override
     default <T, E extends Exception> boolean test(Transaction transaction, Iterable<HeldLocksToken> locks,
             LockAwareTransactionTask<T, E> task) {
-        return a().test(transaction, locks, task) && b().test(transaction, locks, task);
+        return first().test(transaction, locks, task) && second().test(transaction, locks, task);
     }
 
     @Override
     default <T, C extends PreCommitCondition, E extends Exception> boolean test(Transaction transaction,
             C preCommitCondition, ConditionAwareTransactionTask<T, C, E> task) {
-        return a().test(transaction, preCommitCondition, task) && b().test(transaction, preCommitCondition, task);
+        return first().test(transaction, preCommitCondition, task)
+                && second().test(transaction, preCommitCondition, task);
     }
 
-    static ConjunctiveTransactionTaskCondition of(TransactionTaskCondition a, TransactionTaskCondition b) {
-        return builder().a(a).b(b).build();
+    static ConjunctiveTransactionTaskCondition of(TransactionTaskCondition first, TransactionTaskCondition second) {
+        return builder().first(first).second(second).build();
     }
 
     static ImmutableConjunctiveTransactionTaskCondition.Builder builder() {

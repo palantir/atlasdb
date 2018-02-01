@@ -17,12 +17,12 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ForwardingObject;
-import com.palantir.atlasdb.transaction.api.TransactionTaskCondition;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.api.TransactionTaskCondition;
 import com.palantir.lock.HeldLocksToken;
 
 public class RefreshableTransactionTaskCondition extends ForwardingObject implements TransactionTaskCondition {
@@ -37,8 +37,8 @@ public class RefreshableTransactionTaskCondition extends ForwardingObject implem
         return condition;
     }
 
-    public void refresh(TransactionTaskCondition condition) {
-        this.condition = condition;
+    public void refresh(TransactionTaskCondition updated) {
+        condition = updated;
     }
 
     @Override

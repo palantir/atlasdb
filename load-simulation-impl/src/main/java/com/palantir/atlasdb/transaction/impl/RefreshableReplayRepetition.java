@@ -37,7 +37,7 @@ public class RefreshableReplayRepetition extends ForwardingObject implements Rep
         return delegate().repetitions(transaction);
     }
 
-    public void refresh(ReplayRepetition repetition) {
-        this.repetition = repetition;
+    public void refresh(ReplayRepetition updated) {
+        repetition = updated;
     }
 }

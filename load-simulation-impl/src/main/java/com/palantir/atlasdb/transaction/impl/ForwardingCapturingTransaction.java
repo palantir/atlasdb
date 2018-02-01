@@ -94,7 +94,6 @@ public class ForwardingCapturingTransaction extends ForwardingTransaction implem
     }
 
     @Override
-    @Deprecated
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(TableReference tableRef,
             Iterable<RangeRequest> rangeRequests) {
         invocations.add(transaction -> transaction.getRanges(tableRef, rangeRequests));
@@ -105,7 +104,8 @@ public class ForwardingCapturingTransaction extends ForwardingTransaction implem
     public <T> Stream<T> getRanges(TableReference tableRef, Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
-        invocations.add(transaction -> transaction.getRanges(tableRef, rangeRequests, concurrencyLevel, visitableProcessor));
+        invocations.add(transaction -> transaction.getRanges(tableRef, rangeRequests, concurrencyLevel,
+                visitableProcessor));
         return super.getRanges(tableRef, rangeRequests, concurrencyLevel, visitableProcessor);
     }
 
