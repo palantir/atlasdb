@@ -52,8 +52,8 @@ import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 
 final class SchemaMutationLock {
-    public static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
-    public static final int DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS = 60000;
+    static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
+    static final int DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS = 60000;
 
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLock.class);
     private static final Pattern GLOBAL_DDL_LOCK_FORMAT_PATTERN = Pattern.compile(

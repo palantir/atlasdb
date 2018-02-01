@@ -51,13 +51,20 @@ develop
          - Change
 
     *    - |fixed| |userbreak|
-         - AtlasDB CLIs now allows a runtime config to be passed in.
+         - AtlasDB CLIs now allow a runtime config to be passed in.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2937>`__)
+    *    - |fixed|
+         - Fixed a bug where the CleanCassLocksState CLI would not start because the Cassandra locks were in a bad state.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2948>`__)
+
+    *    - |fixed|
+         - Close AsyncInitializer executors. This should reduce memory pressure of clients after startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2945>`__)
 
     *    - |improved|
          - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
-           To check which parameters are live-reloadable, check the `CassandraKeyValueServiceRuntimeConfig` class.
-           Docs about this config can be found `here<atlas-config>` and `here<cassandra-configuration>`.
+           To check which parameters are live-reloadable, check the ``CassandraKeyValueServiceRuntimeConfig`` class.
+           Docs about this config can be found :ref:`here <atlas-config>` and :ref:`here <cassandra-configuration>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
 
 =======
