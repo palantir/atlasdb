@@ -21,10 +21,9 @@ You can use the CLI by unpacking the tar ball and running the executable in ``se
 CLI Options
 ===========
 
-
 .. list-table::
-     :widths: 5 40 15
-     :header-rows: 1
+    :widths: 5 40 15
+    :header-rows: 1
 
     *    - Option
          - Description
@@ -45,18 +44,20 @@ CLI Options
          - No
 
     *    - ``--config-root``
-         - The AtlasDB config root for your install config. The CLI will by default look for ``atlasdb``/``atlas`` blocks in the config, but services can name these blocks arbitrarily.
+         - The AtlasDB config root for your install config. The CLI will by default look for ``/atlasdb``/``/atlas`` blocks in the config, but services can name these blocks arbitrarily.
            This can usually be found by cracking open the install config file and searching for parameters defined in
            `Atlas Install config <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java>`__.
            The parent of these parameters will be the install config root.
+           Note that you have to provide the root with a '/' as the first character.
          - No
 
     *    - ``--runtime-config-root``
-         - The AtlasDB config root for your runtime config. The CLI will by default look for ``atlasdb``/``atlas`` blocks in the config, but services can name these blocks arbitrarily.
+         - The AtlasDB config root for your runtime config. The CLI will by default look for ``/atlasdb``/``/atlas`` blocks in the config, but services can name these blocks arbitrarily.
            This can usually be found by cracking open the runtime config file and searching for parameters defined in
            `Atlas Runtime config <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java>`__.
            The parent of these parameters will be the runtime config root. If you do not have any AtlasDB runtime config,
            you should get rid of the ``runtime-config`` option to the CLI and Atlas will assume the default config.
+           Note that you have to provide the root with a '/' as the first character.
          - No
 
     *    - ``--offline``
