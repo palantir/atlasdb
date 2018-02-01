@@ -112,12 +112,40 @@ public abstract class AbstractRequestExceptionHandler {
 
     abstract boolean shouldBlacklist(Exception ex, int numberOfAttempts);
 
-    abstract <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
+    <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
             InetSocketAddress hostTried,
-            Exception ex);
+            Exception ex) {
+        if (!shouldBackoff(ex)) {
+            return;
+        }
 
-    abstract <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried, Exception ex);
+        long sleepDuration = getBackoffPeriod(req.getNumberOfAttempts());
+        log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
+                UnsafeArg.of("queryString", req.getFunction().toString()),
+                SafeArg.of("sleepDuration", sleepDuration),
+                SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
+
+        try {
+            Thread.sleep(sleepDuration);
+        } catch (InterruptedException i) {
+            throw new RuntimeException(i);
+        }
+    }
+
+    abstract boolean shouldBackoff(Exception ex);
+
+    abstract long getBackoffPeriod(int numberOfAttempts);
+
+    <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
+            InetSocketAddress hostTried, Exception ex) {
+        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttempts())) {
+            log.info("Retrying with on a different host a query intended for host {}.",
+                    SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
+            req.giveUpOnPreferredHost();
+        }
+    }
+
+    abstract boolean shouldRetryOnDifferentHost(Exception ex, int numberOfAttempts);
 
     // Determine the behavior we want from each type of exception.
 

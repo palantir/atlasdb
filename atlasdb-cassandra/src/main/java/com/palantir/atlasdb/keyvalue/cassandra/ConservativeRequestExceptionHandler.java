@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
 import java.util.function.Supplier;
 
 class ConservativeRequestExceptionHandler extends AbstractRequestExceptionHandler {
@@ -29,20 +28,23 @@ class ConservativeRequestExceptionHandler extends AbstractRequestExceptionHandle
 
     @Override
     boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
-        // TODO
-        return false;
+        return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
     }
 
     @Override
-    <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req, InetSocketAddress hostTried,
-            Exception ex) {
-        // TODO
+    boolean shouldBackoff(Exception ex) {
+        return !isFastFailoverException(ex);
     }
 
     @Override
-    <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried, Exception ex) {
-        // TODO
+    long getBackoffPeriod(int numberOfAttempts) {
+        return 500 * (long) Math.pow(2, numberOfAttempts);
+    }
+
+    @Override
+    boolean shouldRetryOnDifferentHost(Exception ex, int numberOfAttempts) {
+        return isFastFailoverException(ex) || isIndicativeOfCassandraLoad(ex)
+                || (numberOfAttempts >= maxTriesSameHost.get() && isConnectionException(ex));
     }
 }
 

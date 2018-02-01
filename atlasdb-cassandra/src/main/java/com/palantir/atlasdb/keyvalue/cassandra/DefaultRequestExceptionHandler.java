@@ -21,43 +21,16 @@ import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 class DefaultRequestExceptionHandler extends AbstractRequestExceptionHandler {
-    private static final Duration backoffDuration = Duration.ofSeconds(1);
+    private static final long backoffDuration = Duration.ofSeconds(1).toMillis();
 
     DefaultRequestExceptionHandler(
             Supplier<Integer> maxTriesSameHost,
             Supplier<Integer> maxTriesTotal,
             Blacklist blacklist) {
         super(maxTriesSameHost, maxTriesTotal, blacklist);
-    }
-
-    @Override
-    <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried,
-            Exception ex) {
-        if (!shouldBackoff(ex)) {
-            return;
-        }
-
-        int numberOfAttempts = req.getNumberOfAttempts();
-        long backoffPeriod = backoffDuration.toMillis();
-        // And value between -500 and +500ms to backoff to better spread load on failover
-        long sleepDuration =
-                numberOfAttempts * backoffPeriod + (ThreadLocalRandom.current().nextInt(1000) - 500);
-        log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
-                UnsafeArg.of("queryString", req.getFunction().toString()),
-                SafeArg.of("sleepDuration", sleepDuration),
-                SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
-
-        try {
-            Thread.sleep(sleepDuration);
-        } catch (InterruptedException i) {
-            throw new RuntimeException(i);
-        }
     }
 
     @Override
@@ -75,12 +48,18 @@ class DefaultRequestExceptionHandler extends AbstractRequestExceptionHandler {
         return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
     }
 
-    @VisibleForTesting
+    @Override
     boolean shouldBackoff(Exception ex) {
         return isConnectionException(ex) || isIndicativeOfCassandraLoad(ex);
     }
 
-    @VisibleForTesting
+    @Override
+    long getBackoffPeriod(int numberOfAttempts) {
+        // And value between -500 and +500ms to backoff to better spread load on failover
+        return numberOfAttempts * backoffDuration + (ThreadLocalRandom.current().nextInt(1000) - 500);
+    }
+
+    @Override
     boolean shouldRetryOnDifferentHost(Exception ex, int numberOfAttempts) {
         return isFastFailoverException(ex)
                 || (numberOfAttempts >= maxTriesSameHost.get()
