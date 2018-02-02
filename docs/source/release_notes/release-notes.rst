@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |new|
+         - Added a new parameter ``conservativeRequestExceptionHandler`` to ``CassandraKeyValueServiceRuntimeConfig``.
+           Setting this parameter to true will enable more conservative retrying logic for requests, including longer backoffs and not retrying on the same host when encoutering an exception that is indicative of high Cassandra load, e.g., TimeoutExceptions.
+           This parameter is live-reloadable, and reloading it will affect in-flight requests, with the caveat that once a request gives up on a node, it will not retry that node again even if we disable conservative retrying.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
     *    - |improved|
          - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
            To check which parameters are live-reloadable, check the ``CassandraKeyValueServiceRuntimeConfig`` class.
