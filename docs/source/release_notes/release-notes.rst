@@ -50,9 +50,11 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed| |userbreak|
+    *    - |improved|
          - AtlasDB CLIs now allow a runtime config to be passed in.
+           This allows the CLIs to be used with products that are configured to use timelock and have the timelock block in the runtime config.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2937>`__)
+
     *    - |fixed|
          - Fixed a bug where the CleanCassLocksState CLI would not start because the Cassandra locks were in a bad state.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2948>`__)
