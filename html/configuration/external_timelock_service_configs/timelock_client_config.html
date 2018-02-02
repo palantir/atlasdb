@@ -271,6 +271,12 @@ library.</td>
 </div>
 <div class="section" id="runtime-configuration">
 <h2>Runtime Configuration<a class="headerlink" href="#runtime-configuration" title="Permalink to this headline">¶</a></h2>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last">Although we support live-reloading of the server configuration, AtlasDB needs to know at install time that it
+should talk to TimeLock. Added the block to a running service using embedded timestamp and lock servers is unsafe,
+as a rolling restart is likely to cause <strong>SEVERE DATA CORRUPTION</strong>.</p>
+</div>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">Although we support starting up without knowledge of any TimeLock nodes, note that if you are using TimeLock
@@ -281,11 +287,6 @@ TimeLock.</p>
 <p>We support live reloading of the <code class="docutils literal"><span class="pre">ServerListConfiguration</span></code> for TimeLock. This can be optionally configured in the
 <code class="docutils literal"><span class="pre">timelockRuntime</span></code> block under AtlasDB’s runtime configuration root.</p>
 <p>Note that if this block is present, then the <code class="docutils literal"><span class="pre">ServerListConfiguration</span></code> in the install configuration will be ignored.</p>
-<p>Also, although we support live-reloading of the server configuration, AtlasDB needs to know at install time that it
-should talk to TimeLock. In versions of Atlas before 0.74.0, this is done by specifying an empty YAML object
-for the timelock block in the install configuration (i.e. <code class="docutils literal"><span class="pre">timelock:</span> <span class="pre">{}</span></code>); in more recent versions, the presence
-of a <code class="docutils literal"><span class="pre">timelockRuntime</span></code> block is enough - <em>however</em>, it must already be present at install time, or AtlasDB
-will attempt to start up using embedded services.</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
