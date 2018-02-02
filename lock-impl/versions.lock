@@ -67,7 +67,7 @@
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
@@ -78,11 +78,12 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
+                "com.google.code.findbugs:annotations",
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "18.0",
+            "locked": "20.0",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -115,19 +116,19 @@
             "requested": "3.0.3-p5"
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.4.0",
+            "locked": "1.7.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.5.1",
+            "locked": "3.14.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.5.1",
+            "locked": "3.14.0",
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
@@ -158,6 +159,12 @@
         "joda-time:joda-time": {
             "locked": "2.7"
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",
             "transitive": [
@@ -171,11 +178,10 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting3:tracing",
-                "io.dropwizard.metrics:metrics-core"
+                "com.palantir.remoting3:tracing"
             ]
         },
         "org.yaml:snakeyaml": {
@@ -250,7 +256,7 @@
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
@@ -261,11 +267,12 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
+                "com.google.code.findbugs:annotations",
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "18.0",
+            "locked": "20.0",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -298,19 +305,19 @@
             "requested": "3.0.3-p5"
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.4.0",
+            "locked": "1.7.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.5.1",
+            "locked": "3.14.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.5.1",
+            "locked": "3.14.0",
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
@@ -341,6 +348,12 @@
         "joda-time:joda-time": {
             "locked": "2.7"
         },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
+        },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",
             "transitive": [
@@ -354,11 +367,10 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5",
+            "locked": "1.7.25",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting3:tracing",
-                "io.dropwizard.metrics:metrics-core"
+                "com.palantir.remoting3:tracing"
             ]
         },
         "org.yaml:snakeyaml": {

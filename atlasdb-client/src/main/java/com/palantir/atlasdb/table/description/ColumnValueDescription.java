@@ -158,8 +158,8 @@ public final class ColumnValueDescription {
         this.compression = Preconditions.checkNotNull(compression);
         this.type = ValueType.BLOB;
         this.format = Preconditions.checkNotNull(format);
-        Validate.notEmpty(className);
-        Validate.notEmpty(canonicalClassName);
+        Validate.notEmpty(className, "className should not be empty");
+        Validate.notEmpty(canonicalClassName, "canonicalClassName should not be empty");
         Validate.isTrue(format != Format.VALUE_TYPE);
         this.canonicalClassName = Preconditions.checkNotNull(canonicalClassName);
         this.className = Preconditions.checkNotNull(className);

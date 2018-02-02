@@ -38,7 +38,7 @@ public final class Schemas {
     public static TableReference appendIndexSuffix(String indexName, IndexDefinition definition) {
         Preconditions.checkArgument(
                 !indexName.endsWith(INDEX_SUFFIX),
-                "Index name cannot end with '" + INDEX_SUFFIX + "': " + indexName);
+                "Index name cannot end with '%s': %s", INDEX_SUFFIX, indexName);
         return TableReference.createUnsafe(indexName + definition.getIndexType().getIndexSuffix());
     }
 

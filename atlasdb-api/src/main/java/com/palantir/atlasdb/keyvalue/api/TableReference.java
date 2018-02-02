@@ -79,6 +79,17 @@ public final class TableReference {
         this.tablename = tablename;
     }
 
+    /**
+     * @deprecated uses {@link TableReference#createUnsafe}, which is itself deprecated.
+     */
+    @Deprecated
+    public static TableReference fromInternalTableName(String tableName) {
+        if (tableName.startsWith("_")) {
+            return createWithEmptyNamespace(tableName);
+        }
+        return createUnsafe(tableName.replaceFirst("__", "."));
+    }
+
     public Namespace getNamespace() {
         return namespace;
     }

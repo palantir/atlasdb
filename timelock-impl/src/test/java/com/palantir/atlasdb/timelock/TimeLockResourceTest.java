@@ -82,6 +82,19 @@ public class TimeLockResourceTest {
     }
 
     @Test
+    public void returnsMaxNumberOfClients() {
+        createMaximumNumberOfClients();
+        assertThat(resource.numberOfClients()).isEqualTo(DEFAULT_MAX_NUMBER_OF_CLIENTS);
+    }
+
+    @Test
+    public void onClientCreationIncreaseNumberOfClients() {
+        assertThat(resource.numberOfClients()).isEqualTo(0);
+        resource.getTimeService(uniqueClient());
+        assertThat(resource.numberOfClients()).isEqualTo(1);
+    }
+
+    @Test
     public void canDynamicallyIncreaseMaxAllowedClients() {
         createMaximumNumberOfClients();
 

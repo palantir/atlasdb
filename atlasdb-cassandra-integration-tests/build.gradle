@@ -5,6 +5,7 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
   testCompile project(":atlasdb-cassandra")
+  testCompile project(":atlasdb-cli")
   testCompile project(":atlasdb-tests-shared")
   testCompile project(":atlasdb-container-test-utils")
   testCompile project(":atlasdb-ete-test-utils")
