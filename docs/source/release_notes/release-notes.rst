@@ -62,6 +62,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2945>`__)
 
     *    - |improved|
+         - Added a TimeLock healthcheck for signalling that no leader election has been triggered.
+           This will allow TimeLock itself to broadcast a HEALTHY status even without a leader.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2939>`__)
+
+    *    - |improved|
          - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
            To check which parameters are live-reloadable, check the ``CassandraKeyValueServiceRuntimeConfig`` class.
            Docs about this config can be found :ref:`here <atlas-config>` and :ref:`here <cassandra-configuration>`.
