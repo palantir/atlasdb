@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * This class is like {@link InheritableThreadLocal} but it works with tasks spawned from the static
- * methods in {@link PTExecutors}. We don't usually use plain old threads for task management, so
+ * methods in <code>PTExecutors</code>. We don't usually use plain old threads for task management, so
  * {code InheritableThreadLocal} is not that useful. Use this class as a replacement.
  */
 public class ExecutorInheritableThreadLocal<T> {
