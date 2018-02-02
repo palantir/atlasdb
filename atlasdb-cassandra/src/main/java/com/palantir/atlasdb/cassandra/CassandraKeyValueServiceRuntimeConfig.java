@@ -92,7 +92,6 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
 
     /**
      * Setting this value to true will cause us to take a more conservative approach to retrying requests on exceptions.
-     * @return
      */
     @Value.Default
     public boolean conservativeRequestExceptionHandler() {
