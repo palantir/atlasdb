@@ -64,6 +64,11 @@ develop
            Docs about this config can be found :ref:`here <atlas-config>` and :ref:`here <cassandra-configuration>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
 
+    *    - |improved| |logs|
+         - Sweep now logs the number of cells it is deleting when performing a single batch of deletes.
+           This is useful for visibility of Sweep progress; previously, Sweep would only log when a top-level batch was complete, meaning that for highly versioned rows Sweep would only log after deleting all stale versions of said row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2958>`__)
+
 =======
 v0.75.0
 =======
