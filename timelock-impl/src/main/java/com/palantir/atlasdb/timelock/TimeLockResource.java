@@ -75,13 +75,17 @@ public class TimeLockResource {
         return servicesByNamespace.computeIfAbsent(namespace, this::createNewClient);
     }
 
+    public int numberOfClients() {
+        return servicesByNamespace.size();
+    }
+
     private TimeLockServices createNewClient(String namespace) {
         Preconditions.checkArgument(!namespace.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 "The client name '%s' is reserved for the leader election service, and may not be "
                         + "used.",
                 PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE);
 
-        if (servicesByNamespace.size() >= maxNumberOfClients.get()) {
+        if (numberOfClients() >= maxNumberOfClients.get()) {
             log.error(
                     "Unable to create timelock services for client {}, as it would exceed the maximum number of "
                             + "allowed clients ({}). If this is intentional, the maximum number of clients can be "

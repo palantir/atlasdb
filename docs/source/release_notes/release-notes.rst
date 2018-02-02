@@ -54,7 +54,20 @@ develop
          - Added a new parameter ``conservativeRequestExceptionHandler`` to ``CassandraKeyValueServiceRuntimeConfig``.
            Setting this parameter to true will enable more conservative retrying logic for requests, including longer backoffs and not retrying on the same host when encoutering an exception that is indicative of high Cassandra load, e.g., TimeoutExceptions.
            This parameter is live-reloadable, and reloading it will affect in-flight requests, with the caveat that once a request gives up on a node, it will not retry that node again even if we disable conservative retrying.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2959>`__)
+
+    *    - |fixed|
+         - Fixed a bug where the CleanCassLocksState CLI would not start because the Cassandra locks were in a bad state.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2948>`__)
+
+    *    - |fixed|
+         - Close AsyncInitializer executors. This should reduce memory pressure of clients after startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2945>`__)
+
+    *    - |improved|
+         - Added a TimeLock healthcheck for signalling that no leader election has been triggered.
+           This will allow TimeLock itself to broadcast a HEALTHY status even without a leader.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2939>`__)
 
     *    - |improved|
          - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.

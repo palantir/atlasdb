@@ -47,7 +47,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-            getKeyValueService());
+            getKeyValueService(), CassandraContainer.KVS_CONFIG);
 
     @Parameterized.Parameter
     public boolean useColumnBatchSize;

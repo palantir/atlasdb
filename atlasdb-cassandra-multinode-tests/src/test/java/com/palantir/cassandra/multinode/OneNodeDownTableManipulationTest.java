@@ -19,12 +19,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraSchemaLockCleaner;
+import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
+import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
+import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class OneNodeDownTableManipulationTest {
@@ -82,7 +89,15 @@ public class OneNodeDownTableManipulationTest {
 
     @Test
     public void canCleanUpSchemaMutationLockTablesState() throws Exception {
-        OneNodeDownTestSuite.kvs.cleanUpSchemaMutationLockTablesState();
+        ImmutableCassandraKeyValueServiceConfig config = OneNodeDownTestSuite.CONFIG;
+        CassandraClientPool clientPool = OneNodeDownTestSuite.kvs.getClientPool();
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
+        TracingQueryRunner queryRunner = new TracingQueryRunner(LoggerFactory.getLogger(TracingQueryRunner.class),
+                new TracingPrefsConfig());
+        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(config, clientPool, lockTables,
+                queryRunner);
+
+        cleaner.cleanLocksState();
     }
 
     @Test
