@@ -453,22 +453,22 @@ public abstract class TransactionManagers {
      * @deprecated Not intended for public use outside of the AtlasDB CLIs
      */
     @Deprecated
-    public static LockAndTimestampServices createLockAndTimestampServices(
+    public static LockAndTimestampServices createLockAndTimestampServicesForCli(
             AtlasDbConfig config,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
-            com.google.common.base.Supplier<TimestampService> time) {
+            com.google.common.base.Supplier<TimestampService> time,
+            TimestampStoreInvalidator invalidator,
+            String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(config,
-                        () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
+                        runtimeConfigSupplier,
                         env,
                         lock,
                         time,
-                        () -> {
-                            log.warn("Note: Automatic migration isn't performed by the CLI tools.");
-                            return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-                        },
-                        UserAgents.DEFAULT_USER_AGENT);
+                        invalidator,
+                        userAgent);
         return withRefreshingLockService(lockAndTimestampServices);
     }
 
