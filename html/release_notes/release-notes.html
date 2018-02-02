@@ -205,6 +205,11 @@
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2945">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Added a TimeLock healthcheck for signalling that no leader election has been triggered.
+This will allow TimeLock itself to broadcast a HEALTHY status even without a leader.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2939">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Make some values of <code class="docutils literal"><span class="pre">CassandraKeyValueServiceConfig</span></code> live-reloadable.
 To check which parameters are live-reloadable, check the <code class="docutils literal"><span class="pre">CassandraKeyValueServiceRuntimeConfig</span></code> class.
 Docs about this config can be found <a class="reference internal" href="../configuration/index.html#atlas-config"><span class="std std-ref">here</span></a> and <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">here</span></a>.
