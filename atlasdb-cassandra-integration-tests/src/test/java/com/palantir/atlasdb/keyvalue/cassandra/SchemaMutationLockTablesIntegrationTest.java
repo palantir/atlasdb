@@ -107,7 +107,7 @@ public class SchemaMutationLockTablesIntegrationTest {
                 .forEach(ignoringExceptions(() -> {
                     barrier.await();
                     lockTables.createLockTable();
-                    lockTablesSeen.add(logit mckTables.getAllLockTables());
+                    lockTablesSeen.add(lockTables.getAllLockTables());
                     return null;
                 }));
 
