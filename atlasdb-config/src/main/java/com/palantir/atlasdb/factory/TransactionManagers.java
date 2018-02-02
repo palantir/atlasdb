@@ -213,11 +213,12 @@ public abstract class TransactionManagers {
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
-        QosClient qosClient = getQosClient(JavaSuppliers.compose(conf -> conf.qos(), runtimeConfigSupplier));
+        QosClient qosClient = getQosClient(JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier));
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(
                         config.keyValueService(),
+                        JavaSuppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier),
                         config.leader(),
                         config.namespace(),
                         config.initializeAsync(),

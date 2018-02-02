@@ -31,7 +31,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 @RunWith(Parameterized.class)
-public class PartitionByCountAndBytesLoggingTest {
+public class IterablePartitionerTest {
 
     // approx put size is intentionally larger than the max (this triggers logging)
     private static final long LARGE_PUT_SIZE = 20L;
@@ -45,7 +45,7 @@ public class PartitionByCountAndBytesLoggingTest {
         return new Object[] {"test", "foo.bar", "[intentionally.invalid.table.name, foo.bar.baz]"};
     }
 
-    public PartitionByCountAndBytesLoggingTest(String tableName) {
+    public IterablePartitionerTest(String tableName) {
         this.tableName = tableName;
     }
 
@@ -91,7 +91,7 @@ public class PartitionByCountAndBytesLoggingTest {
     }
 
     private void simplePartition(Logger mockLogger, long approximatePutSize) {
-        Iterable<List<Integer>> partitions = AbstractKeyValueService.partitionByCountAndBytes(
+        Iterable<List<Integer>> partitions = IterablePartitioner.partitionByCountAndBytes(
                 Lists.newArrayList(1, 2, 3),
                 2,
                 MAXIMUM_PUT_SIZE,

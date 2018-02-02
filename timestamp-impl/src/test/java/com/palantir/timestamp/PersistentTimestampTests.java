@@ -27,7 +27,6 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.internal.hamcrest.HamcrestArgumentMatcher;
 
 public class PersistentTimestampTests {
 
@@ -74,7 +73,7 @@ public class PersistentTimestampTests {
         timestamp.increaseTo(newMinimum);
 
         assertThat(timestamp.incrementBy(1).getLowerBound(), is(newMinimum + 1L));
-        verify(upperLimit).increaseToAtLeast(longThat(new HamcrestArgumentMatcher<>(is(greaterThan(newMinimum)))));
+        verify(upperLimit).increaseToAtLeast(longThat(is(greaterThan(newMinimum))));
     }
 
 }
