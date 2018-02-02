@@ -110,7 +110,9 @@ public abstract class AbstractRequestExceptionHandler {
         }
     }
 
-    abstract boolean shouldBlacklist(Exception ex, int numberOfAttempts);
+    boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
+        return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
+    }
 
     <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
             InetSocketAddress hostTried,
@@ -171,8 +173,6 @@ public abstract class AbstractRequestExceptionHandler {
         return ex != null
                 // There's a problem with the connection to Cassandra.
                 && (ex instanceof TTransportException
-                // Cassandra timeout. Maybe took too long to CAS, or Cassandra is under load.
-                || ex instanceof TimedOutException
                 // Not enough Cassandra nodes are up.
                 || ex instanceof InsufficientConsistencyException
                 || isTransientException(ex.getCause()));
@@ -182,6 +182,8 @@ public abstract class AbstractRequestExceptionHandler {
         return ex != null
                 // pool for this node is fully in use
                 && (ex instanceof NoSuchElementException
+                // Cassandra timeout. Maybe took too long to CAS, or Cassandra is under load.
+                || ex instanceof TimedOutException
                 // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
                 || ex instanceof UnavailableException
                 || isIndicativeOfCassandraLoad(ex.getCause()));

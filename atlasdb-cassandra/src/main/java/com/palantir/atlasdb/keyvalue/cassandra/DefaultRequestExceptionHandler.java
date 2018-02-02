@@ -16,12 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
-
-import com.palantir.logsafe.SafeArg;
 
 class DefaultRequestExceptionHandler extends AbstractRequestExceptionHandler {
     private static final long backoffDuration = Duration.ofSeconds(1).toMillis();
@@ -31,21 +28,6 @@ class DefaultRequestExceptionHandler extends AbstractRequestExceptionHandler {
             Supplier<Integer> maxTriesTotal,
             Blacklist blacklist) {
         super(maxTriesSameHost, maxTriesTotal, blacklist);
-    }
-
-    @Override
-    <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried, Exception ex) {
-        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttempts())) {
-            log.info("Retrying with on a different host a query intended for host {}.",
-                    SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
-            req.giveUpOnPreferredHost();
-        }
-    }
-
-    @Override
-    boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
-        return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
     }
 
     @Override

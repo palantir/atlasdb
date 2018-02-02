@@ -27,11 +27,6 @@ class ConservativeRequestExceptionHandler extends AbstractRequestExceptionHandle
     }
 
     @Override
-    boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
-        return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
-    }
-
-    @Override
     boolean shouldBackoff(Exception ex) {
         return !isFastFailoverException(ex);
     }
