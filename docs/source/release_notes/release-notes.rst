@@ -64,6 +64,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2939>`__)
 
     *    - |improved|
+         - Index tables can now be marked as safe for logging. If you use indexes, please add ``allSafeForLogging()`` on its definition.
+           This makes all AtlasDB tables able to be marked as safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2940>`__)
+
+    *    - |improved|
          - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
            To check which parameters are live-reloadable, check the ``CassandraKeyValueServiceRuntimeConfig`` class.
            Docs about this config can be found :ref:`here <atlas-config>` and :ref:`here <cassandra-configuration>`.

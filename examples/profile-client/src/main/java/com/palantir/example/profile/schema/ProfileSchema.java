@@ -59,6 +59,7 @@ public class ProfileSchema implements AtlasSchema {
 
         schema.addIndexDefinition("user_birthdays", new IndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("user_profile");
+            allSafeForLoggingByDefault();
             rowName();
                 componentFromColumn("birthday", ValueType.VAR_SIGNED_LONG, "metadata", "_value.getBirthEpochDay()");
             dynamicColumns();
@@ -69,6 +70,7 @@ public class ProfileSchema implements AtlasSchema {
 
         schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("user_profile");
+            allSafeForLoggingByDefault();
             rowName();
                 componentFromColumn("time", ValueType.VAR_LONG, "create", "_value.getTimeCreated()");
             dynamicColumns();
@@ -79,6 +81,7 @@ public class ProfileSchema implements AtlasSchema {
 
         schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("user_profile");
+            allSafeForLoggingByDefault();
             rowName();
                 componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json",
                         "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");
