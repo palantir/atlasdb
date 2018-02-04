@@ -37,7 +37,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
             description = "path to yaml install configuration file for atlasdb")
     private File configFile;
 
-    @Option(name = {"-r", "--runtime-config"},
+    @Option(name = {"--runtime-config"},
             title = "RUNTIME CONFIG PATH",
             type = OptionType.GLOBAL,
             description = "path to yaml runtime configuration file for atlasdb")
