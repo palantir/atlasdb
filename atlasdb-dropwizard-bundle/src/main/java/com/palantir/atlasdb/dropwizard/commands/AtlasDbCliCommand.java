@@ -115,7 +115,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
         AtlasDbConfig cliConfiguration = AtlasDbCommandUtils.convertServerConfigToClientConfig(
-                configuration.getAtlasDbConfig());
+                configuration.getAtlasDbConfig(), configuration.getAtlasDbRuntimeConfig());
 
         Map<String, OptionType> optionTypes = getCliOptionTypes();
 
