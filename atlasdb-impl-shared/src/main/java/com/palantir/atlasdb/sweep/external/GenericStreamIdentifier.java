@@ -21,7 +21,7 @@ import org.immutables.value.Value;
 import com.palantir.atlasdb.table.description.ValueType;
 
 @Value.Immutable
-public interface GenericStreamIdentifier {
+interface GenericStreamIdentifier {
     @Value.Parameter
     ValueType streamIdType();
 
