@@ -194,6 +194,60 @@ tasks as well as help resolve problems encountered during operation.</p>
 You can find the versions <a class="reference external" href="https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/">here</a> for download.
 You can use the CLI by unpacking the tar ball and running the executable in <code class="docutils literal"><span class="pre">service/bin/atlasdb-cli</span></code>.</p>
 </div>
+<div class="section" id="general-cli-options">
+<h2>General CLI Options<a class="headerlink" href="#general-cli-options" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="8%" />
+<col width="67%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Option</th>
+<th class="head">Description</th>
+<th class="head">Required</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">--config</span></code></td>
+<td>The path to the install config yml file of the service. Usually <code class="docutils literal"><span class="pre">var/conf/install.yml</span></code>.</td>
+<td>Yes</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">--runtime-config</span></code></td>
+<td>The path to the runtime config yml file of the service. Usually <code class="docutils literal"><span class="pre">var/conf/runtime.yml</span></code>. You should always
+specify one if you have a runtime config file.</td>
+<td>No</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">--inline-config</span></code></td>
+<td>Use it if you want to provide the AtlasDB config as a string/json.
+The config string should immediately follow the option.</td>
+<td>No</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">--config-root</span></code></td>
+<td>The AtlasDB config root for your install config. The CLI will by default look for <code class="docutils literal"><span class="pre">/atlasdb</span></code>/<code class="docutils literal"><span class="pre">/atlas</span></code> blocks in the config, but services can name these blocks arbitrarily.
+This can usually be found by cracking open the install config file and searching for parameters defined in
+<a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java">Atlas Install config</a>.
+The parent of these parameters will be the install config root.
+Note that you have to provide the root with a ‘/’ as the first character.</td>
+<td>No</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">--runtime-config-root</span></code></td>
+<td>The AtlasDB config root for your runtime config. The CLI will by default look for <code class="docutils literal"><span class="pre">/atlasdb</span></code>/<code class="docutils literal"><span class="pre">/atlas</span></code> blocks in the config, but services can name these blocks arbitrarily.
+This can usually be found by cracking open the runtime config file and searching for parameters defined in
+<a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java">Atlas Runtime config</a>.
+The parent of these parameters will be the runtime config root. If you do not have any AtlasDB runtime config,
+you should get rid of the <code class="docutils literal"><span class="pre">runtime-config</span></code> option to the CLI and Atlas will assume the default config.
+Note that you have to provide the root with a ‘/’ as the first character.</td>
+<td>No</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">--offline</span></code></td>
+<td>Some CLIs can only be run in the offline mode. This means that you have to shut down all nodes of the service
+and then pass in this flag to the CLI.</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="section" id="compiling-the-cli">
 <h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this headline">¶</a></h2>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli-distribution:distTar
