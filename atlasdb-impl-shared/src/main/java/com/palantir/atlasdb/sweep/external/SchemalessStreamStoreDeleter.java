@@ -81,7 +81,7 @@ public class SchemalessStreamStoreDeleter {
             StreamMetadata streamMetadata = entry.getValue();
 
             builder.addAllValueTableCellsToDelete(cellCreator.constructValueTableCellSet(
-                    streamId, getNumberOfBlocksFromMetadata(entry.getValue())));
+                    streamId, getNumberOfBlocksFromMetadata(streamMetadata)));
             builder.addMetadataTableCellsToDelete(cellCreator.constructMetadataTableCell(streamId));
             builder.addHashTableCellsToDelete(cellCreator.constructHashTableCell(streamId, streamMetadata.getHash()));
         }
