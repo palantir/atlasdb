@@ -69,6 +69,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2939>`__)
 
     *    - |improved|
+         - Index tables can now be marked as safe for logging. If you use indexes, please add ``allSafeForLogging()`` on its definition.
+           This makes all AtlasDB tables able to be marked as safe for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2940>`__)
+
+    *    - |improved|
          - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
            To check which parameters are live-reloadable, check the ``CassandraKeyValueServiceRuntimeConfig`` class.
            Docs about this config can be found :ref:`here <atlas-config>` and :ref:`here <cassandra-configuration>`.
@@ -77,6 +82,15 @@ develop
     *    - |devbreak|
          - Renamed the method used to create LockAndTimestampServices by the CLI commands and AtlasConsole.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
+
+    *    - |improved| |logs|
+         - Sweep now logs the number of cells it is deleting when performing a single batch of deletes.
+           This is useful for visibility of Sweep progress; previously, Sweep would only log when a top-level batch was complete, meaning that for highly versioned rows Sweep would only log after deleting all stale versions of said row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2958>`__)
+
+    *    - |improved|
+         - The sweep-table endpoint now returns HTTP status 400 instead of 500, when asked to sweep a non-existent table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2936>`__)
 
 =======
 v0.75.0

@@ -96,7 +96,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     public void sweepingNonExistingTableShouldNotBeSuccessful() {
         assertThatExceptionOfType(RemoteException.class)
                 .isThrownBy(() -> sweeperService.sweepTableFully("ns.non_existing_table"))
-                .matches(ex -> ex.getStatus() == Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+                .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
     }
 
     @Test
