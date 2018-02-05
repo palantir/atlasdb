@@ -94,7 +94,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     // TODO(bgrabham): Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
     @Option(name = {"--inline-config"},
-            title = "INLINE CONFIG",
+            title = "INLINE INSTALL CONFIG",
             type = OptionType.GLOBAL,
             description = "inline configuration file for atlasdb")
     private String inlineConfig;
