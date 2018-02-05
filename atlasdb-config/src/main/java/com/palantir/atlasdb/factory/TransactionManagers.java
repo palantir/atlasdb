@@ -471,7 +471,7 @@ public abstract class TransactionManagers {
     }
 
     @VisibleForTesting
-    public static LockAndTimestampServices createLockAndTimestampServices(
+    static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
