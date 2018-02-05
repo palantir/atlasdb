@@ -55,7 +55,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
     private File toConfigFile;
 
     @Option(name = {"--config-root"},
-            title = "CONFIG ROOT",
+            title = "INSTALL CONFIG ROOT",
             type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
@@ -94,7 +94,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     // TODO(bgrabham): Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
     @Option(name = {"--inline-config"},
-            title = "INLINE CONFIG",
+            title = "INLINE INSTALL CONFIG",
             type = OptionType.GLOBAL,
             description = "inline configuration file for atlasdb")
     private String inlineConfig;
@@ -154,7 +154,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
     }
 
     public AtlasDbServices connectFromServices() throws IOException {
-        AtlasDbConfig fromConfig = AtlasDbConfigs.load(fromConfigFile, configRoot);
+        AtlasDbConfig fromConfig = AtlasDbConfigs.load(fromConfigFile, configRoot, AtlasDbConfig.class);
         ServicesConfigModule scm = ServicesConfigModule.create(
                 makeOfflineIfNecessary(fromConfig), AtlasDbRuntimeConfig.withSweepDisabled());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
@@ -162,8 +162,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     public AtlasDbServices connectToServices() throws IOException {
         AtlasDbConfig toConfig = toConfigFile != null
-                ? AtlasDbConfigs.load(toConfigFile, configRoot)
-                : AtlasDbConfigs.loadFromString(inlineConfig, null);
+                ? AtlasDbConfigs.load(toConfigFile, configRoot, AtlasDbConfig.class)
+                : AtlasDbConfigs.loadFromString(inlineConfig, null, AtlasDbConfig.class);
         ServicesConfigModule scm = ServicesConfigModule.create(
                 makeOfflineIfNecessary(toConfig), AtlasDbRuntimeConfig.withSweepDisabled());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
