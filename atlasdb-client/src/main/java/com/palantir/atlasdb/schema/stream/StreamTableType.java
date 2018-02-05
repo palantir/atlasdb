@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.schema.stream;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.render.Renderers;
 
@@ -56,5 +57,11 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
         int tableNameLastIndex = tableReference.getQualifiedName().lastIndexOf(StreamTableType.VALUE.tableSuffix);
         String indexTableName = tableReference.getQualifiedName().substring(0, tableNameLastIndex) + INDEX.tableSuffix;
         return TableReference.createUnsafe(indexTableName);
+    }
+
+    public static TableReference getTableReference(Namespace namespace,
+            String streamStoreShortName,
+            StreamTableType tableType) {
+        return TableReference.create(namespace, tableType.getTableName(streamStoreShortName));
     }
 }
