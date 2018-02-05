@@ -210,10 +210,20 @@ This will allow TimeLock itself to broadcast a HEALTHY status even without a lea
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2939">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Index tables can now be marked as safe for logging. If you use indexes, please add <code class="docutils literal"><span class="pre">allSafeForLogging()</span></code> on its definition.
+This makes all AtlasDB tables able to be marked as safe for logging.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2940">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Make some values of <code class="docutils literal"><span class="pre">CassandraKeyValueServiceConfig</span></code> live-reloadable.
 To check which parameters are live-reloadable, check the <code class="docutils literal"><span class="pre">CassandraKeyValueServiceRuntimeConfig</span></code> class.
 Docs about this config can be found <a class="reference internal" href="../configuration/index.html#atlas-config"><span class="std std-ref">here</span></a> and <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">here</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2896">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>Sweep now logs the number of cells it is deleting when performing a single batch of deletes.
+This is useful for visibility of Sweep progress; previously, Sweep would only log when a top-level batch was complete, meaning that for highly versioned rows Sweep would only log after deleting all stale versions of said row.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2958">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The sweep-table endpoint now returns HTTP status 400 instead of 500, when asked to sweep a non-existent table.
