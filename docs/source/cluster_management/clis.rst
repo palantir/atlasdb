@@ -18,8 +18,8 @@ The CLI now comes prebuilt as an SLS distribution to be used with any AtlasDB-ba
 You can find the versions `here <https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/>`__ for download.
 You can use the CLI by unpacking the tar ball and running the executable in ``service/bin/atlasdb-cli``.
 
-CLI Options
-===========
+General CLI Options
+===================
 
 .. list-table::
     :widths: 5 40 15

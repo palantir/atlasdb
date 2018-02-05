@@ -74,6 +74,10 @@ develop
            Docs about this config can be found :ref:`here <atlas-config>` and :ref:`here <cassandra-configuration>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
 
+    *    - |devbreak|
+         - Renamed the method used to create LockAndTimestampServices by the CLI commands and AtlasConsole.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
+
 =======
 v0.75.0
 =======
