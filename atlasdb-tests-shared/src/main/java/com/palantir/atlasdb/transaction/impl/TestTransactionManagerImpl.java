@@ -17,7 +17,9 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
+import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -28,12 +30,14 @@ import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.timestamp.TimestampService;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
@@ -108,10 +112,37 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
-    public Transaction createNewTransaction() {
-        Map<TableReference, ConflictHandler> conflictHandlersWithOverrides = new HashMap<>();
-        conflictHandlersWithOverrides.putAll(conflictDetectionManager.getCachedValues());
-        conflictHandlersWithOverrides.putAll(conflictHandlerOverrides);
+    protected SnapshotTransaction createTransaction(
+            long immutableTimestamp,
+            Supplier<Long> startTimestampSupplier,
+            LockToken immutableTsLock,
+            PreCommitCondition condition) {
+        Map<TableReference, ConflictHandler> conflictHandlersWithOverrides = getConflictHandlerWithOverrides();
+        return new SnapshotTransaction(
+                keyValueService,
+                timelockService,
+                transactionService,
+                cleaner,
+                startTimestampSupplier,
+                TestConflictDetectionManagers.createWithStaticConflictDetection(conflictHandlersWithOverrides),
+                sweepStrategyManager,
+                immutableTimestamp,
+                Optional.of(immutableTsLock),
+                condition,
+                constraintModeSupplier.get(),
+                cleaner.getTransactionReadTimeoutMillis(),
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                allowHiddenTableAccess,
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs.get(),
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueueWriter);
+    }
+
+    @Override
+    public SnapshotTransaction createNewTransaction() {
+        Map<TableReference, ConflictHandler> conflictHandlersWithOverrides = getConflictHandlerWithOverrides();
         return new SnapshotTransaction(
                 keyValueService,
                 timelockService,
@@ -130,5 +161,12 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     @Override
     public void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
         conflictHandlerOverrides.put(table, conflictHandler);
+    }
+
+    Map<TableReference, ConflictHandler> getConflictHandlerWithOverrides() {
+        Map<TableReference, ConflictHandler> conflictHandlersWithOverrides = new HashMap<>();
+        conflictHandlersWithOverrides.putAll(conflictDetectionManager.getCachedValues());
+        conflictHandlersWithOverrides.putAll(conflictHandlerOverrides);
+        return conflictHandlersWithOverrides;
     }
 }

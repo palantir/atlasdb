@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
+import org.hamcrest.Matchers;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
@@ -212,56 +213,21 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void testConcurrentWriteChangedConflicts() throws InterruptedException, ExecutionException {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
-        CompletionService<Void> executor = new ExecutorCompletionService<Void>(
-                PTExecutors.newFixedThreadPool(8));
-        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-        Transaction t1 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
-        t1.commit();
-        for (int i = 0 ; i < 1000 ; i++) {
-            executor.submit(() -> {
-                txManager.runTaskWithRetry((TxTask) t -> {
-                    long prev = EncodingUtils.decodeVarLong(t.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
-                    t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev+1)));
-                    return null;
-                });
-                return null;
-            });
-        }
-        for (int i = 0; i < 1000 ; i++) {
-            Future<Void> future = executor.take();
-            future.get();
-        }
-        t1 = txManager.createNewTransaction();
-        long val = EncodingUtils.decodeVarLong(t1.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
+        long val = concurrentlyIncrementValueThousandTimesAndGet();
         assertEquals(1000, val);
     }
 
     @Test
     public void testConcurrentWriteWriteConflicts() throws InterruptedException, ExecutionException {
-        CompletionService<Void> executor = new ExecutorCompletionService<Void>(
-                PTExecutors.newFixedThreadPool(8));
-        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-        Transaction t1 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
-        t1.commit();
-        for (int i = 0 ; i < 1000 ; i++) {
-            executor.submit(() -> {
-                txManager.runTaskWithRetry((TxTask) t -> {
-                    long prev = EncodingUtils.decodeVarLong(t.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
-                    t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev+1)));
-                    return null;
-                });
-                return null;
-            });
-        }
-        for (int i = 0; i < 1000 ; i++) {
-            Future<Void> future = executor.take();
-            future.get();
-        }
-        t1 = txManager.createNewTransaction();
-        long val = EncodingUtils.decodeVarLong(t1.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
+        long val = concurrentlyIncrementValueThousandTimesAndGet();
         assertEquals(1000, val);
+    }
+
+    @Test
+    public void testConcurrentWriteIgnoreConflicts() throws InterruptedException, ExecutionException {
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.IGNORE_ALL);
+        long val = concurrentlyIncrementValueThousandTimesAndGet();
+        assertThat(val, Matchers.lessThan(1000L));
     }
 
     @Test
@@ -1038,6 +1004,31 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 "Dummy thread");
     }
 
+    private long concurrentlyIncrementValueThousandTimesAndGet() throws InterruptedException, ExecutionException {
+        CompletionService<Void> executor = new ExecutorCompletionService<Void>(
+                PTExecutors.newFixedThreadPool(8));
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        Transaction t1 = txManager.createNewTransaction();
+        t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
+        t1.commit();
+        for (int i = 0; i < 1000; i++) {
+            executor.submit(() -> {
+                txManager.runTaskWithRetry((TxTask) t -> {
+                    long prev = EncodingUtils.decodeVarLong(
+                            t.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
+                    t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev + 1)));
+                    return null;
+                });
+                return null;
+            });
+        }
+        for (int i = 0; i < 1000; i++) {
+            Future<Void> future = executor.take();
+            future.get();
+        }
+        t1 = txManager.createNewTransaction();
+        return EncodingUtils.decodeVarLong(t1.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
+    }
 
     /**
      * Hack to get reference to underlying {@link SnapshotTransaction}. See how transaction managers are composed at
