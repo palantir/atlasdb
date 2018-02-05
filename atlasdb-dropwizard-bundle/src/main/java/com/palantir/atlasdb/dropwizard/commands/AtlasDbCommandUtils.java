@@ -74,7 +74,7 @@ public final class AtlasDbCommandUtils {
     }
 
     private static boolean runtimeConfigHasTimeLockBlock(Optional<AtlasDbRuntimeConfig> runtimeConfig) {
-        return runtimeConfig.map(AtlasDbRuntimeConfig::timelockRuntime).isPresent();
+        return runtimeConfig.flatMap(AtlasDbRuntimeConfig::timelockRuntime).isPresent();
     }
 
     private static AtlasDbConfig convertRuntimeConfigWithTimeLock(AtlasDbConfig installConfig,
