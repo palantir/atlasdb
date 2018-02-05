@@ -23,16 +23,14 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
-import com.palantir.atlasdb.stream.GenericStreamStore;
+import com.palantir.atlasdb.stream.StreamMetadatas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -81,7 +79,7 @@ public class SchemalessStreamStoreDeleter {
             StreamMetadata streamMetadata = entry.getValue();
 
             builder.addAllValueTableCellsToDelete(cellCreator.constructValueTableCellSet(
-                    streamId, getNumberOfBlocksFromMetadata(streamMetadata)));
+                    streamId, StreamMetadatas.getNumberOfBlocksFromMetadata(streamMetadata)));
             builder.addMetadataTableCellsToDelete(cellCreator.constructMetadataTableCell(streamId));
             builder.addHashTableCellsToDelete(cellCreator.constructHashTableCell(streamId, streamMetadata.getHash()));
         }
@@ -107,15 +105,8 @@ public class SchemalessStreamStoreDeleter {
         tx.delete(getTableReference(streamTableType), cellsToDelete);
     }
 
-    @VisibleForTesting
-    TableReference getTableReference(StreamTableType type) {
-        return TableReference.create(namespace, type.getTableName(streamStoreShortName));
-    }
-
-    @VisibleForTesting
-    long getNumberOfBlocksFromMetadata(StreamPersistence.StreamMetadata metadata) {
-        return (metadata.getLength() + GenericStreamStore.BLOCK_SIZE_IN_BYTES - 1)
-                / GenericStreamStore.BLOCK_SIZE_IN_BYTES;
+    private TableReference getTableReference(StreamTableType streamTableType) {
+        return streamTableType.getTableReference(namespace, streamStoreShortName);
     }
 
     @Value.Immutable

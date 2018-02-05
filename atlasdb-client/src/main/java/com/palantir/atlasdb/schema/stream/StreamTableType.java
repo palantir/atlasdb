@@ -42,6 +42,10 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
         return Renderers.CamelCase(prefix) + javaSuffix;
     }
 
+    public TableReference getTableReference(Namespace namespace, String streamStoreShortName) {
+        return TableReference.create(namespace, getTableName(streamStoreShortName));
+    }
+
     public static boolean isStreamStoreValueTable(TableReference tableReference) {
         return isStreamStoreTableOfSpecificType(VALUE, tableReference);
     }
@@ -57,11 +61,5 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
         int tableNameLastIndex = tableReference.getQualifiedName().lastIndexOf(StreamTableType.VALUE.tableSuffix);
         String indexTableName = tableReference.getQualifiedName().substring(0, tableNameLastIndex) + INDEX.tableSuffix;
         return TableReference.createUnsafe(indexTableName);
-    }
-
-    public static TableReference getTableReference(Namespace namespace,
-            String streamStoreShortName,
-            StreamTableType tableType) {
-        return TableReference.create(namespace, tableType.getTableName(streamStoreShortName));
     }
 }
