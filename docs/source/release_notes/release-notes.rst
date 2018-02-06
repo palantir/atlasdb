@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - AtlasDB CLIs now allow a runtime config to be passed in.
+           This allows the CLIs to be used with products that are configured to use timelock and have the timelock block in the runtime config.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2937>`__)
+
     *    - |fixed|
          - Fixed a bug where the CleanCassLocksState CLI would not start because the Cassandra locks were in a bad state.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2948>`__)
@@ -73,6 +78,15 @@ develop
            To check which parameters are live-reloadable, check the ``CassandraKeyValueServiceRuntimeConfig`` class.
            Docs about this config can be found :ref:`here <atlas-config>` and :ref:`here <cassandra-configuration>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
+
+    *    - |devbreak|
+         - Renamed the method used to create LockAndTimestampServices by the CLI commands and AtlasConsole.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
+
+    *    - |improved| |logs|
+         - Sweep now logs the number of cells it is deleting when performing a single batch of deletes.
+           This is useful for visibility of Sweep progress; previously, Sweep would only log when a top-level batch was complete, meaning that for highly versioned rows Sweep would only log after deleting all stale versions of said row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2958>`__)
 
     *    - |improved|
          - The sweep-table endpoint now returns HTTP status 400 instead of 500, when asked to sweep a non-existent table.

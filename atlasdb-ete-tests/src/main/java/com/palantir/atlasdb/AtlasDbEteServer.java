@@ -94,6 +94,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         }
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private TransactionManager createTransactionManagerWithRetry(AtlasDbConfig config,
             Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig,
             Environment environment)
@@ -110,6 +111,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private TransactionManager createTransactionManager(AtlasDbConfig config,
             Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfigOptional, Environment environment) {
         return TransactionManagers.builder()
@@ -119,6 +121,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment.jersey()::register)
                 .addAllSchemas(ETE_SCHEMAS)
+                .runtimeConfigSupplier(() -> atlasDbRuntimeConfigOptional)
                 .build()
                 .serializable();
     }

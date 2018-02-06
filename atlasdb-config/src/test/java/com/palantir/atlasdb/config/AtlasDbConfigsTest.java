@@ -46,6 +46,7 @@ public class AtlasDbConfigsTest {
 
     @Test
     public void canDecryptValues() throws IOException {
-        AtlasDbConfigs.load(new File(AtlasDbConfigsTest.class.getResource("/encrypted-config.yml").getPath()));
+        AtlasDbConfigs.load(new File(AtlasDbConfigsTest.class.getResource("/encrypted-config.yml").getPath()),
+                AtlasDbConfig.class);
     }
 }

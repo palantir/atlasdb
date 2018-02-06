@@ -36,10 +36,13 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -54,10 +57,12 @@ public class AtlasDbCommandUtilsTest {
             .client(LOCAL_SERVER_NAME)
             .serversList(LOCAL_SERVER_LIST_CONFIG)
             .build();
+    private static final AtlasDbRuntimeConfig EMPTY_RUNTIME_CONFIG = ImmutableAtlasDbRuntimeConfig.builder().build();
 
     private static AtlasDbConfig minimalLeaderConfig;
     private static AtlasDbConfig minimalEmbeddedConfig;
     private static AtlasDbConfig timeLockConfig;
+    private static AtlasDbRuntimeConfig runtimeConfig;
 
     @Before
     public void setUp() {
@@ -78,46 +83,64 @@ public class AtlasDbCommandUtilsTest {
                 .timelock(TIME_LOCK_CLIENT_CONFIG)
                 .keyValueService(kvsConfig)
                 .build();
+        runtimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
+                .timelockRuntime(ImmutableTimeLockRuntimeConfig.builder()
+                        .serversList(LOCAL_SERVER_LIST_CONFIG)
+                        .build())
+                .build();
     }
 
     @Test
     public void leaderBlockNoLongerExistsAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig,
+                Optional.of(EMPTY_RUNTIME_CONFIG));
 
         assertThat(clientConfig.leader().isPresent()).isFalse();
     }
 
     @Test
     public void timestampBlockExistsAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig,
+                Optional.of(EMPTY_RUNTIME_CONFIG));
 
         assertThat(clientConfig.timestamp().isPresent()).isTrue();
     }
 
     @Test
     public void timestampBlockContainsLeadersAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig,
+                Optional.of(EMPTY_RUNTIME_CONFIG));
 
         assertThat(clientConfig.timestamp().get().servers()).containsExactly(LOCAL_SERVER_NAME);
     }
 
     @Test
     public void lockBlockExistsAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig,
+                Optional.of(EMPTY_RUNTIME_CONFIG));
 
         assertThat(clientConfig.lock().get().servers()).containsExactly(LOCAL_SERVER_NAME);
     }
 
     @Test
     public void clientConfigMatchesServerConfigForTimelock() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(timeLockConfig);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(timeLockConfig,
+                Optional.of(EMPTY_RUNTIME_CONFIG));
+
+        assertThat(clientConfig).isEqualTo(timeLockConfig);
+    }
+
+    @Test
+    public void clientConfigMatchesRuntimeConfigForTimelock() {
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalEmbeddedConfig,
+                Optional.of(runtimeConfig));
 
         assertThat(clientConfig).isEqualTo(timeLockConfig);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void conversionFailsWhenUsingEmbeddedServerConfig() {
-        AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalEmbeddedConfig);
+        AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalEmbeddedConfig, Optional.of(EMPTY_RUNTIME_CONFIG));
     }
 
     @Test
@@ -192,7 +215,7 @@ public class AtlasDbCommandUtilsTest {
                         .build())
                 .build();
         String configAsString = AtlasDbCommandUtils.serialiseConfiguration(bigConfig);
-        AtlasDbConfig deserializedConfig = AtlasDbConfigs.loadFromString(configAsString, "");
+        AtlasDbConfig deserializedConfig = AtlasDbConfigs.loadFromString(configAsString, "", AtlasDbConfig.class);
 
         assertThat(bigConfig).isEqualTo(deserializedConfig);
     }
