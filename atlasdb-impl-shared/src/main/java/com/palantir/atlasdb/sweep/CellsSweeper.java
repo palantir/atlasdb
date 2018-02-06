@@ -82,8 +82,15 @@ public class CellsSweeper {
             Multimap<Cell, Long> cellTsPairsToSweep,
             Collection<Cell> sentinelsToAdd) {
         if (cellTsPairsToSweep.isEmpty()) {
+            log.info("Attempted to delete 0 cell+timestamp pairs from table {}.",
+                    LoggingArgs.tableRef(tableRef));
             return;
         }
+
+        log.info("Attempted to delete {} stale cell+timestamp pairs from table {}, and add {} sentinels.",
+                SafeArg.of("numCellTsPairsToDelete", cellTsPairsToSweep.size()),
+                LoggingArgs.tableRef(tableRef),
+                SafeArg.of("numGarbageCollectionSentinelsToAdd", sentinelsToAdd.size()));
 
         for (Follower follower : followers) {
             follower.run(txManager, tableRef, cellTsPairsToSweep.keySet(), Transaction.TransactionType.HARD_DELETE);
