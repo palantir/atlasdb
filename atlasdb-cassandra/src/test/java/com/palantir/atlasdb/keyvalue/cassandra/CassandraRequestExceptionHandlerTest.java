@@ -51,10 +51,9 @@ public class CassandraRequestExceptionHandlerTest {
 
     private static Set<Exception> connectionExceptions = Sets.newHashSet(new SocketTimeoutException(MESSAGE),
             new CassandraClientFactory.ClientCreationFailedException(MESSAGE, CAUSE));
-    private static Set<Exception> transientExceptions = Sets.newHashSet(new TTransportException(),
-            new InsufficientConsistencyException(MESSAGE));
+    private static Set<Exception> transientExceptions = Sets.newHashSet(new TTransportException());
     private static Set<Exception> indicativeOfCassandraLoadException = Sets.newHashSet(new NoSuchElementException(),
-            new TimedOutException(), new UnavailableException());
+            new TimedOutException(), new UnavailableException(), new InsufficientConsistencyException(MESSAGE));
     private static Set<Exception> fastFailoverExceptions = Sets.newHashSet(new InvalidRequestException());
 
     private boolean currentMode;

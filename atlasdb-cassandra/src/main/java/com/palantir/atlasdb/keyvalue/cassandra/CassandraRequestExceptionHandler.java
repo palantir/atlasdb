@@ -37,8 +37,8 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class CassandraRequestExceptionHandler {
-    static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+class CassandraRequestExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
     final Supplier<Integer> maxTriesSameHost;
     final Supplier<Integer> maxTriesTotal;
@@ -96,7 +96,7 @@ public class CassandraRequestExceptionHandler {
     }
 
     @SuppressWarnings("unchecked")
-    <K extends Exception> void logAndThrowException(int numberOfAttempts, Exception ex) throws K {
+    private <K extends Exception> void logAndThrowException(int numberOfAttempts, Exception ex) throws K {
         if (ex instanceof TTransportException
                 && ex.getCause() != null
                 && (ex.getCause().getClass() == SocketException.class)) {
@@ -112,7 +112,7 @@ public class CassandraRequestExceptionHandler {
     }
 
     @SuppressWarnings("unchecked")
-    <K extends Exception> void logNumberOfAttempts(Exception ex, int numberOfAttempts) throws K {
+    private <K extends Exception> void logNumberOfAttempts(Exception ex, int numberOfAttempts) throws K {
         // Only log the actual exception the first time
         if (numberOfAttempts > 1) {
             log.info("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
@@ -133,7 +133,7 @@ public class CassandraRequestExceptionHandler {
         return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
     }
 
-    <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
+    private <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
             InetSocketAddress hostTried,
             Exception ex) {
         if (!shouldBackoff(ex)) {
