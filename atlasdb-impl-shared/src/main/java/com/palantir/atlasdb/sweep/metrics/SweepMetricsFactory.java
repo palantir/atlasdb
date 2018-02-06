@@ -31,7 +31,6 @@ public class SweepMetricsFactory {
     SweepMetric createDefault(String namePrefix) {
         return new SweepMetricsFactory.ListOfMetrics(
                 createMeter(namePrefix, UpdateEventType.ONE_ITERATION, false),
-                createHistogram(namePrefix, UpdateEventType.ONE_ITERATION, true),
                 createHistogram(namePrefix, UpdateEventType.FULL_TABLE, false));
     }
 
