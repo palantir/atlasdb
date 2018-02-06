@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -56,11 +57,18 @@ public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        mutation_map.forEach((key, tableToMutations) -> {
-            tableToMutations.forEach((table, mutations) -> {
-                getCellsWrittenMeterForTable(table).mark(mutations.size());
+        delegate.batch_mutate(kvsMethodName, mutation_map, consistency_level);
+
+        Map<String, Long> tablesToCells = new HashMap<>(mutation_map.size());
+
+        mutation_map.values().forEach(tableToCellsMap -> {
+            tableToCellsMap.forEach((table, cells) -> {
+                Long numberOfCells = tablesToCells.getOrDefault(table, 0L);
+                tablesToCells.put(table, numberOfCells + cells.size());
             });
         });
+
+        tablesToCells.forEach((table, numberOfCells) -> getCellsWrittenMeterForTable(table).mark(numberOfCells));
     }
 
     private Meter getCellsWrittenMeterForTable(String table) {
