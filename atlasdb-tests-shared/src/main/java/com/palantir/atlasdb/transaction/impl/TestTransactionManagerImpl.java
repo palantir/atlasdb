@@ -108,7 +108,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
-    public SnapshotTransaction createNewTransaction() {
+    public Transaction createNewTransaction() {
         return new SnapshotTransaction(
                 keyValueService,
                 timelockService,
@@ -126,8 +126,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     @Override
     ConflictDetectionManager getConflictDetectionManager() {
-        Map<TableReference, ConflictHandler> conflictHandlersWithOverrides = getConflictHandlerWithOverrides();
-        return TestConflictDetectionManagers.createWithStaticConflictDetection(conflictHandlersWithOverrides);
+        return TestConflictDetectionManagers.createWithStaticConflictDetection(getConflictHandlerWithOverrides());
     }
 
     @Override
