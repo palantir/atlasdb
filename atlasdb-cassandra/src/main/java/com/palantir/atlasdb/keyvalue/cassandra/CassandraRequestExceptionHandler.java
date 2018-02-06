@@ -201,8 +201,6 @@ public class CassandraRequestExceptionHandler {
         return ex != null
                 // There's a problem with the connection to Cassandra.
                 && (ex instanceof TTransportException
-                // Not enough Cassandra nodes are up.
-                || ex instanceof InsufficientConsistencyException
                 || isTransientException(ex.getCause()));
     }
 
@@ -214,6 +212,8 @@ public class CassandraRequestExceptionHandler {
                 || ex instanceof TimedOutException
                 // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
                 || ex instanceof UnavailableException
+                // Not enough Cassandra nodes are up.
+                || ex instanceof InsufficientConsistencyException
                 || isIndicativeOfCassandraLoad(ex.getCause()));
     }
 
