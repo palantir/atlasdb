@@ -50,9 +50,20 @@ develop
     *    - Type
          - Change
 
+    *    - |changed| |metrics|
+         - Sweep does not expose tagged histogram metrics anymore because the recorded values were decaying too fast to make them useful.
+           Removed the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.SweepMetric.``:
+
+              - ``cellTimestampPairsExamined.histogram.currentIteration`` (tagged)
+              - ``staleValuesDeleted.histogram.currentIteration`` (tagged)
+              - ``sweepTimeSweeping.histogram.currentIteration`` (tagged)
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2951>`__)
+
     *    - |new| |metrics|
          - Sweep now exposes a metric with the name of the table being swept, if it is safe for logging.
            The exposed metric, with the common prefix of ``com.palantir.atlasdb.sweep.metrics.SweepMetric.`` is ``tableBeingSwept.currentValue.currentIteration``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2951>`__)
 
     *    - |improved|
          - Make some values of ``CassandraKeyValueServiceConfig`` live-reloadable.
