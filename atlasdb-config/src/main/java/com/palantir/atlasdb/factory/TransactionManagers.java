@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -36,6 +37,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -105,6 +107,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.JavaSuppliers;
+import com.palantir.common.annotation.Output;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -118,6 +121,7 @@ import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
@@ -205,15 +209,37 @@ public abstract class TransactionManagers {
     @JsonIgnore
     @Value.Derived
     public SerializableTransactionManager serializable() {
+        List<AutoCloseable> closeables = Lists.newArrayList();
+
+        try {
+            return serializableInternal(closeables);
+        } catch (Throwable throwable) {
+            log.warn("Exception thrown when creating transaction manager. "
+                    + "Closing previously opened resources", throwable);
+            closeables.forEach(autoCloseable -> {
+                try {
+                    autoCloseable.close();
+                } catch (Exception ex) {
+                    log.info("Error closing {}", SafeArg.of("klass", autoCloseable.getClass()), ex);
+                }
+            });
+            throw throwable;
+        }
+    }
+
+    private SerializableTransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         AtlasDbMetrics.setMetricRegistries(globalMetricsRegistry(), globalTaggedMetricRegistry());
         final AtlasDbConfig config = config();
         checkInstallConfig(config);
 
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
-        java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
+        Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
-        QosClient qosClient = getQosClient(JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier));
+        QosClient qosClient = initializeCloseable(
+                () -> getQosClient(JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier)), closeables
+        );
+        closeables.add(qosClient);
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(
@@ -224,7 +250,6 @@ public abstract class TransactionManagers {
                         config.initializeAsync(),
                         qosClient);
 
-        KeyValueService rawKvs = atlasFactory.getKeyValueService();
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
@@ -237,34 +262,37 @@ public abstract class TransactionManagers {
                 userAgent());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
-        KeyValueService kvs = ProfilingKeyValueService.create(rawKvs);
-        kvs = SweepStatsKeyValueService.create(kvs,
-                new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
-        kvs = TracingKeyValueService.create(kvs);
-        kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
-        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
+        KeyValueService keyValueService = initializeCloseable(() -> {
+            KeyValueService kvs = atlasFactory.getKeyValueService();
+            kvs = ProfilingKeyValueService.create(kvs);
+            kvs = SweepStatsKeyValueService.create(kvs,
+                    new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
+            kvs = TracingKeyValueService.create(kvs);
+            kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
+            return ValidatingQueryRewritingKeyValueService.create(kvs);
+        }, closeables);
 
-        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(rawKvs,
+        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(keyValueService,
                 config.initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                kvs,
+                keyValueService,
                 schemas(),
                 schemaMetadataService,
                 config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
-                kvs,
+                keyValueService,
                 registrar(),
                 config.initializeAsync());
 
         TransactionService transactionService = AtlasDbMetrics.instrument(TransactionService.class,
-                TransactionServices.createTransactionService(kvs));
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
-        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
+                TransactionServices.createTransactionService(keyValueService));
+        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
+        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         CleanupFollower follower = CleanupFollower.create(schemas());
 
-        Cleaner cleaner = new DefaultCleanerBuilder(
-                kvs,
+        Cleaner cleaner = initializeCloseable(() -> new DefaultCleanerBuilder(
+                keyValueService,
                 lockAndTimestampServices.timelock(),
                 ImmutableList.of(follower),
                 transactionService)
@@ -275,10 +303,12 @@ public abstract class TransactionManagers {
                 .setPunchIntervalMillis(config.getPunchIntervalMillis())
                 .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
                 .setInitializeAsync(config.initializeAsync())
-                .buildCleaner();
+                .buildCleaner(),
+                closeables);
 
-        SerializableTransactionManager transactionManager = SerializableTransactionManager.create(
-                kvs,
+        SerializableTransactionManager transactionManager = initializeCloseable(
+                () -> SerializableTransactionManager.create(
+                keyValueService,
                 lockAndTimestampServices.timelock(),
                 lockAndTimestampServices.lock(),
                 transactionService,
@@ -293,23 +323,40 @@ public abstract class TransactionManagers {
                 config.keyValueService().defaultGetRangesConcurrency(),
                 config.initializeAsync(),
                 () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
-                SweepQueueWriter.NO_OP);
+                SweepQueueWriter.NO_OP),
+                closeables);
 
-        PersistentLockManager persistentLockManager = new PersistentLockManager(
-                persistentLockService,
-                config.getSweepPersistentLockWaitMillis());
-        initializeSweepEndpointAndBackgroundProcess(
-                config,
-                runtimeConfigSupplier,
-                registrar(),
-                kvs,
-                transactionService,
-                sweepStrategyManager,
-                follower,
-                transactionManager,
-                persistentLockManager);
+        PersistentLockManager persistentLockManager = initializeCloseable(
+                () -> new PersistentLockManager(
+                        persistentLockService, config.getSweepPersistentLockWaitMillis()),
+                closeables);
+        initializeCloseable(
+                () -> initializeSweepEndpointAndBackgroundProcess(
+                        config,
+                        runtimeConfigSupplier,
+                        registrar(),
+                        keyValueService,
+                        transactionService,
+                        sweepStrategyManager,
+                        follower,
+                        transactionManager,
+                        persistentLockManager),
+                closeables);
 
         return transactionManager;
+    }
+
+    private <T extends AutoCloseable> T initializeCloseable(
+            Supplier<T> closeableSupplier, @Output List<AutoCloseable> closeables) {
+        T ret = null;
+        try {
+            ret = closeableSupplier.get();
+            return ret;
+        } finally {
+            if (ret != null) {
+                closeables.add(ret);
+            }
+        }
     }
 
     private QosClient getQosClient(Supplier<QosClientConfig> config) {
@@ -353,7 +400,7 @@ public abstract class TransactionManagers {
         }
     }
 
-    private static void initializeSweepEndpointAndBackgroundProcess(
+    private static BackgroundSweeperImpl initializeSweepEndpointAndBackgroundProcess(
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
@@ -400,6 +447,8 @@ public abstract class TransactionManagers {
 
         transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
         backgroundSweeper.runInBackground();
+
+        return backgroundSweeper;
     }
 
     private static SpecificTableSweeper initializeSweepEndpoint(

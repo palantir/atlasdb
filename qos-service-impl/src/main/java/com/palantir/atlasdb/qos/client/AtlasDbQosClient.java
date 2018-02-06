@@ -98,4 +98,9 @@ public class AtlasDbQosClient implements QosClient {
         }
     }
 
+    @Override
+    public void close() {
+        rateLimiters.read().close();
+        rateLimiters.write().close();
+    }
 }
