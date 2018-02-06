@@ -425,7 +425,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return hostPool.runWithPooledResource(fn);
         } catch (Exception e) {
             metrics.recordExceptionOnHost(hostPool);
-            if (AbstractRequestExceptionHandler.isConnectionException(e)) {
+            if (CassandraRequestExceptionHandler.isConnectionException(e)) {
                 metrics.recordConnectionExceptionOnHost(hostPool);
             }
             throw e;
