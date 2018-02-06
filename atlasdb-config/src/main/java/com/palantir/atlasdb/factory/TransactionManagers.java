@@ -237,9 +237,8 @@ public abstract class TransactionManagers {
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
         QosClient qosClient = initializeCloseable(
-                () -> getQosClient(JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier)), closeables
-        );
-        closeables.add(qosClient);
+                () -> getQosClient(JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier)),
+                closeables);
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(
