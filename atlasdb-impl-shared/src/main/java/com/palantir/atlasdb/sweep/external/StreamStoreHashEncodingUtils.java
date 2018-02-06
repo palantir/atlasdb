@@ -39,8 +39,8 @@ public final class StreamStoreHashEncodingUtils {
             case 2:
                 return computeHashFirstComponents(streamId, blockId);
             default:
-                throw new IllegalStateException("Unexpected number of hashed components: " +
-                        numHashedRowComponents);
+                throw new IllegalStateException("Unexpected number of hashed components: "
+                        + numHashedRowComponents);
         }
     }
 
