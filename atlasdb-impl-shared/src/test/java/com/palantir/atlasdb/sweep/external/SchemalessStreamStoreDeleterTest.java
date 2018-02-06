@@ -16,20 +16,29 @@
 
 package com.palantir.atlasdb.sweep.external;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.ByteString;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
@@ -47,11 +56,12 @@ public class SchemalessStreamStoreDeleterTest {
 
     private static final ByteString HASH = ByteString.copyFrom(new byte[32]);
 
-    private final StreamStoreCleanupMetadata cleanupMetadata;
     private final GenericStreamIdentifier streamIdentifier;
 
     private final GenericStreamStoreCellCreator cellCreator;
     private final SchemalessStreamStoreDeleter deleter;
+
+    private final Transaction tx = mock(Transaction.class);
 
     // Hacky. Unfortunately a transform on the objects for the naming doesn't seem to be easily allowed
     @Parameterized.Parameters(name = "{index} components hashed")
@@ -72,7 +82,6 @@ public class SchemalessStreamStoreDeleterTest {
     }
 
     public SchemalessStreamStoreDeleterTest(StreamStoreCleanupMetadata cleanupMetadata) {
-        this.cleanupMetadata = cleanupMetadata;
         this.streamIdentifier = ImmutableGenericStreamIdentifier.of(
                 cleanupMetadata.streamIdType(), cleanupMetadata.streamIdType().convertFromJava(1L));
         this.cellCreator = new GenericStreamStoreCellCreator(cleanupMetadata);
@@ -81,33 +90,47 @@ public class SchemalessStreamStoreDeleterTest {
 
     @Test
     public void deleteStreamsDoesNotMakeDatabaseCallsIfDeletingNothing() {
-        Transaction tx = mock(Transaction.class);
         deleter.deleteStreams(tx, ImmutableSet.of());
         verifyNoMoreInteractions(tx);
     }
 
     @Test
     public void deleteStreamsWorksForSingleBlockStreams() {
-        Transaction tx = mock(Transaction.class);
         when(tx.get(any(), any())).thenReturn(ImmutableMap.of(
                 cellCreator.constructMetadataTableCell(streamIdentifier), getStreamMetadataForStreamOfLength(1L)));
 
         deleter.deleteStreams(tx, ImmutableSet.of(streamIdentifier));
-        verifyValueDeletesPropagated(tx, 1);
-        verifyMetadataAndHashDeletesPropagated(tx);
+        verifyValueTableDeletesCorrect(ImmutableMap.of(streamIdentifier, 1L));
+        verifyMetadataTableAndHashTableDeletesCorrect(ImmutableSet.of(streamIdentifier));
     }
 
     @Test
     public void deleteStreamsWorksForMultiBlockStreams() {
         long numBlocks = 796;
-        Transaction tx = mock(Transaction.class);
         when(tx.get(any(), any())).thenReturn(ImmutableMap.of(
                 cellCreator.constructMetadataTableCell(streamIdentifier),
                 getStreamMetadataForStreamOfLength(numBlocks * GenericStreamStore.BLOCK_SIZE_IN_BYTES + 1)));
 
         deleter.deleteStreams(tx, ImmutableSet.of(streamIdentifier));
-        verifyValueDeletesPropagated(tx, numBlocks + 1);
-        verifyMetadataAndHashDeletesPropagated(tx);
+        verifyValueTableDeletesCorrect(ImmutableMap.of(streamIdentifier, numBlocks + 1));
+        verifyMetadataTableAndHashTableDeletesCorrect(ImmutableSet.of(streamIdentifier));
+    }
+
+    @Test
+    public void deletingMultipleStreamsTakesPlaceInOneTransaction() {
+        GenericStreamIdentifier streamIdentifier2 = ImmutableGenericStreamIdentifier.builder()
+                .from(streamIdentifier)
+                .data(streamIdentifier.streamIdType().convertFromJava(2L))
+                .build();
+        when(tx.get(any(), any())).thenReturn(ImmutableMap.of(
+                cellCreator.constructMetadataTableCell(streamIdentifier),
+                getStreamMetadataForStreamOfLength(4 * GenericStreamStore.BLOCK_SIZE_IN_BYTES),
+                cellCreator.constructMetadataTableCell(streamIdentifier2),
+                getStreamMetadataForStreamOfLength(3 * GenericStreamStore.BLOCK_SIZE_IN_BYTES)));
+
+        deleter.deleteStreams(tx, ImmutableSet.of(streamIdentifier, streamIdentifier2));
+        verifyValueTableDeletesCorrect(ImmutableMap.of(streamIdentifier, 4L, streamIdentifier2, 3L));
+        verifyMetadataTableAndHashTableDeletesCorrect(ImmutableSet.of(streamIdentifier, streamIdentifier2));
     }
 
     private byte[] getStreamMetadataForStreamOfLength(long length) {
@@ -119,18 +142,36 @@ public class SchemalessStreamStoreDeleterTest {
                 .toByteArray();
     }
 
-    private void verifyMetadataAndHashDeletesPropagated(Transaction tx) {
-        verify(tx).delete(
-                StreamTableType.METADATA.getTableReference(NAMESPACE, SHORT_NAME),
-                ImmutableSet.of(cellCreator.constructMetadataTableCell(streamIdentifier)));
-        verify(tx).delete(
-                StreamTableType.HASH.getTableReference(NAMESPACE, SHORT_NAME),
-                ImmutableSet.of(cellCreator.constructHashTableCell(streamIdentifier, HASH)));
+    private void verifyMetadataTableAndHashTableDeletesCorrect(Set<GenericStreamIdentifier> streamIdentifiers) {
+        verifyDeleteCorrect(StreamTableType.METADATA,
+                streamIdentifiers.stream()
+                        .map(cellCreator::constructMetadataTableCell)
+                        .collect(Collectors.toSet()));
+        verifyDeleteCorrect(StreamTableType.HASH,
+                streamIdentifiers.stream()
+                        .map(identifier -> cellCreator.constructHashTableCell(identifier, HASH))
+                        .collect(Collectors.toSet()));
     }
 
-    private void verifyValueDeletesPropagated(Transaction tx, long numBlocks) {
-        verify(tx).delete(
-                StreamTableType.VALUE.getTableReference(NAMESPACE, SHORT_NAME),
-                cellCreator.constructValueTableCellSet(streamIdentifier, numBlocks));
+    private void verifyValueTableDeletesCorrect(Map<GenericStreamIdentifier, Long> identifierToNumBlocks) {
+        Set<Cell> expected = identifierToNumBlocks.entrySet().stream()
+                .flatMap(entry -> cellCreator.constructValueTableCellSet(entry.getKey(), entry.getValue()).stream())
+                .collect(Collectors.toSet());
+        verifyDeleteCorrect(StreamTableType.VALUE, expected);
+    }
+
+    @SuppressWarnings("unchecked") // Needed for ArgumentCaptor of a generic type
+    private void verifyDeleteCorrect(StreamTableType tableType, Set<Cell> expected) {
+        // Using Argument Captor because we don't want to enforce whether deletes are made at one shot, or if they
+        // take place over multiple calls to tx.delete().
+        ArgumentCaptor<Set<Cell>> valueCellCaptor = ArgumentCaptor.forClass((Class) Set.class);
+        verify(tx, atLeastOnce()).delete(
+                eq(tableType.getTableReference(NAMESPACE, SHORT_NAME)),
+                valueCellCaptor.capture());
+        Set<Cell> deletedCells = valueCellCaptor.getAllValues()
+                .stream()
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+        assertThat(deletedCells).isEqualTo(expected);
     }
 }
