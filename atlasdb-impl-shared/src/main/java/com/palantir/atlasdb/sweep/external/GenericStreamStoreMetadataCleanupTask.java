@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -29,6 +28,7 @@ import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class GenericStreamStoreMetadataCleanupTask implements OnCleanupTask {
+    private final GenericStreamStoreRowDecoder rowDecoder;
     private final StreamStoreMetadataReader metadataReader;
     private final SchemalessStreamStoreDeleter deleter;
 
@@ -36,6 +36,7 @@ public class GenericStreamStoreMetadataCleanupTask implements OnCleanupTask {
             TableReference tableToSweep,
             StreamStoreCleanupMetadata cleanupMetadata) {
         // TODO (jkong): Standardise the creation interfaces
+        this.rowDecoder = new GenericStreamStoreRowDecoder(cleanupMetadata);
         this.metadataReader = new StreamStoreMetadataReader(
                 tableToSweep,
                 new GenericStreamStoreCellCreator(cleanupMetadata));
@@ -48,7 +49,10 @@ public class GenericStreamStoreMetadataCleanupTask implements OnCleanupTask {
     @Override
     public boolean cellsCleanedUp(Transaction transaction, Set<Cell> cells) {
         // cells -> generic stream IDs
-        Set<GenericStreamIdentifier> cellIds = ImmutableSet.of();
+        Set<GenericStreamIdentifier> cellIds = cells.stream()
+                .map(Cell::getRowName)
+                .map(rowDecoder::decodeIndexOrMetadataTableRow)
+                .collect(Collectors.toSet());
 
         // generic stream IDs -> metadata reader to filter
         Map<GenericStreamIdentifier, StreamPersistence.StreamMetadata> metadataFromDb =
