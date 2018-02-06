@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.schema.stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -103,5 +104,34 @@ public class StreamTableTypeTest {
         assertThat(StreamTableType.VALUE.getTableReference(Namespace.EMPTY_NAMESPACE, TEST_TABLE))
                 .isEqualTo(TableReference.create(Namespace.EMPTY_NAMESPACE,
                         StreamTableType.VALUE.getTableName(TEST_TABLE)));
+    }
+
+    @Test
+    public void getShortNameWorksWithTableWithoutNamespace() {
+        assertThat(StreamTableType.getShortName(StreamTableType.VALUE,
+                TableReference.create(Namespace.EMPTY_NAMESPACE, StreamTableType.VALUE.getTableName(TEST_TABLE))))
+                .isEqualTo(TEST_TABLE);
+    }
+
+    @Test
+    public void getShortNameWorksWithTableWithNamespace() {
+        assertThat(StreamTableType.getShortName(StreamTableType.HASH,
+                TableReference.create(TEST_NAMESPACE, StreamTableType.HASH.getTableName(TEST_TABLE))))
+                .isEqualTo(TEST_TABLE);
+    }
+
+    @Test
+    public void getShortNameThrowsIfTableReferenceIsNotAStreamTable() {
+        assertThatThrownBy(() -> StreamTableType.getShortName(
+                StreamTableType.INDEX,
+                TableReference.create(TEST_NAMESPACE, "tab"))).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void getShortNameThrowsIfTableReferenceIsAStreamTableOfTheWrongType() {
+        assertThatThrownBy(() -> StreamTableType.getShortName(
+                StreamTableType.INDEX,
+                TableReference.create(TEST_NAMESPACE, StreamTableType.METADATA.getTableName("foo"))))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }
