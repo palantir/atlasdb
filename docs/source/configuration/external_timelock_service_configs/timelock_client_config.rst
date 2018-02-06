@@ -77,6 +77,12 @@ Optional parameters:
 Runtime Configuration
 ---------------------
 
+.. danger::
+
+   Although we support live-reloading of the server configuration, AtlasDB needs to know at install time that it
+   should talk to TimeLock. Added the block to a running service using embedded timestamp and lock servers is unsafe,
+   as a rolling restart is likely to cause **SEVERE DATA CORRUPTION**.
+
 .. warning::
 
     Although we support starting up without knowledge of any TimeLock nodes, note that if you are using TimeLock
@@ -88,12 +94,6 @@ We support live reloading of the ``ServerListConfiguration`` for TimeLock. This 
 ``timelockRuntime`` block under AtlasDB's runtime configuration root.
 
 Note that if this block is present, then the ``ServerListConfiguration`` in the install configuration will be ignored.
-
-Also, although we support live-reloading of the server configuration, AtlasDB needs to know at install time that it
-should talk to TimeLock. In versions of Atlas before 0.74.0, this is done by specifying an empty YAML object
-for the timelock block in the install configuration (i.e. ``timelock: {}``); in more recent versions, the presence
-of a ``timelockRuntime`` block is enough - *however*, it must already be present at install time, or AtlasDB
-will attempt to start up using embedded services.
 
 .. list-table::
     :widths: 5 40

@@ -57,38 +57,38 @@ public final class AtlasDbConfigs {
         // uninstantiable
     }
 
-    public static AtlasDbConfig load(File configFile) throws IOException {
-        return load(configFile, ATLASDB_CONFIG_OBJECT_PATH);
+    public static <T> T load(File configFile, Class<T> clazz) throws IOException {
+        return load(configFile, ATLASDB_CONFIG_OBJECT_PATH, clazz);
     }
 
-    public static AtlasDbConfig load(InputStream configStream) throws IOException {
-        return loadFromStream(configStream, ATLASDB_CONFIG_OBJECT_PATH);
+    public static <T> T load(InputStream configStream, Class<T> clazz) throws IOException {
+        return loadFromStream(configStream, ATLASDB_CONFIG_OBJECT_PATH, clazz);
     }
 
-    public static AtlasDbConfig load(File configFile, @Nullable String configRoot) throws IOException {
+    public static <T> T load(File configFile, @Nullable String configRoot, Class<T> clazz) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configFile);
-        return getConfig(node, configRoot);
+        return getConfig(node, configRoot, clazz);
     }
 
-    public static AtlasDbConfig loadFromString(String fileContents, @Nullable String configRoot) throws IOException {
+    public static <T> T loadFromString(String fileContents, @Nullable String configRoot, Class<T> clazz) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(fileContents);
-        return getConfig(node, configRoot);
+        return getConfig(node, configRoot, clazz);
     }
 
-    public static AtlasDbConfig loadFromStream(InputStream configStream, @Nullable String configRoot)
+    public static <T> T loadFromStream(InputStream configStream, @Nullable String configRoot, Class<T> clazz)
             throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configStream);
-        return getConfig(node, configRoot);
+        return getConfig(node, configRoot, clazz);
     }
 
-    private static AtlasDbConfig getConfig(JsonNode node, @Nullable String configRoot) throws IOException {
+    private static <T> T getConfig(JsonNode node, @Nullable String configRoot, Class<T> clazz) throws IOException {
         JsonNode configNode = findRoot(node, configRoot);
 
         if (configNode == null) {
             throw new IllegalArgumentException("Could not find " + configRoot + " in input");
         }
 
-        return OBJECT_MAPPER.treeToValue(decryptConfigValues(configNode), AtlasDbConfig.class);
+        return OBJECT_MAPPER.treeToValue(decryptConfigValues(configNode), clazz);
     }
 
     private static JsonNode decryptConfigValues(JsonNode configNode) {
