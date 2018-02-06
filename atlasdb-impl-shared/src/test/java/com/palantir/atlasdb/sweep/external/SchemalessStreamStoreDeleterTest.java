@@ -36,6 +36,7 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.schema.cleanup.ImmutableStreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
+import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
@@ -92,19 +93,21 @@ public class SchemalessStreamStoreDeleterTest {
                 cellCreator.constructMetadataTableCell(streamIdentifier), getStreamMetadataForStreamOfLength(1L)));
 
         deleter.deleteStreams(tx, ImmutableSet.of(streamIdentifier));
-        verify(tx).delete(
-                StreamTableType.VALUE.getTableReference(NAMESPACE, SHORT_NAME),
-                cellCreator.constructValueTableCellSet(streamIdentifier, 1));
-        verify(tx).delete(
-                StreamTableType.METADATA.getTableReference(NAMESPACE, SHORT_NAME),
-                ImmutableSet.of(cellCreator.constructMetadataTableCell(streamIdentifier)));
-        verify(tx).delete(
-                StreamTableType.HASH.getTableReference(NAMESPACE, SHORT_NAME),
-                ImmutableSet.of(cellCreator.constructHashTableCell(streamIdentifier, HASH)));
+        verifyValueDeletesPropagated(tx, 1);
+        verifyMetadataAndHashDeletesPropagated(tx);
     }
 
     @Test
     public void deleteStreamsWorksForMultiBlockStreams() {
+        long numBlocks = 796;
+        Transaction tx = mock(Transaction.class);
+        when(tx.get(any(), any())).thenReturn(ImmutableMap.of(
+                cellCreator.constructMetadataTableCell(streamIdentifier),
+                getStreamMetadataForStreamOfLength(numBlocks * GenericStreamStore.BLOCK_SIZE_IN_BYTES + 1)));
+
+        deleter.deleteStreams(tx, ImmutableSet.of(streamIdentifier));
+        verifyValueDeletesPropagated(tx, numBlocks + 1);
+        verifyMetadataAndHashDeletesPropagated(tx);
     }
 
     private byte[] getStreamMetadataForStreamOfLength(long length) {
@@ -114,5 +117,20 @@ public class SchemalessStreamStoreDeleterTest {
                 .setHash(HASH)
                 .build()
                 .toByteArray();
+    }
+
+    private void verifyMetadataAndHashDeletesPropagated(Transaction tx) {
+        verify(tx).delete(
+                StreamTableType.METADATA.getTableReference(NAMESPACE, SHORT_NAME),
+                ImmutableSet.of(cellCreator.constructMetadataTableCell(streamIdentifier)));
+        verify(tx).delete(
+                StreamTableType.HASH.getTableReference(NAMESPACE, SHORT_NAME),
+                ImmutableSet.of(cellCreator.constructHashTableCell(streamIdentifier, HASH)));
+    }
+
+    private void verifyValueDeletesPropagated(Transaction tx, long numBlocks) {
+        verify(tx).delete(
+                StreamTableType.VALUE.getTableReference(NAMESPACE, SHORT_NAME),
+                cellCreator.constructValueTableCellSet(streamIdentifier, numBlocks));
     }
 }
