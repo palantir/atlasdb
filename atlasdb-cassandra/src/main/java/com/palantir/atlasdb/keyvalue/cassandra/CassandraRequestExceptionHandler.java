@@ -45,8 +45,6 @@ class CassandraRequestExceptionHandler {
     final Supplier<Boolean> useConservativeHandler;
     final Blacklist blacklist;
 
-    private volatile RequestExceptionHandlerStrategy strategy;
-
     CassandraRequestExceptionHandler(
             Supplier<Integer> maxTriesSameHost,
             Supplier<Integer> maxTriesTotal,
@@ -56,7 +54,6 @@ class CassandraRequestExceptionHandler {
         this.maxTriesTotal = maxTriesTotal;
         this.useConservativeHandler = useConservativeHandler;
         this.blacklist = blacklist;
-        updateStrategy();
     }
 
     @SuppressWarnings("unchecked")
@@ -65,10 +62,11 @@ class CassandraRequestExceptionHandler {
             InetSocketAddress hostTried,
             Exception ex)
             throws K {
-        updateStrategy();
         if (!isRetryable(ex)) {
             throw (K) ex;
         }
+
+        RequestExceptionHandlerStrategy strategy = getStrategy();
 
         req.triedOnHost(hostTried);
         int numberOfAttempts = req.getNumberOfAttempts();
@@ -82,16 +80,16 @@ class CassandraRequestExceptionHandler {
         }
 
         logNumberOfAttempts(ex, numberOfAttempts);
-        handleBackoff(req, hostTried, ex);
-        handleRetryOnDifferentHosts(req, hostTried, ex);
+        handleBackoff(req, hostTried, ex, strategy);
+        handleRetryOnDifferentHosts(req, hostTried, ex, strategy);
     }
 
     @VisibleForTesting
-    void updateStrategy() {
+    RequestExceptionHandlerStrategy getStrategy() {
         if (useConservativeHandler.get()) {
-            strategy = Conservative.INSTANCE;
+            return Conservative.INSTANCE;
         } else {
-            strategy = Default.INSTANCE;
+            return Default.INSTANCE;
         }
     }
 
@@ -135,12 +133,12 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
             InetSocketAddress hostTried,
-            Exception ex) {
-        if (!shouldBackoff(ex)) {
+            Exception ex, RequestExceptionHandlerStrategy strategy) {
+        if (!shouldBackoff(ex, strategy)) {
             return;
         }
 
-        long sleepDuration = getBackoffPeriod(req.getNumberOfAttempts());
+        long sleepDuration = getBackoffPeriod(req.getNumberOfAttempts(), strategy);
         log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                 UnsafeArg.of("queryString", req.getFunction().toString()),
                 SafeArg.of("sleepDuration", sleepDuration),
@@ -154,18 +152,18 @@ class CassandraRequestExceptionHandler {
     }
 
     @VisibleForTesting
-    boolean shouldBackoff(Exception ex) {
+    boolean shouldBackoff(Exception ex, RequestExceptionHandlerStrategy strategy) {
         return strategy.shouldBackoff(ex);
     }
 
     @VisibleForTesting
-    long getBackoffPeriod(int numberOfAttempts) {
+    long getBackoffPeriod(int numberOfAttempts, RequestExceptionHandlerStrategy strategy) {
         return strategy.getBackoffPeriod(numberOfAttempts);
     }
 
     private <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried, Exception ex) {
-        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttempts())) {
+            InetSocketAddress hostTried, Exception ex, RequestExceptionHandlerStrategy strategy) {
+        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttempts(), strategy)) {
             log.info("Retrying with on a different host a query intended for host {}.",
                     SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
             req.giveUpOnPreferredHost();
@@ -173,7 +171,7 @@ class CassandraRequestExceptionHandler {
     }
 
     @VisibleForTesting
-    boolean shouldRetryOnDifferentHost(Exception ex, int numberOfAttempts) {
+    boolean shouldRetryOnDifferentHost(Exception ex, int numberOfAttempts, RequestExceptionHandlerStrategy strategy) {
         return strategy.shouldRetryOnDifferentHost(ex, maxTriesSameHost.get(), numberOfAttempts);
     }
 
@@ -229,7 +227,8 @@ class CassandraRequestExceptionHandler {
             + " Likely cause: Exceeded maximum thrift frame size;"
             + " unlikely cause: network issues.";
 
-    private interface RequestExceptionHandlerStrategy {
+    @VisibleForTesting
+    interface RequestExceptionHandlerStrategy {
         boolean shouldBackoff(Exception ex);
         long getBackoffPeriod(int numberOfAttempts);
         boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts);
