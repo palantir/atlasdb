@@ -92,6 +92,11 @@ develop
          - The sweep-table endpoint now returns HTTP status 400 instead of 500, when asked to sweep a non-existent table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2936>`__)
 
+    *    - |improved| |metrics|
+         - Atlas now records the number of cells written over time.
+           This metric is reported under ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cellsWritten``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2967>`__)
+
 =======
 v0.75.0
 =======
