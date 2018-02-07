@@ -39,7 +39,7 @@ import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampService;
 
 @AutoDelegate(typeToExtend = SerializableTransactionManager.class)
-public class SerializableTransactionManager extends SnapshotTransactionManager {
+public class SerializableTransactionManager extends SnapshotTransactionManagerImpl {
 
     public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
         private final SerializableTransactionManager manager;
