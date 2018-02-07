@@ -220,7 +220,7 @@ public abstract class TransactionManagers {
                 try {
                     autoCloseable.close();
                 } catch (Exception ex) {
-                    log.info("Error closing {}", SafeArg.of("klass", autoCloseable.getClass()), ex);
+                    log.info("Error closing {}", SafeArg.of("class", autoCloseable.getClass()), ex);
                 }
             });
             throw throwable;
