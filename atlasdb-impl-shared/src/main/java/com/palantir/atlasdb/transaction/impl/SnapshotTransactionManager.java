@@ -50,7 +50,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
-/* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
+/* package */ class SnapshotTransactionManager extends AbstractTransactionManager {
     private static final int NUM_RETRIES = 10;
 
     final KeyValueService keyValueService;
@@ -324,6 +324,7 @@ import com.palantir.timestamp.TimestampService;
         return cleaner;
     }
 
+    @Override
     public KeyValueService getKeyValueService() {
         return keyValueService;
     }

@@ -276,6 +276,8 @@ public interface TransactionManager extends AutoCloseable {
 
     TimelockService getTimelockService();
 
+    KeyValueService getKeyValueService();
+
     @Override
     void close();
 }
