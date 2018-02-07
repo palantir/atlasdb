@@ -134,6 +134,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-db",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
@@ -341,6 +342,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:commons-proxy": {
@@ -967,6 +974,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-db",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
@@ -1174,6 +1182,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:commons-proxy": {

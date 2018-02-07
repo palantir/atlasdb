@@ -97,6 +97,11 @@ develop
            This metric is reported under ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cellsWritten``
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2967>`__)
 
+    *    - |improved|
+         - ``ExecutorInheritableThreadLocal`` from ``commons-executors`` has been split out into a ``commons-executors-api`` dependent project with no dependencies.
+           This allows api projects outside of atlasdb to use ``ExecutorInheritableThreadLocal`` without pulling in the dependencies of ``commons-executors``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2961>`__)
+
 =======
 v0.75.0
 =======
