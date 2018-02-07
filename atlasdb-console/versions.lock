@@ -179,6 +179,7 @@
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
                 "com.palantir.atlasdb:leader-election-impl",
@@ -360,6 +361,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:leader-election-api": {
@@ -1035,6 +1042,7 @@
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
                 "com.palantir.atlasdb:leader-election-impl",
@@ -1216,6 +1224,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:leader-election-api": {

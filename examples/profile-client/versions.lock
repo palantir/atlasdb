@@ -85,6 +85,7 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.tritium:tritium-api",
@@ -200,6 +201,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:qos-service-api": {
@@ -597,6 +604,7 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.tritium:tritium-api",
@@ -712,6 +720,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:qos-service-api": {
