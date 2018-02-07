@@ -248,6 +248,11 @@ This metric is reported under <code class="docutils literal"><span class="pre">c
 This allows api projects outside of atlasdb to use <code class="docutils literal"><span class="pre">ExecutorInheritableThreadLocal</span></code> without pulling in the dependencies of <code class="docutils literal"><span class="pre">commons-executors</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2961">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug where Cassandra client’s input buffers were left in an invalid state
+before returning the client to the pool, manifesting in NPEs in the Thrift layer.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2971">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
