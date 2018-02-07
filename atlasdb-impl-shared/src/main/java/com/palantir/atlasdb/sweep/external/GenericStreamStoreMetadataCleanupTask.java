@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
+import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class GenericStreamStoreMetadataCleanupTask implements OnCleanupTask {
@@ -42,28 +43,33 @@ public class GenericStreamStoreMetadataCleanupTask implements OnCleanupTask {
                 new GenericStreamStoreCellCreator(cleanupMetadata));
         this.deleter = new SchemalessStreamStoreDeleter(
                 tableToSweep.getNamespace(),
-                tableToSweep.getTablename() /* TODO */,
+                StreamTableType.getShortName(StreamTableType.METADATA, tableToSweep),
                 cleanupMetadata);
     }
 
     @Override
     public boolean cellsCleanedUp(Transaction transaction, Set<Cell> cells) {
-        // cells -> generic stream IDs
-        Set<GenericStreamIdentifier> cellIds = cells.stream()
-                .map(Cell::getRowName)
-                .map(rowDecoder::decodeIndexOrMetadataTableRow)
-                .collect(Collectors.toSet());
+        Set<GenericStreamIdentifier> cellIds = extractStreamIdentifiers(cells);
+        Set<GenericStreamIdentifier> unstoredStreamIdentifiers =
+                filterStreamIdentifiersToUnstoredStreams(transaction, cellIds);
+        deleter.deleteStreams(transaction, unstoredStreamIdentifiers);
+        return false;
+    }
 
-        // generic stream IDs -> metadata reader to filter
+    private Set<GenericStreamIdentifier> filterStreamIdentifiersToUnstoredStreams(Transaction transaction,
+            Set<GenericStreamIdentifier> cellIds) {
         Map<GenericStreamIdentifier, StreamPersistence.StreamMetadata> metadataFromDb =
                 metadataReader.readMetadata(transaction, cellIds);
-        Set<GenericStreamIdentifier> unstoredStreamIdentifiers = metadataFromDb.entrySet().stream()
+        return metadataFromDb.entrySet().stream()
                 .filter(entry -> entry.getValue().getStatus() != StreamPersistence.Status.STORED)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
+    }
 
-        // actually delete
-        deleter.deleteStreams(transaction, unstoredStreamIdentifiers);
-        return false;
+    private Set<GenericStreamIdentifier> extractStreamIdentifiers(Set<Cell> cells) {
+        return cells.stream()
+                    .map(Cell::getRowName)
+                    .map(rowDecoder::decodeIndexOrMetadataTableRow)
+                    .collect(Collectors.toSet());
     }
 }
