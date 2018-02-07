@@ -6,6 +6,7 @@
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client"
             ]
@@ -32,6 +33,7 @@
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.remoting-api:errors",
@@ -87,6 +89,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
@@ -193,6 +196,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-client"
             ]
         },
@@ -208,6 +212,12 @@
                 "com.palantir.atlasdb:commons-executors"
             ]
         },
+        "com.palantir.atlasdb:lock-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api"
+            ]
+        },
         "com.palantir.atlasdb:qos-service-api": {
             "project": true,
             "transitive": [
@@ -219,6 +229,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-client"
             ]
         },
@@ -319,6 +330,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:errors",
@@ -447,6 +459,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:errors",
@@ -528,6 +541,7 @@
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client"
             ]
@@ -554,6 +568,7 @@
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.remoting-api:errors",
@@ -609,6 +624,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
@@ -715,6 +731,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-client"
             ]
         },
@@ -730,6 +747,12 @@
                 "com.palantir.atlasdb:commons-executors"
             ]
         },
+        "com.palantir.atlasdb:lock-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api"
+            ]
+        },
         "com.palantir.atlasdb:qos-service-api": {
             "project": true,
             "transitive": [
@@ -741,6 +764,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-client"
             ]
         },
@@ -841,6 +865,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:errors",
@@ -969,6 +994,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:errors",
