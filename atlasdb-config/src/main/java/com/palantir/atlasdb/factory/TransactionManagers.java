@@ -96,6 +96,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
@@ -275,7 +276,7 @@ public abstract class TransactionManagers {
                 .setInitializeAsync(config.initializeAsync())
                 .buildCleaner();
 
-        SerializableTransactionManager transactionManager = SerializableTransactionManager.create(
+        SerializableTransactionManager transactionManager = SerializableTransactionManagerImpl.create(
                 kvs,
                 lockAndTimestampServices.timelock(),
                 lockAndTimestampServices.lock(),
