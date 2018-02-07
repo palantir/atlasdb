@@ -102,6 +102,11 @@ develop
            This allows api projects outside of atlasdb to use ``ExecutorInheritableThreadLocal`` without pulling in the dependencies of ``commons-executors``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2961>`__)
 
+    *    - |fixed|
+         - Fixed a bug where Cassandra client's input buffers were left in an invalid state
+           before returning the client to the pool, manifesting in NPEs in the Thrift layer.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2971>`__)
+
 =======
 v0.75.0
 =======
