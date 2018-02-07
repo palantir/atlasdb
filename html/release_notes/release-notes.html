@@ -238,6 +238,11 @@ This is useful for visibility of Sweep progress; previously, Sweep would only lo
 <td>The sweep-table endpoint now returns HTTP status 400 instead of 500, when asked to sweep a non-existent table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2936">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">ExecutorInheritableThreadLocal</span></code> from <code class="docutils literal"><span class="pre">commons-executors</span></code> has been split out into a <code class="docutils literal"><span class="pre">commons-executors-api</span></code> dependent project with no dependencies.
+This allows api projects outside of atlasdb to use <code class="docutils literal"><span class="pre">ExecutorInheritableThreadLocal</span></code> without pulling in the dependencies of <code class="docutils literal"><span class="pre">commons-executors</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2961">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
