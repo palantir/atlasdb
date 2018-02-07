@@ -31,6 +31,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.timestamp.TimestampService;
 
 @AutoDelegate(typeToExtend = TransactionManager.class)
 public abstract class WrappingTransactionManager implements AutoDelegate_TransactionManager {
@@ -125,6 +126,11 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
     @Override
     public TimelockService getTimelockService() {
         return delegate.getTimelockService();
+    }
+
+    @Override
+    public TimestampService getTimestampService() {
+        return delegate.getTimestampService();
     }
 
     private <T, E extends Exception> TransactionTask<T, E> wrapTask(TransactionTask<T, E> task) {
