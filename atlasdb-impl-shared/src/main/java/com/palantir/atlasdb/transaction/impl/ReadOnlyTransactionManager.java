@@ -39,7 +39,7 @@ import com.palantir.lock.v2.TimelockService;
 
 /**
  * This {@link TransactionManager} will provide transactions that will read the most recently
- * committed values stored by a {@link SnapshotTransactionManager}. This does not provide snapshot
+ * committed values stored by a {@link SerializableTransactionManager}. This does not provide snapshot
  * isolation but will always read the most recently committed value for any {@link Cell}.
  */
 public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {

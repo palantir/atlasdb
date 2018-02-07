@@ -51,7 +51,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
 class SnapshotTransactionManagerImpl extends AbstractTransactionManager implements
-        SnapshotTransactionManager {
+        SerializableTransactionManager {
     private static final int NUM_RETRIES = 10;
 
     final KeyValueService keyValueService;
@@ -236,7 +236,7 @@ class SnapshotTransactionManagerImpl extends AbstractTransactionManager implemen
     }
 
     /**
-     * Frees resources used by this SnapshotTransactionManager, and invokes any callbacks registered to run on close.
+     * Frees resources used by this SerializableTransactionManager, and invokes any callbacks registered to run on close.
      * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
      *
      * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
