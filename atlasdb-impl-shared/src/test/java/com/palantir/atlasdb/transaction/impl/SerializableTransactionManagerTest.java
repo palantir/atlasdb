@@ -42,7 +42,7 @@ public class SerializableTransactionManagerTest {
 
     @Before
     public void setUp() {
-        manager = SerializableTransactionManager.create(
+        manager = SerializableTransactionManagerImpl.create(
                 mockKvs,
                 mockTimelockService,
                 null, // lockService
@@ -103,7 +103,7 @@ public class SerializableTransactionManagerTest {
     // BLAB: Synchronously initialised objects don't care if their constituent parts are initialised asynchronously.
     @Test
     public void synchronouslyInitializedManagerIsInitializedEvenIfKvsIsNot() {
-        SerializableTransactionManager theManager = SerializableTransactionManager.create(
+        SerializableTransactionManager theManager = SerializableTransactionManagerImpl.create(
                 mockKvs,
                 mockTimelockService,
                 null, // lockService

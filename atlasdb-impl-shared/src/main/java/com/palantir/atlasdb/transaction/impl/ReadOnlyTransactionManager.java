@@ -36,13 +36,14 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampService;
 
 /**
  * This {@link TransactionManager} will provide transactions that will read the most recently
  * committed values stored by a {@link SerializableTransactionManager}. This does not provide snapshot
  * isolation but will always read the most recently committed value for any {@link Cell}.
  */
-public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
+public class ReadOnlyTransactionManager extends AbstractTransactionManager {
     protected final KeyValueService keyValueService;
     protected final TransactionService transactionService;
     protected final AtlasDbConstraintCheckingMode constraintCheckingMode;
@@ -190,6 +191,21 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
     @Override
     public TimelockService getTimelockService() {
         return null;
+    }
+
+    @Override
+    public KeyValueService getKeyValueService() {
+        return null;
+    }
+
+    @Override
+    public TimestampService getTimestampService() {
+        return null;
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return true;
     }
 
     @Override

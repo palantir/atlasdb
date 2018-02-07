@@ -25,6 +25,8 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.transaction.api.TransactionManager;
+
 public class ForwardingTransactionManagerTest {
     @Test
     public void delegatesInitializationCheck() {
@@ -33,7 +35,7 @@ public class ForwardingTransactionManagerTest {
                 .thenReturn(false)
                 .thenReturn(true);
 
-        ForwardingTransactionManager forwardingTransactionMgr = new CachingTestTransactionManager(mockTransactionMgr);
+        TransactionManager forwardingTransactionMgr = new CachingTestTransactionManager(mockTransactionMgr);
 
         assertFalse(forwardingTransactionMgr.isInitialized());
         assertTrue(forwardingTransactionMgr.isInitialized());
