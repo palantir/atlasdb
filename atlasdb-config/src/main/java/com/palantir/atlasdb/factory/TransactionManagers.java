@@ -291,38 +291,40 @@ public abstract class TransactionManagers {
         CleanupFollower follower = CleanupFollower.create(schemas());
 
         Cleaner cleaner = initializeCloseable(() -> new DefaultCleanerBuilder(
-                keyValueService,
-                lockAndTimestampServices.timelock(),
-                ImmutableList.of(follower),
-                transactionService)
-                .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
-                .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
-                .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
-                .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
-                .setPunchIntervalMillis(config.getPunchIntervalMillis())
-                .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
-                .setInitializeAsync(config.initializeAsync())
-                .buildCleaner(),
+                        keyValueService,
+                        lockAndTimestampServices.timelock(),
+                        ImmutableList.of(follower),
+                        transactionService)
+                        .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
+                        .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
+                        .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
+                        .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
+                        .setPunchIntervalMillis(config.getPunchIntervalMillis())
+                        .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
+                        .setInitializeAsync(config.initializeAsync())
+                        .buildCleaner(),
                 closeables);
 
         SerializableTransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
-                keyValueService,
-                lockAndTimestampServices.timelock(),
-                lockAndTimestampServices.lock(),
-                transactionService,
-                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
-                conflictManager,
-                sweepStrategyManager,
-                cleaner,
-                () -> areTransactionManagerInitializationPrerequisitesSatisfied(initializer, lockAndTimestampServices),
-                allowHiddenTableAccess(),
-                () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
-                config.keyValueService().concurrentGetRangesThreadPoolSize(),
-                config.keyValueService().defaultGetRangesConcurrency(),
-                config.initializeAsync(),
-                () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
-                SweepQueueWriter.NO_OP),
+                        keyValueService,
+                        lockAndTimestampServices.timelock(),
+                        lockAndTimestampServices.lock(),
+                        transactionService,
+                        Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
+                        conflictManager,
+                        sweepStrategyManager,
+                        cleaner,
+                        () -> areTransactionManagerInitializationPrerequisitesSatisfied(
+                                initializer,
+                                lockAndTimestampServices),
+                        allowHiddenTableAccess(),
+                        () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
+                        config.keyValueService().concurrentGetRangesThreadPoolSize(),
+                        config.keyValueService().defaultGetRangesConcurrency(),
+                        config.initializeAsync(),
+                        () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
+                        SweepQueueWriter.NO_OP),
                 closeables);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
@@ -347,15 +349,9 @@ public abstract class TransactionManagers {
 
     private <T extends AutoCloseable> T initializeCloseable(
             Supplier<T> closeableSupplier, @Output List<AutoCloseable> closeables) {
-        T ret = null;
-        try {
-            ret = closeableSupplier.get();
-            return ret;
-        } finally {
-            if (ret != null) {
-                closeables.add(ret);
-            }
-        }
+        T ret = closeableSupplier.get();
+        closeables.add(ret);
+        return ret;
     }
 
     private QosClient getQosClient(Supplier<QosClientConfig> config) {

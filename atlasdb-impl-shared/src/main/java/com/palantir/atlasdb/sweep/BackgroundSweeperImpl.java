@@ -285,7 +285,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         shutdown();
     }
 
