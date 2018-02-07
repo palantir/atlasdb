@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.ClientErrorException;
 
@@ -214,13 +215,19 @@ public abstract class TransactionManagers {
         try {
             return serializableInternal(closeables);
         } catch (Throwable throwable) {
+            List<String> closeablesClasses = closeables.stream()
+                    .map(autoCloseable -> autoCloseable.getClass().toString())
+                    .collect(Collectors.toList());
+
             log.warn("Exception thrown when creating transaction manager. "
-                    + "Closing previously opened resources", throwable);
+                    + "Closing previously opened resources: {}", SafeArg.of("classes", closeablesClasses.toString()),
+                    throwable);
+
             closeables.forEach(autoCloseable -> {
                 try {
                     autoCloseable.close();
                 } catch (Exception ex) {
-                    log.info("Error closing {}", SafeArg.of("class", autoCloseable.getClass()), ex);
+                    log.info("Error closing {}", SafeArg.of("class", autoCloseable.getClass().toString()), ex);
                 }
             });
             throw throwable;
