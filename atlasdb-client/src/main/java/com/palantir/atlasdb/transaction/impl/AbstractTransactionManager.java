@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -27,13 +28,24 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.common.base.Throwables;
+import com.palantir.exception.NotInitializedException;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRequest;
+import com.palantir.logsafe.SafeArg;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
     private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
@@ -45,6 +57,14 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     AbstractTransactionManager(Supplier<Long> timestampCacheSize) {
         this.timestampValidationReadCache = new TimestampCache(timestampCacheSize);
     }
+
+    protected static final PreCommitCondition NO_OP_CONDITION = new PreCommitCondition() {
+        @Override
+        public void throwIfConditionInvalid(long timestamp) {}
+
+        @Override
+        public void cleanup() {}
+    };
 
     protected static void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {
         // no-op
@@ -70,6 +90,98 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 txn.abort();
             }
         }
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+            Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
+        int failureCount = 0;
+        UUID runId = UUID.randomUUID();
+        while (true) {
+            checkOpen();
+            try {
+                C condition = conditionSupplier.get();
+                T result = runTaskWithConditionThrowOnConflict(condition, task);
+                if (failureCount > 0) {
+                    log.info("[{}] Successfully completed transaction after {} retries.",
+                            SafeArg.of("runId", runId),
+                            SafeArg.of("failureCount", failureCount));
+                }
+                return result;
+            } catch (TransactionFailedException e) {
+                if (!e.canTransactionBeRetried()) {
+                    log.warn("[{}] Non-retriable exception while processing transaction.",
+                            SafeArg.of("runId", runId),
+                            SafeArg.of("failureCount", failureCount));
+                    throw e;
+                }
+                failureCount++;
+                if (shouldStopRetrying(failureCount)) {
+                    log.warn("[{}] Failing after {} tries.",
+                            SafeArg.of("runId", runId),
+                            SafeArg.of("failureCount", failureCount), e);
+                    throw Throwables.rewrap(String.format("Failing after %d tries.", failureCount), e);
+                }
+                log.info("[{}] Retrying transaction after {} failure(s).",
+                        SafeArg.of("runId", runId),
+                        SafeArg.of("failureCount", failureCount), e);
+            } catch (NotInitializedException e) {
+                log.info("TransactionManager is not initialized. Aborting transaction with runTaskWithRetry", e);
+                throw e;
+            } catch (RuntimeException e) {
+                log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), e);
+                throw e;
+            }
+            sleepForBackoff(failureCount);
+        }
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
+        return runTaskWithConditionThrowOnConflict(NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
+        return runTaskWithConditionWithRetry(() -> NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
+        return runTaskReadOnlyWithCondition(NO_OP_CONDITION, (transaction, condition) -> task.execute(transaction));
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Iterable<HeldLocksToken> lockTokens,
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
+        checkOpen();
+        Supplier<AdvisoryLocksCondition> conditionSupplier =
+                AdvisoryLockConditionSuppliers.get(getLockService(), lockTokens, lockSupplier);
+        return runTaskWithConditionWithRetry(conditionSupplier, (transaction, condition) ->
+                task.execute(transaction, condition.getLocks()));
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task)
+            throws E, InterruptedException {
+        checkOpen();
+        return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
+            Iterable<HeldLocksToken> lockTokens,
+            LockAwareTransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException {
+        checkOpen();
+        AdvisoryLocksCondition lockCondition =
+                new ExternalLocksCondition(getLockService(), ImmutableSet.copyOf(lockTokens));
+        return runTaskWithConditionThrowOnConflict(lockCondition,
+                (transaction, condition) -> task.execute(transaction, condition.getLocks()));
     }
 
     @Override
