@@ -21,7 +21,6 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.timestamp.TimestampService;
 
 public interface SerializableTransactionManager extends TransactionManager {
     RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
