@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -45,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persistentlock.ImmutableLockEntry;
 import com.palantir.atlasdb.persistentlock.LockEntry;
+import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 
@@ -247,6 +249,14 @@ public class PersistentLockManagerTest {
         acquireStarted.await();
 
         manager.shutdown();
+    }
+
+    @Test
+    public void testNoOpPersistentLockDoesNotThrow() {
+        PersistentLockManager noOpManager = new PersistentLockManager(new NoOpPersistentLockService(), 0L);
+        assertTrue("NoOpPersistentLockService should return true when acquiring lock",
+                noOpManager.tryAcquirePersistentLock());
+        noOpManager.releasePersistentLock();
     }
 
     private void whenWeGetTheLockFirstTimeAndThenHoldItForever() {
