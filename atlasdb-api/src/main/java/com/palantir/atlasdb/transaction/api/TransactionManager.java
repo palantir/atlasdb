@@ -22,6 +22,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampService;
 
 public interface TransactionManager extends AutoCloseable {
     /**
@@ -277,6 +278,8 @@ public interface TransactionManager extends AutoCloseable {
     TimelockService getTimelockService();
 
     KeyValueService getKeyValueService();
+
+    TimestampService getTimestampService();
 
     @Override
     void close();

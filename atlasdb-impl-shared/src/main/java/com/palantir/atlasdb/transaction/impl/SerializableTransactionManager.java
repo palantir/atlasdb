@@ -39,6 +39,4 @@ public interface SerializableTransactionManager extends TransactionManager {
     void registerClosingCallback(Runnable closingCallback);
 
     Cleaner getCleaner();
-
-    TimestampService getTimestampService();
 }
