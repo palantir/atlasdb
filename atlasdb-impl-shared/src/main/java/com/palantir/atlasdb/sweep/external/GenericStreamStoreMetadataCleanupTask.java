@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -36,7 +37,6 @@ public class GenericStreamStoreMetadataCleanupTask implements OnCleanupTask {
     public GenericStreamStoreMetadataCleanupTask(
             TableReference tableToSweep,
             StreamStoreCleanupMetadata cleanupMetadata) {
-        // TODO (jkong): Standardise the creation interfaces
         this.rowDecoder = new GenericStreamStoreRowDecoder(cleanupMetadata);
         this.metadataReader = new StreamStoreMetadataReader(
                 tableToSweep,
@@ -45,6 +45,16 @@ public class GenericStreamStoreMetadataCleanupTask implements OnCleanupTask {
                 tableToSweep.getNamespace(),
                 StreamTableType.getShortName(StreamTableType.METADATA, tableToSweep),
                 cleanupMetadata);
+    }
+
+    @VisibleForTesting
+    GenericStreamStoreMetadataCleanupTask(
+            GenericStreamStoreRowDecoder rowDecoder,
+            StreamStoreMetadataReader metadataReader,
+            SchemalessStreamStoreDeleter deleter) {
+        this.rowDecoder = rowDecoder;
+        this.metadataReader = metadataReader;
+        this.deleter = deleter;
     }
 
     @Override
