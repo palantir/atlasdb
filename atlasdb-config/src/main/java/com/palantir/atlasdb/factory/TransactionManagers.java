@@ -48,7 +48,6 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -81,7 +80,6 @@ import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
-import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
@@ -504,22 +502,22 @@ public abstract class TransactionManagers {
      * @deprecated Not intended for public use outside of the AtlasDB CLIs
      */
     @Deprecated
-    public static LockAndTimestampServices createLockAndTimestampServices(
+    public static LockAndTimestampServices createLockAndTimestampServicesForCli(
             AtlasDbConfig config,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
-            com.google.common.base.Supplier<TimestampService> time) {
+            com.google.common.base.Supplier<TimestampService> time,
+            TimestampStoreInvalidator invalidator,
+            String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(config,
-                        () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
+                        runtimeConfigSupplier,
                         env,
                         lock,
                         time,
-                        () -> {
-                            log.warn("Note: Automatic migration isn't performed by the CLI tools.");
-                            return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-                        },
-                        UserAgents.DEFAULT_USER_AGENT);
+                        invalidator,
+                        userAgent);
         return withRefreshingLockService(lockAndTimestampServices);
     }
 

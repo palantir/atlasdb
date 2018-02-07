@@ -63,7 +63,10 @@
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "3.0.1"
+            "locked": "3.0.1",
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors-api"
+            ]
         },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
@@ -77,6 +80,9 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.remoting3:tracing"
             ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true
         },
         "com.palantir.remoting-api:tracing": {
             "locked": "1.7.0",
@@ -176,7 +182,10 @@
             ]
         },
         "com.google.code.findbugs:annotations": {
-            "locked": "3.0.1"
+            "locked": "3.0.1",
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors-api"
+            ]
         },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
@@ -190,6 +199,9 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.remoting3:tracing"
             ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true
         },
         "com.palantir.remoting-api:tracing": {
             "locked": "1.7.0",

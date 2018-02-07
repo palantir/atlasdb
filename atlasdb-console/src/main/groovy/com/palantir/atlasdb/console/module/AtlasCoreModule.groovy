@@ -207,11 +207,11 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     public connect(String yamlFilePath) {
-        setupConnection(AtlasDbConfigs.load(new File(yamlFilePath)))
+        setupConnection(AtlasDbConfigs.load(new File(yamlFilePath), AtlasDbConfig.class))
     }
 
     public connectInline(String fileContents) {
-        setupConnection(AtlasDbConfigs.loadFromString(fileContents, null))
+        setupConnection(AtlasDbConfigs.loadFromString(fileContents, null, AtlasDbConfig.class))
     }
 
     private setupConnection(AtlasDbConfig config) {

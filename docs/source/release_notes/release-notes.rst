@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - AtlasDB CLIs now allow a runtime config to be passed in.
+           This allows the CLIs to be used with products that are configured to use timelock and have the timelock block in the runtime config.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2937>`__)
+
     *    - |fixed|
          - Fixed a bug where the CleanCassLocksState CLI would not start because the Cassandra locks were in a bad state.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2948>`__)
@@ -74,6 +79,10 @@ develop
            Docs about this config can be found :ref:`here <atlas-config>` and :ref:`here <cassandra-configuration>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
 
+    *    - |devbreak|
+         - Renamed the method used to create LockAndTimestampServices by the CLI commands and AtlasConsole.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
+
     *    - |improved| |logs|
          - Sweep now logs the number of cells it is deleting when performing a single batch of deletes.
            This is useful for visibility of Sweep progress; previously, Sweep would only log when a top-level batch was complete, meaning that for highly versioned rows Sweep would only log after deleting all stale versions of said row.
@@ -87,6 +96,16 @@ develop
          - When TransactionManagers doesn't return successfully, we leaked resources depending on which step of the initialization failed.
            Now resources are properly closed and freed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2964>`__)
+
+    *    - |improved| |metrics|
+         - Atlas now records the number of cells written over time.
+           This metric is reported under ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cellsWritten``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2967>`__)
+
+    *    - |improved|
+         - ``ExecutorInheritableThreadLocal`` from ``commons-executors`` has been split out into a ``commons-executors-api`` dependent project with no dependencies.
+           This allows api projects outside of atlasdb to use ``ExecutorInheritableThreadLocal`` without pulling in the dependencies of ``commons-executors``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2961>`__)
 
 =======
 v0.75.0
