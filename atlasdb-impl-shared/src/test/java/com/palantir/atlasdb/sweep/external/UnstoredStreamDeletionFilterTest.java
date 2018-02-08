@@ -16,32 +16,34 @@
 
 package com.palantir.atlasdb.sweep.external;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.ByteString;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
-public class GenericStreamStoreMetadataCleanupTaskTest {
+public class UnstoredStreamDeletionFilterTest {
     private static final byte[] ROW_1 = { 1 };
     private static final byte[] ROW_2 = { 12 };
-    private static final byte[] COLUMN = { 2 };
-    private static final byte[] HASH = new byte[32];
-    private static final Cell CELL_1 = Cell.create(ROW_1, COLUMN);
-    private static final Cell CELL_2 = Cell.create(ROW_2, COLUMN);
     private static final GenericStreamIdentifier IDENTIFIER_1 =
             ImmutableGenericStreamIdentifier.of(ValueType.FIXED_LONG, ROW_1);
     private static final GenericStreamIdentifier IDENTIFIER_2 =
             ImmutableGenericStreamIdentifier.of(ValueType.FIXED_LONG, ROW_2);
+
+    private static final byte[] HASH = new byte[32];
+    private static final StreamPersistence.StreamMetadata FAILED_STREAM_METADATA =
+            StreamPersistence.StreamMetadata.newBuilder()
+                    .setLength(3L)
+                    .setHash(ByteString.copyFrom(HASH))
+                    .setStatus(StreamPersistence.Status.FAILED)
+                    .build();
     private static final StreamPersistence.StreamMetadata STORING_STREAM_METADATA =
             StreamPersistence.StreamMetadata.newBuilder()
                     .setLength(5L)
@@ -56,45 +58,35 @@ public class GenericStreamStoreMetadataCleanupTaskTest {
                     .build();
 
     private final Transaction tx = mock(Transaction.class);
-
-    private final GenericStreamStoreRowDecoder rowDecoder = mock(GenericStreamStoreRowDecoder.class);
     private final StreamStoreMetadataReader metadataReader = mock(StreamStoreMetadataReader.class);
-    private final SchemalessStreamStoreDeleter deleter = mock(SchemalessStreamStoreDeleter.class);
-    private final GenericStreamStoreMetadataCleanupTask cleanupTask =
-            new GenericStreamStoreMetadataCleanupTask(rowDecoder, metadataReader, deleter);
+    private final GenericStreamDeletionFilter deletionFilter = new UnstoredStreamDeletionFilter(metadataReader);
 
-    @Before
-    public void setUp() {
-        when(rowDecoder.decodeIndexOrMetadataTableRow(ROW_1)).thenReturn(IDENTIFIER_1);
-        when(rowDecoder.decodeIndexOrMetadataTableRow(ROW_2)).thenReturn(IDENTIFIER_2);
+    @Test
+    public void filtersOutStreamsThatAreStored() {
+        when(metadataReader.readMetadata(tx, ImmutableSet.of(IDENTIFIER_1))).thenReturn(
+                ImmutableMap.of(IDENTIFIER_1, STORED_STREAM_METADATA));
+
+        assertThat(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1)))
+                .isEqualTo(ImmutableSet.of());
     }
 
     @Test
-    public void propagatesDeletesForStreamIdentifiers() {
-        when(metadataReader.readMetadata(tx, ImmutableSet.of(IDENTIFIER_1)))
-                .thenReturn(ImmutableMap.of(IDENTIFIER_1, STORING_STREAM_METADATA));
+    public void retainsStreamsThatAreNotStored() {
+        when(metadataReader.readMetadata(tx, ImmutableSet.of(IDENTIFIER_1, IDENTIFIER_2))).thenReturn(
+                ImmutableMap.of(IDENTIFIER_1, STORING_STREAM_METADATA,
+                        IDENTIFIER_2, FAILED_STREAM_METADATA));
 
-        cleanupTask.cellsCleanedUp(tx, ImmutableSet.of(CELL_1));
-        verify(deleter).deleteStreams(tx, ImmutableSet.of(IDENTIFIER_1));
+        assertThat(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1, IDENTIFIER_2)))
+                .isEqualTo(ImmutableSet.of(IDENTIFIER_1, IDENTIFIER_2));
     }
 
     @Test
-    public void doesNotPropagateDeletesForStreamsThatAreStored() {
-        when(metadataReader.readMetadata(tx, ImmutableSet.of(IDENTIFIER_1)))
-                .thenReturn(ImmutableMap.of(IDENTIFIER_1, STORED_STREAM_METADATA));
+    public void retainsPreciselyStreamsThatAreNotStored() {
+        when(metadataReader.readMetadata(tx, ImmutableSet.of(IDENTIFIER_1, IDENTIFIER_2))).thenReturn(
+                ImmutableMap.of(IDENTIFIER_1, STORED_STREAM_METADATA,
+                        IDENTIFIER_2, FAILED_STREAM_METADATA));
 
-        cleanupTask.cellsCleanedUp(tx, ImmutableSet.of(CELL_1));
-        verify(deleter).deleteStreams(tx, ImmutableSet.of());
-    }
-
-    @Test
-    public void deletesOnlyStreamsNotStoredWhenDeletingMultiple() {
-        when(metadataReader.readMetadata(tx, ImmutableSet.of(IDENTIFIER_1, IDENTIFIER_2)))
-                .thenReturn(ImmutableMap.of(
-                        IDENTIFIER_1, STORED_STREAM_METADATA,
-                        IDENTIFIER_2, STORING_STREAM_METADATA));
-
-        cleanupTask.cellsCleanedUp(tx, ImmutableSet.of(CELL_1, CELL_2));
-        verify(deleter).deleteStreams(tx, ImmutableSet.of(IDENTIFIER_2));
+        assertThat(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1, IDENTIFIER_2)))
+                .isEqualTo(ImmutableSet.of(IDENTIFIER_2));
     }
 }
