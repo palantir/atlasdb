@@ -196,65 +196,70 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug which would make sweep deletes not be compacted by Cassandra.
+Over time this would lead to tombstones being accumulated in the DB and disk space not being reclaimed.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2968">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB CLIs now allow a runtime config to be passed in.
 This allows the CLIs to be used with products that are configured to use timelock and have the timelock block in the runtime config.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2937">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug where the CleanCassLocksState CLI would not start because the Cassandra locks were in a bad state.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2948">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Close AsyncInitializer executors. This should reduce memory pressure of clients after startup.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2945">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Added a TimeLock healthcheck for signalling that no leader election has been triggered.
 This will allow TimeLock itself to broadcast a HEALTHY status even without a leader.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2939">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Index tables can now be marked as safe for logging. If you use indexes, please add <code class="docutils literal"><span class="pre">allSafeForLogging()</span></code> on its definition.
 This makes all AtlasDB tables able to be marked as safe for logging.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2940">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Make some values of <code class="docutils literal"><span class="pre">CassandraKeyValueServiceConfig</span></code> live-reloadable.
 To check which parameters are live-reloadable, check the <code class="docutils literal"><span class="pre">CassandraKeyValueServiceRuntimeConfig</span></code> class.
 Docs about this config can be found <a class="reference internal" href="../configuration/index.html#atlas-config"><span class="std std-ref">here</span></a> and <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">here</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2896">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Renamed the method used to create LockAndTimestampServices by the CLI commands and AtlasConsole.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2896">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>Sweep now logs the number of cells it is deleting when performing a single batch of deletes.
 This is useful for visibility of Sweep progress; previously, Sweep would only log when a top-level batch was complete, meaning that for highly versioned rows Sweep would only log after deleting all stale versions of said row.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2958">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The sweep-table endpoint now returns HTTP status 400 instead of 500, when asked to sweep a non-existent table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2936">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>When TransactionManagers doesn’t return successfully, we leaked resources depending on which step of the initialization failed.
 Now resources are properly closed and freed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2964">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>Atlas now records the number of cells written over time.
 This metric is reported under <code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cellsWritten</span></code>
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2967">Pull Request</a>)
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2974">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">ExecutorInheritableThreadLocal</span></code> from <code class="docutils literal"><span class="pre">commons-executors</span></code> has been split out into a <code class="docutils literal"><span class="pre">commons-executors-api</span></code> dependent project with no dependencies.
 This allows api projects outside of atlasdb to use <code class="docutils literal"><span class="pre">ExecutorInheritableThreadLocal</span></code> without pulling in the dependencies of <code class="docutils literal"><span class="pre">commons-executors</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2961">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug where Cassandra client’s input buffers were left in an invalid state
 before returning the client to the pool, manifesting in NPEs in the Thrift layer.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2971">Pull Request</a>)</td>

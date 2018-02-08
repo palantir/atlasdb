@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed a bug which would make sweep deletes not be compacted by Cassandra.
+           Over time this would lead to tombstones being accumulated in the DB and disk space not being reclaimed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2968>`__)
+
     *    - |improved|
          - AtlasDB CLIs now allow a runtime config to be passed in.
            This allows the CLIs to be used with products that are configured to use timelock and have the timelock block in the runtime config.
