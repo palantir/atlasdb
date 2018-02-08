@@ -67,10 +67,10 @@ public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient
             });
         });
 
-        tablesToCells.forEach((table, numberOfCells) -> updateCellsWrittenMeterForTable(table, numberOfCells));
+        tablesToCells.forEach((table, numberOfCells) -> updateCellsWrittenForTable(table, numberOfCells));
     }
 
-    private void updateCellsWrittenMeterForTable(String table, Long numberOfCells) {
+    private void updateCellsWrittenForTable(String table, Long numberOfCells) {
         taggedMetricRegistry.counter(MetricName.builder()
                 .safeName(MetricRegistry.name(CassandraClient.class, "cellsWritten"))
                 .safeTags(ImmutableMap.of("tableRef", LoggingArgs.safeInternalTableNameOrPlaceholder(table)))
