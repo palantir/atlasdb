@@ -23,10 +23,8 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 /**
@@ -36,16 +34,13 @@ import com.palantir.atlasdb.transaction.api.Transaction;
  * It is a generic implementation of the filter step in the generated deletion task for stream index tables.
  */
 public class UnindexedStreamDeletionFilter implements GenericStreamDeletionFilter {
-    private final Namespace namespace;
-    private final String streamStoreShortName;
+    private final TableReference indexTableRef;
     private final GenericStreamStoreRowDecoder rowDecoder;
 
     public UnindexedStreamDeletionFilter(
-            Namespace namespace,
-            String streamStoreShortName,
+            TableReference indexTableRef,
             GenericStreamStoreRowDecoder rowDecoder) {
-        this.namespace = namespace;
-        this.streamStoreShortName = streamStoreShortName;
+        this.indexTableRef = indexTableRef;
         this.rowDecoder = rowDecoder;
     }
 
@@ -63,8 +58,7 @@ public class UnindexedStreamDeletionFilter implements GenericStreamDeletionFilte
 
     private SortedMap<byte[], RowResult<byte[]>> runGetRowsQuery(Transaction tx,
             Set<GenericStreamIdentifier> identifiers) {
-        return tx.getRows(
-                TableReference.create(namespace, StreamTableType.INDEX.getTableName(streamStoreShortName)),
+        return tx.getRows(indexTableRef,
                 identifiers.stream().map(GenericStreamIdentifier::data).collect(Collectors.toSet()),
                 ColumnSelection.all());
     }

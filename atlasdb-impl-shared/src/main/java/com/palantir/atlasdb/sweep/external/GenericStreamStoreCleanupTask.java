@@ -51,7 +51,7 @@ public class GenericStreamStoreCleanupTask implements OnCleanupTask {
         this.deleter = deleter;
     }
 
-    public static OnCleanupTask createForMetadataTables(
+    public static OnCleanupTask createForMetadataTable(
             TableReference metadataTableRef, StreamStoreCleanupMetadata cleanupMetadata) {
         return new GenericStreamStoreCleanupTask(
                 cleanupMetadata,
@@ -59,6 +59,17 @@ public class GenericStreamStoreCleanupTask implements OnCleanupTask {
                 new SchemalessStreamStoreDeleter(
                         metadataTableRef.getNamespace(),
                         StreamTableType.getShortName(StreamTableType.METADATA, metadataTableRef),
+                        cleanupMetadata));
+    }
+
+    public static OnCleanupTask createForIndexTable(
+            TableReference indexTableRef, StreamStoreCleanupMetadata cleanupMetadata) {
+        return new GenericStreamStoreCleanupTask(
+                cleanupMetadata,
+                new UnindexedStreamDeletionFilter(indexTableRef, new GenericStreamStoreRowDecoder(cleanupMetadata)),
+                new SchemalessStreamStoreDeleter(
+                        indexTableRef.getNamespace(),
+                        StreamTableType.getShortName(StreamTableType.INDEX, indexTableRef),
                         cleanupMetadata));
     }
 

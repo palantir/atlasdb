@@ -25,12 +25,12 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.logsafe.SafeArg;
 
-public class GenericStreamStoreMetadataCleanupVisitor implements StreamStoreCleanupMetadataVisitor {
-    private static final Logger log = LoggerFactory.getLogger(GenericStreamStoreMetadataCleanupVisitor.class);
+public class GenericStreamStoreIndexCleanupVisitor implements StreamStoreCleanupMetadataVisitor {
+    private static final Logger log = LoggerFactory.getLogger(GenericStreamStoreIndexCleanupVisitor.class);
 
     private final TableReference tableToSweep;
 
-    public GenericStreamStoreMetadataCleanupVisitor(TableReference tableToSweep) {
+    public GenericStreamStoreIndexCleanupVisitor(TableReference tableToSweep) {
         this.tableToSweep = tableToSweep;
     }
 
@@ -39,6 +39,6 @@ public class GenericStreamStoreMetadataCleanupVisitor implements StreamStoreClea
         log.info("Now creating cleanup task for table {}, which has cleanup metadata {}",
                 LoggingArgs.tableRef(tableToSweep),
                 SafeArg.of("cleanupMetadata", cleanupMetadata));
-        return GenericStreamStoreCleanupTask.createForMetadataTable(tableToSweep, cleanupMetadata);
+        return GenericStreamStoreCleanupTask.createForIndexTable(tableToSweep, cleanupMetadata);
     }
 }
