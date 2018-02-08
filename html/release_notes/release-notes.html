@@ -238,18 +238,23 @@ This is useful for visibility of Sweep progress; previously, Sweep would only lo
 <td>The sweep-table endpoint now returns HTTP status 400 instead of 500, when asked to sweep a non-existent table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2936">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>When TransactionManagers doesn’t return successfully, we leaked resources depending on which step of the initialization failed.
+Now resources are properly closed and freed.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2964">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>Atlas now records the number of cells written over time.
 This metric is reported under <code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cellsWritten</span></code>
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2967">Pull Request</a>)
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2974">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">ExecutorInheritableThreadLocal</span></code> from <code class="docutils literal"><span class="pre">commons-executors</span></code> has been split out into a <code class="docutils literal"><span class="pre">commons-executors-api</span></code> dependent project with no dependencies.
 This allows api projects outside of atlasdb to use <code class="docutils literal"><span class="pre">ExecutorInheritableThreadLocal</span></code> without pulling in the dependencies of <code class="docutils literal"><span class="pre">commons-executors</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2961">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug where Cassandra client’s input buffers were left in an invalid state
 before returning the client to the pool, manifesting in NPEs in the Thrift layer.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2971">Pull Request</a>)</td>
