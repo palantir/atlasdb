@@ -16,11 +16,7 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -28,14 +24,11 @@ public class SweepMetricsFactory {
     private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = new MetricsManager().getTaggedRegistry();
 
-
-
-    SweepMetric createDefault(String namePrefix) {
-        return new SweepMetricsFactory.ListOfMetrics(
-                createCurrentValueLong(namePrefix, UpdateEventType.ONE_ITERATION, false));
+    SweepMetric<Long> simpleLong(String namePrefix) {
+        return createCurrentValueLong(namePrefix, UpdateEventType.ONE_ITERATION, false);
     }
 
-    public SweepMetric createGaugeForTableBeingSwept(String namePrefix) {
+    SweepMetric<String> simpleString(String namePrefix) {
         return createCurrentValueString(namePrefix, UpdateEventType.ONE_ITERATION, false);
     }
 
@@ -50,7 +43,7 @@ public class SweepMetricsFactory {
      *                         tagged.
      * @return SweepMetric backed by a Meter
      */
-    SweepMetric createMeter(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
+    SweepMetric<Long> createMeter(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.METER_ADAPTER);
     }
 
@@ -65,11 +58,11 @@ public class SweepMetricsFactory {
      *                         tagged.
      * @return SweepMetric backed by a CurrentValueMetric
      */
-    SweepMetric createCurrentValueLong(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
+    SweepMetric<Long> createCurrentValueLong(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_LONG);
     }
 
-    SweepMetric createCurrentValueString(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
+    SweepMetric<String> createCurrentValueString(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_STRING);
     }
 
@@ -83,19 +76,5 @@ public class SweepMetricsFactory {
                 .tagWithTableName(tagWithTableName)
                 .metricAdapter(metricAdapter)
                 .build());
-    }
-
-    static class ListOfMetrics implements SweepMetric<Long> {
-        private final List<SweepMetric<Long>> metricsList;
-
-        @SafeVarargs
-        ListOfMetrics(SweepMetric<Long>... metrics) {
-            this.metricsList = Arrays.asList(metrics);
-        }
-
-        @Override
-        public void update(Long value, TableReference tableRef, UpdateEventType updateEvent) {
-            metricsList.forEach(metric -> metric.update(value, tableRef, updateEvent));
-        }
     }
 }

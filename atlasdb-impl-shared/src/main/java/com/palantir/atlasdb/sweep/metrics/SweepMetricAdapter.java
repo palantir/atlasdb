@@ -20,9 +20,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import org.immutables.value.Value;
-import org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramReservoir;
 
-import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
@@ -51,15 +49,6 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
                     .metricConstructor(MetricRegistry::meter)
                     .taggedMetricConstructor(TaggedMetricRegistry::meter)
                     .updateMethod(Meter::mark)
-                    .build();
-
-    public static final SweepMetricAdapter<Histogram, Long> HISTOGRAM_ADAPTER =
-            ImmutableSweepMetricAdapter.<Histogram, Long>builder()
-                    .nameComponent("histogram")
-                    .metricConstructor((metricRegistry, name) ->
-                            metricRegistry.histogram(name, () -> new Histogram(new HdrHistogramReservoir())))
-                    .taggedMetricConstructor(TaggedMetricRegistry::histogram)
-                    .updateMethod(Histogram::update)
                     .build();
 
     public static final SweepMetricAdapter<CurrentValueMetric<Long>, Long> CURRENT_VALUE_ADAPTER_LONG =

@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -26,28 +25,25 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 public class SweepMetricsManager {
     private static final TableReference DUMMY = TableReference.createWithEmptyNamespace("dummy");
 
-    @VisibleForTesting
-    final SweepMetricsFactory factory = new SweepMetricsFactory();
+    private final SweepMetricsFactory factory = new SweepMetricsFactory();
 
-    private final SweepMetric cellsSweptMetric = factory.createDefault(AtlasDbMetricNames.CELLS_EXAMINED);
-    private final SweepMetric cellsDeletedMetric = factory.createDefault(AtlasDbMetricNames.CELLS_SWEPT);
-    private final SweepMetric sweepTimeSweepingMetric = factory.createDefault(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
-    private final SweepMetric tableBeingSwept =
-            factory.createGaugeForTableBeingSwept(AtlasDbMetricNames.TABLE_BEING_SWEPT);
-    private final SweepMetric sweepTimeElapsedMetric =
-            factory.createDefault(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
-    private final SweepMetric sweepErrorMetric =
+    private final SweepMetric<Long> cellsSwept = factory.simpleLong(AtlasDbMetricNames.CELLS_EXAMINED);
+    private final SweepMetric<Long> cellsDeleted = factory.simpleLong(AtlasDbMetricNames.CELLS_SWEPT);
+    private final SweepMetric<Long> timeSweeping = factory.simpleLong(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
+    private final SweepMetric<Long> totalTime = factory.simpleLong(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
+    private final SweepMetric<String> tableSweeping = factory.simpleString(AtlasDbMetricNames.TABLE_BEING_SWEPT);
+    private final SweepMetric<Long> sweepErrors =
             factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEventType.ERROR, false);
 
     public void updateMetrics(SweepResults sweepResults, TableReference tableRef, UpdateEventType updateEvent) {
-        cellsSweptMetric.update(sweepResults.getCellTsPairsExamined(), tableRef, updateEvent);
-        cellsDeletedMetric.update(sweepResults.getStaleValuesDeleted(), tableRef, updateEvent);
-        tableBeingSwept.update(LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName(), tableRef, updateEvent);
-        sweepTimeSweepingMetric.update(sweepResults.getTimeInMillis(), tableRef, updateEvent);
-        sweepTimeElapsedMetric.update(sweepResults.getTimeElapsedSinceStartedSweeping(), tableRef, updateEvent);
+        cellsSwept.update(sweepResults.getCellTsPairsExamined(), tableRef, updateEvent);
+        cellsDeleted.update(sweepResults.getStaleValuesDeleted(), tableRef, updateEvent);
+        tableSweeping.update(LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName(), tableRef, updateEvent);
+        timeSweeping.update(sweepResults.getTimeInMillis(), tableRef, updateEvent);
+        totalTime.update(sweepResults.getTimeElapsedSinceStartedSweeping(), tableRef, updateEvent);
     }
 
     public void sweepError() {
-        sweepErrorMetric.update(1L, DUMMY, UpdateEventType.ERROR);
+        sweepErrors.update(1L, DUMMY, UpdateEventType.ERROR);
     }
 }
