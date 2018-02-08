@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -58,10 +57,10 @@ public class GenericStreamStoreMetadataCleanupTaskTest {
     private final Transaction tx = mock(Transaction.class);
 
     private final GenericStreamStoreRowDecoder rowDecoder = mock(GenericStreamStoreRowDecoder.class);
-    private final StreamStoreMetadataReader metadataReader = mock(StreamStoreMetadataReader.class);
+    private final GenericStreamDeletionFilter deletionFilter = mock(GenericStreamDeletionFilter.class);
     private final SchemalessStreamStoreDeleter deleter = mock(SchemalessStreamStoreDeleter.class);
-    private final GenericStreamStoreMetadataCleanupTask cleanupTask =
-            new GenericStreamStoreMetadataCleanupTask(rowDecoder, metadataReader, deleter);
+    private final GenericStreamStoreCleanupTask cleanupTask =
+            new GenericStreamStoreCleanupTask(rowDecoder, deletionFilter, deleter);
 
     @Before
     public void setUp() {
@@ -70,29 +69,27 @@ public class GenericStreamStoreMetadataCleanupTaskTest {
     }
 
     @Test
-    public void propagatesDeletesForStreamIdentifiers() {
-        when(metadataReader.readMetadata(tx, ImmutableSet.of(IDENTIFIER_1)))
-                .thenReturn(ImmutableMap.of(IDENTIFIER_1, STORING_STREAM_METADATA));
+    public void deletesStreamsThatFilterReturns() {
+        when(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1)))
+                .thenReturn(ImmutableSet.of(IDENTIFIER_1));
 
         cleanupTask.cellsCleanedUp(tx, ImmutableSet.of(CELL_1));
         verify(deleter).deleteStreams(tx, ImmutableSet.of(IDENTIFIER_1));
     }
 
     @Test
-    public void doesNotPropagateDeletesForStreamsThatAreStored() {
-        when(metadataReader.readMetadata(tx, ImmutableSet.of(IDENTIFIER_1)))
-                .thenReturn(ImmutableMap.of(IDENTIFIER_1, STORED_STREAM_METADATA));
+    public void doesNotDeleteStreamsThatFilterDoesNotReturn() {
+        when(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1)))
+                .thenReturn(ImmutableSet.of());
 
         cleanupTask.cellsCleanedUp(tx, ImmutableSet.of(CELL_1));
         verify(deleter).deleteStreams(tx, ImmutableSet.of());
     }
 
     @Test
-    public void deletesOnlyStreamsNotStoredWhenDeletingMultiple() {
-        when(metadataReader.readMetadata(tx, ImmutableSet.of(IDENTIFIER_1, IDENTIFIER_2)))
-                .thenReturn(ImmutableMap.of(
-                        IDENTIFIER_1, STORED_STREAM_METADATA,
-                        IDENTIFIER_2, STORING_STREAM_METADATA));
+    public void deletesPreciselyStreamsReturnedByFilterWhenDeletingMultiple() {
+        when(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1, IDENTIFIER_2)))
+                .thenReturn(ImmutableSet.of(IDENTIFIER_2));
 
         cleanupTask.cellsCleanedUp(tx, ImmutableSet.of(CELL_1, CELL_2));
         verify(deleter).deleteStreams(tx, ImmutableSet.of(IDENTIFIER_2));

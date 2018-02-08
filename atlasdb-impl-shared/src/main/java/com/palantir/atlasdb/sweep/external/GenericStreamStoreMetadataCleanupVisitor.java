@@ -39,6 +39,6 @@ public class GenericStreamStoreMetadataCleanupVisitor implements StreamStoreClea
         log.info("Now creating cleanup task for table {}, which has cleanup metadata {}",
                 LoggingArgs.tableRef(tableToSweep),
                 SafeArg.of("cleanupMetadata", cleanupMetadata));
-        return new GenericStreamStoreMetadataCleanupTask(tableToSweep, cleanupMetadata);
+        return GenericStreamStoreCleanupTask.createForMetadataTables(tableToSweep, cleanupMetadata);
     }
 }
