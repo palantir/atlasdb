@@ -48,12 +48,12 @@ public class UnindexedStreamDeletionFilter implements GenericStreamDeletionFilte
     public Set<GenericStreamIdentifier> getStreamIdentifiersToDelete(
             Transaction tx,
             Set<GenericStreamIdentifier> identifiers) {
-        Set<GenericStreamIdentifier> vv = runGetRowsQuery(tx, identifiers)
+        Set<GenericStreamIdentifier> identifiersInDb = runGetRowsQuery(tx, identifiers)
                 .keySet()
                 .stream()
                 .map(rowDecoder::decodeIndexOrMetadataTableRow)
                 .collect(Collectors.toSet());
-        return ImmutableSet.copyOf(Sets.difference(identifiers, vv));
+        return ImmutableSet.copyOf(Sets.difference(identifiers, identifiersInDb));
     }
 
     private SortedMap<byte[], RowResult<byte[]>> runGetRowsQuery(Transaction tx,
