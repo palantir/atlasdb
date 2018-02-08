@@ -16,11 +16,14 @@
 
 package com.palantir.atlasdb.sweep.external;
 
+import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 
 public final class StreamStoreHashEncodingUtils {
+    private static final HashFunction HASH_FUNCTION = Hashing.murmur3_128();
+
     private StreamStoreHashEncodingUtils() {
         // utility class
     }
@@ -44,6 +47,10 @@ public final class StreamStoreHashEncodingUtils {
         }
     }
 
+    public static int getHashComponentBytes() {
+        return HASH_FUNCTION.bits() / Byte.SIZE;
+    }
+
     private static byte[] computeHashFirstComponent(GenericStreamIdentifier streamId) {
         return applyBitwiseXorWithMinValueAndConvert(computeMurmurHash(streamId.data()));
     }
@@ -60,6 +67,6 @@ public final class StreamStoreHashEncodingUtils {
     }
 
     private static long computeMurmurHash(byte[]... bytes) {
-        return Hashing.murmur3_128().hashBytes(EncodingUtils.add(bytes)).asLong();
+        return HASH_FUNCTION.hashBytes(EncodingUtils.add(bytes)).asLong();
     }
 }

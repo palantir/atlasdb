@@ -19,40 +19,30 @@ package com.palantir.atlasdb.sweep.external;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.cleaner.Follower;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
 import com.palantir.atlasdb.schema.cleanup.CleanupMetadata;
 import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 
-public class FollowerGeneratingCleanupMetadataVisitor implements CleanupMetadata.Visitor<Follower> {
-    private static final Logger log = LoggerFactory.getLogger(FollowerGeneratingCleanupMetadataVisitor.class);
+public interface StreamStoreCleanupMetadataVisitor extends CleanupMetadata.Visitor<OnCleanupTask> {
+    Logger log = LoggerFactory.getLogger(StreamStoreCleanupMetadataVisitor.class);
 
-    private static final Follower NO_OP_FOLLOWER = (txMgr, tableRef, cells, transactionType) -> {
+    OnCleanupTask NO_OP_CLEANUP_TASK = (tx, cells) -> {
         // As the name suggests, this doesn't need to do anything.
+        return false;
     };
 
-    private final TableReference tableToSweep;
-
-    public FollowerGeneratingCleanupMetadataVisitor(TableReference tableToSweep) {
-        this.tableToSweep = tableToSweep;
-    }
-
     @Override
-    public Follower visit(NullCleanupMetadata cleanupMetadata) {
-        return NO_OP_FOLLOWER;
+    default OnCleanupTask visit(NullCleanupMetadata cleanupMetadata) {
+        return NO_OP_CLEANUP_TASK;
     }
 
-    @Override
-    public Follower visit(StreamStoreCleanupMetadata cleanupMetadata) {
-        // TODO (jkong): Fill me in
-        throw new UnsupportedOperationException("Stream stores are not supported yet.");
-    }
+    OnCleanupTask visit(StreamStoreCleanupMetadata cleanupMetadata);
 
     // Note: Arbitrary is unsupported, but I'm overriding this for logging and to provide clearer output
     @Override
-    public Follower visit(ArbitraryCleanupMetadata cleanupMetadata) {
+    default OnCleanupTask visit(ArbitraryCleanupMetadata cleanupMetadata) {
         log.warn("Attempted to construct a follower from arbitrary cleanup metadata, which is unexpected!");
         throw new UnsupportedOperationException("This visitor doesn't support arbitrary cleanup metadata");
     }
