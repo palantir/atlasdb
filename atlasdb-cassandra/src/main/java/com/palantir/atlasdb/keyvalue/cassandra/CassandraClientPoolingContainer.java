@@ -179,10 +179,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         }
     }
 
-    private static boolean isInvalidClientConnection(Exception ex) {
+    private static boolean isInvalidClientConnection(Throwable ex) {
         return ex instanceof TTransportException
                 || ex instanceof TProtocolException
-                || ex instanceof NoSuchElementException;
+                || ex instanceof NoSuchElementException
+                || (ex.getCause() != null && isInvalidClientConnection(ex.getCause()));
     }
 
     private void invalidateQuietly(CassandraClient resource) {
