@@ -32,4 +32,8 @@ public class FakeQosClient implements QosClient {
         return query.execute();
     }
 
+    @Override
+    public void close() {
+        // no-op
+    }
 }
