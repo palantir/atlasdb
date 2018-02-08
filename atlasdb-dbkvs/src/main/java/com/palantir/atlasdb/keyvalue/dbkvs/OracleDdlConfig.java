@@ -65,6 +65,12 @@ public abstract class OracleDdlConfig extends DdlConfig {
     }
 
     @Value.Default
+    // SHRINK COMPACT is an operation that blocks DML, so enable with care.
+    public boolean useShrinkCompactOnOracleStandardEdition() {
+        return false;
+    }
+
+    @Value.Default
     @Override
     public String tablePrefix() {
         return "a_";

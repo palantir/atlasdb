@@ -271,13 +271,15 @@ public final class OracleDdlTable implements DbDdlTable {
                 log.info("Call to SHRINK SPACE COMPACT on table {} took {} ms.",
                         tableRef, shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS));
 
-                Stopwatch shrinkTimer = Stopwatch.createStarted();
-                conns.get().executeUnregisteredQuery(
-                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
-                                + " SHRINK SPACE");
-                log.info("Call to SHRINK SPACE on table {} took {} ms."
-                                + " This implies that locks on the entire table were held for this period.",
-                        tableRef, shrinkTimer.elapsed(TimeUnit.MILLISECONDS));
+                if (config.useShrinkCompactOnOracleStandardEdition()) {
+                    Stopwatch shrinkTimer = Stopwatch.createStarted();
+                    conns.get().executeUnregisteredQuery(
+                            "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                    + " SHRINK SPACE");
+                    log.info("Call to SHRINK SPACE on table {} took {} ms."
+                                    + " This implies that locks on the entire table were held for this period.",
+                            tableRef, shrinkTimer.elapsed(TimeUnit.MILLISECONDS));
+                }
             } catch (PalantirSqlException e) {
                 log.error(compactionFailureTemplate,
                         tableRef,
