@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.InvalidRequestException;
@@ -28,7 +29,7 @@ import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
-import com.codahale.metrics.Meter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -68,14 +69,29 @@ public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient
             });
         });
 
-        tablesToCells.forEach((table, numberOfCells) -> getCellsWrittenMeterForTable(table).mark(numberOfCells));
+        tablesToCells.forEach((table, numberOfCells) -> updateCellsWrittenMeterForTable(table));
     }
 
-    private Meter getCellsWrittenMeterForTable(String table) {
-        return taggedMetricRegistry.meter(
+    private void updateCellsWrittenMeterForTable(String table, Long numberOfCells) {
+        IncrementingGauge incrementingGauge = (IncrementingGauge) taggedMetricRegistry.gauge(
                 MetricName.builder()
-                .safeName(MetricRegistry.name(CassandraClient.class, "cellsWritten"))
-                .safeTags(ImmutableMap.of("tableRef", LoggingArgs.safeInternalTableNameOrPlaceholder(table)))
-                .build());
+                        .safeName(MetricRegistry.name(CassandraClient.class, "cellsWritten"))
+                        .safeTags(ImmutableMap.of("tableRef", LoggingArgs.safeInternalTableNameOrPlaceholder(table)))
+                        .build(),
+                new IncrementingGauge());
+        incrementingGauge.addValue(numberOfCells);
+    }
+
+    private static class IncrementingGauge implements Gauge<Long> {
+        private final AtomicLong atomicLong = new AtomicLong(0L);
+
+        @Override
+        public Long getValue() {
+            return atomicLong.get();
+        }
+
+        public void addValue(Long newValue) {
+            atomicLong.addAndGet(newValue);
+        }
     }
 }
