@@ -193,6 +193,7 @@ public class SweepTaskRunner {
                         2 * batchConfig.deleteBatchSize());
 
                 totalCellTsPairsExamined += batch.numCellTsPairsExamined();
+                // TODO(gmaretic) : update metrics here
                 lastRow = batch.lastCellExamined().getRowName();
             }
             return SweepResults.builder()

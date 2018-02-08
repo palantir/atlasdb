@@ -28,16 +28,11 @@ public class SweepMetricsFactory {
     private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = new MetricsManager().getTaggedRegistry();
 
+
+
     SweepMetric createDefault(String namePrefix) {
         return new SweepMetricsFactory.ListOfMetrics(
-                createMeter(namePrefix, UpdateEventType.ONE_ITERATION, false),
-                createHistogram(namePrefix, UpdateEventType.FULL_TABLE, false));
-    }
-
-    SweepMetric createMetricsForTimeElapsed(String namePrefix) {
-        return new SweepMetricsFactory.ListOfMetrics(
-                createCurrentValueLong(namePrefix, UpdateEventType.ONE_ITERATION, false),
-                createHistogram(namePrefix, UpdateEventType.FULL_TABLE, false));
+                createCurrentValueLong(namePrefix, UpdateEventType.ONE_ITERATION, false));
     }
 
     public SweepMetric createGaugeForTableBeingSwept(String namePrefix) {
@@ -57,23 +52,6 @@ public class SweepMetricsFactory {
      */
     SweepMetric createMeter(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.METER_ADAPTER);
-    }
-
-    /**
-     * Creates a SweepMetric backed by a Histogram. The name of the metric is the concatenation
-     * SweepMetric.class.getName() + namePrefix + "Histogram" + updateEvent.nameComponent().
-     * The tagged histogram is backed by an {@link com.codahale.metrics.ExponentiallyDecayingReservoir}, while the
-     * non-tagged histogram uses an {@link org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramReservoir}.
-     *
-     * @param namePrefix Determines the prefix of the metric name.
-     * @param updateEvent Determines on which type of event the metric should be updated and determines the suffix of
-     *                    the metric name.
-     * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
-     *                         tagged, and will use an HdrHistogramReservoir.
-     * @return SweepMetric backed by a Histogram
-     */
-    SweepMetric createHistogram(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
-        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.HISTOGRAM_ADAPTER);
     }
 
     /**

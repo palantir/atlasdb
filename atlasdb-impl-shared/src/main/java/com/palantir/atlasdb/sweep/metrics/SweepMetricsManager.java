@@ -35,7 +35,7 @@ public class SweepMetricsManager {
     private final SweepMetric tableBeingSwept =
             factory.createGaugeForTableBeingSwept(AtlasDbMetricNames.TABLE_BEING_SWEPT);
     private final SweepMetric sweepTimeElapsedMetric =
-            factory.createMetricsForTimeElapsed(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
+            factory.createDefault(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
     private final SweepMetric sweepErrorMetric =
             factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEventType.ERROR, false);
 
