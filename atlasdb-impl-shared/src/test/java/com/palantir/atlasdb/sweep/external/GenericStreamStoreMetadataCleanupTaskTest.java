@@ -32,7 +32,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class GenericStreamStoreMetadataCleanupTaskTest {
-    private static final byte[] ROW_1 = {1 };
+    private static final byte[] ROW_1 = { 1 };
     private static final byte[] ROW_2 = { 12 };
     private static final byte[] COLUMN = { 2 };
     private static final byte[] HASH = new byte[32];

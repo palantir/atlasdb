@@ -64,7 +64,7 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
 
     public static String getShortName(StreamTableType type, TableReference tableReference) {
         Preconditions.checkArgument(isStreamStoreTableOfSpecificType(type, tableReference),
-                "Attempted to strip a stream table suffix, but provided an inconsistent type!"
+                "Attempted to get a stream table's short name, but provided an inconsistent type!"
                         + " Table reference was {}, alleged type was {}", tableReference, type);
 
         String tableName = tableReference.getTablename();

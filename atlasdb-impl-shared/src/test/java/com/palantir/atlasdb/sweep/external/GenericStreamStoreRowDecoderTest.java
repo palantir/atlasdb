@@ -86,15 +86,15 @@ public class GenericStreamStoreRowDecoderTest {
     }
 
     private static byte[] generateIncreasingByteArray(int lowerLimit, int upperLimit) {
-        Preconditions.checkArgument(Byte.MIN_VALUE < lowerLimit,
+        Preconditions.checkArgument(Byte.MIN_VALUE <= lowerLimit,
                 "lower limit of %s is too low (byte minimmum: %s)",
                 lowerLimit,
                 Byte.MIN_VALUE);
-        Preconditions.checkArgument(lowerLimit < upperLimit,
+        Preconditions.checkArgument(lowerLimit <= upperLimit,
                 "lower limit of %s is higher than the upper limit of %s",
                 lowerLimit,
                 upperLimit);
-        Preconditions.checkArgument(upperLimit < Byte.MAX_VALUE,
+        Preconditions.checkArgument(upperLimit <= Byte.MAX_VALUE,
                 "upper limit of %s is too high (byte maximum: %s)",
                 upperLimit,
                 Byte.MAX_VALUE);
