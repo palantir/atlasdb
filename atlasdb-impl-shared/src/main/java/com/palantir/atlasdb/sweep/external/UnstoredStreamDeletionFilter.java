@@ -26,6 +26,12 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
+/**
+ * This filter returns the stream identifiers that correspond to streams that have not been actually STORED in the
+ * database (i.e. the metadata table claims they are in STORING or FAILED state).
+ *
+ * It is a generic implementation of the filter step in the generated deletion task for stream metadata tables.
+ */
 public class UnstoredStreamDeletionFilter implements GenericStreamDeletionFilter {
     private final StreamStoreMetadataReader metadataReader;
 
