@@ -28,7 +28,6 @@ import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
-import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -68,14 +67,14 @@ public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient
             });
         });
 
-        tablesToCells.forEach((table, numberOfCells) -> getCellsWrittenMeterForTable(table).mark(numberOfCells));
+        tablesToCells.forEach((table, numberOfCells) -> updateCellsWrittenForTable(table, numberOfCells));
     }
 
-    private Meter getCellsWrittenMeterForTable(String table) {
-        return taggedMetricRegistry.meter(
-                MetricName.builder()
+    private void updateCellsWrittenForTable(String table, Long numberOfCells) {
+        taggedMetricRegistry.counter(MetricName.builder()
                 .safeName(MetricRegistry.name(CassandraClient.class, "cellsWritten"))
                 .safeTags(ImmutableMap.of("tableRef", LoggingArgs.safeInternalTableNameOrPlaceholder(table)))
-                .build());
+                .build())
+                .inc(numberOfCells);
     }
 }
