@@ -16,19 +16,25 @@
 
 package com.palantir.atlasdb.sweep.external;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
-public class GenericStreamStoreMetadataCleanupTaskTest {
+public class UnindexedStreamDeletionFilterTest {
     private static final byte[] ROW_1 = { 1 };
     private static final byte[] ROW_2 = { 12 };
     private static final byte[] COLUMN = { 2 };
@@ -38,14 +44,12 @@ public class GenericStreamStoreMetadataCleanupTaskTest {
             ImmutableGenericStreamIdentifier.of(ValueType.FIXED_LONG, ROW_1);
     private static final GenericStreamIdentifier IDENTIFIER_2 =
             ImmutableGenericStreamIdentifier.of(ValueType.FIXED_LONG, ROW_2);
+    private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test");
 
     private final Transaction tx = mock(Transaction.class);
-
     private final GenericStreamStoreRowDecoder rowDecoder = mock(GenericStreamStoreRowDecoder.class);
-    private final GenericStreamDeletionFilter deletionFilter = mock(GenericStreamDeletionFilter.class);
-    private final SchemalessStreamStoreDeleter deleter = mock(SchemalessStreamStoreDeleter.class);
-    private final GenericStreamStoreCleanupTask cleanupTask =
-            new GenericStreamStoreCleanupTask(rowDecoder, deletionFilter, deleter);
+    private final UnindexedStreamDeletionFilter deletionFilter =
+            new UnindexedStreamDeletionFilter(TABLE_REFERENCE, rowDecoder);
 
     @Before
     public void setUp() {
@@ -54,29 +58,32 @@ public class GenericStreamStoreMetadataCleanupTaskTest {
     }
 
     @Test
-    public void deletesStreamsThatFilterReturns() {
-        when(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1)))
-                .thenReturn(ImmutableSet.of(IDENTIFIER_1));
+    public void returnsIdentifierIfNoLongerFoundInTable() {
+        when(tx.getRows(any(), any(), any())).thenReturn(ImmutableSortedMap.of());
 
-        cleanupTask.cellsCleanedUp(tx, ImmutableSet.of(CELL_1));
-        verify(deleter).deleteStreams(tx, ImmutableSet.of(IDENTIFIER_1));
+        assertThat(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1)))
+                .isEqualTo(ImmutableSet.of(IDENTIFIER_1));
     }
 
     @Test
-    public void doesNotDeleteStreamsThatFilterDoesNotReturn() {
-        when(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1)))
-                .thenReturn(ImmutableSet.of());
+    public void doesNotReturnIdentifierIfFoundInTable() {
+        when(tx.getRows(any(), any(), any())).thenReturn(
+                ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put(ROW_1, RowResult.of(CELL_1, new byte[0]))
+                        .build());
 
-        cleanupTask.cellsCleanedUp(tx, ImmutableSet.of(CELL_1));
-        verify(deleter).deleteStreams(tx, ImmutableSet.of());
+        assertThat(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1)))
+                .isEqualTo(ImmutableSet.of());
     }
 
     @Test
-    public void deletesPreciselyStreamsReturnedByFilterWhenDeletingMultiple() {
-        when(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1, IDENTIFIER_2)))
-                .thenReturn(ImmutableSet.of(IDENTIFIER_2));
+    public void returnsPreciselyIdentifiersNotFoundInTable() {
+        when(tx.getRows(any(), any(), any())).thenReturn(
+                ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put(ROW_1, RowResult.of(CELL_1, new byte[0]))
+                        .build());
 
-        cleanupTask.cellsCleanedUp(tx, ImmutableSet.of(CELL_1, CELL_2));
-        verify(deleter).deleteStreams(tx, ImmutableSet.of(IDENTIFIER_2));
+        assertThat(deletionFilter.getStreamIdentifiersToDelete(tx, ImmutableSet.of(IDENTIFIER_1, IDENTIFIER_2)))
+                .isEqualTo(ImmutableSet.of(IDENTIFIER_2));
     }
 }
