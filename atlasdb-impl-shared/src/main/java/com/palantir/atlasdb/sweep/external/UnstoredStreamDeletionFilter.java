@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
@@ -32,6 +33,11 @@ public class UnstoredStreamDeletionFilter implements GenericStreamDeletionFilter
         this.metadataReader = new StreamStoreMetadataReader(
                 metadataTableRef,
                 new GenericStreamStoreCellCreator(cleanupMetadata));
+    }
+
+    @VisibleForTesting
+    UnstoredStreamDeletionFilter(StreamStoreMetadataReader metadataReader) {
+        this.metadataReader = metadataReader;
     }
 
     @Override

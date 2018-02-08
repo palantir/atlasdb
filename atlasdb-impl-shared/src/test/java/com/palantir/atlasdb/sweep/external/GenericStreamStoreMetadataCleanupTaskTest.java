@@ -24,9 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
@@ -34,25 +32,12 @@ public class GenericStreamStoreMetadataCleanupTaskTest {
     private static final byte[] ROW_1 = { 1 };
     private static final byte[] ROW_2 = { 12 };
     private static final byte[] COLUMN = { 2 };
-    private static final byte[] HASH = new byte[32];
     private static final Cell CELL_1 = Cell.create(ROW_1, COLUMN);
     private static final Cell CELL_2 = Cell.create(ROW_2, COLUMN);
     private static final GenericStreamIdentifier IDENTIFIER_1 =
             ImmutableGenericStreamIdentifier.of(ValueType.FIXED_LONG, ROW_1);
     private static final GenericStreamIdentifier IDENTIFIER_2 =
             ImmutableGenericStreamIdentifier.of(ValueType.FIXED_LONG, ROW_2);
-    private static final StreamPersistence.StreamMetadata STORING_STREAM_METADATA =
-            StreamPersistence.StreamMetadata.newBuilder()
-                    .setLength(5L)
-                    .setHash(ByteString.copyFrom(HASH))
-                    .setStatus(StreamPersistence.Status.STORING)
-                    .build();
-    private static final StreamPersistence.StreamMetadata STORED_STREAM_METADATA =
-            StreamPersistence.StreamMetadata.newBuilder()
-                    .setLength(7L)
-                    .setHash(ByteString.copyFrom(HASH))
-                    .setStatus(StreamPersistence.Status.STORED)
-                    .build();
 
     private final Transaction tx = mock(Transaction.class);
 
