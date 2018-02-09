@@ -181,6 +181,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this.exceptionHandler = new CassandraRequestExceptionHandler(
                 () -> runtimeConfig.get().numberOfRetriesOnSameHost(),
                 () -> runtimeConfig.get().numberOfRetriesOnAllHosts(),
+                () -> runtimeConfig.get().conservativeRequestExceptionHandler(),
                 blacklist);
         cassandra = new CassandraService(config, blacklist, qosClient);
     }
