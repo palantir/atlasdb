@@ -19,8 +19,6 @@ package com.palantir.atlasdb.sweep.metrics;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
-import javax.ws.rs.NotSupportedException;
-
 import org.immutables.value.Value;
 
 import com.codahale.metrics.Meter;
