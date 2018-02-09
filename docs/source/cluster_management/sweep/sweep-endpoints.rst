@@ -3,21 +3,29 @@
 AtlasDB Sweep Endpoints
 =======================
 
+.. warning::
+
+    Sweeps can be resource-intensive (especially if batching parameters are generous and/or cells have very large
+    values). The sweep endpoints don't currently support cancellation, so to stop a running sweep you will need to
+    bounce your service. This is likely to be acceptable if your service is deployed in an HA configuration, but be
+    careful when using the sweep endpoint in non-HA configurations.
+
 If you ever need to force a particular table to be swept immediately, you can run sweep by making a POST request to the
 ``/sweep/sweep-table`` endpoint. Sweep runs initiated via the endpoint are configurable via standard HTTP query
 parameters.
 
 .. list-table::
+   :widths: 20 50 30
    :header-rows: 1
 
    * - Parameter Name
      - Description
      - Required/Optional
    * - ``tablename``
-     - Fully qualified table name (inclusive of namespace; e.g. ``namespace.actualTableName``)
+     - Fully qualified name of table to be swept (inclusive of namespace; e.g. ``namespace.actualTableName``).
      - Required
    * - ``startRow``
-     - Base16 encoded start row.
+     - Base16 encoded row where Sweep will start sweeping from.
      - Optional (default: empty - i.e. first row of table)
    * - ``fullSweep``
      - Whether to sweep a full table. If set to ``false``, we will sweep just one batch.
@@ -36,7 +44,7 @@ parameters.
 
 \* Note the the sweep config might be lower if previous sweep runs have failed.
 
-.. warning::
+.. note::
 
     If using curl from a shell to hit the sweep endpoint, please remember to escape ampersands and/or quote the
     URL provided to curl; otherwise, the ampersand will end the command and run curl in the background with the first
