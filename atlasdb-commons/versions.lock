@@ -65,7 +65,8 @@
         "com.google.code.findbugs:annotations": {
             "locked": "3.0.1",
             "transitive": [
-                "com.palantir.atlasdb:commons-executors"
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -83,6 +84,12 @@
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
+            ]
         },
         "com.palantir.remoting-api:tracing": {
             "locked": "1.7.0",
@@ -200,7 +207,8 @@
         "com.google.code.findbugs:annotations": {
             "locked": "3.0.1",
             "transitive": [
-                "com.palantir.atlasdb:commons-executors"
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -218,6 +226,12 @@
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
+            ]
         },
         "com.palantir.remoting-api:tracing": {
             "locked": "1.7.0",

@@ -55,7 +55,7 @@ import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 
-public class CassandraService {
+public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
@@ -73,6 +73,11 @@ public class CassandraService {
         this.config = config;
         this.blacklist = blacklist;
         this.qosClient = qosClient;
+    }
+
+    @Override
+    public void close() {
+        qosClient.close();
     }
 
     public TokenRangeWritesLogger getTokenRangeWritesLogger() {

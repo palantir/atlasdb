@@ -88,7 +88,7 @@ class CellDeleter {
                             pred.setColumn_names(Arrays.asList(colName));
                             Deletion del = new Deletion();
                             del.setPredicate(pred);
-                            del.setTimestamp(Long.MAX_VALUE);
+                            del.setTimestamp(ts + 1);
                             Mutation mutation = new Mutation();
                             mutation.setDeletion(del);
 

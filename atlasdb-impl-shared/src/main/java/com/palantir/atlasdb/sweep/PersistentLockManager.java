@@ -35,7 +35,7 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
 // TODO move to persistentlock package?
-public class PersistentLockManager {
+public class PersistentLockManager implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(PersistentLockManager.class);
 
     private final PersistentLockService persistentLockService;
@@ -59,6 +59,11 @@ public class PersistentLockManager {
         this.metricsManager = new MetricsManager();
         this.lockFailureMeter = metricsManager.registerOrGetMeter(this.getClass(), null, ACQUIRE_FAILURE_METRIC_NAME);
         this.lockId = null;
+    }
+
+    @Override
+    public void close() {
+        shutdown();
     }
 
     public synchronized void shutdown() {

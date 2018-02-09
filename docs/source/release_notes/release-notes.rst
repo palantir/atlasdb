@@ -56,6 +56,11 @@ develop
            This parameter is live-reloadable, and reloading it will affect in-flight requests, with the caveat that once a request gives up on a node, it will not retry that node again even if we disable conservative retrying.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2959>`__)
 
+    *    - |fixed|
+         - Fixed a bug which would make sweep deletes not be compacted by Cassandra.
+           Over time this would lead to tombstones being accumulated in the DB and disk space not being reclaimed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2968>`__)
+
     *    - |improved|
          - AtlasDB CLIs now allow a runtime config to be passed in.
            This allows the CLIs to be used with products that are configured to use timelock and have the timelock block in the runtime config.
@@ -97,6 +102,27 @@ develop
     *    - |improved|
          - The sweep-table endpoint now returns HTTP status 400 instead of 500, when asked to sweep a non-existent table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2936>`__)
+
+    *    - |fixed|
+         - When TransactionManagers doesn't return successfully, we leaked resources depending on which step of the initialization failed.
+           Now resources are properly closed and freed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2964>`__)
+
+    *    - |improved| |metrics|
+         - Atlas now records the number of cells written over time.
+           This metric is reported under ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cellsWritten``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2967>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2974>`__)
+
+    *    - |improved|
+         - ``ExecutorInheritableThreadLocal`` from ``commons-executors`` has been split out into a ``commons-executors-api`` dependent project with no dependencies.
+           This allows api projects outside of atlasdb to use ``ExecutorInheritableThreadLocal`` without pulling in the dependencies of ``commons-executors``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2961>`__)
+
+    *    - |fixed|
+         - Fixed a bug where Cassandra client's input buffers were left in an invalid state
+           before returning the client to the pool, manifesting in NPEs in the Thrift layer.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2971>`__)
 
 =======
 v0.75.0
