@@ -40,10 +40,10 @@ import com.palantir.logsafe.UnsafeArg;
 class CassandraRequestExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
-    final Supplier<Integer> maxTriesSameHost;
-    final Supplier<Integer> maxTriesTotal;
-    final Supplier<Boolean> useConservativeHandler;
-    final Blacklist blacklist;
+    private final Supplier<Integer> maxTriesSameHost;
+    private final Supplier<Integer> maxTriesTotal;
+    private final Supplier<Boolean> useConservativeHandler;
+    private final Blacklist blacklist;
 
     CassandraRequestExceptionHandler(
             Supplier<Integer> maxTriesSameHost,
@@ -138,14 +138,13 @@ class CassandraRequestExceptionHandler {
             return;
         }
 
-        long sleepDuration = getBackoffPeriod(req.getNumberOfAttempts(), strategy);
         log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                 UnsafeArg.of("queryString", req.getFunction().toString()),
-                SafeArg.of("sleepDuration", sleepDuration),
+                SafeArg.of("sleepDuration", strategy.getBackoffPeriod(req.getNumberOfAttempts())),
                 SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
 
         try {
-            Thread.sleep(sleepDuration);
+            Thread.sleep(strategy.getBackoffPeriod(req.getNumberOfAttempts()));
         } catch (InterruptedException i) {
             throw new RuntimeException(i);
         }
@@ -154,11 +153,6 @@ class CassandraRequestExceptionHandler {
     @VisibleForTesting
     boolean shouldBackoff(Exception ex, RequestExceptionHandlerStrategy strategy) {
         return strategy.shouldBackoff(ex);
-    }
-
-    @VisibleForTesting
-    long getBackoffPeriod(int numberOfAttempts, RequestExceptionHandlerStrategy strategy) {
-        return strategy.getBackoffPeriod(numberOfAttempts);
     }
 
     private <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
