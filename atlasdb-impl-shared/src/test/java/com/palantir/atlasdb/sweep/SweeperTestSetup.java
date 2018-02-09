@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.sweep;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+
 import java.util.Optional;
 
 import org.junit.Before;
@@ -77,6 +80,7 @@ public class SweeperTestSetup {
                 () -> 0L, // pauseMillis
                 Mockito.mock(PersistentLockManager.class),
                 specificTableSweeper);
+        Mockito.doNothing().when(sweepMetricsManager).updateAfterDeleteBatch(anyLong(), anyLong());
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {
@@ -98,8 +102,8 @@ public class SweeperTestSetup {
             TransactionTask<?, ?> task = (TransactionTask<?, ?>) args[0];
             return task.execute(Mockito.mock(Transaction.class));
         };
-        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskReadOnly(Mockito.any());
-        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskWithRetry(Mockito.any());
+        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskReadOnly(any());
+        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskWithRetry(any());
         return txManager;
     }
 
@@ -113,11 +117,12 @@ public class SweeperTestSetup {
 
     protected void setNextTableToSweep(TableReference tableRef) {
         Mockito.doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider)
-                .getNextTableToSweep(Mockito.any(), Mockito.anyLong());
+                .getNextTableToSweep(any(), Mockito.anyLong());
     }
 
     protected void setupTaskRunner(SweepResults results) {
-        Mockito.doReturn(results).when(sweepTaskRunner).run(Mockito.eq(TABLE_REF), Mockito.any(), Mockito.any());
+        Mockito.doReturn(results).when(sweepTaskRunner).run(Mockito.eq(TABLE_REF), any(), any());
+        Mockito.doReturn(results).when(sweepTaskRunner).runWithMetricsUpdate(any(), any(), any(), any());
     }
 
 }
