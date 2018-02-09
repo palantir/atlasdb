@@ -131,8 +131,6 @@ public class SpecificTableSweeper {
             SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
             logSweepPerformance(tableRef, startRow, results);
 
-            updateMetricsOneIteration(results, tableRef);
-
             return results;
         } catch (RuntimeException e) {
             // This error may be logged on some paths above, but I prefer to log defensively.
@@ -182,6 +180,8 @@ public class SpecificTableSweeper {
     private void processSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
         SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
 
+        updateMetricsOneIteration(cumulativeResults, tableToSweep.getTableRef());
+
         if (currentIteration.getNextStartRow().isPresent()) {
             saveIntermediateSweepResults(tableToSweep, cumulativeResults);
         } else {
@@ -230,7 +230,6 @@ public class SpecificTableSweeper {
                 SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()),
                 SafeArg.of("time sweeping table", cumulativeResults.getTimeInMillis()),
                 SafeArg.of("time elapsed", cumulativeResults.getTimeElapsedSinceStartedSweeping()));
-        updateMetricsFullTable(cumulativeResults, tableToSweep.getTableRef());
         sweepProgressStore.clearProgress();
     }
 
@@ -278,10 +277,6 @@ public class SpecificTableSweeper {
 
     void updateMetricsOneIteration(SweepResults sweepResults, TableReference tableRef) {
         sweepMetricsManager.updateMetrics(sweepResults, tableRef, UpdateEventType.ONE_ITERATION);
-    }
-
-    void updateMetricsFullTable(SweepResults cumulativeResults, TableReference tableRef) {
-        sweepMetricsManager.updateMetrics(cumulativeResults, tableRef, UpdateEventType.FULL_TABLE);
     }
 
     void updateSweepErrorMetric() {
