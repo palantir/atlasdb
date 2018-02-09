@@ -84,10 +84,6 @@ public class PuncherTest {
     final long secondPunchTimestamp = 35L;
     final long thirdPunchTimestamp = 37L;
 
-    final long firstTimestampToGetMillis = 34L;
-    final long secondTimestampToGetMillis = 35L;
-    final long thirdTimestampToGetMillis = 36L;
-
     @Test
     public void test() {
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(10000L));
@@ -99,13 +95,11 @@ public class PuncherTest {
         assertEquals(Long.MIN_VALUE, (long) timestampSupplier.get());
         timeMillis += 60000L;
 
-        final long firstExpectedMillis = timeMillis;
         puncher.punch(firstPunchTimestamp);
 
         timeMillis += 60000L;
         assertEquals(firstPunchTimestamp, (long) timestampSupplier.get());
 
-        final long secondExpectedMillis = timeMillis;
         puncher.punch(secondPunchTimestamp);
 
         assertEquals(firstPunchTimestamp, (long) timestampSupplier.get());
@@ -119,10 +113,6 @@ public class PuncherTest {
         assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
         timeMillis += 60000L;
         assertEquals(thirdPunchTimestamp, (long) timestampSupplier.get());
-
-        assertEquals(firstExpectedMillis, puncherStore.getMillisForTimestamp(firstTimestampToGetMillis));
-        assertEquals(secondExpectedMillis, puncherStore.getMillisForTimestamp(secondTimestampToGetMillis));
-        assertEquals(secondExpectedMillis, puncherStore.getMillisForTimestamp(thirdTimestampToGetMillis));
     }
 
     @Test

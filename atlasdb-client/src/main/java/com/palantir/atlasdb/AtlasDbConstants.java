@@ -30,7 +30,7 @@ public final class AtlasDbConstants {
         // Utility
     }
 
-    public static final TableReference PUNCH_TABLE = TableReference.createWithEmptyNamespace("_punch");
+    public static final TableReference PUNCH_TABLE = TableReference.createWithEmptyNamespace("_punch2");
     public static final TableReference OLD_SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub");
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub2");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");

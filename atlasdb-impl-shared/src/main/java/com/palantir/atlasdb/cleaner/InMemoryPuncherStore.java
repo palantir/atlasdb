@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.Map;
 import java.util.NavigableMap;
 
 import com.google.common.collect.Maps;
@@ -59,17 +58,5 @@ final class InMemoryPuncherStore implements PuncherStore {
         // Note: To stay consistent with the interface comments as well as the
         // KVS implementation, we want to include timeMillis itself
         return map.get(map.headMap(timeMillis + 1).lastKey());
-    }
-
-    @Override
-    public long getMillisForTimestamp(long timestamp) {
-        // Note: Expected use for this method is for the current immutable timestamp
-        // which we expect to be towards the end of the tree so we iterate backwards
-        for (Map.Entry<Long, Long> punch : map.descendingMap().entrySet()) {
-            if (punch.getValue() <= timestamp) {
-                return punch.getKey();
-            }
-        }
-        return 0L;
     }
 }
