@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.LongSupplier;
 
 import org.slf4j.Logger;
@@ -98,11 +99,16 @@ public class SweepTaskRunner {
     public SweepResults dryRun(TableReference tableRef,
                                SweepBatchConfig batchConfig,
                                byte[] startRow) {
-        return runInternal(tableRef, batchConfig, startRow, RunType.DRY);
+        return runInternal(tableRef, batchConfig, startRow, RunType.DRY, (fst, snd) -> { });
     }
 
     public SweepResults run(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow) {
-        return runInternal(tableRef, batchConfig, startRow, RunType.FULL);
+        return runInternal(tableRef, batchConfig, startRow, RunType.FULL, (fst, snd) -> { });
+    }
+
+    public SweepResults runWithMetricsUpdate(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow,
+            BiConsumer<Long, Long> metricsUpdater) {
+        return runInternal(tableRef, batchConfig, startRow, RunType.FULL, metricsUpdater);
     }
 
     public long getConservativeSweepTimestamp() {
@@ -114,7 +120,8 @@ public class SweepTaskRunner {
             TableReference tableRef,
             SweepBatchConfig batchConfig,
             byte[] startRow,
-            RunType runType) {
+            RunType runType,
+            BiConsumer<Long, Long> metricsUpdater) {
 
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
@@ -137,14 +144,15 @@ public class SweepTaskRunner {
         if (!sweeper.isPresent()) {
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
-        return doRun(tableRef, batchConfig, startRow, runType, sweeper.get());
+        return doRun(tableRef, batchConfig, startRow, runType, sweeper.get(), metricsUpdater);
     }
 
     private SweepResults doRun(TableReference tableRef,
                                SweepBatchConfig batchConfig,
                                byte[] startRow,
                                RunType runType,
-                               Sweeper sweeper) {
+                               Sweeper sweeper,
+                               BiConsumer<Long, Long> metricsUpdater) {
         Stopwatch watch = Stopwatch.createStarted();
         long timeSweepStarted = System.currentTimeMillis();
         log.info("Beginning iteration of sweep for table {} starting at row {}",
@@ -189,11 +197,14 @@ public class SweepTaskRunner {
                  * deleteBatchSize as a limit results in a small second batch, which is bad for performance reasons.
                  * Therefore, deleteBatchSize is doubled.
                  */
-                totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType,
-                        2 * batchConfig.deleteBatchSize());
+                long cellsDeleted = sweepBatch(tableRef, batch.cells(), runType, 2 * batchConfig.deleteBatchSize());
+                totalCellTsPairsDeleted += cellsDeleted;
 
-                totalCellTsPairsExamined += batch.numCellTsPairsExamined();
-                // TODO(gmaretic) : update metrics here
+                long cellsExamined = batch.numCellTsPairsExamined();
+                totalCellTsPairsExamined += cellsExamined;
+
+                metricsUpdater.accept(cellsExamined, cellsDeleted);
+
                 lastRow = batch.lastCellExamined().getRowName();
             }
             return SweepResults.builder()

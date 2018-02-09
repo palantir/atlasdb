@@ -128,7 +128,8 @@ public class SpecificTableSweeper {
 
     SweepResults runOneIteration(TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig) {
         try {
-            SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
+            SweepResults results = sweepRunner.runWithMetricsUpdate(tableRef, batchConfig, startRow,
+                    this::updateMetricsDeleteBatch);
             logSweepPerformance(tableRef, startRow, results);
 
             return results;
@@ -273,6 +274,10 @@ public class SpecificTableSweeper {
         } else {
             return PtBytes.encodeHexString(row);
         }
+    }
+
+    void updateMetricsDeleteBatch(long cellTsPairsExamined, long staleValuesDeleted) {
+        sweepMetricsManager.updateAfterDeleteBatch(cellTsPairsExamined, staleValuesDeleted);
     }
 
     void updateMetricsOneIteration(SweepResults sweepResults, TableReference tableRef) {
