@@ -24,7 +24,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
@@ -34,6 +33,7 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.lock.LockService;
 
 public class BackgroundCompactor implements Runnable {
     private final TransactionManager transactionManager;
@@ -67,19 +67,22 @@ public class BackgroundCompactor implements Runnable {
             if (!tableToCompactOptional.isPresent()) {
                 continue;
             }
+
             String tableToCompact = tableToCompactOptional.get();
-
             compactTable(tableToCompact);
-
-            transactionManager.runTaskWithRetry(tx -> {
-                CompactMetadataTable compactMetadataTable = CompactTableFactory.of().getCompactMetadataTable(tx);
-                compactMetadataTable.putLastCompactTime(
-                        CompactMetadataTable.CompactMetadataRow.of(tableToCompact),
-                        System.currentTimeMillis());
-
-                return null;
-            });
+            registerCompactedTable(tableToCompact);
         }
+    }
+
+    private void registerCompactedTable(String tableToCompact) {
+        transactionManager.runTaskWithRetry(tx -> {
+            CompactMetadataTable compactMetadataTable = CompactTableFactory.of().getCompactMetadataTable(tx);
+            compactMetadataTable.putLastCompactTime(
+                    CompactMetadataTable.CompactMetadataRow.of(tableToCompact),
+                    System.currentTimeMillis());
+
+            return null;
+        });
     }
 
     private void compactTable(String tableToCompact) {
@@ -117,7 +120,7 @@ public class BackgroundCompactor implements Runnable {
         }
 
         String tableToCompact = null;
-        long maxSweptAfterCompact = 0L;
+        long maxSweptAfterCompact = Long.MIN_VALUE;
         for (Map.Entry<String, Long> entry : tableToLastTimeSwept.entrySet()){
             String table = entry.getKey();
             long lastSweptTime = entry.getValue();
