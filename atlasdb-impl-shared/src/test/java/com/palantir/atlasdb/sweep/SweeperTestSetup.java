@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
 
 import java.util.Optional;
 
@@ -80,7 +79,6 @@ public class SweeperTestSetup {
                 () -> 0L, // pauseMillis
                 Mockito.mock(PersistentLockManager.class),
                 specificTableSweeper);
-        Mockito.doNothing().when(sweepMetricsManager).updateAfterDeleteBatch(anyLong(), anyLong());
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {

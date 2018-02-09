@@ -207,7 +207,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testRecordFinalBatchMetricsAfterCompleteRun() {
+    public void testPerIterationMetricsAccumulateResults() {
         setProgress(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
                         .staleValuesDeleted(3)
@@ -237,8 +237,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
         Mockito.verify(sweepMetricsManager)
-                .updateMetrics(intermediateResults, TABLE_REF, UpdateEventType.ONE_ITERATION);
-        Mockito.verify(sweepMetricsManager).updateMetrics(fullResults, TABLE_REF, UpdateEventType.FULL_TABLE);
+                .updateMetrics(fullResults, TABLE_REF, UpdateEventType.ONE_ITERATION);
     }
 
     @Test
