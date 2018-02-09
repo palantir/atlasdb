@@ -66,7 +66,8 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     @Value.Default
     // SHRINK COMPACT is an operation that blocks DML, so enable with care.
-    public boolean useShrinkCompactOnOracleStandardEdition() {
+    // If disabled, will run SHRINK SPACE COMPACT, which is not blocking.
+    public boolean useShrinkSpaceOnOracleStandardEdition() {
         return false;
     }
 
