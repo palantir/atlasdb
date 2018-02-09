@@ -27,23 +27,28 @@ public class SweepMetricsManager {
 
     private final SweepMetricsFactory factory = new SweepMetricsFactory();
 
-    private final SweepMetric<Long> cellsSwept = factory.simpleLong(AtlasDbMetricNames.CELLS_EXAMINED);
-    private final SweepMetric<Long> cellsDeleted = factory.simpleLong(AtlasDbMetricNames.CELLS_SWEPT);
+    private final SweepMetric<Long> cellsExamined = factory.accumulatingLong(AtlasDbMetricNames.CELLS_EXAMINED);
+    private final SweepMetric<Long> cellsDeleted = factory.accumulatingLong(AtlasDbMetricNames.CELLS_SWEPT);
     private final SweepMetric<Long> timeSweeping = factory.simpleLong(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
     private final SweepMetric<Long> totalTime = factory.simpleLong(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
     private final SweepMetric<String> tableSweeping = factory.simpleString(AtlasDbMetricNames.TABLE_BEING_SWEPT);
     private final SweepMetric<Long> sweepErrors =
             factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEventType.ERROR, false);
 
+    public void updateAfterDeleteBatch(long cellTsPairsExamined, long staleValuesDeleted) {
+        cellsExamined.update(cellTsPairsExamined, DUMMY, UpdateEventType.ONE_ITERATION);
+        cellsDeleted.update(staleValuesDeleted, DUMMY, UpdateEventType.ONE_ITERATION);
+    }
+
     public void updateMetrics(SweepResults sweepResults, TableReference tableRef, UpdateEventType updateEvent) {
-        cellsSwept.update(sweepResults.getCellTsPairsExamined(), tableRef, updateEvent);
-        cellsDeleted.update(sweepResults.getStaleValuesDeleted(), tableRef, updateEvent);
-        tableSweeping.update(LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName(), tableRef, updateEvent);
-        timeSweeping.update(sweepResults.getTimeInMillis(), tableRef, updateEvent);
-        totalTime.update(sweepResults.getTimeElapsedSinceStartedSweeping(), tableRef, updateEvent);
+        cellsExamined.set(sweepResults.getCellTsPairsExamined(), tableRef, updateEvent);
+        cellsDeleted.set(sweepResults.getStaleValuesDeleted(), tableRef, updateEvent);
+        tableSweeping.set(LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName(), tableRef, updateEvent);
+        timeSweeping.set(sweepResults.getTimeInMillis(), tableRef, updateEvent);
+        totalTime.set(sweepResults.getTimeElapsedSinceStartedSweeping(), tableRef, updateEvent);
     }
 
     public void sweepError() {
-        sweepErrors.update(1L, DUMMY, UpdateEventType.ERROR);
+        sweepErrors.set(1L, DUMMY, UpdateEventType.ERROR);
     }
 }

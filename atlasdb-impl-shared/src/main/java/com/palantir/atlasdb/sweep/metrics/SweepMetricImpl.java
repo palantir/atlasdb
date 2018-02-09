@@ -42,9 +42,24 @@ public class SweepMetricImpl<T> implements SweepMetric<T> {
     }
 
     @Override
+    public void set(T value, TableReference tableRef, UpdateEventType eventInstance) {
+        if (updateEventType.equals(eventInstance)) {
+            setMetric(value, tableRef);
+        }
+    }
+
+    @Override
     public void update(T value, TableReference tableRef, UpdateEventType eventInstance) {
         if (updateEventType.equals(eventInstance)) {
             updateMetric(value, tableRef);
+        }
+    }
+
+    private void setMetric(T value, TableReference tableRef) {
+        if (!tagWithTableName) {
+            metricAdapter.setNonTaggedMetric(metricRegistry, name, value);
+        } else {
+            metricAdapter.setTaggedMetric(taggedMetricRegistry, getTaggedMetricName(name, tableRef), value);
         }
     }
 
@@ -55,6 +70,7 @@ public class SweepMetricImpl<T> implements SweepMetric<T> {
             metricAdapter.updateTaggedMetric(taggedMetricRegistry, getTaggedMetricName(name, tableRef), value);
         }
     }
+
 
     @VisibleForTesting
     static MetricName getTaggedMetricName(String name, TableReference tableRef) {

@@ -107,7 +107,7 @@ public class SweepMetricsManagerTest {
     }
 
     @Test
-    public void allGaugesAreUpdatedForSafeTables() {
+    public void allGaugesAreSetForSafeTables() {
         setLoggingSafety(ImmutableMap.of(TABLE_REF, SAFE_METADATA, TABLE_REF2, SAFE_METADATA));
         sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
 
@@ -127,7 +127,7 @@ public class SweepMetricsManagerTest {
     }
 
     @Test
-    public void allGaugesAreUpdatedForUnsafeTables() {
+    public void allGaugesAreSetForUnsafeTables() {
         setLoggingSafety(ImmutableMap.of(TABLE_REF, UNSAFE_METADATA, TABLE_REF2, UNSAFE_METADATA));
         sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
 
@@ -147,7 +147,7 @@ public class SweepMetricsManagerTest {
     }
 
     @Test
-    public void allGaugesAreUpdatedForUnknownSafetyAsUnsafe() {
+    public void allGaugesAreSetForUnknownSafetyAsUnsafe() {
         setLoggingSafety(ImmutableMap.of());
         sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
 
@@ -167,7 +167,35 @@ public class SweepMetricsManagerTest {
     }
 
     @Test
-    public void timeElapsedGaugeIsUpdatedToNewestValueForOneIteration() {
+    public void gaugesAreUpdatedAfterDeleteBatchCorrectly() {
+        setLoggingSafety(ImmutableMap.of(TABLE_REF, SAFE_METADATA, TABLE_REF2, SAFE_METADATA));
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateAfterDeleteBatch(100L, 50L);
+        sweepMetricsManager.updateAfterDeleteBatch(10L, 5L);
+
+        assertRecordedCurrentValue(ImmutableMap.of(
+                CELLS_EXAMINED, EXAMINED + 110L,
+                CELLS_SWEPT, DELETED + 55L,
+                TIME_SPENT_SWEEPING, TIME_SWEEPING,
+                TABLE_BEING_SWEPT, TABLE_FULLY_QUALIFIED));
+    }
+
+    @Test
+    public void updateMetricsResetsUpdateAfterDeleteBatch() {
+        setLoggingSafety(ImmutableMap.of(TABLE_REF, SAFE_METADATA, TABLE_REF2, SAFE_METADATA));
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateAfterDeleteBatch(100L, 50L);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
+
+        assertRecordedCurrentValue(ImmutableMap.of(
+                CELLS_EXAMINED, OTHER_EXAMINED,
+                CELLS_SWEPT, OTHER_DELETED,
+                TIME_SPENT_SWEEPING, OTHER_TIME_SWEEPING,
+                TABLE_BEING_SWEPT, TABLE2_FULLY_QUALIFIED));
+    }
+
+    @Test
+    public void timeElapsedGaugeIsSetToNewestValueForOneIteration() {
         sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
         assertSweepTimeElapsedCurrentValueWithinMarginOfError(START_TIME);
         sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);

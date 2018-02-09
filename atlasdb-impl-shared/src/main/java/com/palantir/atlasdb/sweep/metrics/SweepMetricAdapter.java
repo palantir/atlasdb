@@ -19,11 +19,14 @@ package com.palantir.atlasdb.sweep.metrics;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
+import javax.ws.rs.NotSupportedException;
+
 import org.immutables.value.Value;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -33,12 +36,29 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
     public abstract String getNameComponent();
     public abstract BiFunction<MetricRegistry, String, M> getMetricConstructor();
     public abstract BiFunction<TaggedMetricRegistry, MetricName, M> getTaggedMetricConstructor();
-    public abstract BiConsumer<M, T> getUpdateMethod();
+    public abstract BiConsumer<M, T> getSetMethod();
 
+    @Value.Default
+    public BiConsumer<M, T> getUpdateMethod() {
+        return getSetMethod();
+    }
+
+    @Value.Derived
+    public void setNonTaggedMetric(MetricRegistry metricRegistry, String name, T value) {
+        getSetMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
+    }
+
+    @Value.Derived
+    public void setTaggedMetric(TaggedMetricRegistry taggedMetricRegistry, MetricName metricName, T value) {
+        getSetMethod().accept(getTaggedMetricConstructor().apply(taggedMetricRegistry, metricName), value);
+    }
+
+    @Value.Derived
     public void updateNonTaggedMetric(MetricRegistry metricRegistry, String name, T value) {
         getUpdateMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
     }
 
+    @Value.Derived
     public void updateTaggedMetric(TaggedMetricRegistry taggedMetricRegistry, MetricName metricName, T value) {
         getUpdateMethod().accept(getTaggedMetricConstructor().apply(taggedMetricRegistry, metricName), value);
     }
@@ -48,7 +68,7 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
                     .nameComponent("meter")
                     .metricConstructor(MetricRegistry::meter)
                     .taggedMetricConstructor(TaggedMetricRegistry::meter)
-                    .updateMethod(Meter::mark)
+                    .setMethod(Meter::mark)
                     .build();
 
     public static final SweepMetricAdapter<CurrentValueMetric<Long>, Long> CURRENT_VALUE_ADAPTER_LONG =
@@ -56,6 +76,17 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
 
     public static final SweepMetricAdapter<CurrentValueMetric<String>, String> CURRENT_VALUE_ADAPTER_STRING =
             getCurrentValueAdapterForClass();
+
+    public static final SweepMetricAdapter<AccumulatingValueMetric, Long> ACCUMULATING_VALUE_METRIC_ADAPTER =
+            ImmutableSweepMetricAdapter.<AccumulatingValueMetric, Long>builder()
+                    .nameComponent("currentValue")
+                    .metricConstructor((metricRegistry, name) ->
+                            (AccumulatingValueMetric) metricRegistry.gauge(name, AccumulatingValueMetric::new))
+                    .taggedMetricConstructor((taggedMetricRegistry, metricName) -> (AccumulatingValueMetric)
+                            taggedMetricRegistry.gauge(metricName, new AccumulatingValueMetric()))
+                    .setMethod(AccumulatingValueMetric::setValue)
+                    .updateMethod(AccumulatingValueMetric::accumulateValue)
+                    .build();
 
     // We know that the unchecked casts will be fine.
     @SuppressWarnings("unchecked")
@@ -66,7 +97,7 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
                         (CurrentValueMetric<T>) metricRegistry.gauge(name, CurrentValueMetric::new))
                 .taggedMetricConstructor((taggedMetricRegistry, metricName) -> (CurrentValueMetric<T>)
                         taggedMetricRegistry.gauge(metricName, new CurrentValueMetric<T>()))
-                .updateMethod(CurrentValueMetric::setValue)
+                .setMethod(CurrentValueMetric::setValue)
                 .build();
     }
 }
