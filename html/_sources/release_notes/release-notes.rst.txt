@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |new|
+         - Added a new parameter ``conservativeRequestExceptionHandler`` to ``CassandraKeyValueServiceRuntimeConfig``.
+           Setting this parameter to true will enable more conservative retrying logic for requests, including longer backoffs and not retrying on the same host when encoutering an exception that is indicative of high Cassandra load, e.g., TimeoutExceptions.
+           This parameter is live-reloadable, and reloading it will affect in-flight requests, with the caveat that once a request gives up on a node, it will not retry that node again even if we disable conservative retrying.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2959>`__)
+
     *    - |fixed|
          - Fixed a bug which would make sweep deletes not be compacted by Cassandra.
            Over time this would lead to tombstones being accumulated in the DB and disk space not being reclaimed.
