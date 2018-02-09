@@ -126,6 +126,7 @@ class CassandraRequestExceptionHandler {
         }
     }
 
+    // TODO(gmaretic): figure out if this needs to be changed
     @VisibleForTesting
     boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
         return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
