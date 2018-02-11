@@ -148,7 +148,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskReadOnlyWithCondition(NO_OP_CONDITION, (transaction, condition) -> task.execute(transaction));
+        return runTaskWithConditionReadOnly(NO_OP_CONDITION, (transaction, condition) -> task.execute(transaction));
     }
 
     @Override

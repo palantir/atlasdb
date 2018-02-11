@@ -192,7 +192,7 @@ class SnapshotTransactionManagerImpl extends AbstractTransactionManager implemen
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();

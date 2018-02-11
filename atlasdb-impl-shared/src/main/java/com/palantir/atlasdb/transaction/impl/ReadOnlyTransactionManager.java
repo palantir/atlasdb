@@ -112,45 +112,9 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager {
     }
 
     @Override
-    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskReadOnlyWithCondition(NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
-    }
-
-    @Override
     public void close() {
         super.close();
         keyValueService.close();
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
-            TransactionFailedRetriableException {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Iterable<HeldLocksToken> lockTokens,
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException {
-        throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
@@ -215,7 +179,13 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager {
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(C condition,
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+            Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
+        throw new UnsupportedOperationException("this manager is read only");
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(C condition,
             ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(

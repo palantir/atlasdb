@@ -162,7 +162,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
-    <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(
+    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
     /**

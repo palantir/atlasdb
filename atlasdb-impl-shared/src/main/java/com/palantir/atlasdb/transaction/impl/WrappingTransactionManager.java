@@ -49,47 +49,6 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
     protected abstract Transaction wrap(Transaction transaction);
 
     @Override
-    public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
-        return delegate().runTaskWithRetry(wrapTask(task));
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
-            TransactionConflictException {
-        return delegate().runTaskThrowOnConflict(wrapTask(task));
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
-            throws E, TransactionConflictException {
-        return delegate().runTaskWithLocksThrowOnConflict(lockTokens, wrapTask(task));
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
-        return delegate().runTaskWithLocksWithRetry(lockSupplier, wrapTask(task));
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Iterable<HeldLocksToken> lockTokens,
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
-        return delegate().runTaskWithLocksWithRetry(lockTokens, lockSupplier, wrapTask(task));
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return delegate().runTaskReadOnly(wrapTask(task));
-    }
-
-    @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition,
             ConditionAwareTransactionTask<T, C, E> task)
@@ -97,12 +56,11 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
         return delegate().runTaskWithConditionThrowOnConflict(condition, wrapTask(task));
     }
 
-    @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition,
             ConditionAwareTransactionTask<T, C, E> task)
             throws E {
-        return delegate().runTaskReadOnlyWithCondition(condition, wrapTask(task));
+        return delegate().runTaskWithConditionReadOnly(condition, wrapTask(task));
     }
 
     @Override
@@ -131,14 +89,6 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
     @Override
     public TimestampService getTimestampService() {
         return delegate.getTimestampService();
-    }
-
-    private <T, E extends Exception> TransactionTask<T, E> wrapTask(TransactionTask<T, E> task) {
-        return transaction -> task.execute(wrap(transaction));
-    }
-
-    private <T, E extends Exception> LockAwareTransactionTask<T, E> wrapTask(LockAwareTransactionTask<T, E> task) {
-        return (transaction, locks) -> task.execute(wrap(transaction), locks);
     }
 
     private <T, C extends PreCommitCondition, E extends Exception> ConditionAwareTransactionTask<T, C, E> wrapTask(
