@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.simulated;
 
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.simulated.config.LoadSimulatorConfig;
@@ -31,8 +31,9 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SuccessfulTaskInvocationCapture;
 import com.palantir.atlasdb.transaction.impl.TransactionReplayer;
 import com.palantir.atlasdb.transaction.impl.WrappingSerializableTransactionManager;
+import com.palantir.common.concurrent.PTExecutors;
 
-public class LoadSimulator implements LoadSimulation {
+public class LoadSimulator implements LoadSimulation, AutoCloseable {
     private final RefreshableTransactionTaskCondition captureCondition = new RefreshableTransactionTaskCondition(
             SamplingTransactionCondition.NEVER_SAMPLE
     );
@@ -40,10 +41,12 @@ public class LoadSimulator implements LoadSimulation {
             StaticReplayRepetition.NO_REPETITIONS
     );
     private final LoadSimulatorConfig config;
+    private final ExecutorService executor;
 
     public LoadSimulator(LoadSimulatorConfig config) {
         Preconditions.checkState(config.enabled(), "LoadSimulatorConfig is not enabled");
         this.config = config;
+        this.executor = PTExecutors.newFixedThreadPool(config.executorThreads());
     }
 
     @Override
@@ -62,11 +65,16 @@ public class LoadSimulator implements LoadSimulation {
                 new SuccessfulTaskInvocationCapture(
                         captureCondition,
                         new TransactionReplayer(
-                                Executors.newFixedThreadPool(config.executorThreads()),
+                                executor,
                                 delegate,
                                 replayRepetition
                         )
                 )
         );
+    }
+
+    @Override
+    public void close() throws Exception {
+        executor.shutdown();
     }
 }

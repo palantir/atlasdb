@@ -74,7 +74,7 @@ public abstract class AtlasDbRuntimeConfig {
     }
 
     @Value.Default
-    public LoadSimulationConfig loadSimulationConfig() {
+    public LoadSimulatorConfig loadSimulatorConfig() {
         return LoadSimulatorConfig.DEFAULT;
     }
 
