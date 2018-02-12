@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -91,8 +90,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
@@ -181,7 +178,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final Logger log;
 
     private final CassandraKeyValueServiceConfig config;
-    private final Optional<CassandraJmxCompactionManager> compactionManager;
     private final CassandraClientPool clientPool;
 
     private SchemaMutationLock schemaMutationLock;
@@ -278,13 +274,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Optional<LeaderConfig> leaderConfig,
             Logger log,
             boolean initializeAsync) {
-        Optional<CassandraJmxCompactionManager> compactionManager =
-                CassandraJmxCompaction.createJmxCompactionManager(config);
         CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
                 log,
                 config,
                 clientPool,
-                compactionManager,
                 leaderConfig);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
@@ -293,14 +286,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private CassandraKeyValueServiceImpl(Logger log,
             CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
-            Optional<CassandraJmxCompactionManager> compactionManager,
             Optional<LeaderConfig> leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 config.poolSize() * config.servers().size()));
         this.log = log;
         this.config = config;
         this.clientPool = clientPool;
-        this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
@@ -315,10 +306,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 writeConsistency);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellLoader, cellValuePutter,
                 wrappingQueryRunner, deleteConsistency);
-
-        if (!compactionManager.isPresent()) {
-            logLackOfCompactionManager(config.getKeyspaceOrThrow());
-        }
     }
 
     @Override
@@ -1754,9 +1741,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
-        if (compactionManager.isPresent()) {
-            compactionManager.get().close();
-        }
         super.close();
     }
 
@@ -1914,39 +1898,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return newColumn;
     }
 
-    /**
-     * Does whatever can be done to compact or cleanup a table. Intended to be called after many
-     * deletions are performed.
-     *
-     * @param tableRef the name of the table to compact.
-     */
     @Override
     public void compactInternally(TableReference tableRef) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
-                "tableRef:[%s] should not be null or empty.", tableRef);
-        if (!compactionManager.isPresent()) {
-            return;
-        }
-        long timeoutInSeconds = config.jmx().get().compactionTimeoutSeconds();
-        String keyspace = config.getKeyspaceOrThrow();
-        try {
-            alterGcAndTombstone(keyspace, tableRef, 0, 0.0f);
-            compactionManager.get().performTombstoneCompaction(timeoutInSeconds, keyspace, tableRef);
-        } catch (TimeoutException e) {
-            log.error("Compaction for {}.{} could not finish in {} seconds.", UnsafeArg.of("keyspace", keyspace),
-                    LoggingArgs.tableRef(tableRef), SafeArg.of("timeout", timeoutInSeconds), e);
-            log.error("Compaction status: {}",
-                    UnsafeArg.of("compactionStatus", compactionManager.get().getCompactionStatus()));
-        } catch (InterruptedException e) {
-            log.error("Compaction for {}.{} was interrupted.", UnsafeArg.of("keyspace", keyspace),
-                    LoggingArgs.tableRef(tableRef));
-        } finally {
-            alterGcAndTombstone(
-                    keyspace,
-                    tableRef,
-                    config.gcGraceSeconds(),
-                    CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
-        }
+        /* no-op */
     }
 
     private void logLackOfCompactionManager(String keyspace) {
