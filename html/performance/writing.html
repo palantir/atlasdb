@@ -180,13 +180,13 @@
             
   <div class="section" id="writing-benchmarks">
 <span id="performance-writing"></span><h1>Writing Benchmarks<a class="headerlink" href="#writing-benchmarks" title="Permalink to this headline">¶</a></h1>
-<p>The benchmarks are written using the <a class="reference external" href="http://openjdk.java.net/projects/code-tools/jmh/">Java Benchmarking Harness</a> (JMH) bundled with OpenJDK.  To get started understanding JMH take a look at the <a class="reference external" href="http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/">JMH Samples</a>.  Our benchmarks are found in the <code class="docutils literal"><span class="pre">atlasdb-perf</span></code> project.</p>
+<p>The benchmarks are written using the <a class="reference external" href="http://openjdk.java.net/projects/code-tools/jmh/">Java Benchmarking Harness</a> (JMH) bundled with OpenJDK.  To get started understanding JMH take a look at the <a class="reference external" href="http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/">JMH Samples</a>.  Our benchmarks are found in the <code class="docutils literal notranslate"><span class="pre">atlasdb-perf</span></code> project.</p>
 <p>Be sure to read <a class="reference internal" href="understanding.html#understanding"><span class="std std-ref">Understanding Performance Benchmarking</span></a> before attempting to write a benchmark.</p>
 <div class="section" id="how-the-atlasdb-perf-cli-works">
 <h2>How the AtlasDB-Perf CLI Works<a class="headerlink" href="#how-the-atlasdb-perf-cli-works" title="Permalink to this headline">¶</a></h2>
-<p><code class="docutils literal"><span class="pre">AtlasDbPerfCli.java</span></code> contains the main method that the CLI runs.
+<p><code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.java</span></code> contains the main method that the CLI runs.
 It checks the provided options, sets up docker containers (if needed), and gathers the URIs of benchmarks via reflection.
-Once it does all that, it kicks off JMH in the method <code class="docutils literal"><span class="pre">AtlasDbPerfCli.runJmh()</span></code>.
+Once it does all that, it kicks off JMH in the method <code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.runJmh()</span></code>.
 This method is also responsible for setting several important runtime parameters including which benchmarks to run, how many forks and threads to use, the sampling mode, and the time unit.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -194,31 +194,31 @@ This method is also responsible for setting several important runtime parameters
 Do not forget to set set it back to 1 before you push your code!</p>
 </div>
 <p>JMH will then attempt to run a benchmark.
-Benchmark classes are all <code class="docutils literal"><span class="pre">&#64;State</span></code> objects, which indicates that JMH can instantiate and manage them.
-Each benchmark method is proceeded with a <code class="docutils literal"><span class="pre">&#64;Benchmark</span></code> annotation, marking it as a benchmark.
-Each Benchmark will also have a <code class="docutils literal"><span class="pre">&#64;Warmup</span></code> and <code class="docutils literal"><span class="pre">&#64;Measurement</span></code> annotation.
+Benchmark classes are all <code class="docutils literal notranslate"><span class="pre">&#64;State</span></code> objects, which indicates that JMH can instantiate and manage them.
+Each benchmark method is proceeded with a <code class="docutils literal notranslate"><span class="pre">&#64;Benchmark</span></code> annotation, marking it as a benchmark.
+Each Benchmark will also have a <code class="docutils literal notranslate"><span class="pre">&#64;Warmup</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;Measurement</span></code> annotation.
 The Benchmark will be run repeatedly during the warmup and measurement period.
 Warmup runs are not measured and are intended to warm the relevant caches such that runs in the measurement phase are more consistent.
 During the measurement phase, the benchmark method executes as many times as it can with the allowed number of threads.
-When JMH runs in SampleTime mode (see <code class="docutils literal"><span class="pre">AtlasDbPerfCli.java</span></code>), a subset of the runs are timed.
+When JMH runs in SampleTime mode (see <code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.java</span></code>), a subset of the runs are timed.
 JMH will sample as infrequently as it needs to in order to obtain accurate results.
 Tests with a long runtime (&gt;10ms) tend to be sampled every run.</p>
 <div class="admonition tip">
 <p class="first admonition-title">Tip</p>
-<p class="last">Set the <code class="docutils literal"><span class="pre">&#64;Measurement</span></code> parameters high enough to get at least 100 runs.
+<p class="last">Set the <code class="docutils literal notranslate"><span class="pre">&#64;Measurement</span></code> parameters high enough to get at least 100 runs.
 The CLI collects percentile statistics and with fewer than 100 samples this data is not particularly useful.</p>
 </div>
-<p>Benchmark method signatures can also indicate other <code class="docutils literal"><span class="pre">&#64;State</span></code> objects, for example <code class="docutils literal"><span class="pre">ConsecutiveNarrowTable</span></code>.
+<p>Benchmark method signatures can also indicate other <code class="docutils literal notranslate"><span class="pre">&#64;State</span></code> objects, for example <code class="docutils literal notranslate"><span class="pre">ConsecutiveNarrowTable</span></code>.
 JMH will instantiate these for use in the benchmark.
-State annotations specify a <code class="docutils literal"><span class="pre">Scope</span></code> which describes when the object is created and destroyed.
-Similarly, methods in a State object can have functions marked as <code class="docutils literal"><span class="pre">&#64;Setup</span></code> and <code class="docutils literal"><span class="pre">&#64;Teardown</span></code> with a specified <code class="docutils literal"><span class="pre">Level</span></code> that describes when to run it.
-Check the JMH source code for <code class="docutils literal"><span class="pre">Scope</span></code> and <code class="docutils literal"><span class="pre">Level</span></code> for more information.</p>
+State annotations specify a <code class="docutils literal notranslate"><span class="pre">Scope</span></code> which describes when the object is created and destroyed.
+Similarly, methods in a State object can have functions marked as <code class="docutils literal notranslate"><span class="pre">&#64;Setup</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;Teardown</span></code> with a specified <code class="docutils literal notranslate"><span class="pre">Level</span></code> that describes when to run it.
+Check the JMH source code for <code class="docutils literal notranslate"><span class="pre">Scope</span></code> and <code class="docutils literal notranslate"><span class="pre">Level</span></code> for more information.</p>
 </div>
 <div class="section" id="writing-a-new-benchmark">
 <h2>Writing a New Benchmark<a class="headerlink" href="#writing-a-new-benchmark" title="Permalink to this headline">¶</a></h2>
 <p>When writing a new benchmark, first consider exactly what you want to test.
 If you are looking to test an API endpoint, it might be appropriate to write several benchmarks with each one covering a relevant case.
-A good example is the <code class="docutils literal"><span class="pre">KvsGetRangeBenchmarks.java</span></code> suite, which tests AtlasDB’s <code class="docutils literal"><span class="pre">getRange()</span></code> in several different ways.</p>
+A good example is the <code class="docutils literal notranslate"><span class="pre">KvsGetRangeBenchmarks.java</span></code> suite, which tests AtlasDB’s <code class="docutils literal notranslate"><span class="pre">getRange()</span></code> in several different ways.</p>
 <p>Always include some form of validation in your benchmark.
 Validation not only ensures that your code does what you think it does, it also protects against regressions in the benchmarks themselves which can be introduced by changing the underlying State objects.
 Validation is often run during the benchmark itself, so care should be taken to avoid expensive operations in it.
@@ -232,9 +232,9 @@ Validation that does not include client/server calls generally has a negligible 
 <h2>Benchmarking With a Custom Key Value Store (KVS)<a class="headerlink" href="#benchmarking-with-a-custom-key-value-store-kvs" title="Permalink to this headline">¶</a></h2>
 <p>To run the benchmark suite on a custom KVS, simply follow these steps:</p>
 <ol class="arabic simple">
-<li>Extend <code class="docutils literal"><span class="pre">KeyValueServiceInstrumentation</span></code> with the proper configurations, e.g., see <code class="docutils literal"><span class="pre">CassandraKeyValueServiceInstrumentation.java</span></code>.</li>
-<li>Register the new backend: <code class="docutils literal"><span class="pre">KeyValueServiceInstrumentation.addNewBackendType(new</span> <span class="pre">YourKeyValueServiceInstrumentation())</span></code>.</li>
-<li>Run the <code class="docutils literal"><span class="pre">AtlasDbPerfCli.main</span></code> function with the desired arguments.</li>
+<li>Extend <code class="docutils literal notranslate"><span class="pre">KeyValueServiceInstrumentation</span></code> with the proper configurations, e.g., see <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueServiceInstrumentation.java</span></code>.</li>
+<li>Register the new backend: <code class="docutils literal notranslate"><span class="pre">KeyValueServiceInstrumentation.addNewBackendType(new</span> <span class="pre">YourKeyValueServiceInstrumentation())</span></code>.</li>
+<li>Run the <code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.main</span></code> function with the desired arguments.</li>
 </ol>
 </div>
 </div>

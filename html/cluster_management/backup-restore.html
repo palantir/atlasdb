@@ -203,16 +203,16 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 <h2>Taking a Backup<a class="headerlink" href="#taking-a-backup" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="obtain-the-backup-lock">
 <h3>1. Obtain the Backup Lock<a class="headerlink" href="#obtain-the-backup-lock" title="Permalink to this headline">¶</a></h3>
-<p>Call the <code class="docutils literal"><span class="pre">persistent-lock/acquire-backup-lock</span></code> endpoint, supplying your reason as a string:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X POST --header &#39;Accept: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/acquire-backup-lock?reason=manual-backup&#39;
+<p>Call the <code class="docutils literal notranslate"><span class="pre">persistent-lock/acquire-backup-lock</span></code> endpoint, supplying your reason as a string:</p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>$ curl -X POST --header &#39;Accept: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/acquire-backup-lock?reason=manual-backup&#39;
 </pre></div>
 </div>
-<p>If the request succeeds, you will receive a <code class="docutils literal"><span class="pre">PersistentLockId</span></code> back. It is essential that you save this lock somewhere, so that you can release it later in the process.</p>
+<p>If the request succeeds, you will receive a <code class="docutils literal notranslate"><span class="pre">PersistentLockId</span></code> back. It is essential that you save this lock somewhere, so that you can release it later in the process.</p>
 </div>
 <div class="section" id="obtain-a-backup-timestamp">
 <h3>2. Obtain a backup timestamp<a class="headerlink" href="#obtain-a-backup-timestamp" title="Permalink to this headline">¶</a></h3>
 <p>We need to define what the logical point in time of our backup is going to be.  We will call this the backup timestamp.  Any transactions that occur after the backup timestamp will not be valid or included in our “logical” backup of atlas, even if they complete succesfully before the rest of the backup completes.  To get the backup timestamp simply fetch a fresh timestamp using the CLI:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/backup.timestamp
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/backup.timestamp
 </pre></div>
 </div>
 </div>
@@ -228,16 +228,16 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 <div class="section" id="obtain-the-fast-forward-timestamp">
 <h3>4. Obtain the fast-forward timestamp<a class="headerlink" href="#obtain-the-fast-forward-timestamp" title="Permalink to this headline">¶</a></h3>
 <p>Finally, we take the fast-forward timestamp.  Like the backup timestamp, the fast-forward timestamp is simply another fresh one that we fetch from atlas.  The purpose of this timestamp is to have a logical point in time for which we can guarantee that any reads or writes that took place during the backup process happened before this.  Fetching it is similar to that of the backup timestamp:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/fast-forward.timestamp
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/fast-forward.timestamp
 </pre></div>
 </div>
 <p>These two timestamp files and the entirety of your underlying storage’s backup are your entire atlasdb backup.</p>
 </div>
 <div class="section" id="release-the-backup-lock">
 <h3>5. Release the Backup Lock<a class="headerlink" href="#release-the-backup-lock" title="Permalink to this headline">¶</a></h3>
-<p>Call the <code class="docutils literal"><span class="pre">persistent-lock/release-backup-lock</span></code> endpoint, passing back the <code class="docutils literal"><span class="pre">PersistentLockId</span></code> that you received in step 1.
-For example (replace the serialised <code class="docutils literal"><span class="pre">PersistentLockId</span></code> with your own from step 1):</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X POST --header &#39;content-type: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/release-backup-lock&#39; -d &#39;&quot;9dbae91b-a35c-4938-82fe-58fb31772738&quot;&#39;
+<p>Call the <code class="docutils literal notranslate"><span class="pre">persistent-lock/release-backup-lock</span></code> endpoint, passing back the <code class="docutils literal notranslate"><span class="pre">PersistentLockId</span></code> that you received in step 1.
+For example (replace the serialised <code class="docutils literal notranslate"><span class="pre">PersistentLockId</span></code> with your own from step 1):</p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>$ curl -X POST --header &#39;content-type: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/release-backup-lock&#39; -d &#39;&quot;9dbae91b-a35c-4938-82fe-58fb31772738&quot;&#39;
 </pre></div>
 </div>
 </div>
@@ -246,15 +246,15 @@ For example (replace the serialised <code class="docutils literal"><span class="
 <h2>Restoring from a Backup<a class="headerlink" href="#restoring-from-a-backup" title="Permalink to this headline">¶</a></h2>
 <p>The steps of a restore are assumed to be run entirely offline and on a complete empty key value service, i.e. if you’re running against Cassandra, the keyspace being used should not exist and no other processes should attempt to create or interact with that keyspace during the duration of this process.</p>
 <p>First, restore your underlying key value service.  As mentioned <a class="reference external" href="#cassandra-and-other-distributed-systems">above</a>, there are concerns around your underyling storage not being consistent across its distributed nodes.  In particular, we need to ensure a consistent view of atlas’ _transactions table in order to provide a guarantee that our restore process happens correctly.  The actual steps to ensure this will vary between systems, but for cassandra this simply means running a full repair of that table on every node in your cluster.  An example of this on a single node is:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/nodetool repair --partitioner-range --full -- &lt;atlas-keyspace&gt; _transactions
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./bin/nodetool repair --partitioner-range --full -- &lt;atlas-keyspace&gt; _transactions
 </pre></div>
 </div>
 <p>Next, we want to clean out any transactions that were committed after our backup timestamp by deleting them from our _transactions table:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp clean-transactions --file &lt;backup-directory&gt;/backup.timestamp
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp clean-transactions --file &lt;backup-directory&gt;/backup.timestamp
 </pre></div>
 </div>
 <p>Finally, we fast-forward the timstamp service to the fast-forward timestamp to ensure that any future transactions we perform don’t use a timestamp that could have potentially been used and written data to during the time after we took the backup timstamp but before our backup of our underlying kvs completed:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fast-forward --file &lt;backup-directory&gt;/fast-forward.timestamp
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fast-forward --file &lt;backup-directory&gt;/fast-forward.timestamp
 </pre></div>
 </div>
 <p>The AtlasDB restore is now complete.</p>

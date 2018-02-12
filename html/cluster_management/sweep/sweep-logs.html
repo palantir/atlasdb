@@ -201,20 +201,20 @@
 </ol>
 <p>In order to know if sweep is working, or it’s current progress, look for the following:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">Starting</span> <span class="pre">background</span> <span class="pre">sweeper.</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Starting</span> <span class="pre">background</span> <span class="pre">sweeper.</span></code></li>
 </ul>
 <p>Logged when the service has started, to indicate that background sweeper thread is running.</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">Beginning</span> <span class="pre">iteration</span> <span class="pre">of</span> <span class="pre">sweep</span> <span class="pre">for</span> <span class="pre">table</span> <span class="pre">{}</span> <span class="pre">starting</span> <span class="pre">at</span> <span class="pre">row</span> <span class="pre">{}</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Beginning</span> <span class="pre">iteration</span> <span class="pre">of</span> <span class="pre">sweep</span> <span class="pre">for</span> <span class="pre">table</span> <span class="pre">{}</span> <span class="pre">starting</span> <span class="pre">at</span> <span class="pre">row</span> <span class="pre">{}</span></code></li>
 </ul>
-<p>Logged before we begin an iteration of sweep, after 1 or 5. (note that this could be triggered by background sweep, the sweep CLI, or the <code class="docutils literal"><span class="pre">SweeperService</span></code> endpoints)</p>
+<p>Logged before we begin an iteration of sweep, after 1 or 5. (note that this could be triggered by background sweep, the sweep CLI, or the <code class="docutils literal notranslate"><span class="pre">SweeperService</span></code> endpoints)</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">Analyzed</span> <span class="pre">{number</span> <span class="pre">of</span> <span class="pre">values</span> <span class="pre">read}</span> <span class="pre">cell+timestamp</span> <span class="pre">pairs</span> <span class="pre">from</span> <span class="pre">table</span> <span class="pre">{table</span> <span class="pre">name}</span> <span class="pre">...</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Analyzed</span> <span class="pre">{number</span> <span class="pre">of</span> <span class="pre">values</span> <span class="pre">read}</span> <span class="pre">cell+timestamp</span> <span class="pre">pairs</span> <span class="pre">from</span> <span class="pre">table</span> <span class="pre">{table</span> <span class="pre">name}</span> <span class="pre">...</span></code></li>
 </ul>
 <p>Logged when a batch of values has been successfully swept, after 4. Its parameters also contain the number of
 (cell + ts) pairs read and deleted on this batch.</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">Finished</span> <span class="pre">sweeping</span> <span class="pre">table</span> <span class="pre">{table</span> <span class="pre">name}.</span> <span class="pre">...</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">Finished</span> <span class="pre">sweeping</span> <span class="pre">table</span> <span class="pre">{table</span> <span class="pre">name}.</span> <span class="pre">...</span></code></li>
 </ul>
 <p>Logged when a table has been successfully swept, after 6. Its parameters also contain the number of (cell + ts) pairs
 read and deleted when sweeping this table.</p>

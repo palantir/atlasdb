@@ -194,13 +194,13 @@
 <span id="product-changes"></span><h1>Developing a product to use the timelock service<a class="headerlink" href="#developing-a-product-to-use-the-timelock-service" title="Permalink to this headline">¶</a></h1>
 <p>All products deploying against the AtlasDB Timelock service should adhere to the following checklist.</p>
 <ol class="arabic">
-<li><p class="first">Ensure that the AtlasDB client config contains the <code class="docutils literal"><span class="pre">timelock</span></code> <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">config block</span></a>.</p>
+<li><p class="first">Ensure that the AtlasDB client config contains the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">config block</span></a>.</p>
 </li>
 <li><p class="first">The <a class="reference external" href="https://github.com/jetty-project/jetty-alpn-agent#usage">Jetty ALPN agent</a> is added as a javaagent JVM argument.
-All AtlasDB clients will already have <code class="docutils literal"><span class="pre">jetty-alpn-agent-2.0.6.jar</span></code> in the classpath. This is required to establish
+All AtlasDB clients will already have <code class="docutils literal notranslate"><span class="pre">jetty-alpn-agent-2.0.6.jar</span></code> in the classpath. This is required to establish
 HTTP/2 connections, and failure to include this will result in falling back to HTTP/1.1 connections and significant performance degradation.</p>
 <blockquote>
-<div><div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">java -javaagent:service/lib/jetty-alpn-agent-2.0.6.jar</span>
+<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">java -javaagent:service/lib/jetty-alpn-agent-2.0.6.jar</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -208,7 +208,7 @@ HTTP/2 connections, and failure to include this will result in falling back to H
 <li><p class="first">Further to the above, ensure that the Timelock Server is configured to use HTTP/2; see <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-config-http2"><span class="std std-ref">Configuring HTTP/2</span></a> for more details.</p>
 </li>
 <li><p class="first">Ensure that the Timelock server has added the product as a client in its <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-clients"><span class="std std-ref">client</span></a> block.
-The client name should be same as the <code class="docutils literal"><span class="pre">client</span></code> field in the <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock client configuration</span></a>.</p>
+The client name should be same as the <code class="docutils literal notranslate"><span class="pre">client</span></code> field in the <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock client configuration</span></a>.</p>
 </li>
 <li><p class="first">All users of the product should <a class="reference internal" href="migration.html#timelock-migration"><span class="std std-ref">migrate</span></a> from embedded timestamp/lock services to the timelock server post-upgrade.</p>
 </li>

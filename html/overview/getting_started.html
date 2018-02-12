@@ -184,9 +184,9 @@
 <span id="id2"></span><h2>Running from Source<a class="headerlink" href="#running-from-source" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
 <li>Clone the git repository:
-<code class="docutils literal"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
-<li>Generate IDE configuration: <code class="docutils literal"><span class="pre">./gradlew</span> <span class="pre">eclipse</span></code> or
-<code class="docutils literal"><span class="pre">./gradlew</span> <span class="pre">idea</span></code>.</li>
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
+<li>Generate IDE configuration: <code class="docutils literal notranslate"><span class="pre">./gradlew</span> <span class="pre">eclipse</span></code> or
+<code class="docutils literal notranslate"><span class="pre">./gradlew</span> <span class="pre">idea</span></code>.</li>
 <li>Import projects into Eclipse/Intellij.</li>
 </ol>
 <p>There are some examples of how to write queries in the <a class="reference external" href="https://github.com/palantir/atlasdb/tree/develop/examples">github examples
@@ -194,23 +194,23 @@ directory</a>.</p>
 </div>
 <div class="section" id="running-tests-locally">
 <h2>Running Tests Locally<a class="headerlink" href="#running-tests-locally" title="Permalink to this headline">¶</a></h2>
-<p>Running atlas tests requires <code class="docutils literal"><span class="pre">docker</span></code> and <code class="docutils literal"><span class="pre">docker-compose</span></code> to be installed on the machine where they are running. Instructions for different operating systems can be found <a class="reference external" href="https://docs.docker.com/engine/installation/">here</a></p>
+<p>Running atlas tests requires <code class="docutils literal notranslate"><span class="pre">docker</span></code> and <code class="docutils literal notranslate"><span class="pre">docker-compose</span></code> to be installed on the machine where they are running. Instructions for different operating systems can be found <a class="reference external" href="https://docs.docker.com/engine/installation/">here</a></p>
 <div class="section" id="instructions-for-macos">
 <h3>Instructions for MacOS<a class="headerlink" href="#instructions-for-macos" title="Permalink to this headline">¶</a></h3>
 <p>Mac users will need to install <cite>docker-machine</cite> and a virtualization environment as well to be able to run docker. Virtualbox is used in this example. Simplified set-up instructions are as follows:</p>
 <ol class="arabic">
-<li><p class="first">Install <code class="docutils literal"><span class="pre">docker-machine</span></code>, <code class="docutils literal"><span class="pre">docker</span></code> and <code class="docutils literal"><span class="pre">docker-compose</span></code></p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">brew</span> <span class="n">install</span> <span class="n">docker</span> <span class="n">docker</span><span class="o">-</span><span class="n">machine</span> <span class="n">docker</span><span class="o">-</span><span class="n">compose</span>
+<li><p class="first">Install <code class="docutils literal notranslate"><span class="pre">docker-machine</span></code>, <code class="docutils literal notranslate"><span class="pre">docker</span></code> and <code class="docutils literal notranslate"><span class="pre">docker-compose</span></code></p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">brew</span> <span class="n">install</span> <span class="n">docker</span> <span class="n">docker</span><span class="o">-</span><span class="n">machine</span> <span class="n">docker</span><span class="o">-</span><span class="n">compose</span>
 </pre></div>
 </div>
 </li>
-<li><p class="first">Set up a <code class="docutils literal"><span class="pre">docker-machine</span></code> for Virtualbox (named <code class="docutils literal"><span class="pre">atlas</span></code> in the example, name can be chosen freely by the user)</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">machine</span> <span class="n">create</span> <span class="n">atlas</span> <span class="o">--</span><span class="n">driver</span> <span class="n">virtualbox</span>
+<li><p class="first">Set up a <code class="docutils literal notranslate"><span class="pre">docker-machine</span></code> for Virtualbox (named <code class="docutils literal notranslate"><span class="pre">atlas</span></code> in the example, name can be chosen freely by the user)</p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">machine</span> <span class="n">create</span> <span class="n">atlas</span> <span class="o">--</span><span class="n">driver</span> <span class="n">virtualbox</span>
 </pre></div>
 </div>
 </li>
 <li><p class="first">Set up the environment:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>eval $(docker-machine env atlas)
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>eval $(docker-machine env atlas)
 </pre></div>
 </div>
 <p>These environment variables need to always be set before running the tests through <cite>gradle</cite>, or set manually as environment variables for the launch configurations in any IDE.</p>
@@ -225,7 +225,7 @@ bintray</a>. To
 include in a gradle project:</p>
 <ol class="arabic">
 <li><p class="first">Add bintray to your repository list:</p>
-<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">repositories</span> <span class="p">{</span>
+<div class="code javascript highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">repositories</span> <span class="p">{</span>
     <span class="n">maven</span> <span class="p">{</span>
         <span class="n">url</span> <span class="s1">&#39;https://dl.bintray.com/palantir/releases/&#39;</span>
     <span class="p">}</span>
@@ -234,7 +234,7 @@ include in a gradle project:</p>
 </div>
 </li>
 <li><p class="first">Add the atlasdb-client dependency to projects using AtlasDB:</p>
-<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">dependencies</span> <span class="p">{</span>
+<div class="code javascript highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dependencies</span> <span class="p">{</span>
     <span class="nb">compile</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-client:0.3.3&#39;</span>
 <span class="p">}</span>
 </pre></div>
@@ -248,7 +248,7 @@ include in a gradle project:</p>
 done by running AtlasDbServiceServer in the atlasdb-service-server project.
 The default configuration file uses an ephemeral in-memory DB;
 if you’d like to run tests with persisted data there is also an <cite>atlasdb_standalone_postgres.yml</cite></p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">AtlasDbServiceServer</span> <span class="n">server</span> <span class="n">src</span><span class="o">/</span><span class="n">dist</span><span class="o">/</span><span class="n">atlasdb_standalone</span><span class="o">.</span><span class="n">yml</span>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">AtlasDbServiceServer</span> <span class="n">server</span> <span class="n">src</span><span class="o">/</span><span class="n">dist</span><span class="o">/</span><span class="n">atlasdb_standalone</span><span class="o">.</span><span class="n">yml</span>
 </pre></div>
 </div>
 <p>This is Dropwizard service that runs all the needed parts and doesn’t

@@ -196,11 +196,11 @@
 <div class="section" id="enabling-postgres-for-your-application">
 <h2>Enabling Postgres for your Application<a class="headerlink" href="#enabling-postgres-for-your-application" title="Permalink to this headline">¶</a></h2>
 <p>To enable your application to be backed by postgres, you just need to add DB KVS as a runtime dependency. In gradle this looks like:</p>
-<div class="highlight-groovy"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:&lt;atlas version&gt;&#39;</span>
+<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:&lt;atlas version&gt;&#39;</span>
 </pre></div>
 </div>
 <p>e.g.</p>
-<div class="highlight-groovy"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.7.0&#39;</span>
+<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.7.0&#39;</span>
 </pre></div>
 </div>
 </div>
@@ -211,7 +211,7 @@
 <p class="last">If you have multiple products using the same Postgres instance, they <em>must</em> use different databases.</p>
 </div>
 <p>A minimal AtlasDB configuration for running against postgres will look like :</p>
-<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
     <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">relational</span>
     <span class="l l-Scalar l-Scalar-Plain">ddl</span><span class="p p-Indicator">:</span>
@@ -259,40 +259,40 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">minConnections</span></code></td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">minConnections</span></code></td>
 <td>8</td>
-<td><code class="docutils literal"><span class="pre">minimumIdle</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">minimumIdle</span></code></td>
 <td>The number of connections in an idle Hikari pool.</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">maxConnections</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">maxConnections</span></code></td>
 <td>256</td>
-<td><code class="docutils literal"><span class="pre">maximumPoolSize</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">maximumPoolSize</span></code></td>
 <td>The maximum size the pool is allowed to reach.</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">maxConnectionAge</span></code></td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">maxConnectionAge</span></code></td>
 <td>1800</td>
-<td><code class="docutils literal"><span class="pre">maxLifetime</span></code></td>
-<td>The maximum lifetime, in seconds, of a connection in the pool. <code class="docutils literal"><span class="pre">maxLifetime</span></code> is in <code class="docutils literal"><span class="pre">ms</span></code>, so we multiply the provided value by 1000.</td>
+<td><code class="docutils literal notranslate"><span class="pre">maxLifetime</span></code></td>
+<td>The maximum lifetime, in seconds, of a connection in the pool. <code class="docutils literal notranslate"><span class="pre">maxLifetime</span></code> is in <code class="docutils literal notranslate"><span class="pre">ms</span></code>, so we multiply the provided value by 1000.</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">maxIdleTime</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">maxIdleTime</span></code></td>
 <td>600</td>
-<td><code class="docutils literal"><span class="pre">idleTimeout</span></code></td>
-<td>The maximum time, in seconds, a connection may sit idle in the pool. <code class="docutils literal"><span class="pre">idleTimeout</span></code> is in <code class="docutils literal"><span class="pre">ms</span></code>, so we multiply the provided value by 1000.</td>
+<td><code class="docutils literal notranslate"><span class="pre">idleTimeout</span></code></td>
+<td>The maximum time, in seconds, a connection may sit idle in the pool. <code class="docutils literal notranslate"><span class="pre">idleTimeout</span></code> is in <code class="docutils literal notranslate"><span class="pre">ms</span></code>, so we multiply the provided value by 1000.</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">unreturnedConnectionTimeout</span></code></td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">unreturnedConnectionTimeout</span></code></td>
 <td>0 (Disabled)</td>
-<td><code class="docutils literal"><span class="pre">leakDetectionThreshold</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">leakDetectionThreshold</span></code></td>
 <td>The time that a connection can be out of the pool before a message indicating a possible connection leak is logged. Lowest acceptable value is 2000 (ms).</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">checkoutTimeout</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">checkoutTimeout</span></code></td>
 <td>30000</td>
-<td><code class="docutils literal"><span class="pre">connectionTimeout</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">connectionTimeout</span></code></td>
 <td>The maximum time, <strong>in milliseconds</strong>, we wait for a connection from the pool.</td>
 </tr>
 </tbody>
 </table>
 <p>For example, to double the size of the connection pool, apply the following configuration:</p>
-<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
     <span class="c1"># as above - skipped for brevity</span>
     <span class="l l-Scalar l-Scalar-Plain">connection</span><span class="p p-Indicator">:</span>
@@ -304,9 +304,9 @@
 </div>
 <div class="section" id="jdbc-connection-parameters">
 <h3>JDBC Connection parameters<a class="headerlink" href="#jdbc-connection-parameters" title="Permalink to this headline">¶</a></h3>
-<p>If you would like to customise the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal"><span class="pre">connection</span></code> section of the <code class="docutils literal"><span class="pre">keyValueService</span></code> config.
+<p>If you would like to customise the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal notranslate"><span class="pre">connection</span></code> section of the <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config.
 An example is shown below; for full documentation on which parameters are available, check out <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a>.</p>
-<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
     <span class="c1"># as above - skipped for brevity</span>
     <span class="l l-Scalar l-Scalar-Plain">connection</span><span class="p p-Indicator">:</span>

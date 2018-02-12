@@ -239,10 +239,10 @@ problem (though it does mitigate it), since multiple clients may be blocking on 
 This is set to be lower than the Jetty idle timeout by a margin, thus achieving requirement 1. Even if we lose the
 race, we will still free the resources shortly after, thus achieving requirement 2.</p>
 <p>In the event that a lock request blocks for longer than the blocking timeout, we interrupt the requesting thread and
-notify the client by sending a <code class="docutils literal"><span class="pre">SerializableError</span></code> which wraps a <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code>. Upon receiving a
-503, a client checks the nature of the error occurring on the server; in the event of <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code>,
+notify the client by sending a <code class="docutils literal notranslate"><span class="pre">SerializableError</span></code> which wraps a <code class="docutils literal notranslate"><span class="pre">BlockingTimeoutException</span></code>. Upon receiving a
+503, a client checks the nature of the error occurring on the server; in the event of <code class="docutils literal notranslate"><span class="pre">BlockingTimeoutException</span></code>,
 we retry on the same node, and reset the counter of the number of times we’ve failed to zero.</p>
-<p>The timeout mechanism is implemented using Guava’s <code class="docutils literal"><span class="pre">TimeLimiter</span></code>, and server time is thus considered authoritative; we
+<p>The timeout mechanism is implemented using Guava’s <code class="docutils literal notranslate"><span class="pre">TimeLimiter</span></code>, and server time is thus considered authoritative; we
 believe this is reasonable as it is used for both our time limiting and for Jetty’s handling of idle timeouts. Thus,
 we are relatively resilient to clock drift relative to the client or to other nodes in the TimeLock cluster.</p>
 </div>
@@ -283,8 +283,8 @@ been implemented yet; see <a class="reference external" href="https://github.com
 </div>
 <div class="section" id="have-clients-truncate-individual-requests-to-the-idle-timeout">
 <span id="have-clients-truncate-individual-requests-to-the-idle-timeout"></span><h4>5. Have clients truncate individual requests to the idle timeout<a class="headerlink" href="#have-clients-truncate-individual-requests-to-the-idle-timeout" title="Permalink to this headline">¶</a></h4>
-<p>An alternative to having the server return <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code>s on long-running requests would be for clients
-to trim down any requests to an appropriate length (or, in the case of <code class="docutils literal"><span class="pre">BLOCK_INDEFINITELY</span></code>, indefinitely send
+<p>An alternative to having the server return <code class="docutils literal notranslate"><span class="pre">BlockingTimeoutException</span></code>s on long-running requests would be for clients
+to trim down any requests to an appropriate length (or, in the case of <code class="docutils literal notranslate"><span class="pre">BLOCK_INDEFINITELY</span></code>, indefinitely send
 requests of a suitable length). For example, with the default idle timeout of 30 seconds, a client wishing to block
 for 45 seconds could send a lock request that blocks for 30 seconds, and upon failure submit another request that
 blocks for just under 15 seconds (suitably accounting for network overheads).</p>
@@ -294,10 +294,10 @@ that timeout is configured on the server side.</p>
 </div>
 <div class="section" id="implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry">
 <span id="implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry"></span><h4>6. Implement a “magic” HTTP status code or header to ask clients to retry<a class="headerlink" href="#implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry" title="Permalink to this headline">¶</a></h4>
-<p>An alternative to serializing exceptions into <code class="docutils literal"><span class="pre">SerializableError</span></code>s could be defining a specific HTTP status code
+<p>An alternative to serializing exceptions into <code class="docutils literal notranslate"><span class="pre">SerializableError</span></code>s could be defining a specific HTTP status code
 and/or custom header to indicate that a blocking timeout has occurred and/or clients should retry. This is used
 in practice e.g. in nginx, where a 495 indicates an error with a client’s SSL certificates.</p>
-<p>This solution would be simpler than serializing exceptions; our existing <code class="docutils literal"><span class="pre">AtlasDbErrorDecoder</span></code> already switched on the
+<p>This solution would be simpler than serializing exceptions; our existing <code class="docutils literal notranslate"><span class="pre">AtlasDbErrorDecoder</span></code> already switched on the
 status code returned in an HTTP response. However, we prefer not to introduce any custom status codes where feasible
 (since clients are unlikely to understand these status codes). A similar argument, though perhaps weaker, applies
 for headers as well.</p>
@@ -309,15 +309,15 @@ for headers as well.</p>
 <div class="section" id="block-for-at-most-behaviour">
 <span id="block-for-at-most-behaviour"></span><h3>BLOCK_FOR_AT_MOST Behaviour<a class="headerlink" href="#block-for-at-most-behaviour" title="Permalink to this headline">¶</a></h3>
 <p>After implementation of the above, lock requests that block for less than the idle timeout, or that are
-<code class="docutils literal"><span class="pre">BLOCK_INDEFINITELY</span></code> will behave correctly. However, lock requests that block for more than the idle timeout will
+<code class="docutils literal notranslate"><span class="pre">BLOCK_INDEFINITELY</span></code> will behave correctly. However, lock requests that block for more than the idle timeout will
 be incorrect:</p>
 <ol class="simple">
 <li>Client A acquires lock L and repeatedly refreshes it</li>
 <li>(T = 0) Client B blocks on L; it wants to block for at most 45 seconds.</li>
-<li>(T = 30) Client B receives a <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code>, and retries - it blocks again on L for at most 45 seconds</li>
-<li>(T = 30k, for positive integer k) Client B receives a <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code> and retries on L…</li>
+<li>(T = 30) Client B receives a <code class="docutils literal notranslate"><span class="pre">BlockingTimeoutException</span></code>, and retries - it blocks again on L for at most 45 seconds</li>
+<li>(T = 30k, for positive integer k) Client B receives a <code class="docutils literal notranslate"><span class="pre">BlockingTimeoutException</span></code> and retries on L…</li>
 </ol>
-<p>They will actually behave like <code class="docutils literal"><span class="pre">BLOCK_INDEFINITELY</span></code> requests unless the client retries correctly, by suitably
+<p>They will actually behave like <code class="docutils literal notranslate"><span class="pre">BLOCK_INDEFINITELY</span></code> requests unless the client retries correctly, by suitably
 reducing the blocking duration of lock requests when retrying. We can implement this by having lock service clients
 modify their lock requests on retrying, though that should be the subject of a separate implementation and separate
 ADR (as there are some subtleties involving which sources of time one treats as authoritative, and it’s also not
@@ -326,17 +326,17 @@ certain that an authoritative source of time is strictly necessary).</p>
 <div class="section" id="exception-serialization">
 <span id="exception-serialization"></span><h3>Exception Serialization<a class="headerlink" href="#exception-serialization" title="Permalink to this headline">¶</a></h3>
 <p>Exception serialization was changed. Previously, if contacting a node that was not the leader we would send a 503
-with an empty response; otherwise, we would throw a <code class="docutils literal"><span class="pre">FeignException</span></code> with the underlying cause and stack trace as
-a string. We now serialize <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code> and the new <code class="docutils literal"><span class="pre">BlockingTimeoutException</span></code> in a manner compatible
+with an empty response; otherwise, we would throw a <code class="docutils literal notranslate"><span class="pre">FeignException</span></code> with the underlying cause and stack trace as
+a string. We now serialize <code class="docutils literal notranslate"><span class="pre">NotCurrentLeaderException</span></code> and the new <code class="docutils literal notranslate"><span class="pre">BlockingTimeoutException</span></code> in a manner compatible
 with the Palantir <a class="reference external" href="https://github.com/palantir/http-remoting/">http-remoting library</a>, and throw an
-<code class="docutils literal"><span class="pre">AtlasDbRemoteException</span></code> including serialized information about said exception.</p>
+<code class="docutils literal notranslate"><span class="pre">AtlasDbRemoteException</span></code> including serialized information about said exception.</p>
 <p>This also means that receiving a 503 does not necessarily mean that one is not talking to the leader; one should
 interpret the message body of the HTTP response to see what caused said 503. We believe this is a positive change, as
 services may be unavailable for reasons other than not being the leader.</p>
 </div>
 <div class="section" id="fairness-and-starvation">
 <span id="fairness-and-starvation"></span><h3>Fairness and Starvation<a class="headerlink" href="#fairness-and-starvation" title="Permalink to this headline">¶</a></h3>
-<p>Lock requests were previously fair - that is, if thread A blocks on acquiring the <code class="docutils literal"><span class="pre">LockServerSync</span></code> for a given
+<p>Lock requests were previously fair - that is, if thread A blocks on acquiring the <code class="docutils literal notranslate"><span class="pre">LockServerSync</span></code> for a given
 lock before thread B, then under normal circumstances (barring exceptions, interruption or leader election),
 A would acquire the lock before B. While this is still true at the thread synchronization level, it no longer
 necessarily holds at the application layer, since it is possible that A would timeout and be interrupted, the lock

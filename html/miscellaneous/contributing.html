@@ -188,7 +188,7 @@ We are happy to accept pull requests and could use help
 implementing the AtlasDB API for more underlying physical stores.</p>
 <p>In order to ensure your pull request is merged please keep the following in mind:</p>
 <ul class="simple">
-<li>Make sure checkstyle/findbugs pass. You can run this automatically at commit time by setting up a git hook using the script located at <code class="docutils literal"><span class="pre">scripts/setup-git-hooks.sh</span></code>.</li>
+<li>Make sure checkstyle/findbugs pass. You can run this automatically at commit time by setting up a git hook using the script located at <code class="docutils literal notranslate"><span class="pre">scripts/setup-git-hooks.sh</span></code>.</li>
 <li>Assign a member of the team for review, if it is incorrect it will be triaged to the correct person.</li>
 <li>Update the <a class="reference internal" href="../release_notes/release-notes.html#change-log"><span class="std std-ref">Changelog</span></a> with the change if it is public facing.</li>
 <li>If you are updating logic the expectation is that new tests will be added for the functionality, a lack of testing will likely delay the PR.</li>
@@ -199,18 +199,18 @@ implementing the AtlasDB API for more underlying physical stores.</p>
 <p>The easiest way to contribute to docs is to edit them directly on GitHub using the link above:</p>
 <ol class="arabic simple">
 <li>On GitHub you will see the .rst file rendered and can edit it directly in your browser and preview the changes!</li>
-<li>After making your edits you can submit a PR below the editor.  Please construct a simple commit message highlighting your changes and create a branch name preferably with the pattern <code class="docutils literal"><span class="pre">docs/*</span></code>.</li>
+<li>After making your edits you can submit a PR below the editor.  Please construct a simple commit message highlighting your changes and create a branch name preferably with the pattern <code class="docutils literal notranslate"><span class="pre">docs/*</span></code>.</li>
 </ol>
 <p>If you would like to build the docs locally follow these steps:</p>
 <ol class="arabic simple">
-<li>Clone the git repository:<code class="docutils literal"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
-<li>Install sphinx, sphinx_rtd_theme, and recommonmark if you don’t have it.  Instructions can be found <a class="reference external" href="http://www.sphinx-doc.org/en/stab/install.html">here</a>.  The easiest option for Mac users will be using pip.  Please be sure to update sphinx if you haven’t used it in a while.  Also please be aware the exact commands to build the docs can be found in <code class="docutils literal"><span class="pre">scripts/circle-ci/publish-github-pages.sh</span></code>.</li>
-<li>Confirm you installation is working by running <code class="docutils literal"><span class="pre">cd</span> <span class="pre">docs</span> <span class="pre">&amp;&amp;</span> <span class="pre">make</span> <span class="pre">html</span></code>.  The freshly built documentation will be in <code class="docutils literal"><span class="pre">docs/build/html</span></code>.</li>
-<li>Existing pages can be found in <code class="docutils literal"><span class="pre">docs/source</span></code>. Create new pages by adding an .rst file to <code class="docutils literal"><span class="pre">docs/source</span></code> and then adding the file name to the appropriate .toctree in the parent file.</li>
-<li>Commit any changes to a <code class="docutils literal"><span class="pre">docs/*</span></code> branch and push them up to github for review.</li>
+<li>Clone the git repository:<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
+<li>Install sphinx, sphinx_rtd_theme, and recommonmark if you don’t have it.  Instructions can be found <a class="reference external" href="http://www.sphinx-doc.org/en/stab/install.html">here</a>.  The easiest option for Mac users will be using pip.  Please be sure to update sphinx if you haven’t used it in a while.  Also please be aware the exact commands to build the docs can be found in <code class="docutils literal notranslate"><span class="pre">scripts/circle-ci/publish-github-pages.sh</span></code>.</li>
+<li>Confirm you installation is working by running <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">docs</span> <span class="pre">&amp;&amp;</span> <span class="pre">make</span> <span class="pre">html</span></code>.  The freshly built documentation will be in <code class="docutils literal notranslate"><span class="pre">docs/build/html</span></code>.</li>
+<li>Existing pages can be found in <code class="docutils literal notranslate"><span class="pre">docs/source</span></code>. Create new pages by adding an .rst file to <code class="docutils literal notranslate"><span class="pre">docs/source</span></code> and then adding the file name to the appropriate .toctree in the parent file.</li>
+<li>Commit any changes to a <code class="docutils literal notranslate"><span class="pre">docs/*</span></code> branch and push them up to github for review.</li>
 </ol>
 <p>You can generate and view the docs locally by running
-<code class="docutils literal"><span class="pre">make</span> <span class="pre">html</span></code> and opening the built html files in <code class="docutils literal"><span class="pre">docs/build/html/</span></code> in your browser of choice.</p>
+<code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">html</span></code> and opening the built html files in <code class="docutils literal notranslate"><span class="pre">docs/build/html/</span></code> in your browser of choice.</p>
 <p>The docs are built using <a class="reference external" href="http://www.sphinx-doc.org/en/stable/index.html">Sphinx</a> and written in <a class="reference external" href="http://docutils.sourceforge.net/rst.html">.rst</a>.</p>
 </div>
 </div>

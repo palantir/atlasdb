@@ -193,7 +193,7 @@ if all references are gone and remove the resource if it is no longer
 needed. The original intent of clean up tasks was to clean up shared
 streams when doing a hard delete of media that used these shared
 streams.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">addCleanupTask</span><span class="p">(</span><span class="n">String</span> <span class="n">tableName</span><span class="p">,</span> <span class="n">OnCleanupTask</span> <span class="n">task</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">addCleanupTask</span><span class="p">(</span><span class="n">String</span> <span class="n">tableName</span><span class="p">,</span> <span class="n">OnCleanupTask</span> <span class="n">task</span><span class="p">);</span>
 <span class="n">public</span> <span class="n">void</span> <span class="n">addCleanupTask</span><span class="p">(</span><span class="n">String</span> <span class="n">tableName</span><span class="p">,</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">OnCleanupTask</span><span class="o">&gt;</span> <span class="n">task</span><span class="p">);</span>
 </pre></div>
 </div>

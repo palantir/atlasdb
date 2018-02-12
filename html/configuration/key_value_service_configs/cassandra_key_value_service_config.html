@@ -196,11 +196,11 @@
 <div class="section" id="enabling-cassandra-for-your-application">
 <h2>Enabling Cassandra for your Application<a class="headerlink" href="#enabling-cassandra-for-your-application" title="Permalink to this headline">¶</a></h2>
 <p>To enable your application to be backed by cassandra, you just need to add Cassandra KVS as a runtime dependency. In gradle this looks like:</p>
-<div class="highlight-groovy"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-cassandra:&lt;atlas version&gt;&#39;</span>
+<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-cassandra:&lt;atlas version&gt;&#39;</span>
 </pre></div>
 </div>
 <p>e.g.</p>
-<div class="highlight-groovy"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-cassandra:0.7.0&#39;</span>
+<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-cassandra:0.7.0&#39;</span>
 </pre></div>
 </div>
 </div>
@@ -212,7 +212,7 @@
 This block should be specified under the AtlasDB runtime block.</p>
 <p>Importantly - your lock creator must be consistent across all nodes. If you do not provide a lock creator, it will default to the first host
 in the leaders list. If you do not specify a lock creator, the leaders block should be exactly the same across all nodes.</p>
-<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">namespace</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
 
   <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
@@ -256,7 +256,7 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
 </div>
 <div class="section" id="communicating-over-ssl">
 <h2>Communicating Over SSL<a class="headerlink" href="#communicating-over-ssl" title="Permalink to this headline">¶</a></h2>
-<p>Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block and the <code class="docutils literal"><span class="pre">ssl</span></code> property.  Both means are supported but <code class="docutils literal"><span class="pre">ssl</span></code> is preferred and will always be respected in favor of <code class="docutils literal"><span class="pre">sslConfiguration</span></code> when both are specified.</p>
+<p>Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The <code class="docutils literal notranslate"><span class="pre">sslConfiguration</span></code> block and the <code class="docutils literal notranslate"><span class="pre">ssl</span></code> property.  Both means are supported but <code class="docutils literal notranslate"><span class="pre">ssl</span></code> is preferred and will always be respected in favor of <code class="docutils literal notranslate"><span class="pre">sslConfiguration</span></code> when both are specified.</p>
 <p>The following table summarizes whether SSL is enabled:</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -289,22 +289,22 @@ present</th>
 </table>
 <div class="section" id="sslconfiguration">
 <h3>sslConfiguration<a class="headerlink" href="#sslconfiguration" title="Permalink to this headline">¶</a></h3>
-<p>This object is specified according to the <a class="reference external" href="https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting2/config/ssl/SslConfiguration.java">palantir/http-remoting</a> library. It directly specifies all aspects of the ssl configuration, instead of reading them from system properties.  The only required property is <code class="docutils literal"><span class="pre">trustStorePath</span></code>, as seen in the example above.  In order to configure 2-way SSL, you would also have to set the optional properties <code class="docutils literal"><span class="pre">keyStorePath</span></code> and <code class="docutils literal"><span class="pre">keyStorePassword</span></code>.</p>
+<p>This object is specified according to the <a class="reference external" href="https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting2/config/ssl/SslConfiguration.java">palantir/http-remoting</a> library. It directly specifies all aspects of the ssl configuration, instead of reading them from system properties.  The only required property is <code class="docutils literal notranslate"><span class="pre">trustStorePath</span></code>, as seen in the example above.  In order to configure 2-way SSL, you would also have to set the optional properties <code class="docutils literal notranslate"><span class="pre">keyStorePath</span></code> and <code class="docutils literal notranslate"><span class="pre">keyStorePassword</span></code>.</p>
 </div>
 <div class="section" id="ssl">
 <h3>ssl<a class="headerlink" href="#ssl" title="Permalink to this headline">¶</a></h3>
-<p>This property is a boolean value saying whether or not to use ssl.  When <code class="docutils literal"><span class="pre">true</span></code>, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option <code class="docutils literal"><span class="pre">-Djavax.net.ssl.trustStore=&lt;path-to-truststore&gt;</span></code> to tell atlas where to find the truststore to use.</p>
+<p>This property is a boolean value saying whether or not to use ssl.  When <code class="docutils literal notranslate"><span class="pre">true</span></code>, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option <code class="docutils literal notranslate"><span class="pre">-Djavax.net.ssl.trustStore=&lt;path-to-truststore&gt;</span></code> to tell atlas where to find the truststore to use.</p>
 </div>
 </div>
 <div class="section" id="column-paging-for-sweep-experimental">
 <span id="cassandra-sweep-config"></span><h2>Column Paging for Sweep (experimental)<a class="headerlink" href="#column-paging-for-sweep-experimental" title="Permalink to this headline">¶</a></h2>
-<p>If <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> is set, the maximum number of entries loaded into memory for any
+<p>If <code class="docutils literal notranslate"><span class="pre">timestampsGetterBatchSize</span></code> is set, the maximum number of entries loaded into memory for any
 Cassandra node during a <a class="reference internal" href="../../schemas/physical_cleanup.html#physical-cleanup-sweep"><span class="std std-ref">Sweep</span></a> will be limited.</p>
 <p>Currently Cassandra does not provide a way to fetch columns and timestamps without also temporarily
 loading values into memory. Therefore, running a sweep job on a Cassandra-backed KVS
 with rows that (1) contain large (&gt;1MB) values, and (2) are frequently updated, may cause
 the Cassandra node to run out of memory.</p>
-<p>In such cases, limiting the value of <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> (which is infinite by default)
+<p>In such cases, limiting the value of <code class="docutils literal notranslate"><span class="pre">timestampsGetterBatchSize</span></code> (which is infinite by default)
 could result in greater reliability.
 On the other hand, more aggressive paging could lead to slower sweep performance.</p>
 </div>

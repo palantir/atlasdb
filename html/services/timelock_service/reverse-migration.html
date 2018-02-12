@@ -202,9 +202,9 @@ steps are the inverse of <a class="reference internal" href="manual-migration.ht
 embedded service.</p>
 <p>The reverse migration process must be run offline (with no AtlasDB clients for the client you are reverse-migrating
 running). We do not currently protect against accidentally not running this process offline.
-Throughout this document, we assume the AtlasDB client you are trying to reverse-migrate is <code class="docutils literal"><span class="pre">client</span></code> .</p>
+Throughout this document, we assume the AtlasDB client you are trying to reverse-migrate is <code class="docutils literal notranslate"><span class="pre">client</span></code> .</p>
 <ol class="arabic simple">
-<li>Shut down your AtlasDB clients for <code class="docutils literal"><span class="pre">client</span></code> .</li>
+<li>Shut down your AtlasDB clients for <code class="docutils literal notranslate"><span class="pre">client</span></code> .</li>
 <li>Take a restore timestamp.</li>
 <li>Revert your AtlasDB client configuration.</li>
 <li>Restart the TimeLock servers.</li>
@@ -213,25 +213,25 @@ Throughout this document, we assume the AtlasDB client you are trying to reverse
 </ol>
 <div class="section" id="step-1-shut-down-atlasdb-clients">
 <h2>Step 1: Shut Down AtlasDB Clients<a class="headerlink" href="#step-1-shut-down-atlasdb-clients" title="Permalink to this headline">¶</a></h2>
-<p>Make sure that your AtlasDB clients for <code class="docutils literal"><span class="pre">client</span></code> are shut down. Failure to do this can result in severe data
+<p>Make sure that your AtlasDB clients for <code class="docutils literal notranslate"><span class="pre">client</span></code> are shut down. Failure to do this can result in severe data
 corruption, because we cannot guarantee that the Timelock Server and the embedded AtlasDB timestamp services will
 together issue monotonically increasing timestamps.</p>
 </div>
 <div class="section" id="step-2-take-a-restore-timestamp">
 <h2>Step 2: Take a Restore Timestamp<a class="headerlink" href="#step-2-take-a-restore-timestamp" title="Permalink to this headline">¶</a></h2>
-<p>Obtain a fresh timestamp for <code class="docutils literal"><span class="pre">client</span></code> from the TimeLock servers. This is important to ensure that the sequence
+<p>Obtain a fresh timestamp for <code class="docutils literal notranslate"><span class="pre">client</span></code> from the TimeLock servers. This is important to ensure that the sequence
 of timestamps across TimeLock and the key-value service backed services is monotonically increasing.</p>
-<p>This can be obtained using <code class="docutils literal"><span class="pre">curl</span></code> as follows. Note that if you obtain an HTTP 503 error, this is because you curled a
+<p>This can be obtained using <code class="docutils literal notranslate"><span class="pre">curl</span></code> as follows. Note that if you obtain an HTTP 503 error, this is because you curled a
 node that was not the leader; please try the other nodes.</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>$ curl -XPOST https://&lt;timelock-host&gt;:8421/timelock/api/client/timestamp/fresh-timestamp
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ curl -XPOST https://&lt;timelock-host&gt;:8421/timelock/api/client/timestamp/fresh-timestamp
 123456789
 </pre></div>
 </div>
-<p>Note down the value returned from this call; we’ll refer to it as <code class="docutils literal"><span class="pre">TS</span></code> from here on.</p>
+<p>Note down the value returned from this call; we’ll refer to it as <code class="docutils literal notranslate"><span class="pre">TS</span></code> from here on.</p>
 </div>
 <div class="section" id="step-3-revert-atlasdb-client-configurations">
 <h2>Step 3: Revert AtlasDB Client Configurations<a class="headerlink" href="#step-3-revert-atlasdb-client-configurations" title="Permalink to this headline">¶</a></h2>
-<p>Remove the <code class="docutils literal"><span class="pre">timelock</span></code> block from your AtlasDB client configurations. For more detail on options
+<p>Remove the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block from your AtlasDB client configurations. For more detail on options
 for using embedded timestamp and lock services, please consult <a class="reference internal" href="../../configuration/leader_config.html#leader-config"><span class="std std-ref">Leader Config</span></a>.</p>
 </div>
 <div class="section" id="step-4-start-your-timelock-servers">
@@ -241,14 +241,14 @@ work normally. This step is placed here to minimise downtime for other services 
 </div>
 <div class="section" id="step-5-update-your-key-value-service">
 <h2>Step 5: Update your Key-Value Service<a class="headerlink" href="#step-5-update-your-key-value-service" title="Permalink to this headline">¶</a></h2>
-<p>Update the timestamp table in your key value service, such that it is valid and has the bound set to <code class="docutils literal"><span class="pre">TS</span></code> .
+<p>Update the timestamp table in your key value service, such that it is valid and has the bound set to <code class="docutils literal notranslate"><span class="pre">TS</span></code> .
 This will vary depending on your choice of key-value service:</p>
 <ul>
 <li><p class="first">If you are using <strong>Cassandra</strong>, then you can carry out the following steps.
-We suppose that your clients have the keyspace <code class="docutils literal"><span class="pre">client</span></code> in the examples below; at a high level, we want to truncate
-the timestamp table to remove all entries, and then add a single entry with row and column names <code class="docutils literal"><span class="pre">0x7473</span></code>
+We suppose that your clients have the keyspace <code class="docutils literal notranslate"><span class="pre">client</span></code> in the examples below; at a high level, we want to truncate
+the timestamp table to remove all entries, and then add a single entry with row and column names <code class="docutils literal notranslate"><span class="pre">0x7473</span></code>
 (case-sensitive) and a blob value indicating the actual timestamp.</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>cqlsh&gt; USE client;
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cqlsh&gt; USE client;
 cqlsh:client&gt; SELECT * FROM &quot;_timestamp&quot; ;
 
  key    | column1      | column2 | value
@@ -267,9 +267,9 @@ cqlsh:client&gt; SELECT * FROM &quot;_timestamp&quot; ;
 (0 rows)
 </pre></div>
 </div>
-<p>You will need to encode <code class="docutils literal"><span class="pre">TS</span></code> into an 8-byte hex representation; this can be done using the <code class="docutils literal"><span class="pre">printf</span></code> shell command.
+<p>You will need to encode <code class="docutils literal notranslate"><span class="pre">TS</span></code> into an 8-byte hex representation; this can be done using the <code class="docutils literal notranslate"><span class="pre">printf</span></code> shell command.
 Additionally, you can confirm that the existing hex value is smaller than the one you are setting the table to:</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>$ printf &#39;0x%016x\n&#39; 123456789 # new value in hex
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ printf &#39;0x%016x\n&#39; 123456789 # new value in hex
 0x00000000075bcd15
 
 $ echo $((0x0000000006d30af4)) # old
@@ -286,7 +286,7 @@ cqlsh:client&gt; SELECT * FROM &quot;_timestamp&quot; ;
 </li>
 <li><p class="first">If you are using DBKVS and have followed the steps outlined in <a class="reference internal" href="manual-migration.html#manual-timelock-migration"><span class="std std-ref">Manual TimeLock Migration</span></a>,
 it suffices to rename the column back:</p>
-<div class="code sql highlight-default"><div class="highlight"><pre><span></span><span class="n">ALTER</span> <span class="n">TABLE</span> <span class="n">atlasdb_timestamp</span> <span class="n">RENAME</span> <span class="n">LEGACY_last_allocated</span> <span class="n">TO</span> <span class="n">last_allocated</span><span class="p">;</span>
+<div class="code sql highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ALTER</span> <span class="n">TABLE</span> <span class="n">atlasdb_timestamp</span> <span class="n">RENAME</span> <span class="n">LEGACY_last_allocated</span> <span class="n">TO</span> <span class="n">last_allocated</span><span class="p">;</span>
 </pre></div>
 </div>
 </li>
@@ -298,7 +298,7 @@ it suffices to rename the column back:</p>
 clients work properly or curl the embedded timestamp service to confirm timestamps are greater than your restore
 timestamp from above.</p>
 <blockquote>
-<div><div class="highlight-none"><div class="highlight"><pre><span></span>$ curl -XPOST https://&lt;client-host&gt;:&lt;application-port&gt;&lt;application-context-path&gt;/timestamp/fresh-timestamp
+<div><div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ curl -XPOST https://&lt;client-host&gt;:&lt;application-port&gt;&lt;application-context-path&gt;/timestamp/fresh-timestamp
 123456790 # greater than restore timestamp
 </pre></div>
 </div>

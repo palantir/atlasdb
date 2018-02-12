@@ -221,7 +221,7 @@ see will necessarily be monotonically increasing. The following sequence of even
 </div>
 <div class="section" id="contiguous-blocks">
 <h2>Contiguous Blocks<a class="headerlink" href="#contiguous-blocks" title="Permalink to this headline">¶</a></h2>
-<p>Users are allowed to make requests for contiguous blocks of timestamps using the <code class="docutils literal"><span class="pre">getFreshTimestamps</span></code> endpoint.
+<p>Users are allowed to make requests for contiguous blocks of timestamps using the <code class="docutils literal notranslate"><span class="pre">getFreshTimestamps</span></code> endpoint.
 This may be useful if one knows it is the only client and/or wishes to have bespoke complex concurrency semantics.</p>
 <p>The endpoint will return a contiguous block of timestamps; this is indicated by a lower and upper bound (inclusive
 on both ends). We guarantee that the range returned will consist of at least 1 timestamp, and will have <em>at most</em>

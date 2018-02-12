@@ -197,12 +197,12 @@
 <h2>Enabling Oracle for your Application<a class="headerlink" href="#enabling-oracle-for-your-application" title="Permalink to this headline">¶</a></h2>
 <p>To enable your application to be backed by Oracle, you just need to add AtlasDB DbKvs and the OracleJDBC driver as a
 runtime dependency. In gradle this looks like:</p>
-<div class="highlight-groovy"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:&lt;atlas version&gt;&#39;</span>
+<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:&lt;atlas version&gt;&#39;</span>
 <span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:dbkvs-oracle-driver:&lt;oracle driver version&gt;&#39;</span>
 </pre></div>
 </div>
 <p>e.g.</p>
-<div class="highlight-groovy"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.75.0&#39;</span>
+<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.75.0&#39;</span>
 <span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:dbkvs-oracle-driver:0.3.0&#39;</span>
 </pre></div>
 </div>
@@ -210,7 +210,7 @@ runtime dependency. In gradle this looks like:</p>
 <div class="section" id="configuring-a-running-application-to-use-oracle">
 <h2>Configuring a Running Application to Use Oracle<a class="headerlink" href="#configuring-a-running-application-to-use-oracle" title="Permalink to this headline">¶</a></h2>
 <p>A minimal AtlasDB configuration for running against Oracle will look like the below.</p>
-<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
     <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">relational</span>
     <span class="l l-Scalar l-Scalar-Plain">ddl</span><span class="p p-Indicator">:</span>
@@ -266,7 +266,7 @@ runtime dependency. In gradle this looks like:</p>
 <td>Yes</td>
 </tr>
 <tr class="row-odd"><td>tableFactorySupplier</td>
-<td>This should supply the <code class="docutils literal"><span class="pre">DbTableFactory</span></code> required for setting up database operations.</td>
+<td>This should supply the <code class="docutils literal notranslate"><span class="pre">DbTableFactory</span></code> required for setting up database operations.</td>
 <td>No</td>
 </tr>
 <tr class="row-even"><td>metadataTable</td>
@@ -284,25 +284,25 @@ with an underscore. Default value is “a_”.</td>
 <td>No</td>
 </tr>
 <tr class="row-odd"><td>fetchBatchSize</td>
-<td>The number of cells fetched in batch queries like <code class="docutils literal"><span class="pre">getAllRows</span></code>, <code class="docutils literal"><span class="pre">getAllTimestamps</span></code> etc., defaults to 256.</td>
+<td>The number of cells fetched in batch queries like <code class="docutils literal notranslate"><span class="pre">getAllRows</span></code>, <code class="docutils literal notranslate"><span class="pre">getAllTimestamps</span></code> etc., defaults to 256.</td>
 <td>No</td>
 </tr>
 <tr class="row-even"><td>mutationBatchCount</td>
-<td>The maximum number of cells in a batch for write operations like <code class="docutils literal"><span class="pre">put</span></code>, <code class="docutils literal"><span class="pre">putWithTimestamps</span></code>,
+<td>The maximum number of cells in a batch for write operations like <code class="docutils literal notranslate"><span class="pre">put</span></code>, <code class="docutils literal notranslate"><span class="pre">putWithTimestamps</span></code>,
 defaults to 1000.</td>
 <td>No</td>
 </tr>
 <tr class="row-odd"><td>mutationBatchSizeBytes</td>
-<td>The maximum bytes in a batch for write operations like <code class="docutils literal"><span class="pre">put</span></code>, <code class="docutils literal"><span class="pre">putWithTimestamps</span></code>, defaults to 2MB.</td>
+<td>The maximum bytes in a batch for write operations like <code class="docutils literal notranslate"><span class="pre">put</span></code>, <code class="docutils literal notranslate"><span class="pre">putWithTimestamps</span></code>, defaults to 2MB.</td>
 <td>No</td>
 </tr>
 </tbody>
 </table>
 <div class="section" id="connection-parameters">
 <h3>Connection parameters<a class="headerlink" href="#connection-parameters" title="Permalink to this headline">¶</a></h3>
-<p>If you would like to customize the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal"><span class="pre">connection</span></code> section of the <code class="docutils literal"><span class="pre">keyValueService</span></code> config.
+<p>If you would like to customize the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal notranslate"><span class="pre">connection</span></code> section of the <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config.
 An example is shown below; for full documentation on which parameters are available, check out <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a>.</p>
-<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
     <span class="c1"># as above - skipped for brevity</span>
     <span class="l l-Scalar l-Scalar-Plain">connection</span><span class="p p-Indicator">:</span>

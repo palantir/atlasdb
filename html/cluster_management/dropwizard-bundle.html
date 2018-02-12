@@ -185,7 +185,7 @@
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>The AtlasDB Dropwizard bundle can be added to Dropwizard applications. This will add startup commands to launch
-the AtlasDB <a class="reference internal" href="console.html#console"><span class="std std-ref">Console</span></a> and <a class="reference internal" href="clis.html#clis"><span class="std std-ref">CLIs</span></a> such as <code class="docutils literal"><span class="pre">sweep</span></code> and <code class="docutils literal"><span class="pre">timestamp</span></code>.</p>
+the AtlasDB <a class="reference internal" href="console.html#console"><span class="std std-ref">Console</span></a> and <a class="reference internal" href="clis.html#clis"><span class="std std-ref">CLIs</span></a> such as <code class="docutils literal notranslate"><span class="pre">sweep</span></code> and <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>.</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">These commands will only work if the server is started with a leader or timelock block in the configuration.</p>
@@ -195,21 +195,21 @@ the AtlasDB <a class="reference internal" href="console.html#console"><span clas
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
 <p>To configure a Dropwizard application to use the AtlasDB Dropwizard bundle:</p>
 <ul class="simple">
-<li>Add <code class="docutils literal"><span class="pre">bootstrap.addBundle(new</span> <span class="pre">AtlasDbBundle&lt;&gt;());</span></code> to the <a class="reference external" href="http://www.dropwizard.io/1.0.0/docs/getting-started.html#creating-an-application-class">io.dropwizard.Application#initialize</a> method.</li>
-<li>Implement interface <code class="docutils literal"><span class="pre">AtlasDbConfigurationProvider</span></code> in the <a class="reference external" href="http://www.dropwizard.io/1.0.0/docs/getting-started.html#creating-a-configuration-class">Configuration class</a>
+<li>Add <code class="docutils literal notranslate"><span class="pre">bootstrap.addBundle(new</span> <span class="pre">AtlasDbBundle&lt;&gt;());</span></code> to the <a class="reference external" href="http://www.dropwizard.io/1.0.0/docs/getting-started.html#creating-an-application-class">io.dropwizard.Application#initialize</a> method.</li>
+<li>Implement interface <code class="docutils literal notranslate"><span class="pre">AtlasDbConfigurationProvider</span></code> in the <a class="reference external" href="http://www.dropwizard.io/1.0.0/docs/getting-started.html#creating-a-configuration-class">Configuration class</a>
 of the Dropwizard application.</li>
 </ul>
 </div>
 <div class="section" id="running-commands">
 <h2>Running commands<a class="headerlink" href="#running-commands" title="Permalink to this headline">¶</a></h2>
 <p>You can run AtlasDB tasks present in AtlasDB <a class="reference internal" href="console.html#console"><span class="std std-ref">Console</span></a> and <a class="reference internal" href="clis.html#clis"><span class="std std-ref">CLIs</span></a> using:</p>
-<p><code class="docutils literal"><span class="pre">java</span> <span class="pre">-jar</span> <span class="pre">application.jar</span> <span class="pre">atlasdb</span> <span class="pre">[-h]</span> <span class="pre">{console,sweep,migrate,timestamp}</span> <span class="pre">&lt;parameters&gt;</span> <span class="pre">config.yml</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">java</span> <span class="pre">-jar</span> <span class="pre">application.jar</span> <span class="pre">atlasdb</span> <span class="pre">[-h]</span> <span class="pre">{console,sweep,migrate,timestamp}</span> <span class="pre">&lt;parameters&gt;</span> <span class="pre">config.yml</span></code></p>
 <p>For example, for running the sweep cli:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>java -jar application.jar atlasdb sweep --table &lt;table name&gt; config.yml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>java -jar application.jar atlasdb sweep --table &lt;table name&gt; config.yml
 </pre></div>
 </div>
 <p>Or the migration cli:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>java -jar application.jar atlasdb migrate --offline --config-root <span class="s2">&quot;/atlas&quot;</span> –-fromConfig from.yml –-setup to.yml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>java -jar application.jar atlasdb migrate --offline --config-root <span class="s2">&quot;/atlas&quot;</span> –-fromConfig from.yml –-setup to.yml
 </pre></div>
 </div>
 </div>

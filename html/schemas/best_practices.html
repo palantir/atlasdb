@@ -265,7 +265,7 @@
 </div>
 <div class="section" id="stream-stores">
 <h2>Stream Stores<a class="headerlink" href="#stream-stores" title="Permalink to this headline">¶</a></h2>
-<p>The use of <code class="docutils literal"><span class="pre">hashRowComponents</span></code> for stream stores is strongly recommended as this avoids hotspotting.
+<p>The use of <code class="docutils literal notranslate"><span class="pre">hashRowComponents</span></code> for stream stores is strongly recommended as this avoids hotspotting.
 This is because the row key of a stream store value table is an ordered pair (stream ID, block ID).
 Hashing the first row component is not enough, because it still means that every block of the same stream will (likely)
 be stored on the same token range, and so loading the stream may heavily load the nodes responsible for that range.</p>

@@ -192,11 +192,11 @@
 everyone disagrees, read below) and batch commit. Without batch commit,
 your durability and transactional guarantees are non-existent and you
 may as well just light your data on fire. When you enable batch commit,
-you must also bump up the <code class="docutils literal"><span class="pre">concurrent_writes</span></code> param. Cassandra holds
+you must also bump up the <code class="docutils literal notranslate"><span class="pre">concurrent_writes</span></code> param. Cassandra holds
 every single row being written on its own thread until the batch sync.
 This means you effectively need 1K threads to get any write throughput.</p>
-<p>Again, you should edit <code class="docutils literal"><span class="pre">conf/cassandra.yaml</span></code>:</p>
-<div class="code yaml highlight-default"><div class="highlight"><pre><span></span><span class="n">partitioner</span><span class="p">:</span> <span class="n">ByteOrderedPartitioner</span>
+<p>Again, you should edit <code class="docutils literal notranslate"><span class="pre">conf/cassandra.yaml</span></code>:</p>
+<div class="code yaml highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">partitioner</span><span class="p">:</span> <span class="n">ByteOrderedPartitioner</span>
 <span class="n">commitlog_sync</span><span class="p">:</span> <span class="n">batch</span>
 <span class="n">commitlog_sync_batch_window_in_ms</span><span class="p">:</span> <span class="o">.</span><span class="mi">1</span>  <span class="c1"># .1 is only appropriate for SSDs.  Use 5 for HDDs.</span>
 <span class="c1"># If you use HDDs, make sure the commit log has its own disk because it will thrash it.</span>
@@ -240,7 +240,7 @@ then ByteOrderedPartitioner is a good default choice. If you have a
 specific table where you need it to be randomly distributed, then you
 can add a 2 byte hash to the front of each key.</p>
 <p>In atlas this can be done by using
-<code class="docutils literal"><span class="pre">ValueType.FIXED_LONG_LITTLE_ENDIAN</span></code>. This value type reverses the
+<code class="docutils literal notranslate"><span class="pre">ValueType.FIXED_LONG_LITTLE_ENDIAN</span></code>. This value type reverses the
 bytes of a long so that the least significant byte is the first one.
 Assuming your keys are evenly distributed in the least significant
 bytes, this will get you good distribution even with the

@@ -205,7 +205,7 @@ reads and writes.</p>
 </div>
 <div class="section" id="install-time-configuration">
 <h2>Install-Time Configuration<a class="headerlink" href="#install-time-configuration" title="Permalink to this headline">¶</a></h2>
-<p>An AtlasDB config can have an optional <code class="docutils literal"><span class="pre">qos</span></code> block if the service wants to rate limit the reads/writes to Cassandra. This is
+<p>An AtlasDB config can have an optional <code class="docutils literal notranslate"><span class="pre">qos</span></code> block if the service wants to rate limit the reads/writes to Cassandra. This is
 live-reloadable and hence the limits can be modified while the service is online. The limits will be loaded when the
 next request hits the server and knowledge of the previous rate-limiting will be lost.</p>
 <p>Optional parameters:</p>
@@ -229,11 +229,11 @@ This is of type <a class="reference external" href="https://github.com/palantir/
 </tr>
 <tr class="row-odd"><td>limits::readBytesPerSecond</td>
 <td>The maximum number of bytes to read from Cassandra per second (specified as a long).
-The default value is <code class="docutils literal"><span class="pre">Long.MAX_VALUE</span></code> implying no read limit.</td>
+The default value is <code class="docutils literal notranslate"><span class="pre">Long.MAX_VALUE</span></code> implying no read limit.</td>
 </tr>
 <tr class="row-even"><td>limits::writeBytesPerSecond</td>
 <td>The maximum number of bytes to write to Cassandra per second (specified as a long).
-The default value is <code class="docutils literal"><span class="pre">Long.MAX_VALUE</span></code> implying no write limit.</td>
+The default value is <code class="docutils literal notranslate"><span class="pre">Long.MAX_VALUE</span></code> implying no write limit.</td>
 </tr>
 <tr class="row-odd"><td>qosService</td>
 <td>The config for the QoS Service.

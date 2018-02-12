@@ -197,50 +197,50 @@ perform both safe and destructive (read dangerous) operations.</p>
 <div class="section" id="getting-started">
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
 <p>To start AtlasDB console via the AtlasDB Dropwizard bundle, you should run a command like the following:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>./service/bin/&lt;service&gt; atlasdb console var/conf/&lt;service&gt;.yml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/&lt;service&gt; atlasdb console var/conf/&lt;service&gt;.yml
 </pre></div>
 </div>
-<p>To exit the console, you can type <code class="docutils literal"><span class="pre">:exit</span></code> or enter ctrl + c.</p>
+<p>To exit the console, you can type <code class="docutils literal notranslate"><span class="pre">:exit</span></code> or enter ctrl + c.</p>
 </div>
 <div class="section" id="using-groovy-in-atlasdb-console">
 <h2>Using Groovy in AtlasDB Console<a class="headerlink" href="#using-groovy-in-atlasdb-console" title="Permalink to this headline">¶</a></h2>
 <p>This section contains tips and tricks for navigating GroovyShell and
 using Groovy to its fullest extent in AtlasDB Console.</p>
 <ul class="simple">
-<li>Type <code class="docutils literal"><span class="pre">:help</span></code> or <code class="docutils literal"><span class="pre">:h</span></code> to get usage help.</li>
-<li>Type <code class="docutils literal"><span class="pre">help()</span></code> to examine all AtlasDB related functions available.</li>
-<li>Type <code class="docutils literal"><span class="pre">:exit</span></code> or <code class="docutils literal"><span class="pre">:x</span></code> to exit GroovyShell.</li>
-<li>Type <code class="docutils literal"><span class="pre">:clear</span></code> or <code class="docutils literal"><span class="pre">:c</span></code> to exit a command block.</li>
+<li>Type <code class="docutils literal notranslate"><span class="pre">:help</span></code> or <code class="docutils literal notranslate"><span class="pre">:h</span></code> to get usage help.</li>
+<li>Type <code class="docutils literal notranslate"><span class="pre">help()</span></code> to examine all AtlasDB related functions available.</li>
+<li>Type <code class="docutils literal notranslate"><span class="pre">:exit</span></code> or <code class="docutils literal notranslate"><span class="pre">:x</span></code> to exit GroovyShell.</li>
+<li>Type <code class="docutils literal notranslate"><span class="pre">:clear</span></code> or <code class="docutils literal notranslate"><span class="pre">:c</span></code> to exit a command block.</li>
 <li>To use an external editor to write a script without exiting
-GroovyShell, type <code class="docutils literal"><span class="pre">:edit</span></code>. Before you use this command for the
+GroovyShell, type <code class="docutils literal notranslate"><span class="pre">:edit</span></code>. Before you use this command for the
 first time, you will need to set your default editor (either vim or
-emacs) using the command <code class="docutils literal"><span class="pre">:set</span> <span class="pre">editor</span> <span class="pre">vim</span></code> or
-<code class="docutils literal"><span class="pre">:set</span> <span class="pre">editor</span> <span class="pre">emacs</span></code>.</li>
+emacs) using the command <code class="docutils literal notranslate"><span class="pre">:set</span> <span class="pre">editor</span> <span class="pre">vim</span></code> or
+<code class="docutils literal notranslate"><span class="pre">:set</span> <span class="pre">editor</span> <span class="pre">emacs</span></code>.</li>
 <li>To load and run a Groovy script, type
-<code class="docutils literal"><span class="pre">:load</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>. The file you load must
-end with the <code class="docutils literal"><span class="pre">.groovy</span></code> extension.</li>
+<code class="docutils literal notranslate"><span class="pre">:load</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>. The file you load must
+end with the <code class="docutils literal notranslate"><span class="pre">.groovy</span></code> extension.</li>
 <li>To record your AtlasDB Console session, type
-<code class="docutils literal"><span class="pre">:record</span> <span class="pre">start</span> <span class="pre">&lt;PATH-TO-RECORD-FILE&gt;/&lt;FILENAME&gt;.txt</span></code>. You can also
-just type <code class="docutils literal"><span class="pre">:record</span> <span class="pre">start</span></code> and GroovyShell will save your session to
-a .txt file in your <code class="docutils literal"><span class="pre">/tmp</span></code> directory. GroovyShell will record
+<code class="docutils literal notranslate"><span class="pre">:record</span> <span class="pre">start</span> <span class="pre">&lt;PATH-TO-RECORD-FILE&gt;/&lt;FILENAME&gt;.txt</span></code>. You can also
+just type <code class="docutils literal notranslate"><span class="pre">:record</span> <span class="pre">start</span></code> and GroovyShell will save your session to
+a .txt file in your <code class="docutils literal notranslate"><span class="pre">/tmp</span></code> directory. GroovyShell will record
 anything typed on the command line or returned by a command to the
-file. You can end the recording by typing <code class="docutils literal"><span class="pre">:record</span> <span class="pre">stop</span></code> or review
+file. You can end the recording by typing <code class="docutils literal notranslate"><span class="pre">:record</span> <span class="pre">stop</span></code> or review
 the name of the record file and its current size by typing
-<code class="docutils literal"><span class="pre">:record</span> <span class="pre">status</span></code>.</li>
+<code class="docutils literal notranslate"><span class="pre">:record</span> <span class="pre">status</span></code>.</li>
 <li>To view a list of all of the commands you have executed so far, type
-<code class="docutils literal"><span class="pre">:history</span></code>.</li>
+<code class="docutils literal notranslate"><span class="pre">:history</span></code>.</li>
 <li>If you want the editor to print out the last result (e.g. printing
-the results of a command like <code class="docutils literal"><span class="pre">table('my_table').getRange()</span></code>
-without a <code class="docutils literal"><span class="pre">print</span></code> or <code class="docutils literal"><span class="pre">pp</span></code> command), type
-<code class="docutils literal"><span class="pre">:set</span> <span class="pre">show-last-result</span> <span class="pre">true</span></code> to turn it on. This option is disabled
+the results of a command like <code class="docutils literal notranslate"><span class="pre">table('my_table').getRange()</span></code>
+without a <code class="docutils literal notranslate"><span class="pre">print</span></code> or <code class="docutils literal notranslate"><span class="pre">pp</span></code> command), type
+<code class="docutils literal notranslate"><span class="pre">:set</span> <span class="pre">show-last-result</span> <span class="pre">true</span></code> to turn it on. This option is disabled
 by default.</li>
 <li>You can run scripts on load by setting the –script flag like this:
-<code class="docutils literal"><span class="pre">./bin/unix/atlasDBConsole-script</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>.
-The script you load must end with the <code class="docutils literal"><span class="pre">.groovy</span></code> extension. This
+<code class="docutils literal notranslate"><span class="pre">./bin/unix/atlasDBConsole-script</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>.
+The script you load must end with the <code class="docutils literal notranslate"><span class="pre">.groovy</span></code> extension. This
 will load the script, run it, and exit the console. To keep the
 console running after the script executes, run
-<code class="docutils literal"><span class="pre">./bin/unix/atlasDBConsole</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>
-(without the <code class="docutils literal"><span class="pre">-script</span></code> flag).</li>
+<code class="docutils literal notranslate"><span class="pre">./bin/unix/atlasDBConsole</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>
+(without the <code class="docutils literal notranslate"><span class="pre">-script</span></code> flag).</li>
 </ul>
 <div class="section" id="writing-scripts-in-groovy">
 <h3>Writing Scripts in Groovy<a class="headerlink" href="#writing-scripts-in-groovy" title="Permalink to this headline">¶</a></h3>

@@ -202,18 +202,18 @@ The basic method is to first install Timelock without any clients, and then for 
 </div>
 <ol class="arabic">
 <li><p class="first">Clone the git repository.</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">palantir</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">.</span><span class="n">git</span><span class="p">;</span> <span class="n">cd</span> <span class="n">atlasdb</span>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">palantir</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">.</span><span class="n">git</span><span class="p">;</span> <span class="n">cd</span> <span class="n">atlasdb</span>
 </pre></div>
 </div>
 </li>
 <li><p class="first">Generate a tar file with Gradle:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">gradlew</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="n">distTar</span>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">gradlew</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="n">distTar</span>
 </pre></div>
 </div>
 </li>
 </ol>
 <blockquote>
-<div>This will place a tar file in the <code class="docutils literal"><span class="pre">build/distributions</span></code> directory of the <code class="docutils literal"><span class="pre">timelock-server</span></code> project. The
+<div>This will place a tar file in the <code class="docutils literal notranslate"><span class="pre">build/distributions</span></code> directory of the <code class="docutils literal notranslate"><span class="pre">timelock-server</span></code> project. The
 tar file follows semantic versioning.</div></blockquote>
 </div>
 <div class="section" id="install-timelock-without-clients">
@@ -229,24 +229,24 @@ A 3-node cluster will provide better performance, whereas a 5-node cluster has g
 <li><p class="first">Copy this tar file to each machine on which you want to deploy Timelock Server.</p>
 </li>
 <li><p class="first">On each machine which you intend to deploy Timelock Server, untar the archive.</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">tar</span> <span class="o">-</span><span class="n">zxvf</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mf">0.</span><span class="n">sls</span><span class="o">.</span><span class="n">tgz</span><span class="p">;</span> <span class="n">cd</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mi">0</span>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tar</span> <span class="o">-</span><span class="n">zxvf</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mf">0.</span><span class="n">sls</span><span class="o">.</span><span class="n">tgz</span><span class="p">;</span> <span class="n">cd</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mi">0</span>
 </pre></div>
 </div>
 </li>
 <li><p class="first">Configure the Timelock Server - see <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-configuration"><span class="std std-ref">Timelock Server Configuration</span></a> for a guide on this. The configuration file
-is at <code class="docutils literal"><span class="pre">var/conf/timelock.yml</span></code> relative to the root directory of the Timelock Server.</p>
+is at <code class="docutils literal notranslate"><span class="pre">var/conf/timelock.yml</span></code> relative to the root directory of the Timelock Server.</p>
 </li>
-<li><p class="first">Start the Timelock Server with <code class="docutils literal"><span class="pre">service/bin/init.sh</span> <span class="pre">start</span></code>.
-This should output the process ID of the Timelock Server. You can view the logs in the (by default) <code class="docutils literal"><span class="pre">var/log</span></code>
+<li><p class="first">Start the Timelock Server with <code class="docutils literal notranslate"><span class="pre">service/bin/init.sh</span> <span class="pre">start</span></code>.
+This should output the process ID of the Timelock Server. You can view the logs in the (by default) <code class="docutils literal notranslate"><span class="pre">var/log</span></code>
 directory.</p>
 </li>
 <li><p class="first">It may be useful to run a health-check to verify that the Timelock Server is running. To do this, you can curl
-the server’s <code class="docutils literal"><span class="pre">healthcheck</span></code> endpoint on its admin port (default: 8081).</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">8081</span><span class="o">/</span><span class="n">healthcheck</span>
+the server’s <code class="docutils literal notranslate"><span class="pre">healthcheck</span></code> endpoint on its admin port (default: 8081).</p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">8081</span><span class="o">/</span><span class="n">healthcheck</span>
 </pre></div>
 </div>
 <p>The output should indicate that the Timelock Server is healthy. The output should resemble the following:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;deadlocks&quot;</span><span class="p">:</span> <span class="p">{</span>
         <span class="s2">&quot;healthy&quot;</span><span class="p">:</span> <span class="n">true</span>
     <span class="p">}</span>
@@ -262,9 +262,9 @@ the server’s <code class="docutils literal"><span class="pre">healthcheck</spa
 <li>Back up each client, following the steps declared in <a class="reference internal" href="../../cluster_management/backup-restore.html#backup-restore"><span class="std std-ref">Backup and Restore</span></a>.</li>
 <li>Configure each client to use Timelock.
 Detailed documentation is <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">here</span></a>.
-You must remove any <code class="docutils literal"><span class="pre">leader</span></code>, <code class="docutils literal"><span class="pre">timestamp</span></code>, or <code class="docutils literal"><span class="pre">lock</span></code> blocks; the <code class="docutils literal"><span class="pre">timelock</span></code> block to add looks like this:</li>
+You must remove any <code class="docutils literal notranslate"><span class="pre">leader</span></code>, <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, or <code class="docutils literal notranslate"><span class="pre">lock</span></code> blocks; the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block to add looks like this:</li>
 </ol>
-<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
    <span class="l l-Scalar l-Scalar-Plain">timelock</span><span class="p p-Indicator">:</span>
      <span class="l l-Scalar l-Scalar-Plain">serversList</span><span class="p p-Indicator">:</span>
        <span class="l l-Scalar l-Scalar-Plain">servers</span><span class="p p-Indicator">:</span>
@@ -279,7 +279,7 @@ You must remove any <code class="docutils literal"><span class="pre">leader</spa
 <li>(Optional) For verification purposes, you may retrieve a timestamp from each client you are configuring to use TimeLock.
 This can typically be performed with the Fetch Timestamp CLI or Dropwizard bundle. For example, using the Dropwizard bundle:</li>
 </ol>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>./service/bin/&lt;service&gt; atlasdb timestamp fetch
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/&lt;service&gt; atlasdb timestamp fetch
 
  Note down the value of the timestamp returned<span class="p">;</span> we will subsequently use these values to ensure that migration took place.
 </pre></div>

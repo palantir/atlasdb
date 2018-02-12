@@ -220,7 +220,7 @@ we won’t need to roll back this transaction.</p>
 <p>AtlasDB has lock checking built into its
 <a class="reference external" href="AtlasDB-Transaction-Protocol">protocol</a>. This means that you can do
 your own locking, then pass those locks to
-<code class="docutils literal"><span class="pre">LockAwareTransactionManager.runTaskWithLock(...)</span></code>. If your
+<code class="docutils literal notranslate"><span class="pre">LockAwareTransactionManager.runTaskWithLock(...)</span></code>. If your
 transaction commits successfully this means that no other transaction
 concurrently held these locks and committed successfully. (Concurrently
 means that either your commitTs falls between their startTs and commitTs
@@ -308,8 +308,8 @@ time to ensure that no one has written a newer value to that cell.</p>
 whenever I write to table A I also write a row in table B which is an
 index on A. I don’t need write/write conflicts on the index because the
 every time there is a conflict on B, there is also a conflict on A. So I
-can just use <code class="docutils literal"><span class="pre">TableConflictHandler.RETRY_ON_WRITE_WRITE</span></code> for A, and
-<code class="docutils literal"><span class="pre">IGNORE_ALL</span></code> for table B.</p>
+can just use <code class="docutils literal notranslate"><span class="pre">TableConflictHandler.RETRY_ON_WRITE_WRITE</span></code> for A, and
+<code class="docutils literal notranslate"><span class="pre">IGNORE_ALL</span></code> for table B.</p>
 </div>
 <div class="section" id="tombstones-and-range-scans">
 <h2>Tombstones and Range Scans<a class="headerlink" href="#tombstones-and-range-scans" title="Permalink to this headline">¶</a></h2>
@@ -338,7 +338,7 @@ experience the same lock contention, but no write/write conflict.</p>
 <p>Avoid designs where you expect multiple clients to write into the same
 row but different cells.</p>
 <hr class="docutils" />
-<p>Note: It is a good practice to call <code class="docutils literal"><span class="pre">TransactionManager.close()</span></code> to
+<p>Note: It is a good practice to call <code class="docutils literal notranslate"><span class="pre">TransactionManager.close()</span></code> to
 free up the underlying resources when you intend to no longer run transactions.</p>
 </div>
 </div>

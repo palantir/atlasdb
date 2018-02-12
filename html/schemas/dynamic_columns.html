@@ -197,9 +197,9 @@ used unqualified, we refer to AtlasDB dynamic columns.</p>
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>AtlasDB offers support for <em>dynamic columns</em> - in tables where these are enabled, rows that can have an arbitrary number
 of columns, each with a (typed) column name. A table with dynamic columns may be reasoned about as a
-<code class="docutils literal"><span class="pre">Map&lt;RowKey,</span> <span class="pre">SortedMap&lt;Tuple&lt;Col1,</span> <span class="pre">Col2...</span> <span class="pre">ColN&gt;,</span> <span class="pre">Value&gt;&gt;</span></code>. It may also be thought of as a collection of key-value
+<code class="docutils literal notranslate"><span class="pre">Map&lt;RowKey,</span> <span class="pre">SortedMap&lt;Tuple&lt;Col1,</span> <span class="pre">Col2...</span> <span class="pre">ColN&gt;,</span> <span class="pre">Value&gt;&gt;</span></code>. It may also be thought of as a collection of key-value
 pairs within a row. For example, a simple schema using dynamic columns may be defined as follows:</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addTableDefinition</span><span class="p">(</span><span class="s2">&quot;todo&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addTableDefinition</span><span class="p">(</span><span class="s2">&quot;todo&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
             <span class="n">rowName</span><span class="p">();</span>
                 <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;person&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">STRING</span><span class="p">);</span>
             <span class="n">dynamicColumns</span><span class="p">();</span>
@@ -274,12 +274,12 @@ Elements are stored in sorted order, so the very first key-value pair retrieved 
 correct answer to this query.</li>
 <li>“Find all of Tom’s todos with size up to M, limited to N results” is easy, as this can be
 processed with a natural stopping point, as in query 1, and we are iterating in the right order for this query.
-This can be achieved using the <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code> API.</li>
+This can be achieved using the <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code> API.</li>
 <li>“Find all of Tom’s todos with size of 10 to 15, limit to N results” can be performed via a range
 scan on the dynamic column key. This is also readily supported, and does not require a row range scan.</li>
 <li>“Find all of Tom’s largest todos” is somewhat more difficult, as reverse range scans aren’t supported by the
 dynamic columns API. If we were more interested in largest todos as opposed to smallest, we could set the
-<code class="docutils literal"><span class="pre">ValueByteOrder</span></code> of the <code class="docutils literal"><span class="pre">taskSize</span></code> column component to decreasing.</li>
+<code class="docutils literal notranslate"><span class="pre">ValueByteOrder</span></code> of the <code class="docutils literal notranslate"><span class="pre">taskSize</span></code> column component to decreasing.</li>
 <li>“Find all of Tom’s todos which cost less than 5” will be less efficient. We need to retrieve the entire row to do
 this, because the map is sorted by task size and then monetary cost. If queries on cost are more common than queries
 on size, flipping the order of the column components could help.</li>
@@ -295,7 +295,7 @@ others we have seen so far. At that point, we know we have seen all the smallest
 order).</li>
 <li>“Find the smallest todos for everyone whose name begins with J” is NOT easy. While this
 conceivably can be split into two parts (a row prefix scan for J, and then the aforementioned
-<code class="docutils literal"><span class="pre">getRowsColumnRange</span></code>),
+<code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code>),
 the range scan for J is potentially costly, as it needs to iterate through every todo for people whose names
 do indeed begin with J.</li>
 </ol>
@@ -305,8 +305,8 @@ do indeed begin with J.</li>
 <h2>Using Dynamic Columns<a class="headerlink" href="#using-dynamic-columns" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="storage">
 <h3>Storage<a class="headerlink" href="#storage" title="Permalink to this headline">¶</a></h3>
-<p>One can use the standard <code class="docutils literal"><span class="pre">put</span></code> method. This can be used to add one or more columns to a row.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
+<p>One can use the standard <code class="docutils literal notranslate"><span class="pre">put</span></code> method. This can be used to add one or more columns to a row.</p>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
 
 <span class="n">todoTable</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
         <span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">person</span><span class="p">),</span>
@@ -319,11 +319,11 @@ will logically overwrite the existing value.</p>
 </div>
 <div class="section" id="retrieval">
 <h3>Retrieval<a class="headerlink" href="#retrieval" title="Permalink to this headline">¶</a></h3>
-<p>Typically, one should use <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code>. This takes a collection of rows and column key ranges, and returns a
-map of row-keys to <code class="docutils literal"><span class="pre">BatchingVisitables</span></code> of column values. These may in turn be traversed using the
-<code class="docutils literal"><span class="pre">BatchingVisitable</span></code> API. For example, the code below is an implementation of query 1 for an arbitrary String
-<code class="docutils literal"><span class="pre">person</span></code>:</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
+<p>Typically, one should use <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code>. This takes a collection of rows and column key ranges, and returns a
+map of row-keys to <code class="docutils literal notranslate"><span class="pre">BatchingVisitables</span></code> of column values. These may in turn be traversed using the
+<code class="docutils literal notranslate"><span class="pre">BatchingVisitable</span></code> API. For example, the code below is an implementation of query 1 for an arbitrary String
+<code class="docutils literal notranslate"><span class="pre">person</span></code>:</p>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
 <span class="n">Map</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="p">,</span> <span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumnValue</span><span class="o">&gt;&gt;</span> <span class="n">results</span> <span class="o">=</span>
         <span class="n">todoTable</span><span class="o">.</span><span class="n">getRowsColumnRange</span><span class="p">(</span>
                 <span class="n">ImmutableList</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">person</span><span class="p">)),</span>
@@ -345,8 +345,8 @@ map of row-keys to <code class="docutils literal"><span class="pre">BatchingVisi
 </div>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">One can also use the <code class="docutils literal"><span class="pre">getRowsMultimap</span></code> method to retrieve a multimap of rows to column values. However, note
-that this method will call the underlying transaction’s <code class="docutils literal"><span class="pre">getRows</span></code> method, which eagerly loads the entire row into
+<p class="last">One can also use the <code class="docutils literal notranslate"><span class="pre">getRowsMultimap</span></code> method to retrieve a multimap of rows to column values. However, note
+that this method will call the underlying transaction’s <code class="docutils literal notranslate"><span class="pre">getRows</span></code> method, which eagerly loads the entire row into
 memory!</p>
 </div>
 </div>
@@ -354,7 +354,7 @@ memory!</p>
 <div class="section" id="data-representation-cassandra">
 <h2>Data Representation (Cassandra)<a class="headerlink" href="#data-representation-cassandra" title="Permalink to this headline">¶</a></h2>
 <p>A row with dynamic columns is stored as a single Cassandra-level row. Recall the Atlas schema:</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">CREATE</span> <span class="n">TABLE</span> <span class="n">atlasete</span><span class="o">.</span><span class="n">default__todo</span> <span class="p">(</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CREATE</span> <span class="n">TABLE</span> <span class="n">atlasete</span><span class="o">.</span><span class="n">default__todo</span> <span class="p">(</span>
     <span class="n">key</span> <span class="n">blob</span><span class="p">,</span>
     <span class="n">column1</span> <span class="n">blob</span><span class="p">,</span>
     <span class="n">column2</span> <span class="n">bigint</span><span class="p">,</span>
@@ -363,11 +363,11 @@ memory!</p>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p><code class="docutils literal"><span class="pre">key</span></code> consists of the (encoded) row key; <code class="docutils literal"><span class="pre">column1</span></code> refers to the (encoded) column components, and <code class="docutils literal"><span class="pre">column2</span></code>
+<p><code class="docutils literal notranslate"><span class="pre">key</span></code> consists of the (encoded) row key; <code class="docutils literal notranslate"><span class="pre">column1</span></code> refers to the (encoded) column components, and <code class="docutils literal notranslate"><span class="pre">column2</span></code>
 refers to the Atlas timestamp at which a write occurred. The clustering order of the table follows the
-<code class="docutils literal"><span class="pre">ValueByteOrder</span></code> of the relevant column components.</p>
-<p>Conversely, observe that in a conventional (fixed columns) AtlasDB table, <code class="docutils literal"><span class="pre">column1</span></code> identifies which column is being
-encoded in the <code class="docutils literal"><span class="pre">value</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">ValueByteOrder</span></code> of the relevant column components.</p>
+<p>Conversely, observe that in a conventional (fixed columns) AtlasDB table, <code class="docutils literal notranslate"><span class="pre">column1</span></code> identifies which column is being
+encoded in the <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p>
 </div>
 <div class="section" id="when-not-to-use-dynamic-columns">
 <h2>When Not To Use Dynamic Columns<a class="headerlink" href="#when-not-to-use-dynamic-columns" title="Permalink to this headline">¶</a></h2>
@@ -383,10 +383,10 @@ keys.</p>
 Note that an implementation of query 1 has been included in the “Retrieval” section.</p>
 <div class="section" id="query-3-size-lower-to-upper-limit-n">
 <h3>Query 3 (Size Lower to Upper, Limit N)<a class="headerlink" href="#query-3-size-lower-to-upper-limit-n" title="Permalink to this headline">¶</a></h3>
-<p>Assume the existence of variables <code class="docutils literal"><span class="pre">lower</span></code> and <code class="docutils literal"><span class="pre">upper</span></code> (inclusive bounds for the size range; 10 and 15 in the
-sample query), <code class="docutils literal"><span class="pre">person</span></code> (the person to run the query for) and <code class="docutils literal"><span class="pre">limit</span></code> (the maximum number of records we want to
+<p>Assume the existence of variables <code class="docutils literal notranslate"><span class="pre">lower</span></code> and <code class="docutils literal notranslate"><span class="pre">upper</span></code> (inclusive bounds for the size range; 10 and 15 in the
+sample query), <code class="docutils literal notranslate"><span class="pre">person</span></code> (the person to run the query for) and <code class="docutils literal notranslate"><span class="pre">limit</span></code> (the maximum number of records we want to
 return).</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
 
 <span class="o">//</span> <span class="n">Note</span> <span class="n">that</span> <span class="n">a</span> <span class="n">column</span> <span class="nb">range</span> <span class="n">selection</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">start</span><span class="o">-</span><span class="n">inclusive</span> <span class="n">end</span><span class="o">-</span><span class="n">exclusive</span> <span class="nb">range</span><span class="p">,</span> <span class="n">so</span> <span class="n">using</span> <span class="p">(</span><span class="n">upper</span><span class="p">,</span> <span class="n">Long</span><span class="o">.</span><span class="n">MAX_VALUE</span><span class="p">)</span>
 <span class="o">//</span> <span class="k">as</span> <span class="n">the</span> <span class="n">end</span> <span class="n">of</span> <span class="n">the</span> <span class="n">column</span> <span class="n">selection</span> <span class="ow">is</span> <span class="n">incorrect</span><span class="p">,</span> <span class="n">because</span> <span class="n">it</span> <span class="n">excludes</span> <span class="n">that</span> <span class="n">specific</span> <span class="n">dynamic</span> <span class="n">column</span> <span class="n">key</span><span class="o">.</span>
@@ -410,9 +410,9 @@ return).</p>
 </div>
 <div class="section" id="query-6-size-lowersize-to-uppersize-cost-lowercost-to-uppercost">
 <h3>Query 6 (Size lowerSize to upperSize, Cost lowerCost to upperCost)<a class="headerlink" href="#query-6-size-lowersize-to-uppersize-cost-lowercost-to-uppercost" title="Permalink to this headline">¶</a></h3>
-<p>Assume the existence of variables <code class="docutils literal"><span class="pre">lowerSize</span></code>, <code class="docutils literal"><span class="pre">upperSize</span></code>, <code class="docutils literal"><span class="pre">lowerCost</span></code> and <code class="docutils literal"><span class="pre">upperCost</span></code> which are inclusive bounds for the
-size and cost ranges respectively. We also assume the existence of <code class="docutils literal"><span class="pre">person</span></code> (the person to run the query for).</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
+<p>Assume the existence of variables <code class="docutils literal notranslate"><span class="pre">lowerSize</span></code>, <code class="docutils literal notranslate"><span class="pre">upperSize</span></code>, <code class="docutils literal notranslate"><span class="pre">lowerCost</span></code> and <code class="docutils literal notranslate"><span class="pre">upperCost</span></code> which are inclusive bounds for the
+size and cost ranges respectively. We also assume the existence of <code class="docutils literal notranslate"><span class="pre">person</span></code> (the person to run the query for).</p>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
 <span class="n">Map</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="p">,</span> <span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumnValue</span><span class="o">&gt;&gt;</span> <span class="n">results</span> <span class="o">=</span>
         <span class="n">todoTable</span><span class="o">.</span><span class="n">getRowsColumnRange</span><span class="p">(</span>
                 <span class="n">ImmutableList</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">person</span><span class="p">)),</span>
@@ -439,8 +439,8 @@ size and cost ranges respectively. We also assume the existence of <code class="
 </div>
 <div class="section" id="query-8-smallest-for-multiple-row-keys">
 <h3>Query 8 (Smallest for Multiple Row Keys)<a class="headerlink" href="#query-8-smallest-for-multiple-row-keys" title="Permalink to this headline">¶</a></h3>
-<p>Assume the existence of a Set of Strings, <code class="docutils literal"><span class="pre">personSet</span></code>. This corresponds to person identifiers.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span>Map&lt;String, List&lt;Todo&gt;&gt; results = Maps.newConcurrentMap();
+<p>Assume the existence of a Set of Strings, <code class="docutils literal notranslate"><span class="pre">personSet</span></code>. This corresponds to person identifiers.</p>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span>Map&lt;String, List&lt;Todo&gt;&gt; results = Maps.newConcurrentMap();
 Map&lt;String, Long&gt; smallestSizes = Maps.newConcurrentMap();
 TodoTable todoTable = TodoSchemaTableFactory.of().getTodoTable(tx);
 Map&lt;TodoTable.TodoRow, BatchingVisitable&lt;TodoTable.TodoColumnValue&gt;&gt; visitables =

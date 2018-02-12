@@ -190,11 +190,11 @@ We also publish snapshot builds to <a class="reference external" href="https://o
 <div class="section" id="cutting-for-release">
 <h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
-<li>Checkout the commit to tag for release (probably <code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).
-Patch releases should not be cut from develop, and should instead be cut from an appropriate release branch (e.g. <code class="docutils literal"><span class="pre">0.10.x</span></code> for patches to AtlasDB 0.10.0).</li>
-<li>Tag the commit: <code class="docutils literal"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</li>
+<li>Checkout the commit to tag for release (probably <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).
+Patch releases should not be cut from develop, and should instead be cut from an appropriate release branch (e.g. <code class="docutils literal notranslate"><span class="pre">0.10.x</span></code> for patches to AtlasDB 0.10.0).</li>
+<li>Tag the commit: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</li>
 <li>Push the tag to Github:
-<code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</li>
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</li>
 <li>After a short wait (when the build at circleCI is successful) the artifacts will be published on BinTray
 to the <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">AtlasDB
 page</a>.</li>

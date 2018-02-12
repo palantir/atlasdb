@@ -201,7 +201,7 @@ optional set of constraints on the table, and an optional set of
 behavior and performance tuning parameters.</p>
 <p>There is one main way to add a table to the schema, along with two
 variants.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addTableDefinition</span><span class="p">(</span><span class="s2">&quot;table_name_here&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addTableDefinition</span><span class="p">(</span><span class="s2">&quot;table_name_here&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
     <span class="n">javaName</span><span class="p">(</span><span class="s2">&quot;JavaTableName&quot;</span><span class="p">);</span> <span class="o">//</span><span class="n">optional</span>
     <span class="n">rowName</span><span class="p">();</span>
         <span class="o">...</span>
@@ -213,7 +213,7 @@ variants.</p>
 <span class="p">}});</span>
 </pre></div>
 </div>
-<p>The <code class="docutils literal"><span class="pre">addTableDefinition</span></code> method takes two arguments: the name of the
+<p>The <code class="docutils literal notranslate"><span class="pre">addTableDefinition</span></code> method takes two arguments: the name of the
 table to be used in the key-value store itself, and a table definition.
 The table name should be specified in snake_case. The details of the
 TableDefinition initialization will be covered in the “Table/Index
@@ -221,7 +221,7 @@ Definition” section.</p>
 <p>If there are multiple tables which will have the same definition but
 will have different names, the first variation of the table definition
 can be used:</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addDefinitionForTables</span><span class="p">(</span><span class="n">ImmutableSet</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="s2">&quot;table1_name&quot;</span><span class="p">,</span> <span class="s2">&quot;table2_name&quot;</span><span class="p">),</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addDefinitionForTables</span><span class="p">(</span><span class="n">ImmutableSet</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="s2">&quot;table1_name&quot;</span><span class="p">,</span> <span class="s2">&quot;table2_name&quot;</span><span class="p">),</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
     <span class="o">...</span>
 <span class="p">}});</span>
 </pre></div>
@@ -243,7 +243,7 @@ more complicated index situations (e.g. indices whose rows are derived
 from multiple tables) a regular table must be defined for the index, and
 synchronization between the base table(s) and index must be done
 manually.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addIndexDefinition</span><span class="p">(</span><span class="s2">&quot;index_name_here&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">IndexDefinition</span><span class="p">(</span><span class="n">IndexType</span><span class="o">.</span><span class="n">ADDITIVE</span> <span class="o">/*</span> <span class="ow">or</span> <span class="o">.</span><span class="n">CELL_REFERENCING</span> <span class="o">*/</span><span class="p">)</span> <span class="p">{{</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addIndexDefinition</span><span class="p">(</span><span class="s2">&quot;index_name_here&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">IndexDefinition</span><span class="p">(</span><span class="n">IndexType</span><span class="o">.</span><span class="n">ADDITIVE</span> <span class="o">/*</span> <span class="ow">or</span> <span class="o">.</span><span class="n">CELL_REFERENCING</span> <span class="o">*/</span><span class="p">)</span> <span class="p">{{</span>
     <span class="n">onTable</span><span class="p">(</span><span class="s2">&quot;base_table_name&quot;</span><span class="p">);</span>
     <span class="n">onCondition</span><span class="p">(</span><span class="s2">&quot;source_column&quot;</span><span class="p">,</span> <span class="s2">&quot; /* java boolean expression */ _value &gt; 100 &quot;</span><span class="p">);</span> <span class="o">//</span><span class="n">optional</span>
     <span class="n">rowName</span><span class="p">();</span>
@@ -255,12 +255,12 @@ manually.</p>
 </pre></div>
 </div>
 <p>Note that, in the case where the index should only get a row from the
-base table if some condition is met, the <code class="docutils literal"><span class="pre">onCondition</span></code> clause can be
+base table if some condition is met, the <code class="docutils literal notranslate"><span class="pre">onCondition</span></code> clause can be
 added to the index definition. The value of the cell with the specified
-column is accessed by the <code class="docutils literal"><span class="pre">_value</span></code> term.</p>
+column is accessed by the <code class="docutils literal notranslate"><span class="pre">_value</span></code> term.</p>
 <p>If multiple indices should be defined for the same index definition,
 then the following variant can be used:</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addAdditiveIndexesForDefinition</span><span class="p">(</span><span class="n">ImmutableSet</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="s2">&quot;index1_name&quot;</span><span class="p">,</span> <span class="s2">&quot;index2_name&quot;</span><span class="p">),</span> <span class="n">new</span> <span class="n">IndexDefinition</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> <span class="p">{{</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addAdditiveIndexesForDefinition</span><span class="p">(</span><span class="n">ImmutableSet</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="s2">&quot;index1_name&quot;</span><span class="p">,</span> <span class="s2">&quot;index2_name&quot;</span><span class="p">),</span> <span class="n">new</span> <span class="n">IndexDefinition</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> <span class="p">{{</span>
     <span class="o">...</span>
 <span class="p">}});</span>
 </pre></div>
@@ -321,42 +321,42 @@ being stored in a given table.</p>
 </div>
 <div class="section" id="table-index-definitions">
 <h2><a class="toc-backref" href="#id4">Table/Index Definitions</a><a class="headerlink" href="#table-index-definitions" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="docutils literal"><span class="pre">TableDefinition</span></code> and <code class="docutils literal"><span class="pre">IndexDefinition</span></code> is often created as an
+<p>The <code class="docutils literal notranslate"><span class="pre">TableDefinition</span></code> and <code class="docutils literal notranslate"><span class="pre">IndexDefinition</span></code> is often created as an
 anonymous class using “double-brace initialization”, which allows for
 more readable code than a conventional builder. Certain initialization
-methods, such as <code class="docutils literal"><span class="pre">javaName()</span></code>, can be called at any time in the
-method, while others, such as <code class="docutils literal"><span class="pre">column()</span></code>, need to be preceded by a
-“state transition” command, such as <code class="docutils literal"><span class="pre">columns()</span></code>. By convention, such
+methods, such as <code class="docutils literal notranslate"><span class="pre">javaName()</span></code>, can be called at any time in the
+method, while others, such as <code class="docutils literal notranslate"><span class="pre">column()</span></code>, need to be preceded by a
+“state transition” command, such as <code class="docutils literal notranslate"><span class="pre">columns()</span></code>. By convention, such
 definitions are broken down into the following sections:</p>
 <ul class="simple">
-<li><strong>Definition Parameters</strong> such as <code class="docutils literal"><span class="pre">javaName()</span></code> define basic
+<li><strong>Definition Parameters</strong> such as <code class="docutils literal notranslate"><span class="pre">javaName()</span></code> define basic
 properties of tables and indexes and are placed at the beginning.</li>
-<li><strong>Row Definitions</strong> such as <code class="docutils literal"><span class="pre">rowComponent()</span></code> define the rows of the
-table. The section is begun with a <code class="docutils literal"><span class="pre">rowName()</span></code> call. A table must
+<li><strong>Row Definitions</strong> such as <code class="docutils literal notranslate"><span class="pre">rowComponent()</span></code> define the rows of the
+table. The section is begun with a <code class="docutils literal notranslate"><span class="pre">rowName()</span></code> call. A table must
 define at least one row component through these methods to be valid.</li>
-<li><strong>Named Column Definitions</strong> such as <code class="docutils literal"><span class="pre">column()</span></code> define the named
-columns of the table. The section is begun with a <code class="docutils literal"><span class="pre">columns()</span></code> call.
+<li><strong>Named Column Definitions</strong> such as <code class="docutils literal notranslate"><span class="pre">column()</span></code> define the named
+columns of the table. The section is begun with a <code class="docutils literal notranslate"><span class="pre">columns()</span></code> call.
 A table can have a named column section or a dynamic column section,
 but not both.</li>
-<li><strong>Dynamic Column Definitions</strong> such as <code class="docutils literal"><span class="pre">columnComponent()</span></code> define
+<li><strong>Dynamic Column Definitions</strong> such as <code class="docutils literal notranslate"><span class="pre">columnComponent()</span></code> define
 the dynamic columns of the table. The section is begun with a
-<code class="docutils literal"><span class="pre">dynamicColumns()</span></code> call. A table can have a named column section or
+<code class="docutils literal notranslate"><span class="pre">dynamicColumns()</span></code> call. A table can have a named column section or
 a dynamic column section, but not both.</li>
-<li><strong>Enabling the V2 Table API</strong> by setting the <code class="docutils literal"><span class="pre">enableV2Table()</span></code> flag.
+<li><strong>Enabling the V2 Table API</strong> by setting the <code class="docutils literal notranslate"><span class="pre">enableV2Table()</span></code> flag.
 This would generate an additional table class with some easy to use functions such as
-<code class="docutils literal"><span class="pre">putColumn(key,</span> <span class="pre">value)</span></code>, <code class="docutils literal"><span class="pre">getColumn(key)</span></code>, <code class="docutils literal"><span class="pre">deleteColumn(key)</span></code>.
+<code class="docutils literal notranslate"><span class="pre">putColumn(key,</span> <span class="pre">value)</span></code>, <code class="docutils literal notranslate"><span class="pre">getColumn(key)</span></code>, <code class="docutils literal notranslate"><span class="pre">deleteColumn(key)</span></code>.
 We only provide these methods for named columns, and don’t currently support dynamic columns.</li>
-<li><strong>Constraint Definitions</strong> such as <code class="docutils literal"><span class="pre">tableConstraint()</span></code> define
+<li><strong>Constraint Definitions</strong> such as <code class="docutils literal notranslate"><span class="pre">tableConstraint()</span></code> define
 constraints on the table (such as foreign key relations). The section
-is begun with a <code class="docutils literal"><span class="pre">constraints()</span></code> call. This section is optional.</li>
-<li><strong>Behavioral Parameters</strong> such as <code class="docutils literal"><span class="pre">conflictHandler()</span></code> define the
+is begun with a <code class="docutils literal notranslate"><span class="pre">constraints()</span></code> call. This section is optional.</li>
+<li><strong>Behavioral Parameters</strong> such as <code class="docutils literal notranslate"><span class="pre">conflictHandler()</span></code> define the
 behavior of the table during run-time. This includes allowed queries,
 performance optimizations, and concurrency strategies, among others.
 This section is usually at the end.</li>
 </ul>
 <div class="section" id="definition-parameters">
 <h3>Definition Parameters<a class="headerlink" href="#definition-parameters" title="Permalink to this headline">¶</a></h3>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">javaTableName</span><span class="p">(</span><span class="n">String</span> <span class="n">name</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">javaTableName</span><span class="p">(</span><span class="n">String</span> <span class="n">name</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>This method specifies the name of the table to be used in generated java
@@ -366,16 +366,16 @@ will be derived by converting the table’s AtlasDB name from snake_case
 to CamelCase.</p>
 <div class="section" id="logging-parameters">
 <h4>Logging Parameters<a class="headerlink" href="#logging-parameters" title="Permalink to this headline">¶</a></h4>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">tableNameLogSafety</span><span class="p">(</span><span class="n">LogSafety</span> <span class="n">logSafety</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">tableNameLogSafety</span><span class="p">(</span><span class="n">LogSafety</span> <span class="n">logSafety</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>If called, this marks the table name as either safe or unsafe
 for logging, depending on the argument passed. When AtlasDB logs
-a table reference for this table, this will be logged as a <code class="docutils literal"><span class="pre">SafeArg</span></code>
-or <code class="docutils literal"><span class="pre">UnsafeArg</span></code> respectively, following the Palantir
+a table reference for this table, this will be logged as a <code class="docutils literal notranslate"><span class="pre">SafeArg</span></code>
+or <code class="docutils literal notranslate"><span class="pre">UnsafeArg</span></code> respectively, following the Palantir
 <a class="reference external" href="https://github.com/palantir/safe-logging">safe-logging</a> library.</p>
 <p>If this is not specified, the table name defaults as UNSAFE.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">namedComponentsSafeByDefault</span><span class="p">();</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">namedComponentsSafeByDefault</span><span class="p">();</span>
 </pre></div>
 </div>
 <p>If called, then row components and named columns that are subsequently
@@ -384,40 +384,40 @@ specifically indicated as unsafe. By default, row components and named
 columns are assumed unsafe unless specifically indicated as safe.</p>
 <p>Note that specifying named components as safe by default does not
 also make the table name considered safe.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">allSafeForLoggingByDefault</span><span class="p">();</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">allSafeForLoggingByDefault</span><span class="p">();</span>
 </pre></div>
 </div>
 <p>If called, this marks the table name as safe, and all named components as
 safe unless they are explicitly marked as unsafe. Note that an exception
-will be thrown if this method is called alongside <code class="docutils literal"><span class="pre">tableNameLogSafety(LogSafety.UNSAFE)</span></code>;
+will be thrown if this method is called alongside <code class="docutils literal notranslate"><span class="pre">tableNameLogSafety(LogSafety.UNSAFE)</span></code>;
 to achieve that effect (table names unsafe, but all row/column components safe),
-please use <code class="docutils literal"><span class="pre">namedComponentsSafeByDefault()</span></code> instead.</p>
+please use <code class="docutils literal notranslate"><span class="pre">namedComponentsSafeByDefault()</span></code> instead.</p>
 </div>
 <div class="section" id="index-specific-parameters">
 <h4>Index-specific Parameters<a class="headerlink" href="#index-specific-parameters" title="Permalink to this headline">¶</a></h4>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">onTable</span><span class="p">(</span><span class="n">String</span> <span class="n">name</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">onTable</span><span class="p">(</span><span class="n">String</span> <span class="n">name</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>This method specifies the AtlasDB name of the table which this index
 definition will derive its data from. This method is required for all
 IndexDefinitions.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">onCondition</span><span class="p">(</span><span class="n">String</span> <span class="n">sourceColumn</span><span class="p">,</span> <span class="n">String</span> <span class="n">booleanExpression</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">onCondition</span><span class="p">(</span><span class="n">String</span> <span class="n">sourceColumn</span><span class="p">,</span> <span class="n">String</span> <span class="n">booleanExpression</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>Optional parameter. Specifies that only rows which satisfy the specified
 boolean expression on the specified source column will be added to the
 index. The source column must be a valid component name from the source
 table, and the boolean expression must be a valid java expression, with
-<code class="docutils literal"><span class="pre">_value</span></code> denoting the value of the source column.</p>
+<code class="docutils literal notranslate"><span class="pre">_value</span></code> denoting the value of the source column.</p>
 </div>
 </div>
 <div class="section" id="row-definitions">
 <h3>Row Definitions<a class="headerlink" href="#row-definitions" title="Permalink to this headline">¶</a></h3>
-<p>Each row is uniquely identified by its <code class="docutils literal"><span class="pre">rowName</span></code>. Each <code class="docutils literal"><span class="pre">rowName</span></code> is
-composed of at least one <code class="docutils literal"><span class="pre">rowComponent</span></code>. Therefore each row is
-uniquely identified by the permutation of its <code class="docutils literal"><span class="pre">rowComponent</span></code> values.
+<p>Each row is uniquely identified by its <code class="docutils literal notranslate"><span class="pre">rowName</span></code>. Each <code class="docutils literal notranslate"><span class="pre">rowName</span></code> is
+composed of at least one <code class="docutils literal notranslate"><span class="pre">rowComponent</span></code>. Therefore each row is
+uniquely identified by the permutation of its <code class="docutils literal notranslate"><span class="pre">rowComponent</span></code> values.
 Order matters. For example,</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
     <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;object_id&quot;</span><span class="p">,</span>           <span class="n">ValueType</span><span class="o">.</span><span class="n">FIXED_LONG</span><span class="p">);</span>
     <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;group_id&quot;</span><span class="p">,</span>            <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span> <span class="n">partition</span><span class="p">(</span><span class="n">GROUP_PARTITIONER</span><span class="p">);</span>
     <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;fragment_version_id&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span>
@@ -426,20 +426,20 @@ Order matters. For example,</p>
 <p>This means that each row in this table is uniquely identified by a
 3-tuple consisting of an object ID, a group ID, and a fragment version
 ID.</p>
-<p>Only the last <code class="docutils literal"><span class="pre">rowComponent</span></code> of a <code class="docutils literal"><span class="pre">rowName</span></code> can be set to
-<code class="docutils literal"><span class="pre">ValueType.STRING</span></code> or to <code class="docutils literal"><span class="pre">ValueType.BLOB</span></code> because values of these
+<p>Only the last <code class="docutils literal notranslate"><span class="pre">rowComponent</span></code> of a <code class="docutils literal notranslate"><span class="pre">rowName</span></code> can be set to
+<code class="docutils literal notranslate"><span class="pre">ValueType.STRING</span></code> or to <code class="docutils literal notranslate"><span class="pre">ValueType.BLOB</span></code> because values of these
 types do not explicitly or implicitly track their own size. If you need
-a <code class="docutils literal"><span class="pre">rowComponent</span></code> other than the last one to be a string or a byte
-array, use <code class="docutils literal"><span class="pre">ValueType.VAR_STRING</span></code> or <code class="docutils literal"><span class="pre">ValueType.SIZED_BLOB</span></code> instead.
+a <code class="docutils literal notranslate"><span class="pre">rowComponent</span></code> other than the last one to be a string or a byte
+array, use <code class="docutils literal notranslate"><span class="pre">ValueType.VAR_STRING</span></code> or <code class="docutils literal notranslate"><span class="pre">ValueType.SIZED_BLOB</span></code> instead.
 See the ValueTypes section for more information</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">rowComponent</span><span class="p">(</span><span class="n">String</span> <span class="n">componentName</span><span class="p">,</span> <span class="n">ValueType</span> <span class="n">valueType</span><span class="p">,</span> <span class="n">ValueByteOrder</span> <span class="n">valueByteOrder</span> <span class="o">=</span> <span class="n">ValueByteOrder</span><span class="o">.</span><span class="n">ASCENDING</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">rowComponent</span><span class="p">(</span><span class="n">String</span> <span class="n">componentName</span><span class="p">,</span> <span class="n">ValueType</span> <span class="n">valueType</span><span class="p">,</span> <span class="n">ValueByteOrder</span> <span class="n">valueByteOrder</span> <span class="o">=</span> <span class="n">ValueByteOrder</span><span class="o">.</span><span class="n">ASCENDING</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>By default, all rows are stored in ascending byte order. This means
 range results are iterated in ascending order. If you need to access
-rows in reverse order, then adding the <code class="docutils literal"><span class="pre">ValueByteOrder.DESCENDING</span></code>
+rows in reverse order, then adding the <code class="docutils literal notranslate"><span class="pre">ValueByteOrder.DESCENDING</span></code>
 argument will store them in descending order instead.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">rowComponent</span><span class="p">(</span><span class="n">String</span> <span class="n">componentName</span><span class="p">,</span> <span class="n">ValueType</span> <span class="n">valueType</span><span class="p">,</span> <span class="n">ValueByteOrder</span> <span class="n">valueByteOrder</span><span class="p">,</span> <span class="n">LogSafety</span> <span class="n">logSafety</span> <span class="o">=</span> <span class="n">LogSafety</span><span class="o">.</span><span class="n">UNSAFE</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">rowComponent</span><span class="p">(</span><span class="n">String</span> <span class="n">componentName</span><span class="p">,</span> <span class="n">ValueType</span> <span class="n">valueType</span><span class="p">,</span> <span class="n">ValueByteOrder</span> <span class="n">valueByteOrder</span><span class="p">,</span> <span class="n">LogSafety</span> <span class="n">logSafety</span> <span class="o">=</span> <span class="n">LogSafety</span><span class="o">.</span><span class="n">UNSAFE</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>You may also identify a row component as being explicitly safe or unsafe
@@ -454,18 +454,18 @@ then partitioned according to the row component ranges; rows which fall
 into the same partition are stored in the same server shard. Performance
 is optimized by putting rows often accessed together in the same
 partition, while spreading rows equally across all partitions.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">partition</span><span class="p">(</span><span class="n">RowNamePartitioner</span><span class="o">...</span> <span class="n">partitioners</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">partition</span><span class="p">(</span><span class="n">RowNamePartitioner</span><span class="o">...</span> <span class="n">partitioners</span><span class="p">);</span>
 
 <span class="n">public</span> <span class="n">ExplicitRowNamePartitioner</span> <span class="n">explicit</span><span class="p">(</span><span class="n">String</span><span class="o">...</span> <span class="n">componentValues</span><span class="p">);</span>
 <span class="n">public</span> <span class="n">ExplicitRowNamePartitioner</span> <span class="n">explicit</span><span class="p">(</span><span class="n">long</span><span class="o">...</span> <span class="n">componentValues</span><span class="p">);</span>
 <span class="n">public</span> <span class="n">UniformRowNamePartitioner</span> <span class="n">uniform</span><span class="p">();</span>
 </pre></div>
 </div>
-<p>By default, all row components use <code class="docutils literal"><span class="pre">partition(uniform())</span></code>. If however,
+<p>By default, all row components use <code class="docutils literal notranslate"><span class="pre">partition(uniform())</span></code>. If however,
 certain values are certain to be stored/access very often (the group ids
 of the objects, in the above example), they can have partitions
-explicitly created for them by specifying <code class="docutils literal"><span class="pre">explicit(...)</span></code>. Note that
-use of <code class="docutils literal"><span class="pre">partition()</span></code> assumes the order storage of rows; if there is no
+explicitly created for them by specifying <code class="docutils literal notranslate"><span class="pre">explicit(...)</span></code>. Note that
+use of <code class="docutils literal notranslate"><span class="pre">partition()</span></code> assumes the order storage of rows; if there is no
 good way to partition the rows uniformly and range requests are not
 needed, then hashing the first (or first-N) row components of
 your table would likely be a good idea.</p>
@@ -476,8 +476,8 @@ table is used by the partitioner to distribute data across the cluster.
 To avoid hot-spotting, the type of the first row component should NOT be
 a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.</p>
 </div>
-<p>For a safe data distribution the usage of <code class="docutils literal"><span class="pre">hashFirstRowComponent()</span></code> is suggested.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
+<p>For a safe data distribution the usage of <code class="docutils literal notranslate"><span class="pre">hashFirstRowComponent()</span></code> is suggested.</p>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
     <span class="n">hashFirstRowComponent</span><span class="p">();</span>
     <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;secondary_row_component_of_any_type&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span>
 </pre></div>
@@ -485,8 +485,8 @@ a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.</p>
 <p>Also, in the event that the first row component may not be sufficient for even
 distribution (e.g. it has low cardinality and an uneven distribution, but subsequent
 components are more varied), AtlasDB also offers hashing a prefix of the row key, via
-<code class="docutils literal"><span class="pre">hashFirstNRowComponents(int)</span></code>. This is useful, for instance, in stream stores.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
+<code class="docutils literal notranslate"><span class="pre">hashFirstNRowComponents(int)</span></code>. This is useful, for instance, in stream stores.</p>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
     <span class="n">hashFirstNRowComponents</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
     <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;first_component_not_evenly_distributed&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span>
     <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;second_component_fairly_distributed&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">UUID</span><span class="p">);</span>
@@ -501,7 +501,7 @@ the table.</p>
 <h3>Table Named Columns<a class="headerlink" href="#table-named-columns" title="Permalink to this headline">¶</a></h3>
 <p>For tables using the named columns layout, the column name and value
 type referenced by each column is specified by a single command.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span>public void column(String columnName, String shortName, ValueType valueType)
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span>public void column(String columnName, String shortName, ValueType valueType)
 public void column(String columnName, String shortName, Class&lt;?&gt; protoOrPersistable, Compression compression = Compression.NONE)
 public void column(String columnName, String shortName, Class&lt;?&gt; protoOrPersistable, Compression compression, LogSafety logSafety = LogSafety.UNSAFE)
 </pre></div>
@@ -514,7 +514,7 @@ as any protobuffer class or Persistable. AtlasDB will handle serializing
 and deserializing the proto/persistable to and from its byte array
 representation, and will optionally also compress the byte array to save
 space using the method you specify. Columns can not be overloaded with
-multiple types - each <code class="docutils literal"><span class="pre">column()</span></code> call must contain unique column names
+multiple types - each <code class="docutils literal notranslate"><span class="pre">column()</span></code> call must contain unique column names
 and short names.</p>
 <p>Also, you may explicitly identify the name of this column to be safe or
 unsafe for logging. We don’t currently support having different safety
@@ -523,7 +523,7 @@ levels for the column name and the short name.
 the table was set to default components as being safe.)</p>
 <p>If instead you don’t need a row to have multiple columns and all
 table information can be encapsulated in the row components, then the
-section can instead be specified with <code class="docutils literal"><span class="pre">noColumns()</span></code>, which defines the
+section can instead be specified with <code class="docutils literal notranslate"><span class="pre">noColumns()</span></code>, which defines the
 table to contain a single column “exists” with short name “e” and value
 type VAR_LONG (always zero).</p>
 </div>
@@ -532,7 +532,7 @@ type VAR_LONG (always zero).</p>
 <p>For dynamic columns, the name-value components that make up the column
 and the value type referenced by columns are specified by separate
 commands.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">columnComponent</span><span class="p">(</span><span class="n">String</span> <span class="n">componentName</span><span class="p">,</span> <span class="n">ValueType</span> <span class="n">valueType</span><span class="p">,</span> <span class="n">ValueByteOrder</span> <span class="n">byteOrder</span> <span class="o">=</span> <span class="n">ValueByteOrder</span><span class="o">.</span><span class="n">ASCENDING</span><span class="p">)</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">columnComponent</span><span class="p">(</span><span class="n">String</span> <span class="n">componentName</span><span class="p">,</span> <span class="n">ValueType</span> <span class="n">valueType</span><span class="p">,</span> <span class="n">ValueByteOrder</span> <span class="n">byteOrder</span> <span class="o">=</span> <span class="n">ValueByteOrder</span><span class="o">.</span><span class="n">ASCENDING</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Each column component is made up of a component name (specified in
@@ -542,14 +542,14 @@ partitioned and ordered. The order of the column component calls is the
 order in which the components will be stored together. Since dyanmic
 columns of a row are retrieved in byte order, this means column
 component ordering determines sort ordering for retrieval.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span>public void value(ValueType valueType)
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span>public void value(ValueType valueType)
 public void value(Class&lt;? extends AbstractMessage&gt; proto, Compression compression = Compression.NONE)
 </pre></div>
 </div>
 <p>Every dynamic column will also have a value associated with it, which
 can be a primitive ValueType or protobuf (optionally compressed).</p>
 <p>If values are not needed for the table, specifying
-<code class="docutils literal"><span class="pre">value(ValueType.VAR_LONG)</span></code> and <code class="docutils literal"><span class="pre">maxValueSize(1)</span></code> is conventional.
+<code class="docutils literal notranslate"><span class="pre">value(ValueType.VAR_LONG)</span></code> and <code class="docutils literal notranslate"><span class="pre">maxValueSize(1)</span></code> is conventional.
 The max value size command is a performance hint for AtlasDB.</p>
 </div>
 <div class="section" id="index-rows-and-columns">
@@ -559,10 +559,10 @@ since their components must be primitive value-types derived from the
 pre-existing components of a table. All index definitions also do not
 get a choice between named and dynamic column types: If the index is
 defined with columns, then it is dynamic; if defined without columns,
-this it is named with an implicit <code class="docutils literal"><span class="pre">noColumns()</span></code>.</p>
-<p>Both the <code class="docutils literal"><span class="pre">rowName()</span></code> and <code class="docutils literal"><span class="pre">dynamicColumns()</span></code> sections use the same
+this it is named with an implicit <code class="docutils literal notranslate"><span class="pre">noColumns()</span></code>.</p>
+<p>Both the <code class="docutils literal notranslate"><span class="pre">rowName()</span></code> and <code class="docutils literal notranslate"><span class="pre">dynamicColumns()</span></code> sections use the same
 methods to define their components:</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">componentFromRow</span><span class="p">(</span><span class="n">String</span> <span class="n">componentName</span><span class="p">,</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">componentFromRow</span><span class="p">(</span><span class="n">String</span> <span class="n">componentName</span><span class="p">,</span>
                              <span class="n">ValueType</span> <span class="n">valueType</span><span class="p">,</span>
                              <span class="n">ValueByteOrder</span> <span class="n">byteOrder</span> <span class="o">=</span> <span class="n">ValueByteOrder</span><span class="o">.</span><span class="n">ASCENDING</span><span class="p">,</span>
                              <span class="n">String</span> <span class="n">sourceComponentName</span> <span class="o">=</span> <span class="n">componentName</span><span class="p">);</span>
@@ -589,18 +589,18 @@ same column.</p>
 access value” argument is required. This argument allows value-type
 index components to be extracted from more complicated protobuf or
 serializable column components. The argument must be a valid java source
-code expression, where <code class="docutils literal"><span class="pre">_value</span></code> is the value of the table component.</p>
-<p>For the row definitions section, each <code class="docutils literal"><span class="pre">componentFromRow</span></code> call can be
-succeeded by a <code class="docutils literal"><span class="pre">partitioner()</span></code> call, in the exact same manner as for
+code expression, where <code class="docutils literal notranslate"><span class="pre">_value</span></code> is the value of the table component.</p>
+<p>For the row definitions section, each <code class="docutils literal notranslate"><span class="pre">componentFromRow</span></code> call can be
+succeeded by a <code class="docutils literal notranslate"><span class="pre">partitioner()</span></code> call, in the exact same manner as for
 table rows. For more information, see the Partitioners subsection of
 Table Rows.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p>Internally, index rows are stored including a reference to the source column,
 but this is stripped out in the generated code before being returned to the user.
-Thus, if one uses a <code class="docutils literal"><span class="pre">List</span></code> of results returned from an index table (e.g. through <code class="docutils literal"><span class="pre">getRowColumns</span></code>,
+Thus, if one uses a <code class="docutils literal notranslate"><span class="pre">List</span></code> of results returned from an index table (e.g. through <code class="docutils literal notranslate"><span class="pre">getRowColumns</span></code>,
 one may encounter multiple values that appear to be the same). The standard workaround is to use
-a <code class="docutils literal"><span class="pre">Set</span></code> to deduplicate the results.</p>
+a <code class="docutils literal notranslate"><span class="pre">Set</span></code> to deduplicate the results.</p>
 <p class="last">Please see discussion on <a class="reference external" href="https://github.com/palantir/atlasdb/issues/604">issue 604</a> for more details
 regarding this behaviour.</p>
 </div>
@@ -616,7 +616,7 @@ be defined: Foreign key constraints, table constraints, and row
 constraints. Note however, that these constraints are used mostly for
 staging and debugging environments only and will usually not be enabled
 in production due to their sometimes prohibitive performance costs.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">foreignKeyConstraint</span><span class="p">(</span><span class="n">ForeignKeyConstraingMetadata</span> <span class="n">constraint</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">foreignKeyConstraint</span><span class="p">(</span><span class="n">ForeignKeyConstraingMetadata</span> <span class="n">constraint</span><span class="p">);</span>
 <span class="n">public</span> <span class="n">void</span> <span class="n">tableConstraint</span><span class="p">(</span><span class="n">TableConstraint</span> <span class="n">constraint</span><span class="p">);</span>
 <span class="n">public</span> <span class="n">void</span> <span class="n">rowConstraint</span><span class="p">(</span><span class="n">RowConstraintMetadata</span> <span class="n">constraint</span><span class="p">);</span>
 </pre></div>
@@ -636,23 +636,23 @@ components must contain the same value.</li>
 </div>
 <div class="section" id="behavioral-parameters">
 <h3>Behavioral Parameters<a class="headerlink" href="#behavioral-parameters" title="Permalink to this headline">¶</a></h3>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">conflictHandler</span><span class="p">(</span><span class="n">ConflictHandler</span> <span class="n">handler</span> <span class="o">=</span> <span class="n">ConflictHandler</span><span class="o">.</span><span class="n">RETRY_ON_WRITE_WRITE</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">conflictHandler</span><span class="p">(</span><span class="n">ConflictHandler</span> <span class="n">handler</span> <span class="o">=</span> <span class="n">ConflictHandler</span><span class="o">.</span><span class="n">RETRY_ON_WRITE_WRITE</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>The conflict handler parameter specifies the MVCC transaction semantics
 for the table.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">cachePriority</span><span class="p">(</span><span class="n">CachePriority</span> <span class="n">priority</span> <span class="o">=</span> <span class="n">CachePriority</span><span class="o">.</span><span class="n">WARM</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">cachePriority</span><span class="p">(</span><span class="n">CachePriority</span> <span class="n">priority</span> <span class="o">=</span> <span class="n">CachePriority</span><span class="o">.</span><span class="n">WARM</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>Specifies the retention policy for caching AtlasDB queries and their
 results. Values are <strong>COLDEST, COLD, WARM, HOT, HOTTEST.</strong> The hotter
 the setting, the more queries and the longer they are stored.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">dbCompressionRequested</span><span class="p">();</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">dbCompressionRequested</span><span class="p">();</span>
 </pre></div>
 </div>
 <p>Cassandra only - specifies whether the table should be stored
 compressed.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">rangeScanAllowed</span><span class="p">();</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">rangeScanAllowed</span><span class="p">();</span>
 </pre></div>
 </div>
 <p>Specifies whether a table should be allowed to have range scans
@@ -662,13 +662,13 @@ conducted on its rows.</p>
 <p class="last">If this option is not selected, you will
 not be able to use the <strong>getRange</strong> operation against your table!</p>
 </div>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">negativeLookups</span><span class="p">();</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">negativeLookups</span><span class="p">();</span>
 </pre></div>
 </div>
 <p>Cassandra only - if certain queries are expected to regularly search for
 non-existent rows, this will have cassandra create bloom filters on the
 rows to speed up the search.</p>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">maxValueSize</span><span class="p">(</span><span class="nb">int</span> <span class="n">size</span><span class="p">);</span>
+<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">maxValueSize</span><span class="p">(</span><span class="nb">int</span> <span class="n">size</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>Performance hint - specifies the size in bytes of the largest value

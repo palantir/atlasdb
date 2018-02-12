@@ -204,7 +204,7 @@
 </div>
 <div class="section" id="context">
 <span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
-<p>As of version 0.35.0 , our implementation of <code class="docutils literal"><span class="pre">DbKvs.getTimestampsByCell</span></code> was creating a MultiMap with all pairs of
+<p>As of version 0.35.0 , our implementation of <code class="docutils literal notranslate"><span class="pre">DbKvs.getTimestampsByCell</span></code> was creating a MultiMap with all pairs of
 (Cell, timestamp) from the range determined by the row batch size. In case of wide rows, or simply a row batch size
 that is too large, this could cause us to run out of memory; see <a class="reference external" href="https://github.com/palantir/atlasdb/issues/982">issue #982</a>.</p>
 </div>
@@ -223,7 +223,7 @@ the last cell processed, effectively splitting the wide row into several RowResu
 </ol>
 <p>Example:
 Assuming a batch size of 10 and the following table</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span>            <span class="mi">1</span>          <span class="o">|</span>          <span class="mi">2</span>         <span class="o">|</span>     <span class="mi">3</span>     <span class="o">|</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>            <span class="mi">1</span>          <span class="o">|</span>          <span class="mi">2</span>         <span class="o">|</span>     <span class="mi">3</span>     <span class="o">|</span>
   <span class="o">|</span> <span class="o">------------------</span> <span class="o">|</span> <span class="o">------------------</span> <span class="o">|</span> <span class="o">---------</span> <span class="o">|</span>
 <span class="mi">1</span> <span class="o">|</span>     <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>      <span class="o">|</span>      <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>     <span class="o">|</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span> <span class="o">|</span>
 <span class="mi">2</span> <span class="o">|</span>    <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>    <span class="o">|</span>    <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>    <span class="o">|</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span> <span class="o">|</span>
@@ -258,7 +258,7 @@ In particular, there needs to be retry logic that detects that an error was thro
 </div>
 <div class="section" id="consequences">
 <span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
-<p>For rows wider than the value of the batch size, <code class="docutils literal"><span class="pre">DbKvs.getTimestampsByCell</span></code> may split them into several RowResults.</p>
+<p>For rows wider than the value of the batch size, <code class="docutils literal notranslate"><span class="pre">DbKvs.getTimestampsByCell</span></code> may split them into several RowResults.</p>
 </div>
 </div>
 

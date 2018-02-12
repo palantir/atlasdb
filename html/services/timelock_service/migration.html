@@ -215,11 +215,11 @@ Otherwise, this can lead to serious data corruption.</p>
 smoke tests of your clients and checking that they still work, there are a few other ways of checking that the
 migration occurred correctly.</p>
 <ol class="arabic">
-<li><p class="first"><strong>Request Logs</strong>: Find the TimeLock leader, and search its request logs for calls to the <code class="docutils literal"><span class="pre">fastForwardTimestamp</span></code>
-endpoint. These should be called with a <code class="docutils literal"><span class="pre">currentTimestamp</span></code> query parameter, which should be the bound in the
+<li><p class="first"><strong>Request Logs</strong>: Find the TimeLock leader, and search its request logs for calls to the <code class="docutils literal notranslate"><span class="pre">fastForwardTimestamp</span></code>
+endpoint. These should be called with a <code class="docutils literal notranslate"><span class="pre">currentTimestamp</span></code> query parameter, which should be the bound in the
 embedded timestamp bound store before the migration.</p>
-<p>This bound should be noted down before an upgrade, perhaps with <code class="docutils literal"><span class="pre">cqlsh</span></code> or other interface to the DB:</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>cqlsh&gt; USE keyspace;
+<p>This bound should be noted down before an upgrade, perhaps with <code class="docutils literal notranslate"><span class="pre">cqlsh</span></code> or other interface to the DB:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cqlsh&gt; USE keyspace;
 cqlsh:keyspace&gt; SELECT * FROM &quot;_timestamp&quot;;
 
  key    | column1 | column2 | value
@@ -228,15 +228,15 @@ cqlsh:keyspace&gt; SELECT * FROM &quot;_timestamp&quot;;
 </pre></div>
 </div>
 <p>Otherwise, if using Cassandra we can attempt to determine this bound, by finding the most recent occurrence of
-<code class="docutils literal"><span class="pre">[CAS]</span> <span class="pre">Setting</span> <span class="pre">cached</span> <span class="pre">limit</span> <span class="pre">to</span> <span class="pre">{}.</span></code> in the AtlasDB client logs (across all AtlasDB clients). Note that this is
+<code class="docutils literal notranslate"><span class="pre">[CAS]</span> <span class="pre">Setting</span> <span class="pre">cached</span> <span class="pre">limit</span> <span class="pre">to</span> <span class="pre">{}.</span></code> in the AtlasDB client logs (across all AtlasDB clients). Note that this is
 logged at INFO level by the <a class="reference internal" href="../../configuration/logging.html#debug-logging"><span class="std std-ref">DebugLogger</span></a>, so if you have directed that to a separate
 appender you will need to search in those logs instead.</p>
 </li>
 <li><p class="first"><strong>Key-Value Service table state</strong>: Check the state of the key-value service. For Cassandra, you should expect
-to see two rows: <code class="docutils literal"><span class="pre">oldTs</span></code> (the backed up value of the timestamp bound) and
-<code class="docutils literal"><span class="pre">ts</span></code> (a bogus one byte array indicating that the timestamp table has been invalidated). The <code class="docutils literal"><span class="pre">oldTs</span></code> value
-should match the <code class="docutils literal"><span class="pre">currentTimestamp</span></code> values in the request logs.</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>cqlsh&gt; USE keyspace;
+to see two rows: <code class="docutils literal notranslate"><span class="pre">oldTs</span></code> (the backed up value of the timestamp bound) and
+<code class="docutils literal notranslate"><span class="pre">ts</span></code> (a bogus one byte array indicating that the timestamp table has been invalidated). The <code class="docutils literal notranslate"><span class="pre">oldTs</span></code> value
+should match the <code class="docutils literal notranslate"><span class="pre">currentTimestamp</span></code> values in the request logs.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cqlsh&gt; USE keyspace;
 cqlsh:keyspace&gt; SELECT * FROM &quot;_timestamp&quot;;
 
  key    | column1      | column2 | value
@@ -246,13 +246,13 @@ cqlsh:keyspace&gt; SELECT * FROM &quot;_timestamp&quot;;
 </pre></div>
 </div>
 <p>We store timestamps as blobs in Cassandra, but the entry in the request logs is in decimal. One way of checking
-they are equal is by converting the <code class="docutils literal"><span class="pre">oldTs</span></code> value to decimal through the shell:</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>$ echo $((0x0001020304050607))
+they are equal is by converting the <code class="docutils literal notranslate"><span class="pre">oldTs</span></code> value to decimal through the shell:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ echo $((0x0001020304050607))
 283686952306183
 </pre></div>
 </div>
 </li>
-<li><p class="first"><strong>AtlasDB Client Logs</strong>: Search for <code class="docutils literal"><span class="pre">[BACKUP]</span> <span class="pre">Backed</span> <span class="pre">up</span> <span class="pre">the</span> <span class="pre">value</span> <span class="pre">{}</span></code> in the AtlasDB client logs. This should
+<li><p class="first"><strong>AtlasDB Client Logs</strong>: Search for <code class="docutils literal notranslate"><span class="pre">[BACKUP]</span> <span class="pre">Backed</span> <span class="pre">up</span> <span class="pre">the</span> <span class="pre">value</span> <span class="pre">{}</span></code> in the AtlasDB client logs. This should
 occur precisely once, and the value should match that as retrieved by the aforementioned methods.</p>
 </li>
 </ol>

@@ -203,7 +203,7 @@ Detailed documentation is <a class="reference internal" href="../../configuratio
 <cite>com.palantir.atlasdb.qos.metrics.QosMetrics.rowsWritten</cite>
 <cite>com.palantir.atlasdb.qos.metrics.QosMetrics.backoffTime</cite>
 <cite>com.palantir.atlasdb.qos.metrics.QosMetrics.throttleExceptions</cite></div></blockquote>
-<p>A client should ideally look at the historical values of the <code class="docutils literal"><span class="pre">bytesRead</span></code> and <code class="docutils literal"><span class="pre">bytesWritten</span></code> metrics to determine the limits.</p>
+<p>A client should ideally look at the historical values of the <code class="docutils literal notranslate"><span class="pre">bytesRead</span></code> and <code class="docutils literal notranslate"><span class="pre">bytesWritten</span></code> metrics to determine the limits.</p>
 <div class="section" id="how-does-qos-rate-limit">
 <h2>How does QoS rate limit?<a class="headerlink" href="#how-does-qos-rate-limit" title="Permalink to this headline">¶</a></h2>
 <p>We are using the standard Java Rate limiter to enforce the rate limiting with some modifications to support adjustment.
@@ -213,10 +213,10 @@ returned less than a 100 bytes) or steal more permits (if the request returned m
 <p>When the client has consumed the permits per second and continues making data requests to Cassandra, soft-limiting can kick in
 causing the requesting thread to wait. This wait time depends on the historical requests and how much extra permits have been
 consumed by the previous requests. However, to prevent client threads from waiting indefinitely, the client can configure the
-<code class="docutils literal"><span class="pre">maxBackoffTime</span></code> and the rate-limiter will not cause a request to wait for more than this time.</p>
-<p>If the requested number of permits cannot be made available within the <code class="docutils literal"><span class="pre">maxBackoffTime</span></code> then the rate-limiter will throw a
-<code class="docutils literal"><span class="pre">RateLimitExceededException</span></code> causing the client request to fail. AtlasDB recommends that clients should map this exception
-to the status code 429 (too many requests) and provides the <code class="docutils literal"><span class="pre">RateLimitExceededExceptionMapper</span></code> that can be registered
+<code class="docutils literal notranslate"><span class="pre">maxBackoffTime</span></code> and the rate-limiter will not cause a request to wait for more than this time.</p>
+<p>If the requested number of permits cannot be made available within the <code class="docutils literal notranslate"><span class="pre">maxBackoffTime</span></code> then the rate-limiter will throw a
+<code class="docutils literal notranslate"><span class="pre">RateLimitExceededException</span></code> causing the client request to fail. AtlasDB recommends that clients should map this exception
+to the status code 429 (too many requests) and provides the <code class="docutils literal notranslate"><span class="pre">RateLimitExceededExceptionMapper</span></code> that can be registered
 by the application server.</p>
 </div>
 </div>

@@ -194,14 +194,14 @@
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">In general, caution should be used when using Fast Forward, especially with user input data (since fast forwarding
-to <code class="docutils literal"><span class="pre">Long.MAX_VALUE</span></code> will cause the AtlasDB cluster to become corrupted and require complex manual recovery).</p>
+to <code class="docutils literal notranslate"><span class="pre">Long.MAX_VALUE</span></code> will cause the AtlasDB cluster to become corrupted and require complex manual recovery).</p>
 </div>
 <p>There may be instances where we need to fast forward the Timestamp Service - that is, ensure that all timestamps
 given out by the Timestamp Service are after a certain timestamp. Examples include restoring an AtlasDB cluster
 from a backup, or migrating an existing cluster from embedded timestamp services to external Timelock services.</p>
 <p>More precisely, the guarantee we offer is that after a fast forward to timestamp TS has returned, future requests sent
 to the Timestamp Service will return a timestamp greater than TS.</p>
-<p>Typically, fast forwards are carried out through the AtlasDB <a class="reference internal" href="../../cluster_management/clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a>, or through the <code class="docutils literal"><span class="pre">fast-forward</span></code> endpoint
+<p>Typically, fast forwards are carried out through the AtlasDB <a class="reference internal" href="../../cluster_management/clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a>, or through the <code class="docutils literal notranslate"><span class="pre">fast-forward</span></code> endpoint
 on the Timelock Server. Fast forward operates by updating the last known issued timestamp to the maximum of that and
 TS.</p>
 <p>Note that fast forward is idempotent, since we use maximums. Also, fast forwarding to the past is a no-op.</p>

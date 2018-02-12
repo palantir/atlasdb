@@ -192,7 +192,7 @@ tasks as well as help resolve problems encountered during operation.</p>
 <h2>Download The CLI<a class="headerlink" href="#download-the-cli" title="Permalink to this headline">¶</a></h2>
 <p>The CLI now comes prebuilt as an SLS distribution to be used with any AtlasDB-backed product.
 You can find the versions <a class="reference external" href="https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/">here</a> for download.
-You can use the CLI by unpacking the tar ball and running the executable in <code class="docutils literal"><span class="pre">service/bin/atlasdb-cli</span></code>.</p>
+You can use the CLI by unpacking the tar ball and running the executable in <code class="docutils literal notranslate"><span class="pre">service/bin/atlasdb-cli</span></code>.</p>
 </div>
 <div class="section" id="general-cli-options">
 <h2>General CLI Options<a class="headerlink" href="#general-cli-options" title="Permalink to this headline">¶</a></h2>
@@ -209,38 +209,38 @@ You can use the CLI by unpacking the tar ball and running the executable in <cod
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">--config</span></code></td>
-<td>The path to the install config yml file of the service. Usually <code class="docutils literal"><span class="pre">var/conf/install.yml</span></code>.</td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--config</span></code></td>
+<td>The path to the install config yml file of the service. Usually <code class="docutils literal notranslate"><span class="pre">var/conf/install.yml</span></code>.</td>
 <td>Yes</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">--runtime-config</span></code></td>
-<td>The path to the runtime config yml file of the service. Usually <code class="docutils literal"><span class="pre">var/conf/runtime.yml</span></code>. You should always
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--runtime-config</span></code></td>
+<td>The path to the runtime config yml file of the service. Usually <code class="docutils literal notranslate"><span class="pre">var/conf/runtime.yml</span></code>. You should always
 specify one if you have a runtime config file.</td>
 <td>No</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">--inline-config</span></code></td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--inline-config</span></code></td>
 <td>Use it if you want to provide the AtlasDB config as a string/json.
 The config string should immediately follow the option.</td>
 <td>No</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">--config-root</span></code></td>
-<td>The AtlasDB config root for your install config. The CLI will by default look for <code class="docutils literal"><span class="pre">/atlasdb</span></code>/<code class="docutils literal"><span class="pre">/atlas</span></code> blocks in the config, but services can name these blocks arbitrarily.
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--config-root</span></code></td>
+<td>The AtlasDB config root for your install config. The CLI will by default look for <code class="docutils literal notranslate"><span class="pre">/atlasdb</span></code>/<code class="docutils literal notranslate"><span class="pre">/atlas</span></code> blocks in the config, but services can name these blocks arbitrarily.
 This can usually be found by cracking open the install config file and searching for parameters defined in
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java">Atlas Install config</a>.
 The parent of these parameters will be the install config root.
 Note that you have to provide the root with a ‘/’ as the first character.</td>
 <td>No</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">--runtime-config-root</span></code></td>
-<td>The AtlasDB config root for your runtime config. The CLI will by default look for <code class="docutils literal"><span class="pre">/atlasdb</span></code>/<code class="docutils literal"><span class="pre">/atlas</span></code> blocks in the config, but services can name these blocks arbitrarily.
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--runtime-config-root</span></code></td>
+<td>The AtlasDB config root for your runtime config. The CLI will by default look for <code class="docutils literal notranslate"><span class="pre">/atlasdb</span></code>/<code class="docutils literal notranslate"><span class="pre">/atlas</span></code> blocks in the config, but services can name these blocks arbitrarily.
 This can usually be found by cracking open the runtime config file and searching for parameters defined in
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java">Atlas Runtime config</a>.
 The parent of these parameters will be the runtime config root. If you do not have any AtlasDB runtime config,
-you should get rid of the <code class="docutils literal"><span class="pre">runtime-config</span></code> option to the CLI and Atlas will assume the default config.
+you should get rid of the <code class="docutils literal notranslate"><span class="pre">runtime-config</span></code> option to the CLI and Atlas will assume the default config.
 Note that you have to provide the root with a ‘/’ as the first character.</td>
 <td>No</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">--offline</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--offline</span></code></td>
 <td>Some CLIs can only be run in the offline mode. This means that you have to shut down all nodes of the service
 and then pass in this flag to the CLI.</td>
 <td>No</td>
@@ -250,10 +250,10 @@ and then pass in this flag to the CLI.</td>
 </div>
 <div class="section" id="compiling-the-cli">
 <h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this headline">¶</a></h2>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli-distribution:distTar
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli-distribution:distTar
 </pre></div>
 </div>
-<p>This will create a tar file in <code class="docutils literal"><span class="pre">atlasdb-cli-distribution/build/distributions</span></code>, which you can untar on the machine where your AtlasDB client is installed.</p>
+<p>This will create a tar file in <code class="docutils literal notranslate"><span class="pre">atlasdb-cli-distribution/build/distributions</span></code>, which you can untar on the machine where your AtlasDB client is installed.</p>
 </div>
 <div class="section" id="built-in-commands">
 <h2>Built-In Commands<a class="headerlink" href="#built-in-commands" title="Permalink to this headline">¶</a></h2>
@@ -263,20 +263,20 @@ and then pass in this flag to the CLI.</td>
 <p>Sweep old table rows.
 This can be useful for improving performance if having too many dead cells is impacting read times.
 The command allows you to specify a namespace or a specific set of tables.
-For more information, check out <a class="reference internal" href="sweep/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">the sweep CLI documentation</span></a>, or run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">sweep</span></code>.</p>
+For more information, check out <a class="reference internal" href="sweep/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">the sweep CLI documentation</span></a>, or run <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">sweep</span></code>.</p>
 </div>
 <div class="section" id="timestamp">
 <h3>timestamp<a class="headerlink" href="#timestamp" title="Permalink to this headline">¶</a></h3>
-<p>Read or recalculate the immutable timestamp. Run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">timestamp</span></code> for more information.</p>
+<p>Read or recalculate the immutable timestamp. Run <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">timestamp</span></code> for more information.</p>
 </div>
 <div class="section" id="migrate">
 <span id="clis-migrate"></span><h3>migrate<a class="headerlink" href="#migrate" title="Permalink to this headline">¶</a></h3>
 <p>This CLI can help you migrate your AtlasDB client product from one KVS to another.
 You will need to supply two different KVS configurations to the script.
-In the general case you first call <code class="docutils literal"><span class="pre">–-setup</span></code>, then <code class="docutils literal"><span class="pre">-–migrate</span></code>, then <code class="docutils literal"><span class="pre">-–validate</span></code> each time supplying the old and new configurations.</p>
-<p>We currently only support doing KVS migrations offline (using the <code class="docutils literal"><span class="pre">--offline</span></code> flag), so you must shut down your AtlasDB backed service to perform the migration.
-For more information run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">migrate</span></code> for more information.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
+In the general case you first call <code class="docutils literal notranslate"><span class="pre">–-setup</span></code>, then <code class="docutils literal notranslate"><span class="pre">-–migrate</span></code>, then <code class="docutils literal notranslate"><span class="pre">-–validate</span></code> each time supplying the old and new configurations.</p>
+<p>We currently only support doing KVS migrations offline (using the <code class="docutils literal notranslate"><span class="pre">--offline</span></code> flag), so you must shut down your AtlasDB backed service to perform the migration.
+For more information run <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">migrate</span></code> for more information.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
 ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
 ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --validate
 </pre></div>
@@ -287,7 +287,7 @@ The CLI will check and skip past tables that have already been processed.</p>
 <div class="section" id="read-punch-table">
 <h3>read-punch-table<a class="headerlink" href="#read-punch-table" title="Permalink to this headline">¶</a></h3>
 <p>Given an epoch time, in millis, the CLI reads the timestamp added to the punch table right before it.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --config config.yml read-punch-table --epoch
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --config config.yml read-punch-table --epoch
 </pre></div>
 </div>
 </div>
@@ -297,21 +297,21 @@ The CLI will check and skip past tables that have already been processed.</p>
 <p>Due to their potentially destructive nature if run concurrently with active AtlasDB services, there are a number of CLIs which can only be run when AtlasDB is offline. These are:</p>
 <blockquote>
 <div><ul class="simple">
-<li><code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code></li>
-<li><code class="docutils literal"><span class="pre">migrate</span></code></li>
-<li><code class="docutils literal"><span class="pre">timestamp</span> <span class="pre">clean-transactions</span></code></li>
-<li><code class="docutils literal"><span class="pre">timestamp</span> <span class="pre">fast-forward</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">clean-cass-locks-state</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">migrate</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">timestamp</span> <span class="pre">clean-transactions</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">timestamp</span> <span class="pre">fast-forward</span></code></li>
 </ul>
 </div></blockquote>
-<p>To run these CLIs, first ensure that all of your AtlasDB clients are shut down, and then run the CLI with the <code class="docutils literal"><span class="pre">--offline</span></code> flag.</p>
-<p>For example, to run the <code class="docutils literal"><span class="pre">fast-forward</span></code> command with default settings, run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">--offline</span> <span class="pre">-c</span> <span class="pre">&lt;path/to/atlasConfig.yaml&gt;</span> <span class="pre">timestamp</span> <span class="pre">-t</span> <span class="pre">&lt;targetTimestamp&gt;</span> <span class="pre">fast-forward</span></code>.</p>
-<p>The <code class="docutils literal"><span class="pre">--offline</span></code> flag will make the CLI ignore the leader, timestamp, and lock configuration blocks.
+<p>To run these CLIs, first ensure that all of your AtlasDB clients are shut down, and then run the CLI with the <code class="docutils literal notranslate"><span class="pre">--offline</span></code> flag.</p>
+<p>For example, to run the <code class="docutils literal notranslate"><span class="pre">fast-forward</span></code> command with default settings, run <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">--offline</span> <span class="pre">-c</span> <span class="pre">&lt;path/to/atlasConfig.yaml&gt;</span> <span class="pre">timestamp</span> <span class="pre">-t</span> <span class="pre">&lt;targetTimestamp&gt;</span> <span class="pre">fast-forward</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--offline</span></code> flag will make the CLI ignore the leader, timestamp, and lock configuration blocks.
 If using <a class="reference internal" href="../services/timelock_service/index.html#external-timelock-service"><span class="std std-ref">external Timelock Services</span></a>, the Timelock Servers must be up even when running offline CLIs.
 Otherwise, offline CLIs will start an embedded timestamp and lock server.
 Once the CLI has completed, you can resume your AtlasDB clients.</p>
 <div class="section" id="running-commands-without-any-servers-being-up">
 <h3>Running commands without any servers being up<a class="headerlink" href="#running-commands-without-any-servers-being-up" title="Permalink to this headline">¶</a></h3>
-<p>If you want a command to run without any servers being up, you can either use the <code class="docutils literal"><span class="pre">--offline</span></code> flag, or pass in a configuration file without leader, lock, or timestamp blocks.
+<p>If you want a command to run without any servers being up, you can either use the <code class="docutils literal notranslate"><span class="pre">--offline</span></code> flag, or pass in a configuration file without leader, lock, or timestamp blocks.
 Either option will start an embedded timestamp and lock server.
 Note that if you are using external Timelock Services, as stated above we require the Timelock Services to be up when running offline CLIs.
 We do not support running CLIs with Timelock down, as we will not have enough information from the key-value services to determine timestamps.</p>
@@ -319,7 +319,7 @@ We do not support running CLIs with Timelock down, as we will not have enough in
 </div>
 <div class="section" id="writing-your-own">
 <h2>Writing Your Own<a class="headerlink" href="#writing-your-own" title="Permalink to this headline">¶</a></h2>
-<p>You can write a new CLI by extending <code class="docutils literal"><span class="pre">SingleBackendCommand.java</span></code> which
+<p>You can write a new CLI by extending <code class="docutils literal notranslate"><span class="pre">SingleBackendCommand.java</span></code> which
 offers default AtlasDB configuration and connection out of the box.</p>
 </div>
 </div>

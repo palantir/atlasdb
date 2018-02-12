@@ -196,7 +196,7 @@ clean up this old data.</p>
 <p>A Sweeper will run in the background and remove data that is no longer
 needed. It does this by waiting until any read-only transaction would be
 timed out. This is found in
-<code class="docutils literal"><span class="pre">Cleaner.getTransactionReadTimeoutMillis()</span></code> and defaults to 24 hours.
+<code class="docutils literal notranslate"><span class="pre">Cleaner.getTransactionReadTimeoutMillis()</span></code> and defaults to 24 hours.
 The sweeper does a range scan on each table and cleans up old stuff it
 finds.</p>
 <div class="section" id="sentinel-values">
@@ -208,7 +208,7 @@ supposed to stop reading. It may continue reading and we want it to
 throw rather than returning the wrong data. Returning data that
 represents a state of the world that isn’t the snapshot it’s reading
 would totally break the transactional guarantees we want.</p>
-<p>We achieve this by writing an empty byte array at the <code class="docutils literal"><span class="pre">-1</span></code>
+<p>We achieve this by writing an empty byte array at the <code class="docutils literal notranslate"><span class="pre">-1</span></code>
 timestamp called the sentinel value. Then we delete any data we think
 should be cleaned up. Now, if a transaction reads the sentinel value, it
 knows that it is missing data that it should have read. We throw in this
@@ -233,7 +233,7 @@ most_recent_ts, byte[0])</p>
 <h3>SweepStrategy.THOROUGH<a class="headerlink" href="#sweepstrategy-thorough" title="Permalink to this headline">¶</a></h3>
 <p>This sweep mode will clean up sentinel values and also the most recent
 value if it is a delete. This is great for space savings where you have
-a <code class="docutils literal"><span class="pre">CELL_REFERENCING</span></code> index that has a lot of churn.</p>
+a <code class="docutils literal notranslate"><span class="pre">CELL_REFERENCING</span></code> index that has a lot of churn.</p>
 <p>There are 2 main downsides to THOROUGH:</p>
 <ol class="arabic simple">
 <li>Read only transactions are not allowed to read THOROUGH tables. This
@@ -250,16 +250,16 @@ cleaned up stuff you should have read.</li>
 </div>
 <div class="section" id="scrubbing">
 <h2>Scrubbing<a class="headerlink" href="#scrubbing" title="Permalink to this headline">¶</a></h2>
-<p>If a transaction is marked as <code class="docutils literal"><span class="pre">TransactionType.HARD_DELETE</span></code> or
-<code class="docutils literal"><span class="pre">TransactionType.AGGRESSIVE_HARD_DELETE</span></code> all the rows that have been
+<p>If a transaction is marked as <code class="docutils literal notranslate"><span class="pre">TransactionType.HARD_DELETE</span></code> or
+<code class="docutils literal notranslate"><span class="pre">TransactionType.AGGRESSIVE_HARD_DELETE</span></code> all the rows that have been
 written are kept track of in the _scrub table. The scrubber will
 inspect these rows and perform the same type of deletes as sweep, but
 the data will be cleaned up much faster than a sweep which has to do a
 big getRange over everything.</p>
 <div class="section" id="aggressive-hard-delete">
 <h3>AGGRESSIVE_HARD_DELETE<a class="headerlink" href="#aggressive-hard-delete" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">AGGRESSIVE_HARD_DELETE</span></code> will immediately call scrub after the
-transaction is complete within the <code class="docutils literal"><span class="pre">TransactionManager.run*</span></code> call and
+<p><code class="docutils literal notranslate"><span class="pre">AGGRESSIVE_HARD_DELETE</span></code> will immediately call scrub after the
+transaction is complete within the <code class="docutils literal notranslate"><span class="pre">TransactionManager.run*</span></code> call and
 block until these rows are scrubbed. This must block until the
 immutableTimestamp has passed the transaction, so it may take a second.
 This will run all the OnCleanupTasks for the tables affected and block
