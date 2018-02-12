@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |changed|
+         - Upgraded Postgres jdbc driver to 42.2.1 (from 9.4.1209).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2985>`__)
+
     *    - |improved| |new|
          - Added a new parameter ``conservativeRequestExceptionHandler`` to ``CassandraKeyValueServiceRuntimeConfig``.
            Setting this parameter to true will enable more conservative retrying logic for requests, including longer backoffs and not retrying on the same host when encoutering an exception that is indicative of high Cassandra load, e.g., TimeoutExceptions.
