@@ -26,7 +26,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTaskCondition;
 import com.palantir.lock.HeldLocksToken;
 
 public class RefreshableTransactionTaskCondition extends ForwardingObject implements TransactionTaskCondition {
-    private TransactionTaskCondition condition;
+    private volatile TransactionTaskCondition condition;
 
     public RefreshableTransactionTaskCondition(TransactionTaskCondition condition) {
         refresh(condition);

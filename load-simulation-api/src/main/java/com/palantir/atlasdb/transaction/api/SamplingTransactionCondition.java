@@ -36,7 +36,7 @@ public interface SamplingTransactionCondition extends TransactionCondition {
 
     @Value.Default
     default double rate() {
-        return 0.0f;
+        return 0d;
     }
 
     @Value.Check

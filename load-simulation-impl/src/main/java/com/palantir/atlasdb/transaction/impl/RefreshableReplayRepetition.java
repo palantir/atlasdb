@@ -21,7 +21,7 @@ import com.palantir.atlasdb.transaction.api.CapturedTransaction;
 import com.palantir.atlasdb.transaction.api.ReplayRepetition;
 
 public class RefreshableReplayRepetition extends ForwardingObject implements ReplayRepetition {
-    private ReplayRepetition repetition;
+    private volatile ReplayRepetition repetition;
 
     public RefreshableReplayRepetition(ReplayRepetition repetition) {
         refresh(repetition);
