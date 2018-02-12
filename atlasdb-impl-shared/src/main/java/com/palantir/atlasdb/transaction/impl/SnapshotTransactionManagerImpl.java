@@ -37,6 +37,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -114,6 +115,56 @@ class SnapshotTransactionManagerImpl extends AbstractTransactionManager implemen
         return numTimesFailed > NUM_RETRIES;
     }
 
+    public <C extends PreCommitCondition, E extends Exception> ServiceWriteTransaction getWriteTransaction(C condition)
+            throws E {
+        checkOpen();
+        try {
+            RawTransaction tx = setupRunTaskWithConditionThrowOnConflict(condition);
+            return new ServiceWriteTransaction(tx.delegate(), tx.getImmutableTsLock()) {
+                @Override
+                public void commit() {
+                    tx.commit();
+                    finishRunTaskWithLockThrowOnConflict(tx, transaction -> null);
+                }
+            };
+        } finally {
+            condition.cleanup();
+        }
+    }
+
+    public <C extends PreCommitCondition, E extends Exception> ServiceReadOnlyTransaction getReadTransaction(C condition)
+            throws E {
+        checkOpen();
+        try {
+            SnapshotTransaction tx = createReadOnlySnapshotTransaction(condition);
+            return new ServiceReadOnlyTransaction() {
+                @Override
+                public Transaction delegate() {
+                    return tx;
+                }
+
+                @Override
+                public void commit() {
+                    tx.commit();
+                }
+            };
+        } finally {
+            condition.cleanup();
+        }
+    }
+
+    private abstract static class ServiceWriteTransaction extends RawTransaction {
+        ServiceWriteTransaction(SnapshotTransaction delegate, LockToken lock) {
+            super(delegate, lock);
+        }
+
+        public abstract void commit();
+    }
+
+    private abstract static class ServiceReadOnlyTransaction extends ForwardingTransaction {
+        public abstract void commit();
+    }
+
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task)
@@ -138,7 +189,7 @@ class SnapshotTransactionManagerImpl extends AbstractTransactionManager implemen
 
             SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
                     immutableTsLock, condition);
-            return new RawTransaction(transaction, immutableTsLock);
+            return new RawTransaction(transaction, null);
         } catch (Throwable e) {
             timelockService.unlock(ImmutableSet.of(immutableTsResponse.getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -195,8 +246,18 @@ class SnapshotTransactionManagerImpl extends AbstractTransactionManager implemen
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
+        SnapshotTransaction transaction = createReadOnlySnapshotTransaction(condition);
+        try {
+            return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
+                    new ReadTransaction(transaction, sweepStrategyManager));
+        } finally {
+            condition.cleanup();
+        }
+    }
+
+    private <C extends PreCommitCondition> SnapshotTransaction createReadOnlySnapshotTransaction(C condition) {
         long immutableTs = getApproximateImmutableTimestamp();
-        SnapshotTransaction transaction = new SnapshotTransaction(
+        return new SnapshotTransaction(
                 keyValueService,
                 timelockService,
                 transactionService,
@@ -216,12 +277,6 @@ class SnapshotTransactionManagerImpl extends AbstractTransactionManager implemen
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter::enqueue);
-        try {
-            return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
-                    new ReadTransaction(transaction, sweepStrategyManager));
-        } finally {
-            condition.cleanup();
-        }
     }
 
     /**

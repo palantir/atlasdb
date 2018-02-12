@@ -19,11 +19,11 @@ import com.palantir.lock.v2.LockToken;
 
 public class RawTransaction extends ForwardingTransaction {
     private final SnapshotTransaction delegate;
-    private final LockToken lock;
+    private final LockToken immutableTsLock;
 
-    public RawTransaction(SnapshotTransaction delegate, LockToken lock) {
+    public RawTransaction(SnapshotTransaction delegate, LockToken immutableTsLock) {
         this.delegate = delegate;
-        this.lock = lock;
+        this.immutableTsLock = immutableTsLock;
     }
 
     @Override
@@ -32,6 +32,6 @@ public class RawTransaction extends ForwardingTransaction {
     }
 
     LockToken getImmutableTsLock() {
-        return lock;
+        return immutableTsLock;
     }
 }
