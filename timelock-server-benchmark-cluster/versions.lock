@@ -240,6 +240,8 @@
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
                 "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:qos-service-api",
@@ -399,6 +401,8 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-jdbc",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:qos-service-impl",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
@@ -418,6 +422,8 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-client",
@@ -458,7 +464,9 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-dbkvs"
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-jdbc": {
@@ -471,13 +479,17 @@
         "com.palantir.atlasdb:atlasdb-lock-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-processors": {
@@ -544,6 +556,18 @@
                 "com.palantir.atlasdb:timelock-impl"
             ]
         },
+        "com.palantir.atlasdb:load-simulation-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:load-simulation-impl"
+            ]
+        },
+        "com.palantir.atlasdb:load-simulation-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
@@ -557,6 +581,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:timelock-impl"
             ]
         },
@@ -566,6 +592,8 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:qos-service-impl"
             ]
         },
@@ -595,6 +623,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
@@ -605,6 +635,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -620,7 +652,9 @@
         "com.palantir.common:streams": {
             "locked": "1.9.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -640,6 +674,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
@@ -728,6 +764,8 @@
             "locked": "3.14.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:timelock-server"
             ]
         },
@@ -762,6 +800,8 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timelock-server",
@@ -786,6 +826,8 @@
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:qos-service-api",
@@ -1876,6 +1918,8 @@
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
                 "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:qos-service-api",
@@ -2035,6 +2079,8 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-jdbc",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:qos-service-impl",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
@@ -2054,6 +2100,8 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-client",
@@ -2094,7 +2142,9 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-dbkvs"
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-jdbc": {
@@ -2107,13 +2157,17 @@
         "com.palantir.atlasdb:atlasdb-lock-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-processors": {
@@ -2180,6 +2234,18 @@
                 "com.palantir.atlasdb:timelock-impl"
             ]
         },
+        "com.palantir.atlasdb:load-simulation-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:load-simulation-impl"
+            ]
+        },
+        "com.palantir.atlasdb:load-simulation-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
@@ -2193,6 +2259,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:timelock-impl"
             ]
         },
@@ -2202,6 +2270,8 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:qos-service-impl"
             ]
         },
@@ -2231,6 +2301,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
@@ -2241,6 +2313,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -2256,7 +2330,9 @@
         "com.palantir.common:streams": {
             "locked": "1.9.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -2276,6 +2352,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
@@ -2364,6 +2442,8 @@
             "locked": "3.14.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:timelock-server"
             ]
         },
@@ -2398,6 +2478,8 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timelock-impl",
                 "com.palantir.atlasdb:timelock-server",
@@ -2422,6 +2504,8 @@
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:qos-service-api",
