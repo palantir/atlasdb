@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
+package com.palantir.lock;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -32,16 +32,15 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockService;
 
-public class SweepLocksTest {
-    private SweepLocks sweepLocks;
+public class SimpleLocksTest {
+    private SimpleLocks sweepLocks;
     private LockService mockLockService = mock(LockService.class);
+    private String lockId = "test";
 
     @Before
     public void setUp() {
-        sweepLocks = new SweepLocks(mockLockService);
+        sweepLocks = new SimpleLocks(mockLockService, lockId);
     }
 
     @Test

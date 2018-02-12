@@ -49,6 +49,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.lock.SimpleLocks;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -116,7 +117,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         putManyCells(TABLE_2, 104, 114);
         putManyCells(TABLE_3, 120, 130);
         sweepTimestamp.set(150);
-        try (SweepLocks sweepLocks = backgroundSweeper.createSweepLocks()) {
+        try (SimpleLocks sweepLocks = backgroundSweeper.createSweepLocks()) {
             for (int i = 0; i < 50; ++i) {
                 backgroundSweeper.checkConfigAndRunSweep(sweepLocks);
             }

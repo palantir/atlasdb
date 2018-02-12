@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
+package com.palantir.lock;
 
 import java.util.Set;
 
@@ -27,30 +27,32 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
 
-class SweepLocks implements AutoCloseable {
+public class SimpleLocks implements AutoCloseable {
     private final LockService lockService;
+    private final String lockId;
 
     private LockRefreshToken token = null;
 
-    SweepLocks(LockService lockService) {
+    public SimpleLocks(LockService lockService, String lockId) {
         this.lockService = lockService;
+        this.lockId = lockId;
     }
 
-    void lockOrRefresh() throws InterruptedException {
+    public void lockOrRefresh() throws InterruptedException {
         if (token != null) {
             Set<LockRefreshToken> refreshedTokens = lockService.refreshLockRefreshTokens(ImmutableList.of(token));
             if (refreshedTokens.isEmpty()) {
                 token = null;
             }
         } else {
-            LockDescriptor lock = StringLockDescriptor.of("atlas sweep");
+            LockDescriptor lock = StringLockDescriptor.of(lockId);
             LockRequest request = LockRequest.builder(
                     ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
             token = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
         }
     }
 
-    boolean haveLocks() {
+    public boolean haveLocks() {
         return token != null;
     }
 

@@ -24,9 +24,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
 import com.palantir.atlasdb.schema.generated.CompactTableFactory;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
@@ -34,44 +38,86 @@ import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.LockService;
+import com.palantir.lock.SimpleLocks;
 
 public class BackgroundCompactor implements Runnable {
+    private static final int SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS = 5000;
+    private static final Logger log = LoggerFactory.getLogger(BackgroundCompactor.class);
+
     private final TransactionManager transactionManager;
     private final KeyValueService keyValueService;
+    private final LockService lockService;
     private final Supplier<CompactorConfig> config;
+
+    private Thread daemon;
 
     public static void createAndRun(TransactionManager transactionManager,
             KeyValueService keyValueService,
+            LockService lockService,
             Supplier<CompactorConfig> compactorConfigSupplier) {
-        if (!(keyValueService instanceof DbKvs)) {
-            return;
-        }
-
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
                 keyValueService,
+                lockService,
                 compactorConfigSupplier);
+        backgroundCompactor.runInBackground();
     }
 
     public BackgroundCompactor(TransactionManager transactionManager,
             KeyValueService keyValueService,
+            LockService lockService,
             Supplier<CompactorConfig> config) {
         this.transactionManager = transactionManager;
         this.keyValueService = keyValueService;
+        this.lockService = lockService;
         this.config = config;
+    }
+
+    public synchronized void runInBackground() {
+        Preconditions.checkState(daemon == null);
+        daemon = new Thread(this);
+        daemon.setDaemon(true);
+        daemon.setName("BackgroundCompactor");
+        daemon.start();
     }
 
     @Override
     public void run() {
-        while (true) {
-            Optional<String> tableToCompactOptional = transactionManager.runTaskReadOnly(this::selectTableToCompact);
-            if (!tableToCompactOptional.isPresent()) {
-                continue;
-            }
+        try (SimpleLocks locks = createSimpleLocks()) {
+            log.info("Starting background sweeper.");
+            while (true) {
+                if (Thread.currentThread().isInterrupted()) {
+                    log.warn("Shutting down background compactor because thread is interrupted");
+                    Thread.currentThread().interrupt();
+                    return;
+                }
 
-            String tableToCompact = tableToCompactOptional.get();
-            compactTable(tableToCompact);
-            registerCompactedTable(tableToCompact);
+                locks.lockOrRefresh();
+                if (locks.haveLocks()) {
+                    Optional<String> tableToCompactOptional = transactionManager.runTaskReadOnly(
+                            this::selectTableToCompact);
+                    if (!tableToCompactOptional.isPresent()) {
+                        log.info("No table to compact");
+                        Thread.sleep(SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS);
+                        continue;
+                    }
+
+                    String tableToCompact = tableToCompactOptional.get();
+
+                    log.info("Compacting table {}", LoggingArgs.safeInternalTableName(tableToCompact));
+                    compactTable(tableToCompact);
+                    log.info("Compacted table {}", LoggingArgs.safeInternalTableName(tableToCompact));
+
+                    registerCompactedTable(tableToCompact);
+                }
+            }
+        } catch (InterruptedException e) {
+            log.warn("Shutting down background compactor due to InterruptedException", e);
+            Thread.currentThread().interrupt();
         }
+    }
+
+    private SimpleLocks createSimpleLocks() {
+        return new SimpleLocks(lockService, "atlas compact");
     }
 
     private void registerCompactedTable(String tableToCompact) {
@@ -121,7 +167,7 @@ public class BackgroundCompactor implements Runnable {
 
         String tableToCompact = null;
         long maxSweptAfterCompact = Long.MIN_VALUE;
-        for (Map.Entry<String, Long> entry : tableToLastTimeSwept.entrySet()){
+        for (Map.Entry<String, Long> entry : tableToLastTimeSwept.entrySet()) {
             String table = entry.getKey();
             long lastSweptTime = entry.getValue();
             long lastCompactTime = tableToLastTimeCompacted.get(table);
