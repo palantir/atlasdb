@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - AtlasDB's puncher table now no longer uses range scans
+           The puncher table no longer requires that AtlasDB keys be globally sortable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2981>`__)
+
     *    - |fixed|
          - Fixed a bug which would make sweep deletes not be compacted by Cassandra.
            Over time this would lead to tombstones being accumulated in the DB and disk space not being reclaimed.
