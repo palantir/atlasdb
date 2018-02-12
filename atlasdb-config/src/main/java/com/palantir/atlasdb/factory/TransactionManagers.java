@@ -45,6 +45,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
+import com.palantir.atlasdb.compact.BackgroundCompactor;
+import com.palantir.atlasdb.compact.ImmutableCompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -355,6 +357,8 @@ public abstract class TransactionManagers {
                         transactionManager,
                         persistentLockManager),
                 closeables);
+        BackgroundCompactor.createAndRun(transactionManager, keyValueService, lockAndTimestampServices.lock(),
+                ImmutableCompactorConfig.builder()::build);
 
         return transactionManager;
     }
