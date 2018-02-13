@@ -2055,7 +2055,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     @Override
-    public boolean shouldCompactManually() {
+    public boolean shouldManuallyCompact() {
         return false;
     }
 
