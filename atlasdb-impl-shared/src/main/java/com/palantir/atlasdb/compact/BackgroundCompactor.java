@@ -57,6 +57,10 @@ public class BackgroundCompactor implements Runnable {
             KeyValueService keyValueService,
             LockService lockService,
             Supplier<CompactorConfig> compactorConfigSupplier) {
+        if (!keyValueService.shouldCompactManually()) {
+            return;
+        }
+
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
                 keyValueService,
                 lockService,

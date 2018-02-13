@@ -2054,6 +2054,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return true;
     }
 
+    @Override
+    public boolean shouldCompactManually() {
+        return false;
+    }
+
     private static class TableCellAndValue {
         private static final Function<TableCellAndValue, byte[]> EXTRACT_ROW_NAME_FUNCTION =
                 input -> input.cell.getRowName();
