@@ -717,7 +717,7 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * @return If {@link #compactInternally(TableReference)} should be called to free disk space.
      */
-    default boolean shouldCompactManually() {
+    default boolean shouldManuallyCompact() {
         return true;
     }
 }

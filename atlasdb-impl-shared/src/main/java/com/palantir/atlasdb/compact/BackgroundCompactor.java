@@ -37,10 +37,11 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 
-public class BackgroundCompactor implements Runnable {
+public final class BackgroundCompactor implements AutoCloseable {
     private static final int SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS = 5000;
     private static final Logger log = LoggerFactory.getLogger(BackgroundCompactor.class);
 
@@ -51,12 +52,12 @@ public class BackgroundCompactor implements Runnable {
 
     private Thread daemon;
 
-    public static void createAndRun(TransactionManager transactionManager,
+    public static Optional<BackgroundCompactor> createAndRun(TransactionManager transactionManager,
             KeyValueService keyValueService,
             LockService lockService,
             Supplier<Boolean> inSafeHours) {
-        if (!keyValueService.shouldCompactManually()) {
-            return;
+        if (!keyValueService.shouldManuallyCompact()) {
+            return Optional.empty();
         }
 
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
@@ -64,9 +65,11 @@ public class BackgroundCompactor implements Runnable {
                 lockService,
                 inSafeHours);
         backgroundCompactor.runInBackground();
+
+        return Optional.of(backgroundCompactor);
     }
 
-    public BackgroundCompactor(TransactionManager transactionManager,
+    private BackgroundCompactor(TransactionManager transactionManager,
             KeyValueService keyValueService,
             LockService lockService,
             Supplier<Boolean> inSafeHours) {
@@ -76,9 +79,20 @@ public class BackgroundCompactor implements Runnable {
         this.inSafeHours = inSafeHours;
     }
 
-    public synchronized void runInBackground() {
+    public void close() {
+        log.info("Closing BackgroundCompactor");
+        daemon.interrupt();
+        try {
+            daemon.join();
+            daemon = null;
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    private synchronized void runInBackground() {
         Preconditions.checkState(daemon == null);
-        daemon = new Thread(this);
+        daemon = new Thread(this::run);
         daemon.setDaemon(true);
         daemon.setName("BackgroundCompactor");
         daemon.start();

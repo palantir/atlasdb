@@ -21,4 +21,8 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface CompactorConfig {
     boolean inSafeHours();
+
+    static CompactorConfig defaultCompactorConfig() {
+        return ImmutableCompactorConfig.builder().build();
+    }
 }
