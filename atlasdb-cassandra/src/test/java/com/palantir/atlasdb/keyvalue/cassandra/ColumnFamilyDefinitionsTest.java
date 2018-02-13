@@ -61,4 +61,21 @@ public class ColumnFamilyDefinitionsTest {
         assertFalse("ColumnDefinitions with different gc_grace_seconds should not match",
                 ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
     }
+
+    @Test
+    public void identicalCfsAreEqual() {
+        CfDef cf1 = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("test_table"),
+                FOUR_DAYS_IN_SECONDS,
+                AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        CfDef cf2 = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("test_table"),
+                FOUR_DAYS_IN_SECONDS,
+                AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        assertTrue("identical CFs should equal each other", ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
+    }
 }
