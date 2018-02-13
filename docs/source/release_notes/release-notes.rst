@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Wrap remote calls from AtlasDB with http-remoting tracing.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2986>`__)
 
 =======
 v0.76.0
