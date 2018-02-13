@@ -20,6 +20,5 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CompactorConfig {
-    // Enables OracleDB SHRINK COMPACT, which can be blocking
-    boolean shrinkCompactEnabled();
+    boolean inSafeHours();
 }

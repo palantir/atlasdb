@@ -47,14 +47,14 @@ public class BackgroundCompactor implements Runnable {
     private final TransactionManager transactionManager;
     private final KeyValueService keyValueService;
     private final LockService lockService;
-    private final Supplier<CompactorConfig> config;
+    private final Supplier<Boolean> inSafeHours;
 
     private Thread daemon;
 
     public static void createAndRun(TransactionManager transactionManager,
             KeyValueService keyValueService,
             LockService lockService,
-            Supplier<CompactorConfig> compactorConfigSupplier) {
+            Supplier<Boolean> inSafeHours) {
         if (!keyValueService.shouldCompactManually()) {
             return;
         }
@@ -62,18 +62,18 @@ public class BackgroundCompactor implements Runnable {
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
                 keyValueService,
                 lockService,
-                compactorConfigSupplier);
+                inSafeHours);
         backgroundCompactor.runInBackground();
     }
 
     public BackgroundCompactor(TransactionManager transactionManager,
             KeyValueService keyValueService,
             LockService lockService,
-            Supplier<CompactorConfig> config) {
+            Supplier<Boolean> inSafeHours) {
         this.transactionManager = transactionManager;
         this.keyValueService = keyValueService;
         this.lockService = lockService;
-        this.config = config;
+        this.inSafeHours = inSafeHours;
     }
 
     public synchronized void runInBackground() {
@@ -136,7 +136,8 @@ public class BackgroundCompactor implements Runnable {
     }
 
     private void compactTable(String tableToCompact) {
-        keyValueService.compactInternally(TableReference.createFromFullyQualifiedName(tableToCompact));
+        keyValueService.compactInternally(TableReference.createFromFullyQualifiedName(tableToCompact),
+                inSafeHours.get());
     }
 
     private Optional<String> selectTableToCompact(Transaction tx) {
