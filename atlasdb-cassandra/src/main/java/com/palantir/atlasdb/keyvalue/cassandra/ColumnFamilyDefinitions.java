@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -34,6 +36,8 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 final class ColumnFamilyDefinitions {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
@@ -132,7 +136,6 @@ final class ColumnFamilyDefinitions {
         CfDef cf = new CfDef(keyspace, internalTableName);
         cf.setComparator_type("CompositeType(BytesType,LongType)");
         cf.setCompaction_strategy(CassandraConstants.LEVELED_COMPACTION_STRATEGY);
-        cf.setCompaction_strategy_options(ImmutableMap.of("sstable_size_in_mb", CassandraConstants.SSTABLE_SIZE_IN_MB));
         cf.setCompression_options(Maps.<String, String>newHashMap());
         cf.setGc_grace_seconds(CassandraConstants.DEFAULT_GC_GRACE_SECONDS);
 
@@ -150,7 +153,6 @@ final class ColumnFamilyDefinitions {
         cf.setKey_validation_class("org.apache.cassandra.db.marshal.BytesType");
         cf.setCompaction_strategy_options(new HashMap<String, String>());
         cf.setDefault_validation_class("org.apache.cassandra.db.marshal.BytesType");
-
         return cf;
     }
 
@@ -160,11 +162,11 @@ final class ColumnFamilyDefinitions {
     @SuppressWarnings("CyclomaticComplexity")
     static boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
         String tableName = clientSide.name;
-        if (!Objects.equal(clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {
+        if (clientSide.compaction_strategy != clusterSide.compaction_strategy) {
             logMismatch("compaction strategy",
                     tableName,
-                    clientSide.compaction_strategy_options,
-                    clusterSide.compaction_strategy_options);
+                    clientSide.compaction_strategy,
+                    clusterSide.compaction_strategy);
             return false;
         }
         if (clientSide.gc_grace_seconds != clusterSide.gc_grace_seconds) {
@@ -216,9 +218,9 @@ final class ColumnFamilyDefinitions {
     private static void logMismatch(String fieldName, String tableName,
             Object clientSideVersion, Object clusterSideVersion) {
         log.info("Found client/server disagreement on {} for table {}. (client = ({}), server = ({}))",
-                fieldName,
-                tableName,
-                clientSideVersion,
-                clusterSideVersion);
+                SafeArg.of("disagreementType", fieldName),
+                UnsafeArg.of("table", tableName),
+                SafeArg.of("clientVersion", clientSideVersion),
+                SafeArg.of("clusterVersion", clusterSideVersion));
     }
 }
