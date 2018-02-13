@@ -189,7 +189,7 @@ class SnapshotTransactionManagerImpl extends AbstractTransactionManager implemen
 
             SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
                     immutableTsLock, condition);
-            return new RawTransaction(transaction, null);
+            return new RawTransaction(transaction, immutableTsLock);
         } catch (Throwable e) {
             timelockService.unlock(ImmutableSet.of(immutableTsResponse.getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
