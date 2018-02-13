@@ -222,7 +222,6 @@ public class SpecificTableSweeper {
 
     private void processFinishedSweep(TableToSweep tableToSweep, SweepResults cumulativeResults) {
         saveFinalSweepResults(tableToSweep, cumulativeResults);
-        performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
         log.info("Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values. Time taken "
                         + "sweeping: {} ms, time elapsed since sweep first started on this table: {} ms.",
                 LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
@@ -232,24 +231,6 @@ public class SpecificTableSweeper {
                 SafeArg.of("time elapsed", cumulativeResults.getTimeElapsedSinceStartedSweeping()));
         updateMetricsFullTable(cumulativeResults, tableToSweep.getTableRef());
         sweepProgressStore.clearProgress();
-    }
-
-    private void performInternalCompactionIfNecessary(TableReference tableRef, SweepResults results) {
-        if (results.getStaleValuesDeleted() > 0) {
-            Stopwatch watch = Stopwatch.createStarted();
-            kvs.compactInternally(tableRef);
-            long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Finished performing compactInternally on {} in {} ms.",
-                    LoggingArgs.tableRef("tableRef", tableRef),
-                    SafeArg.of("elapsedMillis", elapsedMillis));
-            sweepPerfLogger.logInternalCompaction(
-                    SweepCompactionPerformanceResults.builder()
-                            .tableName(tableRef.getQualifiedName())
-                            .cellsDeleted(results.getStaleValuesDeleted())
-                            .cellsExamined(results.getCellTsPairsExamined())
-                            .elapsedMillis(elapsedMillis)
-                            .build());
-        }
     }
 
     private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults finalSweepResults) {
