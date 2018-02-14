@@ -293,7 +293,9 @@ public abstract class TransactionManagers {
                 config.initializeAsync(),
                 () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
                 SweepQueueWriter.NO_OP);
-        transactionManager = AtlasDbMetrics.instrument(SerializableTransactionManager.class, transactionManager);
+        transactionManager = AtlasDbMetrics.instrumentWithTracing(
+                SerializableTransactionManager.class,
+                transactionManager);
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
