@@ -120,7 +120,7 @@ class SnapshotTransactionManagerImpl extends AbstractTransactionManager implemen
         checkOpen();
         try {
             RawTransaction tx = setupRunTaskWithConditionThrowOnConflict(condition);
-            return new ServiceWriteTransaction(tx.delegate(), tx.getImmutableTsLock()) {
+            return new ServiceWriteTransaction(tx.delegate()) {
                 @Override
                 public void commit() {
                     tx.commit();
@@ -132,37 +132,15 @@ class SnapshotTransactionManagerImpl extends AbstractTransactionManager implemen
         }
     }
 
-    public <C extends PreCommitCondition, E extends Exception> ServiceReadOnlyTransaction getReadTransaction(C condition)
-            throws E {
+    public <C extends PreCommitCondition, E extends Exception> ServiceReadOnlyTransaction getReadTransaction(
+            C condition) throws E {
         checkOpen();
         try {
             SnapshotTransaction tx = createReadOnlySnapshotTransaction(condition);
-            return new ServiceReadOnlyTransaction() {
-                @Override
-                public Transaction delegate() {
-                    return tx;
-                }
-
-                @Override
-                public void commit() {
-                    tx.commit();
-                }
-            };
+            return new ServiceReadOnlyTransaction(tx);
         } finally {
             condition.cleanup();
         }
-    }
-
-    private abstract static class ServiceWriteTransaction extends RawTransaction {
-        ServiceWriteTransaction(SnapshotTransaction delegate, LockToken lock) {
-            super(delegate, lock);
-        }
-
-        public abstract void commit();
-    }
-
-    private abstract static class ServiceReadOnlyTransaction extends ForwardingTransaction {
-        public abstract void commit();
     }
 
     @Override
