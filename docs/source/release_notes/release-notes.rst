@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |changed|
+         - Upgraded Postgres jdbc driver to 42.2.1 (from 9.4.1209).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2985>`__)
+
     *    - |improved|
          - Wrap remote calls from AtlasDB with http-remoting tracing.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2986>`__)
