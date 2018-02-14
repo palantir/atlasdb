@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.lock.v2.LockToken;
+import com.palantir.atlasdb.transaction.api.AutoDelegate_Transaction;
+import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.processors.AutoDelegate;
 
-public class RawTransaction extends ForwardingTransaction {
+@AutoDelegate(typeToExtend = Transaction.class)
+class ServiceReadOnlyTransaction implements AutoDelegate_Transaction {
     private final SnapshotTransaction delegate;
-    private final LockToken immutableTsLock;
 
-    public RawTransaction(SnapshotTransaction delegate, LockToken immutableTsLock) {
+    ServiceReadOnlyTransaction(SnapshotTransaction delegate) {
         this.delegate = delegate;
-        this.immutableTsLock = immutableTsLock;
     }
 
     @Override
-    public SnapshotTransaction delegate() {
+    public Transaction delegate() {
         return delegate;
-    }
-
-    LockToken getImmutableTsLock() {
-        return immutableTsLock;
     }
 }
