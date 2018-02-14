@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -1608,9 +1609,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private void internalPutMetadataForTables(
             Map<TableReference, byte[]> unfilteredTableNameToMetadata,
             boolean possiblyNeedToPerformSettingsChanges) {
-        Map<TableReference, byte[]> tableNameToMetadata = Maps.filterValues(
-                unfilteredTableNameToMetadata,
-                Predicates.not(Predicates.equalTo(AtlasDbConstants.EMPTY_TABLE_METADATA)));
+        Map<TableReference, byte[]> tableNameToMetadata = removeEntriesWithEmptyMetadata(unfilteredTableNameToMetadata);
         if (tableNameToMetadata.isEmpty()) {
             return;
         }
@@ -1645,6 +1644,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         if (!updatedMetadata.isEmpty()) {
             putMetadataAndMaybeAlterTables(possiblyNeedToPerformSettingsChanges, updatedMetadata, updatedCfs);
         }
+    }
+
+    private Map<TableReference, byte[]> removeEntriesWithEmptyMetadata(Map<TableReference, byte[]> unfilteredMap) {
+        Map<TableReference, byte[]> result = new HashMap<>();
+        unfilteredMap.forEach((tableRef, metadata) -> {
+            if (!Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
+                result.put(tableRef, metadata);
+            }
+        });
+        return result;
     }
 
     private boolean updatedMetadataFound(Value existingMetadata, byte[] requestMetadata) {
