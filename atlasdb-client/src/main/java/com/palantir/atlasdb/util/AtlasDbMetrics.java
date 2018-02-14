@@ -34,6 +34,7 @@ import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.tritium.proxy.Instrumentation;
+import com.palantir.tritium.tracing.TracingInvocationEventHandler;
 
 public final class AtlasDbMetrics {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbMetrics.class);
@@ -97,6 +98,7 @@ public final class AtlasDbMetrics {
     public static <T, U extends T> T instrument(Class<T> serviceInterface, U service, String name) {
         return Instrumentation.builder(serviceInterface, service)
                 .withHandler(new MetricsInvocationEventHandler(getMetricRegistry(), name))
+                .withHandler(new TracingInvocationEventHandler(name))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,
