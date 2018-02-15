@@ -51,6 +51,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     private final KeyValueService keyValueService;
     private final LockService lockService;
     private final Supplier<Boolean> inSafeHours;
+    private final CompactPriorityCalculator compactPriorityCalculator;
 
     private Thread daemon;
 
@@ -62,10 +63,12 @@ public final class BackgroundCompactor implements AutoCloseable {
             return Optional.empty();
         }
 
+        CompactPriorityCalculator compactPriorityCalculator = new CompactPriorityCalculator(transactionManager);
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
                 keyValueService,
                 lockService,
-                inSafeHours);
+                inSafeHours,
+                compactPriorityCalculator);
         backgroundCompactor.runInBackground();
 
         return Optional.of(backgroundCompactor);
@@ -74,11 +77,13 @@ public final class BackgroundCompactor implements AutoCloseable {
     private BackgroundCompactor(TransactionManager transactionManager,
             KeyValueService keyValueService,
             LockService lockService,
-            Supplier<Boolean> inSafeHours) {
+            Supplier<Boolean> inSafeHours,
+            CompactPriorityCalculator compactPriorityCalculator) {
         this.transactionManager = transactionManager;
         this.keyValueService = keyValueService;
         this.lockService = lockService;
         this.inSafeHours = inSafeHours;
+        this.compactPriorityCalculator = compactPriorityCalculator;
     }
 
     @Override
@@ -114,8 +119,7 @@ public final class BackgroundCompactor implements AutoCloseable {
 
                 compactorLock.lockOrRefresh();
                 if (compactorLock.haveLocks()) {
-                    Optional<String> tableToCompactOptional = transactionManager.runTaskReadOnly(
-                            this::selectTableToCompact);
+                    Optional<String> tableToCompactOptional = compactPriorityCalculator.selectTableToCompact();
                     if (!tableToCompactOptional.isPresent()) {
                         log.info("No table to compact");
                         Thread.sleep(SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS);
@@ -159,52 +163,5 @@ public final class BackgroundCompactor implements AutoCloseable {
     private void compactTable(String tableToCompact) {
         keyValueService.compactInternally(TableReference.createFromFullyQualifiedName(tableToCompact),
                 inSafeHours.get());
-    }
-
-    private Optional<String> selectTableToCompact(Transaction tx) {
-        Map<String, Long> tableToLastTimeSwept = new HashMap<>();
-        SweepPriorityTable sweepPriorityTable = SweepTableFactory.of().getSweepPriorityTable(tx);
-        sweepPriorityTable.getAllRowsUnordered(SweepPriorityTable.getColumnSelection(
-                SweepPriorityTable.SweepPriorityNamedColumn.LAST_SWEEP_TIME))
-                .forEach(row -> {
-                    Long lastSweepTime = row.getLastSweepTime();
-                    String tableName = row.getRowName().getFullTableName();
-                    tableToLastTimeSwept.put(tableName, lastSweepTime);
-                });
-
-        Map<String, Long> tableToLastTimeCompacted = new HashMap<>();
-        CompactMetadataTable compactMetadataTable = CompactTableFactory.of().getCompactMetadataTable(tx);
-        compactMetadataTable.getAllRowsUnordered(SweepPriorityTable.getColumnSelection(
-                SweepPriorityTable.SweepPriorityNamedColumn.LAST_SWEEP_TIME))
-                .forEach(row -> {
-                    Long lastCompactTime = row.getLastCompactTime();
-                    String tableName = row.getRowName().getFullTableName();
-                    tableToLastTimeCompacted.put(tableName, lastCompactTime);
-                });
-
-        List<String> uncompactedTables = tableToLastTimeSwept.keySet().stream()
-                .filter(table -> !tableToLastTimeCompacted.keySet().contains(table))
-                .collect(Collectors.toList());
-
-        if (uncompactedTables.size() > 0) {
-            int randomTableIndex = ThreadLocalRandom.current().nextInt(uncompactedTables.size());
-            return Optional.of(uncompactedTables.get(randomTableIndex));
-        }
-
-        String tableToCompact = null;
-        long maxSweptAfterCompact = Long.MIN_VALUE;
-        for (Map.Entry<String, Long> entry : tableToLastTimeSwept.entrySet()) {
-            String table = entry.getKey();
-            long lastSweptTime = entry.getValue();
-            long lastCompactTime = tableToLastTimeCompacted.get(table);
-            long sweptAfterCompact = lastSweptTime - lastCompactTime;
-
-            if (sweptAfterCompact > maxSweptAfterCompact) {
-                tableToCompact = table;
-                maxSweptAfterCompact = sweptAfterCompact;
-            }
-        }
-
-        return Optional.ofNullable(tableToCompact);
     }
 }
