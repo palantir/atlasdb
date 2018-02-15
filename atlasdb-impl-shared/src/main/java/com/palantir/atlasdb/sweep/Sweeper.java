@@ -24,11 +24,11 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
 public enum Sweeper {
-    CONSERVATIVE((unreadableTs, immutableTs) -> Math.min(unreadableTs.getAsLong(), immutableTs.getAsLong()),
+    CONSERVATIVE((unreadableTs, immutableTs) -> Long.MAX_VALUE,
                  ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP),
                  false,
                  true),
-    THOROUGH((unreadableTs, immutableTs) -> immutableTs.getAsLong(),
+    THOROUGH((unreadableTs, immutableTs) -> Long.MAX_VALUE,
             ImmutableSet.of(),
              true,
              false);
