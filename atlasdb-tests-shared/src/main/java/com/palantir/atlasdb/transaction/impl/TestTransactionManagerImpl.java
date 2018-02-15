@@ -29,7 +29,6 @@ import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
@@ -109,19 +108,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManagerIm
 
     @Override
     public Transaction createNewTransaction() {
-        return new SnapshotTransaction(
-                keyValueService,
-                timelockService,
-                transactionService,
-                cleaner,
-                timelockService.getFreshTimestamp(),
-                getConflictDetectionManager(),
-                constraintModeSupplier.get(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampValidationReadCache,
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                sweepQueueWriter);
+        return transactionsFactory.createForTests();
     }
 
     @Override

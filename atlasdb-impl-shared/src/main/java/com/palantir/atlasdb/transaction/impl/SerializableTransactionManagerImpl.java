@@ -172,23 +172,19 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
 
     private static final int NUM_RETRIES = 10;
 
-    final KeyValueService keyValueService;
-    final TimelockService timelockService;
-    final LockService lockService;
+    private final KeyValueService keyValueService;
+    private final TimelockService timelockService;
+    private final LockService lockService;
+    private final SweepStrategyManager sweepStrategyManager;
+    private final AtomicLong recentImmutableTs = new AtomicLong(-1L);
+    private final Cleaner cleaner;
+    private final ExecutorService getRangesExecutor;
+    private final TimestampTracker timestampTracker;
+    private final List<Runnable> closingCallbacks;
+    private final AtomicBoolean isClosed;
+
+    final TransactionFactory transactionsFactory;
     final ConflictDetectionManager conflictDetectionManager;
-    final SweepStrategyManager sweepStrategyManager;
-    final Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier;
-    final AtomicLong recentImmutableTs = new AtomicLong(-1L);
-    final Cleaner cleaner;
-    final boolean allowHiddenTableAccess;
-    final ExecutorService getRangesExecutor;
-    final TimestampTracker timestampTracker;
-    final int defaultGetRangesConcurrency;
-
-    final List<Runnable> closingCallbacks;
-    final AtomicBoolean isClosed;
-
-    private final TransactionFactory transactionsFactory;
 
     /**
      * @deprecated Use {@link SerializableTransactionManagerImpl#create} to create this class.
@@ -245,17 +241,14 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
 
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
-        this.lockService = lockService;
         this.conflictDetectionManager = conflictDetectionManager;
+        this.lockService = lockService;
         this.sweepStrategyManager = sweepStrategyManager;
-        this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
-        this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
         this.timestampTracker = timestampTracker;
-        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
 
         transactionsFactory = new TransactionFactory(keyValueService,
                 timelockService,

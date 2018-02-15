@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.v2.LockToken;
@@ -125,5 +126,21 @@ final class TransactionFactory {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter::enqueue);
+    }
+
+    Transaction createForTests() {
+        return new SnapshotTransaction(
+                keyValueService,
+                timelockService,
+                transactionService,
+                cleaner,
+                timelockService.getFreshTimestamp(),
+                conflictDetectionManager,
+                constraintModeSupplier.get(),
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampValidationReadCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueueWriter);
     }
 }
