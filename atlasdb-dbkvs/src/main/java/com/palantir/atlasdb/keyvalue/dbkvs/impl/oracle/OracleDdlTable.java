@@ -34,8 +34,11 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.util.VersionStrings;
 
@@ -255,8 +258,9 @@ public final class OracleDdlTable implements DbDdlTable {
                                 + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
                 log.error(compactionFailureTemplate,
-                        tableRef,
-                        "(Enterprise Edition that requires this user to be able to perform DDL operations)",
+                        LoggingArgs.tableRef(tableRef),
+                        "(Enterprise Edition that requires this user to be able to perform DDL operations)."
+                                + " Please change the `enableOracleEnterpriseFeatures` config to false.",
                         e.getMessage());
             } catch (TableMappingNotFoundException e) {
                 throw new RuntimeException(e);
@@ -271,26 +275,29 @@ public final class OracleDdlTable implements DbDdlTable {
                                     + " SHRINK SPACE");
                     log.info("Call to SHRINK SPACE on table {} took {} ms."
                                     + " This implies that locks on the entire table were held for this period.",
-                            tableRef, shrinkTimer.elapsed(TimeUnit.MILLISECONDS));
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("elapsed time", shrinkTimer.elapsed(TimeUnit.MILLISECONDS)));
                 } else {
                     Stopwatch shrinkAndCompactTimer = Stopwatch.createStarted();
                     conns.get().executeUnregisteredQuery(
                             "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
                                     + " SHRINK SPACE COMPACT");
                     log.info("Call to SHRINK SPACE COMPACT on table {} took {} ms.",
-                            tableRef, shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS));
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("elapsed time", shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS)));
                 }
             } catch (PalantirSqlException e) {
                 log.error(compactionFailureTemplate,
-                        tableRef,
-                        "(If you are running against Enterprise Edition,"
-                                + " you can set enableOracleEnterpriseFeatures to true in the configuration.)",
-                        e.getMessage());
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("message", "(If you are running against Enterprise Edition,"
+                                + " you can set enableOracleEnterpriseFeatures to true in the configuration.)"),
+                        UnsafeArg.of("exception message", e.getMessage()));
             } catch (TableMappingNotFoundException e) {
                 throw new RuntimeException(e);
             } finally {
                 log.info("Call to KVS.compactInternally on table {} took {} ms.",
-                        tableRef, timer.elapsed(TimeUnit.MILLISECONDS));
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("elapsed time", timer.elapsed(TimeUnit.MILLISECONDS)));
             }
         }
     }
