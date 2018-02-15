@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,7 +29,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
@@ -42,7 +40,6 @@ import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
@@ -176,7 +173,6 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
     private static final int NUM_RETRIES = 10;
 
     final KeyValueService keyValueService;
-    final TransactionService transactionService;
     final TimelockService timelockService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
@@ -185,14 +181,14 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
     final AtomicLong recentImmutableTs = new AtomicLong(-1L);
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
-    protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
     final TimestampTracker timestampTracker;
     final int defaultGetRangesConcurrency;
-    final SweepQueueWriter sweepQueueWriter;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
+
+    private final TransactionFactory transactionsFactory;
 
     /**
      * @deprecated Use {@link SerializableTransactionManagerImpl#create} to create this class.
@@ -250,19 +246,30 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
-        this.transactionService = transactionService;
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = sweepStrategyManager;
         this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
         this.timestampTracker = timestampTracker;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
-        this.sweepQueueWriter = sweepQueueWriter;
+
+        transactionsFactory = new TransactionFactory(keyValueService,
+                timelockService,
+                transactionService,
+                cleaner,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                constraintModeSupplier,
+                allowHiddenTableAccess,
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueueWriter);
     }
 
     @Override
@@ -292,8 +299,10 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
             recordImmutableTimestamp(immutableTs);
             Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
 
-            SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
-                    immutableTsLock, condition);
+            SnapshotTransaction transaction = transactionsFactory.createSerializableTransaction(immutableTs,
+                    startTimestampSupplier,
+                    immutableTsLock,
+                    condition);
             return new RawTransaction(transaction, immutableTsLock);
         } catch (Throwable e) {
             timelockService.unlock(ImmutableSet.of(immutableTsResponse.getLock()));
@@ -320,58 +329,16 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
         return result;
     }
 
-    private SnapshotTransaction createTransaction(
-            long immutableTimestamp,
-            Supplier<Long> startTimestampSupplier,
-            LockToken immutableTsLock,
-            PreCommitCondition preCommitCondition) {
-        return new SerializableTransaction(
-                keyValueService,
-                timelockService,
-                transactionService,
-                cleaner,
-                startTimestampSupplier,
-                getConflictDetectionManager(),
-                sweepStrategyManager,
-                immutableTimestamp,
-                Optional.of(immutableTsLock),
-                preCommitCondition,
-                constraintModeSupplier.get(),
-                cleaner.getTransactionReadTimeoutMillis(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                allowHiddenTableAccess,
-                timestampValidationReadCache,
-                lockAcquireTimeoutMs.get(),
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                sweepQueueWriter);
-    }
+
 
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
-        long immutableTs = getApproximateImmutableTimestamp();
-        SnapshotTransaction transaction = new SnapshotTransaction(
-                keyValueService,
-                timelockService,
-                transactionService,
-                NoOpCleaner.INSTANCE,
-                getStartTimestampSupplier(),
-                conflictDetectionManager,
-                sweepStrategyManager,
-                immutableTs,
-                Optional.empty(),
-                condition,
-                constraintModeSupplier.get(),
-                cleaner.getTransactionReadTimeoutMillis(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                allowHiddenTableAccess,
-                timestampValidationReadCache,
-                lockAcquireTimeoutMs.get(),
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                sweepQueueWriter::enqueue);
+        Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
+        SnapshotTransaction transaction = transactionsFactory.createReadOnlyTransaction(condition,
+                startTimestampSupplier,
+                getApproximateImmutableTimestamp());
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));
@@ -408,6 +375,7 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
             timestampTracker.close();
             cleaner.close();
             keyValueService.close();
+            getRangesExecutor.shutdown();
             closeLockServiceIfPossible();
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
                 callback.run();
@@ -511,6 +479,5 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
     ConflictDetectionManager getConflictDetectionManager() {
         return conflictDetectionManager;
     }
-
 }
 
