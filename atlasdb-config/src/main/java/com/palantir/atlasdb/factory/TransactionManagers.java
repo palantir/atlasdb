@@ -266,11 +266,18 @@ public abstract class TransactionManagers {
                 userAgent());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
+
+        Supplier<SweepConfig> sweepConfig = JavaSuppliers.compose(AtlasDbRuntimeConfig::sweep, runtimeConfigSupplier);
+
         KeyValueService keyValueService = initializeCloseable(() -> {
             KeyValueService kvs = atlasFactory.getKeyValueService();
             kvs = ProfilingKeyValueService.create(kvs);
             kvs = SweepStatsKeyValueService.create(kvs,
-                    new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
+                    new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
+                    JavaSuppliers.compose(SweepConfig::writeThreshold, sweepConfig),
+                    JavaSuppliers.compose(SweepConfig::writeSizeThreshold, sweepConfig)
+
+            );
             kvs = TracingKeyValueService.create(kvs);
             kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
             return ValidatingQueryRewritingKeyValueService.create(kvs);

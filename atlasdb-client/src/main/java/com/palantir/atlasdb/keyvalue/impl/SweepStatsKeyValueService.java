@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,15 +71,16 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(SweepStatsKeyValueService.class);
     private static final int CLEAR_WEIGHT = 1 << 14;
-    private static final int WRITE_THRESHOLD = 1 << 16;
-    private static final long WRITE_SIZE_THRESHOLD = 1 << 30;
-    private static final long FLUSH_DELAY_SECONDS = 42;
+    private static final int FLUSH_DELAY_SECONDS = 42;
 
     // This is gross and won't work if someone starts namespacing sweep differently
     private static final TableReference SWEEP_PRIORITY_TABLE = TableReference.create(SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
 
     private final KeyValueService delegate;
     private final TimestampService timestampService;
+    private final Supplier<Integer> writeThreshold;
+    private final Supplier<Long> writeSizeThreshold;
+
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
 
     private final Set<TableReference> clearedTables = Collections.newSetFromMap(
@@ -89,14 +91,24 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private final Lock flushLock = new ReentrantLock();
     private final ScheduledExecutorService flushExecutor = PTExecutors.newSingleThreadScheduledExecutor();
 
-    public static SweepStatsKeyValueService create(KeyValueService delegate, TimestampService timestampService) {
-        return new SweepStatsKeyValueService(delegate, timestampService);
+    public static SweepStatsKeyValueService create(
+            KeyValueService delegate,
+            TimestampService timestampService,
+            Supplier<Integer> writeThreshold,
+            Supplier<Long> writeSizeThreshold) {
+
+        return new SweepStatsKeyValueService(delegate, timestampService, writeThreshold, writeSizeThreshold);
     }
 
-    private SweepStatsKeyValueService(KeyValueService delegate,
-                                     TimestampService timestampService) {
+    private SweepStatsKeyValueService(
+            KeyValueService delegate,
+            TimestampService timestampService,
+            Supplier<Integer> writeThreshold,
+            Supplier<Long> writeSizeThreshold) {
         this.delegate = delegate;
         this.timestampService = timestampService;
+        this.writeThreshold = writeThreshold;
+        this.writeSizeThreshold = writeSizeThreshold;
         this.flushExecutor.scheduleWithFixedDelay(createFlushTask(), FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS,
                 TimeUnit.SECONDS);
     }
@@ -208,9 +220,9 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                 log.debug("Not flushing since the total number modifications is less than threshold — {} < {} "
                                 + "— and total size of modifications is less than threshold — {} < {}",
                         SafeArg.of("total modification count", totalModifications),
-                        SafeArg.of("count threshold", WRITE_THRESHOLD),
+                        SafeArg.of("count threshold", writeThreshold),
                         SafeArg.of("total modifications size", totalModificationsSize),
-                        SafeArg.of("size threshold", WRITE_SIZE_THRESHOLD));
+                        SafeArg.of("size threshold", writeSizeThreshold));
                 return;
             }
 
@@ -242,7 +254,8 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     private boolean shouldFlush() {
-        return totalModifications.get() >= WRITE_THRESHOLD || totalModificationsSize.get() >= WRITE_SIZE_THRESHOLD;
+        return totalModifications.get() >= writeThreshold.get() || totalModificationsSize.get()
+                >= writeSizeThreshold.get();
     }
 
     private void flushWrites(Multiset<TableReference> writes, Set<TableReference> clears) {

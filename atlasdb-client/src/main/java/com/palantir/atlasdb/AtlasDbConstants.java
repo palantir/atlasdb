@@ -125,8 +125,7 @@ public final class AtlasDbConstants {
     public static final int DEFAULT_SWEEP_READ_LIMIT = 128;
     public static final int DEFAULT_SWEEP_CASSANDRA_READ_THREADS = 16;
     public static final int DEFAULT_SWEEP_WRITE_THRESHOLD = 1 << 16;
-    public static final int DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD = 1 << 30;
-    public static final int DEFAULT_SWEEP_FLUSH_DELAY_SECONDS = 42;
+    public static final long DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD = 1 << 30;
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 

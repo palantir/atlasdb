@@ -75,13 +75,8 @@ public abstract class SweepConfig {
     }
 
     @Value.Default
-    public Integer writeSizeThreshold() {
+    public Long writeSizeThreshold() {
         return AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD;
-    }
-
-    @Value.Default
-    public Integer flushDelayInSeconds() {
-        return AtlasDbConstants.DEFAULT_SWEEP_FLUSH_DELAY_SECONDS;
     }
 
     public static SweepConfig defaultSweepConfig() {
