@@ -18,9 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public interface SerializableTransactionManager extends TransactionManager {
     <C extends PreCommitCondition, E extends Exception> ServiceWriteTransaction getWriteTransaction(

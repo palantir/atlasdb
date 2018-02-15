@@ -303,7 +303,7 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
                     getApproximateImmutableTimestamp());
             return new ServiceReadOnlyTransaction(tx) {
                 @Override
-                void commit() {
+                public void commit() {
                     try {
                         tx.commit();
                     } finally {
@@ -346,7 +346,7 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
         }
     }
 
-    private RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
+    public RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
                 LockImmutableTimestampRequest.create());
         try {
@@ -366,7 +366,7 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
         }
     }
 
-    private <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
+    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
             TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         T result;
