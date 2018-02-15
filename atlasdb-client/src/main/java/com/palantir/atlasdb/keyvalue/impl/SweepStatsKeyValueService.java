@@ -71,7 +71,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(SweepStatsKeyValueService.class);
     private static final int CLEAR_WEIGHT = 1 << 14;
-    private static final int FLUSH_DELAY_SECONDS = 42;
+    private static final long FLUSH_DELAY_SECONDS = 42;
 
     // This is gross and won't work if someone starts namespacing sweep differently
     private static final TableReference SWEEP_PRIORITY_TABLE = TableReference.create(SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
