@@ -79,6 +79,7 @@ public final class BackgroundCompactor implements AutoCloseable {
         this.inSafeHours = inSafeHours;
     }
 
+    @Override
     public void close() {
         log.info("Closing BackgroundCompactor");
         daemon.interrupt();
