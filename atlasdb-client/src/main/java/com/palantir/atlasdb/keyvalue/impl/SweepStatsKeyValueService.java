@@ -254,8 +254,8 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     private boolean shouldFlush() {
-        return totalModifications.get() >= writeThreshold.get() || totalModificationsSize.get()
-                >= writeSizeThreshold.get();
+        return totalModifications.get() >= writeThreshold.get()
+                || totalModificationsSize.get() >= writeSizeThreshold.get();
     }
 
     private void flushWrites(Multiset<TableReference> writes, Set<TableReference> clears) {
