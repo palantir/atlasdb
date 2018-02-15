@@ -378,9 +378,8 @@ public abstract class TransactionManagers {
                 lockAndTimestampServices.lock(),
                 inSafeHours);
 
-        backgroundCompactorOptional.ifPresent(backgroundCompactor -> {
-            transactionManager.registerClosingCallback(backgroundCompactor::close);
-        });
+        backgroundCompactorOptional.ifPresent(backgroundCompactor ->
+                transactionManager.registerClosingCallback(backgroundCompactor::close));
 
         return backgroundCompactorOptional;
     }

@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
@@ -24,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
