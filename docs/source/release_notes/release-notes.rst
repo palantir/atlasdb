@@ -54,6 +54,11 @@ develop
          - Wrap remote calls from AtlasDB with http-remoting tracing.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2986>`__)
 
+    *    - |improved|
+         - Removed remote calls to check immutable lock validity on all reads to tables with THOROUGH sweep enabled.
+           These locks were a safeguard against clients using data from uncommitted or failed transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2996>`__)
+
 =======
 v0.76.0
 =======
