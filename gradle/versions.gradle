@@ -36,14 +36,6 @@ ext.libVersions =
     checkstyle: '6.18',
     findbugsAnnotations: '2.0.3',
     ant: '1.9.4',
-
-    // Danger, Will Robinson!
-    //
-    // This driver has historically low code quality and should be considered a high-risk update.
-    // Severe performance regressions in 1202,3,4.
-    // Severe correctness issues in 1204,5,6.
-    // Update with care and caution.
-    postgresql: '9.4.1209',
-
+    postgresql: '42.2.1',
     c3p0: '0.9.5.1'
 ]

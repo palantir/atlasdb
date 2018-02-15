@@ -50,10 +50,18 @@ develop
     *    - Type
          - Change
 
+    *    - |changed|
+         - Upgraded Postgres jdbc driver to 42.2.1 (from 9.4.1209).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2985>`__)
+
     *    - |improved|
          - Wrap remote calls from AtlasDB with http-remoting tracing.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2986>`__)
 
+    *    - |fixed|
+         - Fix NPE when warming conflict detection cache if table is being created.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2993>`__)
+           
     *    - |improved|
          - Removed remote calls to check immutable lock validity on all reads to tables with THOROUGH sweep enabled.
            These locks were a safeguard against clients using data from uncommitted or failed transactions.
