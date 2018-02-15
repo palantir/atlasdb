@@ -54,6 +54,14 @@ develop
          - Upgraded Postgres jdbc driver to 42.2.1 (from 9.4.1209).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2985>`__)
 
+    *    - |improved|
+         - Wrap remote calls from AtlasDB with http-remoting tracing.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2986>`__)
+
+    *    - |fixed|
+         - Fix NPE when warming conflict detection cache if table is being created.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2993>`__)
+
 =======
 v0.76.0
 =======
