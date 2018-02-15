@@ -100,7 +100,6 @@ import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.logging.LoggingArgs.SafeAndUnsafeTableReferences;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -389,7 +388,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
                     tableRef, Iterables.size(rows), results.size(), getRowsMillis);
         }
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         return results;
     }
 
@@ -433,9 +431,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                    columnRangeSelection,
                                                    batchHint,
                                                    getStartTimestamp());
-        if (!rawResults.hasNext()) {
-            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
-        } // else the postFiltered iterator will check for each batch.
 
         Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
         Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFiltered = Iterators.transform(rawResultsByRow, e -> {
@@ -487,7 +482,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     rawBuilder.put(result);
                 }
                 Map<Cell, Value> raw = rawBuilder.build();
-                validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
@@ -563,7 +557,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 ColumnSelection.all(),
                 getStartTimestamp()));
 
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         return filterRowResults(tableRef, rawResults, Maps.newHashMap());
     }
 
@@ -621,7 +614,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
                     tableRef, cells.size(), result.size(), getMillis);
         }
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
 
@@ -634,7 +626,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
 
         Map<Cell, byte[]> result = getFromKeyValueService(tableRef, cells);
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
 
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
@@ -680,7 +671,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     Timer.Context timer = getTimer("processedRangeMillis").time();
                     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstPages =
                             keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
-                    validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
 
                     SortedMap<Cell, byte[]> postFiltered = postFilterPages(
                             tableRef,
@@ -794,17 +784,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 getRange(tableRef, rangeRequest).batchAccept(batchSizeHint, visitor);
             }
         };
-    }
-
-    private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef, long timestamp) {
-        if (!isValidationNecessary(tableRef)) {
-            return;
-        }
-        throwIfPreCommitRequirementsNotMet(null, timestamp);
-    }
-
-    private boolean isValidationNecessary(TableReference tableRef) {
-        return sweepStrategyManager.get().get(tableRef) == SweepStrategy.THOROUGH;
     }
 
     private List<Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
@@ -951,7 +930,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Override
             protected Iterator<RowResult<T>> computeNext() {
                 List<RowResult<Value>> batch = results.getBatch();
-                validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
@@ -1173,9 +1151,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         if (!keysToReload.isEmpty()) {
-            Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
-            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
-            return nextRawResults;
+            return keyValueService.get(tableRef, keysToReload);
         } else {
             return ImmutableMap.of();
         }
