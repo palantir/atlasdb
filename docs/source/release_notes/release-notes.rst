@@ -62,6 +62,10 @@ develop
          - Fix NPE when warming conflict detection cache if table is being created.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2993>`__)
 
+    *    - |improved|
+         - The ``writeThreshold`` and ``writeSizeThreshold`` parameters for sweep are now configurable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2998>`__)
+
 =======
 v0.76.0
 =======
