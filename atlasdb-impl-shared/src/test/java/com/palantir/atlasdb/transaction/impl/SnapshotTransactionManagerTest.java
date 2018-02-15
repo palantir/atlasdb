@@ -45,7 +45,7 @@ public class SnapshotTransactionManagerTest {
     private final Cleaner cleaner = mock(Cleaner.class);
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
-    private final SnapshotTransactionManagerImpl snapshotTransactionManager = new SnapshotTransactionManagerImpl(
+    private final SerializableTransactionManager snapshotTransactionManager = new SerializableTransactionManagerImpl(
             keyValueService,
             new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
                     LockClient.of("lock")),
@@ -88,7 +88,7 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
-        SnapshotTransactionManagerImpl newTransactionManager = new SnapshotTransactionManagerImpl(
+        SerializableTransactionManager newTransactionManager = new SerializableTransactionManagerImpl(
                 keyValueService,
                 new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
                         LockClient.of("lock")),
