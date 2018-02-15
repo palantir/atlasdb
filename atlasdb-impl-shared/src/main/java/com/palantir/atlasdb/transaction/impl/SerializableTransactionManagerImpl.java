@@ -392,7 +392,8 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
     }
 
     /**
-     * Frees resources used by this SerializableTransactionManager, and invokes any callbacks registered to run on close.
+     * Frees resources used by this SerializableTransactionManager, and invokes any callbacks registered to run on
+     * close.
      * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
      *
      * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
