@@ -29,7 +29,6 @@ public interface SerializableTransactionManager extends TransactionManager {
     <C extends PreCommitCondition, E extends Exception> ServiceReadOnlyTransaction getReadTransaction(
             C condition) throws E;
 
-
         /**
          * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
          * submitted throws an exception.

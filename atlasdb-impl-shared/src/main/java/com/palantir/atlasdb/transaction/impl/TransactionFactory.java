@@ -76,7 +76,7 @@ final class TransactionFactory {
         this.sweepQueueWriter = sweepQueueWriter;
     }
 
-    SnapshotTransaction createSerializableTransaction(
+    SerializableTransaction createSerializableTransaction(
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
