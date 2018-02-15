@@ -23,18 +23,19 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public interface SerializableTransactionManager extends TransactionManager {
-    RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
+    <C extends PreCommitCondition, E extends Exception> ServiceWriteTransaction getWriteTransaction(
+            C condition) throws E;
 
-    <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
-            TransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException;
+    <C extends PreCommitCondition, E extends Exception> ServiceReadOnlyTransaction getReadTransaction(
+            C condition) throws E;
 
-    /**
-     * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
-     * submitted throws an exception.
-     *
-     * Concurrency: If this method races with close(), then closingCallback may not be called.
-     */
+
+        /**
+         * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
+         * submitted throws an exception.
+         *
+         * Concurrency: If this method races with close(), then closingCallback may not be called.
+         */
     void registerClosingCallback(Runnable closingCallback);
 
     Cleaner getCleaner();

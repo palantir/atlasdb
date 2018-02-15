@@ -271,6 +271,53 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
     }
 
     @Override
+    public <C extends PreCommitCondition, E extends Exception> ServiceWriteTransaction getWriteTransaction(
+            C condition) throws E {
+        checkOpen();
+        try {
+            RawTransaction tx = setupRunTaskWithConditionThrowOnConflict(condition);
+            return new ServiceWriteTransaction((SerializableTransaction) tx.delegate()) {
+                @Override
+                public void commit() {
+                    try {
+                        tx.commit();
+                        finishRunTaskWithLockThrowOnConflict(tx, transaction -> null);
+                    } finally {
+                        condition.cleanup();
+                    }
+                }
+            };
+        } catch (Throwable t) {
+            condition.cleanup();
+            throw t;
+        }
+    }
+
+    @Override
+    public <C extends PreCommitCondition, E extends Exception> ServiceReadOnlyTransaction getReadTransaction(
+            C condition) throws E {
+        try {
+            Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
+            SnapshotTransaction tx = transactionsFactory.createReadOnlyTransaction(condition,
+                    startTimestampSupplier,
+                    getApproximateImmutableTimestamp());
+            return new ServiceReadOnlyTransaction(tx) {
+                @Override
+                void commit() {
+                    try {
+                        tx.commit();
+                    } finally {
+                        condition.cleanup();
+                    }
+                }
+            };
+        } catch (Throwable t) {
+            condition.cleanup();
+            throw t;
+        }
+    }
+
+    @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task)
             throws E, TransactionFailedRetriableException {
@@ -283,7 +330,23 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
         }
     }
 
-    public RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
+        checkOpen();
+        Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
+        SnapshotTransaction transaction = transactionsFactory.createReadOnlyTransaction(condition,
+                startTimestampSupplier,
+                getApproximateImmutableTimestamp());
+        try {
+            return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
+                    new ReadTransaction(transaction, sweepStrategyManager));
+        } finally {
+            condition.cleanup();
+        }
+    }
+
+    private RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
                 LockImmutableTimestampRequest.create());
         try {
@@ -303,7 +366,7 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
         }
     }
 
-    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
+    private <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
             TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         T result;
@@ -320,24 +383,6 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
                     tx.delegate().getCommitTimestamp());
         }
         return result;
-    }
-
-
-
-    @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
-            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
-        checkOpen();
-        Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
-        SnapshotTransaction transaction = transactionsFactory.createReadOnlyTransaction(condition,
-                startTimestampSupplier,
-                getApproximateImmutableTimestamp());
-        try {
-            return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
-                    new ReadTransaction(transaction, sweepStrategyManager));
-        } finally {
-            condition.cleanup();
-        }
     }
 
     /**
