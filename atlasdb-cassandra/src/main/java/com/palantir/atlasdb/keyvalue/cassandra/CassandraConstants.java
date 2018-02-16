@@ -32,7 +32,6 @@ public final class CassandraConstants {
     static final long TS_SIZE = 4L;
 
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
-    static final String SSTABLE_SIZE_IN_MB = "80";
     static final double DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.1;
     static final double DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.01;
     static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
