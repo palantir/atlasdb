@@ -100,14 +100,6 @@ public class SchemasTest {
     }
 
     @Test
-    public void testTruncateTable() {
-        mockery.checking(new Expectations(){{
-            oneOf(kvs).truncateTable(with(equal(TABLE_REF)));
-        }});
-        Schemas.truncateTable(kvs, TABLE_REF);
-    }
-
-    @Test
     public void testDeleteTablesForSweepSchema() {
         Set<TableReference> allTableNames = Sets.newHashSet();
         allTableNames.add(TableReference.createFromFullyQualifiedName("sweep.priority"));
