@@ -74,12 +74,13 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private static final long FLUSH_DELAY_SECONDS = 42;
 
     // This is gross and won't work if someone starts namespacing sweep differently
-    private static final TableReference SWEEP_PRIORITY_TABLE = TableReference.create(SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
+    private static final TableReference SWEEP_PRIORITY_TABLE = TableReference.create(
+            SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
 
     private final KeyValueService delegate;
     private final TimestampService timestampService;
-    private final Supplier<Integer> writeThreshold;
-    private final Supplier<Long> writeSizeThreshold;
+    private final Supplier<Integer> writeThreshold; // number of cells which allows write stats to be flushed
+    private final Supplier<Long> writeSizeThreshold; // size of values which allows write stats to be flushed
 
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
 
@@ -96,7 +97,6 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             TimestampService timestampService,
             Supplier<Integer> writeThreshold,
             Supplier<Long> writeSizeThreshold) {
-
         return new SweepStatsKeyValueService(delegate, timestampService, writeThreshold, writeSizeThreshold);
     }
 
