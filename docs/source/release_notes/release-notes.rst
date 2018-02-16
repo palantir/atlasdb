@@ -50,9 +50,60 @@ develop
     *    - Type
          - Change
 
+    *    - |changed|
+         - Upgraded Postgres jdbc driver to 42.2.1 (from 9.4.1209).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2985>`__)
+
+    *    - |improved|
+         - Wrap remote calls from AtlasDB with http-remoting tracing.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2986>`__)
+
+    *    - |fixed|
+         - Fix NPE when warming conflict detection cache if table is being created.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2993>`__)
+
+=======
+v0.76.0
+=======
+
+12 February 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a bug which would make sweep deletes not be compacted by Cassandra.
+           Over time this would lead to tombstones being accumulated in the DB and disk space not being reclaimed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2968>`__)
+
+    *    - |fixed|
+         - When TransactionManagers doesn't return successfully, we leaked resources depending on which step of the initialization failed.
+           Now resources are properly closed and freed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2964>`__)
+
+    *    - |fixed|
+         - Fixed a bug where Cassandra clients' input buffers were left in an invalid state before returning the client to the pool, manifesting in NPEs in the Thrift layer.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2971>`__)
+
+    *    - |improved| |new|
+         - Added a new parameter ``conservativeRequestExceptionHandler`` to ``CassandraKeyValueServiceRuntimeConfig``.
+           Setting this parameter to true will enable more conservative retrying logic for requests, including longer backoffs and not retrying on the same host when encoutering an exception that is indicative of high Cassandra load, e.g., TimeoutExceptions.
+           This parameter is live-reloadable, and reloading it will affect in-flight requests, with the caveat that once a request gives up on a node, it will not retry that node again even if we disable conservative retrying.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2960>`__)
+
     *    - |improved|
          - AtlasDB CLIs now allow a runtime config to be passed in.
            This allows the CLIs to be used with products that are configured to use timelock and have the timelock block in the runtime config.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2937>`__)
+
+    *    - |improved| |devbreak|
+         - AtlasDbConfigs now supports parsing of both install and runtime configuration.
+           As part of these changes, ``load``, ``loadFromString`` and other methods in ``AtlasDbConfigs`` now take a type parameter.
+           To fix existing usage, please pass in ``AtlasDbConfig.class`` as the type parameter to these functions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2937>`__)
 
     *    - |fixed|
@@ -69,7 +120,8 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2939>`__)
 
     *    - |improved|
-         - Index tables can now be marked as safe for logging. If you use indexes, please add ``allSafeForLogging()`` on its definition.
+         - Index tables can now be marked as safe for logging.
+           If you use indexes, please add ``allSafeForLogging()`` on their definition (where reasonable).
            This makes all AtlasDB tables able to be marked as safe for logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2940>`__)
 
@@ -81,6 +133,7 @@ develop
 
     *    - |devbreak|
          - Renamed the method used to create LockAndTimestampServices by the CLI commands and AtlasConsole.
+           Please update usages of ``createLockAndTimestampServices`` to ``createLockAndTimestampServicesForCli``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2896>`__)
 
     *    - |improved| |logs|
@@ -93,9 +146,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2936>`__)
 
     *    - |improved| |metrics|
-         - Atlas now records the number of cells written over time.
-           This metric is reported under ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cellsWritten``
+         - Atlas now records the number of cells written over time, if you are using Cassandra KVS.
+           This metric is reported under ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cellsWritten``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2967>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2974>`__)
 
     *    - |improved|
          - ``ExecutorInheritableThreadLocal`` from ``commons-executors`` has been split out into a ``commons-executors-api`` dependent project with no dependencies.
@@ -281,6 +335,12 @@ v0.73.1
     *    - |devbreak|
          - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
+
+    *    - |fixed|
+         - CassandraKVS sstable size in MB was not being correctly set.
+           This resulted in requirements on the entire cluster being up during startup of certain stacks.
+           CF metadata mismatch messages are also now correctly safety marked for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2989>`__)
 
 =======
 v0.73.0

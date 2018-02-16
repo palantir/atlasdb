@@ -39,7 +39,7 @@ import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public final class BackgroundSweeperImpl implements BackgroundSweeper {
+public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
 
     private final LockService lockService;
@@ -282,6 +282,11 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     @VisibleForTesting
     SweepLocks createSweepLocks() {
         return new SweepLocks(lockService);
+    }
+
+    @Override
+    public void close() {
+        shutdown();
     }
 
     @Override

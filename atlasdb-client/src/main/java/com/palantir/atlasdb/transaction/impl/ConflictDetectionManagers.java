@@ -85,8 +85,15 @@ public final class ConflictDetectionManagers {
             new Thread(() -> {
                 try {
                     conflictDetectionManager.warmCacheWith(
-                            Maps.transformValues(kvs.getMetadataForTables(),
-                                    ConflictDetectionManagers::getConflictHandlerFromMetadata));
+                            Maps.transformValues(kvs.getMetadataForTables(), metadata -> {
+                                if (metadata == null) {
+                                    log.debug("Metadata was null for a table. likely because the table is currently "
+                                            + " being created. Skipping warming cache for the table.");
+                                    return null;
+                                } else {
+                                    return getConflictHandlerFromMetadata(metadata);
+                                }
+                            }));
                 } catch (Throwable t) {
                     log.warn("There was a problem with pre-warming the conflict detection cache;"
                             + " if you have unusually high table scale, this might be expected."
