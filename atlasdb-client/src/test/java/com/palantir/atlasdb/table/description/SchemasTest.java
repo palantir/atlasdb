@@ -100,11 +100,11 @@ public class SchemasTest {
     }
 
     @Test
-    public void testDeleteTable() {
+    public void testTruncateTable() {
         mockery.checking(new Expectations(){{
-            oneOf(kvs).dropTable(with(equal(TABLE_REF)));
+            oneOf(kvs).truncateTable(with(equal(TABLE_REF)));
         }});
-        Schemas.deleteTable(kvs, TABLE_REF);
+        Schemas.truncateTable(kvs, TABLE_REF);
     }
 
     @Test

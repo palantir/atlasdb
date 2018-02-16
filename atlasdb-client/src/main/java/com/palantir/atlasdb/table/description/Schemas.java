@@ -135,8 +135,8 @@ public final class Schemas {
         return schemaFullTableNames.stream().filter(allTables::contains).collect(Collectors.toSet());
     }
 
-    public static void deleteTable(KeyValueService kvs, TableReference tableRef) {
-        kvs.dropTable(tableRef);
+    public static void truncateTable(KeyValueService kvs, TableReference tableRef) {
+        kvs.truncateTable(tableRef);
     }
 
 }
