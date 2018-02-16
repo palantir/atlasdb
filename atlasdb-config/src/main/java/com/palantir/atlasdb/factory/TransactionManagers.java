@@ -332,7 +332,7 @@ public abstract class TransactionManagers {
                         () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
                         SweepQueueWriter.NO_OP),
                 closeables);
-        transactionManager = AtlasDbMetrics.instrumentWithTracing(
+        SerializableTransactionManager instrumentedTransactionManager = AtlasDbMetrics.instrumentWithTracing(
                 SerializableTransactionManager.class,
                 transactionManager);
 
@@ -349,11 +349,11 @@ public abstract class TransactionManagers {
                         transactionService,
                         sweepStrategyManager,
                         follower,
-                        transactionManager,
+                        instrumentedTransactionManager,
                         persistentLockManager),
                 closeables);
 
-        return transactionManager;
+        return instrumentedTransactionManager;
     }
 
     private <T extends AutoCloseable> T initializeCloseable(
