@@ -23,6 +23,9 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
 import com.palantir.atlasdb.schema.generated.CompactTableFactory;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
@@ -31,13 +34,15 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 final class CompactPriorityCalculator {
+    private static final Logger log = LoggerFactory.getLogger(CompactPriorityCalculator.class);
+
     private final TransactionManager transactionManager;
 
     CompactPriorityCalculator(TransactionManager transactionManager) {
         this.transactionManager = transactionManager;
     }
 
-    public Optional<String> selectTableToCompact() {
+    Optional<String> selectTableToCompact() {
         return transactionManager.runTaskReadOnly(this::selectTableToCompactInternal);
     }
 
