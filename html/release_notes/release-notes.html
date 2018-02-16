@@ -197,18 +197,23 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>AtlasDB migration CLI no longer drops the temporary table used during migration and instead truncates it.
+This avoids an issue where AtlasDB would refuse to start after a migration because it would try to hydrate empty table metadata for the above table.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3000">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Upgraded Postgres jdbc driver to 42.2.1 (from 9.4.1209).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2985">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Wrap remote calls from AtlasDB with http-remoting tracing.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2986">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fix NPE when warming conflict detection cache if table is being created.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2993">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The <code class="docutils literal notranslate"><span class="pre">writeThreshold</span></code> and <code class="docutils literal notranslate"><span class="pre">writeSizeThreshold</span></code> parameters for when to write stats for the Sweep prioritization.
 Also reduce the defaults to flush write stats on 32MB overall write size and 2k cells.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2998">Pull Request</a>)</td>
