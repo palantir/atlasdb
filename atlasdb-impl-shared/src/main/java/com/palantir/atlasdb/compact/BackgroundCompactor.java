@@ -82,17 +82,17 @@ public class BackgroundCompactor implements Runnable {
 
     @Override
     public void run() {
-        try (SingleLockService locks = createSimpleLocks()) {
-            log.info("Starting background sweeper.");
+        try (SingleLockService compactorLock = createSimpleLocks()) {
+            log.info("Starting background compactor");
             while (true) {
                 if (Thread.currentThread().isInterrupted()) {
-                    log.warn("Shutting down background compactor because thread is interrupted");
+                    log.warn("Shutting down background compactor because someone interrupted its thread");
                     Thread.currentThread().interrupt();
                     return;
                 }
 
-                locks.lockOrRefresh();
-                if (locks.haveLocks()) {
+                compactorLock.lockOrRefresh();
+                if (compactorLock.haveLocks()) {
                     Optional<String> tableToCompactOptional = transactionManager.runTaskReadOnly(
                             this::selectTableToCompact);
                     if (!tableToCompactOptional.isPresent()) {
