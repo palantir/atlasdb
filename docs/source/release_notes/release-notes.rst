@@ -53,7 +53,7 @@ develop
     *    - |changed|
          - AtlasDB migration CLI no longer drops the temporary table used during migration and instead truncates it.
            This avoids an issue where AtlasDB would refuse to start after a migration because it would try to hydrate empty table metadata for the above table.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2999>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3000>`__)
 
     *    - |changed|
          - Upgraded Postgres jdbc driver to 42.2.1 (from 9.4.1209).
