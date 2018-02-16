@@ -124,6 +124,12 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2961>`__)
 
+    *    - |improved|
+         - Instrument the TransactionManager returned by ``TransactionManagers.builder().build().serializable()``.
+           The metrics are reported under ``com.palantir.atlasdb.transaction.impl.SerializableTransactionManager``.
+           If you're instrumenting please rely on the above metrics from now onwards.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2966>`__)
+
 =======
 v0.75.0
 =======
