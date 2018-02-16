@@ -50,6 +50,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+=======
+v0.77.0
+=======
+
+16 February 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |changed|
          - AtlasDB migration CLI no longer drops the temporary table used during migration and instead truncates it.
            This avoids an issue where AtlasDB would refuse to start after a migration because it would try to hydrate empty table metadata for the above table.
