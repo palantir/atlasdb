@@ -69,13 +69,18 @@ public abstract class SweepConfig {
         return AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT;
     }
 
+    @Value.Default
+    public Integer writeThreshold() {
+        return AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD;
+    }
+
+    @Value.Default
+    public Long writeSizeThreshold() {
+        return AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD;
+    }
+
     public static SweepConfig defaultSweepConfig() {
-        return ImmutableSweepConfig.builder()
-                .enabled(AtlasDbConstants.DEFAULT_ENABLE_SWEEP)
-                .pauseMillis(AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS)
-                .readLimit(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
-                .deleteBatchHint(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
-                .build();
+        return ImmutableSweepConfig.builder().build();
     }
 
     public static SweepConfig disabled() {

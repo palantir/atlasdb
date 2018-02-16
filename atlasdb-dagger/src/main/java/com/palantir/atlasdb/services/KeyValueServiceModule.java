@@ -19,6 +19,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -56,7 +57,14 @@ public class KeyValueServiceModule {
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs);
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
-        kvs = SweepStatsKeyValueService.create(kvs, tss);
+
+        SweepConfig sweepConfig = config.atlasDbRuntimeConfig().sweep();
+        kvs = SweepStatsKeyValueService.create(
+                kvs,
+                tss,
+                sweepConfig::writeThreshold,
+                sweepConfig::writeSizeThreshold);
+
         TransactionTables.createTables(kvs);
         ImmutableSet<Schema> schemas =
                 ImmutableSet.<Schema>builder()
