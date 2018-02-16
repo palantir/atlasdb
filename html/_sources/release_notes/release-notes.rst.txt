@@ -62,6 +62,11 @@ develop
          - Fix NPE when warming conflict detection cache if table is being created.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2993>`__)
 
+    *    - |improved|
+         - The ``writeThreshold`` and ``writeSizeThreshold`` parameters for when to write stats for the Sweep prioritization.
+           Also reduce the defaults to flush write stats on 32MB overall write size and 2k cells.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2998>`__)
+
 =======
 v0.76.0
 =======
@@ -307,6 +312,12 @@ v0.73.1
     *    - |devbreak|
          - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
+
+    *    - |fixed|
+         - CassandraKVS sstable size in MB was not being correctly set.
+           This resulted in requirements on the entire cluster being up during startup of certain stacks.
+           CF metadata mismatch messages are also now correctly safety marked for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2989>`__)
 
 =======
 v0.73.0
