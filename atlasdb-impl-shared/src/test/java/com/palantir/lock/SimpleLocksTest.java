@@ -34,37 +34,37 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class SimpleLocksTest {
-    private SimpleLocks sweepLocks;
+    private SingleLockService lockService;
     private LockService mockLockService = mock(LockService.class);
     private String lockId = "test";
 
     @Before
     public void setUp() {
-        sweepLocks = new SimpleLocks(mockLockService, lockId);
+        lockService = new SingleLockService(mockLockService, lockId);
     }
 
     @Test
     public void lockStoredInToken() throws InterruptedException {
         when(mockLockService.lock(anyString(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, 10000000000L));
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
 
-        assertTrue(sweepLocks.haveLocks());
+        assertTrue(lockService.haveLocks());
     }
 
     @Test
     public void lockClearedWhenRefreshReturnsEmpty() throws InterruptedException {
         when(mockLockService.lock(anyString(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, 10000000000L));
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
 
         when(mockLockService.refreshLockRefreshTokens(any())).thenReturn(ImmutableSet.of());
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
 
-        assertFalse(sweepLocks.haveLocks());
+        assertFalse(lockService.haveLocks());
     }
 
     @Test
     public void lockOrRefreshCallsLockWhenNoTokenPresent() throws InterruptedException {
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
         verify(mockLockService, atLeastOnce()).lock(any(), any());
         verifyNoMoreInteractions(mockLockService);
     }
@@ -73,10 +73,10 @@ public class SimpleLocksTest {
     public void lockOrRefreshCallsRefreshWhenTokenPresent() throws InterruptedException {
         LockRefreshToken token = new LockRefreshToken(BigInteger.ONE, 10000000000L);
         when(mockLockService.lock(anyString(), any())).thenReturn(token);
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
         verify(mockLockService, atLeastOnce()).lock(any(), any());
 
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
         verify(mockLockService, atLeastOnce()).refreshLockRefreshTokens(ImmutableList.of(token));
         verifyNoMoreInteractions(mockLockService);
     }
@@ -85,9 +85,9 @@ public class SimpleLocksTest {
     public void closeUnlocksToken() throws InterruptedException {
         LockRefreshToken token = new LockRefreshToken(BigInteger.ONE, 10000000000L);
         when(mockLockService.lock(anyString(), any())).thenReturn(token);
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
 
-        sweepLocks.close();
+        lockService.close();
         verify(mockLockService, atLeastOnce()).unlock(token);
     }
 }

@@ -38,7 +38,7 @@ import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.LockService;
-import com.palantir.lock.SimpleLocks;
+import com.palantir.lock.SingleLockService;
 
 public class BackgroundCompactor implements Runnable {
     private static final int SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS = 5000;
@@ -82,7 +82,7 @@ public class BackgroundCompactor implements Runnable {
 
     @Override
     public void run() {
-        try (SimpleLocks locks = createSimpleLocks()) {
+        try (SingleLockService locks = createSimpleLocks()) {
             log.info("Starting background sweeper.");
             while (true) {
                 if (Thread.currentThread().isInterrupted()) {
@@ -116,8 +116,8 @@ public class BackgroundCompactor implements Runnable {
         }
     }
 
-    private SimpleLocks createSimpleLocks() {
-        return new SimpleLocks(lockService, "atlas compact");
+    private SingleLockService createSimpleLocks() {
+        return new SingleLockService(lockService, "atlas compact");
     }
 
     private void registerCompactedTable(String tableToCompact) {

@@ -27,13 +27,13 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
 
-public class SimpleLocks implements AutoCloseable {
+public class SingleLockService implements AutoCloseable {
     private final LockService lockService;
     private final String lockId;
 
     private LockRefreshToken token = null;
 
-    public SimpleLocks(LockService lockService, String lockId) {
+    public SingleLockService(LockService lockService, String lockId) {
         this.lockService = lockService;
         this.lockId = lockId;
     }
