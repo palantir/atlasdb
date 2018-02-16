@@ -221,8 +221,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1209",
-            "requested": "9.4.1209"
+            "locked": "42.2.1",
+            "requested": "42.2.1"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
@@ -457,8 +457,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1209",
-            "requested": "9.4.1209"
+            "locked": "42.2.1",
+            "requested": "42.2.1"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
