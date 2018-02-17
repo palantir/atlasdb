@@ -184,6 +184,10 @@ v0.76.0
            If you're instrumenting please rely on the above metrics from now onwards.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2966>`__)
 
+    *    - |devbreak|
+         - Remove ``SnapshotTransactionManagerImpl``. Move all its methods and state to ``SerializableTransactionManagerImpl``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2995>`__)
+
 =======
 v0.75.0
 =======

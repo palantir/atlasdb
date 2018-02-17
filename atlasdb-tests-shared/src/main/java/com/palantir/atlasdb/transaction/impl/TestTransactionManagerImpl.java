@@ -58,12 +58,12 @@ public class TestTransactionManagerImpl extends SerializableTransactionManagerIm
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                TimestampTrackerImpl.createNoOpTracker(),
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                TimestampTrackerImpl.createNoOpTracker(),
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 sweepQueue);
     }
 
@@ -83,12 +83,12 @@ public class TestTransactionManagerImpl extends SerializableTransactionManagerIm
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                TimestampTrackerImpl.createNoOpTracker(),
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                TimestampTrackerImpl.createNoOpTracker(),
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 SweepQueueWriter.NO_OP);
     }
 

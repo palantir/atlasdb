@@ -15,31 +15,51 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
+import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampService;
 
 @AutoDelegate(typeToExtend = SerializableTransactionManager.class)
-public class SerializableTransactionManagerImpl extends SnapshotTransactionManagerImpl {
+public class SerializableTransactionManagerImpl extends AbstractTransactionManager
+        implements SerializableTransactionManager {
 
     public static class InitializeCheckingWrapper implements AutoDelegate_SerializableTransactionManager {
         private final SerializableTransactionManager manager;
@@ -111,12 +131,12 @@ public class SerializableTransactionManagerImpl extends SnapshotTransactionManag
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                timestampTracker,
-                timestampCacheSize,
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
+                timestampTracker,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
+                timestampCacheSize,
                 sweepQueueWriter);
 
         return initializeAsync
@@ -144,14 +164,35 @@ public class SerializableTransactionManagerImpl extends SnapshotTransactionManag
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                TimestampTrackerImpl.createNoOpTracker(),
-                timestampCacheSize,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                TimestampTrackerImpl.createNoOpTracker(),
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
+                timestampCacheSize,
                 SweepQueueWriter.NO_OP);
     }
+
+    private static final int NUM_RETRIES = 10;
+
+    final KeyValueService keyValueService;
+    final TransactionService transactionService;
+    final TimelockService timelockService;
+    final LockService lockService;
+    final ConflictDetectionManager conflictDetectionManager;
+    final SweepStrategyManager sweepStrategyManager;
+    final Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier;
+    final AtomicLong recentImmutableTs = new AtomicLong(-1L);
+    final Cleaner cleaner;
+    final boolean allowHiddenTableAccess;
+    protected final Supplier<Long> lockAcquireTimeoutMs;
+    final ExecutorService getRangesExecutor;
+    final TimestampTracker timestampTracker;
+    final int defaultGetRangesConcurrency;
+    final SweepQueueWriter sweepQueueWriter;
+
+    final List<Runnable> closingCallbacks;
+    final AtomicBoolean isClosed;
 
     /**
      * @deprecated Use {@link SerializableTransactionManagerImpl#create} to create this class.
@@ -181,12 +222,9 @@ public class SerializableTransactionManagerImpl extends SnapshotTransactionManag
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
+                allowHiddenTableAccess, () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 timestampTracker,
-                timestampCacheSize,
-                allowHiddenTableAccess,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
+                concurrentGetRangesThreadPoolSize, defaultGetRangesConcurrency, timestampCacheSize,
                 SweepQueueWriter.NO_OP
         );
     }
@@ -200,33 +238,90 @@ public class SerializableTransactionManagerImpl extends SnapshotTransactionManag
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            TimestampTracker timestampTracker,
-            Supplier<Long> timestampCacheSize,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
+            TimestampTracker timestampTracker,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
+            Supplier<Long> timestampCacheSize,
             SweepQueueWriter sweepQueueWriter) {
-        super(
-                keyValueService,
-                timelockService,
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                allowHiddenTableAccess,
-                lockAcquireTimeoutMs,
-                timestampTracker,
-                concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                timestampCacheSize,
-                sweepQueueWriter);
+        super(timestampCacheSize);
+
+        this.keyValueService = keyValueService;
+        this.timelockService = timelockService;
+        this.lockService = lockService;
+        this.transactionService = transactionService;
+        this.conflictDetectionManager = conflictDetectionManager;
+        this.sweepStrategyManager = sweepStrategyManager;
+        this.constraintModeSupplier = constraintModeSupplier;
+        this.cleaner = cleaner;
+        this.allowHiddenTableAccess = allowHiddenTableAccess;
+        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
+        this.closingCallbacks = new CopyOnWriteArrayList<>();
+        this.isClosed = new AtomicBoolean(false);
+        this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
+        this.timestampTracker = timestampTracker;
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.sweepQueueWriter = sweepQueueWriter;
     }
 
     @Override
-    protected SnapshotTransaction createTransaction(long immutableTimestamp,
+    protected boolean shouldStopRetrying(int numTimesFailed) {
+        return numTimesFailed > NUM_RETRIES;
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
+            C condition, ConditionAwareTransactionTask<T, C, E> task)
+            throws E, TransactionFailedRetriableException {
+        checkOpen();
+        try {
+            RawTransaction tx = setupRunTaskWithConditionThrowOnConflict(condition);
+            return finishRunTaskWithLockThrowOnConflict(tx, transaction -> task.execute(transaction, condition));
+        } finally {
+            condition.cleanup();
+        }
+    }
+
+    public RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
+        LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
+                LockImmutableTimestampRequest.create());
+        try {
+            LockToken immutableTsLock = immutableTsResponse.getLock();
+            long immutableTs = immutableTsResponse.getImmutableTimestamp();
+            recordImmutableTimestamp(immutableTs);
+            Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
+
+            SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
+                    immutableTsLock, condition);
+            return new RawTransaction(transaction, immutableTsLock);
+        } catch (Throwable e) {
+            timelockService.unlock(ImmutableSet.of(immutableTsResponse.getLock()));
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
+            TransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException {
+        T result;
+        try {
+            result = runTaskThrowOnConflict(task, tx);
+        } finally {
+            timelockService.unlock(ImmutableSet.of(tx.getImmutableTsLock()));
+        }
+        if ((tx.getTransactionType() == Transaction.TransactionType.AGGRESSIVE_HARD_DELETE) && !tx.isAborted()) {
+            // t.getCellsToScrubImmediately() checks that t has been committed
+            cleaner.scrubImmediately(this,
+                    tx.delegate().getCellsToScrubImmediately(),
+                    tx.delegate().getTimestamp(),
+                    tx.delegate().getCommitTimestamp());
+        }
+        return result;
+    }
+
+    private SnapshotTransaction createTransaction(
+            long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
@@ -250,6 +345,166 @@ public class SerializableTransactionManagerImpl extends SnapshotTransactionManag
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter);
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
+        checkOpen();
+        long immutableTs = getApproximateImmutableTimestamp();
+        SnapshotTransaction transaction = new SnapshotTransaction(
+                keyValueService,
+                timelockService,
+                transactionService,
+                NoOpCleaner.INSTANCE,
+                getStartTimestampSupplier(),
+                conflictDetectionManager,
+                sweepStrategyManager,
+                immutableTs,
+                Optional.empty(),
+                condition,
+                constraintModeSupplier.get(),
+                cleaner.getTransactionReadTimeoutMillis(),
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                allowHiddenTableAccess,
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs.get(),
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueueWriter::enqueue);
+        try {
+            return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
+                    new ReadTransaction(transaction, sweepStrategyManager));
+        } finally {
+            condition.cleanup();
+        }
+    }
+
+    /**
+     * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
+     * submitted throws an exception.
+     *
+     * Concurrency: If this method races with close(), then closingCallback may not be called.
+     */
+    public void registerClosingCallback(Runnable closingCallback) {
+        Preconditions.checkNotNull(closingCallback, "Cannot register a null callback.");
+        closingCallbacks.add(closingCallback);
+    }
+
+    /**
+     * Frees resources used by this SerializableTransactionManager, and invokes any callbacks registered to run on
+     * close.
+     * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
+     *
+     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
+     * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
+     * guaranteed to be executed (because we use a synchronized list) as long as no exceptions arise. If an exception
+     * arises, then no guarantees are made with regard to subsequent callbacks being executed.
+     */
+    @Override
+    public void close() {
+        if (isClosed.compareAndSet(false, true)) {
+            super.close();
+            timestampTracker.close();
+            cleaner.close();
+            keyValueService.close();
+            closeLockServiceIfPossible();
+            for (Runnable callback : Lists.reverse(closingCallbacks)) {
+                callback.run();
+            }
+        }
+    }
+
+    @Override
+    public void clearTimestampCache() {
+        timestampValidationReadCache.clear();
+    }
+
+    private void closeLockServiceIfPossible() {
+        if (lockService instanceof AutoCloseable) {
+            try {
+                ((AutoCloseable) lockService).close();
+            } catch (Exception e) {
+                throw Throwables.rewrapAndThrowUncheckedException("Exception when closing the lock service", e);
+            }
+        }
+    }
+
+    private Supplier<Long> getStartTimestampSupplier() {
+        return Suppliers.memoize(() -> {
+            long freshTimestamp = timelockService.getFreshTimestamp();
+            cleaner.punch(freshTimestamp);
+            return freshTimestamp;
+        });
+    }
+
+    @Override
+    public LockService getLockService() {
+        return lockService;
+    }
+
+    @Override
+    public TimelockService getTimelockService() {
+        return timelockService;
+    }
+
+    /**
+     * This will always return a valid ImmutableTimestamp, but it may be slightly out of date.
+     * <p>
+     * This method is used to optimize the perf of read only transactions because getting a new immutableTs requires
+     * 2 extra remote calls which we can skip.
+     */
+    private long getApproximateImmutableTimestamp() {
+        long recentTs = recentImmutableTs.get();
+        if (recentTs >= 0) {
+            return recentTs;
+        }
+        return getImmutableTimestamp();
+    }
+
+    @Override
+    public long getImmutableTimestamp() {
+        long immutableTs = timelockService.getImmutableTimestamp();
+        recordImmutableTimestamp(immutableTs);
+        return immutableTs;
+    }
+
+    private void recordImmutableTimestamp(long immutableTs) {
+        recentImmutableTs.updateAndGet(current -> Math.max(current, immutableTs));
+    }
+
+    @Override
+    public long getUnreadableTimestamp() {
+        return cleaner.getUnreadableTimestamp();
+    }
+
+    public Cleaner getCleaner() {
+        return cleaner;
+    }
+
+    @Override
+    public KeyValueService getKeyValueService() {
+        return keyValueService;
+    }
+
+    public TimestampService getTimestampService() {
+        return new TimelockTimestampServiceAdapter(timelockService);
+    }
+
+    @Override
+    public KeyValueServiceStatus getKeyValueServiceStatus() {
+        ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
+        switch (clusterAvailabilityStatus) {
+            case TERMINAL:
+                return KeyValueServiceStatus.TERMINAL;
+            case ALL_AVAILABLE:
+                return KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
+            case QUORUM_AVAILABLE:
+                return KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES;
+            case NO_QUORUM_AVAILABLE:
+            default:
+                return KeyValueServiceStatus.UNHEALTHY;
+        }
     }
 
     @VisibleForTesting

@@ -105,12 +105,12 @@ public class TestTransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                TimestampTrackerImpl.createNoOpTracker(),
-                () -> config.atlasDbRuntimeConfig().getTimestampCacheSize(),
                 config.allowAccessToHiddenTables(),
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                TimestampTrackerImpl.createNoOpTracker(),
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
+                () -> config.atlasDbRuntimeConfig().getTimestampCacheSize(),
                 SweepQueueWriter.NO_OP);
     }
 
