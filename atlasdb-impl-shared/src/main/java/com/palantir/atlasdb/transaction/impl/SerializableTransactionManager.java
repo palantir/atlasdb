@@ -18,16 +18,26 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public interface SerializableTransactionManager extends TransactionManager {
-    RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
+    /**
+     * Returns a {@link SerializableTransaction} that can be used for reads and writes.
+     * This behaves as the transactions returned in {@link TransactionManager#runTaskWithRetry(TransactionTask)}.
+     */
+    <C extends PreCommitCondition, E extends Exception> ServiceWriteTransaction getWriteTransaction(
+            C condition) throws E;
 
-    <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
-            TransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException;
+    /**
+     * Returns a transaction that can just be used for reads.
+     * Note that this transaction does not lock the immutable timestamp. Therefore, it is possible that sweep has
+     * deleted the values this transaction would read, causing correctness issues.
+     * The burden for locking the immutable timestamp, and preventing correctness problems is on the client.
+     * @throws UnsupportedOperationException if a write method was invoked.
+     */
+    <C extends PreCommitCondition, E extends Exception> ServiceReadOnlyTransaction getReadTransaction(
+            C condition) throws E;
 
     /**
      * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already

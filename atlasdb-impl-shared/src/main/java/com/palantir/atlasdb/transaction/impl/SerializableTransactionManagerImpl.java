@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,7 +29,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
@@ -42,7 +40,6 @@ import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
@@ -175,24 +172,19 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
 
     private static final int NUM_RETRIES = 10;
 
-    final KeyValueService keyValueService;
-    final TransactionService transactionService;
-    final TimelockService timelockService;
-    final LockService lockService;
-    final ConflictDetectionManager conflictDetectionManager;
-    final SweepStrategyManager sweepStrategyManager;
-    final Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier;
-    final AtomicLong recentImmutableTs = new AtomicLong(-1L);
-    final Cleaner cleaner;
-    final boolean allowHiddenTableAccess;
-    protected final Supplier<Long> lockAcquireTimeoutMs;
-    final ExecutorService getRangesExecutor;
-    final TimestampTracker timestampTracker;
-    final int defaultGetRangesConcurrency;
-    final SweepQueueWriter sweepQueueWriter;
+    private final KeyValueService keyValueService;
+    private final TimelockService timelockService;
+    private final LockService lockService;
+    private final SweepStrategyManager sweepStrategyManager;
+    private final AtomicLong recentImmutableTs = new AtomicLong(-1L);
+    private final Cleaner cleaner;
+    private final ExecutorService getRangesExecutor;
+    private final TimestampTracker timestampTracker;
+    private final List<Runnable> closingCallbacks;
+    private final AtomicBoolean isClosed;
 
-    final List<Runnable> closingCallbacks;
-    final AtomicBoolean isClosed;
+    final TransactionFactory transactionsFactory;
+    final ConflictDetectionManager conflictDetectionManager;
 
     /**
      * @deprecated Use {@link SerializableTransactionManagerImpl#create} to create this class.
@@ -249,25 +241,80 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
 
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
-        this.lockService = lockService;
-        this.transactionService = transactionService;
         this.conflictDetectionManager = conflictDetectionManager;
+        this.lockService = lockService;
         this.sweepStrategyManager = sweepStrategyManager;
-        this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
-        this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
         this.timestampTracker = timestampTracker;
-        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
-        this.sweepQueueWriter = sweepQueueWriter;
+
+        transactionsFactory = new TransactionFactory(keyValueService,
+                timelockService,
+                transactionService,
+                cleaner,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                constraintModeSupplier,
+                allowHiddenTableAccess,
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueueWriter);
     }
 
     @Override
     protected boolean shouldStopRetrying(int numTimesFailed) {
         return numTimesFailed > NUM_RETRIES;
+    }
+
+    @Override
+    public <C extends PreCommitCondition, E extends Exception> ServiceWriteTransaction getWriteTransaction(
+            C condition) throws E {
+        checkOpen();
+        try {
+            RawTransaction tx = setupRunTaskWithConditionThrowOnConflict(condition);
+            return new ServiceWriteTransaction((SerializableTransaction) tx.delegate()) {
+                @Override
+                public void commit() {
+                    try {
+                        tx.commit();
+                        finishRunTaskWithLockThrowOnConflict(tx, transaction -> null);
+                    } finally {
+                        condition.cleanup();
+                    }
+                }
+            };
+        } catch (Throwable t) {
+            condition.cleanup();
+            throw t;
+        }
+    }
+
+    @Override
+    public <C extends PreCommitCondition, E extends Exception> ServiceReadOnlyTransaction getReadTransaction(
+            C condition) throws E {
+        try {
+            Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
+            SnapshotTransaction tx = transactionsFactory.createReadOnlyTransaction(condition,
+                    startTimestampSupplier,
+                    getApproximateImmutableTimestamp());
+            return new ServiceReadOnlyTransaction(tx) {
+                @Override
+                public void commit() {
+                    try {
+                        tx.commit();
+                    } finally {
+                        condition.cleanup();
+                    }
+                }
+            };
+        } catch (Throwable t) {
+            condition.cleanup();
+            throw t;
+        }
     }
 
     @Override
@@ -283,6 +330,22 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
         }
     }
 
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
+        checkOpen();
+        Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
+        SnapshotTransaction transaction = transactionsFactory.createReadOnlyTransaction(condition,
+                startTimestampSupplier,
+                getApproximateImmutableTimestamp());
+        try {
+            return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
+                    new ReadTransaction(transaction, sweepStrategyManager));
+        } finally {
+            condition.cleanup();
+        }
+    }
+
     public RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
                 LockImmutableTimestampRequest.create());
@@ -292,8 +355,10 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
             recordImmutableTimestamp(immutableTs);
             Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
 
-            SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
-                    immutableTsLock, condition);
+            SnapshotTransaction transaction = transactionsFactory.createSerializableTransaction(immutableTs,
+                    startTimestampSupplier,
+                    immutableTsLock,
+                    condition);
             return new RawTransaction(transaction, immutableTsLock);
         } catch (Throwable e) {
             timelockService.unlock(ImmutableSet.of(immutableTsResponse.getLock()));
@@ -318,66 +383,6 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
                     tx.delegate().getCommitTimestamp());
         }
         return result;
-    }
-
-    private SnapshotTransaction createTransaction(
-            long immutableTimestamp,
-            Supplier<Long> startTimestampSupplier,
-            LockToken immutableTsLock,
-            PreCommitCondition preCommitCondition) {
-        return new SerializableTransaction(
-                keyValueService,
-                timelockService,
-                transactionService,
-                cleaner,
-                startTimestampSupplier,
-                getConflictDetectionManager(),
-                sweepStrategyManager,
-                immutableTimestamp,
-                Optional.of(immutableTsLock),
-                preCommitCondition,
-                constraintModeSupplier.get(),
-                cleaner.getTransactionReadTimeoutMillis(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                allowHiddenTableAccess,
-                timestampValidationReadCache,
-                lockAcquireTimeoutMs.get(),
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                sweepQueueWriter);
-    }
-
-    @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
-            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
-        checkOpen();
-        long immutableTs = getApproximateImmutableTimestamp();
-        SnapshotTransaction transaction = new SnapshotTransaction(
-                keyValueService,
-                timelockService,
-                transactionService,
-                NoOpCleaner.INSTANCE,
-                getStartTimestampSupplier(),
-                conflictDetectionManager,
-                sweepStrategyManager,
-                immutableTs,
-                Optional.empty(),
-                condition,
-                constraintModeSupplier.get(),
-                cleaner.getTransactionReadTimeoutMillis(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                allowHiddenTableAccess,
-                timestampValidationReadCache,
-                lockAcquireTimeoutMs.get(),
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                sweepQueueWriter::enqueue);
-        try {
-            return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
-                    new ReadTransaction(transaction, sweepStrategyManager));
-        } finally {
-            condition.cleanup();
-        }
     }
 
     /**
@@ -408,6 +413,7 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
             timestampTracker.close();
             cleaner.close();
             keyValueService.close();
+            getRangesExecutor.shutdown();
             closeLockServiceIfPossible();
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
                 callback.run();
@@ -511,6 +517,5 @@ public class SerializableTransactionManagerImpl extends AbstractTransactionManag
     ConflictDetectionManager getConflictDetectionManager() {
         return conflictDetectionManager;
     }
-
 }
 
