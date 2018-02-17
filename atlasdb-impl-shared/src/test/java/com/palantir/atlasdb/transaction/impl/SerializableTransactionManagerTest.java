@@ -16,20 +16,33 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.io.IOException;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InOrder;
 
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.lock.CloseableLockService;
+import com.palantir.lock.LockClient;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.InMemoryTimestampService;
 
 public class SerializableTransactionManagerTest {
 
@@ -127,5 +140,70 @@ public class SerializableTransactionManagerTest {
         when(mockInitializer.isInitialized()).thenReturn(false);
 
         assertTrue(theManager.isInitialized());
+    }
+
+    @Test
+    public void closesKeyValueServiceOnClose() {
+        manager.close();
+        verify(mockKvs, times(1)).close();
+    }
+
+    @Test
+    public void closesCleanerOnClose() {
+        manager.close();
+        verify(mockCleaner, times(1)).close();
+    }
+
+    @Test
+    public void closesCloseableLockServiceOnClosingTransactionManager() throws IOException {
+        CloseableLockService closeableLockService = mock(CloseableLockService.class);
+        SerializableTransactionManager legacyTimelockTxnManager = new SerializableTransactionManagerImpl(
+                mockKvs,
+                new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
+                        LockClient.of("lock")),
+                closeableLockService,
+                null,
+                null,
+                null,
+                null,
+                mockCleaner,
+                false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                TimestampTrackerImpl.createNoOpTracker(),
+                TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
+                TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                SweepQueueWriter.NO_OP);
+        legacyTimelockTxnManager.close();
+        verify(closeableLockService, times(1)).close();
+    }
+
+    @Test
+    public void cannotRegisterNullCallback() {
+        assertThatThrownBy(() -> manager.registerClosingCallback(null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    public void invokesCallbackOnClose() {
+        Runnable callback = mock(Runnable.class);
+
+        manager.registerClosingCallback(callback);
+        verify(callback, never()).run();
+        manager.close();
+        verify(callback).run();
+    }
+
+    @Test
+    public void invokesCallbacksInReverseOrderOfRegistration() {
+        Runnable callback1 = mock(Runnable.class);
+        Runnable callback2 = mock(Runnable.class);
+        InOrder inOrder = inOrder(callback1, callback2);
+
+        manager.registerClosingCallback(callback1);
+        manager.registerClosingCallback(callback2);
+        manager.close();
+        inOrder.verify(callback2).run();
+        inOrder.verify(callback1).run();
     }
 }
