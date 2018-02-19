@@ -50,8 +50,8 @@ public final class SafeLoggableDataUtils {
                         TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataBytes);
                         addLoggableNamesToBuilder(builder, ref, tableMetadata);
                     } catch (Exception e) {
-                        log.warn("Exception thrown hydrating table metadata for table {}. {}",
-                                UnsafeArg.of("tableName", ref), UnsafeArg.of("exception", e));
+                        log.warn("Exception thrown hydrating table metadata for table {}.", 
+                                 UnsafeArg.of("tableName", ref), e);
                     }
                 });
         return builder.build();
