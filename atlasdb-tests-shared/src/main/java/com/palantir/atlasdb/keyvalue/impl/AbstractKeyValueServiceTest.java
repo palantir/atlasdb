@@ -133,7 +133,11 @@ public abstract class AbstractKeyValueServiceTest {
 
     @After
     public void tearDown() throws Exception {
-        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE));
+        try {
+            keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE));
+        } catch (Exception e) {
+            // this is fine
+        }
     }
 
     @AfterClass
@@ -561,6 +565,12 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.putMetadataForTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertTrue(Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA,
                 keyValueService.getMetadataForTable(TEST_TABLE)));
+    }
+
+    @Test
+    public void testDropTableErasesMetadata() {
+        keyValueService.dropTable(TEST_TABLE);
+        assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
     }
 
     private static <V, T extends Iterator<RowResult<V>>> void assertRangeSizeAndOrdering(T it,
