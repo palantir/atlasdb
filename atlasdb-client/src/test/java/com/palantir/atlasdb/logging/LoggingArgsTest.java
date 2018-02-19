@@ -261,5 +261,6 @@ public class LoggingArgsTest {
     @Test
     public void hydrateDoesNotThrowOnInvalidMetadata() {
         LoggingArgs.hydrate(ImmutableMap.of(SAFE_TABLE_REFERENCE, AtlasDbConstants.EMPTY_TABLE_METADATA));
+        LoggingArgs.setLogArbitrator(arbitrator);
     }
 }
