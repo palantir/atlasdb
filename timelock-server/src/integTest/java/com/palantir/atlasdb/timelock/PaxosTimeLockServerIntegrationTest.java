@@ -374,7 +374,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
         long currentTimestamp = timestampService.getFreshTimestamp();
         anotherClientTimestampManagementService.fastForwardTimestamp(currentTimestamp + ONE_MILLION);
-        assertEquals(currentTimestamp + 1, timestampService.getFreshTimestamp());
+        assertThat(timestampService.getFreshTimestamp())
+                .isBetween(currentTimestamp + 1, currentTimestamp + ONE_MILLION - 1);
     }
 
     @Test
