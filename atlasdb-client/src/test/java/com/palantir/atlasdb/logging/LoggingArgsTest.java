@@ -28,7 +28,9 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -254,5 +256,10 @@ public class LoggingArgsTest {
                 LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
 
         assertThat(returnedList).containsOnly(expectedList.toArray(new TableReference[expectedList.size()]));
+    }
+
+    @Test
+    public void hydrateDoesNotThrowOnInvalidMetadata() {
+        LoggingArgs.hydrate(ImmutableMap.of(SAFE_TABLE_REFERENCE, AtlasDbConstants.EMPTY_TABLE_METADATA));
     }
 }

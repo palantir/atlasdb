@@ -21,6 +21,9 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -28,8 +31,10 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.logsafe.UnsafeArg;
 
 public final class SafeLoggableDataUtils {
+    private static final Logger log = LoggerFactory.getLogger(SafeLoggableDataUtils.class);
     private static final Predicate<LogSafety> IS_SAFE = safety -> safety == LogSafety.SAFE;
 
     private SafeLoggableDataUtils() {
@@ -41,8 +46,13 @@ public final class SafeLoggableDataUtils {
 
         tableRefToMetadata.forEach(
                 (ref, metadataBytes) -> {
-                    TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataBytes);
-                    addLoggableNamesToBuilder(builder, ref, tableMetadata);
+                    try {
+                        TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataBytes);
+                        addLoggableNamesToBuilder(builder, ref, tableMetadata);
+                    } catch (Exception e) {
+                        log.warn("Exception thrown hydrating table metadata for table {}. {}",
+                                UnsafeArg.of("tableName", ref), UnsafeArg.of("exception", e));
+                    }
                 });
         return builder.build();
     }
