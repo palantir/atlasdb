@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -186,7 +187,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
-    private final HiddenTables hiddenTables;
 
     private final UniqueSchemaMutationLockTable schemaMutationLockTable;
 
@@ -303,7 +303,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.clientPool = clientPool;
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
-        this.hiddenTables = new HiddenTables();
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
@@ -385,7 +384,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 LoggingArgs.tableRef(tableRef));
                         updatedCfs.add(clientSideCf);
                     }
-                } else if (!hiddenTables.isHidden(tableRef)) {
+                } else if (!HiddenTables.isHidden(tableRef)) {
                     // Possible to get here from a race condition with another service starting up
                     // and performing schema upgrades concurrent with us doing this check
                     log.error("Found a table {} that did not have persisted"
@@ -1477,7 +1476,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public Set<TableReference> getAllTableNames() {
         return getTableReferencesWithoutFiltering()
-                .filter(tr -> !hiddenTables.isHidden(tr))
+                .filter(tr -> !HiddenTables.isHidden(tr))
                 .collect(Collectors.toSet());
     }
 
@@ -1555,7 +1554,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     } else {
                         contents = value.getContents();
                     }
-                    if (!hiddenTables.isHidden(tableRef)) {
+                    if (!HiddenTables.isHidden(tableRef)) {
                         tableToMetadataContents.put(tableRef, contents);
                     }
                 }
@@ -1608,16 +1607,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private void internalPutMetadataForTables(
             Map<TableReference, byte[]> unfilteredTableNameToMetadata,
             boolean possiblyNeedToPerformSettingsChanges) {
-        Map<TableReference, byte[]> tableNameToMetadata = Maps.filterValues(
-                unfilteredTableNameToMetadata,
-                Predicates.not(Predicates.equalTo(AtlasDbConstants.EMPTY_TABLE_METADATA)));
+        Map<TableReference, byte[]> tableNameToMetadata = filterEntriesWithEmptyMetadata(unfilteredTableNameToMetadata);
         if (tableNameToMetadata.isEmpty()) {
             return;
         }
 
         Map<Cell, byte[]> metadataRequestedForUpdate = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
-            metadataRequestedForUpdate.put(CassandraKeyValueServices.getMetadataCell(tableEntry.getKey()), tableEntry.getValue());
+            metadataRequestedForUpdate.put(CassandraKeyValueServices.getMetadataCell(tableEntry.getKey()),
+                    tableEntry.getValue());
         }
 
         Map<Cell, Long> requestForLatestDbSideMetadata = Maps.transformValues(
@@ -1645,6 +1643,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         if (!updatedMetadata.isEmpty()) {
             putMetadataAndMaybeAlterTables(possiblyNeedToPerformSettingsChanges, updatedMetadata, updatedCfs);
         }
+    }
+
+    private Map<TableReference, byte[]> filterEntriesWithEmptyMetadata(Map<TableReference, byte[]> unfilteredMap) {
+        Map<TableReference, byte[]> result = new HashMap<>();
+        unfilteredMap.forEach((tableRef, metadata) -> {
+            if (metadataIsDifferent(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
+                result.put(tableRef, metadata);
+            }
+        });
+        return result;
     }
 
     private boolean updatedMetadataFound(Value existingMetadata, byte[] requestMetadata) {

@@ -21,13 +21,17 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public class HiddenTables {
+public final class HiddenTables {
+    private HiddenTables() {
+        // utility
+    }
+
     private static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             AtlasDbConstants.TIMESTAMP_TABLE,
             AtlasDbConstants.DEFAULT_METADATA_TABLE,
             AtlasDbConstants.PERSISTED_LOCKS_TABLE);
 
-    public boolean isHidden(TableReference tableReference) {
+    public static boolean isHidden(TableReference tableReference) {
         return HIDDEN_TABLES.contains(tableReference)
                 || tableReference.getTablename().startsWith(SchemaMutationLockTables.LOCK_TABLE_PREFIX);
     }

@@ -53,7 +53,7 @@ public class QosCassandraClient implements CassandraClient {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);
     private static final Function<TableReference, Boolean> ZERO_ESTIMATE_DETERMINING_FUNCTION = tRef ->
-            tRef.equals(TransactionConstants.TRANSACTION_TABLE) || new HiddenTables().isHidden(tRef);
+            tRef.equals(TransactionConstants.TRANSACTION_TABLE) || HiddenTables.isHidden(tRef);
 
     private final CassandraClient client;
     private final QosClient qosClient;
