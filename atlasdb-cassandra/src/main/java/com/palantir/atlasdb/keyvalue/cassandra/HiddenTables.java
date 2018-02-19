@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public final class HiddenTables {
+public class HiddenTables {
     private HiddenTables() {
         // utility
     }
