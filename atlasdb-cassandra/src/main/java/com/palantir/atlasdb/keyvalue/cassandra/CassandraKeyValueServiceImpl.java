@@ -50,7 +50,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -1974,64 +1973,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private boolean isQuorumAvailable(int countUnreachableNodes) {
         int replicationFactor = config.replicationFactor();
         return countUnreachableNodes < (replicationFactor + 1) / 2;
-    }
-
-    private void alterGcAndTombstone(
-            String keyspace,
-            TableReference tableRef,
-            int gcGraceSeconds,
-            float tombstoneThresholdRatio) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(keyspace),
-                "keyspace:[%s] should not be null or empty.", keyspace);
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
-                "tableRef:[%s] should not be null or empty.", tableRef);
-        Preconditions.checkArgument(gcGraceSeconds >= 0,
-                "gc_grace_seconds:[%s] should not be negative.", gcGraceSeconds);
-        Preconditions.checkArgument(tombstoneThresholdRatio >= 0.0f && tombstoneThresholdRatio <= 1.0f,
-                "tombstone_threshold_ratio:[%s] should be between [0.0, 1.0]", tombstoneThresholdRatio);
-
-        schemaMutationLock.runWithLock(() ->
-                alterGcAndTombstoneInternal(keyspace, tableRef, gcGraceSeconds, tombstoneThresholdRatio));
-    }
-
-    private void alterGcAndTombstoneInternal(
-            String keyspace,
-            TableReference tableRef,
-            int gcGraceSeconds,
-            float tombstoneThresholdRatio) {
-        try {
-            clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, Exception>) client -> {
-                KsDef ks = client.rawClient().describe_keyspace(keyspace);
-                List<CfDef> cfs = ks.getCf_defs();
-                for (CfDef cf : cfs) {
-                    if (cf.getName().equalsIgnoreCase(internalTableName(tableRef))) {
-                        cf.setGc_grace_seconds(gcGraceSeconds);
-                        cf.setCompaction_strategy_options(ImmutableMap.of(
-                                "tombstone_threshold",
-                                String.valueOf(tombstoneThresholdRatio)));
-                        client.rawClient().system_update_column_family(cf);
-                        CassandraKeyValueServices.waitForSchemaVersions(
-                                config,
-                                client.rawClient(),
-                                tableRef.getQualifiedName());
-                        log.trace("gc_grace_seconds is set to {} for {}.{}",
-                                SafeArg.of("gcGraceSeconds", gcGraceSeconds), UnsafeArg.of("keyspace", keyspace),
-                                LoggingArgs.tableRef(tableRef));
-                        log.trace("tombstone_threshold_ratio is set to {} for {}.{}",
-                                SafeArg.of("tombstoneThresholdRatio", tombstoneThresholdRatio),
-                                UnsafeArg.of("keyspace", keyspace), LoggingArgs.tableRef(tableRef));
-                    }
-                }
-                return null;
-            });
-        } catch (Exception e) {
-            log.error("Exception encountered while setting gc_grace_seconds:{} and tombstone_threshold:{} for {}.{}",
-                    SafeArg.of("gcGraceSeconds", gcGraceSeconds),
-                    SafeArg.of("tombstoneThresholdRatio", tombstoneThresholdRatio),
-                    UnsafeArg.of("keyspace", keyspace),
-                    LoggingArgs.tableRef(tableRef),
-                    e);
-        }
     }
 
     @Override
