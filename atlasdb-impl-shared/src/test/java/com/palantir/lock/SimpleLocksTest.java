@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep;
+package com.palantir.lock;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -32,40 +32,39 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockService;
 
-public class SweepLocksTest {
-    private SweepLocks sweepLocks;
+public class SimpleLocksTest {
+    private SingleLockService lockService;
     private LockService mockLockService = mock(LockService.class);
+    private String lockId = "test";
 
     @Before
     public void setUp() {
-        sweepLocks = new SweepLocks(mockLockService);
+        lockService = new SingleLockService(mockLockService, lockId);
     }
 
     @Test
     public void lockStoredInToken() throws InterruptedException {
         when(mockLockService.lock(anyString(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, 10000000000L));
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
 
-        assertTrue(sweepLocks.haveLocks());
+        assertTrue(lockService.haveLocks());
     }
 
     @Test
     public void lockClearedWhenRefreshReturnsEmpty() throws InterruptedException {
         when(mockLockService.lock(anyString(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, 10000000000L));
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
 
         when(mockLockService.refreshLockRefreshTokens(any())).thenReturn(ImmutableSet.of());
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
 
-        assertFalse(sweepLocks.haveLocks());
+        assertFalse(lockService.haveLocks());
     }
 
     @Test
     public void lockOrRefreshCallsLockWhenNoTokenPresent() throws InterruptedException {
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
         verify(mockLockService, atLeastOnce()).lock(any(), any());
         verifyNoMoreInteractions(mockLockService);
     }
@@ -74,10 +73,10 @@ public class SweepLocksTest {
     public void lockOrRefreshCallsRefreshWhenTokenPresent() throws InterruptedException {
         LockRefreshToken token = new LockRefreshToken(BigInteger.ONE, 10000000000L);
         when(mockLockService.lock(anyString(), any())).thenReturn(token);
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
         verify(mockLockService, atLeastOnce()).lock(any(), any());
 
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
         verify(mockLockService, atLeastOnce()).refreshLockRefreshTokens(ImmutableList.of(token));
         verifyNoMoreInteractions(mockLockService);
     }
@@ -86,9 +85,9 @@ public class SweepLocksTest {
     public void closeUnlocksToken() throws InterruptedException {
         LockRefreshToken token = new LockRefreshToken(BigInteger.ONE, 10000000000L);
         when(mockLockService.lock(anyString(), any())).thenReturn(token);
-        sweepLocks.lockOrRefresh();
+        lockService.lockOrRefresh();
 
-        sweepLocks.close();
+        lockService.close();
         verify(mockLockService, atLeastOnce()).unlock(token);
     }
 }
