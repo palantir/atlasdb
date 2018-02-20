@@ -23,8 +23,6 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
 public class SweepMetricsManager {
-    private static final TableReference DUMMY = TableReference.createWithEmptyNamespace("dummy");
-
     private final SweepMetricsFactory factory = new SweepMetricsFactory();
 
     private final SweepMetric<Long> cellsExamined = factory.accumulatingLong(AtlasDbMetricNames.CELLS_EXAMINED);
@@ -32,22 +30,22 @@ public class SweepMetricsManager {
     private final SweepMetric<Long> timeSweeping = factory.simpleLong(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
     private final SweepMetric<Long> totalTime = factory.simpleLong(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
     private final SweepMetric<String> tableSweeping = factory.simpleString(AtlasDbMetricNames.TABLE_BEING_SWEPT);
-    private final SweepMetric<Long> sweepErrors = factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, false);
+    private final SweepMetric<Long> sweepErrors = factory.simpleMeter(AtlasDbMetricNames.SWEEP_ERROR);
 
     public void updateAfterDeleteBatch(long cellTsPairsExamined, long staleValuesDeleted) {
-        cellsExamined.update(cellTsPairsExamined, DUMMY);
-        cellsDeleted.update(staleValuesDeleted, DUMMY);
+        cellsExamined.update(cellTsPairsExamined);
+        cellsDeleted.update(staleValuesDeleted);
     }
 
     public void updateMetrics(SweepResults sweepResults, TableReference tableRef) {
-        cellsExamined.set(sweepResults.getCellTsPairsExamined(), tableRef);
-        cellsDeleted.set(sweepResults.getStaleValuesDeleted(), tableRef);
-        tableSweeping.set(LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName(), tableRef);
-        timeSweeping.set(sweepResults.getTimeInMillis(), tableRef);
-        totalTime.set(sweepResults.getTimeElapsedSinceStartedSweeping(), tableRef);
+        cellsExamined.set(sweepResults.getCellTsPairsExamined());
+        cellsDeleted.set(sweepResults.getStaleValuesDeleted());
+        tableSweeping.set(LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName());
+        timeSweeping.set(sweepResults.getTimeInMillis());
+        totalTime.set(sweepResults.getTimeElapsedSinceStartedSweeping());
     }
 
     public void sweepError() {
-        sweepErrors.set(1L, DUMMY);
+        sweepErrors.set(1L);
     }
 }

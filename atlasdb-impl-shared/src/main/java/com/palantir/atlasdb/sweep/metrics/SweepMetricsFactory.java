@@ -18,66 +18,27 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class SweepMetricsFactory {
     private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
-    private final TaggedMetricRegistry taggedMetricRegistry = new MetricsManager().getTaggedRegistry();
 
     SweepMetric<Long> simpleLong(String namePrefix) {
-        return createCurrentValueLong(namePrefix, false);
+        return createMetric(namePrefix, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_LONG);
     }
 
     SweepMetric<String> simpleString(String namePrefix) {
-        return createCurrentValueString(namePrefix, false);
+        return createMetric(namePrefix, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_STRING);
     }
 
     SweepMetric<Long> accumulatingLong(String namePrefix) {
-        return createAccumulatingLong(namePrefix, false);
+        return createMetric(namePrefix, SweepMetricAdapter.ACCUMULATING_VALUE_ADAPTER);
     }
 
-    /**
-     * Creates a SweepMetric backed by a Meter. The name of the metric is the concatenation
-     * SweepMetric.class.getName() + namePrefix + "Meter" + updateEvent.nameComponent().
-     *
-     * @param namePrefix Determines the prefix of the metric name.
-     * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
-     *                         tagged.
-     * @return SweepMetric backed by a Meter
-     */
-    SweepMetric<Long> createMeter(String namePrefix, boolean tagWithTableName) {
-        return createMetric(namePrefix, tagWithTableName, SweepMetricAdapter.METER_ADAPTER);
+    SweepMetric<Long> simpleMeter(String namePrefix) {
+        return createMetric(namePrefix, SweepMetricAdapter.METER_ADAPTER);
     }
 
-    /**
-     * Creates a SweepMetric backed by a CurrentValueMetric. The name of the metric is the concatenation
-     * SweepMetric.class.getName() + namePrefix + "CurrentValue" + updateEvent.nameComponent().
-     *
-     * @param namePrefix Determines the prefix of the metric name.
-     * @param tag If true, metric will also be tagged with the table name. If false, the metric will not be
-     *                         tagged.
-     * @return SweepMetric backed by a CurrentValueMetric
-     */
-    SweepMetric<Long> createCurrentValueLong(String namePrefix, boolean tag) {
-        return createMetric(namePrefix, tag, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_LONG);
-    }
-
-    SweepMetric<String> createCurrentValueString(String namePrefix, boolean tag) {
-        return createMetric(namePrefix, tag, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_STRING);
-    }
-
-    SweepMetric<Long> createAccumulatingLong(String namePrefix, boolean tag) {
-        return createMetric(namePrefix, tag, SweepMetricAdapter.ACCUMULATING_VALUE_METRIC_ADAPTER);
-    }
-
-    private <T> SweepMetric<T> createMetric(String namePrefix, boolean tagWithTableName,
-            SweepMetricAdapter<?, T> metricAdapter) {
-        return new SweepMetricImpl<>(ImmutableSweepMetricConfig.<T>builder()
-                .namePrefix(namePrefix)
-                .metricRegistry(metricRegistry)
-                .taggedMetricRegistry(taggedMetricRegistry)
-                .tagWithTableName(tagWithTableName)
-                .metricAdapter(metricAdapter)
-                .build());
+    private <T> SweepMetric<T> createMetric(String name, SweepMetricAdapter<?, T> metricAdapter) {
+        return new SweepMetricImpl<>(name, metricRegistry, metricAdapter);
     }
 }

@@ -207,8 +207,7 @@ public class SweepMetricsManagerTest {
         sweepMetricsManager.sweepError();
         sweepMetricsManager.sweepError();
 
-        Meter meter = getMeter(AtlasDbMetricNames.SWEEP_ERROR);
-        assertThat(meter.getCount(), equalTo(2L));
+        assertThat(getMeter(AtlasDbMetricNames.SWEEP_ERROR).getCount(), equalTo(2L));
     }
 
     private void setLoggingSafety(Map<TableReference, byte[]> args) {
@@ -232,9 +231,7 @@ public class SweepMetricsManagerTest {
     }
 
     private Gauge getCurrentValueMetric(String namePrefix) {
-        return metricRegistry.gauge(
-                MetricRegistry.name(SweepMetric.class, namePrefix),
-                CurrentValueMetric::new);
+        return metricRegistry.gauge(MetricRegistry.name(SweepMetric.class, namePrefix), CurrentValueMetric::new);
     }
 
     private void assertWithinErrorMarginOf(long actual, long expected) {
