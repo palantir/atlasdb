@@ -109,6 +109,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -1532,7 +1533,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 for (Entry<Cell, Value> entry : cells) {
                     Value value = entry.getValue();
-                    TableReference tableRef = CassandraKeyValueServices.tableReferenceFromBytes(entry.getKey().getRowName());
+                    TableReference tableRef = CassandraKeyValueServices.tableReferenceFromBytes(
+                            entry.getKey().getRowName());
                     byte[] contents;
                     if (value == null) {
                         contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
