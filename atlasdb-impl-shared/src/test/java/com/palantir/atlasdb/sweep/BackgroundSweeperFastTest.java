@@ -240,34 +240,4 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .updateMetrics(intermediateResults, TABLE_REF, UpdateEventType.ONE_ITERATION);
         Mockito.verify(sweepMetricsManager).updateMetrics(fullResults, TABLE_REF, UpdateEventType.FULL_TABLE);
     }
-
-    @Test
-    public void testCompactInternallyAfterCompleteRunIfNonZeroDeletes() {
-        setNoProgress();
-        setNextTableToSweep(TABLE_REF);
-        setupTaskRunner(ImmutableSweepResults.builder()
-                .staleValuesDeleted(1)
-                .cellTsPairsExamined(10)
-                .minSweptTimestamp(12345L)
-                .timeInMillis(0L)
-                .timeSweepStarted(0L)
-                .build());
-        backgroundSweeper.runOnce();
-        Mockito.verify(kvs).compactInternally(TABLE_REF);
-    }
-
-    @Test
-    public void testDontCompactInternallyAfterCompleteRunIfZeroDeletes() {
-        setNoProgress();
-        setNextTableToSweep(TABLE_REF);
-        setupTaskRunner(ImmutableSweepResults.builder()
-                .staleValuesDeleted(0)
-                .cellTsPairsExamined(10)
-                .minSweptTimestamp(12345L)
-                .timeInMillis(0L)
-                .timeSweepStarted(0L)
-                .build());
-        backgroundSweeper.runOnce();
-        Mockito.verify(kvs, Mockito.never()).compactInternally(TABLE_REF);
-    }
 }
