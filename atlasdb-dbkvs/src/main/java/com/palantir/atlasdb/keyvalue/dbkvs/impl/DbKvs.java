@@ -1168,6 +1168,11 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
+    public boolean shouldManuallyCompact() {
+        return true;
+    }
+
+    @Override
     public void compactInternally(TableReference tableRef) {
         compactInternally(tableRef, false);
     }
