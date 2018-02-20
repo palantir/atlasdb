@@ -22,6 +22,7 @@ import java.nio.file.Paths;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 
@@ -30,7 +31,8 @@ public class AtlasDbServicesTest {
     @Test
     public void daggerCanInstantiateAtlas() throws URISyntaxException, IOException {
         File config = new File(getResourcePath("simple_atlas_config.yml"));
-        ServicesConfigModule servicesConfigModule = ServicesConfigModule.create(AtlasDbConfigs.load(config),
+        ServicesConfigModule servicesConfigModule = ServicesConfigModule.create(
+                AtlasDbConfigs.load(config, AtlasDbConfig.class),
                 AtlasDbRuntimeConfig.defaultRuntimeConfig());
         DaggerAtlasDbServices.builder()
                 .servicesConfigModule(servicesConfigModule)

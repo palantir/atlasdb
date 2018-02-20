@@ -222,6 +222,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-db",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
@@ -497,6 +498,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:commons-proxy": {
@@ -1140,7 +1147,7 @@
             "requested": "1.13"
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1209",
+            "locked": "42.2.1",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
             ]
@@ -1427,6 +1434,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-db",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
@@ -1702,6 +1710,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:commons-proxy": {
@@ -2345,7 +2359,7 @@
             "requested": "1.13"
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1209",
+            "locked": "42.2.1",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
             ]

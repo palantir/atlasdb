@@ -48,21 +48,6 @@ can be used:
         ...
     }});
 
-If the table should not exist for more than a transaction and is
-primarily to conserve server memory, then a table can be explicitly
-declared a temp table using the second variation:
-
-.. code:: java
-
-    schema.addTempTableDefinition("temp_table_name", new TableDefinition() {{
-        ...
-    }});
-
-The AtlasDB developers however strongly recommend against usage of this
-form, since they have not found it to be particularly useful in making
-AtlasDB queries, and thus have never used it themselves, and thus have
-never tested to see if it actually works.
-
 Indices
 =======
 

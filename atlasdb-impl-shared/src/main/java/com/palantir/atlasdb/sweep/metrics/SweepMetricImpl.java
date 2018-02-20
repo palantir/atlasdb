@@ -28,7 +28,6 @@ public class SweepMetricImpl<T> implements SweepMetric<T> {
     private final String name;
     private final MetricRegistry metricRegistry;
     private final TaggedMetricRegistry taggedMetricRegistry;
-    private final UpdateEventType updateEventType;
     private final boolean tagWithTableName;
     private final SweepMetricAdapter<?, T> metricAdapter;
 
@@ -36,23 +35,18 @@ public class SweepMetricImpl<T> implements SweepMetric<T> {
         this.name = config.name();
         this.metricRegistry = config.metricRegistry();
         this.taggedMetricRegistry = config.taggedMetricRegistry();
-        this.updateEventType = config.updateEvent();
         this.tagWithTableName = config.tagWithTableName();
         this.metricAdapter = config.metricAdapter();
     }
 
     @Override
-    public void set(T value, TableReference tableRef, UpdateEventType eventInstance) {
-        if (updateEventType.equals(eventInstance)) {
-            setMetric(value, tableRef);
-        }
+    public void set(T value, TableReference tableRef) {
+        setMetric(value, tableRef);
     }
 
     @Override
-    public void update(T value, TableReference tableRef, UpdateEventType eventInstance) {
-        if (updateEventType.equals(eventInstance)) {
-            updateMetric(value, tableRef);
-        }
+    public void update(T value, TableReference tableRef) {
+        updateMetric(value, tableRef);
     }
 
     private void setMetric(T value, TableReference tableRef) {

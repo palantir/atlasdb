@@ -68,7 +68,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-annotations",
-                "com.palantir.atlasdb:commons-executors"
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -96,6 +97,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.remoting-api:tracing": {
@@ -230,7 +237,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-annotations",
-                "com.palantir.atlasdb:commons-executors"
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -258,6 +266,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.remoting-api:tracing": {

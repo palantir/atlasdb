@@ -31,7 +31,6 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @Value.Immutable
 public abstract class SweepMetricAdapter<M extends Metric, T> {
-    public abstract String getNameComponent();
     public abstract BiFunction<MetricRegistry, String, M> getMetricConstructor();
     public abstract BiFunction<TaggedMetricRegistry, MetricName, M> getTaggedMetricConstructor();
     public abstract BiConsumer<M, T> getSetMethod();
@@ -63,7 +62,6 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
 
     public static final SweepMetricAdapter<Meter, Long> METER_ADAPTER =
             ImmutableSweepMetricAdapter.<Meter, Long>builder()
-                    .nameComponent("meter")
                     .metricConstructor(MetricRegistry::meter)
                     .taggedMetricConstructor(TaggedMetricRegistry::meter)
                     .setMethod(Meter::mark)
@@ -77,7 +75,6 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
 
     public static final SweepMetricAdapter<AccumulatingValueMetric, Long> ACCUMULATING_VALUE_METRIC_ADAPTER =
             ImmutableSweepMetricAdapter.<AccumulatingValueMetric, Long>builder()
-                    .nameComponent("currentValue")
                     .metricConstructor((metricRegistry, name) ->
                             (AccumulatingValueMetric) metricRegistry.gauge(name, AccumulatingValueMetric::new))
                     .taggedMetricConstructor((taggedMetricRegistry, metricName) -> (AccumulatingValueMetric)
@@ -90,7 +87,6 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
     @SuppressWarnings("unchecked")
     private static <T> SweepMetricAdapter<CurrentValueMetric<T>, T> getCurrentValueAdapterForClass() {
         return ImmutableSweepMetricAdapter.<CurrentValueMetric<T>, T>builder()
-                .nameComponent("currentValue")
                 .metricConstructor((metricRegistry, name) ->
                         (CurrentValueMetric<T>) metricRegistry.gauge(name, CurrentValueMetric::new))
                 .taggedMetricConstructor((taggedMetricRegistry, metricName) -> (CurrentValueMetric<T>)

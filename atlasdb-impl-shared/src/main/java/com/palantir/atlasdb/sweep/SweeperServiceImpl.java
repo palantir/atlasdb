@@ -20,7 +20,6 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -109,7 +108,7 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     private void checkTableExists(String tableName, TableReference tableRef) {
-        Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
+        WebPreconditions.checkArgument(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
                 "Table requested to sweep %s does not exist", tableName);
     }
 

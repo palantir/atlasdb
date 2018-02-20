@@ -68,6 +68,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs"
             ]
         },
@@ -99,6 +100,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:leader-election-api-protobufs": {
@@ -239,6 +246,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs"
             ]
         },
@@ -270,6 +278,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:leader-election-api-protobufs": {

@@ -66,7 +66,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws JsonProcessingException {
         AtlasDbConfig cliConfiguration = AtlasDbCommandUtils.convertServerConfigToClientConfig(
-                configuration.getAtlasDbConfig());
+                configuration.getAtlasDbConfig(), configuration.getAtlasDbRuntimeConfig());
 
         // We do this here because there's no flag to connect to an offline
         // cluster in atlasdb-console (since this is passed in through bind)

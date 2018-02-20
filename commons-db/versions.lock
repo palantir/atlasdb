@@ -79,6 +79,7 @@
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:commons-proxy"
             ]
         },
@@ -127,6 +128,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:commons-proxy": {
@@ -214,8 +221,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1209",
-            "requested": "9.4.1209"
+            "locked": "42.2.1",
+            "requested": "42.2.1"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
@@ -308,6 +315,7 @@
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:commons-proxy"
             ]
         },
@@ -356,6 +364,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.atlasdb:commons-proxy": {
@@ -443,8 +457,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1209",
-            "requested": "9.4.1209"
+            "locked": "42.2.1",
+            "requested": "42.2.1"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",

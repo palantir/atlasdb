@@ -32,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
-import com.palantir.atlasdb.sweep.metrics.UpdateEventType;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
@@ -281,7 +280,7 @@ public class SpecificTableSweeper {
     }
 
     void updateMetricsOneIteration(SweepResults sweepResults, TableReference tableRef) {
-        sweepMetricsManager.updateMetrics(sweepResults, tableRef, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(sweepResults, tableRef);
     }
 
     void updateSweepErrorMetric() {

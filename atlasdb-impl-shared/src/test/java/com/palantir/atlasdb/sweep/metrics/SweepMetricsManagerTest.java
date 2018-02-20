@@ -109,7 +109,7 @@ public class SweepMetricsManagerTest {
     @Test
     public void allGaugesAreSetForSafeTables() {
         setLoggingSafety(ImmutableMap.of(TABLE_REF, SAFE_METADATA, TABLE_REF2, SAFE_METADATA));
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF);
 
         assertRecordedCurrentValue(ImmutableMap.of(
                 CELLS_EXAMINED, EXAMINED,
@@ -117,7 +117,7 @@ public class SweepMetricsManagerTest {
                 TIME_SPENT_SWEEPING, TIME_SWEEPING,
                 TABLE_BEING_SWEPT, TABLE_FULLY_QUALIFIED));
 
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2);
 
         assertRecordedCurrentValue(ImmutableMap.of(
                 CELLS_EXAMINED, OTHER_EXAMINED,
@@ -129,7 +129,7 @@ public class SweepMetricsManagerTest {
     @Test
     public void allGaugesAreSetForUnsafeTables() {
         setLoggingSafety(ImmutableMap.of(TABLE_REF, UNSAFE_METADATA, TABLE_REF2, UNSAFE_METADATA));
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF);
 
         assertRecordedCurrentValue(ImmutableMap.of(
                 CELLS_EXAMINED, EXAMINED,
@@ -137,7 +137,7 @@ public class SweepMetricsManagerTest {
                 TIME_SPENT_SWEEPING, TIME_SWEEPING,
                 TABLE_BEING_SWEPT, UNSAFE_FULLY_QUALIFIED));
 
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2);
 
         assertRecordedCurrentValue(ImmutableMap.of(
                 CELLS_EXAMINED, OTHER_EXAMINED,
@@ -149,7 +149,7 @@ public class SweepMetricsManagerTest {
     @Test
     public void allGaugesAreSetForUnknownSafetyAsUnsafe() {
         setLoggingSafety(ImmutableMap.of());
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF);
 
         assertRecordedCurrentValue(ImmutableMap.of(
                 CELLS_EXAMINED, EXAMINED,
@@ -157,7 +157,7 @@ public class SweepMetricsManagerTest {
                 TIME_SPENT_SWEEPING, TIME_SWEEPING,
                 TABLE_BEING_SWEPT, UNSAFE_FULLY_QUALIFIED));
 
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2);
 
         assertRecordedCurrentValue(ImmutableMap.of(
                 CELLS_EXAMINED, OTHER_EXAMINED,
@@ -169,7 +169,7 @@ public class SweepMetricsManagerTest {
     @Test
     public void gaugesAreUpdatedAfterDeleteBatchCorrectly() {
         setLoggingSafety(ImmutableMap.of(TABLE_REF, SAFE_METADATA, TABLE_REF2, SAFE_METADATA));
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF);
         sweepMetricsManager.updateAfterDeleteBatch(100L, 50L);
         sweepMetricsManager.updateAfterDeleteBatch(10L, 5L);
 
@@ -183,9 +183,9 @@ public class SweepMetricsManagerTest {
     @Test
     public void updateMetricsResetsUpdateAfterDeleteBatch() {
         setLoggingSafety(ImmutableMap.of(TABLE_REF, SAFE_METADATA, TABLE_REF2, SAFE_METADATA));
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF);
         sweepMetricsManager.updateAfterDeleteBatch(100L, 50L);
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2);
 
         assertRecordedCurrentValue(ImmutableMap.of(
                 CELLS_EXAMINED, OTHER_EXAMINED,
@@ -196,9 +196,9 @@ public class SweepMetricsManagerTest {
 
     @Test
     public void timeElapsedGaugeIsSetToNewestValueForOneIteration() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF);
         assertSweepTimeElapsedCurrentValueWithinMarginOfError(START_TIME);
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2);
         assertSweepTimeElapsedCurrentValueWithinMarginOfError(OTHER_START_TIME);
     }
 
@@ -207,7 +207,7 @@ public class SweepMetricsManagerTest {
         sweepMetricsManager.sweepError();
         sweepMetricsManager.sweepError();
 
-        Meter meter = getMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEventType.ERROR);
+        Meter meter = getMeter(AtlasDbMetricNames.SWEEP_ERROR);
         assertThat(meter.getCount(), equalTo(2L));
     }
 
@@ -216,7 +216,7 @@ public class SweepMetricsManagerTest {
     }
 
     private void assertRecordedCurrentValue(Map<String, ?> metricToValue) {
-        for (Map.Entry<String, ?> entry: metricToValue.entrySet()) {
+        for (Map.Entry<String, ?> entry : metricToValue.entrySet()) {
             Gauge<?> gauge = getCurrentValueMetric(entry.getKey());
             assertThat(gauge.getValue(), equalTo(entry.getValue()));
         }
@@ -227,16 +227,13 @@ public class SweepMetricsManagerTest {
         assertWithinErrorMarginOf(gauge.getValue(), System.currentTimeMillis() - timeSweepStarted);
     }
 
-    private Meter getMeter(String namePrefix, UpdateEventType updateEvent) {
-        return metricRegistry.meter(MetricRegistry.name(SweepMetric.class, namePrefix,
-                SweepMetricAdapter.METER_ADAPTER.getNameComponent(), updateEvent.getNameComponent()));
+    private Meter getMeter(String namePrefix) {
+        return metricRegistry.meter(MetricRegistry.name(SweepMetric.class, namePrefix));
     }
 
     private Gauge getCurrentValueMetric(String namePrefix) {
         return metricRegistry.gauge(
-                MetricRegistry.name(SweepMetric.class, namePrefix,
-                        SweepMetricAdapter.CURRENT_VALUE_ADAPTER_LONG.getNameComponent(),
-                        UpdateEventType.ONE_ITERATION.getNameComponent()),
+                MetricRegistry.name(SweepMetric.class, namePrefix),
                 CurrentValueMetric::new);
     }
 

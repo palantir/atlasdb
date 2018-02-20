@@ -186,9 +186,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
-    private final HiddenTables hiddenTables;
 
-    private final SchemaMutationLockTables lockTables;
     private final UniqueSchemaMutationLockTable schemaMutationLockTable;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
@@ -304,9 +302,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.clientPool = clientPool;
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
-        this.hiddenTables = new HiddenTables();
 
-        this.lockTables = new SchemaMutationLockTables(clientPool, config);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
@@ -386,7 +383,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 LoggingArgs.tableRef(tableRef));
                         updatedCfs.add(clientSideCf);
                     }
-                } else if (!hiddenTables.isHidden(tableRef)) {
+                } else if (!HiddenTables.isHidden(tableRef)) {
                     // Possible to get here from a race condition with another service starting up
                     // and performing schema upgrades concurrent with us doing this check
                     log.error("Found a table {} that did not have persisted"
@@ -1478,7 +1475,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public Set<TableReference> getAllTableNames() {
         return getTableReferencesWithoutFiltering()
-                .filter(tr -> !hiddenTables.isHidden(tr))
+                .filter(tr -> !HiddenTables.isHidden(tr))
                 .collect(Collectors.toSet());
     }
 
@@ -1556,7 +1553,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     } else {
                         contents = value.getContents();
                     }
-                    if (!hiddenTables.isHidden(tableRef)) {
+                    if (!HiddenTables.isHidden(tableRef)) {
                         tableToMetadataContents.put(tableRef, contents);
                     }
                 }
@@ -1607,18 +1604,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     private void internalPutMetadataForTables(
-            Map<TableReference, byte[]> unfilteredTableNameToMetadata,
-            boolean possiblyNeedToPerformSettingsChanges) {
-        Map<TableReference, byte[]> tableNameToMetadata = Maps.filterValues(
-                unfilteredTableNameToMetadata,
-                Predicates.not(Predicates.equalTo(AtlasDbConstants.EMPTY_TABLE_METADATA)));
+            Map<TableReference, byte[]> tableNameToMetadata, boolean possiblyNeedToPerformSettingsChanges) {
         if (tableNameToMetadata.isEmpty()) {
             return;
         }
 
         Map<Cell, byte[]> metadataRequestedForUpdate = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
-            metadataRequestedForUpdate.put(CassandraKeyValueServices.getMetadataCell(tableEntry.getKey()), tableEntry.getValue());
+            metadataRequestedForUpdate.put(CassandraKeyValueServices.getMetadataCell(tableEntry.getKey()),
+                    tableEntry.getValue());
         }
 
         Map<Cell, Long> requestForLatestDbSideMetadata = Maps.transformValues(
@@ -2104,28 +2098,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public boolean performanceIsSensitiveToTombstones() {
         return true;
-    }
-
-    /**
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     */
-    @Override
-    public void cleanUpSchemaMutationLockTablesState() throws TException {
-        Set<TableReference> tables = lockTables.getAllLockTables();
-        java.util.Optional<TableReference> tableToKeep = tables.stream().findFirst();
-        if (!tableToKeep.isPresent()) {
-            log.info("No lock tables to clean up.");
-            return;
-        }
-        tables.remove(tableToKeep.get());
-        if (tables.size() > 0) {
-            cassandraTableDropper.dropTables(tables);
-            LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(tables);
-            log.info("Dropped tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
-        }
-        schemaMutationLock.cleanLockState();
-        log.info("Reset the schema mutation lock in table [{}]",
-                LoggingArgs.tableRef(tableToKeep.get()));
     }
 
     private static class TableCellAndValue {

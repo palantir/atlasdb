@@ -39,6 +39,7 @@ import com.codahale.metrics.Gauge;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -165,12 +166,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 readBuffer.setAccessible(true);
                 TMemoryInputTransport memoryInputTransport = (TMemoryInputTransport) readBuffer.get(transport);
                 byte[] underlyingBuffer = memoryInputTransport.getBuffer();
-                if (underlyingBuffer != null) {
+                if (underlyingBuffer != null && memoryInputTransport.getBytesRemainingInBuffer() == 0) {
                     log.debug("During {} check-in, cleaned up a read buffer of {} bytes of host {}",
                             UnsafeArg.of("pool", idleClient),
                             SafeArg.of("bufferLength", underlyingBuffer.length),
                             SafeArg.of("host", CassandraLogHelper.host(host)));
-                    memoryInputTransport.clear();
+                    memoryInputTransport.reset(PtBytes.EMPTY_BYTE_ARRAY);
                 }
             }
         } catch (Exception e) {

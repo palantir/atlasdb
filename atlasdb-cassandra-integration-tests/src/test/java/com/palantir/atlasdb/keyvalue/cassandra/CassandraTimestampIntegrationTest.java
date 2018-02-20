@@ -41,7 +41,8 @@ public class CassandraTimestampIntegrationTest {
             CassandraContainer.LEADER_CONFIG);
 
     @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv);
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
+            CassandraContainer.KVS_CONFIG);
 
     @Before
     public void setUp() {

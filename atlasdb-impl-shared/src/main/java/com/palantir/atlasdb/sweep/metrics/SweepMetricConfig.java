@@ -26,13 +26,11 @@ public abstract class SweepMetricConfig<T> {
     public abstract String namePrefix();
     public abstract MetricRegistry metricRegistry();
     public abstract TaggedMetricRegistry taggedMetricRegistry();
-    public abstract UpdateEventType updateEvent();
     public abstract boolean tagWithTableName();
     public abstract SweepMetricAdapter<?, T> metricAdapter();
 
     @Value.Derived
     public String name() {
-        return MetricRegistry.name(SweepMetric.class,
-                namePrefix(), metricAdapter().getNameComponent(), updateEvent().getNameComponent());
+        return MetricRegistry.name(SweepMetric.class, namePrefix());
     }
 }

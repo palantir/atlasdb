@@ -15,12 +15,14 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.ClientErrorException;
 
@@ -36,6 +38,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -45,7 +48,6 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -78,7 +80,6 @@ import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
-import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
@@ -105,6 +106,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.JavaSuppliers;
+import com.palantir.common.annotation.Output;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -118,6 +120,7 @@ import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
@@ -205,15 +208,42 @@ public abstract class TransactionManagers {
     @JsonIgnore
     @Value.Derived
     public SerializableTransactionManager serializable() {
+        List<AutoCloseable> closeables = Lists.newArrayList();
+
+        try {
+            return serializableInternal(closeables);
+        } catch (Throwable throwable) {
+            List<String> closeablesClasses = closeables.stream()
+                    .map(autoCloseable -> autoCloseable.getClass().toString())
+                    .collect(Collectors.toList());
+
+            log.warn("Exception thrown when creating transaction manager. "
+                    + "Closing previously opened resources: {}", SafeArg.of("classes", closeablesClasses.toString()),
+                    throwable);
+
+            closeables.forEach(autoCloseable -> {
+                try {
+                    autoCloseable.close();
+                } catch (Exception ex) {
+                    log.info("Error closing {}", SafeArg.of("class", autoCloseable.getClass().toString()), ex);
+                }
+            });
+            throw throwable;
+        }
+    }
+
+    private SerializableTransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         AtlasDbMetrics.setMetricRegistries(globalMetricsRegistry(), globalTaggedMetricRegistry());
         final AtlasDbConfig config = config();
         checkInstallConfig(config);
 
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
-        java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
+        Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
-        QosClient qosClient = getQosClient(JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier));
+        QosClient qosClient = initializeCloseable(
+                () -> getQosClient(JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier)),
+                closeables);
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(
@@ -224,7 +254,6 @@ public abstract class TransactionManagers {
                         config.initializeAsync(),
                         qosClient);
 
-        KeyValueService rawKvs = atlasFactory.getKeyValueService();
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
@@ -237,79 +266,104 @@ public abstract class TransactionManagers {
                 userAgent());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
-        KeyValueService kvs = ProfilingKeyValueService.create(rawKvs);
-        kvs = SweepStatsKeyValueService.create(kvs,
-                new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
-        kvs = TracingKeyValueService.create(kvs);
-        kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
-        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
-        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(rawKvs,
+        Supplier<SweepConfig> sweepConfig = JavaSuppliers.compose(AtlasDbRuntimeConfig::sweep, runtimeConfigSupplier);
+
+        KeyValueService keyValueService = initializeCloseable(() -> {
+            KeyValueService kvs = atlasFactory.getKeyValueService();
+            kvs = ProfilingKeyValueService.create(kvs);
+            kvs = SweepStatsKeyValueService.create(kvs,
+                    new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
+                    JavaSuppliers.compose(SweepConfig::writeThreshold, sweepConfig),
+                    JavaSuppliers.compose(SweepConfig::writeSizeThreshold, sweepConfig)
+
+            );
+            kvs = TracingKeyValueService.create(kvs);
+            kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
+            return ValidatingQueryRewritingKeyValueService.create(kvs);
+        }, closeables);
+
+        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(keyValueService,
                 config.initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                kvs,
+                keyValueService,
                 schemas(),
                 schemaMetadataService,
                 config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
-                kvs,
+                keyValueService,
                 registrar(),
                 config.initializeAsync());
 
         TransactionService transactionService = AtlasDbMetrics.instrument(TransactionService.class,
-                TransactionServices.createTransactionService(kvs));
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
-        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
+                TransactionServices.createTransactionService(keyValueService));
+        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
+        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         CleanupFollower follower = CleanupFollower.create(schemas());
 
-        Cleaner cleaner = new DefaultCleanerBuilder(
-                kvs,
-                lockAndTimestampServices.timelock(),
-                ImmutableList.of(follower),
-                transactionService)
-                .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
-                .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
-                .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
-                .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
-                .setPunchIntervalMillis(config.getPunchIntervalMillis())
-                .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
-                .setInitializeAsync(config.initializeAsync())
-                .buildCleaner();
+        Cleaner cleaner = initializeCloseable(() -> new DefaultCleanerBuilder(
+                        keyValueService,
+                        lockAndTimestampServices.timelock(),
+                        ImmutableList.of(follower),
+                        transactionService)
+                        .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
+                        .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
+                        .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
+                        .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
+                        .setPunchIntervalMillis(config.getPunchIntervalMillis())
+                        .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
+                        .setInitializeAsync(config.initializeAsync())
+                        .buildCleaner(),
+                closeables);
 
-        SerializableTransactionManager transactionManager = SerializableTransactionManager.create(
-                kvs,
-                lockAndTimestampServices.timelock(),
-                lockAndTimestampServices.lock(),
-                transactionService,
-                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
-                conflictManager,
-                sweepStrategyManager,
-                cleaner,
-                () -> areTransactionManagerInitializationPrerequisitesSatisfied(initializer, lockAndTimestampServices),
-                allowHiddenTableAccess(),
-                () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
-                config.keyValueService().concurrentGetRangesThreadPoolSize(),
-                config.keyValueService().defaultGetRangesConcurrency(),
-                config.initializeAsync(),
-                () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
-                SweepQueueWriter.NO_OP);
+        SerializableTransactionManager transactionManager = initializeCloseable(
+                () -> SerializableTransactionManager.create(
+                        keyValueService,
+                        lockAndTimestampServices.timelock(),
+                        lockAndTimestampServices.lock(),
+                        transactionService,
+                        Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
+                        conflictManager,
+                        sweepStrategyManager,
+                        cleaner,
+                        () -> areTransactionManagerInitializationPrerequisitesSatisfied(
+                                initializer,
+                                lockAndTimestampServices),
+                        allowHiddenTableAccess(),
+                        () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
+                        config.keyValueService().concurrentGetRangesThreadPoolSize(),
+                        config.keyValueService().defaultGetRangesConcurrency(),
+                        config.initializeAsync(),
+                        () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
+                        SweepQueueWriter.NO_OP),
+                closeables);
 
-        PersistentLockManager persistentLockManager = new PersistentLockManager(
-                persistentLockService,
-                config.getSweepPersistentLockWaitMillis());
-        initializeSweepEndpointAndBackgroundProcess(
-                config,
-                runtimeConfigSupplier,
-                registrar(),
-                kvs,
-                transactionService,
-                sweepStrategyManager,
-                follower,
-                transactionManager,
-                persistentLockManager);
+        PersistentLockManager persistentLockManager = initializeCloseable(
+                () -> new PersistentLockManager(
+                        persistentLockService, config.getSweepPersistentLockWaitMillis()),
+                closeables);
+        initializeCloseable(
+                () -> initializeSweepEndpointAndBackgroundProcess(
+                        config,
+                        runtimeConfigSupplier,
+                        registrar(),
+                        keyValueService,
+                        transactionService,
+                        sweepStrategyManager,
+                        follower,
+                        transactionManager,
+                        persistentLockManager),
+                closeables);
 
         return transactionManager;
+    }
+
+    private <T extends AutoCloseable> T initializeCloseable(
+            Supplier<T> closeableSupplier, @Output List<AutoCloseable> closeables) {
+        T ret = closeableSupplier.get();
+        closeables.add(ret);
+        return ret;
     }
 
     private QosClient getQosClient(Supplier<QosClientConfig> config) {
@@ -353,7 +407,7 @@ public abstract class TransactionManagers {
         }
     }
 
-    private static void initializeSweepEndpointAndBackgroundProcess(
+    private static BackgroundSweeperImpl initializeSweepEndpointAndBackgroundProcess(
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
@@ -400,6 +454,8 @@ public abstract class TransactionManagers {
 
         transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
         backgroundSweeper.runInBackground();
+
+        return backgroundSweeper;
     }
 
     private static SpecificTableSweeper initializeSweepEndpoint(
@@ -453,22 +509,22 @@ public abstract class TransactionManagers {
      * @deprecated Not intended for public use outside of the AtlasDB CLIs
      */
     @Deprecated
-    public static LockAndTimestampServices createLockAndTimestampServices(
+    public static LockAndTimestampServices createLockAndTimestampServicesForCli(
             AtlasDbConfig config,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
-            com.google.common.base.Supplier<TimestampService> time) {
+            com.google.common.base.Supplier<TimestampService> time,
+            TimestampStoreInvalidator invalidator,
+            String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(config,
-                        () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
+                        runtimeConfigSupplier,
                         env,
                         lock,
                         time,
-                        () -> {
-                            log.warn("Note: Automatic migration isn't performed by the CLI tools.");
-                            return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-                        },
-                        UserAgents.DEFAULT_USER_AGENT);
+                        invalidator,
+                        userAgent);
         return withRefreshingLockService(lockAndTimestampServices);
     }
 

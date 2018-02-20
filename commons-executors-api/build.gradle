@@ -1,0 +1,15 @@
+apply from: "../gradle/publish-jars.gradle"
+apply from: "../gradle/shared.gradle"
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+libsDirName = file('build/artifacts')
+
+// Do not add dependencies to this project. This project is used by
+// api projects outside of atlasdb that try very hard to minimize
+// their dependency footprint.

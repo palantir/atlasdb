@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Optional;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -245,7 +246,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionService,
                 cleaner,
                 startTimestampSupplier,
-                conflictDetectionManager,
+                getConflictDetectionManager(),
                 sweepStrategyManager,
                 immutableTimestamp,
                 Optional.of(immutableTsLock),
@@ -259,6 +260,11 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter);
+    }
+
+    @VisibleForTesting
+    ConflictDetectionManager getConflictDetectionManager() {
+        return conflictDetectionManager;
     }
 
 }
