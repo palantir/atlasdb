@@ -41,7 +41,7 @@ public enum CompactSchema implements AtlasSchema {
                 OptionalType.JAVA8);
 
         // This table tracks stats about tables that are relevant
-        // in determining when and in which order they should be swept.
+        // in determining when and in which order they should be compacted.
         schema.addTableDefinition("metadata", new TableDefinition() {{
             javaTableName("CompactMetadata");
             allSafeForLoggingByDefault();
