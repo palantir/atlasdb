@@ -77,6 +77,11 @@ develop
            Also reduce the defaults to flush write stats on 32MB overall write size and 2k cells.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2998>`__)
 
+    *    - |fixed|
+         - Fix ``SnapshotTransaction#getRows`` to apply ``ColumnSelection`` when there are local writes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3008>`__)
+
+
 =======
 v0.76.0
 =======
