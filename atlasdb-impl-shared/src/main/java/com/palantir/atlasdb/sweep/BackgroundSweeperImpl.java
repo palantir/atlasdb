@@ -33,6 +33,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
+import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
@@ -105,7 +106,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @Override
     public void run() {
-        try (SweepLocks locks = createSweepLocks()) {
+        try (SingleLockService locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
             Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
@@ -120,7 +121,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     // Returns milliseconds to sleep
     @VisibleForTesting
-    long checkConfigAndRunSweep(SweepLocks locks) throws InterruptedException {
+    long checkConfigAndRunSweep(SingleLockService locks) throws InterruptedException {
         if (isSweepEnabled.get()) {
             return grabLocksAndRun(locks);
         } else {
@@ -129,7 +130,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         return getBackoffTimeWhenSweepHasNotRun();
     }
 
-    private long grabLocksAndRun(SweepLocks locks) throws InterruptedException {
+    private long grabLocksAndRun(SingleLockService locks) throws InterruptedException {
         boolean sweptSuccessfully = false;
         try {
             locks.lockOrRefresh();
@@ -230,8 +231,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     @VisibleForTesting
-    SweepLocks createSweepLocks() {
-        return new SweepLocks(lockService);
+    SingleLockService createSweepLocks() {
+        return new SingleLockService(lockService, "atlas sweep");
     }
 
     @Override
