@@ -1899,15 +1899,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @Override
     public void compactInternally(TableReference tableRef) {
-        /* no-op */
-    }
-
-    private void logLackOfCompactionManager(String keyspace) {
-        log.info("No compaction client was configured. Sweep and other operations may delete data from an Atlas "
-                + "perspective, but if you actually want to clear deleted data from Cassandra, "
-                + "you will need to run `nodetool compact {} <table_name>`. "
-                + "This will clear data that was deleted more than gc_grace_seconds ago.",
-                UnsafeArg.of("keyspace", keyspace));
+        log.info("Called compactInternally on {}, but this is a no-op for Cassandra KVS."
+                + "Cassandra should eventually decide to compact this table for itself.",
+                LoggingArgs.tableRef(tableRef));
     }
 
     @Override
