@@ -54,7 +54,7 @@ develop
          - DbKvs: introduced a Background compactor thread that carries out post-sweep compaction operations.
            For non-enterprise Oracle deployments, this will only run the blocking ``SHRINK SPACE`` command during safe hours.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2984>`__ and
-            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2991>`__)
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2991>`__)
 
     *    - |fixed|
          - LoggingArgs no longer throws when it tries to hydrate invalid table metadata.
