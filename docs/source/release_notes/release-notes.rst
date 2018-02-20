@@ -81,7 +81,7 @@ v0.77.0
          - Fix NPE when warming conflict detection cache if table is being created.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2993>`__)
 
-    *    - |improved|
+    *    - |improved| |devbreak|
          - Introduced configurable ``writeThreshold`` and ``writeSizeThreshold`` parameters for when to write stats for the Sweep prioritization.
            Also reduce the defaults to flush write stats on 32MB overall write size and 2k cells.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2998>`__)
