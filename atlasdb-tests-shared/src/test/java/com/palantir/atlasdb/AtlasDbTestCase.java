@@ -70,6 +70,7 @@ public class AtlasDbTestCase {
     protected TimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
+    protected TestTransactionManager uncachedTxManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
     protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
@@ -116,7 +117,7 @@ public class AtlasDbTestCase {
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
-        txManager = new TestTransactionManagerImpl(
+        uncachedTxManager = new TestTransactionManagerImpl(
                 keyValueService,
                 timestampService,
                 lockClient,
@@ -124,7 +125,7 @@ public class AtlasDbTestCase {
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager);
-        txManager = new CachingTestTransactionManager(txManager);
+        txManager = new CachingTestTransactionManager(uncachedTxManager);
     }
 
     protected KeyValueService getBaseKeyValueService() {
