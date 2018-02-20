@@ -42,6 +42,8 @@ import com.palantir.lock.SingleLockService;
 
 public class BackgroundCompactor implements Runnable {
     private static final int SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS = 5000;
+    private static final int SLEEP_TIME_WHEN_NO_LOCK_MILLIS = 60 * 1000;
+
     private static final Logger log = LoggerFactory.getLogger(BackgroundCompactor.class);
 
     private final TransactionManager transactionManager;
@@ -108,6 +110,10 @@ public class BackgroundCompactor implements Runnable {
                     log.info("Compacted table {}", LoggingArgs.safeInternalTableName(tableToCompact));
 
                     registerCompactedTable(tableToCompact);
+                } else {
+                    log.info("Failed to get the compaction lock. Probably, another host is running compaction.");
+                    Thread.sleep(SLEEP_TIME_WHEN_NO_LOCK_MILLIS);
+                    continue;
                 }
             }
         } catch (InterruptedException e) {
