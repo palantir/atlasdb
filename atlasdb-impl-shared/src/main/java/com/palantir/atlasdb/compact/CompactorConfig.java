@@ -23,6 +23,6 @@ public interface CompactorConfig {
     boolean inSafeHours();
 
     static CompactorConfig defaultCompactorConfig() {
-        return ImmutableCompactorConfig.builder().build();
+        return ImmutableCompactorConfig.builder().inSafeHours(true).build();
     }
 }
