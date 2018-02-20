@@ -47,27 +47,27 @@ final class CompactPriorityCalculator {
     }
 
     private Optional<String> selectTableToCompactInternal(Transaction tx) {
-        Map<java.lang.String, Long> tableToLastTimeSwept = new HashMap<>();
+        Map<String, Long> tableToLastTimeSwept = new HashMap<>();
         SweepPriorityTable sweepPriorityTable = SweepTableFactory.of().getSweepPriorityTable(tx);
         sweepPriorityTable.getAllRowsUnordered(SweepPriorityTable.getColumnSelection(
                 SweepPriorityTable.SweepPriorityNamedColumn.LAST_SWEEP_TIME))
                 .forEach(row -> {
                     Long lastSweepTime = row.getLastSweepTime();
-                    java.lang.String tableName = row.getRowName().getFullTableName();
+                    String tableName = row.getRowName().getFullTableName();
                     tableToLastTimeSwept.put(tableName, lastSweepTime);
                 });
 
-        Map<java.lang.String, Long> tableToLastTimeCompacted = new HashMap<>();
+        Map<String, Long> tableToLastTimeCompacted = new HashMap<>();
         CompactMetadataTable compactMetadataTable = CompactTableFactory.of().getCompactMetadataTable(tx);
         compactMetadataTable.getAllRowsUnordered(SweepPriorityTable.getColumnSelection(
                 SweepPriorityTable.SweepPriorityNamedColumn.LAST_SWEEP_TIME))
                 .forEach(row -> {
                     Long lastCompactTime = row.getLastCompactTime();
-                    java.lang.String tableName = row.getRowName().getFullTableName();
+                    String tableName = row.getRowName().getFullTableName();
                     tableToLastTimeCompacted.put(tableName, lastCompactTime);
                 });
 
-        List<java.lang.String> uncompactedTables = tableToLastTimeSwept.keySet().stream()
+        List<String> uncompactedTables = tableToLastTimeSwept.keySet().stream()
                 .filter(table -> !tableToLastTimeCompacted.keySet().contains(table))
                 .collect(Collectors.toList());
 
@@ -76,10 +76,10 @@ final class CompactPriorityCalculator {
             return Optional.of(uncompactedTables.get(randomTableIndex));
         }
 
-        java.lang.String tableToCompact = null;
+        String tableToCompact = null;
         long maxSweptAfterCompact = Long.MIN_VALUE;
-        for (Map.Entry<java.lang.String, Long> entry : tableToLastTimeSwept.entrySet()) {
-            java.lang.String table = entry.getKey();
+        for (Map.Entry<String, Long> entry : tableToLastTimeSwept.entrySet()) {
+            String table = entry.getKey();
             long lastSweptTime = entry.getValue();
             long lastCompactTime = tableToLastTimeCompacted.get(table);
             long sweptAfterCompact = lastSweptTime - lastCompactTime;
