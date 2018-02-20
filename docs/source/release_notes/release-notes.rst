@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - LoggingArgs no longer throws when it tries to hydrate invalid table metadata.
+           This fixes an issue that prevented AtlasDB to start after performing a KVS migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
 
 =======
 v0.77.0
