@@ -34,6 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -47,6 +48,8 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.InstrumentedExecutorService;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -66,6 +69,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Atomics;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -111,6 +115,7 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -207,15 +212,33 @@ public final class DbKvs extends AbstractKeyValueService {
                 connections, overflowValueLoader, tableNameGetter, valueStyleCache, oracleDdlConfig);
         CellTsPairLoader cellTsPageLoader = new OracleCellTsPageLoader(
                 connections, tableNameGetter, valueStyleCache, oracleDdlConfig);
+        OracleShrinkExecutor oracleShrinkExecutor = createOracleShrinkExecutor(
+                connections, tableNameGetter, oracleDdlConfig);
         return new DbKvs(
                 executor,
                 oracleDdlConfig,
-                new OracleDbTableFactory(oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache),
+                new OracleDbTableFactory(
+                        oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache, oracleShrinkExecutor),
                 connections,
                 new ImmediateSingleBatchTaskRunner(),
                 overflowValueLoader,
                 getRange,
                 new DbKvsGetCandidateCellsForSweeping(cellTsPageLoader));
+    }
+
+    private static OracleShrinkExecutor createOracleShrinkExecutor(
+            SqlConnectionSupplier connections,
+            OracleTableNameGetter tableNameGetter,
+            OracleDdlConfig oracleDdlConfig) {
+        InstrumentedExecutorService oracleShrinkExecutorService = new InstrumentedExecutorService(
+                    Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
+                            .setNameFormat("oracle-shrink-%d")
+                            .setDaemon(true)
+                            .build()),
+                    AtlasDbMetrics.getMetricRegistry(),
+                    MetricRegistry.name(OracleShrinkExecutor.class, "executor"));
+        return new OracleShrinkExecutor(connections, oracleShrinkExecutorService, tableNameGetter,
+                oracleDdlConfig.shrinkConfig());
     }
 
     private DbKvs(ExecutorService executor,
