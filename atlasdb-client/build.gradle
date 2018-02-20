@@ -10,6 +10,7 @@ repositories {
 
 schemas = [
     'com.palantir.atlasdb.schema.SweepSchema',
+    'com.palantir.atlasdb.schema.CompactSchema',
     'com.palantir.atlasdb.table.description.GenericTestSchema'
 ]
 
