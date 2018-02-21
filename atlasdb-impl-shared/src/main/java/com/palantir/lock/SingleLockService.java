@@ -21,12 +21,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 
 public class SingleLockService implements AutoCloseable {
-    private final LockService lockService;
+    private final RemoteLockService lockService;
     private final String lockId;
 
     private LockRefreshToken token = null;
 
-    public SingleLockService(LockService lockService, String lockId) {
+    public SingleLockService(RemoteLockService lockService, String lockId) {
         this.lockService = lockService;
         this.lockId = lockId;
     }

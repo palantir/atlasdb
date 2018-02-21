@@ -134,7 +134,7 @@ public class PostgresDdlTable implements DbDdlTable {
     }
 
     @Override
-    public void compactInternally() {
+    public void compactInternally(boolean unused) {
         // VACUUM FULL is /really/ what we want here, but it takes out a table lock
         conns.get().executeUnregisteredQuery("VACUUM ANALYZE " + prefixedTableName());
     }
