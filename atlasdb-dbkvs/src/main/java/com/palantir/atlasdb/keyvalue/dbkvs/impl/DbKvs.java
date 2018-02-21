@@ -35,7 +35,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -68,7 +67,6 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Atomics;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -195,29 +193,14 @@ public final class DbKvs extends AbstractKeyValueService {
         OverflowValueLoader overflowValueLoader = new OracleOverflowValueLoader(oracleDdlConfig, tableNameGetter);
         DbKvsGetRange getRange = new OracleGetRange(
                 connections, overflowValueLoader, tableNameGetter, valueStyleCache, oracleDdlConfig);
-        OracleShrinkExecutor oracleShrinkExecutor = createOracleShrinkExecutor(
-                connections, tableNameGetter, oracleDdlConfig);
         return new DbKvs(
                 executor,
                 oracleDdlConfig,
-                new OracleDbTableFactory(
-                        oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache, oracleShrinkExecutor),
+                new OracleDbTableFactory(oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache),
                 connections,
                 new ImmediateSingleBatchTaskRunner(),
                 overflowValueLoader,
                 getRange);
-    }
-
-    private static OracleShrinkExecutor createOracleShrinkExecutor(
-            SqlConnectionSupplier connections,
-            OracleTableNameGetter tableNameGetter,
-            OracleDdlConfig oracleDdlConfig) {
-        ExecutorService oracleShrinkExecutorService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
-                .setNameFormat("oracle-shrink-%d")
-                .setDaemon(true)
-                .build());
-        return new OracleShrinkExecutor(connections, oracleShrinkExecutorService, tableNameGetter,
-                oracleDdlConfig.shrinkConfig());
     }
 
     private DbKvs(ExecutorService executor,
