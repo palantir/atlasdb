@@ -196,7 +196,13 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>DbKvs: introduced a Background compactor thread that carries out post-sweep compaction operations.
+For non-enterprise Oracle deployments, this will only run the blocking <code class="docutils literal notranslate"><span class="pre">SHRINK</span> <span class="pre">SPACE</span></code> command during safe hours.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2984">Pull Request 1</a> and
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2991">Pull Request 2</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>LoggingArgs no longer throws when it tries to hydrate invalid table metadata.
 This fixes an issue that prevented AtlasDB to start after performing a KVS migration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3006">Pull Request</a>)</td>
