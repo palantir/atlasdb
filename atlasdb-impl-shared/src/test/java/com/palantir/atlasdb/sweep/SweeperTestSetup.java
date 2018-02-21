@@ -120,7 +120,6 @@ public class SweeperTestSetup {
 
     protected void setupTaskRunner(SweepResults results) {
         Mockito.doReturn(results).when(sweepTaskRunner).run(Mockito.eq(TABLE_REF), any(), any());
-        Mockito.doReturn(results).when(sweepTaskRunner).runWithMetricsUpdate(any(), any(), any(), any());
     }
 
 }

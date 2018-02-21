@@ -454,18 +454,21 @@ public abstract class TransactionManagers {
                 kvs,
                 persistentLockManager,
                 ImmutableList.of(follower));
+
+        SweepMetricsManager sweepMetricsManager = new SweepMetricsManager();
+
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,
                 transactionManager::getUnreadableTimestamp,
                 transactionManager::getImmutableTimestamp,
                 transactionService,
                 sweepStrategyManager,
-                cellsSweeper);
+                cellsSweeper,
+                sweepMetricsManager);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
         AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() ->
                 getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService()));
 
-        SweepMetricsManager sweepMetricsManager = new SweepMetricsManager();
 
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
                 env,

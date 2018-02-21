@@ -124,8 +124,7 @@ public class SpecificTableSweeper {
 
     SweepResults runOneIteration(TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig) {
         try {
-            SweepResults results = sweepRunner.runWithMetricsUpdate(tableRef, batchConfig, startRow,
-                    this::updateMetricsDeleteBatch);
+            SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
             logSweepPerformance(tableRef, startRow, results);
 
             return results;

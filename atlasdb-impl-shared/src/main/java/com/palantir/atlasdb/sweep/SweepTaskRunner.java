@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import java.util.function.LongSupplier;
 
 import org.slf4j.Logger;
@@ -44,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellLimit;
+import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
@@ -63,6 +63,7 @@ public class SweepTaskRunner {
     private final TransactionService transactionService;
     private final SweepStrategyManager sweepStrategyManager;
     private final CellsSweeper cellsSweeper;
+    private final Optional<SweepMetricsManager> metricsManager;
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
@@ -71,12 +72,31 @@ public class SweepTaskRunner {
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper) {
+        this(keyValueService,
+                unreadableTimestampSupplier,
+                immutableTimestampSupplier,
+                transactionService,
+                sweepStrategyManager,
+                cellsSweeper,
+                null);
+    }
+
+    public SweepTaskRunner(
+            KeyValueService keyValueService,
+            LongSupplier unreadableTimestampSupplier,
+            LongSupplier immutableTimestampSupplier,
+            TransactionService transactionService,
+            SweepStrategyManager sweepStrategyManager,
+            CellsSweeper cellsSweeper,
+            SweepMetricsManager metricsManager) {
         this.keyValueService = keyValueService;
         this.unreadableTimestampSupplier = unreadableTimestampSupplier;
         this.immutableTimestampSupplier = immutableTimestampSupplier;
         this.transactionService = transactionService;
         this.sweepStrategyManager = sweepStrategyManager;
         this.cellsSweeper = cellsSweeper;
+        this.metricsManager = Optional.ofNullable(metricsManager);
+
     }
 
     /**
@@ -99,16 +119,11 @@ public class SweepTaskRunner {
     public SweepResults dryRun(TableReference tableRef,
                                SweepBatchConfig batchConfig,
                                byte[] startRow) {
-        return runInternal(tableRef, batchConfig, startRow, RunType.DRY, (fst, snd) -> { });
+        return runInternal(tableRef, batchConfig, startRow, RunType.DRY);
     }
 
     public SweepResults run(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow) {
-        return runInternal(tableRef, batchConfig, startRow, RunType.FULL, (fst, snd) -> { });
-    }
-
-    public SweepResults runWithMetricsUpdate(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow,
-            BiConsumer<Long, Long> metricsUpdater) {
-        return runInternal(tableRef, batchConfig, startRow, RunType.FULL, metricsUpdater);
+        return runInternal(tableRef, batchConfig, startRow, RunType.FULL);
     }
 
     public long getConservativeSweepTimestamp() {
@@ -120,8 +135,7 @@ public class SweepTaskRunner {
             TableReference tableRef,
             SweepBatchConfig batchConfig,
             byte[] startRow,
-            RunType runType,
-            BiConsumer<Long, Long> metricsUpdater) {
+            RunType runType) {
 
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
@@ -144,15 +158,14 @@ public class SweepTaskRunner {
         if (!sweeper.isPresent()) {
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
-        return doRun(tableRef, batchConfig, startRow, runType, sweeper.get(), metricsUpdater);
+        return doRun(tableRef, batchConfig, startRow, runType, sweeper.get());
     }
 
     private SweepResults doRun(TableReference tableRef,
                                SweepBatchConfig batchConfig,
                                byte[] startRow,
                                RunType runType,
-                               Sweeper sweeper,
-                               BiConsumer<Long, Long> metricsUpdater) {
+                               Sweeper sweeper) {
         Stopwatch watch = Stopwatch.createStarted();
         long timeSweepStarted = System.currentTimeMillis();
         log.info("Beginning iteration of sweep for table {} starting at row {}",
@@ -203,7 +216,9 @@ public class SweepTaskRunner {
                 long cellsExamined = batch.numCellTsPairsExamined();
                 totalCellTsPairsExamined += cellsExamined;
 
-                metricsUpdater.accept(cellsExamined, cellsDeleted);
+                if (metricsManager.isPresent()) {
+                    metricsManager.get().updateAfterDeleteBatch(cellsExamined, cellsDeleted);
+                }
 
                 lastRow = batch.lastCellExamined().getRowName();
             }

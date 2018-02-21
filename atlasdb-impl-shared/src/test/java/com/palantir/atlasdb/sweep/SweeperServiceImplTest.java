@@ -161,12 +161,12 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
                     : Optional.of(startRows.get(i + 1));
 
             SweepResults results = SweepResults.createEmptySweepResult(nextRow);
-            when(sweepTaskRunner.runWithMetricsUpdate(any(), any(), eq(currentRow), any())).thenReturn(results);
+            when(sweepTaskRunner.run(any(), any(), eq(currentRow))).thenReturn(results);
         }
 
         sweeperService.sweepTableFully(TABLE_REF.getQualifiedName());
 
-        startRows.forEach(row -> verify(sweepTaskRunner).runWithMetricsUpdate(any(), any(), eq(row), any()));
+        startRows.forEach(row -> verify(sweepTaskRunner).run(any(), any(), eq(row)));
         verifyNoMoreInteractions(sweepTaskRunner);
     }
 
@@ -178,7 +178,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         sweeperService.sweepTable(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.of(false),
                 Optional.empty(), Optional.empty(), Optional.empty());
 
-        verify(sweepTaskRunner, times(1)).runWithMetricsUpdate(any(), any(), any(), any());
+        verify(sweepTaskRunner, times(1)).run(any(), any(), any());
         verifyNoMoreInteractions(sweepTaskRunner);
     }
 
