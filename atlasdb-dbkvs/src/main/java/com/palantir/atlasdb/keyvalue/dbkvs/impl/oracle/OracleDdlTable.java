@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import java.sql.SQLException;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
@@ -54,7 +54,7 @@ public final class OracleDdlTable implements DbDdlTable {
     private final TableReference tableRef;
     private final OracleTableNameGetter oracleTableNameGetter;
     private final TableValueStyleCache valueStyleCache;
-    private final ScheduledExecutorService compactionTimeoutExecutor;
+    private final ExecutorService compactionTimeoutExecutor;
 
     private OracleDdlTable(
             OracleDdlConfig config,
@@ -62,7 +62,7 @@ public final class OracleDdlTable implements DbDdlTable {
             TableReference tableRef,
             OracleTableNameGetter oracleTableNameGetter,
             TableValueStyleCache valueStyleCache,
-            ScheduledExecutorService compactionTimeoutExecutor) {
+            ExecutorService compactionTimeoutExecutor) {
         this.config = config;
         this.conns = conns;
         this.tableRef = tableRef;
@@ -77,7 +77,7 @@ public final class OracleDdlTable implements DbDdlTable {
             OracleDdlConfig config,
             OracleTableNameGetter oracleTableNameGetter,
             TableValueStyleCache valueStyleCache,
-            ScheduledExecutorService compactionTimeoutExecutor) {
+            ExecutorService compactionTimeoutExecutor) {
         return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter, valueStyleCache,
                 compactionTimeoutExecutor);
     }
@@ -315,8 +315,9 @@ public final class OracleDdlTable implements DbDdlTable {
 
         try {
             int originalNetworkTimeout = sqlConnection.getUnderlyingConnection().getNetworkTimeout();
-            int newNetworkMillis = config.compactionConnectionTimeout() > Integer.MAX_VALUE ?
-                    (int) config.compactionConnectionTimeout() : Integer.MAX_VALUE;
+            int newNetworkMillis = config.compactionConnectionTimeout() > Integer.MAX_VALUE
+                    ? (int) config.compactionConnectionTimeout()
+                    : Integer.MAX_VALUE;
 
             log.info("Increased sql socket read timeout from {} to {}",
                     SafeArg.of("originalNetworkTimeout", originalNetworkTimeout),
