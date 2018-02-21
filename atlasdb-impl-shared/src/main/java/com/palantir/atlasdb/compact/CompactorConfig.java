@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-public interface DbDdlTable {
-    void create(byte[] tableMetadta);
-    void drop();
-    void truncate();
-    void checkDatabaseVersion();
-    void compactInternally(boolean inSafeHours);
+package com.palantir.atlasdb.compact;
+
+import org.immutables.value.Value;
+
+@Value.Immutable
+public interface CompactorConfig {
+    boolean inSafeHours();
+
+    static CompactorConfig defaultCompactorConfig() {
+        return ImmutableCompactorConfig.builder().inSafeHours(true).build();
+    }
 }

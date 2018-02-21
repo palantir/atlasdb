@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 
@@ -34,6 +35,11 @@ public abstract class AtlasDbRuntimeConfig {
     @Value.Default
     public SweepConfig sweep() {
         return SweepConfig.defaultSweepConfig();
+    }
+
+    @Value.Default
+    public CompactorConfig compact() {
+        return CompactorConfig.defaultCompactorConfig();
     }
 
     /**

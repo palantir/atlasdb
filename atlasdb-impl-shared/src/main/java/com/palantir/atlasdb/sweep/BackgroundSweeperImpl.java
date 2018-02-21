@@ -36,6 +36,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
+import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -116,7 +117,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     @Override
     public void run() {
-        try (SweepLocks locks = createSweepLocks()) {
+        try (SingleLockService locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
             waitUntilSpecificTableSweeperIsInitialized();
             Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
@@ -180,7 +181,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     }
 
     @VisibleForTesting
-    SweepOutcome checkConfigAndRunSweep(SweepLocks locks) throws InterruptedException {
+    SweepOutcome checkConfigAndRunSweep(SingleLockService locks) throws InterruptedException {
         if (isSweepEnabled.get()) {
             return grabLocksAndRun(locks);
         }
@@ -189,7 +190,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         return SweepOutcome.DISABLED;
     }
 
-    private SweepOutcome grabLocksAndRun(SweepLocks locks) throws InterruptedException {
+    private SweepOutcome grabLocksAndRun(SingleLockService locks) throws InterruptedException {
         try {
             locks.lockOrRefresh();
             if (locks.haveLocks()) {
@@ -280,8 +281,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     }
 
     @VisibleForTesting
-    SweepLocks createSweepLocks() {
-        return new SweepLocks(lockService);
+    SingleLockService createSweepLocks() {
+        return new SingleLockService(lockService, "atlas sweep");
     }
 
     @Override
@@ -301,6 +302,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             daemon.join();
             daemon = null;
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
