@@ -37,6 +37,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
+import com.palantir.atlasdb.compact.BackgroundCompactor;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -263,6 +264,11 @@ public final class TransactionManagers {
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger());
         backgroundSweeper.runInBackground();
+
+        BackgroundCompactor.createAndRun(transactionManager, kvs, lockAndTimestampServices.lock(),
+                () -> false); // TEMP: never in safe hours
+                // TODO fixup config - does 0.39.x even have runtime config?
+//                JavaSuppliers.compose(o -> o.compact().inSafeHours(), runtimeConfigSupplier));
 
         return transactionManager;
     }

@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
@@ -36,8 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.TransactionType;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
 
@@ -47,17 +44,14 @@ public final class CQLExpiringKeyValueService extends CQLKeyValueService impleme
     public static CQLExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
-        Optional<CassandraJmxCompactionManager> compactionManager =
-                CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CQLExpiringKeyValueService kvs = new CQLExpiringKeyValueService(configManager, compactionManager);
+        CQLExpiringKeyValueService kvs = new CQLExpiringKeyValueService(configManager);
         kvs.initializeConnectionPool();
         kvs.performInitialSetup();
         return kvs;
     }
 
-    private CQLExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager,
-                                       Optional<CassandraJmxCompactionManager> compactionManager) {
-        super(configManager, compactionManager);
+    private CQLExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager) {
+        super(configManager);
     }
 
     @Override

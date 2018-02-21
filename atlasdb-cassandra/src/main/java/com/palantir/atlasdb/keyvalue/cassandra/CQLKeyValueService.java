@@ -28,7 +28,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
@@ -56,7 +55,6 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
-import com.datastax.driver.core.exceptions.UnavailableException;
 import com.datastax.driver.core.policies.LatencyAwarePolicy;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.policies.RoundRobinPolicy;
@@ -65,11 +63,8 @@ import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -106,8 +101,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.Local;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.Peer;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueServices.TransactionType;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -128,8 +121,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     private Cluster cluster;
     private Cluster longRunningQueryCluster;
+
     private final CassandraKeyValueServiceConfigManager configManager;
-    private final Optional<CassandraJmxCompactionManager> compactionManager;
+
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
@@ -144,20 +138,16 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private boolean limitBatchSizesToServerDefaults = false;
 
     public static CQLKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
-        Optional<CassandraJmxCompactionManager> compactionManager =
-                CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        final CQLKeyValueService ret = new CQLKeyValueService(configManager, compactionManager);
+        final CQLKeyValueService ret = new CQLKeyValueService(configManager);
         ret.initializeConnectionPool();
         ret.performInitialSetup();
         return ret;
     }
 
-    protected CQLKeyValueService(CassandraKeyValueServiceConfigManager configManager,
-                                 Optional<CassandraJmxCompactionManager> compactionManager) {
+    protected CQLKeyValueService(CassandraKeyValueServiceConfigManager configManager) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas CQL KVS", configManager.getConfig().poolSize()));
         fieldNameProvider = new CqlFieldNameProvider(configManager.getConfig());
         this.configManager = configManager;
-        this.compactionManager = compactionManager;
     }
 
     protected void initializeConnectionPool() {
@@ -263,9 +253,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         session.close();
         cluster.close();
         cqlKeyValueServices.shutdown();
-        if (compactionManager.isPresent()) {
-            compactionManager.get().close();
-        }
         longRunningQuerySession.close();
         longRunningQueryCluster.close();
         super.close();
@@ -1213,59 +1200,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void compactInternally(TableReference tableRef) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
-                "tableName:[%s] should not be null or empty", tableRef);
-        CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if (!compactionManager.isPresent()) {
-            log.error("No compaction client was configured, but compact was called."
-                    + " If you actually want to clear deleted data immediately"
-                    + " from Cassandra, lower your gc_grace_seconds setting and"
-                    + " run `nodetool compact {} {}`.", config.keyspace(), tableRef);
-            return;
-        }
-
-        long compactionTimeoutSeconds = config.jmx().get().compactionTimeoutSeconds();
-        try {
-            alterTableForCompaction(tableRef, 0, 0.0f);
-            CQLKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables for compaction", this);
-            compactionManager.get().performTombstoneCompaction(compactionTimeoutSeconds, config.keyspace(), tableRef);
-        } catch (TimeoutException e) {
-            log.error("Compaction could not finish in {} seconds. {}", compactionTimeoutSeconds, e.getMessage());
-            log.error("Compaction status: {}", compactionManager.get().getCompactionStatus());
-        } catch (InterruptedException e) {
-            log.error("Compaction for {}.{} was interrupted.", config.keyspace(), tableRef);
-        } finally {
-            alterTableForCompaction(
-                    tableRef,
-                    CassandraConstants.GC_GRACE_SECONDS,
-                    CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
-            CQLKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables post-compaction", this);
-        }
-    }
-
-    private void alterTableForCompaction(TableReference tableRef, int gcGraceSeconds, float tombstoneThreshold) {
-        log.trace("Altering table {} to have gc_grace_seconds={} and tombstone_threshold={}",
-                tableRef, gcGraceSeconds, String.format("%.2f", tombstoneThreshold));
-        String alterTableQuery =
-                "ALTER TABLE " + getFullTableName(tableRef)
-                        + " WITH gc_grace_seconds = " + gcGraceSeconds
-                        + " and compaction = {'class':'" + CassandraConstants.LEVELED_COMPACTION_STRATEGY
-                        + "', 'tombstone_threshold':"
-                        + tombstoneThreshold + "};";
-
-        BoundStatement alterTable = getPreparedStatement(tableRef, alterTableQuery, longRunningQuerySession)
-                .setConsistencyLevel(ConsistencyLevel.ALL)
-                .bind();
-        ResultSet resultSet;
-        try {
-            resultSet = longRunningQuerySession.execute(alterTable);
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Alter table requires all Cassandra"
-                    + " nodes to be up and available.", e);
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-        cqlKeyValueServices.logTracedQuery(alterTableQuery, resultSet, session, cqlStatementCache.normalQuery);
+        /* no-op */
     }
 
     PreparedStatement getPreparedStatement(TableReference tableRef, String query, Session sessionToBeUsed) {

@@ -36,10 +36,11 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.lock.LockService;
+import com.palantir.common.base.Throwables;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SingleLockService;
 
-public class BackgroundCompactor implements Runnable {
+public final class BackgroundCompactor implements AutoCloseable {
     private static final int SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS = 5000;
     private static final int SLEEP_TIME_WHEN_NO_LOCK_MILLIS = 60 * 1000;
 
@@ -47,41 +48,59 @@ public class BackgroundCompactor implements Runnable {
 
     private final TransactionManager transactionManager;
     private final KeyValueService keyValueService;
-    private final LockService lockService;
-    private final Supplier<CompactorConfig> config;
+    private final RemoteLockService lockService;
+    private final Supplier<Boolean> inSafeHours;
 
     private Thread daemon;
 
-    public static void createAndRun(TransactionManager transactionManager,
+    public static Optional<BackgroundCompactor> createAndRun(TransactionManager transactionManager,
             KeyValueService keyValueService,
-            LockService lockService,
-            Supplier<CompactorConfig> compactorConfigSupplier) {
+            RemoteLockService lockService,
+            Supplier<Boolean> inSafeHours) {
+        if (!keyValueService.shouldTriggerCompactions()) {
+            return Optional.empty();
+        }
+
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
                 keyValueService,
                 lockService,
-                compactorConfigSupplier);
+                inSafeHours);
         backgroundCompactor.runInBackground();
+
+        return Optional.of(backgroundCompactor);
     }
 
-    public BackgroundCompactor(TransactionManager transactionManager,
+    private BackgroundCompactor(TransactionManager transactionManager,
             KeyValueService keyValueService,
-            LockService lockService,
-            Supplier<CompactorConfig> config) {
+            RemoteLockService lockService,
+            Supplier<Boolean> inSafeHours) {
         this.transactionManager = transactionManager;
         this.keyValueService = keyValueService;
         this.lockService = lockService;
-        this.config = config;
+        this.inSafeHours = inSafeHours;
     }
 
-    public synchronized void runInBackground() {
+    @Override
+    public void close() {
+        log.info("Closing BackgroundCompactor");
+        daemon.interrupt();
+        try {
+            daemon.join();
+            daemon = null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    private synchronized void runInBackground() {
         Preconditions.checkState(daemon == null);
-        daemon = new Thread(this);
+        daemon = new Thread(this::run);
         daemon.setDaemon(true);
         daemon.setName("BackgroundCompactor");
         daemon.start();
     }
 
-    @Override
     public void run() {
         try (SingleLockService compactorLock = createSimpleLocks()) {
             log.info("Starting background compactor");
@@ -137,7 +156,8 @@ public class BackgroundCompactor implements Runnable {
     }
 
     private void compactTable(String tableToCompact) {
-        keyValueService.compactInternally(TableReference.createFromFullyQualifiedName(tableToCompact));
+        keyValueService.compactInternally(TableReference.createFromFullyQualifiedName(tableToCompact),
+                inSafeHours.get());
     }
 
     private Optional<String> selectTableToCompact(Transaction tx) {

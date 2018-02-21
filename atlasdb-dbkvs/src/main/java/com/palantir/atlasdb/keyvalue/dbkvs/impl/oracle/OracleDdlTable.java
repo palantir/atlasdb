@@ -241,7 +241,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     @Override
-    public void compactInternally() {
+    public void compactInternally(boolean inSafeHours) {
         final String compactionFailureTemplate = "Tried to clean up {} bloat after a sweep operation,"
                 + " but underlying Oracle database or configuration does not support this {} feature online. "
                 + " Since this can't be automated in your configuration,"
@@ -257,7 +257,8 @@ public final class OracleDdlTable implements DbDdlTable {
             } catch (PalantirSqlException e) {
                 log.error(compactionFailureTemplate,
                         tableRef,
-                        "(Enterprise Edition that requires this user to be able to perform DDL operations)",
+                        "(Enterprise Edition that requires this user to be able to perform DDL operations)."
+                                + " Please change the `enableOracleEnterpriseFeatures` config to false.",
                         e.getMessage());
             } catch (TableMappingNotFoundException e) {
                 throw Throwables.propagate(e);
@@ -265,20 +266,24 @@ public final class OracleDdlTable implements DbDdlTable {
         } else if (config.enableShrinkOnOracleStandardEdition()) {
             Stopwatch timer = Stopwatch.createStarted();
             try {
-                Stopwatch shrinkAndCompactTimer = Stopwatch.createStarted();
-                conns.get().executeUnregisteredQuery(
-                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
-                                + " SHRINK SPACE COMPACT");
-                log.info("Call to SHRINK SPACE COMPACT on table {} took {} ms.",
-                        tableRef, shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS));
-
-                Stopwatch shrinkTimer = Stopwatch.createStarted();
-                conns.get().executeUnregisteredQuery(
-                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
-                                + " SHRINK SPACE");
-                log.info("Call to SHRINK SPACE on table {} took {} ms."
-                                + " This implies that locks on the entire table were held for this period.",
-                        tableRef, shrinkTimer.elapsed(TimeUnit.MILLISECONDS));
+                if (inSafeHours) {
+                    Stopwatch shrinkTimer = Stopwatch.createStarted();
+                    conns.get().executeUnregisteredQuery(
+                            "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                    + " SHRINK SPACE");
+                    log.info("Call to SHRINK SPACE on table {} took {} ms."
+                                    + " This implies that locks on the entire table were held for this period.",
+                            tableRef,
+                            shrinkTimer.elapsed(TimeUnit.MILLISECONDS));
+                } else {
+                    Stopwatch shrinkAndCompactTimer = Stopwatch.createStarted();
+                    conns.get().executeUnregisteredQuery(
+                            "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                    + " SHRINK SPACE COMPACT");
+                    log.info("Call to SHRINK SPACE COMPACT on table {} took {} ms.",
+                            tableRef,
+                            shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS));
+                }
             } catch (PalantirSqlException e) {
                 log.error(compactionFailureTemplate,
                         tableRef,
@@ -289,7 +294,8 @@ public final class OracleDdlTable implements DbDdlTable {
                 throw new RuntimeException(e);
             } finally {
                 log.info("Call to KVS.compactInternally on table {} took {} ms.",
-                        tableRef, timer.elapsed(TimeUnit.MILLISECONDS));
+                        tableRef,
+                        timer.elapsed(TimeUnit.MILLISECONDS));
             }
         }
     }

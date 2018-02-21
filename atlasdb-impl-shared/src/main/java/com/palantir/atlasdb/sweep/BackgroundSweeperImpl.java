@@ -502,6 +502,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             daemon.join();
             daemon = null;
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }

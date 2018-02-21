@@ -630,4 +630,24 @@ public interface KeyValueService extends AutoCloseable {
     @Path("compact-internally")
     @Consumes(MediaType.APPLICATION_JSON)
     void compactInternally(TableReference tableRef);
+
+    /**
+     * Some compaction operations might make block reads and writes.
+     * These operations will just trigger when inSafeHours is set to true.
+     */
+    default void compactInternally(TableReference tableRef, boolean inSafeHours) {
+        compactInternally(tableRef);
+    }
+
+    ////////////////////////////////////////////////////////////
+    // SPECIAL CASING SOME KVSs
+    ////////////////////////////////////////////////////////////
+
+    /**
+     * @return If {@link #compactInternally(TableReference)} should be called to free disk space,
+     * e.g. after a table has been swept.
+     */
+    default boolean shouldTriggerCompactions() {
+        return false;
+    }
 }

@@ -1183,13 +1183,20 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
+    public boolean shouldTriggerCompactions() {
+        return true;
+    }
+
+    @Override
     public void compactInternally(TableReference tableRef) {
-        runDdl(tableRef, new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.compactInternally();
-                return null;
-            }
+        compactInternally(tableRef, false);
+    }
+
+    @Override
+    public void compactInternally(TableReference tableRef, boolean inSafeHours) {
+        runDdl(tableRef, (Function<DbDdlTable, Void>) table -> {
+            table.compactInternally(inSafeHours);
+            return null;
         });
     }
 
