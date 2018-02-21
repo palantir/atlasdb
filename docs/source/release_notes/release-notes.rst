@@ -61,6 +61,11 @@ develop
            This fixes an issue that prevented AtlasDB to start after performing a KVS migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
 
+    *    - |fixed|
+         - The Cassandra client pool is now cleaned up in the event of a failure to construct the Cassandra KVS.
+           Previously, the client pool was not shut down, leading to a thread leak.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
+
 =======
 v0.77.0
 =======
