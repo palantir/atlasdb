@@ -137,39 +137,39 @@ public final class BackgroundCompactor implements AutoCloseable {
     private CompactionOutcome grabLockAndRunOnce(SingleLockService compactorLock)
             throws InterruptedException {
         compactorLock.lockOrRefresh();
-        if (compactorLock.haveLocks()) {
-            Optional<String> tableToCompactOptional = compactPriorityCalculator.selectTableToCompact();
-            if (!tableToCompactOptional.isPresent()) {
-                log.info("No table to compact");
-                return CompactionOutcome.NOTHING_TO_COMPACT;
-            }
-
-            String tableToCompact = tableToCompactOptional.get();
-
-            try {
-                log.info("Compacting table {}", LoggingArgs.safeInternalTableName(tableToCompact));
-                compactTable(tableToCompact);
-                log.info("Compacted table {}", LoggingArgs.safeInternalTableName(tableToCompact));
-            } catch (Exception e) {
-                log.warn("Encountered exception when compacting table {}",
-                        LoggingArgs.safeInternalTableName(tableToCompact),
-                        e);
-                return CompactionOutcome.FAILED_TO_COMPACT;
-            }
-
-            try {
-                registerCompactedTable(tableToCompact);
-                return CompactionOutcome.SUCCESS;
-            } catch (Exception e) {
-                log.info("Successfully compacted table {}, but failed to register this."
-                        + "Nothing bad will happen; we'll probably do a no-op compaction of this very shortly.",
-                        LoggingArgs.safeInternalTableName(tableToCompact),
-                        e);
-                return CompactionOutcome.COMPACTED_BUT_NOT_REGISTERED;
-            }
-        } else {
+        if (!compactorLock.haveLocks()) {
             log.info("Failed to get the compaction lock. Probably, another host is running compaction.");
             return CompactionOutcome.UNABLE_TO_ACQUIRE_LOCKS;
+        }
+
+        Optional<String> tableToCompactOptional = compactPriorityCalculator.selectTableToCompact();
+        if (!tableToCompactOptional.isPresent()) {
+            log.info("No table to compact");
+            return CompactionOutcome.NOTHING_TO_COMPACT;
+        }
+
+        String tableToCompact = tableToCompactOptional.get();
+
+        try {
+            log.info("Compacting table {}", LoggingArgs.safeInternalTableName(tableToCompact));
+            compactTable(tableToCompact);
+            log.info("Compacted table {}", LoggingArgs.safeInternalTableName(tableToCompact));
+        } catch (Exception e) {
+            log.warn("Encountered exception when compacting table {}",
+                    LoggingArgs.safeInternalTableName(tableToCompact),
+                    e);
+            return CompactionOutcome.FAILED_TO_COMPACT;
+        }
+
+        try {
+            registerCompactedTable(tableToCompact);
+            return CompactionOutcome.SUCCESS;
+        } catch (Exception e) {
+            log.info("Successfully compacted table {}, but failed to register this."
+                    + "Nothing bad will happen; we'll probably do a no-op compaction of this very shortly.",
+                    LoggingArgs.safeInternalTableName(tableToCompact),
+                    e);
+            return CompactionOutcome.COMPACTED_BUT_NOT_REGISTERED;
         }
     }
 
