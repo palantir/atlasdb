@@ -18,9 +18,18 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,12 +46,117 @@ public class SerializableTransactionManagerTest {
     private TimelockService mockTimelockService = mock(TimelockService.class);
     private Cleaner mockCleaner = mock(Cleaner.class);
     private AsyncInitializer mockInitializer = mock(AsyncInitializer.class);
+    private Runnable mockCallback = mock(Runnable.class);
 
     private SerializableTransactionManager manager;
 
     @Before
     public void setUp() {
-        manager = SerializableTransactionManager.create(
+        when(mockKvs.isInitialized()).thenReturn(false);
+        manager = getManagerWithCallback(true, mockCallback);
+
+        when(mockTimelockService.isInitialized()).thenReturn(true);
+        when(mockCleaner.isInitialized()).thenReturn(true);
+        when(mockInitializer.isInitialized()).thenReturn(true);
+    }
+
+    @Test
+    public void isInitializedWhenPrerequisitesAreInitialized() {
+        when(mockKvs.isInitialized()).thenReturn(true);
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
+        verify(mockCallback).run();
+    }
+
+    @Test
+    public void closingPreventsCallback() {
+        manager.close();
+        when(mockKvs.isInitialized()).thenReturn(true);
+        assertNotInitializedWithinTwoSeconds();
+        verify(mockCallback, never()).run();
+    }
+
+    @Test
+    public void isNotInitializedWhenKvsIsNotInitialized() {
+        assertNotInitializedWithinTwoSeconds();
+        verify(mockCallback, never()).run();
+    }
+
+    @Test
+    public void isNotInitializedWhenTimelockIsNotInitialized() {
+        when(mockTimelockService.isInitialized()).thenReturn(false);
+        when(mockKvs.isInitialized()).thenReturn(true);
+        assertNotInitializedWithinTwoSeconds();
+        verify(mockCallback, never()).run();
+    }
+
+    @Test
+    public void isNotInitializedWhenCleanerIsNotInitialized() {
+        when(mockCleaner.isInitialized()).thenReturn(false);
+        when(mockKvs.isInitialized()).thenReturn(true);
+        assertNotInitializedWithinTwoSeconds();
+        verify(mockCallback, never()).run();
+    }
+
+    @Test
+    public void isNotInitializedWhenInitializerIsNotInitialized() {
+        when(mockInitializer.isInitialized()).thenReturn(false);
+        when(mockKvs.isInitialized()).thenReturn(true);
+        assertNotInitializedWithinTwoSeconds();
+        verify(mockCallback, never()).run();
+    }
+
+    @Test
+    public void callbackThrowingPreventsInitialization() {
+        when(mockKvs.isInitialized()).thenReturn(true);
+        AtomicBoolean invoked = new AtomicBoolean(false);
+        Runnable throwingCallback = () -> {
+            invoked.set(true);
+            throw new RuntimeException();
+        };
+        manager = getManagerWithCallback(true, throwingCallback);
+        assertNotInitializedWithinTwoSeconds();
+        assertTrue(invoked.get());
+    }
+
+    // Edge case: if for some reason we create a SerializableTransactionManager with initializeAsync set to false, we
+    // should initialise it synchronously, even if some of its component parts are initialised asynchronously.
+    // If we somehow manage to survive doing this with no exception, even though the KVS (for example) is not
+    // initialised, then isInitialized should return true.
+    //
+    // BLAB: Synchronously initialised objects don't care if their constituent parts are initialised asynchronously.
+    @Test
+    public void synchronouslyInitializedManagerIsInitializedEvenIfNothingElseIs() {
+        when(mockKvs.isInitialized()).thenReturn(false);
+        when(mockTimelockService.isInitialized()).thenReturn(false);
+        when(mockCleaner.isInitialized()).thenReturn(false);
+        when(mockInitializer.isInitialized()).thenReturn(false);
+
+        SerializableTransactionManager theManager = getManagerWithCallback(false, mockCallback);
+
+        assertTrue(theManager.isInitialized());
+        verify(mockCallback, never()).run();
+    }
+
+    @Test
+    public void callbackRunsAfterPreconditionsAreMetAndBlocksInitializationUntilDone() {
+        BlockingRunnable blockingCallback = new BlockingRunnable();
+        SerializableTransactionManager managerWithBlockingCallback = getManagerWithCallback(true, blockingCallback);
+
+        assertNotInitializedWithinTwoSeconds();
+        assertFalse(blockingCallback.wasInvoked());
+
+        when(mockKvs.isInitialized()).thenReturn(true);
+
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> blockingCallback.wasInvoked());
+        assertFalse(managerWithBlockingCallback.isInitialized());
+
+        blockingCallback.stopBlocking();
+
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> managerWithBlockingCallback.isInitialized());
+    }
+
+    private SerializableTransactionManager getManagerWithCallback(boolean initializeAsync, Runnable callBack) {
+        return SerializableTransactionManager.create(
                 mockKvs,
                 mockTimelockService,
                 null, // lockService
@@ -56,76 +170,40 @@ public class SerializableTransactionManagerTest {
                 () -> 1L, // lockAcquireTimeout
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                true, // initializeAsync
+                initializeAsync,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                SweepQueueWriter.NO_OP);
-
-        when(mockKvs.isInitialized()).thenReturn(true);
-        when(mockTimelockService.isInitialized()).thenReturn(true);
-        when(mockCleaner.isInitialized()).thenReturn(true);
-        when(mockInitializer.isInitialized()).thenReturn(true);
+                SweepQueueWriter.NO_OP,
+                callBack);
     }
 
-    @Test
-    public void isInitializedWhenPrerequisitesAreInitialized() {
-        assertTrue(manager.isInitialized());
+    private void assertNotInitializedWithinTwoSeconds() {
+        Assertions.assertThatThrownBy(() ->
+                Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized()))
+                .isInstanceOf(ConditionTimeoutException.class);
     }
 
-    @Test
-    public void isNotInitializedWhenKvsIsNotInitialized() {
-        when(mockKvs.isInitialized()).thenReturn(false);
-        assertFalse(manager.isInitialized());
-    }
+    private static class BlockingRunnable implements Runnable {
+        private volatile boolean invoked = false;
+        private volatile boolean block = true;
 
-    @Test
-    public void isNotInitializedWhenTimelockIsNotInitialized() {
-        when(mockTimelockService.isInitialized()).thenReturn(false);
-        assertFalse(manager.isInitialized());
-    }
+        @Override
+        public void run() {
+            invoked = true;
+            while (block) {
+                try {
+                    Thread.sleep(500L);
+                } catch (InterruptedException e) {
+                    fail();
+                }
+            }
+        }
 
-    @Test
-    public void isNotInitializedWhenCleanerIsNotInitialized() {
-        when(mockCleaner.isInitialized()).thenReturn(false);
-        assertFalse(manager.isInitialized());
-    }
+        boolean wasInvoked() {
+            return invoked;
+        }
 
-    @Test
-    public void isNotInitializedWhenInitializerIsNotInitialized() {
-        when(mockInitializer.isInitialized()).thenReturn(false);
-        assertFalse(manager.isInitialized());
-    }
-
-    // Edge case: if for some reason we create a SerializableTransactionManager with initializeAsync set to false, we
-    // should initialise it synchronously, even if some of its component parts are initialised asynchronously.
-    // If we somehow manage to survive doing this with no exception, even though the KVS (for example) is not
-    // initialised, then isInitialized should return true.
-    //
-    // BLAB: Synchronously initialised objects don't care if their constituent parts are initialised asynchronously.
-    @Test
-    public void synchronouslyInitializedManagerIsInitializedEvenIfKvsIsNot() {
-        SerializableTransactionManager theManager = SerializableTransactionManager.create(
-                mockKvs,
-                mockTimelockService,
-                null, // lockService
-                null, // transactionService
-                () -> null, // constraintMode
-                null, // conflictDetectionManager
-                null, // sweepStrategyManager
-                mockCleaner,
-                mockInitializer::isInitialized,
-                false, // allowHiddenTableAccess
-                () -> 1L, // lockAcquireTimeoutMs
-                TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
-                TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                false, // initializeAsync
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                SweepQueueWriter.NO_OP);
-
-        when(mockKvs.isInitialized()).thenReturn(false);
-        when(mockTimelockService.isInitialized()).thenReturn(false);
-        when(mockCleaner.isInitialized()).thenReturn(false);
-        when(mockInitializer.isInitialized()).thenReturn(false);
-
-        assertTrue(theManager.isInitialized());
+        void stopBlocking() {
+            block = false;
+        }
     }
 }

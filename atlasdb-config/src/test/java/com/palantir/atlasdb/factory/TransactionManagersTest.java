@@ -132,11 +132,6 @@ public class TransactionManagersTest {
             = "/" + CLIENT + "/timestamp-management/fast-forward?currentTimestamp=" + EMBEDDED_BOUND;
     private static final MappingBuilder TIMELOCK_FF_MAPPING = post(urlEqualTo(TIMELOCK_FF_PATH));
 
-    private static final AtlasDbConfig REAL_CONFIG = ImmutableAtlasDbConfig.builder()
-            .keyValueService(new InMemoryAtlasDbConfig())
-            .defaultLockTimeoutSeconds(62)
-            .build();
-
     private final TimeLockMigrator migrator = mock(TimeLockMigrator.class);
     private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices = mock(
             TransactionManagers.LockAndTimestampServices.class);

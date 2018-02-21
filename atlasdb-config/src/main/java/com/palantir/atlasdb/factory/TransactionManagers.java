@@ -168,6 +168,16 @@ public abstract class TransactionManagers {
 
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
 
+    /**
+     * If AsyncInitialization is set to true, the callback  Runnable will be run when the TransactionManager is
+     * successfully initialized. The TransactionManager stay uninitialized and continue to throw for all other purposes
+     * until the callback returns at which point it will become initialized.
+     */
+    @Value.Default
+    Runnable asyncInitializationCallback() {
+        return () -> { };
+    }
+
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
         return ImmutableTransactionManagers.builder();
     }
@@ -336,7 +346,8 @@ public abstract class TransactionManagers {
                         config.keyValueService().defaultGetRangesConcurrency(),
                         config.initializeAsync(),
                         () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
-                        SweepQueueWriter.NO_OP),
+                        SweepQueueWriter.NO_OP,
+                        asyncInitializationCallback()),
                 closeables);
 
         PersistentLockManager persistentLockManager = initializeCloseable(

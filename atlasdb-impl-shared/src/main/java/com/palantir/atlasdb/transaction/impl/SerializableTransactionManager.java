@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
@@ -29,6 +31,8 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
@@ -42,13 +46,22 @@ import com.palantir.timestamp.TimestampService;
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
-        private final SerializableTransactionManager manager;
+        private final SerializableTransactionManager txManager;
         private final Supplier<Boolean> initializationPrerequisite;
 
+        private volatile boolean stopInitializationCheck = false;
+        private volatile boolean callBackDone = false;
+
+        private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor(
+                new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true));
+
         public InitializeCheckingWrapper(SerializableTransactionManager manager,
-                Supplier<Boolean> initializationPrerequisite) {
-            this.manager = manager;
+                Supplier<Boolean> initializationPrerequisite,
+                Runnable callBack) {
+            this.txManager = manager;
             this.initializationPrerequisite = initializationPrerequisite;
+            registerClosingCallback(this::cancelInitializationCheck);
+            scheduleInitializationCheckAndCallback(callBack);
         }
 
         @Override
@@ -57,30 +70,58 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 throw new NotInitializedException("TransactionManager");
             }
 
-            return manager;
+            return txManager;
         }
 
         @Override
         public boolean isInitialized() {
-            // Note that the PersistentLockService is also initialized asynchronously as part of
-            // TransactionManagers.create; however, this is not required for the TransactionManager to fulfil
-            // requests (note that it is not accessible from any TransactionManager implementation), so we omit
-            // checking here whether it is initialized.
-            return manager.getKeyValueService().isInitialized()
-                    && manager.getTimelockService().isInitialized()
-                    && manager.getTimestampService().isInitialized()
-                    && manager.getCleaner().isInitialized()
-                    && initializationPrerequisite.get();
+            return callBackDone && isInitializedInternal();
         }
 
         @Override
         public LockService getLockService() {
-            return manager.getLockService();
+            return txManager.getLockService();
         }
 
         @Override
         public void registerClosingCallback(Runnable closingCallback) {
-            manager.registerClosingCallback(closingCallback);
+            txManager.registerClosingCallback(closingCallback);
+        }
+
+        @Override
+        public void close() {
+            txManager.close();
+        }
+
+        private void cancelInitializationCheck() {
+            stopInitializationCheck = true;
+        }
+
+        private void scheduleInitializationCheckAndCallback(Runnable callBack) {
+            executorService.schedule(() -> {
+                if (stopInitializationCheck) {
+                    return;
+                }
+                if (isInitializedInternal()) {
+                    callBack.run();
+                    callBackDone = true;
+                    return;
+                } else {
+                    scheduleInitializationCheckAndCallback(callBack);
+                }
+            }, 1_000, TimeUnit.MILLISECONDS);
+        }
+
+        private boolean isInitializedInternal() {
+            // Note that the PersistentLockService is also initialized asynchronously as part of
+            // TransactionManagers.create; however, this is not required for the TransactionManager to fulfil
+            // requests (note that it is not accessible from any TransactionManager implementation), so we omit
+            // checking here whether it is initialized.
+            return txManager.getKeyValueService().isInitialized()
+                    && txManager.getTimelockService().isInitialized()
+                    && txManager.getTimestampService().isInitialized()
+                    && txManager.getCleaner().isInitialized()
+                    && initializationPrerequisite.get();
         }
     }
 
@@ -109,7 +150,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
             Supplier<Long> timestampCacheSize,
-            SweepQueueWriter sweepQueueWriter) {
+            SweepQueueWriter sweepQueueWriter,
+            Runnable callback) {
         TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
                 timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
@@ -130,7 +172,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter);
 
         return initializeAsync
-                ? new InitializeCheckingWrapper(serializableTransactionManager, initializationPrerequisite)
+                ? new InitializeCheckingWrapper(serializableTransactionManager, initializationPrerequisite, callback)
                 : serializableTransactionManager;
     }
 
