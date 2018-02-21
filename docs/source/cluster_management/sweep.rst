@@ -97,3 +97,4 @@ You can check the sweep logs to verify if this is happening frequently — and i
     sweep/sweep-endpoints
     sweep/sweep-cli
     sweep/sweep-logs
+    sweep/freeing-space
