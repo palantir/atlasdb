@@ -16,24 +16,23 @@
 
 package com.palantir.atlasdb.util;
 
-public class AccumulatingValueMetric extends CurrentValueMetric<Long> {
-    private CurrentValueMetric<Long> delegate = new CurrentValueMetric<>();
+import java.util.concurrent.atomic.AtomicLong;
 
-    public AccumulatingValueMetric() {
-        setValue(0L);
-    }
+import com.codahale.metrics.Gauge;
+
+public class AccumulatingValueMetric implements Gauge<Long> {
+    private final AtomicLong value = new AtomicLong(0L);
 
     @Override
     public Long getValue() {
-        return delegate.getValue();
+        return value.get();
     }
 
-    @Override
     public void setValue(Long newValue) {
-        delegate.setValue(newValue);
+        value.set(newValue);
     }
 
     public void accumulateValue(Long newValue) {
-        setValue(newValue + getValue());
+        value.addAndGet(newValue);
     }
 }
