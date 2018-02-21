@@ -89,6 +89,7 @@ public final class BackgroundCompactor implements AutoCloseable {
             daemon.join();
             daemon = null;
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
