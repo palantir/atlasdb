@@ -16,19 +16,24 @@
 
 package com.palantir.atlasdb.compact;
 
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
 import com.palantir.atlasdb.schema.generated.CompactTableFactory;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
@@ -36,6 +41,7 @@ import com.palantir.lock.SingleLockService;
 public final class BackgroundCompactor implements AutoCloseable {
     private static final int SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS = 5000;
     private static final int SLEEP_TIME_WHEN_NO_LOCK_MILLIS = 60 * 1000;
+    private static final int SLEEP_TIME_AFTER_FAILURE_MILLIS = 60 * 1000;
 
     private static final Logger log = LoggerFactory.getLogger(BackgroundCompactor.class);
 
@@ -44,6 +50,8 @@ public final class BackgroundCompactor implements AutoCloseable {
     private final LockService lockService;
     private final Supplier<Boolean> inSafeHours;
     private final CompactPriorityCalculator compactPriorityCalculator;
+
+    private final CompactionOutcomeMetrics compactionOutcomeMetrics = new CompactionOutcomeMetrics();
 
     private Thread daemon;
 
@@ -80,6 +88,7 @@ public final class BackgroundCompactor implements AutoCloseable {
 
     @Override
     public void close() {
+        compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SHUTDOWN);
         log.info("Closing BackgroundCompactor");
         daemon.interrupt();
         try {
@@ -114,17 +123,38 @@ public final class BackgroundCompactor implements AutoCloseable {
                     Optional<String> tableToCompactOptional = compactPriorityCalculator.selectTableToCompact();
                     if (!tableToCompactOptional.isPresent()) {
                         log.info("No table to compact");
+                        compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.NOTHING_TO_COMPACT);
                         Thread.sleep(SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS);
                         continue;
                     }
 
                     String tableToCompact = tableToCompactOptional.get();
 
-                    log.info("Compacting table {}", LoggingArgs.safeInternalTableName(tableToCompact));
-                    compactTable(tableToCompact);
-                    log.info("Compacted table {}", LoggingArgs.safeInternalTableName(tableToCompact));
+                    try {
+                        log.info("Compacting table {}", LoggingArgs.safeInternalTableName(tableToCompact));
+                        compactTable(tableToCompact);
+                        log.info("Compacted table {}", LoggingArgs.safeInternalTableName(tableToCompact));
+                    } catch (Exception e) {
+                        log.warn("Encountered exception when compacting table {}",
+                                LoggingArgs.safeInternalTableName(tableToCompact),
+                                e);
+                        compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.FAILED_TO_COMPACT);
+                        Thread.sleep(SLEEP_TIME_AFTER_FAILURE_MILLIS);
+                        continue;
+                    }
 
-                    registerCompactedTable(tableToCompact);
+                    try {
+                        registerCompactedTable(tableToCompact);
+                        compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SUCCESS);
+                        continue;
+                    } catch (Exception e) {
+                        log.info("Successfully compacted table {}, but failed to register this."
+                                + "Nothing bad will happen; we'll probably do a no-op compaction of this very shortly.",
+                                LoggingArgs.safeInternalTableName(tableToCompact),
+                                e);
+                        compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.COMPACTED_BUT_NOT_REGISTERED);
+                        continue;
+                    }
                 } else {
                     log.info("Failed to get the compaction lock. Probably, another host is running compaction.");
                     Thread.sleep(SLEEP_TIME_WHEN_NO_LOCK_MILLIS);
@@ -132,7 +162,9 @@ public final class BackgroundCompactor implements AutoCloseable {
                 }
             }
         } catch (InterruptedException e) {
-            log.warn("Shutting down background compactor due to InterruptedException", e);
+            log.warn("Shutting down background compactor due to InterruptedException. "
+                    + "Please restart the service to resume compactions", e);
+            compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SHUTDOWN);
             Thread.currentThread().interrupt();
         }
     }
@@ -155,5 +187,42 @@ public final class BackgroundCompactor implements AutoCloseable {
     private void compactTable(String tableToCompact) {
         keyValueService.compactInternally(TableReference.createFromFullyQualifiedName(tableToCompact),
                 inSafeHours.get());
+    }
+
+    private enum CompactionOutcome {
+        SUCCESS, NOTHING_TO_COMPACT, COMPACTED_BUT_NOT_REGISTERED, UNABLE_TO_ACQUIRE_LOCKS, FAILED_TO_COMPACT, SHUTDOWN
+    }
+
+    private class CompactionOutcomeMetrics {
+        private final MetricsManager metricsManager = new MetricsManager();
+        private final SlidingTimeWindowReservoir reservoir;
+
+        private boolean shutdown;
+
+        CompactionOutcomeMetrics() {
+            Arrays.stream(CompactionOutcome.values()).forEach(outcome ->
+                    metricsManager.registerMetric(BackgroundCompactor.class, "outcome",
+                            () -> getOutcomeCount(outcome), ImmutableMap.of("status", outcome.name())));
+            reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
+        }
+
+        private Long getOutcomeCount(CompactionOutcome outcome) {
+            if (outcome == CompactionOutcome.SHUTDOWN) {
+                return shutdown ? 1L : 0L;
+            }
+
+            return Arrays.stream(reservoir.getSnapshot().getValues())
+                    .filter(l -> l == outcome.ordinal())
+                    .count();
+        }
+
+        void registerOccurrenceOf(CompactionOutcome outcome) {
+            if (outcome == CompactionOutcome.SHUTDOWN) {
+                shutdown = true;
+                return;
+            }
+
+            reservoir.update(outcome.ordinal());
+        }
     }
 }
