@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
 import com.palantir.atlasdb.schema.generated.CompactTableFactory;
@@ -110,6 +109,6 @@ final class CompactPriorityCalculator {
     }
 
     private Arg<String> safeTableRef(String fullyQualifiedName) {
-        return LoggingArgs.tableRef(TableReference.createFromFullyQualifiedName(fullyQualifiedName));
+        return LoggingArgs.safeInternalTableName(fullyQualifiedName);
     }
 }
