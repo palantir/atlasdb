@@ -1168,7 +1168,7 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public boolean shouldManuallyCompact() {
+    public boolean shouldTriggerCompactions() {
         return true;
     }
 

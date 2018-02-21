@@ -58,7 +58,7 @@ public final class BackgroundCompactor implements AutoCloseable {
             KeyValueService keyValueService,
             LockService lockService,
             Supplier<Boolean> inSafeHours) {
-        if (!keyValueService.shouldManuallyCompact()) {
+        if (!keyValueService.shouldTriggerCompactions()) {
             return Optional.empty();
         }
 

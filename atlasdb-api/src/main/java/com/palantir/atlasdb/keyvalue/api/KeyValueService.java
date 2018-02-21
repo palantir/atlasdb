@@ -714,9 +714,10 @@ public interface KeyValueService extends AutoCloseable {
     }
 
     /**
-     * @return If {@link #compactInternally(TableReference)} should be called to free disk space.
+     * @return If {@link #compactInternally(TableReference)} should be called to free disk space,
+     * e.g. after a table has been swept.
      */
-    default boolean shouldManuallyCompact() {
+    default boolean shouldTriggerCompactions() {
         return false;
     }
 }
