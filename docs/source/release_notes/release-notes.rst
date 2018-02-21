@@ -57,6 +57,16 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3010>`__)
 
     *    - |fixed|
+         - SerializableTransactionManager can now be closed even if it is not initialized yet.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3010>`__)
+
+    *    - |new|
+         - DbKvs: introduced a Background compactor thread that carries out post-sweep compaction operations.
+           For non-enterprise Oracle deployments, this will only run the blocking ``SHRINK SPACE`` command during safe hours.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2984>`__ and
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2991>`__)
+
+    *    - |fixed|
          - LoggingArgs no longer throws when it tries to hydrate invalid table metadata.
            This fixes an issue that prevented AtlasDB to start after performing a KVS migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)

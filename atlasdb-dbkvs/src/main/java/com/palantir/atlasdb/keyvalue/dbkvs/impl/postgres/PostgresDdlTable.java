@@ -122,7 +122,7 @@ public class PostgresDdlTable implements DbDdlTable {
     }
 
     @Override
-    public void compactInternally() {
+    public void compactInternally(boolean unused) {
         if (compactionSemaphore.tryAcquire()) {
             try {
                 if (shouldRunCompaction()) {

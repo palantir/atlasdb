@@ -45,6 +45,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
+import com.palantir.atlasdb.compact.BackgroundCompactor;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -169,9 +170,12 @@ public abstract class TransactionManagers {
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
 
     /**
-     * If AsyncInitialization is set to true, the callback  Runnable will be run when the TransactionManager is
+     * If config().initializeAsync() is set to true, the callback Runnable will be run when the TransactionManager is
      * successfully initialized. The TransactionManager stay uninitialized and continue to throw for all other purposes
      * until the callback returns at which point it will become initialized.
+     *
+     * Note that if the callback throws an exception or blocks forever, the TransactionManager will never become
+     * initialized.
      */
     @Value.Default
     Runnable asyncInitializationCallback() {
@@ -366,8 +370,32 @@ public abstract class TransactionManagers {
                         transactionManager,
                         persistentLockManager),
                 closeables);
+        initializeCloseable(
+                initializeCompactBackgroundProcess(
+                        lockAndTimestampServices,
+                        keyValueService,
+                        transactionManager,
+                        JavaSuppliers.compose(o -> o.compact().inSafeHours(), runtimeConfigSupplier)),
+                closeables);
 
         return transactionManager;
+    }
+
+    private Optional<BackgroundCompactor> initializeCompactBackgroundProcess(
+            LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService keyValueService,
+            SerializableTransactionManager transactionManager,
+            Supplier<Boolean> inSafeHours) {
+        Optional<BackgroundCompactor> backgroundCompactorOptional = BackgroundCompactor.createAndRun(
+                transactionManager,
+                keyValueService,
+                lockAndTimestampServices.lock(),
+                inSafeHours);
+
+        backgroundCompactorOptional.ifPresent(backgroundCompactor ->
+                transactionManager.registerClosingCallback(backgroundCompactor::close));
+
+        return backgroundCompactorOptional;
     }
 
     private <T extends AutoCloseable> T initializeCloseable(
@@ -375,6 +403,13 @@ public abstract class TransactionManagers {
         T ret = closeableSupplier.get();
         closeables.add(ret);
         return ret;
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private <T extends AutoCloseable> Optional<T> initializeCloseable(
+            Optional<T> closeableOptional, @Output List<AutoCloseable> closeables) {
+        closeableOptional.ifPresent(closeables::add);
+        return closeableOptional;
     }
 
     private QosClient getQosClient(Supplier<QosClientConfig> config) {
