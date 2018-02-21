@@ -242,6 +242,10 @@ This avoids an issue where AtlasDB would refuse to start after a migration becau
 Also reduce the defaults to flush write stats on 32MB overall write size and 2k cells.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2998">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fix <code class="docutils literal notranslate"><span class="pre">SnapshotTransaction#getRows</span></code> to apply <code class="docutils literal notranslate"><span class="pre">ColumnSelection</span></code> when there are local writes.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3008">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
