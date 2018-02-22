@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -315,13 +316,11 @@ public final class OracleDdlTable implements DbDdlTable {
 
         try {
             int originalNetworkTimeout = sqlConnection.getUnderlyingConnection().getNetworkTimeout();
-            int newNetworkMillis = config.compactionConnectionTimeout() > Integer.MAX_VALUE
-                    ? (int) config.compactionConnectionTimeout()
-                    : Integer.MAX_VALUE;
+            int newNetworkMillis = Ints.saturatedCast(config.compactionConnectionTimeout());
 
             log.info("Increased sql socket read timeout from {} to {}",
-                    SafeArg.of("originalNetworkTimeout", originalNetworkTimeout),
-                    SafeArg.of("newNetworkTimeout", newNetworkMillis));
+                    SafeArg.of("originalNetworkTimeoutMillis", originalNetworkTimeout),
+                    SafeArg.of("newNetworkTimeoutMillis", newNetworkMillis));
             sqlConnection.getUnderlyingConnection().setNetworkTimeout(compactionTimeoutExecutor, newNetworkMillis);
         } catch (SQLException e) {
             log.warn("Failed to increase socket read timeout for the connection. Encountered an exception:", e);

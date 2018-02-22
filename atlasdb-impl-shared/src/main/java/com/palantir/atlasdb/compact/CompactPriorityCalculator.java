@@ -74,9 +74,11 @@ final class CompactPriorityCalculator {
                 .collect(Collectors.toList());
 
         if (uncompactedTables.size() > 0) {
-            log.info("There are some tables which have been swept, but not compacted. Choosing one at random.");
             int randomTableIndex = ThreadLocalRandom.current().nextInt(uncompactedTables.size());
-            return Optional.of(uncompactedTables.get(randomTableIndex));
+            String randomlyChosenTable = uncompactedTables.get(randomTableIndex);
+            log.info("There are some tables which have been swept, but not compacted. Choosing {} at random.",
+                    safeTableRef(randomlyChosenTable));
+            return Optional.of(randomlyChosenTable);
         }
 
         String tableToCompact = null;
