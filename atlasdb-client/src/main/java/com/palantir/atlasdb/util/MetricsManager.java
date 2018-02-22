@@ -91,6 +91,26 @@ public class MetricsManager {
         registerMetric(clazz, metricName, gauge, tag);
     }
 
+    /**
+     * Add a new gauge to a metric (which may already exist)
+     *
+     * This will throw {@link IllegalArgumentException} if a non-Gauge metric has already been added.
+     */
+    public void registerOrAddToMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+        MetricName metricToAdd = MetricName.builder()
+                .safeName(MetricRegistry.name(clazz, metricName))
+                .safeTags(tag)
+                .build();
+
+        taggedMetricRegistry.gauge(metricToAdd, gauge);
+    }
+
+    /**
+     * Add a new gauge metric of the given name.
+     *
+     * If the metric already exists, this will REPLACE it with a new metric.
+     * Consider using {@link MetricsManager#registerOrAddToMetric} instead.
+     */
     public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
         MetricName metricToAdd = MetricName.builder()
                 .safeName(MetricRegistry.name(clazz, metricName))

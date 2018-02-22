@@ -223,7 +223,7 @@ public final class BackgroundCompactor implements AutoCloseable {
 
         CompactionOutcomeMetrics() {
             Arrays.stream(CompactionOutcome.values()).forEach(outcome ->
-                    metricsManager.registerMetric(BackgroundCompactor.class, "outcome",
+                    metricsManager.registerOrAddToMetric(BackgroundCompactor.class, "outcome",
                             () -> getOutcomeCount(outcome), ImmutableMap.of("status", outcome.name())));
             reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
         }
