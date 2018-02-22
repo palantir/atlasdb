@@ -32,6 +32,11 @@ public class SweepMetricsManager {
     private final SweepMetric<String> tableSweeping = factory.simpleString(AtlasDbMetricNames.TABLE_BEING_SWEPT);
     private final SweepMetric<Long> sweepErrors = factory.simpleMeter(AtlasDbMetricNames.SWEEP_ERROR);
 
+    public void resetBeforeDeleteBatch() {
+        cellsExamined.set(0L);
+        cellsDeleted.set(0L);
+    }
+
     public void updateAfterDeleteBatch(long cellTsPairsExamined, long staleValuesDeleted) {
         cellsExamined.update(cellTsPairsExamined);
         cellsDeleted.update(staleValuesDeleted);

@@ -200,6 +200,11 @@ public class SweepTaskRunner {
                         candidates, batchConfig, sweepableCellFilter, limit);
             long totalCellTsPairsExamined = 0;
             long totalCellTsPairsDeleted = 0;
+
+            if (metricsManager.isPresent()) {
+                metricsManager.get().resetBeforeDeleteBatch();
+            }
+
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
                 BatchOfCellsToSweep batch = batchesToSweep.next();

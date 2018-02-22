@@ -252,10 +252,6 @@ public class SpecificTableSweeper {
         }
     }
 
-    void updateMetricsDeleteBatch(long cellTsPairsExamined, long staleValuesDeleted) {
-        sweepMetricsManager.updateAfterDeleteBatch(cellTsPairsExamined, staleValuesDeleted);
-    }
-
     void updateMetricsOneIteration(SweepResults sweepResults, TableReference tableRef) {
         sweepMetricsManager.updateMetrics(sweepResults, tableRef);
     }
