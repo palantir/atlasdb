@@ -63,7 +63,7 @@ public final class BackgroundCompactor implements AutoCloseable {
             return Optional.empty();
         }
 
-        CompactPriorityCalculator compactPriorityCalculator = new CompactPriorityCalculator(transactionManager);
+        CompactPriorityCalculator compactPriorityCalculator = CompactPriorityCalculator.create(transactionManager);
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
                 keyValueService,
                 lockService,
