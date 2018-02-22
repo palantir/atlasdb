@@ -49,6 +49,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
         private final SerializableTransactionManager txManager;
         private final Supplier<Boolean> initializationPrerequisite;
+        private final Callback callback;
 
         private volatile boolean callbackDone = false;
         private Optional<Exception> callbackException = Optional.empty();
@@ -61,7 +62,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 Callback callBack) {
             this.txManager = manager;
             this.initializationPrerequisite = initializationPrerequisite;
-            scheduleInitializationCheckAndCallback(callBack);
+            this.callback = callBack;
+            scheduleInitializationCheckAndCallback();
         }
 
         @Override
@@ -94,6 +96,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         @Override
         public void close() {
             if (isClosed.compareAndSet(false, true)) {
+                callback.blockUntilSafeToShutdown();
                 txManager.close();
             }
         }
@@ -108,15 +111,15 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             }
         }
 
-        private void scheduleInitializationCheckAndCallback(Callback callBack) {
+        private void scheduleInitializationCheckAndCallback() {
             executorService.schedule(() -> {
                 if (isClosed.get()) {
                     return;
                 }
                 if (isInitializedInternal()) {
-                    runCallback(callBack);
+                    runCallback(callback);
                 } else {
-                    scheduleInitializationCheckAndCallback(callBack);
+                    scheduleInitializationCheckAndCallback();
                 }
             }, 1_000, TimeUnit.MILLISECONDS);
         }

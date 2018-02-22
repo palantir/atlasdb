@@ -16,20 +16,38 @@
 
 package com.palantir.async.initializer;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 public abstract class Callback {
     public static final Callback NO_OP = new NoOp();
+
+    private volatile boolean shutdownSignal = false;
+    private Lock lock = new ReentrantLock();
+
     public abstract void init();
     public abstract void cleanup(Exception initException);
 
-    public void runWithRetry() {
-        while (true) {
+    public synchronized void runWithRetry() {
+        while (!shutdownSignal) {
             try {
-                init();
+                lock.lock();
+                if (!shutdownSignal) {
+                    init();
+                }
                 return;
             } catch (Exception e) {
                 cleanup(e);
+            } finally {
+                lock.unlock();
             }
         }
+    }
+
+    public void blockUntilSafeToShutdown() {
+        shutdownSignal = true;
+        lock.lock();
+        lock.unlock();
     }
 
     private static class NoOp extends Callback {
