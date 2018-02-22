@@ -30,6 +30,7 @@ public final class AtlasDbConstants {
         // Utility
     }
 
+    public static final TableReference OLD_PUNCH_TABLE = TableReference.createWithEmptyNamespace("_punch");
     public static final TableReference PUNCH_TABLE = TableReference.createWithEmptyNamespace("_punch2");
     public static final TableReference OLD_SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub");
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub2");
@@ -82,6 +83,7 @@ public final class AtlasDbConstants {
 
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
+            OLD_PUNCH_TABLE,
             PUNCH_TABLE,
             OLD_SCRUB_TABLE,
             SCRUB_TABLE,

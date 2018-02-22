@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.StreamSupport;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -91,7 +92,8 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         }
     }
 
-    private static final long MILLIS_IN_TWO_WEEKS = TimeUnit.DAYS.toMillis(14);
+    @VisibleForTesting
+    static final long MILLIS_IN_TWO_WEEKS = TimeUnit.DAYS.toMillis(14);
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
     private final KeyValueService keyValueService;
@@ -114,12 +116,12 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, new TableMetadata(
                 NameMetadataDescription.create(ImmutableList.of(
                         new NameComponentDescription.Builder()
-                                .componentName("time_rounded_to_day")
+                                .componentName("time_rounded_millis")
                                 .type(ValueType.FIXED_LONG_LITTLE_ENDIAN)
                                 .build())),
                 new ColumnMetadataDescription(new DynamicColumnDescription(
                         NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
-                                .componentName("millis_in_day")
+                                .componentName("remainder_millis")
                                 .type(ValueType.VAR_LONG)
                                 .build())),
                         ColumnValueDescription.forType(ValueType.VAR_LONG))),
@@ -156,6 +158,11 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
 
         return getHistoric(timeMillis, 1)
                 .orElseGet(() -> getHistoric(timeMillis, 30).orElse(Long.MIN_VALUE));
+    }
+
+    @Override
+    public long getMillisForTimestamp(long timestamp) {
+        return getMillisForTimestamp(keyValueService, timestamp);
     }
 
     private Optional<Long> getHistoric(long timeMillis, int numRowsToCheck) {
@@ -203,14 +210,14 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
                 + EncodingUtils.decodeUnsignedVarLong(EncodingUtils.flipAllBits(cell.getColumnName()));
     }
 
-    private static byte[] row(long timeMillis) {
-        return EncodingUtils.encodeLittleEndian(Math.floorDiv(timeMillis, MILLIS_IN_TWO_WEEKS));
-    }
-
     // floorDiv and floorMod are to ensure that this works properly if the time is somehow negative.
     private static byte[] column(long timeMillis) {
         byte[] ret = EncodingUtils.encodeUnsignedVarLong(Math.floorMod(timeMillis, MILLIS_IN_TWO_WEEKS));
         EncodingUtils.flipAllBitsInPlace(ret);
         return ret;
+    }
+
+    private static byte[] row(long timeMillis) {
+        return EncodingUtils.encodeLittleEndian(Math.floorDiv(timeMillis, MILLIS_IN_TWO_WEEKS));
     }
 }

@@ -17,13 +17,13 @@ package com.palantir.atlasdb.cleaner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class KeyValueServicePuncherStoreTest {
@@ -45,12 +45,11 @@ public class KeyValueServicePuncherStoreTest {
             TIMESTAMP_1, WALL_CLOCK_2,
             TIMESTAMP_2, WALL_CLOCK_1);
 
-    private KeyValueService keyValueService;
     private PuncherStore puncherStore;
 
     @Before
     public void setUp() {
-        initializePuncherStore(PUNCHER_HISTORY);
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY);
     }
 
     @Test
@@ -71,57 +70,62 @@ public class KeyValueServicePuncherStoreTest {
 
     @Test
     public void getMillisForTimestampReturnsZeroIfQueryingTimestampBeforeFirstPunch() {
-        assertThat(getMillisForTimestamp(Long.MIN_VALUE)).isEqualTo(0L);
-        assertThat(getMillisForTimestamp(TIMESTAMP_1 - 1)).isEqualTo(0L);
+        assertThat(puncherStore.getMillisForTimestamp(Long.MIN_VALUE)).isEqualTo(0L);
+        assertThat(puncherStore.getMillisForTimestamp(TIMESTAMP_1 - 1)).isEqualTo(0L);
     }
 
     @Test
     public void getMillisForTimestampReturnsClockTimeIfQueryingPreciseTimestamp() {
-        PUNCHER_HISTORY.forEach((key, value) -> assertThat(getMillisForTimestamp(key)).isEqualTo(value));
+        PUNCHER_HISTORY.forEach((key, value) -> assertThat(puncherStore.getMillisForTimestamp(key)).isEqualTo(value));
     }
 
     @Test
     public void getMillisForTimestampReturnsLastTimeKnownToOccurBeforeQueriedTimestamp() {
-        PUNCHER_HISTORY.forEach((key, value) -> assertThat(getMillisForTimestamp(key + 1))
+        PUNCHER_HISTORY.forEach((key, value) -> assertThat(puncherStore.getMillisForTimestamp(key + 1))
                 .isEqualTo(value));
     }
 
     @Test
     public void handlesPunchesNotInSequentialOrder() {
-        assertThat(getMillisForTimestamp(TIMESTAMP_BETWEEN_1_AND_2))
+        assertThat(puncherStore.getMillisForTimestamp(TIMESTAMP_BETWEEN_1_AND_2))
                 .isEqualTo(WALL_CLOCK_1);
         puncherStore.put(TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_BETWEEN_1_AND_2);
-        assertThat(getMillisForTimestamp(TIMESTAMP_BETWEEN_1_AND_2))
+        assertThat(puncherStore.getMillisForTimestamp(TIMESTAMP_BETWEEN_1_AND_2))
                 .isEqualTo(WALL_CLOCK_BETWEEN_1_AND_2);
     }
 
     @Test
     public void returnsGreatestPunchedTimeBeforeTimestampEvenIfNotAssociatedWithGreatestEligibleTimestamp() {
-        initializePuncherStore(PUNCHER_HISTORY_WITH_CLOCK_DRIFT);
-        assertThat(getMillisForTimestamp(TIMESTAMP_2))
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY_WITH_CLOCK_DRIFT);
+        assertThat(puncherStore.getMillisForTimestamp(TIMESTAMP_2))
                 .isEqualTo(WALL_CLOCK_2)
                 .isNotEqualTo(WALL_CLOCK_1); // strictly speaking not needed but better for readability
     }
 
     @Test
     public void returnsTimestampAssociatedWithGreatestPunchedTimeEvenIfItIsNotGreatest() {
-        initializePuncherStore(PUNCHER_HISTORY_WITH_CLOCK_DRIFT);
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY_WITH_CLOCK_DRIFT);
         assertThat(puncherStore.get(WALL_CLOCK_2))
                 .isEqualTo(TIMESTAMP_1)
                 .isNotEqualTo(TIMESTAMP_2); // strictly speaking not needed but better for readability
+    }
+
+    @Test
+    public void canGetAcrossRowBoundaries() {
+        long atlasTime = 12345;
+        puncherStore = initializePuncherStore(Collections.emptyMap());
+        puncherStore.put(atlasTime, 0);
+        assertThat(puncherStore.get(KeyValueServicePuncherStore.MILLIS_IN_TWO_WEEKS + 100))
+                .isEqualTo(atlasTime);
     }
 
     private static long mean(long first, long second) {
         return (first + second) / 2;
     }
 
-    private void initializePuncherStore(Map<Long, Long> timestampMap) {
-        keyValueService = new InMemoryKeyValueService(false);
-        puncherStore = KeyValueServicePuncherStore.create(keyValueService);
+    private static PuncherStore initializePuncherStore(Map<Long, Long> timestampMap) {
+        PuncherStore puncherStore = KeyValueServicePuncherStore.create(new InMemoryKeyValueService(false));
         timestampMap.forEach((key, value) -> puncherStore.put(key, value));
-    }
-
-    private long getMillisForTimestamp(long timestamp) {
-        return KeyValueServicePuncherStore.getMillisForTimestamp(keyValueService, timestamp);
+        return puncherStore;
     }
 }

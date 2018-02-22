@@ -69,4 +69,11 @@ public final class CachingPuncherStore implements PuncherStore {
         long approximateTimeMillis = timeMillis - (timeMillis % granularityMillis);
         return timeMillisToTimeStamp.getUnchecked(approximateTimeMillis);
     }
+
+    @Override
+    public long getMillisForTimestamp(long timestamp) {
+        // Note: at the time of writing this (3-21-16), this operation is only
+        // used optionally by the backup CLI and doesn't need to be cached
+        return puncherStore.getMillisForTimestamp(timestamp);
+    }
 }

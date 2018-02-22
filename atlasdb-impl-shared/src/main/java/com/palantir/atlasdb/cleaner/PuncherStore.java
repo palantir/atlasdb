@@ -44,4 +44,9 @@ public interface PuncherStore {
      * Find the latest timestamp created at or before timeMillis.
      */
     Long get(Long timeMillis);
+
+    /**
+     * Get the time in millis for the greatest timestamp punched less than or equal to the given timestamp.
+     */
+    long getMillisForTimestamp(long timestamp);
 }
