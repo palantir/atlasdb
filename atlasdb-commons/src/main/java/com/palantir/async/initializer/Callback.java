@@ -25,9 +25,21 @@ public abstract class Callback {
     private volatile boolean shutdownSignal = false;
     private Lock lock = new ReentrantLock();
 
+    /**
+     * The method to be executed. If init() returns, the callback is considered to be successful.
+     */
     public abstract void init();
+
+    /**
+     * Cleanup to be done if init() throws, before init() can be attempted again.
+     * @param initException Exception thrown by init()
+     */
     public abstract void cleanup(Exception initException);
 
+    /**
+     * Keep retrying init(), performing any necessary cleanup, until it succeeds unless cleanup() throws or a shutdown
+     * signal has been sent.
+     */
     public void runWithRetry() {
         while (!shutdownSignal) {
             try {
@@ -44,6 +56,9 @@ public abstract class Callback {
         }
     }
 
+    /**
+     * Send a shutdown signal and block until potential cleanup has finished running.
+     */
     public void blockUntilSafeToShutdown() {
         shutdownSignal = true;
         lock.lock();

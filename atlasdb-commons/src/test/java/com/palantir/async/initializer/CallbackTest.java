@@ -18,8 +18,14 @@ package com.palantir.async.initializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 
+import java.util.concurrent.TimeUnit;
+
+import org.awaitility.Awaitility;
 import org.junit.Test;
+
+import com.palantir.common.concurrent.PTExecutors;
 
 public class CallbackTest {
     @Test
@@ -39,6 +45,28 @@ public class CallbackTest {
                 .hasMessageContaining("LEGIT REASON");
         assertThat(countingCallback.initCounter).isEqualTo(5L);
     }
+
+    @Test
+    public void shutdownDoesNotBlockWhenTaskIsNotRunning() {
+        CountingCallback countingCallback = new CountingCallback(true);
+
+        long start = System.currentTimeMillis();
+        countingCallback.blockUntilSafeToShutdown();
+        assertThat(System.currentTimeMillis()).isLessThanOrEqualTo(start + 100L);
+    }
+
+    @Test
+    public void shutdownDoesBlocksWhenTaskIsRunningUntilCleanupIsDone() {
+        SlowCallback slowCallback = new SlowCallback();
+        long start = System.currentTimeMillis();
+
+        PTExecutors.newSingleThreadScheduledExecutor().submit(slowCallback::runWithRetry);
+        Awaitility.waitAtMost(200L, TimeUnit.MILLISECONDS).until(() -> slowCallback.started);
+
+        slowCallback.blockUntilSafeToShutdown();
+        assertThat(System.currentTimeMillis()).isGreaterThanOrEqualTo(start + 2000L);
+    }
+
 
     private static class CountingCallback extends Callback {
         private final boolean throwOnLegitReason;
@@ -65,6 +93,29 @@ public class CallbackTest {
                 if (initException.getMessage().contains("LEGIT REASON")) {
                     throw (RuntimeException) initException;
                 }
+            }
+        }
+    }
+
+    private static class SlowCallback extends Callback {
+        volatile boolean started = false;
+        @Override
+        public void init() {
+            try {
+                started = true;
+                Thread.sleep(1000L);
+            } catch (InterruptedException e) {
+                fail("Interrupted");
+            }
+            throw new RuntimeException();
+        }
+
+        @Override
+        public void cleanup(Exception initException) {
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException e) {
+                fail("Interrupted");
             }
         }
     }
