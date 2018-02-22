@@ -49,42 +49,44 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private final SerializableTransactionManager txManager;
         private final Supplier<Boolean> initializationPrerequisite;
 
-        private volatile boolean stopInitializationCheck = false;
-        private volatile boolean callBackDone = false;
+        private volatile boolean callbackDone = false;
+        private Optional<Throwable> callbackThrow = Optional.empty();
 
         private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor(
                 new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true));
 
-        public InitializeCheckingWrapper(SerializableTransactionManager manager,
+        InitializeCheckingWrapper(SerializableTransactionManager manager,
                 Supplier<Boolean> initializationPrerequisite,
                 Runnable callBack) {
             this.txManager = manager;
             this.initializationPrerequisite = initializationPrerequisite;
-            registerClosingCallback(this::cancelInitializationCheck);
             scheduleInitializationCheckAndCallback(callBack);
         }
 
         @Override
         public SerializableTransactionManager delegate() {
+            assertOpen();
             if (!isInitialized()) {
                 throw new NotInitializedException("TransactionManager");
             }
-
             return txManager;
         }
 
         @Override
         public boolean isInitialized() {
-            return callBackDone && isInitializedInternal();
+            assertOpen();
+            return callbackDone && isInitializedInternal();
         }
 
         @Override
         public LockService getLockService() {
+            assertOpen();
             return txManager.getLockService();
         }
 
         @Override
         public void registerClosingCallback(Runnable closingCallback) {
+            assertOpen();
             txManager.registerClosingCallback(closingCallback);
         }
 
@@ -95,24 +97,23 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             }
         }
 
-        private void cancelInitializationCheck() {
-            stopInitializationCheck = true;
+        private void assertOpen() {
+            if (isClosed.get()) {
+                if (callbackThrow.isPresent()) {
+                    throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
+                            + " Closed due to a callback throw.", callbackThrow.get());
+                }
+                throw new IllegalStateException("Operations cannot be performed on closed TransactionManager.");
+            }
         }
 
         private void scheduleInitializationCheckAndCallback(Runnable callBack) {
             executorService.schedule(() -> {
-                if (stopInitializationCheck) {
+                if (isClosed.get()) {
                     return;
                 }
                 if (isInitializedInternal()) {
-                    try {
-                        callBack.run();
-                    } catch (Throwable e) {
-                        close();
-                        stopInitializationCheck = true;
-                        return;
-                    }
-                    callBackDone = true;
+                    runCallback(callBack);
                 } else {
                     scheduleInitializationCheckAndCallback(callBack);
                 }
@@ -129,6 +130,17 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                     && txManager.getTimestampService().isInitialized()
                     && txManager.getCleaner().isInitialized()
                     && initializationPrerequisite.get();
+        }
+
+        private void runCallback(Runnable callBack) {
+            try {
+                callBack.run();
+            } catch (Throwable e) {
+                callbackThrow = Optional.of(e);
+                close();
+                return;
+            }
+            callbackDone = true;
         }
     }
 

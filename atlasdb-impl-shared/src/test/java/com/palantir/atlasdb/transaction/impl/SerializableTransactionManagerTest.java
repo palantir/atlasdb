@@ -38,6 +38,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 
 public class SerializableTransactionManagerTest {
@@ -52,71 +53,108 @@ public class SerializableTransactionManagerTest {
 
     @Before
     public void setUp() {
-        when(mockKvs.isInitialized()).thenReturn(false);
+        setInitializationStatus(false, false, false, false);
         manager = getManagerWithCallback(true, mockCallback);
-
-        when(mockTimelockService.isInitialized()).thenReturn(true);
-        when(mockCleaner.isInitialized()).thenReturn(true);
-        when(mockInitializer.isInitialized()).thenReturn(true);
     }
 
     @Test
-    public void isInitializedWhenPrerequisitesAreInitialized() {
-        when(mockKvs.isInitialized()).thenReturn(true);
+    public void uninitializedTransactionManagerThrowsNotInitializedException() {
+        assertNotInitializedWithinTwoSeconds();
+        Assertions.assertThatThrownBy(() -> manager.runTaskWithRetry($  -> null))
+                .isInstanceOf(NotInitializedException.class);
+    }
+
+    @Test
+    public void isInitializedAndCallbackHasRunWhenPrerequisitesAreInitialized() {
+        setInitializationStatus(true, true, true, true);
         Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
         verify(mockCallback).run();
     }
 
     @Test
-    public void closingPreventsCallback() {
-        manager.close();
-        when(mockKvs.isInitialized()).thenReturn(true);
+    public void switchBackToUninitializedWhenPrerequisitesSwitchToUninitialized() {
+        setInitializationStatus(true, true, true, true);
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
+
+        setInitializationStatus(false, false, false, false);
         assertNotInitializedWithinTwoSeconds();
+        Assertions.assertThatThrownBy(() -> manager.runTaskWithRetry($  -> null))
+                .isInstanceOf(NotInitializedException.class);
+    }
+
+    @Test
+    public void callbackRunsOnlyOnceAsInitializationStatusChanges() {
+        setInitializationStatus(true, true, true, true);
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
+
+        setInitializationStatus(false, false, false, false);
+        assertNotInitializedWithinTwoSeconds();
+
+        setInitializationStatus(true, true, true, true);
+        assertTrue(manager.isInitialized());
+        verify(mockCallback).run();
+    }
+
+    @Test
+    public void closingPreventsInitializationAndCallback() {
+        manager.close();
+        setInitializationStatus(true, true, true, true);
+        assertClosedWitoutInitializingWithinTwoSeconds();
         verify(mockCallback, never()).run();
     }
 
     @Test
     public void isNotInitializedWhenKvsIsNotInitialized() {
+        setInitializationStatus(false, true, true, true);
         assertNotInitializedWithinTwoSeconds();
         verify(mockCallback, never()).run();
     }
 
     @Test
     public void isNotInitializedWhenTimelockIsNotInitialized() {
-        when(mockTimelockService.isInitialized()).thenReturn(false);
-        when(mockKvs.isInitialized()).thenReturn(true);
+        setInitializationStatus(true, false, true, true);
         assertNotInitializedWithinTwoSeconds();
         verify(mockCallback, never()).run();
     }
 
     @Test
     public void isNotInitializedWhenCleanerIsNotInitialized() {
-        when(mockCleaner.isInitialized()).thenReturn(false);
-        when(mockKvs.isInitialized()).thenReturn(true);
+        setInitializationStatus(true, true, false, true);
         assertNotInitializedWithinTwoSeconds();
         verify(mockCallback, never()).run();
     }
 
     @Test
     public void isNotInitializedWhenInitializerIsNotInitialized() {
-        when(mockInitializer.isInitialized()).thenReturn(false);
-        when(mockKvs.isInitialized()).thenReturn(true);
+        setInitializationStatus(true, true, true, false);
         assertNotInitializedWithinTwoSeconds();
         verify(mockCallback, never()).run();
     }
 
     @Test
     public void callbackThrowingPreventsInitializationAndCloses() {
-        when(mockKvs.isInitialized()).thenReturn(true);
+        setInitializationStatus(true, true, true, true);
         AtomicBoolean invoked = new AtomicBoolean(false);
         Runnable throwingCallback = () -> {
             invoked.set(true);
             throw new RuntimeException();
         };
         manager = getManagerWithCallback(true, throwingCallback);
-        assertNotInitializedWithinTwoSeconds();
-        assertTrue(manager.isClosed.get());
+
+        assertClosedWitoutInitializingWithinTwoSeconds();
         assertTrue(invoked.get());
+    }
+
+    @Test
+    public void exceptionReturnsCauseWhenClosedBecauseOfCallbackException() {
+        setInitializationStatus(true, true, true, true);
+        RuntimeException cause = new RuntimeException("VALID REASON");
+        manager = getManagerWithCallback(true, () -> { throw cause; });
+
+        assertClosedWitoutInitializingWithinTwoSeconds();
+        Assertions.assertThatThrownBy(() -> manager.runTaskWithRetry($  -> null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasCause(cause);
     }
 
     // Edge case: if for some reason we create a SerializableTransactionManager with initializeAsync set to false, we
@@ -127,33 +165,25 @@ public class SerializableTransactionManagerTest {
     // BLAB: Synchronously initialised objects don't care if their constituent parts are initialised asynchronously.
     @Test
     public void synchronouslyInitializedManagerIsInitializedEvenIfNothingElseIs() {
-        when(mockKvs.isInitialized()).thenReturn(false);
-        when(mockTimelockService.isInitialized()).thenReturn(false);
-        when(mockCleaner.isInitialized()).thenReturn(false);
-        when(mockInitializer.isInitialized()).thenReturn(false);
-
-        SerializableTransactionManager theManager = getManagerWithCallback(false, mockCallback);
-
-        assertTrue(theManager.isInitialized());
+        manager = getManagerWithCallback(false, mockCallback);
+        assertTrue(manager.isInitialized());
         verify(mockCallback, never()).run();
     }
 
     @Test
     public void callbackRunsAfterPreconditionsAreMetAndBlocksInitializationUntilDone() {
         BlockingRunnable blockingCallback = new BlockingRunnable();
-        SerializableTransactionManager managerWithBlockingCallback = getManagerWithCallback(true, blockingCallback);
+        manager = getManagerWithCallback(true, blockingCallback);
 
         assertNotInitializedWithinTwoSeconds();
         assertFalse(blockingCallback.wasInvoked());
 
-        when(mockKvs.isInitialized()).thenReturn(true);
-
+        setInitializationStatus(true, true, true, true);
         Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> blockingCallback.wasInvoked());
-        assertFalse(managerWithBlockingCallback.isInitialized());
+        assertFalse(manager.isInitialized());
 
         blockingCallback.stopBlocking();
-
-        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> managerWithBlockingCallback.isInitialized());
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
     }
 
     private SerializableTransactionManager getManagerWithCallback(boolean initializeAsync, Runnable callBack) {
@@ -177,10 +207,25 @@ public class SerializableTransactionManagerTest {
                 callBack);
     }
 
+
+    private void setInitializationStatus(boolean kvs, boolean timelock, boolean cleaner, boolean initializer) {
+        when(mockKvs.isInitialized()).thenReturn(kvs);
+        when(mockTimelockService.isInitialized()).thenReturn(timelock);
+        when(mockCleaner.isInitialized()).thenReturn(cleaner);
+        when(mockInitializer.isInitialized()).thenReturn(initializer);
+    }
+
     private void assertNotInitializedWithinTwoSeconds() {
         Assertions.assertThatThrownBy(() ->
                 Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized()))
                 .isInstanceOf(ConditionTimeoutException.class);
+    }
+
+    private void assertClosedWitoutInitializingWithinTwoSeconds() {
+        Assertions.assertThatThrownBy(() ->
+                Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized()))
+                .isInstanceOf(IllegalStateException.class);
+        assertTrue(manager.isClosed.get());
     }
 
     private static class BlockingRunnable implements Runnable {
