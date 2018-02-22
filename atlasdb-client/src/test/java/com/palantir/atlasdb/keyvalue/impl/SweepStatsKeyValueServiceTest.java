@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -41,7 +42,10 @@ public class SweepStatsKeyValueServiceTest {
     @Before
     public void before() {
         TimestampService timestampService = mock(TimestampService.class);
-        kvs = SweepStatsKeyValueService.create(delegate, timestampService);
+        kvs = SweepStatsKeyValueService.create(delegate, timestampService,
+                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
+                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD
+        );
     }
 
     @Test

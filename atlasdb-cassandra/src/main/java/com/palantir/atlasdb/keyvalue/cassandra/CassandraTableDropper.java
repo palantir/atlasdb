@@ -32,7 +32,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -82,7 +81,7 @@ class CassandraTableDropper {
                                 client.rawClient().system_drop_column_family(
                                         CassandraKeyValueServiceImpl.internalTableName(table));
                                 putMetadataWithoutChangingSettings(table,
-                                        PtBytes.EMPTY_BYTE_ARRAY);
+                                        AtlasDbConstants.EMPTY_TABLE_METADATA);
                             } else {
                                 log.warn("Ignored call to drop a table ({}) that did not exist.",
                                         LoggingArgs.tableRef(table));

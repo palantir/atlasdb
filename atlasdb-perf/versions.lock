@@ -1147,7 +1147,7 @@
             "requested": "1.13"
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1209",
+            "locked": "42.2.1",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
             ]
@@ -2359,7 +2359,7 @@
             "requested": "1.13"
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1209",
+            "locked": "42.2.1",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
             ]

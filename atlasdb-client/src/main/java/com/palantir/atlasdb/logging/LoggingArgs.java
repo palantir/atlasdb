@@ -129,6 +129,14 @@ public final class LoggingArgs {
         }
     }
 
+    public static Arg<String> safeInternalTableName(String internalTableReference) {
+        if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
+            return SafeArg.of("tableRef", internalTableReference);
+        } else {
+            return UnsafeArg.of("unsafeTableRef", internalTableReference);
+        }
+    }
+
     public static Arg<String> tableRef(String argName, TableReference tableReference) {
         return getArg(argName, tableReference.toString(), logArbitrator.isTableReferenceSafe(tableReference));
     }
