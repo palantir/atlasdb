@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
+import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -50,14 +51,14 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private final Supplier<Boolean> initializationPrerequisite;
 
         private volatile boolean callbackDone = false;
-        private Optional<Throwable> callbackThrow = Optional.empty();
+        private Optional<Exception> callbackException = Optional.empty();
 
         private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor(
                 new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true));
 
         InitializeCheckingWrapper(SerializableTransactionManager manager,
                 Supplier<Boolean> initializationPrerequisite,
-                Runnable callBack) {
+                Callback callBack) {
             this.txManager = manager;
             this.initializationPrerequisite = initializationPrerequisite;
             scheduleInitializationCheckAndCallback(callBack);
@@ -99,15 +100,15 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         private void assertOpen() {
             if (isClosed.get()) {
-                if (callbackThrow.isPresent()) {
+                if (callbackException.isPresent()) {
                     throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
-                            + " Closed due to a callback throw.", callbackThrow.get());
+                            + " Closed due to a callback throw.", callbackException.get());
                 }
                 throw new IllegalStateException("Operations cannot be performed on closed TransactionManager.");
             }
         }
 
-        private void scheduleInitializationCheckAndCallback(Runnable callBack) {
+        private void scheduleInitializationCheckAndCallback(Callback callBack) {
             executorService.schedule(() -> {
                 if (isClosed.get()) {
                     return;
@@ -132,11 +133,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                     && initializationPrerequisite.get();
         }
 
-        private void runCallback(Runnable callBack) {
+        private void runCallback(Callback callBack) {
             try {
-                callBack.run();
-            } catch (Throwable e) {
-                callbackThrow = Optional.of(e);
+                callBack.runWithRetry();
+            } catch (Exception e) {
+                log.error("Callback failed and was not able to perform its cleanup task. "
+                        + "Closing the TransactionManager.", e);
+                callbackException = Optional.of(e);
                 close();
                 return;
             }
@@ -170,7 +173,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean initializeAsync,
             Supplier<Long> timestampCacheSize,
             SweepQueueWriter sweepQueueWriter,
-            Runnable callback) {
+            Callback callback) {
         TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
                 timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(

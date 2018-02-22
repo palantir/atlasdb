@@ -41,6 +41,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -179,8 +180,8 @@ public abstract class TransactionManagers {
      * must implement its own error handling to avoid this, if it is desired.
      */
     @Value.Default
-    Runnable asyncInitializationCallback() {
-        return () -> { };
+    Callback asyncInitializationCallback() {
+        return Callback.NO_OP;
     }
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
