@@ -19,10 +19,9 @@ package com.palantir.atlasdb.compact;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface CompactorConfig {
-    boolean inSafeHours();
+interface CompactorConfig {
+    // Enables OracleDB SHRINK COMPACT, which can be blocking
+    boolean shrinkCompactEnabled();
 
-    static CompactorConfig defaultCompactorConfig() {
-        return ImmutableCompactorConfig.builder().inSafeHours(true).build();
-    }
+
 }
