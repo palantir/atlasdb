@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -43,7 +44,8 @@ final class CompactPriorityCalculator {
                 new CompactionHistoryProvider());
     }
 
-    private CompactPriorityCalculator(TransactionManager transactionManager,
+    @VisibleForTesting
+    CompactPriorityCalculator(TransactionManager transactionManager,
             SweepHistoryProvider sweepHistoryProvider,
             CompactionHistoryProvider compactionHistoryProvider) {
         this.transactionManager = transactionManager;
@@ -55,7 +57,8 @@ final class CompactPriorityCalculator {
         return transactionManager.runTaskReadOnly(this::selectTableToCompactInternal);
     }
 
-    private Optional<String> selectTableToCompactInternal(Transaction tx) {
+    @VisibleForTesting
+    Optional<String> selectTableToCompactInternal(Transaction tx) {
         Map<String, Long> tableToLastTimeSwept = sweepHistoryProvider.getHistory(tx);
         Map<String, Long> tableToLastTimeCompacted = compactionHistoryProvider.getHistory(tx);
 
