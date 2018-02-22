@@ -90,7 +90,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         @Override
         public void close() {
-            txManager.close();
+            if (isClosed.compareAndSet(false, true)) {
+                txManager.close();
+            }
         }
 
         private void cancelInitializationCheck() {
@@ -103,9 +105,14 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                     return;
                 }
                 if (isInitializedInternal()) {
-                    callBack.run();
+                    try {
+                        callBack.run();
+                    } catch (Throwable e) {
+                        close();
+                        stopInitializationCheck = true;
+                        return;
+                    }
                     callBackDone = true;
-                    return;
                 } else {
                     scheduleInitializationCheckAndCallback(callBack);
                 }

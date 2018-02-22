@@ -106,7 +106,7 @@ public class SerializableTransactionManagerTest {
     }
 
     @Test
-    public void callbackThrowingPreventsInitialization() {
+    public void callbackThrowingPreventsInitializationAndCloses() {
         when(mockKvs.isInitialized()).thenReturn(true);
         AtomicBoolean invoked = new AtomicBoolean(false);
         Runnable throwingCallback = () -> {
@@ -115,6 +115,7 @@ public class SerializableTransactionManagerTest {
         };
         manager = getManagerWithCallback(true, throwingCallback);
         assertNotInitializedWithinTwoSeconds();
+        assertTrue(manager.isClosed.get());
         assertTrue(invoked.get());
     }
 

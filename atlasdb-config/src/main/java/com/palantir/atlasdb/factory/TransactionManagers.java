@@ -174,8 +174,9 @@ public abstract class TransactionManagers {
      * successfully initialized. The TransactionManager stay uninitialized and continue to throw for all other purposes
      * until the callback returns at which point it will become initialized.
      *
-     * Note that if the callback throws an exception or blocks forever, the TransactionManager will never become
-     * initialized.
+     * Note that if the callback blocks forever, the TransactionManager will never become initialized. If the callback
+     * throws, the TransactionManager will not become initialized and it's close() method will be called. The callback
+     * must implement its own error handling to avoid this, if it is desired.
      */
     @Value.Default
     Runnable asyncInitializationCallback() {
