@@ -176,7 +176,7 @@ public abstract class TransactionManagers {
      * until the callback returns at which point it will become initialized.
      *
      * Note that if the callback blocks forever, the TransactionManager will never become initialized. If the callback
-     * throws, the TransactionManager will not become initialized and it's close() method will be called. The callback
+     * throws, the TransactionManager will not become initialized and its close() method will be called. The callback
      * must implement its own error handling to avoid this, if it is desired.
      */
     @Value.Default

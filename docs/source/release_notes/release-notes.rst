@@ -51,9 +51,8 @@ develop
          - Change
 
     *    - |new|
-         - The ``TransactionManagers`` builder now optionally accepts a ``Runnable`` callback.
+         - The ``TransactionManagers`` builder now optionally accepts a ``Callback`` callback object.
            If ``initializeAsync`` is set to true, then this callback will be run after all the initialization prerequisites for the TransactionManager have been met, and the TransactionManager will start returning true on calls to its ``isInitialized()`` method only once the callback has returned.
-           Note that if the callback throws an exception, it will not be retried and the TransactionManager will not become initialized.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3010>`__)
 
     *    - |fixed|

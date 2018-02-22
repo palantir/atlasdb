@@ -117,7 +117,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                     return;
                 }
                 if (isInitializedInternal()) {
-                    runCallback(callback);
+                    runCallback();
                 } else {
                     scheduleInitializationCheckAndCallback();
                 }
@@ -136,9 +136,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                     && initializationPrerequisite.get();
         }
 
-        private void runCallback(Callback callBack) {
+        private void runCallback() {
             try {
-                callBack.runWithRetry();
+                callback.runWithRetry();
             } catch (Exception e) {
                 log.error("Callback failed and was not able to perform its cleanup task. "
                         + "Closing the TransactionManager.", e);
