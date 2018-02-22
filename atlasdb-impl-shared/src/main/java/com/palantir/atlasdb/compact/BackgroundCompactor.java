@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.SlidingTimeWindowReservoir;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -74,7 +75,8 @@ public final class BackgroundCompactor implements AutoCloseable {
         return Optional.of(backgroundCompactor);
     }
 
-    private BackgroundCompactor(TransactionManager transactionManager,
+    @VisibleForTesting
+    BackgroundCompactor(TransactionManager transactionManager,
             KeyValueService keyValueService,
             LockService lockService,
             Supplier<Boolean> inSafeHours,
@@ -134,7 +136,8 @@ public final class BackgroundCompactor implements AutoCloseable {
         Thread.sleep(outcome.getSleepTime());
     }
 
-    private CompactionOutcome grabLockAndRunOnce(SingleLockService compactorLock)
+    @VisibleForTesting
+    CompactionOutcome grabLockAndRunOnce(SingleLockService compactorLock)
             throws InterruptedException {
         compactorLock.lockOrRefresh();
         if (!compactorLock.haveLocks()) {
@@ -193,7 +196,7 @@ public final class BackgroundCompactor implements AutoCloseable {
                 inSafeHours.get());
     }
 
-    private enum CompactionOutcome {
+    enum CompactionOutcome {
         SUCCESS(0),
         NOTHING_TO_COMPACT(SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS),
         COMPACTED_BUT_NOT_REGISTERED(0),

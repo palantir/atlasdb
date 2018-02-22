@@ -31,7 +31,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Arg;
 
-final class CompactPriorityCalculator {
+class CompactPriorityCalculator {
     private static final Logger log = LoggerFactory.getLogger(CompactPriorityCalculator.class);
 
     private final TransactionManager transactionManager;
