@@ -28,7 +28,7 @@ public abstract class Callback {
     public abstract void init();
     public abstract void cleanup(Exception initException);
 
-    public synchronized void runWithRetry() {
+    public void runWithRetry() {
         while (!shutdownSignal) {
             try {
                 lock.lock();
