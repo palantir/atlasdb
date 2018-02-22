@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.compact;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,10 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
-import com.palantir.atlasdb.schema.generated.CompactTableFactory;
-import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
-import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Arg;
@@ -39,13 +34,21 @@ final class CompactPriorityCalculator {
     private static final Logger log = LoggerFactory.getLogger(CompactPriorityCalculator.class);
 
     private final TransactionManager transactionManager;
+    private final CompactionHistoryProvider compactionHistoryProvider;
+    private final SweepHistoryProvider sweepHistoryProvider;
 
     static CompactPriorityCalculator create(TransactionManager transactionManager) {
-        return new CompactPriorityCalculator(transactionManager);
+        return new CompactPriorityCalculator(transactionManager,
+                new SweepHistoryProvider(),
+                new CompactionHistoryProvider());
     }
 
-    private CompactPriorityCalculator(TransactionManager transactionManager) {
+    private CompactPriorityCalculator(TransactionManager transactionManager,
+            SweepHistoryProvider sweepHistoryProvider,
+            CompactionHistoryProvider compactionHistoryProvider) {
         this.transactionManager = transactionManager;
+        this.sweepHistoryProvider = sweepHistoryProvider;
+        this.compactionHistoryProvider = compactionHistoryProvider;
     }
 
     Optional<String> selectTableToCompact() {
@@ -53,9 +56,8 @@ final class CompactPriorityCalculator {
     }
 
     private Optional<String> selectTableToCompactInternal(Transaction tx) {
-        Map<String, Long> tableToLastTimeSwept = getLatestSweepTimes(tx);
-
-        Map<String, Long> tableToLastTimeCompacted = getLatestCompactionTimes(tx);
+        Map<String, Long> tableToLastTimeSwept = sweepHistoryProvider.getHistory(tx);
+        Map<String, Long> tableToLastTimeCompacted = compactionHistoryProvider.getHistory(tx);
 
         List<String> uncompactedTables = tableToLastTimeSwept.keySet().stream()
                 .filter(table -> !tableToLastTimeCompacted.keySet().contains(table))
@@ -87,32 +89,6 @@ final class CompactPriorityCalculator {
         return Optional.ofNullable(tableToCompact);
     }
 
-    private Map<String, Long> getLatestCompactionTimes(Transaction tx) {
-        Map<String, Long> tableToLastTimeCompacted = new HashMap<>();
-        CompactMetadataTable compactMetadataTable = CompactTableFactory.of().getCompactMetadataTable(tx);
-        compactMetadataTable.getAllRowsUnordered(SweepPriorityTable.getColumnSelection(
-                SweepPriorityTable.SweepPriorityNamedColumn.LAST_SWEEP_TIME))
-                .forEach(row -> {
-                    Long lastCompactTime = row.getLastCompactTime();
-                    String tableName = row.getRowName().getFullTableName();
-                    tableToLastTimeCompacted.put(tableName, lastCompactTime);
-                });
-        return tableToLastTimeCompacted;
-    }
-
-    private Map<String, Long> getLatestSweepTimes(Transaction tx) {
-        Map<String, Long> tableToLastTimeSwept = new HashMap<>();
-        SweepPriorityTable sweepPriorityTable = SweepTableFactory.of().getSweepPriorityTable(tx);
-        sweepPriorityTable.getAllRowsUnordered(SweepPriorityTable.getColumnSelection(
-                SweepPriorityTable.SweepPriorityNamedColumn.LAST_SWEEP_TIME))
-                .forEach(row -> {
-                    Long lastSweepTime = row.getLastSweepTime();
-                    String tableName = row.getRowName().getFullTableName();
-                    tableToLastTimeSwept.put(tableName, lastSweepTime);
-                });
-        return tableToLastTimeSwept;
-    }
-
     private void logCompactionChoice(String tableToCompact, long maxSweptAfterCompact) {
         if (maxSweptAfterCompact > 0) {
             log.info("Choosing to compact {}, because it was swept {} milliseconds after the last compaction",
@@ -127,4 +103,5 @@ final class CompactPriorityCalculator {
     private Arg<String> safeTableRef(String fullyQualifiedName) {
         return LoggingArgs.safeInternalTableName(fullyQualifiedName);
     }
+
 }
