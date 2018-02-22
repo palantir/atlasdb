@@ -127,4 +127,16 @@ public class BackgroundCompactorTest {
         verifyNoMoreInteractions(kvs);
     }
 
+    @Test
+    public void sanityTestMetrics() {
+        CompactionOutcomeMetrics metrics = new CompactionOutcomeMetrics();
+
+        metrics.registerOccurrenceOf(BackgroundCompactor.CompactionOutcome.FAILED_TO_COMPACT);
+        metrics.registerOccurrenceOf(BackgroundCompactor.CompactionOutcome.SUCCESS);
+        metrics.registerOccurrenceOf(BackgroundCompactor.CompactionOutcome.SUCCESS);
+
+        assertThat(metrics.getOutcomeCount(BackgroundCompactor.CompactionOutcome.SUCCESS)).isEqualTo(2L);
+        assertThat(metrics.getOutcomeCount(BackgroundCompactor.CompactionOutcome.NOTHING_TO_COMPACT)).isEqualTo(0L);
+        assertThat(metrics.getOutcomeCount(BackgroundCompactor.CompactionOutcome.FAILED_TO_COMPACT)).isEqualTo(1L);
+    }
 }

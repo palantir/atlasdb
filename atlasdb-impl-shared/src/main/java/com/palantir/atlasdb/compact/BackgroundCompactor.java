@@ -16,25 +16,20 @@
 
 package com.palantir.atlasdb.compact;
 
-import java.util.Arrays;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
 import com.palantir.atlasdb.schema.generated.CompactTableFactory;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
@@ -215,36 +210,4 @@ public final class BackgroundCompactor implements AutoCloseable {
         }
     }
 
-    private class CompactionOutcomeMetrics {
-        private final MetricsManager metricsManager = new MetricsManager();
-        private final SlidingTimeWindowReservoir reservoir;
-
-        private boolean shutdown;
-
-        CompactionOutcomeMetrics() {
-            Arrays.stream(CompactionOutcome.values()).forEach(outcome ->
-                    metricsManager.registerOrAddToMetric(BackgroundCompactor.class, "outcome",
-                            () -> getOutcomeCount(outcome), ImmutableMap.of("status", outcome.name())));
-            reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
-        }
-
-        private Long getOutcomeCount(CompactionOutcome outcome) {
-            if (outcome == CompactionOutcome.SHUTDOWN) {
-                return shutdown ? 1L : 0L;
-            }
-
-            return Arrays.stream(reservoir.getSnapshot().getValues())
-                    .filter(l -> l == outcome.ordinal())
-                    .count();
-        }
-
-        void registerOccurrenceOf(CompactionOutcome outcome) {
-            if (outcome == CompactionOutcome.SHUTDOWN) {
-                shutdown = true;
-                return;
-            }
-
-            reservoir.update(outcome.ordinal());
-        }
-    }
 }
