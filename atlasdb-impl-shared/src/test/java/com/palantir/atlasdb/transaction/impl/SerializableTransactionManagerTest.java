@@ -257,7 +257,6 @@ public class SerializableTransactionManagerTest {
     private static class ClusterAvailabilityStatusBlockingCallback extends Callback<TransactionManager> {
         private volatile boolean invoked = false;
         private volatile boolean block = true;
-        private volatile int counter = 0;
 
         boolean wasInvoked() {
             return invoked;
@@ -272,7 +271,7 @@ public class SerializableTransactionManagerTest {
             invoked = true;
             transactionManager.getKeyValueServiceStatus();
             if (block) {
-                throw new RuntimeException(Integer.toString(counter));
+                throw new RuntimeException();
             }
         }
 
