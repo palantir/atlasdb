@@ -32,6 +32,7 @@ import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -51,7 +52,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
         private final SerializableTransactionManager txManager;
         private final Supplier<Boolean> initializationPrerequisite;
-        private final Callback callback;
+        private final Callback<TransactionManager> callback;
 
         private State status = State.INITIALIZING;
         private Exception callbackException = null;
@@ -61,7 +62,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         InitializeCheckingWrapper(SerializableTransactionManager manager,
                 Supplier<Boolean> initializationPrerequisite,
-                Callback callBack) {
+                Callback<TransactionManager> callBack) {
             this.txManager = manager;
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callBack;
@@ -117,7 +118,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 throw new IllegalStateException("Operations cannot be performed on closed TransactionManager.");
             }
             if (status == State.CLOSED_BY_CALLBACK_FAILURE) {
-                    throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
+                throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
                             + " Closed due to a callback throw.", callbackException);
             }
         }
@@ -149,7 +150,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         private void runCallback() {
             try {
-                callback.runWithRetry();
+                callback.runWithRetry(txManager);
                 checkAndSetStatus(ImmutableSet.of(State.INITIALIZING), State.READY);
             } catch (Exception e) {
                 log.error("Callback failed and was not able to perform its cleanup task. "
@@ -205,7 +206,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean initializeAsync,
             Supplier<Long> timestampCacheSize,
             SweepQueueWriter sweepQueueWriter,
-            Callback callback) {
+            Callback<TransactionManager> callback) {
         TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
                 timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
@@ -226,7 +227,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter);
 
         if (!initializeAsync) {
-            callback.runWithRetry();
+            callback.runWithRetry(serializableTransactionManager);
         }
 
         return initializeAsync

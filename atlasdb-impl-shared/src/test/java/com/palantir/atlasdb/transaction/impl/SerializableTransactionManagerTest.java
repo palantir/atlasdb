@@ -19,6 +19,8 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -37,8 +39,10 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 
@@ -48,7 +52,7 @@ public class SerializableTransactionManagerTest {
     private TimelockService mockTimelockService = mock(TimelockService.class);
     private Cleaner mockCleaner = mock(Cleaner.class);
     private AsyncInitializer mockInitializer = mock(AsyncInitializer.class);
-    private Callback mockCallback = mock(Callback.class);
+    private Callback<TransactionManager> mockCallback = mock(Callback.class);
 
     private SerializableTransactionManager manager;
 
@@ -56,6 +60,7 @@ public class SerializableTransactionManagerTest {
     public void setUp() {
         nothingInitialized();
         manager = getManagerWithCallback(true, mockCallback);
+        when(mockKvs.getClusterAvailabilityStatus()).thenReturn(ClusterAvailabilityStatus.ALL_AVAILABLE);
     }
 
     @Test
@@ -69,7 +74,7 @@ public class SerializableTransactionManagerTest {
     public void isInitializedAndCallbackHasRunWhenPrerequisitesAreInitialized() {
         everythingInitialized();
         Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
-        verify(mockCallback).runWithRetry();
+        verify(mockCallback).runWithRetry(any(SerializableTransactionManager.class));
     }
 
     @Test
@@ -93,7 +98,7 @@ public class SerializableTransactionManagerTest {
 
         everythingInitialized();
         assertTrue(manager.isInitialized());
-        verify(mockCallback).runWithRetry();
+        verify(mockCallback).runWithRetry(any(SerializableTransactionManager.class));
     }
 
     @Test
@@ -101,7 +106,7 @@ public class SerializableTransactionManagerTest {
         manager.close();
         everythingInitialized();
         assertNotInitializedWithinTwoSecondsBecauseClosed();
-        verify(mockCallback, never()).runWithRetry();
+        verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
         assertTrue(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByClose());
     }
 
@@ -109,34 +114,34 @@ public class SerializableTransactionManagerTest {
     public void isNotInitializedWhenKvsIsNotInitialized() {
         setInitializationStatus(false, true, true, true);
         assertNotInitializedWithinTwoSeconds();
-        verify(mockCallback, never()).runWithRetry();
+        verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
     }
 
     @Test
     public void isNotInitializedWhenTimelockIsNotInitialized() {
         setInitializationStatus(true, false, true, true);
         assertNotInitializedWithinTwoSeconds();
-        verify(mockCallback, never()).runWithRetry();
+        verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
     }
 
     @Test
     public void isNotInitializedWhenCleanerIsNotInitialized() {
         setInitializationStatus(true, true, false, true);
         assertNotInitializedWithinTwoSeconds();
-        verify(mockCallback, never()).runWithRetry();
+        verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
     }
 
     @Test
     public void isNotInitializedWhenInitializerIsNotInitialized() {
         setInitializationStatus(true, true, true, false);
         assertNotInitializedWithinTwoSeconds();
-        verify(mockCallback, never()).runWithRetry();
+        verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
     }
 
     @Test
     public void exceptionInCleanupClosesTransactionManager() {
         RuntimeException cause = new RuntimeException("VALID REASON");
-        doThrow(cause).when(mockCallback).runWithRetry();
+        doThrow(cause).when(mockCallback).runWithRetry(any(SerializableTransactionManager.class));
         everythingInitialized();
 
         assertNotInitializedWithinTwoSecondsBecauseClosed();
@@ -156,12 +161,12 @@ public class SerializableTransactionManagerTest {
     public void synchronouslyInitializedManagerIsInitializedEvenIfNothingElseIs() {
         manager = getManagerWithCallback(false, mockCallback);
         assertTrue(manager.isInitialized());
-        verify(mockCallback, never()).init();
+        verify(mockCallback).runWithRetry(manager);
     }
 
     @Test
-    public void callbackRunsAfterPreconditionsAreMetAndBlocksInitializationUntilDone() {
-        BlockingCallback blockingCallback = new BlockingCallback();
+    public void callbackRunsAfterPreconditionsAreMet() {
+        ClusterAvailabilityStatusBlockingCallback blockingCallback = new ClusterAvailabilityStatusBlockingCallback();
         manager = getManagerWithCallback(true, blockingCallback);
 
         assertNotInitializedWithinTwoSeconds();
@@ -169,13 +174,39 @@ public class SerializableTransactionManagerTest {
 
         everythingInitialized();
         Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> blockingCallback.wasInvoked());
+    }
+
+    @Test
+    public void callbackBlocksInitializationUntilDone() {
+        everythingInitialized();
+        ClusterAvailabilityStatusBlockingCallback blockingCallback = new ClusterAvailabilityStatusBlockingCallback();
+        manager = getManagerWithCallback(true, blockingCallback);
+
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> blockingCallback.wasInvoked());
         assertFalse(manager.isInitialized());
 
         blockingCallback.stopBlocking();
         Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
     }
 
-    private SerializableTransactionManager getManagerWithCallback(boolean initializeAsync, Callback callBack) {
+    @Test
+    public void callbackCanCallTmMethodsEvenThoughTmStillThrows() {
+        everythingInitialized();
+        ClusterAvailabilityStatusBlockingCallback blockingCallback = new ClusterAvailabilityStatusBlockingCallback();
+        manager = getManagerWithCallback(true, blockingCallback);
+
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> blockingCallback.wasInvoked());
+        verify(mockKvs, atLeast(1)).getClusterAvailabilityStatus();
+        Assertions.assertThatThrownBy(() -> manager.getKeyValueServiceStatus())
+                .isInstanceOf(NotInitializedException.class);
+
+        blockingCallback.stopBlocking();
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
+        manager.getKeyValueServiceStatus();
+    }
+
+    private SerializableTransactionManager getManagerWithCallback(boolean initializeAsync,
+            Callback<TransactionManager> callBack) {
         return SerializableTransactionManager.create(
                 mockKvs,
                 mockTimelockService,
@@ -223,9 +254,10 @@ public class SerializableTransactionManagerTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    private static class BlockingCallback extends Callback {
+    private static class ClusterAvailabilityStatusBlockingCallback extends Callback<TransactionManager> {
         private volatile boolean invoked = false;
         private volatile boolean block = true;
+        private volatile int counter = 0;
 
         boolean wasInvoked() {
             return invoked;
@@ -236,15 +268,16 @@ public class SerializableTransactionManagerTest {
         }
 
         @Override
-        public void init() {
+        public void init(TransactionManager transactionManager) {
             invoked = true;
+            transactionManager.getKeyValueServiceStatus();
             if (block) {
-                throw new RuntimeException();
+                throw new RuntimeException(Integer.toString(counter));
             }
         }
 
         @Override
-        public void cleanup(Exception initException) {
+        public void cleanup(TransactionManager transactionManager, Exception initException) {
             try {
                 Thread.sleep(500L);
             } catch (InterruptedException e) {

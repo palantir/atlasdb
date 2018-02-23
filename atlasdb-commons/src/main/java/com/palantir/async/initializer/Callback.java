@@ -19,37 +19,35 @@ package com.palantir.async.initializer;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public abstract class Callback {
-    public static final Callback NO_OP = new NoOp();
-
+public abstract class Callback<R> {
     private volatile boolean shutdownSignal = false;
     private Lock lock = new ReentrantLock();
 
     /**
      * The method to be executed. If init() returns, the callback is considered to be successful.
      */
-    public abstract void init();
+    public abstract void init(R resource);
 
     /**
      * Cleanup to be done if init() throws, before init() can be attempted again.
      * @param initException Exception thrown by init()
      */
-    public abstract void cleanup(Exception initException);
+    public abstract void cleanup(R resource, Exception initException);
 
     /**
      * Keep retrying init(), performing any necessary cleanup, until it succeeds unless cleanup() throws or a shutdown
      * signal has been sent.
      */
-    public void runWithRetry() {
+    public void runWithRetry(R resource) {
         while (!shutdownSignal) {
             try {
                 lock.lock();
                 if (!shutdownSignal) {
-                    init();
+                    init(resource);
                 }
                 return;
             } catch (Exception e) {
-                cleanup(e);
+                cleanup(resource, e);
             } finally {
                 lock.unlock();
             }
@@ -65,13 +63,13 @@ public abstract class Callback {
         lock.unlock();
     }
 
-    private static class NoOp extends Callback {
+    public static class NoOp<R> extends Callback<R> {
         @Override
-        public void init() {
+        public void init(R resource) {
         }
 
         @Override
-        public void cleanup(Exception initException) {
+        public void cleanup(R resource, Exception initException) {
         }
     }
 }

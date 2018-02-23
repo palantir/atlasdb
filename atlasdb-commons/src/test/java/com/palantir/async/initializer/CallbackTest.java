@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.awaitility.Awaitility;
 import org.junit.Test;
@@ -31,19 +33,22 @@ public class CallbackTest {
     @Test
     public void runWithRetryStopsRetryingOnSuccess() {
         CountingCallback countingCallback = new CountingCallback(false);
-        countingCallback.runWithRetry();
+        AtomicLong counter = new AtomicLong(0);
 
-        assertThat(countingCallback.initCounter).isEqualTo(10L);
+        countingCallback.runWithRetry(counter);
+
+        assertThat(counter.get()).isEqualTo(10L);
     }
 
     @Test
     public void cleanupExceptionGetsPropagatedAndStopsRetrying() {
         CountingCallback countingCallback = new CountingCallback(true);
+        AtomicLong counter = new AtomicLong(0);
 
-        assertThatThrownBy(() -> countingCallback.runWithRetry())
+        assertThatThrownBy(() -> countingCallback.runWithRetry(counter))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("LEGIT REASON");
-        assertThat(countingCallback.initCounter).isEqualTo(5L);
+        assertThat(counter.get()).isEqualTo(5L);
     }
 
     @Test
@@ -57,19 +62,19 @@ public class CallbackTest {
 
     @Test
     public void noOpCallbackDoesNotBlockOnRun() {
-        Callback noOp = Callback.NO_OP;
+        Callback<Object> noOp = new Callback.NoOp<>();
 
         long start = System.currentTimeMillis();
-        noOp.runWithRetry();
+        noOp.runWithRetry(new Object());
         assertThat(System.currentTimeMillis()).isLessThanOrEqualTo(start + 100L);
     }
 
     @Test
     public void noOpCallbackDoesNotBlockClosing() {
-        Callback noOp = Callback.NO_OP;
+        Callback<Object> noOp = new Callback.NoOp<>();
         long start = System.currentTimeMillis();
 
-        PTExecutors.newSingleThreadScheduledExecutor().submit(noOp::runWithRetry);
+        PTExecutors.newSingleThreadScheduledExecutor().submit(() -> noOp.runWithRetry(new Object()));
 
         noOp.blockUntilSafeToShutdown();
         assertThat(System.currentTimeMillis()).isLessThanOrEqualTo(start + 500L);
@@ -79,36 +84,36 @@ public class CallbackTest {
     public void shutdownDoesBlocksWhenTaskIsRunningUntilCleanupIsDone() {
         SlowCallback slowCallback = new SlowCallback();
         long start = System.currentTimeMillis();
+        AtomicBoolean started = new AtomicBoolean(false);
 
-        PTExecutors.newSingleThreadScheduledExecutor().submit(slowCallback::runWithRetry);
-        Awaitility.waitAtMost(200L, TimeUnit.MILLISECONDS).until(() -> slowCallback.started);
+        PTExecutors.newSingleThreadScheduledExecutor().submit(() -> slowCallback.runWithRetry(started));
+        Awaitility.waitAtMost(200L, TimeUnit.MILLISECONDS).until(() -> started.get());
 
         slowCallback.blockUntilSafeToShutdown();
         assertThat(System.currentTimeMillis()).isGreaterThanOrEqualTo(start + 2000L);
     }
 
 
-    private static class CountingCallback extends Callback {
+    private static class CountingCallback extends Callback<AtomicLong> {
         private final boolean throwOnLegitReason;
-        public volatile long initCounter = 0L;
 
         CountingCallback(boolean throwOnLegitReason) {
             this.throwOnLegitReason = throwOnLegitReason;
         }
 
         @Override
-        public void init() {
-            initCounter++;
-            if (initCounter < 5L) {
+        public void init(AtomicLong counter) {
+            counter.incrementAndGet();
+            if (counter.get() < 5L) {
                 throw new RuntimeException("RANDOM REASON");
             }
-            if (initCounter < 10L) {
+            if (counter.get() < 10L) {
                 throw new RuntimeException("LEGIT REASON");
             }
         }
 
         @Override
-        public void cleanup(Exception initException) {
+        public void cleanup(AtomicLong counter, Exception initException) {
             if (throwOnLegitReason) {
                 if (initException.getMessage().contains("LEGIT REASON")) {
                     throw (RuntimeException) initException;
@@ -117,13 +122,12 @@ public class CallbackTest {
         }
     }
 
-    private static class SlowCallback extends Callback {
-        volatile boolean started = false;
+    private static class SlowCallback extends Callback<AtomicBoolean> {
 
         @Override
-        public void init() {
+        public void init(AtomicBoolean started) {
             try {
-                started = true;
+                started.set(true);
                 Thread.sleep(1000L);
             } catch (InterruptedException e) {
                 fail("Interrupted");
@@ -132,7 +136,7 @@ public class CallbackTest {
         }
 
         @Override
-        public void cleanup(Exception initException) {
+        public void cleanup(AtomicBoolean started, Exception initException) {
             try {
                 Thread.sleep(1000L);
             } catch (InterruptedException e) {
