@@ -56,6 +56,26 @@ public class CallbackTest {
     }
 
     @Test
+    public void noOpCallbackDoesNotBlockOnRun() {
+        Callback noOp = Callback.NO_OP;
+
+        long start = System.currentTimeMillis();
+        noOp.runWithRetry();
+        assertThat(System.currentTimeMillis()).isLessThanOrEqualTo(start + 100L);
+    }
+
+    @Test
+    public void noOpCallbackDoesNotBlockClosing() {
+        Callback noOp = Callback.NO_OP;
+        long start = System.currentTimeMillis();
+
+        PTExecutors.newSingleThreadScheduledExecutor().submit(noOp::runWithRetry);
+
+        noOp.blockUntilSafeToShutdown();
+        assertThat(System.currentTimeMillis()).isLessThanOrEqualTo(start + 500L);
+    }
+
+    @Test
     public void shutdownDoesBlocksWhenTaskIsRunningUntilCleanupIsDone() {
         SlowCallback slowCallback = new SlowCallback();
         long start = System.currentTimeMillis();
@@ -99,6 +119,7 @@ public class CallbackTest {
 
     private static class SlowCallback extends Callback {
         volatile boolean started = false;
+
         @Override
         public void init() {
             try {

@@ -51,6 +51,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private final Supplier<Boolean> initializationPrerequisite;
         private final Callback callback;
 
+        private State status = State.INITIALIZING;
         private volatile boolean callbackDone = false;
         private Optional<Exception> callbackException = Optional.empty();
 
@@ -97,6 +98,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         public void close() {
             if (isClosed.compareAndSet(false, true)) {
                 callback.blockUntilSafeToShutdown();
+                executorService.shutdown();
                 txManager.close();
             }
         }
@@ -139,14 +141,17 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private void runCallback() {
             try {
                 callback.runWithRetry();
+                callbackDone = true;
             } catch (Exception e) {
                 log.error("Callback failed and was not able to perform its cleanup task. "
                         + "Closing the TransactionManager.", e);
                 callbackException = Optional.of(e);
                 close();
-                return;
             }
-            callbackDone = true;
+        }
+
+        private enum State {
+            INITIALIZING, READY, CLOSED, CLOSED_BY_CALLBACK_FAILURE
         }
     }
 
