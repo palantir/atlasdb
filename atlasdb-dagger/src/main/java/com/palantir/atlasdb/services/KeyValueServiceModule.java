@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
+import com.palantir.atlasdb.schema.CompactSchema;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -69,6 +70,7 @@ public class KeyValueServiceModule {
         ImmutableSet<Schema> schemas =
                 ImmutableSet.<Schema>builder()
                         .add(SweepSchema.INSTANCE.getLatestSchema())
+                        .add(CompactSchema.INSTANCE.getLatestSchema())
                         .addAll(config.schemas()).build();
         for (Schema schema : schemas) {
             Schemas.createTablesAndIndexes(schema, kvs);
