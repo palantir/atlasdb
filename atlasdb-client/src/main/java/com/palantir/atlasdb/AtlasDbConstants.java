@@ -107,7 +107,7 @@ public final class AtlasDbConstants {
     public static final long DEFAULT_TRANSACTION_READ_TIMEOUT = 60 * 60 * 1000; // one hour
     public static final long DEFAULT_PUNCH_INTERVAL_MILLIS = 60 * 1000; // one minute
 
-    public static final boolean DEFAULT_BACKGROUND_SCRUB_AGGRESSIVELY = false;
+    public static final boolean DEFAULT_BACKGROUND_SCRUB_AGGRESSIVELY = true;
     public static final int DEFAULT_BACKGROUND_SCRUB_THREADS = 8;
     public static final int DEFAULT_BACKGROUND_SCRUB_READ_THREADS = 8;
     public static final long DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS = 3600000L;
