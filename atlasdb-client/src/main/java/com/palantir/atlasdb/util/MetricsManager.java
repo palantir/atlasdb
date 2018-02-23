@@ -86,25 +86,6 @@ public class MetricsManager {
         registerMetric(clazz, metricName, (Metric) gauge);
     }
 
-    public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
-        Map<String, String> tag = getTableNameTagFor(tableRef);
-        registerMetric(clazz, metricName, gauge, tag);
-    }
-
-    /**
-     * Add a new gauge to a metric (which may already exist)
-     *
-     * This will throw {@link IllegalArgumentException} if a non-Gauge metric has already been added.
-     */
-    public void registerOrAddToMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
-        MetricName metricToAdd = MetricName.builder()
-                .safeName(MetricRegistry.name(clazz, metricName))
-                .safeTags(tag)
-                .build();
-
-        taggedMetricRegistry.gauge(metricToAdd, gauge);
-    }
-
     /**
      * Add a new gauge metric of the given name.
      *
@@ -123,6 +104,30 @@ public class MetricsManager {
             taggedMetricRegistry.remove(metricToAdd);
         }
         taggedMetricRegistry.gauge(metricToAdd, gauge);
+    }
+
+    public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
+        Map<String, String> tag = getTableNameTagFor(tableRef);
+        registerMetric(clazz, metricName, gauge, tag);
+    }
+
+    /**
+     * Add a new gauge to a metric (which may already exist).
+     */
+    public void registerOrAddToMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+        MetricName metricToAdd = MetricName.builder()
+                .safeName(MetricRegistry.name(clazz, metricName))
+                .safeTags(tag)
+                .build();
+
+        try {
+            taggedMetricRegistry.gauge(metricToAdd, gauge);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Tried to add a gauge to a metric name {} that has non-gauge metrics associated with it."
+                    + " This indicates a product bug.",
+                    SafeArg.of("metricName", metricName),
+                    ex);
+        }
     }
 
     @VisibleForTesting
