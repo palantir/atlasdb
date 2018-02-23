@@ -16,25 +16,18 @@
 
 package com.palantir.atlasdb.compact;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
 import com.palantir.atlasdb.schema.generated.CompactTableFactory;
-import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
-import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.RemoteLockService;
@@ -43,6 +36,7 @@ import com.palantir.lock.SingleLockService;
 public final class BackgroundCompactor implements AutoCloseable {
     private static final int SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS = 5000;
     private static final int SLEEP_TIME_WHEN_NO_LOCK_MILLIS = 60 * 1000;
+    private static final int SLEEP_TIME_AFTER_FAILURE_MILLIS = 60 * 1000;
 
     private static final Logger log = LoggerFactory.getLogger(BackgroundCompactor.class);
 
@@ -50,6 +44,9 @@ public final class BackgroundCompactor implements AutoCloseable {
     private final KeyValueService keyValueService;
     private final RemoteLockService lockService;
     private final Supplier<Boolean> inSafeHours;
+    private final CompactPriorityCalculator compactPriorityCalculator;
+
+    private final CompactionOutcomeMetrics compactionOutcomeMetrics = new CompactionOutcomeMetrics();
 
     private Thread daemon;
 
@@ -61,27 +58,33 @@ public final class BackgroundCompactor implements AutoCloseable {
             return Optional.empty();
         }
 
+        CompactPriorityCalculator compactPriorityCalculator = CompactPriorityCalculator.create(transactionManager);
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
                 keyValueService,
                 lockService,
-                inSafeHours);
+                inSafeHours,
+                compactPriorityCalculator);
         backgroundCompactor.runInBackground();
 
         return Optional.of(backgroundCompactor);
     }
 
-    private BackgroundCompactor(TransactionManager transactionManager,
+    @VisibleForTesting
+    BackgroundCompactor(TransactionManager transactionManager,
             KeyValueService keyValueService,
             RemoteLockService lockService,
-            Supplier<Boolean> inSafeHours) {
+            Supplier<Boolean> inSafeHours,
+            CompactPriorityCalculator compactPriorityCalculator) {
         this.transactionManager = transactionManager;
         this.keyValueService = keyValueService;
         this.lockService = lockService;
         this.inSafeHours = inSafeHours;
+        this.compactPriorityCalculator = compactPriorityCalculator;
     }
 
     @Override
     public void close() {
+        compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SHUTDOWN);
         log.info("Closing BackgroundCompactor");
         daemon.interrupt();
         try {
@@ -111,32 +114,59 @@ public final class BackgroundCompactor implements AutoCloseable {
                     return;
                 }
 
-                compactorLock.lockOrRefresh();
-                if (compactorLock.haveLocks()) {
-                    Optional<String> tableToCompactOptional = transactionManager.runTaskReadOnly(
-                            this::selectTableToCompact);
-                    if (!tableToCompactOptional.isPresent()) {
-                        log.info("No table to compact");
-                        Thread.sleep(SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS);
-                        continue;
-                    }
-
-                    String tableToCompact = tableToCompactOptional.get();
-
-                    log.info("Compacting table {}", tableToCompact);
-                    compactTable(tableToCompact);
-                    log.info("Compacted table {}", tableToCompact);
-
-                    registerCompactedTable(tableToCompact);
-                } else {
-                    log.info("Failed to get the compaction lock. Probably, another host is running compaction.");
-                    Thread.sleep(SLEEP_TIME_WHEN_NO_LOCK_MILLIS);
-                    continue;
-                }
+                runOnceRecordingOutcome(compactorLock);
             }
         } catch (InterruptedException e) {
-            log.warn("Shutting down background compactor due to InterruptedException", e);
+            log.warn("Shutting down background compactor due to InterruptedException. "
+                    + "Please restart the service to resume compactions", e);
+            compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SHUTDOWN);
             Thread.currentThread().interrupt();
+        }
+    }
+
+    private void runOnceRecordingOutcome(SingleLockService compactorLock) throws InterruptedException {
+        CompactionOutcome outcome = grabLockAndRunOnce(compactorLock);
+        compactionOutcomeMetrics.registerOccurrenceOf(outcome);
+        Thread.sleep(outcome.getSleepTime());
+    }
+
+    @VisibleForTesting
+    CompactionOutcome grabLockAndRunOnce(SingleLockService compactorLock)
+            throws InterruptedException {
+        compactorLock.lockOrRefresh();
+        if (!compactorLock.haveLocks()) {
+            log.info("Failed to get the compaction lock. Probably, another host is running compaction.");
+            return CompactionOutcome.UNABLE_TO_ACQUIRE_LOCKS;
+        }
+
+        Optional<String> tableToCompactOptional = compactPriorityCalculator.selectTableToCompact();
+        if (!tableToCompactOptional.isPresent()) {
+            log.info("No table to compact");
+            return CompactionOutcome.NOTHING_TO_COMPACT;
+        }
+
+        String tableToCompact = tableToCompactOptional.get();
+
+        try {
+            log.info("Compacting table {}", tableToCompact);
+            compactTable(tableToCompact);
+            log.info("Compacted table {}", tableToCompact);
+        } catch (Exception e) {
+            log.warn("Encountered exception when compacting table {}",
+                    tableToCompact,
+                    e);
+            return CompactionOutcome.FAILED_TO_COMPACT;
+        }
+
+        try {
+            registerCompactedTable(tableToCompact);
+            return CompactionOutcome.SUCCESS;
+        } catch (Exception e) {
+            log.info("Successfully compacted table {}, but failed to register this."
+                    + "Nothing bad will happen; we'll probably do a no-op compaction of this very shortly.",
+                    tableToCompact,
+                    e);
+            return CompactionOutcome.COMPACTED_BUT_NOT_REGISTERED;
         }
     }
 
@@ -160,50 +190,23 @@ public final class BackgroundCompactor implements AutoCloseable {
                 inSafeHours.get());
     }
 
-    private Optional<String> selectTableToCompact(Transaction tx) {
-        Map<String, Long> tableToLastTimeSwept = new HashMap<>();
-        SweepPriorityTable sweepPriorityTable = SweepTableFactory.of().getSweepPriorityTable(tx);
-        sweepPriorityTable.getAllRowsUnordered(SweepPriorityTable.getColumnSelection(
-                SweepPriorityTable.SweepPriorityNamedColumn.LAST_SWEEP_TIME))
-                .forEach(row -> {
-                    Long lastSweepTime = row.getLastSweepTime();
-                    String tableName = row.getRowName().getFullTableName();
-                    tableToLastTimeSwept.put(tableName, lastSweepTime);
-                });
+    enum CompactionOutcome {
+        SUCCESS(0),
+        NOTHING_TO_COMPACT(SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS),
+        COMPACTED_BUT_NOT_REGISTERED(0),
+        UNABLE_TO_ACQUIRE_LOCKS(SLEEP_TIME_WHEN_NO_LOCK_MILLIS),
+        FAILED_TO_COMPACT(SLEEP_TIME_AFTER_FAILURE_MILLIS),
+        SHUTDOWN(0);
 
-        Map<String, Long> tableToLastTimeCompacted = new HashMap<>();
-        CompactMetadataTable compactMetadataTable = CompactTableFactory.of().getCompactMetadataTable(tx);
-        compactMetadataTable.getAllRowsUnordered(SweepPriorityTable.getColumnSelection(
-                SweepPriorityTable.SweepPriorityNamedColumn.LAST_SWEEP_TIME))
-                .forEach(row -> {
-                    Long lastCompactTime = row.getLastCompactTime();
-                    String tableName = row.getRowName().getFullTableName();
-                    tableToLastTimeCompacted.put(tableName, lastCompactTime);
-                });
+        private final int sleepTime;
 
-        List<String> uncompactedTables = tableToLastTimeSwept.keySet().stream()
-                .filter(table -> !tableToLastTimeCompacted.keySet().contains(table))
-                .collect(Collectors.toList());
-
-        if (uncompactedTables.size() > 0) {
-            int randomTableIndex = ThreadLocalRandom.current().nextInt(uncompactedTables.size());
-            return Optional.of(uncompactedTables.get(randomTableIndex));
+        CompactionOutcome(int sleepTime) {
+            this.sleepTime = sleepTime;
         }
 
-        String tableToCompact = null;
-        long maxSweptAfterCompact = Long.MIN_VALUE;
-        for (Map.Entry<String, Long> entry : tableToLastTimeSwept.entrySet()) {
-            String table = entry.getKey();
-            long lastSweptTime = entry.getValue();
-            long lastCompactTime = tableToLastTimeCompacted.get(table);
-            long sweptAfterCompact = lastSweptTime - lastCompactTime;
-
-            if (sweptAfterCompact > maxSweptAfterCompact) {
-                tableToCompact = table;
-                maxSweptAfterCompact = sweptAfterCompact;
-            }
+        public int getSleepTime() {
+            return sleepTime;
         }
-
-        return Optional.ofNullable(tableToCompact);
     }
+
 }
