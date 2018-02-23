@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -52,8 +54,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private final Callback callback;
 
         private State status = State.INITIALIZING;
-        private volatile boolean callbackDone = false;
-        private Optional<Exception> callbackException = Optional.empty();
+        private Exception callbackException = null;
 
         private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor(
                 new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true));
@@ -79,7 +80,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         @Override
         public boolean isInitialized() {
             assertOpen();
-            return callbackDone && isInitializedInternal();
+            return status == State.READY && isInitializedInternal();
         }
 
         @Override
@@ -96,26 +97,34 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         @Override
         public void close() {
-            if (isClosed.compareAndSet(false, true)) {
-                callback.blockUntilSafeToShutdown();
-                executorService.shutdown();
-                txManager.close();
+            if (checkAndSetStatus(ImmutableSet.of(State.INITIALIZING, State.READY), State.CLOSED)) {
+                closeInternal();
             }
         }
 
+        @VisibleForTesting
+        boolean isClosedByClose() {
+            return status == State.CLOSED;
+        }
+
+        @VisibleForTesting
+        boolean isClosedByCallbackFailure() {
+            return status == State.CLOSED_BY_CALLBACK_FAILURE;
+        }
+
         private void assertOpen() {
-            if (isClosed.get()) {
-                if (callbackException.isPresent()) {
-                    throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
-                            + " Closed due to a callback throw.", callbackException.get());
-                }
+            if (status == State.CLOSED) {
                 throw new IllegalStateException("Operations cannot be performed on closed TransactionManager.");
+            }
+            if (status == State.CLOSED_BY_CALLBACK_FAILURE) {
+                    throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
+                            + " Closed due to a callback throw.", callbackException);
             }
         }
 
         private void scheduleInitializationCheckAndCallback() {
             executorService.schedule(() -> {
-                if (isClosed.get()) {
+                if (status != State.INITIALIZING) {
                     return;
                 }
                 if (isInitializedInternal()) {
@@ -141,13 +150,28 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private void runCallback() {
             try {
                 callback.runWithRetry();
-                callbackDone = true;
+                checkAndSetStatus(ImmutableSet.of(State.INITIALIZING), State.READY);
             } catch (Exception e) {
                 log.error("Callback failed and was not able to perform its cleanup task. "
                         + "Closing the TransactionManager.", e);
-                callbackException = Optional.of(e);
-                close();
+                callbackException = e;
+                checkAndSetStatus(ImmutableSet.of(State.INITIALIZING, State.READY), State.CLOSED_BY_CALLBACK_FAILURE);
+                closeInternal();
             }
+        }
+
+        private void closeInternal() {
+            callback.blockUntilSafeToShutdown();
+            executorService.shutdown();
+            txManager.close();
+        }
+
+        private synchronized boolean checkAndSetStatus(Set<State> expected, State desired) {
+            if (expected.contains(status)) {
+                status = desired;
+                return true;
+            }
+            return false;
         }
 
         private enum State {
@@ -200,6 +224,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter);
+
+        if (initializeAsync) {
+            callback.runWithRetry();
+        }
 
         return initializeAsync
                 ? new InitializeCheckingWrapper(serializableTransactionManager, initializationPrerequisite, callback)

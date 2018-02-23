@@ -100,8 +100,9 @@ public class SerializableTransactionManagerTest {
     public void closingPreventsInitializationAndCallback() {
         manager.close();
         everythingInitialized();
-        assertClosedWithoutInitializingWithinTwoSeconds();
+        assertNotInitializedWithinTwoSecondsBecauseClosed();
         verify(mockCallback, never()).runWithRetry();
+        assertTrue(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByClose());
     }
 
     @Test
@@ -138,7 +139,8 @@ public class SerializableTransactionManagerTest {
         doThrow(cause).when(mockCallback).runWithRetry();
         everythingInitialized();
 
-        assertClosedWithoutInitializingWithinTwoSeconds();
+        assertNotInitializedWithinTwoSecondsBecauseClosed();
+        assertTrue(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByCallbackFailure());
         Assertions.assertThatThrownBy(() -> manager.runTaskWithRetry($  -> null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasCause(cause);
@@ -215,11 +217,10 @@ public class SerializableTransactionManagerTest {
                 .isInstanceOf(ConditionTimeoutException.class);
     }
 
-    private void assertClosedWithoutInitializingWithinTwoSeconds() {
+    private void assertNotInitializedWithinTwoSecondsBecauseClosed() {
         Assertions.assertThatThrownBy(() ->
                 Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized()))
                 .isInstanceOf(IllegalStateException.class);
-        assertTrue(manager.isClosed.get());
     }
 
     private static class BlockingCallback extends Callback {
