@@ -31,8 +31,8 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.LockService;
 
@@ -91,8 +91,8 @@ public class SweeperTestSetup {
                 () -> currentTimeMillis);
     }
 
-    public static LockAwareTransactionManager mockTxManager() {
-        LockAwareTransactionManager txManager = Mockito.mock(LockAwareTransactionManager.class);
+    public static TransactionManager mockTxManager() {
+        TransactionManager txManager = Mockito.mock(TransactionManager.class);
         Answer runTaskAnswer = inv -> {
             Object[] args = inv.getArguments();
             TransactionTask<?, ?> task = (TransactionTask<?, ?>) args[0];

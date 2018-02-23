@@ -50,7 +50,8 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
-/* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
+class SnapshotTransactionManagerImpl extends AbstractTransactionManager implements
+        SerializableTransactionManager {
     private static final int NUM_RETRIES = 10;
 
     final KeyValueService keyValueService;
@@ -72,7 +73,7 @@ import com.palantir.timestamp.TimestampService;
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
 
-    protected SnapshotTransactionManager(
+    protected SnapshotTransactionManagerImpl(
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockService lockService,
@@ -191,7 +192,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
@@ -235,7 +236,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     /**
-     * Frees resources used by this SnapshotTransactionManager, and invokes any callbacks registered to run on close.
+     * Frees resources used by this SerializableTransactionManager, and invokes any callbacks registered to run on close.
      * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
      *
      * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
@@ -324,6 +325,7 @@ import com.palantir.timestamp.TimestampService;
         return cleaner;
     }
 
+    @Override
     public KeyValueService getKeyValueService() {
         return keyValueService;
     }

@@ -30,7 +30,7 @@ import com.palantir.logsafe.UnsafeArg;
  * users to take locks outside of the transaction protocol.
  *
  * However, it does NOT allow transactions to take place, as it throws on attempts to acquire the immutable timestamp.
- * We rely on the previous implementation of SnapshotTransactionManager#getImmutableTimestampInternal (e.g. in 0.48.0),
+ * We rely on the previous implementation of SerializableTransactionManager#getImmutableTimestampInternal (e.g. in 0.48.0),
  * which attempts to acquire the immutable timestamp before transactions begin running.
  */
 public class NonTransactionalLockService extends SimplifyingLockService {

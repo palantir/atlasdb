@@ -6,6 +6,7 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   compile project(":atlasdb-commons")
   compile project(":timestamp-api")
+  compile project(":lock-api")
   compile project(":qos-service-api")
   compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
   compile group: 'org.apache.commons', name: 'commons-lang3'

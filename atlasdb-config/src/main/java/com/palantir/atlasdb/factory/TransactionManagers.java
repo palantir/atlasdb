@@ -99,6 +99,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
@@ -318,7 +319,7 @@ public abstract class TransactionManagers {
                 closeables);
 
         SerializableTransactionManager transactionManager = initializeCloseable(
-                () -> SerializableTransactionManager.create(
+                () -> SerializableTransactionManagerImpl.create(
                         keyValueService,
                         lockAndTimestampServices.timelock(),
                         lockAndTimestampServices.lock(),
@@ -338,6 +339,9 @@ public abstract class TransactionManagers {
                         () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
                         SweepQueueWriter.NO_OP),
                 closeables);
+        SerializableTransactionManager instrumentedTransactionManager = AtlasDbMetrics.instrumentWithTracing(
+                SerializableTransactionManager.class,
+                transactionManager);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(
@@ -352,11 +356,11 @@ public abstract class TransactionManagers {
                         transactionService,
                         sweepStrategyManager,
                         follower,
-                        transactionManager,
+                        instrumentedTransactionManager,
                         persistentLockManager),
                 closeables);
 
-        return transactionManager;
+        return instrumentedTransactionManager;
     }
 
     private <T extends AutoCloseable> T initializeCloseable(

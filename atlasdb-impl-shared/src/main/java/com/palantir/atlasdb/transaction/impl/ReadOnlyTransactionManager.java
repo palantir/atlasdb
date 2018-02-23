@@ -25,24 +25,21 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampService;
 
 /**
  * This {@link TransactionManager} will provide transactions that will read the most recently
- * committed values stored by a {@link SnapshotTransactionManager}. This does not provide snapshot
+ * committed values stored by a {@link SerializableTransactionManager}. This does not provide snapshot
  * isolation but will always read the most recently committed value for any {@link Cell}.
  */
-public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
+public class ReadOnlyTransactionManager extends AbstractTransactionManager {
     protected final KeyValueService keyValueService;
     protected final TransactionService transactionService;
     protected final AtlasDbConstraintCheckingMode constraintCheckingMode;
@@ -111,45 +108,9 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
     }
 
     @Override
-    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskReadOnlyWithCondition(NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
-    }
-
-    @Override
     public void close() {
         super.close();
         keyValueService.close();
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
-            TransactionFailedRetriableException {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Iterable<HeldLocksToken> lockTokens,
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException {
-        throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
@@ -193,13 +154,34 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
     }
 
     @Override
+    public KeyValueService getKeyValueService() {
+        return null;
+    }
+
+    @Override
+    public TimestampService getTimestampService() {
+        return null;
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return true;
+    }
+
+    @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(C condition,
             ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(C condition,
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+            Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
+        throw new UnsupportedOperationException("this manager is read only");
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(C condition,
             ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(

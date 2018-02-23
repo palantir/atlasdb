@@ -29,11 +29,11 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
@@ -49,7 +49,7 @@ import com.palantir.timestamp.TimestampService;
 public final class SweepTestUtils {
     private SweepTestUtils() {}
 
-    public static LockAwareTransactionManager setupTxManager(KeyValueService kvs) {
+    public static TransactionManager setupTxManager(KeyValueService kvs) {
         return setupTxManager(
                 kvs,
                 new InMemoryTimestampService(),
@@ -57,7 +57,7 @@ public final class SweepTestUtils {
                 TransactionServices.createTransactionService(kvs));
     }
 
-    public static LockAwareTransactionManager setupTxManager(KeyValueService kvs,
+    public static TransactionManager setupTxManager(KeyValueService kvs,
             TimestampService tsService,
             SweepStrategyManager ssm,
             TransactionService txService) {
@@ -68,7 +68,7 @@ public final class SweepTestUtils {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        LockAwareTransactionManager txManager = SerializableTransactionManager.createForTest(
+        TransactionManager txManager = SerializableTransactionManagerImpl.createForTest(
                 kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,

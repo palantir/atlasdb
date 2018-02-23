@@ -189,6 +189,34 @@ v0.76.0
            This allows api projects outside of atlasdb to use ``ExecutorInheritableThreadLocal`` without pulling in the dependencies of ``commons-executors``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2961>`__)
 
+    *    - |devbreak|
+         - Simplify TransactionManager inheritance tree.
+           Merge in ``TransactionManager``:
+
+              - ``ConditionAwareTransactionManager``
+              - ``LockAwareTransactionManager``
+
+           Merge in ``AbstractTransactionManager``:
+
+              - ``AbstractConditionAwareTransactionManager``
+              - ``AbstractLockAwareTransactionManager``
+
+           Remove:
+
+              - ``ForwardingTransactionManager``
+              - ``ForwardingLockAwareTransactionManager``
+
+           Make ``SerializableTransactionManager`` an interface.
+           Move implementations to ``SnapshotTransactionManagerImpl`` and ``SerializableTransactionManagerImpl``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2961>`__)
+
+    *    - |improved|
+         - Instrument the TransactionManager returned by ``TransactionManagers.builder().build().serializable()``.
+           The metrics are reported under ``com.palantir.atlasdb.transaction.impl.SerializableTransactionManager``.
+           If you're instrumenting please rely on the above metrics from now onwards.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2966>`__)
+
 =======
 v0.75.0
 =======

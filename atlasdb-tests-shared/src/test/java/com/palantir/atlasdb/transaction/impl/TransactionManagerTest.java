@@ -92,10 +92,15 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldNotMakeRemoteCallsInAReadonlyTransactionIfNoWorkIsDone() {
         TimestampService mockTimestampService = mock(TimestampService.class);
         LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(getKeyValueService(),
-                mockTimestampService, LockClient.of("foo"), mockLockService, transactionService,
+        TransactionManager txnManagerWithMocks = SerializableTransactionManagerImpl.createForTest(
+                getKeyValueService(),
+                mockTimestampService,
+                LockClient.of("foo"),
+                mockLockService,
+                transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-                conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE,
+                conflictDetectionManager, sweepStrategyManager,
+                NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
@@ -117,7 +122,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWrites() {
         TimelockService timelock = mock(TimelockService.class);
         LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(keyValueService,
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManagerImpl(keyValueService,
                 timelock,
                 mockLockService,
                 transactionService,
@@ -148,7 +153,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldNotConflictIfImmutableTimestampLockExpiresIfNoReadsOrWrites() {
         TimelockService timelock = mock(TimelockService.class);
         LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(keyValueService,
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManagerImpl(keyValueService,
                 timelock,
                 mockLockService,
                 transactionService,

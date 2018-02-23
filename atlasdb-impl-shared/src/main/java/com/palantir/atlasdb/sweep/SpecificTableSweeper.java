@@ -40,7 +40,7 @@ import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStoreImpl;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.time.Clock;
 import com.palantir.logsafe.SafeArg;
@@ -48,7 +48,7 @@ import com.palantir.logsafe.UnsafeArg;
 
 public class SpecificTableSweeper {
     private static final Logger log = LoggerFactory.getLogger(SpecificTableSweeper.class);
-    private final LockAwareTransactionManager txManager;
+    private final TransactionManager txManager;
     private final KeyValueService kvs;
     private final SweepTaskRunner sweepRunner;
     private final SweepPriorityStore sweepPriorityStore;
@@ -60,7 +60,7 @@ public class SpecificTableSweeper {
 
     @VisibleForTesting
     SpecificTableSweeper(
-            LockAwareTransactionManager txManager,
+            TransactionManager txManager,
             KeyValueService kvs,
             SweepTaskRunner sweepRunner,
             SweepPriorityStore sweepPriorityStore,
@@ -79,7 +79,7 @@ public class SpecificTableSweeper {
     }
 
     public static SpecificTableSweeper create(
-            LockAwareTransactionManager txManager,
+            TransactionManager txManager,
             KeyValueService kvs,
             SweepTaskRunner sweepRunner,
             SweepTableFactory tableFactory,
@@ -98,7 +98,7 @@ public class SpecificTableSweeper {
         return sweepProgressStore.isInitialized() && sweepPriorityStore.isInitialized();
     }
 
-    public LockAwareTransactionManager getTxManager() {
+    public TransactionManager getTxManager() {
         return txManager;
     }
 
