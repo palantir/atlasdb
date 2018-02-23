@@ -225,7 +225,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 defaultGetRangesConcurrency,
                 sweepQueueWriter);
 
-        if (initializeAsync) {
+        if (!initializeAsync) {
             callback.runWithRetry();
         }
 
