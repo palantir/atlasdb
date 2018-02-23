@@ -30,6 +30,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeArg;
 
 class CompactPriorityCalculator {
     private static final Logger log = LoggerFactory.getLogger(CompactPriorityCalculator.class);
@@ -95,11 +96,13 @@ class CompactPriorityCalculator {
     private void logCompactionChoice(String tableToCompact, long maxSweptAfterCompact) {
         if (maxSweptAfterCompact > 0) {
             log.info("Choosing to compact {}, because it was swept {} milliseconds after the last compaction",
-                    safeTableRef(tableToCompact), maxSweptAfterCompact);
+                    safeTableRef(tableToCompact),
+                    SafeArg.of("millisFromCompactionToSweep", maxSweptAfterCompact));
         } else {
             log.info("All swept tables have been compacted after the last sweep. Choosing to compact {} anyway - "
                     + "this may be a no-op. It was last compacted {} milliseconds after it was last swept.",
-                    safeTableRef(tableToCompact), maxSweptAfterCompact);
+                    safeTableRef(tableToCompact),
+                    SafeArg.of("millisFromSweepToCompaction", maxSweptAfterCompact));
         }
     }
 

@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -99,21 +99,10 @@ public class BackgroundCompactorTest {
 
     @Test
     public void passesSafeHoursCorrectly() throws InterruptedException {
-        Supplier<Boolean> alternatingSupplier = new Supplier<Boolean>() {
-            Boolean nextValue = true;
-
-            @Override
-            public Boolean get() {
-                Boolean toReturn = nextValue;
-                nextValue = !nextValue;
-                return toReturn;
-            }
-        };
-
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(txManager,
                 kvs,
                 mock(LockService.class),
-                alternatingSupplier,
+                Stream.iterate(true, bool -> !bool).iterator()::next,
                 priorityCalculator);
 
         BackgroundCompactor.CompactionOutcome firstOutcome = backgroundCompactor.grabLockAndRunOnce(lockService);
