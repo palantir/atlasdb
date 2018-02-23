@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import java.util.concurrent.ExecutorService;
+
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
@@ -32,15 +34,18 @@ public class OracleDbTableFactory implements DbTableFactory {
     private final OracleTableNameGetter oracleTableNameGetter;
     private final OraclePrefixedTableNames oraclePrefixedTableNames;
     private final TableValueStyleCache valueStyleCache;
+    private final ExecutorService compactionTimeoutExecutor;
 
     public OracleDbTableFactory(OracleDdlConfig config,
-                                OracleTableNameGetter oracleTableNameGetter,
-                                OraclePrefixedTableNames oraclePrefixedTableNames,
-                                TableValueStyleCache valueStyleCache) {
+            OracleTableNameGetter oracleTableNameGetter,
+            OraclePrefixedTableNames oraclePrefixedTableNames,
+            TableValueStyleCache valueStyleCache,
+            ExecutorService executorService) {
         this.config = config;
         this.oracleTableNameGetter = oracleTableNameGetter;
         this.oraclePrefixedTableNames = oraclePrefixedTableNames;
         this.valueStyleCache = valueStyleCache;
+        this.compactionTimeoutExecutor = executorService;
     }
 
     @Override
@@ -50,7 +55,8 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbDdlTable createDdl(TableReference tableRef, ConnectionSupplier conns) {
-        return OracleDdlTable.create(tableRef, conns, config, oracleTableNameGetter, valueStyleCache);
+        return OracleDdlTable.create(tableRef, conns, config, oracleTableNameGetter, valueStyleCache,
+                compactionTimeoutExecutor);
     }
 
     @Override

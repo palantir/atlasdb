@@ -196,7 +196,8 @@ public final class DbKvs extends AbstractKeyValueService {
         return new DbKvs(
                 executor,
                 oracleDdlConfig,
-                new OracleDbTableFactory(oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache),
+                new OracleDbTableFactory(oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache,
+                        PTExecutors.newSingleThreadScheduledExecutor()),
                 connections,
                 new ImmediateSingleBatchTaskRunner(),
                 overflowValueLoader,
