@@ -174,7 +174,7 @@ public abstract class TransactionManagers {
      * The callback Runnable will be run when the TransactionManager is successfully initialized. The
      * TransactionManager will stay uninitialized and continue to throw for all other purposes until the callback
      * returns at which point it will become initialized. If asynchronous initialization is disabled, the callback will
-     * be run jut before the TM is returned.
+     * be run just before the TM is returned.
      *
      * Note that if the callback blocks forever, the TransactionManager will never become initialized, and calling its
      * close() method will block forever as well. If the callback init() fails, and its cleanup() method throws,
