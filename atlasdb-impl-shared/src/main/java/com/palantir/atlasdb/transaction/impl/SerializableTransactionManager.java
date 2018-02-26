@@ -117,7 +117,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             }
             if (status == State.CLOSED_BY_CALLBACK_FAILURE) {
                 throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
-                            + " Closed due to a callback throw.", callbackException);
+                            + " Closed due to a callback failure.", callbackException);
             }
         }
 
