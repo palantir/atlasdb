@@ -57,6 +57,7 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
+import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
@@ -102,6 +103,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
+import com.palantir.atlasdb.transaction.impl.consistency.TimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -316,6 +318,14 @@ public abstract class TransactionManagers {
                         .setInitializeAsync(config.initializeAsync())
                         .buildCleaner(),
                 closeables);
+
+        // Run consistency checks
+        ConsistencyCheckRunner checkRunner = new ConsistencyCheckRunner(
+                ImmutableList.of(
+                        new TimestampCorroborationConsistencyCheck(
+                                cleaner::getUnreadableTimestamp,
+                                () -> lockAndTimestampServices.timelock().getFreshTimestamp())));
+        checkRunner.initialize(config.initializeAsync());
 
         SerializableTransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
