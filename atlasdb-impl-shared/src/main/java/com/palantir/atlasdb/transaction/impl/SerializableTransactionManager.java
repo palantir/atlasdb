@@ -98,9 +98,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         @Override
         public void close() {
-            if (checkAndSetStatus(ImmutableSet.of(State.INITIALIZING, State.READY), State.CLOSED)) {
-                closeInternal();
-            }
+            closeInternal(State.CLOSED);
         }
 
         @VisibleForTesting
@@ -156,15 +154,16 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 log.error("Callback failed and was not able to perform its cleanup task. "
                         + "Closing the TransactionManager.", e);
                 callbackException = e;
-                checkAndSetStatus(ImmutableSet.of(State.INITIALIZING, State.READY), State.CLOSED_BY_CALLBACK_FAILURE);
-                closeInternal();
+                closeInternal(State.CLOSED_BY_CALLBACK_FAILURE);
             }
         }
 
-        private void closeInternal() {
-            callback.blockUntilSafeToShutdown();
-            executorService.shutdown();
-            txManager.close();
+        private void closeInternal(State newStatus) {
+            if (checkAndSetStatus(ImmutableSet.of(State.INITIALIZING, State.READY), newStatus)) {
+                callback.blockUntilSafeToShutdown();
+                executorService.shutdown();
+                txManager.close();
+            }
         }
 
         private synchronized boolean checkAndSetStatus(Set<State> expected, State desired) {
