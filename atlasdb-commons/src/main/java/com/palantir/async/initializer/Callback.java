@@ -16,6 +16,7 @@
 
 package com.palantir.async.initializer;
 
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -78,6 +79,26 @@ public abstract class Callback<R> {
 
         @Override
         public void cleanup(R resource, Throwable initException) {
+        }
+    }
+
+    public static class CallChain<T> extends Callback<T> {
+        private final List<Callback<T>> callbacks;
+
+        public CallChain(List<Callback<T>> callbacks) {
+            this.callbacks = callbacks;
+        }
+
+        @Override
+        public void init(T resource) {
+            callbacks.forEach(callback -> callback.runWithRetry(resource));
+        }
+
+        @Override
+        public void cleanup(T resource, Exception cleanupException) {
+            // Rethrows, because each callback's runWithRetry is responsible for cleanup of any resources needed
+            // to be cleaned up for that task.
+            throw Throwables.rewrapAndThrowUncheckedException(cleanupException);
         }
     }
 }
