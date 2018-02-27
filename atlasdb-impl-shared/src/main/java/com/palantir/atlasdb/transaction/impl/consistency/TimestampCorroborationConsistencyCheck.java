@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl.consistency;
 
+import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import org.slf4j.Logger;
@@ -47,7 +48,7 @@ public class TimestampCorroborationConsistencyCheck implements TransactionManage
             lowerBound = conservativeBound.getAsLong();
         } catch (Exception e) {
             log.warn("Could not obtain a lower bound on timestamps, so we don't know if our transaction manager"
-                    + " is consistent");
+                    + " is consistent.");
             return indeterminateResultForException(e);
         }
 
@@ -60,23 +61,30 @@ public class TimestampCorroborationConsistencyCheck implements TransactionManage
         }
 
         if (freshTimestamp < lowerBound) {
-            log.error("Your AtlasDB client believes that the unreadable timestamp was {}, but that's newer than a"
-                    + " fresh timestamp of {}, which implies clocks went back. If using TimeLock, this could be because"
-                    + " timestamp bounds were not migrated properly - which can happen if you've moved TimeLock"
-                    + " Server without moving its persistent state. For safety, AtlasDB will refuse to start.",
-                    SafeArg.of("unreadableTimestamp", lowerBound),
+            log.error("Your AtlasDB client believes that a lower bound for the timestamp was {} (typically by reading"
+                            + " the unreadable timestamp), but that's newer than a fresh timestamp of {}, which implies"
+                            + " clocks went back. If using TimeLock, this could be because timestamp bounds were not"
+                            + " migrated properly - which can happen if you've moved TimeLock Server without moving its"
+                            + " persistent state. For safety, AtlasDB will refuse to start.",
+                    SafeArg.of("timestampLowerBound", lowerBound),
                     SafeArg.of("freshTimestamp", freshTimestamp));
             return ImmutableTransactionManagerConsistencyResult.builder()
                     .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.TERMINAL)
+                    .reasonForInconsistency(Optional.of(createAssertionError(lowerBound, freshTimestamp)))
                     .build();
         }
-        log.info("Passed timestamp corroboration consistency check; your unreadable timestamp was {}, which was"
-                + " expectedly lower than a fresh timestamp of {}.",
-                SafeArg.of("unreadableTimestamp", lowerBound),
+        log.info("Passed timestamp corroboration consistency check; expected a lower bound of {}, which was"
+                + " lower than a fresh timestamp of {}.",
+                SafeArg.of("timestampLowerBound", lowerBound),
                 SafeArg.of("freshTimestamp", freshTimestamp));
         return ImmutableTransactionManagerConsistencyResult.builder()
                 .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.CONSISTENT)
                 .build();
+    }
+
+    private static AssertionError createAssertionError(long lowerBound, long freshTimestamp) {
+        return new AssertionError("TimestampCorroborationConsistencyCheck: expected lower bound of " + lowerBound
+                + ", but found fresh timestamp of " + freshTimestamp);
     }
 
     private TransactionManagerConsistencyResult indeterminateResultForException(Exception e) {
