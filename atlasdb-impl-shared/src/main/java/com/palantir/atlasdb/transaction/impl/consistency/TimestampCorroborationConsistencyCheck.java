@@ -47,7 +47,7 @@ public class TimestampCorroborationConsistencyCheck implements TransactionManage
             lowerBound = conservativeBound.getAsLong();
         } catch (Exception e) {
             log.warn("Could not obtain a lower bound on timestamps, so we don't know if our transaction manager"
-                    + "is consistent");
+                    + " is consistent");
             return indeterminateResultForException(e);
         }
 

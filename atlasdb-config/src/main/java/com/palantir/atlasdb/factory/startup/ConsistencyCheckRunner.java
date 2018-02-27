@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
-import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.exception.NotInitializedException;
 
 public final class ConsistencyCheckRunner extends AsyncInitializer {
 
@@ -44,8 +44,8 @@ public final class ConsistencyCheckRunner extends AsyncInitializer {
     protected void tryInitialize() {
         TransactionManagerConsistencyResult consistencyResult = consistencyChecks.stream()
                 .map(Supplier::get)
-                .sorted(Comparator.comparing(
-                        TransactionManagerConsistencyResult::consistencyState))
+                .sorted(Comparator.comparing(TransactionManagerConsistencyResult::consistencyState)
+                        .reversed())
                 .findFirst()
                 .orElse(TransactionManagerConsistencyResult.CONSISTENT_RESULT);
 
@@ -54,8 +54,7 @@ public final class ConsistencyCheckRunner extends AsyncInitializer {
                 throw new AssertionError("AtlasDB found in an unexpected state!",
                         consistencyResult.reasonForInconsistency().orElse(UNKNOWN));
             case INDETERMINATE:
-                throw new ServiceNotAvailableException("Could not ascertain that cluster was consistent",
-                        consistencyResult.reasonForInconsistency().orElse(UNKNOWN));
+                throw new NotInitializedException("Could not ascertain that cluster was consistent");
             case CONSISTENT:
                 log.info("Cluster appears consistent.");
                 break;
