@@ -19,6 +19,8 @@ package com.palantir.async.initializer;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.palantir.common.base.Throwables;
+
 public abstract class Callback<R> {
     private volatile boolean shutdownSignal = false;
     private Lock lock = new ReentrantLock();
@@ -29,10 +31,16 @@ public abstract class Callback<R> {
     public abstract void init(R resource);
 
     /**
-     * Cleanup to be done if init() throws, before init() can be attempted again.
-     * @param initException Exception thrown by init()
+     * Cleanup to be done if init() throws, before init() can be attempted again. If this method throws, runWithRetry()
+     * will fail and init() will not be retried. The default implementation assumes that init() throwing is terminal
+     * and there is no cleanup necessary. This should be overridden by specifying any cleanup steps necessary, and the
+     * method must return instead of throwing if init() can be retried
+     *
+     * @param initException Throwable thrown by init()
      */
-    public abstract void cleanup(R resource, Exception initException);
+    public void cleanup(R resource, Throwable initException) {
+        Throwables.rewrapAndThrowUncheckedException(initException);
+    }
 
     /**
      * Keep retrying init(), performing any necessary cleanup, until it succeeds unless cleanup() throws or a shutdown
@@ -46,7 +54,7 @@ public abstract class Callback<R> {
                     init(resource);
                 }
                 return;
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 cleanup(resource, e);
             } finally {
                 lock.unlock();
@@ -69,7 +77,7 @@ public abstract class Callback<R> {
         }
 
         @Override
-        public void cleanup(R resource, Exception initException) {
+        public void cleanup(R resource, Throwable initException) {
         }
     }
 }

@@ -276,7 +276,7 @@ public class SerializableTransactionManagerTest {
         }
 
         @Override
-        public void cleanup(TransactionManager transactionManager, Exception initException) {
+        public void cleanup(TransactionManager transactionManager, Throwable initException) {
             try {
                 Thread.sleep(500L);
             } catch (InterruptedException e) {

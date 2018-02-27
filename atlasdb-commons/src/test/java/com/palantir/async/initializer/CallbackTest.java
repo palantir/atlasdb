@@ -105,7 +105,7 @@ public class CallbackTest {
         public void init(AtomicLong counter) {
             counter.incrementAndGet();
             if (counter.get() < 5L) {
-                throw new RuntimeException("RANDOM REASON");
+                throw new Error("RANDOM REASON");
             }
             if (counter.get() < 10L) {
                 throw new RuntimeException("LEGIT REASON");
@@ -113,7 +113,7 @@ public class CallbackTest {
         }
 
         @Override
-        public void cleanup(AtomicLong counter, Exception initException) {
+        public void cleanup(AtomicLong counter, Throwable initException) {
             if (throwOnLegitReason) {
                 if (initException.getMessage().contains("LEGIT REASON")) {
                     throw (RuntimeException) initException;
@@ -136,7 +136,7 @@ public class CallbackTest {
         }
 
         @Override
-        public void cleanup(AtomicBoolean started, Exception initException) {
+        public void cleanup(AtomicBoolean started, Throwable initException) {
             try {
                 Thread.sleep(1000L);
             } catch (InterruptedException e) {
