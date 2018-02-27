@@ -18,17 +18,17 @@ package com.palantir.atlasdb.factory.startup;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
 import com.palantir.exception.NotInitializedException;
 
-public final class ConsistencyCheckRunner extends AsyncInitializer {
+public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
     private static final Logger log = LoggerFactory.getLogger(ConsistencyCheckRunner.class);
 
@@ -41,12 +41,10 @@ public final class ConsistencyCheckRunner extends AsyncInitializer {
     }
 
     @Override
-    protected void tryInitialize() {
+    public void init(TransactionManager resource) {
         TransactionManagerConsistencyResult consistencyResult = consistencyChecks.stream()
-                .map(Supplier::get)
-                .sorted(Comparator.comparing(TransactionManagerConsistencyResult::consistencyState)
-                        .reversed())
-                .findFirst()
+                .map(check -> check.apply(resource))
+                .max(Comparator.comparingLong(result -> result.consistencyState().ordinal()))
                 .orElse(TransactionManagerConsistencyResult.CONSISTENT_RESULT);
 
         switch (consistencyResult.consistencyState()) {
@@ -61,10 +59,5 @@ public final class ConsistencyCheckRunner extends AsyncInitializer {
             default:
                 throw new IllegalStateException("Unexpected consistency state " + consistencyResult.consistencyState());
         }
-    }
-
-    @Override
-    protected String getInitializingClassName() {
-        return ConsistencyCheckRunner.class.getSimpleName();
     }
 }

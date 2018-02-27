@@ -251,13 +251,6 @@ public abstract class TransactionManagers {
             throw throwable;
         }
 
-        // TODO (jkong): Refactor once post-init callbacks are a thing
-        ConsistencyCheckRunner checkRunner = new ConsistencyCheckRunner(
-                ImmutableList.of(new TimestampCorroborationConsistencyCheck(
-                        () -> serializableTransactionManager.getCleaner().getUnreadableTimestamp(),
-                        () -> serializableTransactionManager.getTimelockService().getFreshTimestamp())));
-        checkRunner.initialize(true);
-
         return serializableTransactionManager;
     }
 
@@ -366,7 +359,14 @@ public abstract class TransactionManagers {
                         config.initializeAsync(),
                         () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
                         SweepQueueWriter.NO_OP,
-                        asyncInitializationCallback()),
+                        new Callback.CallChain<>(ImmutableList.of(
+                                new ConsistencyCheckRunner(
+                                        ImmutableList.of(new TimestampCorroborationConsistencyCheck(
+                                                TransactionManager::getUnreadableTimestamp,
+                                                unused -> lockAndTimestampServices.timelock().getFreshTimestamp()))
+                                ),
+                                asyncInitializationCallback()
+                        ))),
                 closeables);
 
         PersistentLockManager persistentLockManager = initializeCloseable(

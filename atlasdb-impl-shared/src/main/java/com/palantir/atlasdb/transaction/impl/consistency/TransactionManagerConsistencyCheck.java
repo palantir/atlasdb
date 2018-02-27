@@ -16,10 +16,12 @@
 
 package com.palantir.atlasdb.transaction.impl.consistency;
 
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public interface TransactionManagerConsistencyCheck extends Supplier<TransactionManagerConsistencyResult> {
+public interface TransactionManagerConsistencyCheck extends
+        Function<TransactionManager, TransactionManagerConsistencyResult> {
     // marker interface
 }
