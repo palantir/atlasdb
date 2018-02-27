@@ -31,18 +31,18 @@ public interface TransactionManagerConsistencyResult {
     Optional<Throwable> reasonForInconsistency();
 
     enum ConsistencyState {
-        TERMINAL(false),
-        INDETERMINATE(false),
-        CONSISTENT(true);
+        TERMINAL(2),
+        INDETERMINATE(1),
+        CONSISTENT(0);
 
-        private final boolean canServeRequests;
+        private final int severity;
 
-        ConsistencyState(boolean canServeRequests) {
-            this.canServeRequests = canServeRequests;
+        ConsistencyState(int severity) {
+            this.severity = severity;
         }
 
-        public boolean canServeRequests() {
-            return canServeRequests;
+        public int severity() {
+            return severity;
         }
     }
 }
