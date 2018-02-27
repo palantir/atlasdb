@@ -82,6 +82,11 @@ v0.78.0
            If ``initializeAsync`` is set to false, then this callback will be run just before the TransactionManager is returned, blocking until it is done. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3011>`__)
 
+    *    - |new|
+         - If using TimeLock, AtlasDB now checks the value of a fresh timestamp against the unreadable timestamp on startup, failing if the fresh timestamp is smaller.
+           That implies clocks went backwards; doing this mitigates the damage that a bogus TimeLock migration or other corruption of TimeLock can do.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3018>`__)
+
     *    - |fixed|
          - SerializableTransactionManager can now be closed even if it is not initialized yet.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3011>`__)
