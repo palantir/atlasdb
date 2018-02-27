@@ -28,6 +28,7 @@ import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
+import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 
 public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
@@ -77,7 +78,11 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
     }
 
     @Override
-    public void cleanup(TransactionManager resource, Exception initException) {
-        // No op; consistency checks shouldn't use their own resources / should clean up after themselves.
+    public void cleanup(TransactionManager resource, Throwable initThrowable) {
+        // Propagate errors, but there's no need to do cleanup as each task is responsible for that,
+        // and this class assumes the tasks are independent.
+        if (!(initThrowable instanceof NotInitializedException)) {
+            throw Throwables.rewrapAndThrowUncheckedException(initThrowable);
+        }
     }
 }
