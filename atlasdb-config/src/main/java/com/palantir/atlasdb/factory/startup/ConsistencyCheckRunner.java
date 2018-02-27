@@ -32,7 +32,7 @@ public final class ConsistencyCheckRunner extends AsyncInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(ConsistencyCheckRunner.class);
 
-    private static final RuntimeException UNKNOWN = new RuntimeException("unknown");;
+    private static final RuntimeException UNKNOWN = new RuntimeException("unknown");
 
     private final List<TransactionManagerConsistencyCheck> consistencyChecks;
 
@@ -44,9 +44,7 @@ public final class ConsistencyCheckRunner extends AsyncInitializer {
     protected void tryInitialize() {
         TransactionManagerConsistencyResult consistencyResult = consistencyChecks.stream()
                 .map(Supplier::get)
-                .sorted(Comparator.comparing(TransactionManagerConsistencyResult::consistencyState)
-                        .reversed())
-                .findFirst()
+                .max(Comparator.comparingLong(result -> result.consistencyState().severity()))
                 .orElse(TransactionManagerConsistencyResult.CONSISTENT_RESULT);
 
         switch (consistencyResult.consistencyState()) {
