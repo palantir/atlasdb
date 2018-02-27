@@ -95,7 +95,7 @@ public abstract class Callback<R> {
         }
 
         @Override
-        public void cleanup(T resource, Exception cleanupException) {
+        public void cleanup(T resource, Throwable cleanupException) {
             // Rethrows, because each callback's runWithRetry is responsible for cleanup of any resources needed
             // to be cleaned up for that task.
             throw Throwables.rewrapAndThrowUncheckedException(cleanupException);

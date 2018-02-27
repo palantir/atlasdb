@@ -140,7 +140,7 @@ public class CallChainTest {
         }
 
         @Override
-        public void cleanup(String resource, Exception initException) {
+        public void cleanup(String resource, Throwable initException) {
             invocations.add(ImmutableCallbackInvocation.of(this, resource, InvocationType.CLEANUP));
             if (shouldFailCleanup.get()) {
                 throw new RuntimeException("cleanup fail");
