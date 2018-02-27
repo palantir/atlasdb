@@ -55,7 +55,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private final Callback<TransactionManager> callback;
 
         private State status = State.INITIALIZING;
-        private Exception callbackException = null;
+        private Throwable callbackThrowable = null;
 
         private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor(
                 new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true));
@@ -117,7 +117,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             }
             if (status == State.CLOSED_BY_CALLBACK_FAILURE) {
                 throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
-                            + " Closed due to a callback failure.", callbackException);
+                            + " Closed due to a callback failure.", callbackThrowable);
             }
         }
 
@@ -150,10 +150,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             try {
                 callback.runWithRetry(txManager);
                 checkAndSetStatus(ImmutableSet.of(State.INITIALIZING), State.READY);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.error("Callback failed and was not able to perform its cleanup task. "
                         + "Closing the TransactionManager.", e);
-                callbackException = e;
+                callbackThrowable = e;
                 closeInternal(State.CLOSED_BY_CALLBACK_FAILURE);
             }
         }
