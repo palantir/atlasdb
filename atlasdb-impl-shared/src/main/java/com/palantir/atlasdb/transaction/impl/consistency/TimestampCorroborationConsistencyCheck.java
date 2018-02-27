@@ -62,13 +62,13 @@ public class TimestampCorroborationConsistencyCheck implements TransactionManage
                     + " consistent.");
             return indeterminateResultForException(e);
         }
-
-        if (freshTimestamp < lowerBound) {
-            log.error("Your AtlasDB client believes that the unreadable timestamp was {}, but that's newer than a"
-                    + " fresh timestamp of {}, which implies clocks went back. If using TimeLock, this could be because"
-                    + " timestamp bounds were not migrated properly - which can happen if you've moved TimeLock"
-                    + " Server without moving its persistent state. For safety, AtlasDB will refuse to start.",
-                    SafeArg.of("unreadableTimestamp", lowerBound),
+        if (freshTimestamp <= lowerBound) {
+            log.error("Your AtlasDB client believes that a lower bound for the timestamp was {} (typically by reading"
+                            + " the unreadable timestamp), but that's newer than a fresh timestamp of {}, which implies"
+                            + " clocks went back. If using TimeLock, this could be because timestamp bounds were not"
+                            + " migrated properly - which can happen if you've moved TimeLock Server without moving its"
+                            + " persistent state. For safety, AtlasDB will refuse to start.",
+                    SafeArg.of("timestampLowerBound", lowerBound),
                     SafeArg.of("freshTimestamp", freshTimestamp));
             return ImmutableTransactionManagerConsistencyResult.builder()
                     .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.TERMINAL)
