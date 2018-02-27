@@ -66,16 +66,14 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2951>`__)
 
-    *    - |new|
-         - DbKvs: introduced a Background compactor thread that carries out post-sweep compaction operations.
-           For non-enterprise Oracle deployments, this will only run the blocking ``SHRINK SPACE`` command during safe hours.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2984>`__ and
-           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2991>`__)
-
     *    - |fixed|
          - LoggingArgs no longer throws when it tries to hydrate invalid table metadata.
            This fixes an issue that prevented AtlasDB to start after performing a KVS migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
+
+    *    - |changed|
+         - Changes the default scrubber behavior to aggressive scrub (synchronous with scrub request).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3009>`__)
 
 =======
 v0.77.0
@@ -107,6 +105,11 @@ v0.77.0
          - Introduced configurable ``writeThreshold`` and ``writeSizeThreshold`` parameters for when to write stats for the Sweep prioritization.
            Also reduce the defaults to flush write stats on 32MB overall write size and 2k cells.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2998>`__)
+
+    *    - |fixed|
+         - Fix ``SnapshotTransaction#getRows`` to apply ``ColumnSelection`` when there are local writes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3008>`__)
+
 
 =======
 v0.76.0
