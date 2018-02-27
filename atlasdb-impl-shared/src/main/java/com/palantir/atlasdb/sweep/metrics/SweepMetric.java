@@ -17,6 +17,15 @@
 package com.palantir.atlasdb.sweep.metrics;
 
 public interface SweepMetric<T> {
+    /**
+     * This method should set the value of the metric, regardless of any previous state.
+     * @param value new value of the metric
+     */
     void set(T value);
-    void update(T value);
+
+    /**
+     * This method should accumulate the previous value of the metric with the provided value.
+     * @param value value to accumulate with
+     */
+    void accumulate(T value);
 }

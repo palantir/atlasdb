@@ -17,12 +17,16 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -47,13 +51,13 @@ public class SweeperTestSetup {
 
     protected SpecificTableSweeper specificTableSweeper;
     protected BackgroundSweeperImpl backgroundSweeper;
-    protected KeyValueService kvs = Mockito.mock(KeyValueService.class);
-    protected SweepProgressStore progressStore = Mockito.mock(SweepProgressStore.class);
-    protected SweepPriorityStore priorityStore = Mockito.mock(SweepPriorityStore.class);
-    private NextTableToSweepProvider nextTableToSweepProvider = Mockito.mock(NextTableToSweepProvider.class);
-    protected SweepTaskRunner sweepTaskRunner = Mockito.mock(SweepTaskRunner.class);
+    protected KeyValueService kvs = mock(KeyValueService.class);
+    protected SweepProgressStore progressStore = mock(SweepProgressStore.class);
+    protected SweepPriorityStore priorityStore = mock(SweepPriorityStore.class);
+    private NextTableToSweepProvider nextTableToSweepProvider = mock(NextTableToSweepProvider.class);
+    protected SweepTaskRunner sweepTaskRunner = mock(SweepTaskRunner.class);
     private boolean sweepEnabled = true;
-    protected SweepMetricsManager sweepMetricsManager = Mockito.mock(SweepMetricsManager.class);
+    protected SweepMetricsManager sweepMetricsManager = mock(SweepMetricsManager.class);
     protected long currentTimeMillis = 1000200300L;
 
     @BeforeClass
@@ -72,12 +76,12 @@ public class SweeperTestSetup {
         specificTableSweeper = getSpecificTableSweeperService();
 
         backgroundSweeper = new BackgroundSweeperImpl(
-                Mockito.mock(LockService.class),
+                mock(LockService.class),
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
-                Mockito.mock(PersistentLockManager.class),
+                mock(PersistentLockManager.class),
                 specificTableSweeper);
     }
 
@@ -88,38 +92,38 @@ public class SweeperTestSetup {
                 sweepTaskRunner,
                 priorityStore,
                 progressStore,
-                Mockito.mock(BackgroundSweeperPerformanceLogger.class),
+                mock(BackgroundSweeperPerformanceLogger.class),
                 sweepMetricsManager,
                 () -> currentTimeMillis);
     }
 
     public static LockAwareTransactionManager mockTxManager() {
-        LockAwareTransactionManager txManager = Mockito.mock(LockAwareTransactionManager.class);
+        LockAwareTransactionManager txManager = mock(LockAwareTransactionManager.class);
         Answer runTaskAnswer = inv -> {
             Object[] args = inv.getArguments();
             TransactionTask<?, ?> task = (TransactionTask<?, ?>) args[0];
-            return task.execute(Mockito.mock(Transaction.class));
+            return task.execute(mock(Transaction.class));
         };
-        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskReadOnly(any());
-        Mockito.doAnswer(runTaskAnswer).when(txManager).runTaskWithRetry(any());
+        doAnswer(runTaskAnswer).when(txManager).runTaskReadOnly(any());
+        doAnswer(runTaskAnswer).when(txManager).runTaskWithRetry(any());
         return txManager;
     }
 
     protected void setNoProgress() {
-        Mockito.doReturn(Optional.empty()).when(progressStore).loadProgress();
+        doReturn(Optional.empty()).when(progressStore).loadProgress();
     }
 
     protected void setProgress(SweepProgress progress) {
-        Mockito.doReturn(Optional.of(progress)).when(progressStore).loadProgress();
+        doReturn(Optional.of(progress)).when(progressStore).loadProgress();
     }
 
     protected void setNextTableToSweep(TableReference tableRef) {
-        Mockito.doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider)
-                .getNextTableToSweep(any(), Mockito.anyLong());
+        doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider)
+                .getNextTableToSweep(any(), anyLong());
     }
 
     protected void setupTaskRunner(SweepResults results) {
-        Mockito.doReturn(results).when(sweepTaskRunner).run(Mockito.eq(TABLE_REF), any(), any());
+        doReturn(results).when(sweepTaskRunner).run(eq(TABLE_REF), any(), any());
     }
 
 }

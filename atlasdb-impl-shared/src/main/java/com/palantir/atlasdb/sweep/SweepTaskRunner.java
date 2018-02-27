@@ -154,11 +154,9 @@ public class SweepTaskRunner {
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
-        Optional<Sweeper> sweeper = Sweeper.of(sweepStrategy);
-        if (!sweeper.isPresent()) {
-            return SweepResults.createEmptySweepResultWithNoMoreToSweep();
-        }
-        return doRun(tableRef, batchConfig, startRow, runType, sweeper.get());
+        Optional<Sweeper> maybeSweeper = Sweeper.of(sweepStrategy);
+        return maybeSweeper.map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))
+                .orElseGet(SweepResults::createEmptySweepResultWithNoMoreToSweep);
     }
 
     private SweepResults doRun(TableReference tableRef,
@@ -201,9 +199,7 @@ public class SweepTaskRunner {
             long totalCellTsPairsExamined = 0;
             long totalCellTsPairsDeleted = 0;
 
-            if (metricsManager.isPresent()) {
-                metricsManager.get().resetBeforeDeleteBatch();
-            }
+            metricsManager.ifPresent(SweepMetricsManager::resetBeforeDeleteBatch);
 
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
@@ -221,9 +217,7 @@ public class SweepTaskRunner {
                 long cellsExamined = batch.numCellTsPairsExamined();
                 totalCellTsPairsExamined += cellsExamined;
 
-                if (metricsManager.isPresent()) {
-                    metricsManager.get().updateAfterDeleteBatch(cellsExamined, cellsDeleted);
-                }
+                metricsManager.ifPresent(manager -> manager.updateAfterDeleteBatch(cellsExamined, cellsDeleted));
 
                 lastRow = batch.lastCellExamined().getRowName();
             }

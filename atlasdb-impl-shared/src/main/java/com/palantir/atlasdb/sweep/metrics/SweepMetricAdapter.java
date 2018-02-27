@@ -33,21 +33,19 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
     abstract BiConsumer<M, T> getSetMethod();
 
     @Value.Default
-    BiConsumer<M, T> getUpdateMethod() {
+    BiConsumer<M, T> getAccumulateMethod() {
         return getSetMethod();
     }
 
-    @Value.Derived
-    public void setValue(MetricRegistry metricRegistry, String name, T value) {
+    void setValue(MetricRegistry metricRegistry, String name, T value) {
         getSetMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
     }
 
-    @Value.Derived
-    public void updateValue(MetricRegistry metricRegistry, String name, T value) {
-        getUpdateMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
+    void accumulateValue(MetricRegistry metricRegistry, String name, T value) {
+        getAccumulateMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
     }
 
-    public static final SweepMetricAdapter<Meter, Long> METER_ADAPTER =
+    static final SweepMetricAdapter<Meter, Long> METER_ADAPTER =
             ImmutableSweepMetricAdapter.<Meter, Long>builder()
                     .metricConstructor(MetricRegistry::meter)
                     .setMethod(Meter::mark)
@@ -55,7 +53,7 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
 
     // We know that the unchecked casts will be fine.
     @SuppressWarnings("unchecked")
-    public static final SweepMetricAdapter<CurrentValueMetric<Long>, Long> CURRENT_VALUE_ADAPTER_LONG =
+    static final SweepMetricAdapter<CurrentValueMetric<Long>, Long> CURRENT_VALUE_ADAPTER_LONG =
             ImmutableSweepMetricAdapter.<CurrentValueMetric<Long>, Long>builder()
                     .metricConstructor((metricRegistry, name) ->
                             (CurrentValueMetric<Long>) metricRegistry.gauge(name, CurrentValueMetric::new))
@@ -64,18 +62,18 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
 
     // We know that the unchecked casts will be fine.
     @SuppressWarnings("unchecked")
-    public static final SweepMetricAdapter<CurrentValueMetric<String>, String> CURRENT_VALUE_ADAPTER_STRING =
+    static final SweepMetricAdapter<CurrentValueMetric<String>, String> CURRENT_VALUE_ADAPTER_STRING =
             ImmutableSweepMetricAdapter.<CurrentValueMetric<String>, String>builder()
                     .metricConstructor((metricRegistry, name) ->
                             (CurrentValueMetric<String>) metricRegistry.gauge(name, CurrentValueMetric::new))
                     .setMethod(CurrentValueMetric::setValue)
                     .build();
 
-    public static final SweepMetricAdapter<AccumulatingValueMetric, Long> ACCUMULATING_VALUE_ADAPTER =
+    static final SweepMetricAdapter<AccumulatingValueMetric, Long> ACCUMULATING_VALUE_ADAPTER =
             ImmutableSweepMetricAdapter.<AccumulatingValueMetric, Long>builder()
                     .metricConstructor((metricRegistry, name) ->
                             (AccumulatingValueMetric) metricRegistry.gauge(name, AccumulatingValueMetric::new))
                     .setMethod(AccumulatingValueMetric::setValue)
-                    .updateMethod(AccumulatingValueMetric::accumulateValue)
+                    .accumulateMethod(AccumulatingValueMetric::accumulateValue)
                     .build();
 }

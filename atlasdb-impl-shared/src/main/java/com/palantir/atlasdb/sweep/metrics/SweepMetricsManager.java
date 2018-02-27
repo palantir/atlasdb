@@ -38,8 +38,8 @@ public class SweepMetricsManager {
     }
 
     public void updateAfterDeleteBatch(long cellTsPairsExamined, long staleValuesDeleted) {
-        cellsExamined.update(cellTsPairsExamined);
-        cellsDeleted.update(staleValuesDeleted);
+        cellsExamined.accumulate(cellTsPairsExamined);
+        cellsDeleted.accumulate(staleValuesDeleted);
     }
 
     public void updateMetrics(SweepResults sweepResults, TableReference tableRef) {

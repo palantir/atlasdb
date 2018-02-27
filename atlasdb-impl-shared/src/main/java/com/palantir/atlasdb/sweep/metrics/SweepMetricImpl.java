@@ -35,7 +35,7 @@ public class SweepMetricImpl<T> implements SweepMetric<T> {
     }
 
     @Override
-    public void update(T value) {
-        sweepMetricAdapter.updateValue(metricRegistry, name, value);
+    public void accumulate(T value) {
+        sweepMetricAdapter.accumulateValue(metricRegistry, name, value);
     }
 }
