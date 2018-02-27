@@ -22,6 +22,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -36,8 +37,12 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
     private final List<TransactionManagerConsistencyCheck> consistencyChecks;
 
-    public ConsistencyCheckRunner(List<TransactionManagerConsistencyCheck> consistencyChecks) {
+    private ConsistencyCheckRunner(List<TransactionManagerConsistencyCheck> consistencyChecks) {
         this.consistencyChecks = consistencyChecks;
+    }
+
+    public static ConsistencyCheckRunner create(TransactionManagerConsistencyCheck check) {
+        return new ConsistencyCheckRunner(ImmutableList.of(check));
     }
 
     @Override
@@ -49,10 +54,11 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
         switch (consistencyResult.consistencyState()) {
             case TERMINAL:
+                // Errors get bubbled up to the top level
                 throw new AssertionError("AtlasDB found in an unexpected state!",
                         consistencyResult.reasonForInconsistency().orElse(UNKNOWN));
             case INDETERMINATE:
-                throw new NotInitializedException("Could not ascertain that cluster was consistent");
+                throw new NotInitializedException("ConsistencyCheckRunner");
             case CONSISTENT:
                 log.info("Cluster appears consistent.");
                 break;
