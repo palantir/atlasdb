@@ -22,6 +22,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
@@ -37,7 +38,8 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
     private final List<TransactionManagerConsistencyCheck> consistencyChecks;
 
-    private ConsistencyCheckRunner(List<TransactionManagerConsistencyCheck> consistencyChecks) {
+    @VisibleForTesting
+    ConsistencyCheckRunner(List<TransactionManagerConsistencyCheck> consistencyChecks) {
         this.consistencyChecks = consistencyChecks;
     }
 
@@ -47,11 +49,18 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
     @Override
     public void init(TransactionManager resource) {
-        TransactionManagerConsistencyResult consistencyResult = consistencyChecks.stream()
+        TransactionManagerConsistencyResult consistencyResult = checkAndAggregateResults(resource);
+        processAggregatedResult(consistencyResult);
+    }
+
+    private TransactionManagerConsistencyResult checkAndAggregateResults(TransactionManager resource) {
+        return consistencyChecks.stream()
                 .map(check -> check.apply(resource))
                 .max(Comparator.comparingLong(result -> result.consistencyState().ordinal()))
                 .orElse(TransactionManagerConsistencyResult.CONSISTENT_RESULT);
+    }
 
+    private void processAggregatedResult(TransactionManagerConsistencyResult consistencyResult) {
         switch (consistencyResult.consistencyState()) {
             case TERMINAL:
                 // Errors get bubbled up to the top level
