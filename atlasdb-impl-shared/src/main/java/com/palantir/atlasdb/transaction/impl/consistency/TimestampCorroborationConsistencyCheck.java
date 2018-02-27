@@ -64,7 +64,7 @@ public class TimestampCorroborationConsistencyCheck implements TransactionManage
             return indeterminateResultForException(e);
         }
 
-        if (freshTimestamp < lowerBound) {
+        if (freshTimestamp <= lowerBound) {
             log.error("Your AtlasDB client believes that a lower bound for the timestamp was {} (typically by reading"
                             + " the unreadable timestamp), but that's newer than a fresh timestamp of {}, which implies"
                             + " clocks went back. If using TimeLock, this could be because timestamp bounds were not"
