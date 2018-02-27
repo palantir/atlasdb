@@ -227,10 +227,11 @@ public abstract class TransactionManagers {
     @JsonIgnore
     @Value.Derived
     public SerializableTransactionManager serializable() {
+        SerializableTransactionManager serializableTransactionManager;
         List<AutoCloseable> closeables = Lists.newArrayList();
 
         try {
-            return serializableInternal(closeables);
+            serializableTransactionManager = serializableInternal(closeables);
         } catch (Throwable throwable) {
             List<String> closeablesClasses = closeables.stream()
                     .map(autoCloseable -> autoCloseable.getClass().toString())
@@ -249,6 +250,15 @@ public abstract class TransactionManagers {
             });
             throw throwable;
         }
+
+        // TODO (jkong): Refactor once post-init callbacks are a thing
+        ConsistencyCheckRunner checkRunner = new ConsistencyCheckRunner(
+                ImmutableList.of(new TimestampCorroborationConsistencyCheck(
+                        () -> serializableTransactionManager.getCleaner().getUnreadableTimestamp(),
+                        () -> serializableTransactionManager.getTimelockService().getFreshTimestamp())));
+        checkRunner.initialize(true);
+
+        return serializableTransactionManager;
     }
 
     private SerializableTransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
@@ -335,14 +345,6 @@ public abstract class TransactionManagers {
                         .setInitializeAsync(config.initializeAsync())
                         .buildCleaner(),
                 closeables);
-
-        // Run consistency checks
-        ConsistencyCheckRunner checkRunner = new ConsistencyCheckRunner(
-                ImmutableList.of(
-                        new TimestampCorroborationConsistencyCheck(
-                                cleaner::getUnreadableTimestamp,
-                                () -> lockAndTimestampServices.timelock().getFreshTimestamp())));
-        checkRunner.initialize(config.initializeAsync());
 
         SerializableTransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
