@@ -114,7 +114,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
     }
 
     @Test
-    public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWrites() {
+    public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnThoroughSweptTable() {
         TimelockService timelock = mock(TimelockService.class);
         LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(keyValueService,
