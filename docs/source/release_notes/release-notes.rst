@@ -89,6 +89,11 @@ develop
          - Fixed a bug that can causes the background sweep thread to fail to shut down cleanly, hanging the application.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3023>`__)
 
+    *    - |improved|
+         - Remove a round trip from read only transactions
+           not involving thoroughly swept tables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3020>`__)
+
 =======
 v0.77.0
 =======
@@ -123,7 +128,6 @@ v0.77.0
     *    - |fixed|
          - Fix ``SnapshotTransaction#getRows`` to apply ``ColumnSelection`` when there are local writes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3008>`__)
-
 
 =======
 v0.76.0
