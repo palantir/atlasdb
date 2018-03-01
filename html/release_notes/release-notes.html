@@ -196,12 +196,31 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td><p class="first">Sweep metrics have been reworked based on their observed usefulness in the field.
+In particular, histograms and most of the meters were replaced with gauges that expose last known values of tracked sweep results.
+Tagged metrics have been removed as well, and were replaced by a gauge <code class="docutils literal notranslate"><span class="pre">tableBeingSwept</span></code> that exposes the name of the table being swept, if it is safe for logging.
+Sweep metrics <cite>cellTimestampPairsExamined`</cite> and <code class="docutils literal notranslate"><span class="pre">staleValuesDeleted</span></code> are now updated after every batch of deletes instead of waiting until all of the batches are processed.
+Sweep now exposes the following metrics with the common prefix <code class="docutils literal notranslate"><span class="pre">com.palantir.atlasdb.sweep.metrics.SweepMetric.</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">tableBeingSwept</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">cellTimestampPairsExamined</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">staleValuesDeleted</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">sweepTimeSweeping</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">sweepTimeElapsedSinceStart</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">sweepError</span></code></li>
+</ul>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2951">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>LoggingArgs no longer throws when it tries to hydrate invalid table metadata.
 This fixes an issue that prevented AtlasDB to start after performing a KVS migration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3006">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Changes the default scrubber behavior to aggressive scrub (synchronous with scrub request).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3009">Pull Request</a>)</td>
 </tr>
