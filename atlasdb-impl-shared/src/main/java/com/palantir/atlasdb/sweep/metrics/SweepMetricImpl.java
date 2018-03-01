@@ -17,51 +17,25 @@
 package com.palantir.atlasdb.sweep.metrics;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.tritium.metrics.registry.MetricName;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public class SweepMetricImpl implements SweepMetric {
+public class SweepMetricImpl<T> implements SweepMetric<T> {
     private final String name;
     private final MetricRegistry metricRegistry;
-    private final TaggedMetricRegistry taggedMetricRegistry;
-    private final UpdateEventType updateEventType;
-    private final boolean tagWithTableName;
-    private final SweepMetricAdapter<?> metricAdapter;
+    private final SweepMetricAdapter<?, T> sweepMetricAdapter;
 
-    SweepMetricImpl(SweepMetricConfig config) {
-        this.name = config.name();
-        this.metricRegistry = config.metricRegistry();
-        this.taggedMetricRegistry = config.taggedMetricRegistry();
-        this.updateEventType = config.updateEvent();
-        this.tagWithTableName = config.tagWithTableName();
-        this.metricAdapter = config.metricAdapter();
+    SweepMetricImpl(String name, MetricRegistry metricRegistry, SweepMetricAdapter<?, T> sweepMetricAdapter) {
+        this.name = MetricRegistry.name(SweepMetric.class, name);
+        this.metricRegistry = metricRegistry;
+        this.sweepMetricAdapter = sweepMetricAdapter;
     }
 
     @Override
-    public void update(long value, TableReference tableRef, UpdateEventType eventInstance) {
-        if (updateEventType.equals(eventInstance)) {
-            updateMetric(value, tableRef);
-        }
+    public void set(T value) {
+        sweepMetricAdapter.setValue(metricRegistry, name, value);
     }
 
-    private void updateMetric(long value, TableReference tableRef) {
-        if (!tagWithTableName) {
-            metricAdapter.updateNonTaggedMetric(metricRegistry, name, value);
-        } else {
-            metricAdapter.updateTaggedMetric(taggedMetricRegistry, getTaggedMetricName(name, tableRef), value);
-        }
-    }
-
-    @VisibleForTesting
-    static MetricName getTaggedMetricName(String name, TableReference tableRef) {
-        TableReference safeTableRef = LoggingArgs.safeTableOrPlaceholder(tableRef);
-        return MetricName.builder()
-                .safeName(name)
-                .safeTags(ImmutableMap.of("tableRef", safeTableRef.toString()))
-                .build();
+    @Override
+    public void accumulate(T value) {
+        sweepMetricAdapter.accumulateValue(metricRegistry, name, value);
     }
 }

@@ -16,8 +16,16 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+public interface SweepMetric<T> {
+    /**
+     * This method should set the value of the metric, regardless of any previous state.
+     * @param value new value of the metric
+     */
+    void set(T value);
 
-public interface SweepMetric {
-    void update(long value, TableReference tableRef, UpdateEventType updateEvent);
+    /**
+     * This method should accumulate the previous value of the metric with the provided value.
+     * @param value value to accumulate with
+     */
+    void accumulate(T value);
 }
