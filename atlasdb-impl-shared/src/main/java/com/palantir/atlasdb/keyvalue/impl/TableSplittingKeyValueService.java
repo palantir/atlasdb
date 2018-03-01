@@ -354,4 +354,9 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     public void compactInternally(TableReference tableRef) {
         getDelegate(tableRef).compactInternally(tableRef);
     }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegates.stream().anyMatch(KeyValueService::shouldTriggerCompactions);
+    }
 }

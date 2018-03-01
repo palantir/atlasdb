@@ -208,4 +208,9 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     public void compactInternally(TableReference tableRef) {
         delegate().compactInternally(tableRef);
     }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate().shouldTriggerCompactions();
+    }
 }

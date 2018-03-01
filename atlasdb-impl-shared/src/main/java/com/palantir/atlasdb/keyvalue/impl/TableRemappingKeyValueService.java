@@ -419,4 +419,8 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         }
     }
 
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate.shouldTriggerCompactions();
+    }
 }

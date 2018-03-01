@@ -256,4 +256,9 @@ public class ThrowingKeyValueService implements KeyValueService {
                                                      long timestamp) {
         throw throwEx();
     }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        throw throwEx();
+    }
 }

@@ -238,4 +238,9 @@ public class DualWriteKeyValueService implements KeyValueService {
                                                      long timestamp) {
         return delegate1.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
     }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate1.shouldTriggerCompactions() || delegate2.shouldTriggerCompactions();
+    }
 }

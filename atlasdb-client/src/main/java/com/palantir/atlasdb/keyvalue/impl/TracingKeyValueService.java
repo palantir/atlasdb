@@ -358,5 +358,9 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate().shouldTriggerCompactions();
+    }
 }
 

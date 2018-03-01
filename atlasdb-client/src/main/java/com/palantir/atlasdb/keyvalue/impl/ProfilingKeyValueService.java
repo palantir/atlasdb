@@ -491,4 +491,9 @@ public class ProfilingKeyValueService implements KeyValueService {
             return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
         }
     }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate.shouldTriggerCompactions();
+    }
 }
