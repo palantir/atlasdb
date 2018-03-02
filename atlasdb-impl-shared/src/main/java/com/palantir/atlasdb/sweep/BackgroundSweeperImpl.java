@@ -390,21 +390,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         log.debug("Finished sweeping {}, examined {} unique cells, deleted {} cells.",
                 tableToSweep.getTableRef().getQualifiedName(), cellsExamined, cellsDeleted);
 
-        if (cellsDeleted > 0) {
-            Stopwatch watch = Stopwatch.createStarted();
-            kvs.compactInternally(tableToSweep.getTableRef());
-            long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Finished performing compactInternally on {} in {} ms.",
-                    tableToSweep.getTableRef().getQualifiedName(), elapsedMillis);
-            sweepPerfLogger.logInternalCompaction(
-                    SweepCompactionPerformanceResults.builder()
-                            .tableName(tableToSweep.getTableRef().getQualifiedName())
-                            .cellsDeleted(cellsDeleted)
-                            .cellsExamined(cellsExamined)
-                            .elapsedMillis(elapsedMillis)
-                            .build());
-        }
-
         sweepProgressStore.clearProgress();
     }
 
