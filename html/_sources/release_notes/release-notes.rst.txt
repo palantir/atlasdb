@@ -75,6 +75,10 @@ develop
          - Changes the default scrubber behavior to aggressive scrub (synchronous with scrub request).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3009>`__)
 
+    *    - |fixed|
+         - Fixed a bug that can causes the background sweep thread to fail to shut down cleanly, hanging the application.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3023>`__)
+
 =======
 v0.77.0
 =======
