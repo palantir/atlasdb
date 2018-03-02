@@ -191,7 +191,8 @@ public final class BackgroundCompactor implements AutoCloseable {
     }
 
     private void compactTable(String tableToCompact) {
-        keyValueService.compactInternally(TableReference.createFromFullyQualifiedName(tableToCompact),
+        // System tables MAY be involved in this process.
+        keyValueService.compactInternally(TableReference.createUnsafe(tableToCompact),
                 inSafeHours.get());
     }
 
