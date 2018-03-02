@@ -196,6 +196,16 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>The <code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> builder now optionally accepts a <code class="docutils literal notranslate"><span class="pre">Callback</span></code> callback object.
+If <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to true, then this callback will be run after all the initialization prerequisites for the TransactionManager have been met, and the TransactionManager will start returning true on calls to its <code class="docutils literal notranslate"><span class="pre">isInitialized()</span></code> method only once the callback has returned.
+If <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to false, then this callback will be run just before the TransactionManager is returned, blocking until it is done.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3010">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>SerializableTransactionManager can now be closed even if it is not initialized yet.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3010">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td><p class="first">Sweep metrics have been reworked based on their observed usefulness in the field.
 In particular, histograms and most of the meters were replaced with gauges that expose last known values of tracked sweep results.
