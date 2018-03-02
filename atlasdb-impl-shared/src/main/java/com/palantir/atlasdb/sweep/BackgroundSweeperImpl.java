@@ -44,6 +44,8 @@ import com.palantir.logsafe.UnsafeArg;
 public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
 
+    private static final long MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS = 10_000;
+
     private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
@@ -312,7 +314,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         // on the daemon thread.
         shuttingDown.countDown();
         try {
-            daemon.join();
+            daemon.join(MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS);
+            if (daemon.isAlive()) {
+                log.error("Background sweep thread failed to shut down");
+            }
             daemon = null;
         } catch (InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
