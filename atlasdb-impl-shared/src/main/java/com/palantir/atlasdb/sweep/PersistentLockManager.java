@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
@@ -146,7 +145,8 @@ public class PersistentLockManager implements AutoCloseable {
         try {
             Thread.sleep(persistentLockRetryWaitMillis);
         } catch (InterruptedException e) {
-            throw Throwables.propagate(e);
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 }
