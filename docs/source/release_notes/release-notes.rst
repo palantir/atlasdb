@@ -53,16 +53,41 @@ develop
     *    - |new|
          - The ``TransactionManagers`` builder now optionally accepts a ``Callback`` callback object.
            If ``initializeAsync`` is set to true, then this callback will be run after all the initialization prerequisites for the TransactionManager have been met, and the TransactionManager will start returning true on calls to its ``isInitialized()`` method only once the callback has returned.
+           If ``initializeAsync`` is set to false, then this callback will be run just before the TransactionManager is returned, blocking until it is done. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3010>`__)
 
     *    - |fixed|
          - SerializableTransactionManager can now be closed even if it is not initialized yet.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3010>`__)
 
+    *    - |new| |changed| |metrics|
+         - Sweep metrics have been reworked based on their observed usefulness in the field.
+           In particular, histograms and most of the meters were replaced with gauges that expose last known values of tracked sweep results.
+           Tagged metrics have been removed as well, and were replaced by a gauge ``tableBeingSwept`` that exposes the name of the table being swept, if it is safe for logging.
+           Sweep metrics `cellTimestampPairsExamined`` and ``staleValuesDeleted`` are now updated after every batch of deletes instead of waiting until all of the batches are processed.
+           Sweep now exposes the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.SweepMetric.``:
+
+              - ``tableBeingSwept``
+              - ``cellTimestampPairsExamined``
+              - ``staleValuesDeleted``
+              - ``sweepTimeSweeping``
+              - ``sweepTimeElapsedSinceStart``
+              - ``sweepError``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2951>`__)
+
     *    - |fixed|
          - LoggingArgs no longer throws when it tries to hydrate invalid table metadata.
            This fixes an issue that prevented AtlasDB to start after performing a KVS migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
+
+    *    - |changed|
+         - Changes the default scrubber behavior to aggressive scrub (synchronous with scrub request).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3009>`__)
+
+    *    - |fixed|
+         - Fixed a bug that can causes the background sweep thread to fail to shut down cleanly, hanging the application.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3023>`__)
 
 =======
 v0.77.0
