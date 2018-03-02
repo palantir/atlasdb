@@ -41,6 +41,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -96,6 +97,7 @@ import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -167,6 +169,21 @@ public abstract class TransactionManagers {
     abstract MetricRegistry globalMetricsRegistry();
 
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
+
+    /**
+     * The callback Runnable will be run when the TransactionManager is successfully initialized. The
+     * TransactionManager will stay uninitialized and continue to throw for all other purposes until the callback
+     * returns at which point it will become initialized. If asynchronous initialization is disabled, the callback will
+     * be run just before the TM is returned.
+     *
+     * Note that if the callback blocks forever, the TransactionManager will never become initialized, and calling its
+     * close() method will block forever as well. If the callback init() fails, and its cleanup() method throws,
+     * the TransactionManager will not become initialized and it will be closed.
+     */
+    @Value.Default
+    Callback<TransactionManager> asyncInitializationCallback() {
+        return new Callback.NoOp<>();
+    }
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
         return ImmutableTransactionManagers.builder();
@@ -336,7 +353,8 @@ public abstract class TransactionManagers {
                         config.keyValueService().defaultGetRangesConcurrency(),
                         config.initializeAsync(),
                         () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
-                        SweepQueueWriter.NO_OP),
+                        SweepQueueWriter.NO_OP,
+                        asyncInitializationCallback()),
                 closeables);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
