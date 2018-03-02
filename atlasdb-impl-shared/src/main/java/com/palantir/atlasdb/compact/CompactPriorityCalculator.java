@@ -57,11 +57,8 @@ class CompactPriorityCalculator {
 
     @VisibleForTesting
     Optional<String> selectTableToCompactInternal(Transaction tx) {
-        log.info("Now attempting to retrieve history as part of a compact");
         Map<String, Long> tableToLastTimeSwept = sweepHistoryProvider.getHistory(tx);
-        log.info("Compact - table to last time swept: {}", tableToLastTimeSwept);
         Map<String, Long> tableToLastTimeCompacted = compactionHistoryProvider.getHistory(tx);
-        log.info("Compact - table to last time compacted: {}", tableToLastTimeCompacted);
 
         List<String> uncompactedTables = tableToLastTimeSwept.keySet().stream()
                 .filter(table -> !tableToLastTimeCompacted.keySet().contains(table))

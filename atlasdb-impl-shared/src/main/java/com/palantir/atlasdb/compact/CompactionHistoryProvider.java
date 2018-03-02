@@ -19,21 +19,14 @@ package com.palantir.atlasdb.compact;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
 import com.palantir.atlasdb.schema.generated.CompactTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 class CompactionHistoryProvider {
-    private static final Logger log = LoggerFactory.getLogger(CompactionHistoryProvider.class);
-
     Map<String, Long> getHistory(Transaction tx) {
-        log.info("compact - chp<1>");
         Map<String, Long> tableToLastTimeCompacted = new HashMap<>();
         CompactMetadataTable compactMetadataTable = CompactTableFactory.of().getCompactMetadataTable(tx);
-        log.info("compact - chp<2>");
         compactMetadataTable.getAllRowsUnordered(CompactMetadataTable.getColumnSelection(
                 CompactMetadataTable.CompactMetadataNamedColumn.LAST_COMPACT_TIME))
                 .forEach(row -> {
@@ -41,7 +34,6 @@ class CompactionHistoryProvider {
                     String tableName = row.getRowName().getFullTableName();
                     tableToLastTimeCompacted.put(tableName, lastCompactTime);
                 });
-        log.info("compact - chp<3>");
         return tableToLastTimeCompacted;
     }
 }

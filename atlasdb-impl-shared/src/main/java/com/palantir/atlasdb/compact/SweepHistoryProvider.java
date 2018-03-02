@@ -19,20 +19,14 @@ package com.palantir.atlasdb.compact;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 class SweepHistoryProvider {
-    private static final Logger log = LoggerFactory.getLogger(SweepHistoryProvider.class);
     Map<String, Long> getHistory(Transaction tx) {
         Map<String, Long> tableToLastTimeSwept = new HashMap<>();
-        log.info("compact - shp<1>");
         SweepPriorityTable sweepPriorityTable = SweepTableFactory.of().getSweepPriorityTable(tx);
-        log.info("compact - shp<2>");
         sweepPriorityTable.getAllRowsUnordered(SweepPriorityTable.getColumnSelection(
                 SweepPriorityTable.SweepPriorityNamedColumn.LAST_SWEEP_TIME))
                 .forEach(row -> {
@@ -40,7 +34,6 @@ class SweepHistoryProvider {
                     String tableName = row.getRowName().getFullTableName();
                     tableToLastTimeSwept.put(tableName, lastSweepTime);
                 });
-        log.info("compact - shp<3>");
         return tableToLastTimeSwept;
     }
 }
