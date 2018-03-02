@@ -454,6 +454,24 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void compactInternally(TableReference tableRef, boolean inSafeHours) {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            delegate.compactInternally(tableRef, inSafeHours);
+            if (inSafeHours) {
+                // Log differently in safe hours - if a compactInternally is slow this might be bad in unsafe hours
+                // but is probably okay in safe hours.
+                log.trace("Call to KVS.compactInternally (in safe hours) on table {} took {} ms.",
+                        tableRef.getQualifiedName(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            } else {
+                logTimeAndTable("compactInternally", tableRef.getQualifiedName(), stopwatch);
+            }
+        } else {
+            delegate.compactInternally(tableRef, inSafeHours);
+        }
+    }
+
+    @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
                                                                   BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         if (log.isTraceEnabled()) {

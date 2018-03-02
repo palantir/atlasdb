@@ -210,6 +210,11 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
+    public void compactInternally(TableReference tableRef, boolean inSafeHours) {
+        delegate().compactInternally(tableRef, inSafeHours);
+    }
+
+    @Override
     public boolean shouldTriggerCompactions() {
         return delegate().shouldTriggerCompactions();
     }

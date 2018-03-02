@@ -240,6 +240,11 @@ public class ThrowingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void compactInternally(TableReference tableRef, boolean inSafeHours) {
+        throw throwEx();
+    }
+
+    @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
