@@ -146,6 +146,7 @@ public class PersistentLockManager implements AutoCloseable {
         try {
             Thread.sleep(persistentLockRetryWaitMillis);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw Throwables.propagate(e);
         }
     }
