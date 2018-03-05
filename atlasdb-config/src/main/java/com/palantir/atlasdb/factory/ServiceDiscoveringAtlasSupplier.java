@@ -42,6 +42,8 @@ import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.spi.SchemaMutationLockCleaner;
+import com.palantir.atlasdb.spi.SchemaMutationLockCleanerFactory;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
@@ -49,6 +51,8 @@ import com.palantir.util.debug.ThreadDumps;
 public class ServiceDiscoveringAtlasSupplier {
     private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
+    private static final ServiceLoader<SchemaMutationLockCleanerFactory> schemaMutationLoader =
+            ServiceLoader.load(SchemaMutationLockCleanerFactory.class);
 
     private static String timestampServiceCreationInfo = null;
 
@@ -57,6 +61,7 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
+    private final java.util.function.Supplier<SchemaMutationLockCleaner> schemaMutationLockCleaner;
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         this(config,
@@ -109,6 +114,14 @@ public class ServiceDiscoveringAtlasSupplier {
                         "No atlas provider for KeyValueService type " + config.type() + " could be found."
                         + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
+        schemaMutationLockCleaner = StreamSupport.stream(schemaMutationLoader.spliterator(), false)
+                .filter(supportsKVSType())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No atlas provider for SchemaMutationLockCleaner type " + config.type() + " could be found."
+                                + " Have you annotated it with @AutoService(SchemaMutationLockCleaner.class)?"))
+                .getCleaner(config);
+
         keyValueService = Suppliers.memoize(
                 () -> atlasFactory.createRawKeyValueService(
                         config,
@@ -141,6 +154,10 @@ public class ServiceDiscoveringAtlasSupplier {
 
     public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {
         return timestampStoreInvalidator.get();
+    }
+
+    public java.util.function.Supplier<SchemaMutationLockCleaner> getSchemaMutationLockCleaner() {
+        return schemaMutationLockCleaner;
     }
 
     private void handleMultipleTimestampFetch() {
@@ -203,5 +220,9 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private Predicate<AtlasDbFactory> producesCorrectType() {
         return factory -> config.type().equalsIgnoreCase(factory.getType());
+    }
+
+    private Predicate<SchemaMutationLockCleanerFactory> supportsKVSType() {
+        return factory -> factory.supportsKVSType(config.type());
     }
 }

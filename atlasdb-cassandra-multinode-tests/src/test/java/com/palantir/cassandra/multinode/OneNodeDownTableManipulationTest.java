@@ -97,7 +97,7 @@ public class OneNodeDownTableManipulationTest {
         CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(config, clientPool, lockTables,
                 queryRunner);
 
-        cleaner.cleanLocksState();
+        cleaner.cleanLocksStateInternal();
     }
 
     @Test

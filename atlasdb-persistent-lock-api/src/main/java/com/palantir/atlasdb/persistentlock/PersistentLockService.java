@@ -50,4 +50,14 @@ public interface PersistentLockService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     void releaseBackupLock(PersistentLockId lockId);
+
+    /**
+     * Release and clean up the schema mutation lock state.
+     * Call this method if a client has lost its lock. To avoid possible data corruption due to the
+     * simultaneous creation of tables by multiple clients, this endpoint must only be used when only one client
+     * is live for the given keyspace.
+     */
+    @POST
+    @Path("release-schema-mutation-lock")
+    void releaseSchemaMutationLock();
 }

@@ -28,10 +28,12 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
+import com.palantir.atlasdb.spi.SchemaMutationLockCleaner;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
-public final class CassandraSchemaLockCleaner {
+public final class CassandraSchemaLockCleaner implements SchemaMutationLockCleaner {
     private static final Logger log = LoggerFactory.getLogger(CassandraSchemaLockCleaner.class);
 
     private final CassandraKeyValueServiceConfig config;
@@ -83,7 +85,15 @@ public final class CassandraSchemaLockCleaner {
                 ConsistencyLevel.ALL);
     }
 
-    public void cleanLocksState() throws TException {
+    public void cleanLocksState() {
+        try {
+            cleanLocksStateInternal();
+        } catch (TException e) {
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+        }
+    }
+
+    public void cleanLocksStateInternal() throws TException {
         Set<TableReference> tables = lockTables.getAllLockTables();
         Optional<TableReference> tableToKeep = tables.stream().findFirst();
         if (!tableToKeep.isPresent()) {

@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import java.util.function.Supplier;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,25 +24,30 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.spi.SchemaMutationLockCleaner;
 import com.palantir.remoting3.servers.jersey.WebPreconditions;
 
 public class KvsBackedPersistentLockService implements PersistentLockService {
     private static final Logger log = LoggerFactory.getLogger(KvsBackedPersistentLockService.class);
 
     private final LockStore lockStore;
+    private final Supplier<SchemaMutationLockCleaner> schemaMutationLockCleaner;
 
     @VisibleForTesting
-    KvsBackedPersistentLockService(LockStore lockStore) {
+    KvsBackedPersistentLockService(LockStore lockStore,
+            Supplier<SchemaMutationLockCleaner> schemaMutationLockCleaner) {
         this.lockStore = lockStore;
+        this.schemaMutationLockCleaner = schemaMutationLockCleaner;
     }
 
-    public static PersistentLockService create(KeyValueService kvs) {
-        return create(kvs, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    public static PersistentLockService create(KeyValueService kvs, Supplier<SchemaMutationLockCleaner> cleaner) {
+        return create(kvs, cleaner, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static PersistentLockService create(KeyValueService kvs, boolean initializeAsync) {
+    public static PersistentLockService create(KeyValueService kvs, Supplier<SchemaMutationLockCleaner> cleaner,
+            boolean initializeAsync) {
         LockStore lockStore = LockStoreImpl.create(kvs, initializeAsync);
-        return new KvsBackedPersistentLockService(lockStore);
+        return new KvsBackedPersistentLockService(lockStore, cleaner);
     }
 
     @Override
@@ -63,6 +70,11 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
                     + "it should have done.", e);
             throw e;
         }
+    }
+
+    @Override
+    public void releaseSchemaMutationLock() {
+        schemaMutationLockCleaner.get().cleanLocksState();
     }
 
 }

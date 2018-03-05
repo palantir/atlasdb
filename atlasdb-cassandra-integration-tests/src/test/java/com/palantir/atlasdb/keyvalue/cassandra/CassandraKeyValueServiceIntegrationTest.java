@@ -288,7 +288,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(CassandraContainer.KVS_CONFIG,
                 ckvs.getClientPool(), lockTables, queryRunner);
 
-        cleaner.cleanLocksState();
+        cleaner.cleanLocksStateInternal();
 
         // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
         // no rows or a table with a single row containing the cleared lock value (both are valid clean states).

@@ -53,7 +53,7 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         TracingQueryRunner tracingQueryRunner = new TracingQueryRunner(log, new TracingPrefsConfig());
 
-        CassandraSchemaLockCleaner.create(config, clientPool, lockTables, tracingQueryRunner).cleanLocksState();
+        CassandraSchemaLockCleaner.create(config, clientPool, lockTables, tracingQueryRunner).cleanLocksStateInternal();
         printer.info("Schema mutation lock cli completed successfully.");
         return 0;
     }

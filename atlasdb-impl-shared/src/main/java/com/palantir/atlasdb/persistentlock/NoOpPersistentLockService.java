@@ -27,4 +27,9 @@ public class NoOpPersistentLockService implements PersistentLockService {
     public void releaseBackupLock(PersistentLockId lockId) {
         // no-op
     }
+
+    @Override
+    public void releaseSchemaMutationLock() {
+        // no-op
+    }
 }
