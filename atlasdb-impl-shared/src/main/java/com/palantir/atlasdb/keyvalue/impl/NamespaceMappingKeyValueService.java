@@ -252,4 +252,14 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     public void compactInternally(TableReference tableRef) {
         delegate().compactInternally(tableRef);
     }
+
+    @Override
+    public void compactInternally(TableReference tableRef, boolean inSafeHours) {
+        delegate().compactInternally(tableRef, inSafeHours);
+    }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate.shouldTriggerCompactions();
+    }
 }
