@@ -118,8 +118,9 @@ public class ServiceDiscoveringAtlasSupplier {
                 .filter(supportsKVSType())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                        "No atlas provider for SchemaMutationLockCleaner type " + config.type() + " could be found."
-                                + " Have you annotated it with @AutoService(SchemaMutationLockCleaner.class)?"))
+                        "No atlas provider for SchemaMutationLockCleanerFactory type " + config.type()
+                                + " could be found. Have you annotated it with "
+                                + "@AutoService(SchemaMutationLockCleanerFactory.class)?"))
                 .getCleaner(config);
 
         keyValueService = Suppliers.memoize(
