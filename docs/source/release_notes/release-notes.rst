@@ -50,8 +50,24 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+=======
+v0.78.0
+=======
+
+2 March 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |new|
-         - The ``TransactionManagers`` builder now optionally accepts a ``Callback`` callback object.
+         - The ``TransactionManagers`` builder now optionally accepts a ``Callback`` object.
            If ``initializeAsync`` is set to true, then this callback will be run after all the initialization prerequisites for the TransactionManager have been met, and the TransactionManager will start returning true on calls to its ``isInitialized()`` method only once the callback has returned.
            If ``initializeAsync`` is set to false, then this callback will be run just before the TransactionManager is returned, blocking until it is done. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3010>`__)
@@ -64,7 +80,7 @@ develop
          - Sweep metrics have been reworked based on their observed usefulness in the field.
            In particular, histograms and most of the meters were replaced with gauges that expose last known values of tracked sweep results.
            Tagged metrics have been removed as well, and were replaced by a gauge ``tableBeingSwept`` that exposes the name of the table being swept, if it is safe for logging.
-           Sweep metrics `cellTimestampPairsExamined`` and ``staleValuesDeleted`` are now updated after every batch of deletes instead of waiting until all of the batches are processed.
+           Sweep metrics ``cellTimestampPairsExamined`` and ``staleValuesDeleted`` are now updated after every batch of deletes instead of waiting until all of the batches are processed.
            Sweep now exposes the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.SweepMetric.``:
 
               - ``tableBeingSwept``
