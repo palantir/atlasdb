@@ -38,12 +38,14 @@ public final class CassandraSchemaMutationLockCleanerFactory implements SchemaMu
 
     @Override
     public Supplier<SchemaMutationLockCleaner> getCleaner(KeyValueServiceConfig config) {
-        CassandraKeyValueServiceConfig cassandraConfig = getCassandraKvsConfig(config);
-        CassandraClientPool clientPool = CassandraClientPoolImpl.create(cassandraConfig);
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, cassandraConfig);
-        TracingQueryRunner tracingQueryRunner = new TracingQueryRunner(log, new TracingPrefsConfig());
+        return () -> {
+            CassandraKeyValueServiceConfig cassandraConfig = getCassandraKvsConfig(config);
+            CassandraClientPool clientPool = CassandraClientPoolImpl.create(cassandraConfig);
+            SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, cassandraConfig);
+            TracingQueryRunner tracingQueryRunner = new TracingQueryRunner(log, new TracingPrefsConfig());
 
-        return () -> CassandraSchemaLockCleaner.create(cassandraConfig, clientPool, lockTables, tracingQueryRunner);
+            return CassandraSchemaLockCleaner.create(cassandraConfig, clientPool, lockTables, tracingQueryRunner);
+        };
     }
 
     @Override
