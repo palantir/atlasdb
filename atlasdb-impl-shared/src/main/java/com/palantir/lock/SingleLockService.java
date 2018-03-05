@@ -17,10 +17,15 @@ package com.palantir.lock;
 
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 
 public class SingleLockService implements AutoCloseable {
+    private static final Logger log = LoggerFactory.getLogger(SingleLockService.class);
+
     private final RemoteLockService lockService;
     private final String lockId;
 
@@ -34,6 +39,8 @@ public class SingleLockService implements AutoCloseable {
     public void lockOrRefresh() throws InterruptedException {
         if (token != null) {
             Set<LockRefreshToken> refreshedTokens = lockService.refreshLockRefreshTokens(ImmutableList.of(token));
+            log.info("Refreshed an existing lock token for {} in a single lock service (token {}); got {}",
+                    lockId, token, refreshedTokens);
             if (refreshedTokens.isEmpty()) {
                 token = null;
             }
@@ -42,6 +49,7 @@ public class SingleLockService implements AutoCloseable {
             LockRequest request = LockRequest.builder(
                     ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
             token = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
+            log.info("Attempted to acquire the lock {} in a single lock service; got {}", lockId, token);
         }
     }
 

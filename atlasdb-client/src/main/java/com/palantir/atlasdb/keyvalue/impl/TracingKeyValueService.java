@@ -103,6 +103,14 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public void compactInternally(TableReference tableRef, boolean inSafeHours) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("compactInternally({})", tableRef)) {
+            delegate().compactInternally(tableRef, inSafeHours);
+        }
+    }
+
+    @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("createTable({})", tableRef)) {
@@ -358,5 +366,9 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate().shouldTriggerCompactions();
+    }
 }
 

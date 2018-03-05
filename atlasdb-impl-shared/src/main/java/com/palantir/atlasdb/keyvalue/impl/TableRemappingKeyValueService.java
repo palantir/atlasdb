@@ -419,4 +419,17 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         }
     }
 
+    @Override
+    public void compactInternally(TableReference tableRef, boolean inSafeHours) {
+        try {
+            delegate().compactInternally(tableMapper.getMappedTableName(tableRef), inSafeHours);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate.shouldTriggerCompactions();
+    }
 }
