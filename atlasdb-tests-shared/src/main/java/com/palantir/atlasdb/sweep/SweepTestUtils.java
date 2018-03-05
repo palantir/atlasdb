@@ -79,7 +79,7 @@ public final class SweepTestUtils {
 
     public static PersistentLockService getPersistentLockService(KeyValueService kvs) {
         if (kvs.supportsCheckAndSet()) {
-            return KvsBackedPersistentLockService.create(kvs);
+            return KvsBackedPersistentLockService.create(kvs, () -> null);
         } else {
             return new NoOpPersistentLockService();
         }

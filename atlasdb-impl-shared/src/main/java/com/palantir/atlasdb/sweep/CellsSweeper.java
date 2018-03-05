@@ -69,7 +69,7 @@ public class CellsSweeper {
 
     private static PersistentLockService getPersistentLockService(KeyValueService kvs, boolean initializeAsync) {
         if (kvs.supportsCheckAndSet()) {
-            return KvsBackedPersistentLockService.create(kvs, initializeAsync);
+            return KvsBackedPersistentLockService.create(kvs, () -> null, initializeAsync);
         } else {
             log.warn("CellsSweeper is being set up without a persistent lock service. "
                     + "It will not be safe to run backups while sweep is running.");
