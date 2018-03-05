@@ -56,6 +56,7 @@ public final class BackgroundCompactor implements AutoCloseable {
             LockService lockService,
             Supplier<Boolean> inSafeHours) {
         if (!keyValueService.shouldTriggerCompactions()) {
+            log.info("Not starting a background compactor, because we don't believe our KVS needs one.");
             return Optional.empty();
         }
 
@@ -66,6 +67,8 @@ public final class BackgroundCompactor implements AutoCloseable {
                 inSafeHours,
                 compactPriorityCalculator);
         backgroundCompactor.runInBackground();
+
+        log.info("Started background compactor {}", backgroundCompactor);
 
         return Optional.of(backgroundCompactor);
     }
@@ -103,9 +106,11 @@ public final class BackgroundCompactor implements AutoCloseable {
         daemon.setDaemon(true);
         daemon.setName("BackgroundCompactor");
         daemon.start();
+        log.info("Set up the background compactor to be run.");
     }
 
     public void run() {
+        log.info("Attempting to start the background compactor for the very first time.");
         try (SingleLockService compactorLock = createSimpleLocks()) {
             log.info("Starting background compactor");
             while (true) {
@@ -187,7 +192,8 @@ public final class BackgroundCompactor implements AutoCloseable {
     }
 
     private void compactTable(String tableToCompact) {
-        keyValueService.compactInternally(TableReference.createFromFullyQualifiedName(tableToCompact),
+        // System tables MAY be involved in this process.
+        keyValueService.compactInternally(TableReference.createUnsafe(tableToCompact),
                 inSafeHours.get());
     }
 

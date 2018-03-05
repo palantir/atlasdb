@@ -459,7 +459,8 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-dbkvs"
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-service"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
@@ -1696,7 +1697,8 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-dbkvs"
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:atlasdb-service"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {

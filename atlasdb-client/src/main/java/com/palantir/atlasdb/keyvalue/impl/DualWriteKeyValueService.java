@@ -278,4 +278,15 @@ public class DualWriteKeyValueService implements KeyValueService {
                                                      long timestamp) {
         return delegate1.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
     }
+
+    @Override
+    public void compactInternally(TableReference tableRef, boolean inSafeHours) {
+        delegate1.compactInternally(tableRef, inSafeHours);
+        delegate2.compactInternally(tableRef, inSafeHours);
+    }
+
+        @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate1.shouldTriggerCompactions() || delegate2.shouldTriggerCompactions();
+    }
 }

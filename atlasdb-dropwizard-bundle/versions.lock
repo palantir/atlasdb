@@ -430,7 +430,8 @@
         "com.palantir.atlasdb:atlasdb-impl-shared": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-service"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
@@ -1937,7 +1938,8 @@
         "com.palantir.atlasdb:atlasdb-impl-shared": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-service"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
