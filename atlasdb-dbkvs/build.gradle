@@ -12,6 +12,8 @@ dependencies {
   compile project(':commons-db')
   compile project(':commons-api')
 
+  compile group: 'com.palantir.remoting-api', name: 'service-config'
+
   testCompile project(':atlasdb-config')
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'

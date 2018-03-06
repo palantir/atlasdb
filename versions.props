@@ -15,6 +15,7 @@ com.palantir.docker.compose:docker-compose-rule* = 0.31.0
 com.palantir.remoting1:* = 1.0.3
 com.palantir.remoting:* = 0.13.0
 com.palantir.remoting2:* = 2.3.0
+com.palantir.remoting-api:* = 1.7.0
 com.palantir.tritium:tritium-lib = 0.6.0-beta
 commons-cli:commons-cli = 1.2
 commons-codec:commons-codec = 1.10
