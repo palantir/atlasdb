@@ -138,6 +138,8 @@ public interface TransactionManager extends AutoCloseable {
      */
     KeyValueServiceStatus getKeyValueServiceStatus();
 
+    TimelockServiceStatus getTimelockServiceStatus();
+
     /**
      * Returns the timestamp that is before any open start timestamps. This is different from the immutable
      * timestamp, because it takes into account open read-only transactions. There is likely to be NO

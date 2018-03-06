@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -25,15 +26,18 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Meter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
     private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
@@ -116,5 +120,16 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 numThreads, numThreads, 0L, TimeUnit.MILLISECONDS, workQueue,
                 new ThreadFactoryBuilder().setNameFormat(
                         AbstractTransactionManager.this.getClass().getSimpleName() + "-get-ranges-%d").build());
+    }
+
+    @Override
+    public TimelockServiceStatus getTimelockServiceStatus() {
+        Map<String, Meter> meters = AtlasDbMetrics.getMetricRegistry().getMeters();
+        boolean isHealthy = meters.get("timelock.success").getCount() > meters.get("timelock.fail").getCount();
+        if (isHealthy) {
+            return TimelockServiceStatus.HEALTHY;
+        } else {
+            return TimelockServiceStatus.UNHEALTHY;
+        }
     }
 }
