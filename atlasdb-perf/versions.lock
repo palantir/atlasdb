@@ -76,8 +76,10 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting-api:ssl-config",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
+                "com.palantir.tokens:auth-tokens",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -105,7 +107,8 @@
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
@@ -461,6 +464,18 @@
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
+        "com.palantir.remoting-api:service-config": {
+            "locked": "1.7.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.remoting-api:ssl-config": {
+            "locked": "1.7.0",
+            "transitive": [
+                "com.palantir.remoting-api:service-config"
+            ]
+        },
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3",
             "transitive": [
@@ -478,6 +493,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "com.palantir.tokens:auth-tokens": {
+            "locked": "3.0.0",
+            "transitive": [
+                "com.palantir.remoting-api:service-config"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -810,6 +831,7 @@
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting1:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -914,8 +936,10 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting-api:ssl-config",
                 "com.palantir.remoting1:tracing",
                 "com.palantir.remoting:ssl-config",
+                "com.palantir.tokens:auth-tokens",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -943,7 +967,8 @@
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
@@ -1299,6 +1324,18 @@
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
+        "com.palantir.remoting-api:service-config": {
+            "locked": "1.7.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.remoting-api:ssl-config": {
+            "locked": "1.7.0",
+            "transitive": [
+                "com.palantir.remoting-api:service-config"
+            ]
+        },
         "com.palantir.remoting1:tracing": {
             "locked": "1.0.3",
             "transitive": [
@@ -1316,6 +1353,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
+        "com.palantir.tokens:auth-tokens": {
+            "locked": "3.0.0",
+            "transitive": [
+                "com.palantir.remoting-api:service-config"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -1648,6 +1691,7 @@
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting1:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
