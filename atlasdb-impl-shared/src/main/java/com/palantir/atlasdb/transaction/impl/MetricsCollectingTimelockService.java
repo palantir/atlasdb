@@ -52,7 +52,7 @@ public class MetricsCollectingTimelockService implements TimelockService{
             long freshTimestamp = timelockService.getFreshTimestamp();
             success.mark();
             return freshTimestamp;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             fail.mark();
             throw e;
         }
@@ -64,7 +64,7 @@ public class MetricsCollectingTimelockService implements TimelockService{
             TimestampRange timestampRange = timelockService.getFreshTimestamps(numTimestampsRequested);
             success.mark();
             return timestampRange;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             fail.mark();
             throw e;
         }
@@ -77,7 +77,7 @@ public class MetricsCollectingTimelockService implements TimelockService{
             LockImmutableTimestampResponse response = timelockService.lockImmutableTimestamp(request);
             success.mark();
             return response;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             fail.mark();
             throw e;
         }
@@ -89,7 +89,7 @@ public class MetricsCollectingTimelockService implements TimelockService{
             long immutableTimestamp = timelockService.getImmutableTimestamp();
             success.mark();
             return immutableTimestamp;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             fail.mark();
             throw e;
         }
@@ -101,7 +101,7 @@ public class MetricsCollectingTimelockService implements TimelockService{
             LockResponse response = timelockService.lock(request);
             success.mark();
             return response;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             fail.mark();
             throw e;
         }
@@ -113,7 +113,7 @@ public class MetricsCollectingTimelockService implements TimelockService{
             WaitForLocksResponse response = timelockService.waitForLocks(request);
             success.mark();
             return response;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             fail.mark();
             throw e;
         }
@@ -126,7 +126,7 @@ public class MetricsCollectingTimelockService implements TimelockService{
             Set<LockToken> lockTokens = timelockService.refreshLockLeases(tokens);
             success.mark();
             return lockTokens;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             fail.mark();
             throw e;
         }
@@ -138,7 +138,7 @@ public class MetricsCollectingTimelockService implements TimelockService{
             Set<LockToken> lockTokens = unlock(tokens);
             success.mark();
             return lockTokens;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             fail.mark();
             throw e;
         }
@@ -150,7 +150,7 @@ public class MetricsCollectingTimelockService implements TimelockService{
             long currentTime = timelockService.currentTimeMillis();
             success.mark();
             return currentTime;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             fail.mark();
             throw e;
         }
