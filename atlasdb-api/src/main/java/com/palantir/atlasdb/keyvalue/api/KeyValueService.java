@@ -633,9 +633,9 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * Some compaction operations might make block reads and writes.
-     * These operations will just trigger when inSafeHours is set to true.
+     * These operations will just trigger when inMaintenanceHours is set to true.
      */
-    default void compactInternally(TableReference tableRef, boolean inSafeHours) {
+    default void compactInternally(TableReference tableRef, boolean inMaintenanceHours) {
         compactInternally(tableRef);
     }
 

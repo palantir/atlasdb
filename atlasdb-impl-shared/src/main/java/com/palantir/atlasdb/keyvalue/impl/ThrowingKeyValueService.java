@@ -240,7 +240,7 @@ public class ThrowingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void compactInternally(TableReference tableRef, boolean inSafeHours) {
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceHours) {
         throw throwEx();
     }
 

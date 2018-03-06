@@ -226,9 +226,9 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void compactInternally(TableReference tableRef, boolean inSafeHours) {
-        delegate1.compactInternally(tableRef, inSafeHours);
-        delegate2.compactInternally(tableRef, inSafeHours);
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceHours) {
+        delegate1.compactInternally(tableRef, inMaintenanceHours);
+        delegate2.compactInternally(tableRef, inMaintenanceHours);
     }
 
     @Override
