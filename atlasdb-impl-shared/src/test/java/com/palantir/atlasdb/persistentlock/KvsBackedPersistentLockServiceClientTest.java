@@ -17,6 +17,8 @@ package com.palantir.atlasdb.persistentlock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.util.UUID;
 
@@ -27,6 +29,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.spi.SchemaMutationLockCleaner;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.remoting.api.errors.RemoteException;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
@@ -37,9 +40,11 @@ public class KvsBackedPersistentLockServiceClientTest {
     private static final String REASON = "some-reason";
     private static final LockStoreImpl LOCK_STORE = LockStoreImpl.createImplForTest(new InMemoryKeyValueService(true));
 
+    private static SchemaMutationLockCleaner CLEANER = mock(SchemaMutationLockCleaner.class);
+
     @ClassRule
     public static final DropwizardClientRule DW = new DropwizardClientRule(
-            new KvsBackedPersistentLockService(LOCK_STORE),
+            new KvsBackedPersistentLockService(LOCK_STORE, () -> CLEANER),
             new CheckAndSetExceptionMapper(),
             HttpRemotingJerseyFeature.INSTANCE);
 
@@ -116,5 +121,12 @@ public class KvsBackedPersistentLockServiceClientTest {
                 .isThrownBy(() -> lockService.acquireBackupLock(null))
                 .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
 
+    }
+
+    @Test
+    public void cleanSchemaMutationLocksState() {
+        lockService.releaseSchemaMutationLock();
+
+        verify(CLEANER).cleanLocksState();
     }
 }
