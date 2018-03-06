@@ -151,7 +151,7 @@ public class PostgresDdlTableTest {
 
     private void assertThatVacuumWasPerformed(SqlConnection sqlConnection, boolean assertThatTimestampsWereChecked) {
         assertTrue(postgresDdlTable.shouldRunCompaction());
-        postgresDdlTable.compactInternally();
+        postgresDdlTable.compactInternally(false);
 
         if (assertThatTimestampsWereChecked) {
             verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(startsWith("SELECT FLOOR"), any());
@@ -162,7 +162,7 @@ public class PostgresDdlTableTest {
 
     private void assertThatVacuumWasNotPerformed(SqlConnection sqlConnection) {
         assertFalse(postgresDdlTable.shouldRunCompaction());
-        postgresDdlTable.compactInternally();
+        postgresDdlTable.compactInternally(false);
 
         verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(startsWith("SELECT FLOOR"), any());
 
