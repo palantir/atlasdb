@@ -98,7 +98,7 @@ public class BackgroundCompactorTest {
     }
 
     @Test
-    public void passesSafeHoursCorrectly() throws InterruptedException {
+    public void passesMaintenanceHoursCorrectly() throws InterruptedException {
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(txManager,
                 kvs,
                 mock(LockService.class),

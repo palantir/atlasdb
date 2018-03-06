@@ -32,6 +32,7 @@ import com.palantir.atlasdb.schema.generated.CompactTableFactory;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SingleLockService;
 
 public final class BackgroundCompactor implements AutoCloseable {
@@ -44,7 +45,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     private final TransactionManager transactionManager;
     private final KeyValueService keyValueService;
     private final LockService lockService;
-    private final Supplier<Boolean> inSafeHours;
+    private final Supplier<Boolean> inMaintenanceHours;
     private final CompactPriorityCalculator compactPriorityCalculator;
 
     private final CompactionOutcomeMetrics compactionOutcomeMetrics = new CompactionOutcomeMetrics();
@@ -54,7 +55,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     public static Optional<BackgroundCompactor> createAndRun(TransactionManager transactionManager,
             KeyValueService keyValueService,
             LockService lockService,
-            Supplier<Boolean> inSafeHours) {
+            Supplier<Boolean> inMaintenanceHours) {
         if (!keyValueService.shouldTriggerCompactions()) {
             log.info("Not starting a background compactor, because we don't believe our KVS needs one.");
             return Optional.empty();
@@ -64,7 +65,7 @@ public final class BackgroundCompactor implements AutoCloseable {
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
                 keyValueService,
                 lockService,
-                inSafeHours,
+                inMaintenanceHours,
                 compactPriorityCalculator);
         backgroundCompactor.runInBackground();
 
@@ -77,12 +78,12 @@ public final class BackgroundCompactor implements AutoCloseable {
     BackgroundCompactor(TransactionManager transactionManager,
             KeyValueService keyValueService,
             LockService lockService,
-            Supplier<Boolean> inSafeHours,
+            Supplier<Boolean> inMaintenanceHours,
             CompactPriorityCalculator compactPriorityCalculator) {
         this.transactionManager = transactionManager;
         this.keyValueService = keyValueService;
         this.lockService = lockService;
-        this.inSafeHours = inSafeHours;
+        this.inMaintenanceHours = inMaintenanceHours;
         this.compactPriorityCalculator = compactPriorityCalculator;
     }
 
@@ -194,7 +195,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     private void compactTable(String tableToCompact) {
         // System tables MAY be involved in this process.
         keyValueService.compactInternally(TableReference.createUnsafe(tableToCompact),
-                inSafeHours.get());
+                inMaintenanceHours.get());
     }
 
     enum CompactionOutcome {

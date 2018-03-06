@@ -252,11 +252,10 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     @Override
-    public void compactInternally(boolean inSafeHours) {
-        final String compactionFailureTemplate = "Tried to clean up {} bloat after a sweep operation,"
+    public void compactInternally(boolean inMaintenanceHours) {
+        final String compactionFailureTemplate = "Tried to clean up {} bloat,"
                 + " but underlying Oracle database or configuration does not support this {} feature online. "
-                + " Since this can't be automated in your configuration,"
-                + " good practice would be do to occasional offline manual maintenance of rebuilding"
+                + " Good practice could be do to occasional offline manual maintenance of rebuilding"
                 + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
                 + " like more information. Underlying error was: {}";
 
@@ -277,7 +276,7 @@ public final class OracleDdlTable implements DbDdlTable {
         } else if (config.enableShrinkOnOracleStandardEdition()) {
             Stopwatch timer = Stopwatch.createStarted();
             try {
-                if (inSafeHours) {
+                if (inMaintenanceHours) {
                     Stopwatch shrinkTimer = Stopwatch.createStarted();
                     getCompactionConnection().executeUnregisteredQuery(
                             "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
