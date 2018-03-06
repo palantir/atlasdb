@@ -65,7 +65,7 @@ public class SchemaMutationLockReleasingRule implements TestRule {
                     TracingQueryRunner tracingQueryRunner = new TracingQueryRunner(log, new TracingPrefsConfig());
 
                     CassandraSchemaLockCleaner.create(config, clientPool, lockTables, tracingQueryRunner)
-                            .cleanLocksState();
+                            .cleanLocksStateInternal();
                     throw t;
                 }
             }

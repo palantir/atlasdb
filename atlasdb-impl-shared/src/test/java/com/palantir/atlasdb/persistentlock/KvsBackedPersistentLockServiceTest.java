@@ -23,29 +23,33 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.spi.SchemaMutationLockCleaner;
 
 public class KvsBackedPersistentLockServiceTest {
     private static final String TEST_REASON = "for-test";
 
     private PersistentLockService service;
     private LockStoreImpl lockStore;
+    private SchemaMutationLockCleaner cleaner;
 
     @Before
     public void setUp() {
         KeyValueService kvs = new InMemoryKeyValueService(false);
         lockStore = spy(LockStoreImpl.createImplForTest(kvs));
-        service = new KvsBackedPersistentLockService(lockStore);
+        cleaner = Mockito.mock(SchemaMutationLockCleaner.class);
+        service = new KvsBackedPersistentLockService(lockStore, () -> cleaner);
     }
 
     @Test
     public void canCreatePersistentLockService() {
         KeyValueService kvs = new InMemoryKeyValueService(false);
-        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
+        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs, () -> cleaner);
         assertNotNull(pls);
     }
 
@@ -62,5 +66,12 @@ public class KvsBackedPersistentLockServiceTest {
         service.releaseBackupLock(lockId);
 
         verify(lockStore, times(1)).releaseLock(eq(lockEntry));
+    }
+
+    @Test
+    public void canCleanSchemaMutationLockState() {
+        service.releaseSchemaMutationLock();
+
+        verify(cleaner).cleanLocksState();
     }
 }

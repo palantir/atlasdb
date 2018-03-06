@@ -82,6 +82,7 @@ import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.SchemaMutationLockCleaner;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
@@ -300,16 +301,19 @@ public abstract class TransactionManagers {
             return ValidatingQueryRewritingKeyValueService.create(kvs);
         }, closeables);
 
+        Supplier<SchemaMutationLockCleaner> schemaMutationLockCleaner = atlasFactory.getSchemaMutationLockCleaner();
+        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
+                keyValueService,
+                schemaMutationLockCleaner,
+                registrar(),
+                config.initializeAsync());
+
         SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(keyValueService,
                 config.initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService,
                 schemas(),
                 schemaMetadataService,
-                config.initializeAsync());
-        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
-                keyValueService,
-                registrar(),
                 config.initializeAsync());
 
         TransactionService transactionService = AtlasDbMetrics.instrument(TransactionService.class,
@@ -511,13 +515,14 @@ public abstract class TransactionManagers {
 
     private static PersistentLockService createAndRegisterPersistentLockService(
             KeyValueService kvs,
+            Supplier<SchemaMutationLockCleaner> cleaner,
             Consumer<Object> env,
             boolean initializeAsync) {
         if (!kvs.supportsCheckAndSet()) {
             return new NoOpPersistentLockService();
         }
 
-        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs, initializeAsync);
+        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs, cleaner, initializeAsync);
         env.accept(pls);
         env.accept(new CheckAndSetExceptionMapper());
         return pls;
