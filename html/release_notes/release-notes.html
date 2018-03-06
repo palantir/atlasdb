@@ -196,21 +196,41 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-78-0">
+<h2>v0.78.0<a class="headerlink" href="#v0-78-0" title="Permalink to this headline">¶</a></h2>
+<p>2 March 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>The <code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> builder now optionally accepts a <code class="docutils literal notranslate"><span class="pre">Callback</span></code> callback object.
+<td>The <code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> builder now optionally accepts a <code class="docutils literal notranslate"><span class="pre">Callback</span></code> object.
 If <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to true, then this callback will be run after all the initialization prerequisites for the TransactionManager have been met, and the TransactionManager will start returning true on calls to its <code class="docutils literal notranslate"><span class="pre">isInitialized()</span></code> method only once the callback has returned.
 If <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to false, then this callback will be run just before the TransactionManager is returned, blocking until it is done.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3010">Pull Request</a>)</td>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3011">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>SerializableTransactionManager can now be closed even if it is not initialized yet.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3010">Pull Request</a>)</td>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3011">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td><p class="first">Sweep metrics have been reworked based on their observed usefulness in the field.
 In particular, histograms and most of the meters were replaced with gauges that expose last known values of tracked sweep results.
 Tagged metrics have been removed as well, and were replaced by a gauge <code class="docutils literal notranslate"><span class="pre">tableBeingSwept</span></code> that exposes the name of the table being swept, if it is safe for logging.
-Sweep metrics <cite>cellTimestampPairsExamined`</cite> and <code class="docutils literal notranslate"><span class="pre">staleValuesDeleted</span></code> are now updated after every batch of deletes instead of waiting until all of the batches are processed.
+Sweep metrics <code class="docutils literal notranslate"><span class="pre">cellTimestampPairsExamined</span></code> and <code class="docutils literal notranslate"><span class="pre">staleValuesDeleted</span></code> are now updated after every batch of deletes instead of waiting until all of the batches are processed.
 Sweep now exposes the following metrics with the common prefix <code class="docutils literal notranslate"><span class="pre">com.palantir.atlasdb.sweep.metrics.SweepMetric.</span></code>:</p>
 <blockquote>
 <div><ul class="simple">
