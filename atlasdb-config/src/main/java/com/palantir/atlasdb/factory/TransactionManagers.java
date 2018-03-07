@@ -97,7 +97,6 @@ import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -181,7 +180,7 @@ public abstract class TransactionManagers {
      * the TransactionManager will not become initialized and it will be closed.
      */
     @Value.Default
-    Callback<TransactionManager> asyncInitializationCallback() {
+    Callback<SerializableTransactionManager> asyncInitializationCallback() {
         return new Callback.NoOp<>();
     }
 
