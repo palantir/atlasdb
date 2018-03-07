@@ -120,6 +120,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -269,7 +270,19 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 runtimeConfig,
                 initializeAsync,
                 qosClient);
-        return create(config, clientPool, leaderConfig, log, initializeAsync);
+        try {
+            return create(config, clientPool, leaderConfig, log, initializeAsync);
+        } catch (Exception e) {
+            log.warn("Error occurred in creating Cassandra KVS. Now attempting to shut down client pool...", e);
+            try {
+                clientPool.shutdown();
+                log.info("Cassandra client pool shut down.");
+            } catch (RuntimeException internalException) {
+                log.info("An error occurred whilst shutting down the Cassandra client pool", internalException);
+                throw internalException;
+            }
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
     }
 
     private static CassandraKeyValueService create(
