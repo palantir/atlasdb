@@ -114,7 +114,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
     }
 
     @Test
-    public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWrites() {
+    public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnThoroughSweptTable() {
         TimelockService timelock = mock(TimelockService.class);
         LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(keyValueService,
@@ -138,10 +138,40 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
 
         assertThatThrownBy(() -> txnManagerWithMocks.runTaskThrowOnConflict(txn -> {
-            get(txn, "row1", "col1");
+            get(txn, TEST_TABLE_THOROUGH, "row1", "col1");
             return null;
         }))
                 .isInstanceOf(TransactionFailedRetriableException.class);
+    }
+
+    @Test
+    public void shouldNotConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnNonThoroughSweptTable() {
+        TimelockService timelock = mock(TimelockService.class);
+        LockService mockLockService = mock(LockService.class);
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(keyValueService,
+                timelock,
+                mockLockService,
+                transactionService,
+                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                NoOpCleaner.INSTANCE,
+                TimestampTrackerImpl.createNoOpTracker(),
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                SweepQueueWriter.NO_OP);
+
+        when(timelock.getFreshTimestamp()).thenReturn(1L);
+        when(timelock.lockImmutableTimestamp(any())).thenReturn(
+                LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
+
+        txnManagerWithMocks.runTaskThrowOnConflict(txn -> {
+            get(txn, TEST_TABLE, "row1", "col1");
+            return null;
+        });
     }
 
     @Test
