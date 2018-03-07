@@ -106,7 +106,7 @@ public class PostgresDdlTableTest {
     }
 
     @Test
-    public void shouldCompactIfVacuumTimestampExceedsNowTimestampByMoreThanCompactInterval() {
+    public void shouldNotCompactIfVacuumTimestampExceedsNowTimestampByMoreThanCompactInterval() {
         SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS + COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR,
                 NOW_MILLIS);
         assertThatVacuumWasNotPerformed(sqlConnection);
