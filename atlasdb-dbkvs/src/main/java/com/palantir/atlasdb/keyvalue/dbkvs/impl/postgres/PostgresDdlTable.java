@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import java.util.Optional;
 import java.util.concurrent.Semaphore;
 import java.util.function.Predicate;
 
@@ -173,12 +174,20 @@ public class PostgresDdlTable implements DbDdlTable {
         AgnosticResultRow row = Iterables.getOnlyElement(rs.rows());
 
         // last could be null if vacuum has never run
-        long last = row.getLong("last", -1);
-        if (last == -1) {
+        Optional<Long> lastVacuumTime = getLastVacuumTime(row);
+        if (vacuumWasNeverRun(lastVacuumTime)) {
             return Long.MAX_VALUE;
         }
-        long current = row.getLong("current");
-        return current - last;
+        long currentVacuumTime = row.getLong("current");
+        return currentVacuumTime - lastVacuumTime.get();
+    }
+
+    private boolean vacuumWasNeverRun(Optional<Long> lastVacuumTime) {
+        return !lastVacuumTime.isPresent();
+    }
+
+    private Optional<Long> getLastVacuumTime(AgnosticResultRow resultRow) {
+        return Optional.ofNullable(resultRow.getLongObject("last"));
     }
 
     private void runCompactOnTable() {
