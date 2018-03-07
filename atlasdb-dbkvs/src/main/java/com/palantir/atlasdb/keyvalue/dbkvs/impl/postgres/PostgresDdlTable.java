@@ -155,7 +155,18 @@ public class PostgresDdlTable implements DbDdlTable {
     @VisibleForTesting
     boolean shouldRunCompaction() {
         long compactIntervalMillis = config.compactInterval().toMilliseconds();
-        return compactIntervalMillis <= 0 || getMillisSinceLastCompact() >= compactIntervalMillis;
+
+        if (compactIntervalMillis <= 0) {
+            return true;
+        }
+
+        boolean noOverlyRecentCompaction = getMillisSinceLastCompact() >= compactIntervalMillis;
+        if (noOverlyRecentCompaction) {
+            log.info("Compacting table {} because there wasn't an overly recent compaction.", prefixedTableName());
+        } else {
+            log.info("Not compacting table {} because it was recently compacted.", prefixedTableName());
+        }
+        return noOverlyRecentCompaction;
     }
 
     /**
@@ -173,13 +184,15 @@ public class PostgresDdlTable implements DbDdlTable {
 
         AgnosticResultRow row = Iterables.getOnlyElement(rs.rows());
 
-        // last could be null if vacuum has never run
         Optional<Long> lastVacuumTime = getLastVacuumTime(row);
         if (vacuumWasNeverRun(lastVacuumTime)) {
             return Long.MAX_VALUE;
         }
         long currentVacuumTime = row.getLong("current");
-        return currentVacuumTime - lastVacuumTime.get();
+        long timeSinceLastCompact = currentVacuumTime - lastVacuumTime.orElseThrow(
+                () -> new IllegalStateException("Should not calculate time since last compact if it doesn't exist!"));
+        log.info("For table {}, we compacted {} ms ago", timeSinceLastCompact, prefixedTableName());
+        return timeSinceLastCompact;
     }
 
     private boolean vacuumWasNeverRun(Optional<Long> lastVacuumTime) {
