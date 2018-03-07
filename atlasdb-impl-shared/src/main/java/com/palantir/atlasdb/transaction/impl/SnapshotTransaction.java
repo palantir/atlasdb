@@ -213,6 +213,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final long lockAcquireTimeoutMs;
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
+    private final Set<TableReference> involvedTables = Sets.newConcurrentHashSet();
 
     protected volatile boolean hasReads;
 
@@ -352,6 +353,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected void checkGetPreconditions(TableReference tableRef) {
+        markTableAsInvolvedInThisTransaction(tableRef);
         if (transactionReadTimeoutMillis != null
                 && System.currentTimeMillis() - timeCreated > transactionReadTimeoutMillis) {
             throw new TransactionFailedRetriableException("Transaction timed out.");
@@ -376,7 +378,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
         if (writes != null) {
             for (byte[] row : rows) {
-                extractLocalWritesForRow(result, writes, row);
+                extractLocalWritesForRow(result, writes, row, columnSelection);
             }
         }
 
@@ -581,7 +583,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * If an empty value was written as a delete, this will also be included in the map.
      */
     private void extractLocalWritesForRow(@Output Map<Cell, byte[]> result,
-            SortedMap<Cell, byte[]> writes, byte[] row) {
+            SortedMap<Cell, byte[]> writes, byte[] row, ColumnSelection columnSelection) {
         Cell lowCell = Cells.createSmallestCellForRow(row);
         Iterator<Entry<Cell, byte[]>> it = writes.tailMap(lowCell).entrySet().iterator();
         while (it.hasNext()) {
@@ -590,7 +592,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             if (!Arrays.equals(row, cell.getRowName())) {
                 break;
             }
-            result.put(cell, entry.getValue());
+            if (columnSelection.allColumnsSelected()
+                    || columnSelection.getSelectedColumns().contains(cell.getColumnName())) {
+                result.put(cell, entry.getValue());
+            }
         }
     }
 
@@ -1202,6 +1207,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
         Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
+        markTableAsInvolvedInThisTransaction(tableRef);
 
         if (values.isEmpty()) {
             return;
@@ -1356,9 +1362,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
-                // TODO(nziebart): we actually only need to do this if we've read from tables with THOROUGH
-                // sweep strategy
-                throwIfImmutableTsOrCommitLocksExpired(null);
+                if (validationNecessaryForInvolvedTables()) {
+                    throwIfImmutableTsOrCommitLocksExpired(null);
+                }
                 return;
             }
             return;
@@ -1971,6 +1977,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public void useTable(TableReference tableRef, ConstraintCheckable table) {
         constraintsByTableName.put(tableRef, table);
+    }
+
+    /** the similarly-named-and-intentioned useTable method is only called on writes,
+     *  this one is more comprehensive and covers read paths as well
+     * (necessary because we wish to get the sweep strategies of tables in read-only transactions)
+     */
+    private void markTableAsInvolvedInThisTransaction(TableReference tableRef) {
+        involvedTables.add(tableRef);
+    }
+
+    private boolean validationNecessaryForInvolvedTables() {
+        return involvedTables.stream().anyMatch(this::isValidationNecessary);
     }
 
     private long getStartTimestamp() {

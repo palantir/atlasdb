@@ -50,21 +50,67 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - The Cassandra client pool is now cleaned up in the event of a failure to construct the Cassandra KVS (e.g. because we lost our connection to Cassandra midway).
+           Previously, the client pool was not shut down, leading to a thread leak.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
+
+=======
+v0.78.0
+=======
+
+2 March 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |new|
-         - DbKvs: introduced a Background compactor thread that carries out post-sweep compaction operations.
-           For non-enterprise Oracle deployments, this will only run the blocking ``SHRINK SPACE`` command during safe hours.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2984>`__ and
-           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2991>`__)
+         - The ``TransactionManagers`` builder now optionally accepts a ``Callback`` object.
+           If ``initializeAsync`` is set to true, then this callback will be run after all the initialization prerequisites for the TransactionManager have been met, and the TransactionManager will start returning true on calls to its ``isInitialized()`` method only once the callback has returned.
+           If ``initializeAsync`` is set to false, then this callback will be run just before the TransactionManager is returned, blocking until it is done. 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3011>`__)
+
+    *    - |fixed|
+         - SerializableTransactionManager can now be closed even if it is not initialized yet.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3011>`__)
+
+    *    - |new| |changed| |metrics|
+         - Sweep metrics have been reworked based on their observed usefulness in the field.
+           In particular, histograms and most of the meters were replaced with gauges that expose last known values of tracked sweep results.
+           Tagged metrics have been removed as well, and were replaced by a gauge ``tableBeingSwept`` that exposes the name of the table being swept, if it is safe for logging.
+           Sweep metrics ``cellTimestampPairsExamined`` and ``staleValuesDeleted`` are now updated after every batch of deletes instead of waiting until all of the batches are processed.
+           Sweep now exposes the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.SweepMetric.``:
+
+              - ``tableBeingSwept``
+              - ``cellTimestampPairsExamined``
+              - ``staleValuesDeleted``
+              - ``sweepTimeSweeping``
+              - ``sweepTimeElapsedSinceStart``
+              - ``sweepError``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2951>`__)
 
     *    - |fixed|
          - LoggingArgs no longer throws when it tries to hydrate invalid table metadata.
            This fixes an issue that prevented AtlasDB to start after performing a KVS migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
 
+    *    - |changed|
+         - Changes the default scrubber behavior to aggressive scrub (synchronous with scrub request).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3009>`__)
+
     *    - |fixed|
-         - The Cassandra client pool is now cleaned up in the event of a failure to construct the Cassandra KVS (e.g. because we lost our connection to Cassandra midway).
-           Previously, the client pool was not shut down, leading to a thread leak.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
+         - Fixed a bug that can causes the background sweep thread to fail to shut down cleanly, hanging the application.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3023>`__)
+
+    *    - |improved|
+         - Remove a round trip from read only transactions
+           not involving thoroughly swept tables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3020>`__)
 
 =======
 v0.77.0
@@ -96,6 +142,10 @@ v0.77.0
          - Introduced configurable ``writeThreshold`` and ``writeSizeThreshold`` parameters for when to write stats for the Sweep prioritization.
            Also reduce the defaults to flush write stats on 32MB overall write size and 2k cells.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2998>`__)
+
+    *    - |fixed|
+         - Fix ``SnapshotTransaction#getRows`` to apply ``ColumnSelection`` when there are local writes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3008>`__)
 
 =======
 v0.76.0

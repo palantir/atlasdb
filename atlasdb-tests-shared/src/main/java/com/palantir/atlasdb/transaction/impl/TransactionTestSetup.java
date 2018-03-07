@@ -23,7 +23,6 @@ import org.junit.Before;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -31,7 +30,12 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.NameMetadataDescription;
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -46,6 +50,8 @@ import com.palantir.util.Pair;
 public abstract class TransactionTestSetup {
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName(
             "ns.atlasdb_transactions_test_table");
+    protected static final TableReference TEST_TABLE_THOROUGH = TableReference.createFromFullyQualifiedName(
+            "ns.atlasdb_transactions_test_table_thorough");
 
     protected LockClient lockClient;
     protected LockServiceImpl lockService;
@@ -64,8 +70,30 @@ public abstract class TransactionTestSetup {
 
         keyValueService = getKeyValueService();
         keyValueService.createTables(ImmutableMap.of(
+                TEST_TABLE_THOROUGH,
+                new TableMetadata(
+                        new NameMetadataDescription(),
+                        new ColumnMetadataDescription(),
+                        ConflictHandler.RETRY_ON_WRITE_WRITE,
+                        TableMetadataPersistence.CachePriority.WARM,
+                        true,
+                        4,
+                        true,
+                        TableMetadataPersistence.SweepStrategy.THOROUGH,
+                        false,
+                        TableMetadataPersistence.LogSafety.UNSAFE).persistToBytes(),
                 TEST_TABLE,
-                AtlasDbConstants.GENERIC_TABLE_METADATA,
+                new TableMetadata(
+                        new NameMetadataDescription(),
+                        new ColumnMetadataDescription(),
+                        ConflictHandler.RETRY_ON_WRITE_WRITE,
+                        TableMetadataPersistence.CachePriority.WARM,
+                        true,
+                        4,
+                        true,
+                        TableMetadataPersistence.SweepStrategy.NOTHING,
+                        false,
+                        TableMetadataPersistence.LogSafety.UNSAFE).persistToBytes(),
                 TransactionConstants.TRANSACTION_TABLE,
                 TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
         keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));

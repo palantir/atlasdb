@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -43,6 +44,8 @@ import com.palantir.logsafe.UnsafeArg;
 public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
 
+    private static final long MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS = 10_000;
+
     private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
@@ -54,6 +57,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
 
     private Thread daemon;
+
+    private final CountDownLatch shuttingDown = new CountDownLatch(1);
 
     @VisibleForTesting
     BackgroundSweeperImpl(
@@ -120,7 +125,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         try (SingleLockService locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
             waitUntilSpecificTableSweeperIsInitialized();
-            Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
+            sleepForMillis(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
             while (true) {
                 // InterruptedException might be wrapped in RuntimeException (i.e. AtlasDbDependencyException),
@@ -155,7 +160,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             log.info("Sweep Priority Table and Sweep Progress Table are not initialized yet. If you have enabled "
                     + "asynchronous initialization, these tables are being initialized asynchronously. Background "
                     + "sweeper will start once the initialization is complete.");
-            Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
+            sleepForMillis(getBackoffTimeWhenSweepHasNotRun());
         }
     }
 
@@ -177,7 +182,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         if (outcome == SweepOutcome.SUCCESS) {
             sleepDurationMillis = sweepPauseMillis.get();
         }
-        Thread.sleep(sleepDurationMillis);
+        sleepForMillis(sleepDurationMillis);
     }
 
     @VisibleForTesting
@@ -280,6 +285,12 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         specificTableSweeper.getSweepProgressStore().clearProgress();
     }
 
+    private void sleepForMillis(long millis) throws InterruptedException {
+        if (shuttingDown.await(millis, TimeUnit.MILLISECONDS)) {
+            throw new InterruptedException();
+        }
+    }
+
     @VisibleForTesting
     SingleLockService createSweepLocks() {
         return new SingleLockService(lockService, "atlas sweep");
@@ -297,12 +308,18 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             return;
         }
         log.info("Signalling background sweeper to shut down.");
+        // Interrupt the daemon, whatever lock it may be waiting on.
         daemon.interrupt();
+        // Ensure we do not accidentally abort shutdown if any code incorrectly swallows InterruptedExceptions
+        // on the daemon thread.
+        shuttingDown.countDown();
         try {
-            daemon.join();
+            daemon.join(MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS);
+            if (daemon.isAlive()) {
+                log.error("Background sweep thread failed to shut down");
+            }
             daemon = null;
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }

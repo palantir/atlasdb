@@ -43,7 +43,6 @@ import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
-import com.palantir.atlasdb.sweep.metrics.UpdateEventType;
 import com.palantir.atlasdb.util.DropwizardClientRule;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.remoting.api.errors.RemoteException;
@@ -144,11 +143,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3}));
         ArgumentCaptor<SweepResults> argumentCaptor = ArgumentCaptor.forClass(SweepResults.class);
 
-        Mockito.verify(sweepMetricsManager, times(1)).updateMetrics(argumentCaptor.capture(), eq(TABLE_REF),
-                eq(UpdateEventType.ONE_ITERATION));
-        verifyExpectedArgument(argumentCaptor.getValue());
-        Mockito.verify(sweepMetricsManager, times(1)).updateMetrics(argumentCaptor.capture(), eq(TABLE_REF),
-                eq(UpdateEventType.FULL_TABLE));
+        Mockito.verify(sweepMetricsManager, times(1)).updateMetrics(argumentCaptor.capture(), eq(TABLE_REF));
         verifyExpectedArgument(argumentCaptor.getValue());
     }
 

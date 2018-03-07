@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.metrics;
+package com.palantir.atlasdb.util;
 
-public enum UpdateEventType {
-    ONE_ITERATION("currentIteration"),
-    FULL_TABLE("currentTable"),
-    ERROR("");
+import java.util.concurrent.atomic.AtomicLong;
 
-    private final String nameComponent;
+import com.codahale.metrics.Gauge;
 
-    UpdateEventType(String nameComponent) {
-        this.nameComponent = nameComponent;
+public class AccumulatingValueMetric implements Gauge<Long> {
+    private final AtomicLong value = new AtomicLong(0L);
+
+    @Override
+    public Long getValue() {
+        return value.get();
     }
 
-    public String getNameComponent() {
-        return nameComponent;
+    public void setValue(Long newValue) {
+        value.set(newValue);
+    }
+
+    public void accumulateValue(Long newValue) {
+        value.addAndGet(newValue);
     }
 }

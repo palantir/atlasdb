@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellLimit;
+import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
@@ -62,6 +63,7 @@ public class SweepTaskRunner {
     private final TransactionService transactionService;
     private final SweepStrategyManager sweepStrategyManager;
     private final CellsSweeper cellsSweeper;
+    private final Optional<SweepMetricsManager> metricsManager;
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
@@ -70,12 +72,31 @@ public class SweepTaskRunner {
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper) {
+        this(keyValueService,
+                unreadableTimestampSupplier,
+                immutableTimestampSupplier,
+                transactionService,
+                sweepStrategyManager,
+                cellsSweeper,
+                null);
+    }
+
+    public SweepTaskRunner(
+            KeyValueService keyValueService,
+            LongSupplier unreadableTimestampSupplier,
+            LongSupplier immutableTimestampSupplier,
+            TransactionService transactionService,
+            SweepStrategyManager sweepStrategyManager,
+            CellsSweeper cellsSweeper,
+            SweepMetricsManager metricsManager) {
         this.keyValueService = keyValueService;
         this.unreadableTimestampSupplier = unreadableTimestampSupplier;
         this.immutableTimestampSupplier = immutableTimestampSupplier;
         this.transactionService = transactionService;
         this.sweepStrategyManager = sweepStrategyManager;
         this.cellsSweeper = cellsSweeper;
+        this.metricsManager = Optional.ofNullable(metricsManager);
+
     }
 
     /**
@@ -133,11 +154,9 @@ public class SweepTaskRunner {
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
-        Optional<Sweeper> sweeper = Sweeper.of(sweepStrategy);
-        if (!sweeper.isPresent()) {
-            return SweepResults.createEmptySweepResultWithNoMoreToSweep();
-        }
-        return doRun(tableRef, batchConfig, startRow, runType, sweeper.get());
+        Optional<Sweeper> maybeSweeper = Sweeper.of(sweepStrategy);
+        return maybeSweeper.map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))
+                .orElseGet(SweepResults::createEmptySweepResultWithNoMoreToSweep);
     }
 
     private SweepResults doRun(TableReference tableRef,
@@ -179,6 +198,9 @@ public class SweepTaskRunner {
                         candidates, batchConfig, sweepableCellFilter, limit);
             long totalCellTsPairsExamined = 0;
             long totalCellTsPairsDeleted = 0;
+
+            metricsManager.ifPresent(SweepMetricsManager::resetBeforeDeleteBatch);
+
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
                 BatchOfCellsToSweep batch = batchesToSweep.next();
@@ -189,10 +211,14 @@ public class SweepTaskRunner {
                  * deleteBatchSize as a limit results in a small second batch, which is bad for performance reasons.
                  * Therefore, deleteBatchSize is doubled.
                  */
-                totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType,
-                        2 * batchConfig.deleteBatchSize());
+                long cellsDeleted = sweepBatch(tableRef, batch.cells(), runType, 2 * batchConfig.deleteBatchSize());
+                totalCellTsPairsDeleted += cellsDeleted;
 
-                totalCellTsPairsExamined += batch.numCellTsPairsExamined();
+                long cellsExamined = batch.numCellTsPairsExamined();
+                totalCellTsPairsExamined += cellsExamined;
+
+                metricsManager.ifPresent(manager -> manager.updateAfterDeleteBatch(cellsExamined, cellsDeleted));
+
                 lastRow = batch.lastCellExamined().getRowName();
             }
             return SweepResults.builder()

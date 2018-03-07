@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -478,6 +479,33 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 assertEquals(expectedValue, new BigInteger(storedValue));
             }
         }
+    }
+
+    @Test
+    public void testGetRowsLocalWritesWithColumnSelection() {
+        // This test ensures getRows correctly applies columnSelection when there are local writes
+        byte[] row1 = PtBytes.toBytes("row1");
+        Cell row1Column1 = Cell.create(row1, PtBytes.toBytes("column1"));
+        Cell row1Column2 = Cell.create(row1, PtBytes.toBytes("column2"));
+        byte[] row1Column1Value = BigInteger.valueOf(1).toByteArray();
+        byte[] row1Column2Value = BigInteger.valueOf(2).toByteArray();
+
+        Transaction snapshotTx = serializableTxManager.createNewTransaction();
+        snapshotTx.put(TABLE, ImmutableMap.of(
+                row1Column1, row1Column1Value,
+                row1Column2, row1Column2Value));
+
+        ColumnSelection column1Selection = ColumnSelection.create(ImmutableList.of(row1Column1.getColumnName()));
+
+        // local writes still apply columnSelection
+        RowResult<byte[]> rowResult1 = snapshotTx.getRows(TABLE, ImmutableList.of(row1), column1Selection).get(row1);
+        assertThat(rowResult1.getColumns(), hasEntry(row1Column1.getColumnName(), row1Column1Value));
+        assertThat(rowResult1.getColumns(), not(hasEntry(row1Column2.getColumnName(), row1Column2Value)));
+
+        RowResult<byte[]> rowResult2 = snapshotTx.getRows(TABLE, ImmutableList.of(row1), ColumnSelection.all())
+                .get(row1);
+        assertThat(rowResult2.getColumns(), hasEntry(row1Column1.getColumnName(), row1Column1Value));
+        assertThat(rowResult2.getColumns(), hasEntry(row1Column2.getColumnName(), row1Column2Value));
     }
 
     @Test
