@@ -17,21 +17,22 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.FakeTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
-import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
@@ -47,9 +48,9 @@ public class BlockingTimeLimitedLockServiceTest {
             = LockRequest.builder(ImmutableSortedMap.of(StringLockDescriptor.of("lockId"), LockMode.WRITE)).build();
 
     private final TimeLimiter acceptingLimiter = new FakeTimeLimiter();
-    private final TimeLimiter timingOutLimiter = new ThrowingTimeLimiter(new UncheckedTimeoutException());
-    private final TimeLimiter interruptingLimiter = new ThrowingTimeLimiter(new InterruptedException());
-    private final TimeLimiter throwingLimiter = new ThrowingTimeLimiter(new IllegalStateException());
+    private final TimeLimiter timingOutLimiter = mock(TimeLimiter.class);
+    private final TimeLimiter interruptingLimiter = mock(TimeLimiter.class);
+    private final TimeLimiter throwingLimiter = mock(TimeLimiter.class);
 
     private final CloseableLockService delegate = mock(CloseableLockService.class);
 
@@ -57,6 +58,13 @@ public class BlockingTimeLimitedLockServiceTest {
     private final BlockingTimeLimitedLockService timingOutService = createService(timingOutLimiter);
     private final BlockingTimeLimitedLockService interruptingService = createService(interruptingLimiter);
     private final BlockingTimeLimitedLockService throwingService = createService(throwingLimiter);
+
+    @Before
+    public void setUp() throws Exception {
+        when(timingOutLimiter.callWithTimeout(any(), anyLong(), any())).thenThrow(new TimeoutException());
+        when(interruptingLimiter.callWithTimeout(any(), anyLong(), any())).thenThrow(new InterruptedException());
+        when(throwingLimiter.callWithTimeout(any(), anyLong(), any())).thenThrow(new IllegalStateException());
+    }
 
     @Test
     public void delegatesInterruptibleOperations() throws InterruptedException {
@@ -113,27 +121,5 @@ public class BlockingTimeLimitedLockServiceTest {
 
     private BlockingTimeLimitedLockService createService(TimeLimiter limiter) {
         return new BlockingTimeLimitedLockService(delegate, limiter, BLOCKING_TIME_LIMIT_MILLIS);
-    }
-
-    private static final class ThrowingTimeLimiter implements TimeLimiter {
-        private final Exception primedException;
-
-        private ThrowingTimeLimiter(Exception primedException) {
-            this.primedException = primedException;
-        }
-
-        @Override
-        public <T> T newProxy(T target, Class<T> interfaceType, long timeoutDuration, TimeUnit timeoutUnit) {
-            throw new UnsupportedOperationException("Not expecting to create a new proxy");
-        }
-
-        @Override
-        public <T> T callWithTimeout(
-                Callable<T> callable,
-                long timeoutDuration,
-                TimeUnit timeoutUnit,
-                boolean interruptible) throws Exception {
-            throw primedException;
-        }
     }
 }

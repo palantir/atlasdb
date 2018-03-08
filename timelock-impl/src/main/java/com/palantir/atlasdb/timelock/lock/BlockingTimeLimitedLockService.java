@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 import javax.ws.rs.PathParam;
@@ -33,7 +34,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
-import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -203,7 +203,7 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
                     UnsafeArg.of("lockRequest", specification.lockRequest()),
                     e);
             throw e;
-        } catch (UncheckedTimeoutException e) {
+        } catch (TimeoutException e) {
             // This is the legitimate timeout case we're trying to catch.
             throw logAndHandleTimeout(specification);
         } catch (Exception e) {
