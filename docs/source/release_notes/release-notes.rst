@@ -58,7 +58,7 @@ develop
     *    - |improved| |devbreak|
          - Guava has been updated from 21.0 to 23.6-jre.
            This unblocks users using libraries which have dependencies on more recent versions of Guava, owing to API changes in ``SimpleTimeLimiter``, among other classes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3037>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3038>`__)
 
 
 =======
