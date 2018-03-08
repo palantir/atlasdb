@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -65,7 +66,12 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
 
     public static BlockingTimeLimitedLockService create(CloseableLockService lockService,
             long blockingTimeLimitMillis) {
-        return new BlockingTimeLimitedLockService(lockService, new SimpleTimeLimiter(), blockingTimeLimitMillis);
+        // TODO (jkong): Inject the executor to allow application lifecycle managed executors.
+        // Currently maintaining existing behaviour.
+        return new BlockingTimeLimitedLockService(
+                lockService,
+                SimpleTimeLimiter.create(Executors.newCachedThreadPool()),
+                blockingTimeLimitMillis);
     }
 
     @Nullable
@@ -188,7 +194,7 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
     private <T> T callWithTimeLimit(Callable<T> callable, LockRequestSpecification specification)
             throws InterruptedException {
         try {
-            return timeLimiter.callWithTimeout(callable, blockingTimeLimitMillis, TimeUnit.MILLISECONDS, true);
+            return timeLimiter.callWithTimeout(callable, blockingTimeLimitMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             // In this case, the thread was interrupted for some other reason, perhaps because we lost leadership.
             log.info("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
