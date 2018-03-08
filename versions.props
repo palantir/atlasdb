@@ -26,6 +26,7 @@ com.squareup.okhttp3:* = 3.8.1
 commons-cli:commons-cli = 1.2
 commons-codec:commons-codec = 1.10
 commons-io:commons-io = 2.1
+io.airlift:airline = 0.8
 io.atomix:* = 1.0.0-rc9
 io.atomix.catalyst:* = 1.1.2
 io.atomix.copycat:* = 1.2.0
