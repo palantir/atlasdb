@@ -138,13 +138,24 @@ public final class BackgroundCompactor implements AutoCloseable {
     @VisibleForTesting
     CompactionOutcome grabLockAndRunOnce(SingleLockService compactorLock)
             throws InterruptedException {
-        compactorLock.lockOrRefresh();
+        try {
+            compactorLock.lockOrRefresh();
+        } catch (Exception e) {
+            log.warn("Encountered exception when attempting to acquire the compactor lock.", e);
+            return CompactionOutcome.UNABLE_TO_ACQUIRE_LOCKS;
+        }
         if (!compactorLock.haveLocks()) {
             log.info("Failed to get the compaction lock. Probably, another host is running compaction.");
             return CompactionOutcome.UNABLE_TO_ACQUIRE_LOCKS;
         }
 
-        Optional<String> tableToCompactOptional = compactPriorityCalculator.selectTableToCompact();
+        Optional<String> tableToCompactOptional;
+        try {
+            tableToCompactOptional = compactPriorityCalculator.selectTableToCompact();
+        } catch (Exception e) {
+            log.warn("Encountered exception when attempting to determine which table should be compacted.", e);
+            return CompactionOutcome.NOTHING_TO_COMPACT;
+        }
         if (!tableToCompactOptional.isPresent()) {
             log.info("No table to compact");
             return CompactionOutcome.NOTHING_TO_COMPACT;
