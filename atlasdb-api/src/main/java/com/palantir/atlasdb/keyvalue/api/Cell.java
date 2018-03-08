@@ -31,6 +31,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 /**
@@ -67,9 +68,11 @@ public final class Cell implements Serializable, Comparable<Cell> {
                     "name must be no longer than {}.",
                     MAX_NAME_LENGTH);
         } catch (IllegalArgumentException e) {
-            log.error("Cell creation that was attempted was: {}; since the vast majority of people encountering this "
-                    + "problem are using unbounded Strings as components, it may aid your debugging to know the UTF-8 "
-                    + "interpretation of the bad field was: [{}]",
+            log.error("Cell name length exceeded. Name must be no longer than {}. "
+                            + "Cell creation that was attempted was: {}; since the vast majority of people "
+                            + "encountering this problem are using unbounded Strings as components, it may aid your "
+                            + "debugging to know the UTF-8 interpretation of the bad field was: [{}]",
+                    SafeArg.of("max name length", MAX_NAME_LENGTH),
                     UnsafeArg.of("cell", this),
                     UnsafeArg.of("name", new String(name, StandardCharsets.UTF_8)));
             throw e;
