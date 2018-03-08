@@ -103,7 +103,7 @@ class CompactPriorityCalculator {
             log.info("All swept tables have been compacted after the last sweep. Choosing to compact {} anyway - "
                     + "this may be a no-op. It was last compacted {} milliseconds after it was last swept.",
                     tableToCompact,
-                    maxSweptAfterCompact);
+                    -maxSweptAfterCompact);
         }
     }
 

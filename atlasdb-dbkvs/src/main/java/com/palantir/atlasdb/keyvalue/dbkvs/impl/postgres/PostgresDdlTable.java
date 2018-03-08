@@ -191,7 +191,7 @@ public class PostgresDdlTable implements DbDdlTable {
         long currentVacuumTime = row.getLong("current");
         long timeSinceLastCompact = currentVacuumTime - lastVacuumTime.orElseThrow(
                 () -> new IllegalStateException("Should not calculate time since last compact if it doesn't exist!"));
-        log.info("For table {}, we compacted {} ms ago", timeSinceLastCompact, prefixedTableName());
+        log.info("For table {}, we compacted {} ms ago", prefixedTableName(), timeSinceLastCompact);
         return timeSinceLastCompact;
     }
 
