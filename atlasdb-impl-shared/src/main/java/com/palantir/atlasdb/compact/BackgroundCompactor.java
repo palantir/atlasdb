@@ -130,9 +130,16 @@ public final class BackgroundCompactor implements AutoCloseable {
     }
 
     private void runOnceRecordingOutcome(SingleLockService compactorLock) throws InterruptedException {
-        CompactionOutcome outcome = grabLockAndRunOnce(compactorLock);
-        compactionOutcomeMetrics.registerOccurrenceOf(outcome);
-        Thread.sleep(outcome.getSleepTime());
+        Optional<CompactionOutcome> outcome = Optional.empty();
+        try {
+            outcome = Optional.of(grabLockAndRunOnce(compactorLock));
+        } catch (InterruptedException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Unexpected exception occurred whilst performing background compaction!", e);
+        }
+        compactionOutcomeMetrics.registerOccurrenceOf(outcome.orElse(CompactionOutcome.FAILED_TO_COMPACT));
+        Thread.sleep(outcome.map(CompactionOutcome::getSleepTime).orElse(SLEEP_TIME_AFTER_FAILURE_MILLIS));
     }
 
     @VisibleForTesting

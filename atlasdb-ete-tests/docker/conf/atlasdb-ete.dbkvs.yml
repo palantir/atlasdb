@@ -32,3 +32,5 @@ atlasdb:
       - http://ete1:3828
       - http://ete2:3828
       - http://ete3:3828
+
+  enableSweep: true

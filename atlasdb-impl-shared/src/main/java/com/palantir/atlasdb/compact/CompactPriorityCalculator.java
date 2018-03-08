@@ -86,7 +86,11 @@ class CompactPriorityCalculator {
             }
         }
 
-        logCompactionChoice(tableToCompact, maxSweptAfterCompact);
+        if (tableToCompact != null) {
+            logCompactionChoice(tableToCompact, maxSweptAfterCompact);
+        } else {
+            log.info("Not compacting, because it does not appear that any table has been swept.");
+        }
         return Optional.ofNullable(tableToCompact);
     }
 
