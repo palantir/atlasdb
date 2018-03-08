@@ -86,7 +86,11 @@ class CompactPriorityCalculator {
             }
         }
 
-        logCompactionChoice(tableToCompact, maxSweptAfterCompact);
+        if (tableToCompact == null) {
+            log.info("Not compacting, because it does not appear that any table has been swept.");
+        } else {
+            logCompactionChoice(tableToCompact, maxSweptAfterCompact);
+        }
         return Optional.ofNullable(tableToCompact);
     }
 
@@ -99,7 +103,7 @@ class CompactPriorityCalculator {
             log.info("All swept tables have been compacted after the last sweep. Choosing to compact {} anyway - "
                     + "this may be a no-op. It was last compacted {} milliseconds after it was last swept.",
                     tableToCompact,
-                    maxSweptAfterCompact);
+                    -maxSweptAfterCompact);
         }
     }
 
