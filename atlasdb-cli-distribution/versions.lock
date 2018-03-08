@@ -246,8 +246,7 @@
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
                 "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing",
-                "io.airlift:airline"
+                "com.palantir.tritium:tritium-tracing"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -258,6 +257,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
+                "io.airlift:airline",
                 "io.dropwizard:dropwizard-util"
             ]
         },
@@ -926,7 +926,7 @@
             ]
         },
         "io.airlift:airline": {
-            "locked": "0.7",
+            "locked": "0.8",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cli"
             ]
