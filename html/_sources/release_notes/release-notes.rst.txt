@@ -55,6 +55,10 @@ develop
            Previously, the client pool was not shut down, leading to a thread leak.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
 
+    *    - |improved| |logs|
+         - Log an ERROR in the case of failure to create a Cell due to a key greater than 1500 bytes. Previously we logged at DEBUG.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`)
+
 =======
 v0.78.0
 =======
