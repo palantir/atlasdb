@@ -36,6 +36,10 @@ if (enableErrorProne.toBoolean()) {
         options.compilerArgs += ['-Xep:PreconditionsConstantMessage:OFF']
         options.compilerArgs += ['-Xep:ValidateConstantMessage:OFF']
     }
+
+    compileTestJava {
+        options.compilerArgs += ['-Xep:CheckReturnValue:OFF']
+    }
 }
 
 apply plugin: 'com.palantir.baseline-eclipse'
