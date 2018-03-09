@@ -583,7 +583,7 @@ public abstract class TransactionManagers {
                         lockAndTimestampServices.timelock(),
                         timestampClientConfigSupplier);
 
-        TimelockService metricCollectingTimelockService = new InstrumentedTimelockService(
+        TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
                 timelockServiceWithBatching,
                 AtlasDbMetrics.getMetricRegistry()
         );
@@ -591,7 +591,7 @@ public abstract class TransactionManagers {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .timestamp(new TimelockTimestampServiceAdapter(timelockServiceWithBatching))
-                .timelock(metricCollectingTimelockService)
+                .timelock(instrumentedTimelockService)
                 .build();
     }
 
