@@ -54,6 +54,8 @@ develop
          - The Cassandra client pool is now cleaned up in the event of a failure to construct the Cassandra KVS (e.g. because we lost our connection to Cassandra midway).
            Previously, the client pool was not shut down, leading to a thread leak.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
+         - CleanCassLocksStateCommand is now using Atlas namespace if provided.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
 
     *    - |improved| |logs|
          - Log an ERROR in the case of failure to create a Cell due to a key greater than 1500 bytes. Previously we logged at DEBUG.
