@@ -46,13 +46,6 @@ public class CassandraServiceTest {
     private Blacklist blacklist;
 
     @Test
-    public void newTest() {
-        CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
-
-        cassandra.refreshTokenRanges();
-    }
-
-    @Test
     public void shouldReturnAddressForSingleHostInPool() throws UnknownHostException {
         CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
 

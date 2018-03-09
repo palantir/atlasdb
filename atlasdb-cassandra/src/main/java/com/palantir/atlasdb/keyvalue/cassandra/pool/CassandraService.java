@@ -144,8 +144,8 @@ public class CassandraService implements AutoCloseable {
     }
 
     public InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
-        if (config.todoMap().containsKey(host)) {
-            return config.todoMap().get(host);
+        if (config.addressTranslation().containsKey(host)) {
+            return config.addressTranslation().get(host);
         }
 
         InetAddress resolvedHost = InetAddress.getByName(host);

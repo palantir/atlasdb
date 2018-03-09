@@ -69,9 +69,7 @@ public class CassandraClientPoolIntegrationTest {
     public void close() {
         kv.close();
     }
-
-    // This is a dumb test in the current test suite that has just one local Cassandra node.
-    // Pretty legit test if run manually or if we go back to multi-node tests
+    
     @Test
     public void testTokenMapping() {
         Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =

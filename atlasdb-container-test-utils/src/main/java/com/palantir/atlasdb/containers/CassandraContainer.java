@@ -40,7 +40,7 @@ public class CassandraContainer extends Container {
     public static final InetSocketAddress server = new InetSocketAddress("cassandra", CASSANDRA_PORT);
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
             .addServers(server)
-            .todoMap(ImmutableMap.of("172.24.0.2", server))
+            .addressTranslation(ImmutableMap.of("172.24.0.2", server))
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(ImmutableCassandraCredentialsConfig.builder()

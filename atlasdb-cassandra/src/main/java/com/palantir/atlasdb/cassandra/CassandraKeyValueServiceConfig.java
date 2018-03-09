@@ -47,7 +47,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     public abstract Set<InetSocketAddress> servers();
 
     @Value.Default
-    public Map<String, InetSocketAddress> todoMap() {
+    public Map<String, InetSocketAddress> addressTranslation() {
         return ImmutableMap.of();
     }
 
