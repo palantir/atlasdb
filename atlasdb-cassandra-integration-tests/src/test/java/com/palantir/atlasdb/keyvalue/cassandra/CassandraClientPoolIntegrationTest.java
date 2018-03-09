@@ -69,7 +69,7 @@ public class CassandraClientPoolIntegrationTest {
     public void close() {
         kv.close();
     }
-    
+
     @Test
     public void testTokenMapping() {
         Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =

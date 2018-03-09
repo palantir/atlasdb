@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -151,7 +152,7 @@ public class CassandraService implements AutoCloseable {
         InetAddress resolvedHost = InetAddress.getByName(host);
         Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
         for (InetSocketAddress address : allKnownHosts) {
-            if (resolvedHost.equals(address.getAddress())) {
+            if (Objects.equals(address.getAddress(), resolvedHost)) {
                 return address;
             }
         }
