@@ -125,7 +125,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     @Override
     public TimelockServiceStatus getTimelockServiceStatus() {
         Map<String, Meter> meters = AtlasDbMetrics.getMetricRegistry().getMeters();
-        boolean isHealthy = meters.get("timelock.success").getCount() > meters.get("timelock.fail").getCount();
+        boolean isHealthy = meters.get("timelock.success").getFiveMinuteRate() > meters.get("timelock.fail").getFiveMinuteRate();
         if (isHealthy) {
             return TimelockServiceStatus.HEALTHY;
         } else {
