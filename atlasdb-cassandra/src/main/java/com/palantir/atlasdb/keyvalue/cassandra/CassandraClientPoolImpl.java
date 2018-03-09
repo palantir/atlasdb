@@ -458,48 +458,49 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     client.getOutputProtocol().getTransport().close();
                 }
             }
-
-            if (tokenRangesToHost.isEmpty()) {
-                log.warn("Failed to get ring info for entire Cassandra cluster ({});"
-                        + " ring could not be checked for consistency.",
-                        UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
-                return;
-            }
-
-            if (tokenRangesToHost.keySet().size() == 1) { // all nodes agree on a consistent view of the cluster. Good.
-                return;
-            }
-
-            RuntimeException ex = new IllegalStateException("Hosts have differing ring descriptions."
-                    + " This can lead to inconsistent reads and lost data. ");
-            log.error("QA-86204 {}: The token ranges to host are:\n{}",
-                    SafeArg.of("exception", ex.getMessage()),
-                    UnsafeArg.of("tokenRangesToHost", CassandraLogHelper.tokenRangesToHost(tokenRangesToHost)),
-                    ex);
-
-
-            // provide some easier to grok logging for the two most common cases
-            if (tokenRangesToHost.size() > 2) {
-                tokenRangesToHost.asMap().entrySet().stream()
-                        .filter(entry -> entry.getValue().size() == 1)
-                        .forEach(entry -> {
-                            // We've checked above that entry.getValue() has one element, so we never NPE here.
-                            String hostString = CassandraLogHelper.host(Iterables.getFirst(entry.getValue(), null));
-                            log.error("Host: {} disagrees with the other nodes about the ring state.",
-                                    SafeArg.of("host", hostString));
-                        });
-            }
-            if (tokenRangesToHost.keySet().size() == 2) {
-                ImmutableList<Set<TokenRange>> sets = ImmutableList.copyOf(tokenRangesToHost.keySet());
-                Set<TokenRange> set1 = sets.get(0);
-                Set<TokenRange> set2 = sets.get(1);
-                log.error("Hosts are split. group1: {} group2: {}",
-                        SafeArg.of("hosts1", CassandraLogHelper.collectionOfHosts(tokenRangesToHost.get(set1))),
-                        SafeArg.of("hosts2", CassandraLogHelper.collectionOfHosts(tokenRangesToHost.get(set2))));
-            }
-
-            CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());
         }
+
+        if (tokenRangesToHost.isEmpty()) {
+            log.warn("Failed to get ring info for entire Cassandra cluster ({});"
+                            + " ring could not be checked for consistency.",
+                    UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
+            return;
+        }
+
+        if (tokenRangesToHost.keySet().size() == 1) { // all nodes agree on a consistent view of the cluster. Good.
+            return;
+        }
+
+        RuntimeException ex = new IllegalStateException("Hosts have differing ring descriptions."
+                + " This can lead to inconsistent reads and lost data. ");
+        log.error("QA-86204 {}: The token ranges to host are:\n{}",
+                SafeArg.of("exception", ex.getMessage()),
+                UnsafeArg.of("tokenRangesToHost", CassandraLogHelper.tokenRangesToHost(tokenRangesToHost)),
+                ex);
+
+
+        // provide some easier to grok logging for the two most common cases
+        if (tokenRangesToHost.size() > 2) {
+            tokenRangesToHost.asMap().entrySet().stream()
+                    .filter(entry -> entry.getValue().size() == 1)
+                    .forEach(entry -> {
+                        // We've checked above that entry.getValue() has one element, so we never NPE here.
+                        String hostString = CassandraLogHelper.host(Iterables.getFirst(entry.getValue(), null));
+                        log.error("Host: {} disagrees with the other nodes about the ring state.",
+                                SafeArg.of("host", hostString));
+                    });
+        }
+        if (tokenRangesToHost.keySet().size() == 2) {
+            ImmutableList<Set<TokenRange>> sets = ImmutableList.copyOf(tokenRangesToHost.keySet());
+            Set<TokenRange> set1 = sets.get(0);
+            Set<TokenRange> set2 = sets.get(1);
+            log.error("Hosts are split. group1: {} group2: {}",
+                    SafeArg.of("hosts1", CassandraLogHelper.collectionOfHosts(tokenRangesToHost.get(set1))),
+                    SafeArg.of("hosts2", CassandraLogHelper.collectionOfHosts(tokenRangesToHost.get(set2))));
+        }
+
+        CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());
+
     }
 
     @Override
