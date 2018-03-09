@@ -816,8 +816,7 @@
             ]
         },
         "io.airlift:airline": {
-            "locked": "0.8",
-            "requested": "0.8"
+            "locked": "0.8"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
@@ -1875,8 +1874,7 @@
             ]
         },
         "io.airlift:airline": {
-            "locked": "0.8",
-            "requested": "0.8"
+            "locked": "0.8"
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
