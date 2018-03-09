@@ -205,6 +205,10 @@ Previously, the client pool was not shut down, leading to a thread leak.
 <td>Log an ERROR in the case of failure to create a Cell due to a key greater than 1500 bytes. Previously we logged at DEBUG.
 (<cite>Pull Request &lt;https://github.com/palantir/atlasdb/pull/3034&gt;</cite>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>CleanCassLocksStateCommand is now using Atlas namespace if provided.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3035">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
