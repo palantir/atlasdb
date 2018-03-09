@@ -108,7 +108,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private final Blacklist blacklist;
     private final CassandraRequestExceptionHandler exceptionHandler;
-    private final CassandraService cassandra;
+    public final CassandraService cassandra;
 
     private final CassandraKeyValueServiceConfig config;
     private final StartupChecks startupChecks;

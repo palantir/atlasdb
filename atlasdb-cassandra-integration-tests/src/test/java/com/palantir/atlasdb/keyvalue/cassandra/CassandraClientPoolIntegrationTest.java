@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -75,7 +76,7 @@ public class CassandraClientPoolIntegrationTest {
     public void testTokenMapping() {
         Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
                 clientPool.getTokenMap().asMapOfRanges();
-
+        assertFalse(mapOfRanges.isEmpty());
         for (Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry :
                 mapOfRanges.entrySet()) {
             Range<LightweightOppToken> tokenRange = entry.getKey();

@@ -144,11 +144,14 @@ public class CassandraService implements AutoCloseable {
     }
 
     public InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
-        InetAddress resolvedHost = InetAddress.getByName(host);
+        if (config.todoMap().containsKey(host)) {
+            return config.todoMap().get(host);
+        }
 
+        InetAddress resolvedHost = InetAddress.getByName(host);
         Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
         for (InetSocketAddress address : allKnownHosts) {
-            if (address.getAddress().equals(resolvedHost)) {
+            if (resolvedHost.equals(address.getAddress())) {
                 return address;
             }
         }

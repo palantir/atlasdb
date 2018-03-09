@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cassandra;
 
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -28,6 +29,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -43,6 +45,11 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     public static final String TYPE = "cassandra";
 
     public abstract Set<InetSocketAddress> servers();
+
+    @Value.Default
+    public Map<String, InetSocketAddress> todoMap() {
+        return ImmutableMap.of();
+    }
 
     @Override
     @JsonIgnore
