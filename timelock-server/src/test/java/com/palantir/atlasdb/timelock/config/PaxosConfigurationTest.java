@@ -29,7 +29,6 @@ import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressWarnings("CheckReturnValue") // We use Immutables builder.build() to check failing fast (or not)...
 public class PaxosConfigurationTest {
     private static final long POSITIVE_LONG = 100L;
     private static final long NEGATIVE_LONG = -100L;

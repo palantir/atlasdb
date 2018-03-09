@@ -27,7 +27,6 @@ import java.io.File;
 
 import org.junit.Test;
 
-@SuppressWarnings("CheckReturnValue") // We use Immutables builder.build() to check failing fast (or not)...
 public class PaxosInstallConfigurationTest {
     @Test
     public void canCreateWithDefaultValues() {
