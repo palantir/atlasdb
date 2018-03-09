@@ -59,6 +59,10 @@ develop
          - Log an ERROR in the case of failure to create a Cell due to a key greater than 1500 bytes. Previously we logged at DEBUG.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`)
 
+    *    - |fixed|
+         - CleanCassLocksStateCommand is now using Atlas namespace if provided.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
+
 =======
 v0.78.0
 =======
