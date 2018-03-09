@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Set;
+import java.util.function.Supplier;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
@@ -30,12 +31,12 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-public class MetricsCollectingTimelockService implements TimelockService{
+public class InstrumentedTimelockService implements TimelockService{
     private final TimelockService timelockService;
     private final Meter success;
     private final Meter fail;
 
-    public MetricsCollectingTimelockService (TimelockService timelockService, MetricRegistry metricRegistry) {
+    public InstrumentedTimelockService(TimelockService timelockService, MetricRegistry metricRegistry) {
         this.timelockService = timelockService;
         this.success = metricRegistry.meter("timelock.success");
         this.fail = metricRegistry.meter("timelock.fail");
@@ -48,108 +49,56 @@ public class MetricsCollectingTimelockService implements TimelockService{
 
     @Override
     public long getFreshTimestamp() {
-        try {
-            long freshTimestamp = timelockService.getFreshTimestamp();
-            success.mark();
-            return freshTimestamp;
-        } catch (Exception e) {
-            fail.mark();
-            throw e;
-        }
+        return executeWithRecord(() -> timelockService.getFreshTimestamp());
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        try {
-            TimestampRange timestampRange = timelockService.getFreshTimestamps(numTimestampsRequested);
-            success.mark();
-            return timestampRange;
-        } catch (Exception e) {
-            fail.mark();
-            throw e;
-        }
+        return executeWithRecord(() -> timelockService.getFreshTimestamps(numTimestampsRequested));
     }
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp(
             LockImmutableTimestampRequest request) {
-        try {
-            LockImmutableTimestampResponse response = timelockService.lockImmutableTimestamp(request);
-            success.mark();
-            return response;
-        } catch (Exception e) {
-            fail.mark();
-            throw e;
-        }
+        return executeWithRecord(() -> timelockService.lockImmutableTimestamp(request));
     }
 
     @Override
     public long getImmutableTimestamp() {
-        try {
-            long immutableTimestamp = timelockService.getImmutableTimestamp();
-            success.mark();
-            return immutableTimestamp;
-        } catch (Exception e) {
-            fail.mark();
-            throw e;
-        }
+        return executeWithRecord(() -> timelockService.getImmutableTimestamp());
     }
 
     @Override
     public LockResponse lock(LockRequest request) {
-        try {
-            LockResponse response = timelockService.lock(request);
-            success.mark();
-            return response;
-        } catch (Exception e) {
-            fail.mark();
-            throw e;
-        }
+        return executeWithRecord(() -> timelockService.lock(request));
     }
 
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        try {
-            WaitForLocksResponse response = timelockService.waitForLocks(request);
-            success.mark();
-            return response;
-        } catch (Exception e) {
-            fail.mark();
-            throw e;
-        }
+        return executeWithRecord(() -> timelockService.waitForLocks(request));
     }
 
     @Override
     public Set<LockToken> refreshLockLeases(
             Set<LockToken> tokens) {
-        try {
-            Set<LockToken> lockTokens = timelockService.refreshLockLeases(tokens);
-            success.mark();
-            return lockTokens;
-        } catch (Exception e) {
-            fail.mark();
-            throw e;
-        }
+        return executeWithRecord(() -> timelockService.refreshLockLeases(tokens));
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        try {
-            Set<LockToken> lockTokens = unlock(tokens);
-            success.mark();
-            return lockTokens;
-        } catch (Exception e) {
-            fail.mark();
-            throw e;
-        }
+        return executeWithRecord(() -> timelockService.unlock(tokens));
     }
 
     @Override
     public long currentTimeMillis() {
+        return executeWithRecord(() -> timelockService.currentTimeMillis());
+    }
+
+    private <T> T executeWithRecord(Supplier<T> method) {
         try {
-            long currentTime = timelockService.currentTimeMillis();
+            T t = method.get();
             success.mark();
-            return currentTime;
+            return t;
         } catch (Exception e) {
             fail.mark();
             throw e;
