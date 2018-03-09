@@ -25,7 +25,6 @@ import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
 
-@SuppressWarnings("CheckReturnValue") // We use Immutables builder.build() to check failing fast (or not)...
 public class QosServiceRuntimeConfigTest {
     @Test
     public void canBuildFromEmptyClientLimitsWithoutCasandraMetricsConfig() {

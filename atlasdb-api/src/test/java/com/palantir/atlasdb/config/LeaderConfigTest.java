@@ -22,7 +22,6 @@ import java.util.Collections;
 
 import org.junit.Test;
 
-@SuppressWarnings("CheckReturnValue") // We use Immutables builder.build() to check failing fast (or not)...
 public class LeaderConfigTest {
     @Test
     public void shouldBeTheLockLeaderIfLocalServerMatchesLockLeader() {

@@ -30,7 +30,6 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
-@SuppressWarnings("CheckReturnValue") // We use Immutables builder.build() to check failing fast (or not)...
 public class TimeLockClientConfigTest {
     private static final String CLIENT = "testClient";
     private static final String SERVER_1 = "http://localhost:8080";
