@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
+@SuppressWarnings("CheckReturnValue") // We use Immutables builder.build() to check failing fast (or not)...
 public class PaxosRuntimeConfigurationTest {
     private static final long POSITIVE_LONG = 1L;
     private static final long NEGATIVE_LONG = -1L;
