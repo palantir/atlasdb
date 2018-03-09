@@ -31,6 +31,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Callables;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -123,7 +124,7 @@ public class ExecutorInheritableThreadLocalTest extends Assert {
     public void testSameThread() {
         local.set("whatup");
         ListeningExecutorService sameThreadExecutor = MoreExecutors.newDirectExecutorService();
-        sameThreadExecutor.submit(PTExecutors.wrap(Callables.returning(null)));
+        ListenableFuture<Object> unused = sameThreadExecutor.submit(PTExecutors.wrap(Callables.returning(null)));
         Assert.assertEquals("whatup", local.get());
     }
 

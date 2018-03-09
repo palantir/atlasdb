@@ -35,6 +35,7 @@ import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
+@SuppressWarnings("CheckReturnValue") // We use Immutables builder.build() to check failing fast (or not)...
 public class AtlasDbConfigTest {
     private static final KeyValueServiceConfig KVS_CONFIG_WITHOUT_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final KeyValueServiceConfig KVS_CONFIG_WITH_OTHER_NAMESPACE = mock(KeyValueServiceConfig.class);

@@ -27,6 +27,7 @@ import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
+@SuppressWarnings("CheckReturnValue") // We use Immutables builder.build() to check failing fast (or not)...
 public class QosServiceInstallConfigTest {
     @Test
     public void canBuildDefaultConfigWithNoCassandraService() {
