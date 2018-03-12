@@ -60,6 +60,13 @@ develop
            This unblocks users using libraries which have dependencies on more recent versions of Guava, owing to API changes in ``SimpleTimeLimiter``, among other classes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3038>`__)
 
+    *    - |improved| |logs|
+         - Log an ERROR in the case of failure to create a Cell due to a key greater than 1500 bytes. Previously we logged at DEBUG.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`)
+
+    *    - |fixed|
+         - CleanCassLocksStateCommand is now using Atlas namespace if provided.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
 
 =======
 v0.78.0
@@ -152,6 +159,12 @@ v0.77.0
     *    - |fixed|
          - Fix ``SnapshotTransaction#getRows`` to apply ``ColumnSelection`` when there are local writes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3008>`__)
+
+    *    - |fixed|
+         - CassandraKVS sstable size in MB was not being correctly set.
+           This resulted in requirements on the entire cluster being up during startup of certain stacks.
+           CF metadata mismatch messages are also now correctly safety marked for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2989>`__)
 
 =======
 v0.76.0
@@ -398,12 +411,6 @@ v0.73.1
     *    - |devbreak|
          - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
-
-    *    - |fixed|
-         - CassandraKVS sstable size in MB was not being correctly set.
-           This resulted in requirements on the entire cluster being up during startup of certain stacks.
-           CF metadata mismatch messages are also now correctly safety marked for logging.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2989>`__)
 
 =======
 v0.73.0
