@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.RateLimiter;
@@ -125,7 +126,12 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     @Override
     public TimelockServiceStatus getTimelockServiceStatus() {
         Map<String, Meter> meters = AtlasDbMetrics.getMetricRegistry().getMeters();
-        boolean isHealthy = meters.get("timelock.success").getFiveMinuteRate() > meters.get("timelock.fail").getFiveMinuteRate();
+        if (!meters.containsKey("timelock.success") && !meters.containsKey("timelock.fail")) {
+            log.error("Timelock client metrics is not properly set");
+            throw new IllegalStateException();
+        }
+
+        boolean isHealthy = meters.get("timelock.success").getFiveMinuteRate() >= meters.get("timelock.fail").getFiveMinuteRate();
         if (isHealthy) {
             return TimelockServiceStatus.HEALTHY;
         } else {

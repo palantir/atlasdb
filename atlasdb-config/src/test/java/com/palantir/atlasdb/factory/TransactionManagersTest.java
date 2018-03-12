@@ -77,6 +77,7 @@ import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.MetricsRule;
 import com.palantir.leader.PingableLeader;
@@ -456,6 +457,19 @@ public class TransactionManagersTest {
 
         assertTrue("Runtime config was not expected to contain a timelock block",
                 !runtimeConfig.timelockRuntime().isPresent());
+    }
+
+    @Test
+    public void timelockServiceStatusReturnsHealthyWithoutRequest() {
+        TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
+        assertTrue(tm.getTimelockServiceStatus().isHealthy());
+    }
+
+    @Test
+    public void timelockServiceStatusReturnsHealthyAfterSuccessfulRequests() {
+        TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
+        tm.getUnreadableTimestamp();
+        assertTrue(tm.getTimelockServiceStatus().isHealthy());
     }
 
     private void verifyUsingTimeLockByGettingAFreshTimestamp() {
