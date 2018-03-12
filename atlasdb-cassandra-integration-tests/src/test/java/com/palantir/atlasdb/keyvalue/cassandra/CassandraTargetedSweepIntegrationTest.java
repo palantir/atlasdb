@@ -25,7 +25,6 @@ import java.util.Optional;
 import org.junit.Before;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -54,8 +53,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
 
-        return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraContainer.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.create(config, CassandraContainer.LEADER_CONFIG);
     }
 
     @Override
