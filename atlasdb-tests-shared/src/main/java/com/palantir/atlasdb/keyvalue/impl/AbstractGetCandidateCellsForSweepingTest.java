@@ -214,7 +214,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                         .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
                         .maxTimestampExclusive(40L)
                         .shouldCheckIfLatestValueIsEmpty(checkIfLatestValueIsEmpty)
-                        .ignoreGarbageCollectionSentinels(true)
+                        .shouldDeleteGarbageCollectionSentinels(false)
                         .batchSizeHint(1)
                         .build());
         assertEquals(expectedCells,
@@ -238,7 +238,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .startRowInclusive(startRow)
                 .maxTimestampExclusive(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(false)
-                .ignoreGarbageCollectionSentinels(true)
+                .shouldDeleteGarbageCollectionSentinels(false)
                 .batchSizeHint(batchSizeHint)
                 .build();
     }
@@ -248,7 +248,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .startRowInclusive(startRow)
                 .maxTimestampExclusive(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(true)
-                .ignoreGarbageCollectionSentinels(false)
+                .shouldDeleteGarbageCollectionSentinels(true)
                 .batchSizeHint(batchSizeHint)
                 .build();
     }

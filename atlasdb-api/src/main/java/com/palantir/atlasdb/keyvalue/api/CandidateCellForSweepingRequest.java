@@ -35,15 +35,15 @@ public interface CandidateCellForSweepingRequest {
      */
     boolean shouldCheckIfLatestValueIsEmpty();
 
-    /*
-     *  Whether GC sentinels (values written at timestamp -1) should be skipped (i.e. not deleted) by sweep.
-     *  In practice, this is false for the THOROUGH sweep strategy and true for CONSERVATIVE.
+    /**
+     * Whether GC sentinels (values written at timestamp -1) should be deleted by sweep.
+     * In practice, this is true for the THOROUGH sweep strategy and false for CONSERVATIVE.
      */
-    boolean ignoreGarbageCollectionSentinels();
+    boolean shouldDeleteGarbageCollectionSentinels();
 
     default boolean shouldSweep(long timestamp) {
         if (timestamp == com.palantir.atlasdb.keyvalue.api.Value.INVALID_VALUE_TIMESTAMP) {
-            return !ignoreGarbageCollectionSentinels();
+            return shouldDeleteGarbageCollectionSentinels();
         }
 
         return timestamp < maxTimestampExclusive();

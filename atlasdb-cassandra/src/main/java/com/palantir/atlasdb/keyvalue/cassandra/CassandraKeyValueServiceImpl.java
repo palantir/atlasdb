@@ -1467,7 +1467,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .startRowInclusive(rangeRequest.getStartInclusive())
                 .maxTimestampExclusive(timestamp)
                 .shouldCheckIfLatestValueIsEmpty(false)
-                .ignoreGarbageCollectionSentinels(false)
+                .shouldDeleteGarbageCollectionSentinels(true)
                 .build();
         return getCandidateRowsForSweeping("getRangeOfTimestamps", tableRef, request)
                 .flatMap(rows -> rows)

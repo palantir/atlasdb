@@ -96,7 +96,7 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
                     .batchSizeHint(1000)
                     .maxTimestampExclusive(Long.MAX_VALUE)
                     .shouldCheckIfLatestValueIsEmpty(thorough)
-                    .ignoreGarbageCollectionSentinels(!thorough)
+                    .shouldDeleteGarbageCollectionSentinels(thorough)
                     .build();
         try (ClosableIterator<List<CandidateCellForSweeping>> iter = kvs.getCandidateCellsForSweeping(
                     tableRef, request)) {

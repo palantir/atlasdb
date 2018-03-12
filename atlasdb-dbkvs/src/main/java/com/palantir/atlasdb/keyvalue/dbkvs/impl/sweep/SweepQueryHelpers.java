@@ -25,7 +25,7 @@ public final class SweepQueryHelpers {
 
     public static void appendIgnoredTimestampPredicate(CandidateCellForSweepingRequest request,
                                                        FullQuery.Builder builder) {
-        if (request.ignoreGarbageCollectionSentinels()) {
+        if (!request.shouldDeleteGarbageCollectionSentinels()) {
             builder.append(" AND ts <> ").append(String.valueOf(Value.INVALID_VALUE_TIMESTAMP));
         }
     }
