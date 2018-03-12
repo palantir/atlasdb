@@ -51,9 +51,7 @@ public final class InMemorySweepQueue implements SweepQueueReader, SweepQueueWri
         return (table, writes) -> instanceForTable(table).enqueue(writes);
     }
 
-    private InMemorySweepQueue() {
-
-    }
+    private InMemorySweepQueue() {}
 
     public static void clear() {
         instancesByTable.clear();
