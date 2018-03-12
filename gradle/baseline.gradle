@@ -38,6 +38,8 @@ if (enableErrorProne.toBoolean()) {
     }
 
     compileTestJava {
+        // CheckReturnValue can be problematic for tests asserting that various Immutable objects may or may not
+        // be created.
         options.compilerArgs += ['-Xep:CheckReturnValue:OFF']
     }
 }
