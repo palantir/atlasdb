@@ -312,6 +312,12 @@ Also reduce the defaults to flush write stats on 32MB overall write size and 2k 
 <td>Fix <code class="docutils literal notranslate"><span class="pre">SnapshotTransaction#getRows</span></code> to apply <code class="docutils literal notranslate"><span class="pre">ColumnSelection</span></code> when there are local writes.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3008">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>CassandraKVS sstable size in MB was not being correctly set.
+This resulted in requirements on the entire cluster being up during startup of certain stacks.
+CF metadata mismatch messages are also now correctly safety marked for logging.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2989">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -572,12 +578,6 @@ The regression was introduced with (<a class="reference external" href="https://
 <tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Removed <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueServiceConfigManager</span></code>. If you’re affected by this, please contact the AtlasDB team.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2872">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>CassandraKVS sstable size in MB was not being correctly set.
-This resulted in requirements on the entire cluster being up during startup of certain stacks.
-CF metadata mismatch messages are also now correctly safety marked for logging.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2989">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
