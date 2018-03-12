@@ -19,9 +19,14 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
+import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
+import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.sweep.CellsSweeper;
+import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
@@ -34,12 +39,24 @@ import dagger.Provides;
 public class SweeperModule {
 
     @Provides
+    public PersistentLockManager providePersistentLockManager(@Named("kvs") KeyValueService kvs,
+                                                              ServicesConfig config) {
+        PersistentLockService persistentLockService = kvs.supportsCheckAndSet() ?
+            KvsBackedPersistentLockService.create(kvs, config.atlasDbConfig().initializeAsync()) :
+            new NoOpPersistentLockService();
+        return new PersistentLockManager(
+                persistentLockService,
+                AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
+    }
+
+    @Provides
     @Singleton
     public SweepTaskRunner provideSweepTaskRunner(SerializableTransactionManager txm,
                                                   @Named("kvs") KeyValueService kvs,
                                                   TransactionService transactionService,
                                                   SweepStrategyManager sweepStrategyManager,
                                                   Follower follower,
+                                                  PersistentLockManager persistentLockManager,
                                                   ServicesConfig config) {
         return new SweepTaskRunner(
                 kvs,
@@ -47,7 +64,11 @@ public class SweeperModule {
                 txm::getImmutableTimestamp,
                 transactionService,
                 sweepStrategyManager,
-                new CellsSweeper(txm, kvs, ImmutableList.of(follower), config.atlasDbConfig().initializeAsync()));
+                new CellsSweeper(
+                        txm,
+                        kvs,
+                        persistentLockManager,
+                        ImmutableList.of(follower)));
     }
 
 }

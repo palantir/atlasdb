@@ -22,15 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
-import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
-import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Arg;
@@ -54,27 +50,6 @@ public class CellsSweeper {
         this.keyValueService = keyValueService;
         this.followers = followers;
         this.persistentLockManager = persistentLockManager;
-    }
-
-    public CellsSweeper(
-            TransactionManager txManager,
-            KeyValueService keyValueService,
-            Collection<Follower> followers,
-            boolean initializeAsync) {
-        this(txManager, keyValueService,
-                new PersistentLockManager(getPersistentLockService(keyValueService, initializeAsync),
-                        AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS),
-                followers);
-    }
-
-    private static PersistentLockService getPersistentLockService(KeyValueService kvs, boolean initializeAsync) {
-        if (kvs.supportsCheckAndSet()) {
-            return KvsBackedPersistentLockService.create(kvs, initializeAsync);
-        } else {
-            log.warn("CellsSweeper is being set up without a persistent lock service. "
-                    + "It will not be safe to run backups while sweep is running.");
-            return new NoOpPersistentLockService();
-        }
     }
 
     public void sweepCells(

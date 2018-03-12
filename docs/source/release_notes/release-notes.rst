@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed| |devbreak|
+         - Centralize how PersistentLockServices were being created in a dagger context.
+           Also remove old creater for CellsSweeper.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047> __)
+
     *    - |fixed|
          - The Cassandra client pool is now cleaned up in the event of a failure to construct the Cassandra KVS (e.g. because we lost our connection to Cassandra midway).
            Previously, the client pool was not shut down, leading to a thread leak.
