@@ -37,12 +37,12 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.remoting.api.errors.QosException;
 
 public class QosCassandraReadEteTest extends QosCassandraEteTestSetup {
     private static final int ONE_TODO_SIZE_IN_BYTES = 1050;
@@ -83,8 +83,8 @@ public class QosCassandraReadEteTest extends QosCassandraEteTestSetup {
         assertThat(readOneBatchOfSize(20)).hasSize(20);
 
         assertThatThrownBy(() -> readOneBatchOfSize(100))
-                .isInstanceOf(RateLimitExceededException.class)
-                .hasMessage("Rate limited. Available capacity has been exhausted.");
+                .isInstanceOf(QosException.Throttle.class)
+                .hasMessage("Suggesting request throttling with optional retryAfter duration: Optional.empty");
     }
 
     @Test
@@ -121,7 +121,7 @@ public class QosCassandraReadEteTest extends QosCassandraEteTestSetup {
             try {
                 assertThat(future.get()).hasSize(numReadsPerThread);
             } catch (ExecutionException e) {
-                if (e.getCause() instanceof RateLimitExceededException) {
+                if (e.getCause() instanceof QosException.Throttle) {
                     exceptionCounter.getAndIncrement();
                 }
             } catch (InterruptedException e) {

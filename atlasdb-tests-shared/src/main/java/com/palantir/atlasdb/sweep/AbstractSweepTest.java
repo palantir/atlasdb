@@ -93,7 +93,9 @@ public abstract class AbstractSweepTest {
     @Before
     public void setup() {
         TimestampService tsService = new InMemoryTimestampService();
-        kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService);
+        kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService,
+                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
+                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD);
         ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);

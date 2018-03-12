@@ -122,7 +122,7 @@ public class KeyValueServiceMigrator {
             byte[] metadata = fromKvs.getMetadataForTable(tableRef);
             Preconditions.checkArgument(
                     metadata != null && metadata.length != 0,
-                    "no metadata found for table " + tableRef);
+                    "no metadata found for table %s", tableRef);
             metadataByTableName.put(tableRef, metadata);
         }
         processMessage("creating tables", KvsMigrationMessageLevel.INFO);

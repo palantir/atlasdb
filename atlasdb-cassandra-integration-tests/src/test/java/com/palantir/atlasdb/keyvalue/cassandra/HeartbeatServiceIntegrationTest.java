@@ -33,7 +33,7 @@ import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -68,14 +68,13 @@ public class HeartbeatServiceIntegrationTest {
 
     @Before
     public void setUp() throws TException {
-        CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
-                CassandraContainer.KVS_CONFIG);
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
+        CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
-        clientPool = CassandraClientPoolImpl.create(simpleManager.getConfig());
+        clientPool = CassandraClientPoolImpl.create(config);
         lockTable = new UniqueSchemaMutationLockTable(
-                new SchemaMutationLockTables(clientPool, CassandraContainer.KVS_CONFIG),
+                new SchemaMutationLockTables(clientPool, config),
                 LockLeader.I_AM_THE_LOCK_LEADER);
         heartbeatService = new HeartbeatService(clientPool,
                                                 queryRunner,

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -44,11 +45,21 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.atlasdb.schema.ImmutableSchemaDependentTableMetadata;
+import com.palantir.atlasdb.schema.ImmutableSchemaMetadata;
+import com.palantir.atlasdb.schema.SchemaDependentTableMetadata;
+import com.palantir.atlasdb.schema.SchemaMetadata;
+import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.CleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.ImmutableStreamStoreCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
@@ -77,7 +88,6 @@ public class Schema {
     private boolean ignoreTableNameLengthChecks = false;
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
-    private final Map<String, TableDefinition> tempTableDefinitions = Maps.newHashMap();
     private final Map<String, TableDefinition> tableDefinitions = Maps.newHashMap();
     private final Map<String, IndexDefinition> indexDefinitions = Maps.newHashMap();
     private final List<StreamStoreRenderer> streamStoreRenderers = Lists.newArrayList();
@@ -85,6 +95,10 @@ public class Schema {
     // N.B., the following is a list multimap because we want to preserve order
     // for code generation purposes.
     private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
+
+    // Used to determine cleanup metadata.
+    private final Set<String> tablesWithCustomCleanupTasks = Sets.newHashSet();
+    private final Map<String, StreamStoreCleanupMetadata> streamStoreCleanupMetadata = Maps.newHashMap();
 
     /** Creates a new schema, using Guava Optionals. */
     public Schema(Namespace namespace) {
@@ -108,13 +122,17 @@ public class Schema {
         this.optionalType = optionalType;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public void addTableDefinition(String tableName, TableDefinition definition) {
         Preconditions.checkArgument(
                 !tableDefinitions.containsKey(tableName) && !indexDefinitions.containsKey(tableName),
                 "Table already defined: %s", tableName);
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(tableName),
-                "Invalid table name " + tableName);
+                "Invalid table name %s", tableName);
         validateTableNameLength(tableName);
         tableDefinitions.put(tableName, definition);
     }
@@ -194,6 +212,13 @@ public class Schema {
         Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(
                 packageName, name, renderer, namespace);
 
+        StreamStoreCleanupMetadata metadata = ImmutableStreamStoreCleanupMetadata.builder()
+                .numHashedRowComponents(streamStoreDefinition.getNumberOfRowComponentsHashed())
+                .streamIdType(streamStoreDefinition.getIdType())
+                .build();
+        streamStoreDefinition.getTables().forEach(
+                (tableName, definition) -> streamStoreCleanupMetadata.put(tableName, metadata));
+
         cleanupTasks.putAll(streamStoreCleanupTasks);
         streamStoreRenderers.add(renderer);
     }
@@ -202,7 +227,7 @@ public class Schema {
         for (IndexType type : IndexType.values()) {
             Preconditions.checkArgument(
                     !idxName.endsWith(type.getIndexSuffix()),
-                    "Index name cannot end with '" + type.getIndexSuffix() + "'.");
+                    "Index name cannot end with '%s'.", type.getIndexSuffix());
             String indexName = idxName + type.getIndexSuffix();
             Preconditions.checkArgument(
                     !tableDefinitions.containsKey(indexName) && !indexDefinitions.containsKey(indexName),
@@ -213,7 +238,7 @@ public class Schema {
                 "Index source table undefined.");
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(idxName),
-                "Invalid table name " + idxName);
+                "Invalid table name %s", idxName);
         Preconditions.checkArgument(
                 !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns()
                         || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
@@ -333,15 +358,6 @@ public class Schema {
                         tableRendererV2.getClassName(rawTableName, table));
             }
         }
-        for (Entry<String, TableDefinition> entry : tempTableDefinitions.entrySet()) {
-            String rawTableName = entry.getKey();
-            TableDefinition table = entry.getValue();
-            emit(srcDir,
-                 tableRenderer.render(rawTableName, table, ImmutableSortedSet.<IndexMetadata>of()),
-                 packageName,
-                 tableRenderer.getClassName(rawTableName, table));
-        }
-
         for (StreamStoreRenderer renderer : streamStoreRenderers) {
             emit(srcDir,
                  renderer.renderStreamStore(),
@@ -388,11 +404,13 @@ public class Schema {
         }
     }
 
+    // Cannot be removed, as it is used by the large internal product
     public void addCleanupTask(String rawTableName, OnCleanupTask task) {
-        cleanupTasks.put(rawTableName, Suppliers.ofInstance(task));
+        addCleanupTask(rawTableName, Suppliers.ofInstance(task));
     }
 
     public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {
+        tablesWithCustomCleanupTasks.add(rawTableName);
         cleanupTasks.put(rawTableName, task);
     }
 
@@ -406,5 +424,38 @@ public class Schema {
 
     public void ignoreTableNameLengthChecks() {
         ignoreTableNameLengthChecks = true;
+    }
+
+    public SchemaMetadata getSchemaMetadata() {
+        ImmutableSchemaMetadata.Builder builder = ImmutableSchemaMetadata.builder();
+
+        Map<TableReference, SchemaDependentTableMetadata> tableMetadatas =
+                Stream.of(tableDefinitions, indexDefinitions)
+                        .map(Map::keySet)
+                        .map(Set::stream)
+                        .flatMap(x -> x)
+                        .collect(Collectors.toMap(
+                                tableName -> TableReference.create(namespace, tableName),
+                                this::constructSchemaDependentTableMetadata));
+        builder.putAllSchemaDependentTableMetadata(tableMetadatas);
+
+        return builder.build();
+    }
+
+    private SchemaDependentTableMetadata constructSchemaDependentTableMetadata(String tableName) {
+        return ImmutableSchemaDependentTableMetadata.builder()
+                .cleanupMetadata(getCleanupMetadata(tableName))
+                .build();
+    }
+
+    private CleanupMetadata getCleanupMetadata(String tableName) {
+        if (!cleanupTasks.containsKey(tableName)) {
+            return new NullCleanupMetadata();
+        }
+        if (!tablesWithCustomCleanupTasks.contains(tableName) && streamStoreCleanupMetadata.containsKey(tableName)) {
+            // Stream store Index or Metadata table with no custom cleanup task.
+            return streamStoreCleanupMetadata.get(tableName);
+        }
+        return new ArbitraryCleanupMetadata();
     }
 }

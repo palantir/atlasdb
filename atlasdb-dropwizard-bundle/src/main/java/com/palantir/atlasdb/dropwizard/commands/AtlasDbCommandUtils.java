@@ -26,9 +26,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 
 public final class AtlasDbCommandUtils {
     private static final String TIMELOCK_CLIENT_DOCS_URL
@@ -43,18 +46,49 @@ public final class AtlasDbCommandUtils {
         // Static utility class
     }
 
-    public static AtlasDbConfig convertServerConfigToClientConfig(AtlasDbConfig serverConfig) {
-        Preconditions.checkArgument(serverConfig.leader().isPresent() || serverConfig.timelock().isPresent(),
-                "Your server configuration file must have a leader or timelock block. For instructions on how to do "
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public static AtlasDbConfig convertServerConfigToClientConfig(AtlasDbConfig installConfig,
+            Optional<AtlasDbRuntimeConfig> runtimeConfig) {
+        Preconditions.checkArgument(installConfig.leader().isPresent()
+                        || installConfig.timelock().isPresent()
+                        || runtimeConfigHasTimeLockBlock(runtimeConfig),
+                "Your server configuration file must have a leader — in the install time config — "
+                        + "or timelock block — in either the install or the runtime config. "
+                        + "For instructions on how to do "
                         + "this, see the documentation: "
                         + LEADER_CONFIG_DOCS_URL
                         + " or "
                         + TIMELOCK_CLIENT_DOCS_URL
                         + ", respectively.");
 
-        return serverConfig.timelock().isPresent()
-                ? serverConfig
-                : convertConfigWithLeaderBlockToClientConfig(serverConfig);
+        if (installConfig.timelock().isPresent()) {
+            return installConfig;
+        }
+
+        if (runtimeConfigHasTimeLockBlock(runtimeConfig)) {
+            //noinspection ConstantConditions
+            return convertRuntimeConfigWithTimeLock(installConfig, runtimeConfig.get());
+        }
+
+        return convertConfigWithLeaderBlockToClientConfig(installConfig);
+    }
+
+    private static boolean runtimeConfigHasTimeLockBlock(Optional<AtlasDbRuntimeConfig> runtimeConfig) {
+        return runtimeConfig.flatMap(AtlasDbRuntimeConfig::timelockRuntime).isPresent();
+    }
+
+    private static AtlasDbConfig convertRuntimeConfigWithTimeLock(AtlasDbConfig installConfig,
+            AtlasDbRuntimeConfig runtimeConfig) {
+        TimeLockRuntimeConfig timeLockRuntimeConfig = runtimeConfig.timelockRuntime().get();
+        ImmutableTimeLockClientConfig timeLockClientConfig = ImmutableTimeLockClientConfig.builder()
+                .client(installConfig.getNamespaceString())
+                .serversList(timeLockRuntimeConfig.serversList())
+                .build();
+
+        return ImmutableAtlasDbConfig.builder()
+                .from(installConfig)
+                .timelock(timeLockClientConfig)
+                .build();
     }
 
     private static AtlasDbConfig convertConfigWithLeaderBlockToClientConfig(AtlasDbConfig serverConfig) {

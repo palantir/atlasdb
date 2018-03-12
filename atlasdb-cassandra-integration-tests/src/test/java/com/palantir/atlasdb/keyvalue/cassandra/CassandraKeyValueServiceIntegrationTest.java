@@ -46,6 +46,7 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -55,8 +56,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cli.command.CleanCassLocksStateCommand;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -67,6 +68,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -109,7 +111,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
+                config,
                 CassandraContainer.LEADER_CONFIG,
                 testLogger);
     }
@@ -281,7 +283,38 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         grabLock(lockTestTools);
         createExtraLocksTable(lockTables);
 
-        ckvs.cleanUpSchemaMutationLockTablesState();
+        TracingQueryRunner queryRunner = new TracingQueryRunner(
+                LoggerFactory.getLogger(CassandraKeyValueServiceIntegrationTest.class), new TracingPrefsConfig());
+        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(CassandraContainer.KVS_CONFIG,
+                ckvs.getClientPool(), lockTables, queryRunner);
+
+        cleaner.cleanLocksState();
+
+        // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
+        // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
+        List<CqlRow> resultRows = lockTestTools.readLocksTable().getRows();
+        assertThat(resultRows, either(is(empty())).or(hasSize(1)));
+        if (resultRows.size() == 1) {
+            Column resultColumn = Iterables.getOnlyElement(Iterables.getOnlyElement(resultRows).getColumns());
+            long lockId = SchemaMutationLock.getLockIdFromColumn(resultColumn);
+            assertThat(lockId, is(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID));
+        }
+    }
+
+    @Test
+    public void testCleanCassLocksStateCli() throws Exception {
+        CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
+                ckvs.getClientPool(),
+                CassandraContainer.KVS_CONFIG);
+        SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
+                ckvs.getClientPool(),
+                new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
+
+        grabLock(lockTestTools);
+        createExtraLocksTable(lockTables);
+
+        new CleanCassLocksStateCommand().runWithConfig(CassandraContainer.KVS_CONFIG);
 
         // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
         // no rows or a table with a single row containing the cleared lock value (both are valid clean states).

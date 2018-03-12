@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -27,6 +28,7 @@ import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
@@ -35,10 +37,14 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
+import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
-public final class BackgroundSweeperImpl implements BackgroundSweeper {
+public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
+
+    private static final long MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS = 10_000;
 
     private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
@@ -51,6 +57,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
 
     private Thread daemon;
+
+    private final CountDownLatch shuttingDown = new CountDownLatch(1);
 
     @VisibleForTesting
     BackgroundSweeperImpl(
@@ -114,12 +122,20 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @Override
     public void run() {
-        try (SweepLocks locks = createSweepLocks()) {
+        try (SingleLockService locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
             waitUntilSpecificTableSweeperIsInitialized();
-            Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
+            sleepForMillis(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
             while (true) {
+                // InterruptedException might be wrapped in RuntimeException (i.e. AtlasDbDependencyException),
+                // which would be caught downstream.
+                // We throw InterruptedException here to register that BackgroundSweeper was shutdown
+                // on the catch block.
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("The background sweeper thread is interrupted.");
+                }
+
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
                 log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
@@ -131,6 +147,11 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
+            sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.SHUTDOWN);
+        } catch (Throwable t) {
+            log.error("BackgroundSweeper failed fatally and will not rerun until restarted: {}",
+                    UnsafeArg.of("message", t.getMessage()), t);
+            sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.FATAL);
         }
     }
 
@@ -139,7 +160,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.info("Sweep Priority Table and Sweep Progress Table are not initialized yet. If you have enabled "
                     + "asynchronous initialization, these tables are being initialized asynchronously. Background "
                     + "sweeper will start once the initialization is complete.");
-            Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
+            sleepForMillis(getBackoffTimeWhenSweepHasNotRun());
         }
     }
 
@@ -161,11 +182,11 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         if (outcome == SweepOutcome.SUCCESS) {
             sleepDurationMillis = sweepPauseMillis.get();
         }
-        Thread.sleep(sleepDurationMillis);
+        sleepForMillis(sleepDurationMillis);
     }
 
     @VisibleForTesting
-    SweepOutcome checkConfigAndRunSweep(SweepLocks locks) throws InterruptedException {
+    SweepOutcome checkConfigAndRunSweep(SingleLockService locks) throws InterruptedException {
         if (isSweepEnabled.get()) {
             return grabLocksAndRun(locks);
         }
@@ -174,7 +195,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         return SweepOutcome.DISABLED;
     }
 
-    private SweepOutcome grabLocksAndRun(SweepLocks locks) throws InterruptedException {
+    private SweepOutcome grabLocksAndRun(SingleLockService locks) throws InterruptedException {
         try {
             locks.lockOrRefresh();
             if (locks.haveLocks()) {
@@ -264,20 +285,39 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         specificTableSweeper.getSweepProgressStore().clearProgress();
     }
 
+    private void sleepForMillis(long millis) throws InterruptedException {
+        if (shuttingDown.await(millis, TimeUnit.MILLISECONDS)) {
+            throw new InterruptedException();
+        }
+    }
+
     @VisibleForTesting
-    SweepLocks createSweepLocks() {
-        return new SweepLocks(lockService);
+    SingleLockService createSweepLocks() {
+        return new SingleLockService(lockService, "atlas sweep");
+    }
+
+    @Override
+    public void close() {
+        shutdown();
     }
 
     @Override
     public synchronized void shutdown() {
+        sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.SHUTDOWN);
         if (daemon == null) {
             return;
         }
         log.info("Signalling background sweeper to shut down.");
+        // Interrupt the daemon, whatever lock it may be waiting on.
         daemon.interrupt();
+        // Ensure we do not accidentally abort shutdown if any code incorrectly swallows InterruptedExceptions
+        // on the daemon thread.
+        shuttingDown.countDown();
         try {
-            daemon.join();
+            daemon.join(MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS);
+            if (daemon.isAlive()) {
+                log.error("Background sweep thread failed to shut down");
+            }
             daemon = null;
         } catch (InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -286,28 +326,49 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     public enum SweepOutcome {
         SUCCESS, NOTHING_TO_SWEEP, DISABLED, UNABLE_TO_ACQUIRE_LOCKS,
-        NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR
+        NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR,
+        SHUTDOWN, FATAL
     }
 
     private class SweepOutcomeMetrics {
         private final MetricsManager metricsManager = new MetricsManager();
         private final SlidingTimeWindowReservoir reservoir;
 
+        private boolean shutdown;
+        private boolean fatal;
+
         SweepOutcomeMetrics() {
             Arrays.stream(SweepOutcome.values()).forEach(outcome ->
-                    metricsManager.registerMetric(BackgroundSweeperImpl.class, outcome.name(),
-                            () -> getOutcomeCount(outcome))
-            );
+                    metricsManager.registerMetric(BackgroundSweeperImpl.class, "outcome",
+                            () -> getOutcomeCount(outcome), ImmutableMap.of("status", outcome.name())));
             reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
+            shutdown = false;
+            fatal = false;
         }
 
         private Long getOutcomeCount(SweepOutcome outcome) {
+            if (outcome == SweepOutcome.SHUTDOWN) {
+                return shutdown ? 1L : 0L;
+            }
+            if (outcome == SweepOutcome.FATAL) {
+                return fatal ? 1L : 0L;
+            }
+
             return Arrays.stream(reservoir.getSnapshot().getValues())
                     .filter(l -> l == outcome.ordinal())
                     .count();
         }
 
         void registerOccurrenceOf(SweepOutcome outcome) {
+            if (outcome == SweepOutcome.SHUTDOWN) {
+                shutdown = true;
+                return;
+            }
+            if (outcome == SweepOutcome.FATAL) {
+                fatal = true;
+                return;
+            }
+
             reservoir.update(outcome.ordinal());
         }
     }

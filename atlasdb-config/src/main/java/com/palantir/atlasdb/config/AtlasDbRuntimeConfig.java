@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
@@ -66,10 +67,14 @@ public abstract class AtlasDbRuntimeConfig {
         return QosClientConfig.DEFAULT;
     }
 
+    @Value.Default
+    public Optional<KeyValueServiceRuntimeConfig> keyValueService() {
+        return Optional.empty();
+    }
+
     /**
      * Runtime live-reloadable parameters for communicating with TimeLock.
      *
-     * This value is ignored if the install config does not specify usage of TimeLock.
      * We do not currently support live reloading from a leader block or using embedded services to using TimeLock.
      */
     public abstract Optional<TimeLockRuntimeConfig> timelockRuntime();

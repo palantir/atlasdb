@@ -1,13 +1,25 @@
 {
     "compileClasspath": {
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "com.google.guava:guava": {
-            "locked": "18.0"
+            "locked": "20.0"
         },
         "junit:junit": {
             "locked": "4.12"
+        },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
@@ -16,18 +28,30 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5"
+            "locked": "1.7.25"
         }
     },
     "runtime": {
         "com.google.code.findbugs:annotations": {
-            "locked": "2.0.3"
+            "locked": "3.0.1"
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "3.0.1",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "com.google.guava:guava": {
-            "locked": "18.0"
+            "locked": "20.0"
         },
         "junit:junit": {
             "locked": "4.12"
+        },
+        "net.jcip:jcip-annotations": {
+            "locked": "1.0",
+            "transitive": [
+                "com.google.code.findbugs:annotations"
+            ]
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
@@ -36,7 +60,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.5"
+            "locked": "1.7.25"
         }
     }
 }

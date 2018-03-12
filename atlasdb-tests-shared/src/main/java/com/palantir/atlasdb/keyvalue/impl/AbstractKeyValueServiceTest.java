@@ -77,6 +77,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
@@ -132,7 +133,11 @@ public abstract class AbstractKeyValueServiceTest {
 
     @After
     public void tearDown() throws Exception {
-        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE));
+        try {
+            keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE));
+        } catch (Exception e) {
+            // this is fine
+        }
     }
 
     @AfterClass
@@ -560,6 +565,12 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.putMetadataForTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertTrue(Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA,
                 keyValueService.getMetadataForTable(TEST_TABLE)));
+    }
+
+    @Test
+    public void testDropTableErasesMetadata() {
+        keyValueService.dropTable(TEST_TABLE);
+        assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
     }
 
     private static <V, T extends Iterator<RowResult<V>>> void assertRangeSizeAndOrdering(T it,
@@ -1637,7 +1648,8 @@ public abstract class AbstractKeyValueServiceTest {
                 new TableMetadata(
                         new NameMetadataDescription(),
                         new ColumnMetadataDescription(columns),
-                        ConflictHandler.RETRY_ON_WRITE_WRITE).persistToBytes());
+                        ConflictHandler.RETRY_ON_WRITE_WRITE,
+                        TableMetadataPersistence.LogSafety.SAFE).persistToBytes());
         keyValueService.truncateTable(tableRef);
         return tableRef;
     }

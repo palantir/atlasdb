@@ -19,6 +19,7 @@ package com.palantir.atlasdb.qos.ratelimit;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -30,6 +31,7 @@ import com.google.common.math.LongMath;
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.remoting.api.errors.QosException;
 
 /**
  * A rate limiter for database queries, based on "units" of expense. This limiter strives to maintain an upper limit on
@@ -39,7 +41,7 @@ import com.palantir.logsafe.SafeArg;
  * Rate limiting is achieved by sleeping prior to performing a request, or in extreme cases, throwing rate limiting
  * exceptions.
  */
-public class QosRateLimiter {
+public class QosRateLimiter implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(QosRateLimiter.class);
 
@@ -55,6 +57,8 @@ public class QosRateLimiter {
     private final String rateLimiterName;
     private final Supplier<Long> unitsPerSecond;
     private final RateLimiter.SleepingStopwatch stopwatch;
+    private final ScheduledExecutorService executorService;
+    private final ScheduledFuture<?> scheduledFuture;
 
     private volatile RateLimiter rateLimiter;
     private volatile long currentRate;
@@ -82,9 +86,10 @@ public class QosRateLimiter {
         this.maxBackoffTimeMillis = maxBackoffTimeMillis;
         this.rateLimiterName = rateLimiterName;
         this.defaultRate = defaultRate;
+        this.executorService = executorService;
         createRateLimiterAtomically(getUpdatedRate());
 
-        executorService
+        scheduledFuture = executorService
                 .scheduleWithFixedDelay(() -> {
                     try {
                         updateRateIfNeeded();
@@ -92,6 +97,12 @@ public class QosRateLimiter {
                         log.error(RATE_UPDATE_ERROR_MESSAGE, t);
                     }
                 }, 0, RATE_UPDATE_INTERVAL_IN_SECONDS, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void close() {
+        scheduledFuture.cancel(true);
+        executorService.shutdown();
     }
 
     /**
@@ -107,7 +118,7 @@ public class QosRateLimiter {
                 TimeUnit.MILLISECONDS);
 
         if (!waitTime.isPresent()) {
-            throw new RateLimitExceededException("Rate limited. Available capacity has been exhausted.");
+            throw QosException.throttle();
         }
 
         return waitTime.get();

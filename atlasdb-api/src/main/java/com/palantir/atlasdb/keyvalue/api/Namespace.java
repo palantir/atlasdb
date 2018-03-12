@@ -55,11 +55,12 @@ public final class Namespace {
         return create(name, STRICTLY_CHECKED_NAME);
     }
 
+    @SuppressWarnings("ValidateConstantMessage") // https://github.com/palantir/gradle-baseline/pull/175
     public static Namespace create(String name, Pattern pattern) {
         Validate.notEmpty(name, "namespace name cannot be empty (see Namespace.EMPTY_NAMESPACE instead).");
         Validate.isTrue(!name.contains("."), "namespace cannot contain dots (atlas reserved).");
-        Validate.isTrue(pattern.matcher(name).matches(),
-                "'" + name + "' does not match namespace pattern '" + pattern + "'.");
+        Validate.isTrue(pattern.matcher(name).matches(), "'%s' does not match namespace pattern '%s'.",
+                name, pattern);
         return new Namespace(name);
     }
 

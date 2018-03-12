@@ -39,9 +39,4 @@ public abstract class QosClientLimitsConfig implements Serializable {
                 .writeBytesPerSecond(BYTES_WRITTEN_PER_SECOND_PER_CLIENT)
                 .build();
     }
-
-    @Value.Default
-    public QosPriority clientPriority() {
-        return QosPriority.HIGH;
-    }
 }

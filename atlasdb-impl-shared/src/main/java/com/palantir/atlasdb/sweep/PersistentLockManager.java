@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
@@ -35,7 +34,7 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
 // TODO move to persistentlock package?
-public class PersistentLockManager {
+public class PersistentLockManager implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(PersistentLockManager.class);
 
     private final PersistentLockService persistentLockService;
@@ -59,6 +58,11 @@ public class PersistentLockManager {
         this.metricsManager = new MetricsManager();
         this.lockFailureMeter = metricsManager.registerOrGetMeter(this.getClass(), null, ACQUIRE_FAILURE_METRIC_NAME);
         this.lockId = null;
+    }
+
+    @Override
+    public void close() {
+        shutdown();
     }
 
     public synchronized void shutdown() {
@@ -106,8 +110,12 @@ public class PersistentLockManager {
                 }
             }
 
+            // This is expected if backups are currently being taken.
+            // Not expected if we this continues to be logged for a long period of time — indicates a log has been
+            // lost (a service has been bounced and the shutdown hook did not run), and we need to manually clear it,
+            // via the CLI or the endpoint.
             lockFailureMeter.mark();
-            log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
+            log.warn("Failed to acquire persistent lock for sweep. Waiting and retrying.");
             return false;
         } catch (NotInitializedException e) {
             log.info("The LockStore is not initialized yet. Waiting and retrying.");
@@ -137,7 +145,8 @@ public class PersistentLockManager {
         try {
             Thread.sleep(persistentLockRetryWaitMillis);
         } catch (InterruptedException e) {
-            throw Throwables.propagate(e);
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 }

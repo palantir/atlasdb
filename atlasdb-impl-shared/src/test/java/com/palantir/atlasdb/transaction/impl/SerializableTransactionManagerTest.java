@@ -18,17 +18,32 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.TimeUnit;
+
+import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 
 public class SerializableTransactionManagerTest {
@@ -37,12 +52,162 @@ public class SerializableTransactionManagerTest {
     private TimelockService mockTimelockService = mock(TimelockService.class);
     private Cleaner mockCleaner = mock(Cleaner.class);
     private AsyncInitializer mockInitializer = mock(AsyncInitializer.class);
+    private Callback<TransactionManager> mockCallback = mock(Callback.class);
 
     private SerializableTransactionManager manager;
 
     @Before
     public void setUp() {
-        manager = SerializableTransactionManager.create(
+        nothingInitialized();
+        manager = getManagerWithCallback(true, mockCallback);
+        when(mockKvs.getClusterAvailabilityStatus()).thenReturn(ClusterAvailabilityStatus.ALL_AVAILABLE);
+    }
+
+    @Test
+    public void uninitializedTransactionManagerThrowsNotInitializedException() {
+        assertNotInitializedWithinTwoSeconds();
+        Assertions.assertThatThrownBy(() -> manager.runTaskWithRetry($  -> null))
+                .isInstanceOf(NotInitializedException.class);
+    }
+
+    @Test
+    public void isInitializedAndCallbackHasRunWhenPrerequisitesAreInitialized() {
+        everythingInitialized();
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
+        verify(mockCallback).runWithRetry(any(SerializableTransactionManager.class));
+    }
+
+    @Test
+    public void switchBackToUninitializedWhenPrerequisitesSwitchToUninitialized() {
+        everythingInitialized();
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
+
+        nothingInitialized();
+        assertNotInitializedWithinTwoSeconds();
+        Assertions.assertThatThrownBy(() -> manager.runTaskWithRetry($  -> null))
+                .isInstanceOf(NotInitializedException.class);
+    }
+
+    @Test
+    public void callbackRunsOnlyOnceAsInitializationStatusChanges() {
+        everythingInitialized();
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
+
+        nothingInitialized();
+        assertNotInitializedWithinTwoSeconds();
+
+        everythingInitialized();
+        assertTrue(manager.isInitialized());
+        verify(mockCallback).runWithRetry(any(SerializableTransactionManager.class));
+    }
+
+    @Test
+    public void closingPreventsInitializationAndCallback() {
+        manager.close();
+        everythingInitialized();
+        assertNotInitializedWithinTwoSecondsBecauseClosed();
+        verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
+        assertTrue(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByClose());
+    }
+
+    @Test
+    public void isNotInitializedWhenKvsIsNotInitialized() {
+        setInitializationStatus(false, true, true, true);
+        assertNotInitializedWithinTwoSeconds();
+        verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
+    }
+
+    @Test
+    public void isNotInitializedWhenTimelockIsNotInitialized() {
+        setInitializationStatus(true, false, true, true);
+        assertNotInitializedWithinTwoSeconds();
+        verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
+    }
+
+    @Test
+    public void isNotInitializedWhenCleanerIsNotInitialized() {
+        setInitializationStatus(true, true, false, true);
+        assertNotInitializedWithinTwoSeconds();
+        verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
+    }
+
+    @Test
+    public void isNotInitializedWhenInitializerIsNotInitialized() {
+        setInitializationStatus(true, true, true, false);
+        assertNotInitializedWithinTwoSeconds();
+        verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
+    }
+
+    @Test
+    public void exceptionInCleanupClosesTransactionManager() {
+        RuntimeException cause = new RuntimeException("VALID REASON");
+        doThrow(cause).when(mockCallback).runWithRetry(any(SerializableTransactionManager.class));
+        everythingInitialized();
+
+        assertNotInitializedWithinTwoSecondsBecauseClosed();
+        assertTrue(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByCallbackFailure());
+        Assertions.assertThatThrownBy(() -> manager.runTaskWithRetry($  -> null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasCause(cause);
+    }
+
+    // Edge case: if for some reason we create a SerializableTransactionManager with initializeAsync set to false, we
+    // should initialise it synchronously, even if some of its component parts are initialised asynchronously.
+    // If we somehow manage to survive doing this with no exception, even though the KVS (for example) is not
+    // initialised, then isInitialized should return true.
+    //
+    // BLAB: Synchronously initialised objects don't care if their constituent parts are initialised asynchronously.
+    @Test
+    public void synchronouslyInitializedManagerIsInitializedEvenIfNothingElseIs() {
+        manager = getManagerWithCallback(false, mockCallback);
+        assertTrue(manager.isInitialized());
+        verify(mockCallback).runWithRetry(manager);
+    }
+
+    @Test
+    public void callbackRunsAfterPreconditionsAreMet() {
+        ClusterAvailabilityStatusBlockingCallback blockingCallback = new ClusterAvailabilityStatusBlockingCallback();
+        manager = getManagerWithCallback(true, blockingCallback);
+
+        assertNotInitializedWithinTwoSeconds();
+        assertFalse(blockingCallback.wasInvoked());
+
+        everythingInitialized();
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> blockingCallback.wasInvoked());
+    }
+
+    @Test
+    public void callbackBlocksInitializationUntilDone() {
+        everythingInitialized();
+        ClusterAvailabilityStatusBlockingCallback blockingCallback = new ClusterAvailabilityStatusBlockingCallback();
+        manager = getManagerWithCallback(true, blockingCallback);
+
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> blockingCallback.wasInvoked());
+        assertFalse(manager.isInitialized());
+
+        blockingCallback.stopBlocking();
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
+    }
+
+    @Test
+    public void callbackCanCallTmMethodsEvenThoughTmStillThrows() {
+        everythingInitialized();
+        ClusterAvailabilityStatusBlockingCallback blockingCallback = new ClusterAvailabilityStatusBlockingCallback();
+        manager = getManagerWithCallback(true, blockingCallback);
+
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> blockingCallback.wasInvoked());
+        verify(mockKvs, atLeast(1)).getClusterAvailabilityStatus();
+        Assertions.assertThatThrownBy(() -> manager.getKeyValueServiceStatus())
+                .isInstanceOf(NotInitializedException.class);
+
+        blockingCallback.stopBlocking();
+        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
+        manager.getKeyValueServiceStatus();
+    }
+
+    private SerializableTransactionManager getManagerWithCallback(boolean initializeAsync,
+            Callback<TransactionManager> callBack) {
+        return SerializableTransactionManager.create(
                 mockKvs,
                 mockTimelockService,
                 null, // lockService
@@ -56,76 +221,67 @@ public class SerializableTransactionManagerTest {
                 () -> 1L, // lockAcquireTimeout
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                true, // initializeAsync
+                initializeAsync,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                MultiTableSweepQueueWriter.NO_OP);
-
-        when(mockKvs.isInitialized()).thenReturn(true);
-        when(mockTimelockService.isInitialized()).thenReturn(true);
-        when(mockCleaner.isInitialized()).thenReturn(true);
-        when(mockInitializer.isInitialized()).thenReturn(true);
+                MultiTableSweepQueueWriter.NO_OP,
+                callBack);
     }
 
-    @Test
-    public void isInitializedWhenPrerequisitesAreInitialized() {
-        assertTrue(manager.isInitialized());
+    private void nothingInitialized() {
+        setInitializationStatus(false, false, false, false);
     }
 
-    @Test
-    public void isNotInitializedWhenKvsIsNotInitialized() {
-        when(mockKvs.isInitialized()).thenReturn(false);
-        assertFalse(manager.isInitialized());
+    private void everythingInitialized() {
+        setInitializationStatus(true, true, true, true);
     }
 
-    @Test
-    public void isNotInitializedWhenTimelockIsNotInitialized() {
-        when(mockTimelockService.isInitialized()).thenReturn(false);
-        assertFalse(manager.isInitialized());
+    private void setInitializationStatus(boolean kvs, boolean timelock, boolean cleaner, boolean initializer) {
+        when(mockKvs.isInitialized()).thenReturn(kvs);
+        when(mockTimelockService.isInitialized()).thenReturn(timelock);
+        when(mockCleaner.isInitialized()).thenReturn(cleaner);
+        when(mockInitializer.isInitialized()).thenReturn(initializer);
     }
 
-    @Test
-    public void isNotInitializedWhenCleanerIsNotInitialized() {
-        when(mockCleaner.isInitialized()).thenReturn(false);
-        assertFalse(manager.isInitialized());
+    private void assertNotInitializedWithinTwoSeconds() {
+        Assertions.assertThatThrownBy(() ->
+                Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized()))
+                .isInstanceOf(ConditionTimeoutException.class);
     }
 
-    @Test
-    public void isNotInitializedWhenInitializerIsNotInitialized() {
-        when(mockInitializer.isInitialized()).thenReturn(false);
-        assertFalse(manager.isInitialized());
+    private void assertNotInitializedWithinTwoSecondsBecauseClosed() {
+        Assertions.assertThatThrownBy(() ->
+                Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized()))
+                .isInstanceOf(IllegalStateException.class);
     }
 
-    // Edge case: if for some reason we create a SerializableTransactionManager with initializeAsync set to false, we
-    // should initialise it synchronously, even if some of its component parts are initialised asynchronously.
-    // If we somehow manage to survive doing this with no exception, even though the KVS (for example) is not
-    // initialised, then isInitialized should return true.
-    //
-    // BLAB: Synchronously initialised objects don't care if their constituent parts are initialised asynchronously.
-    @Test
-    public void synchronouslyInitializedManagerIsInitializedEvenIfKvsIsNot() {
-        SerializableTransactionManager theManager = SerializableTransactionManager.create(
-                mockKvs,
-                mockTimelockService,
-                null, // lockService
-                null, // transactionService
-                () -> null, // constraintMode
-                null, // conflictDetectionManager
-                null, // sweepStrategyManager
-                mockCleaner,
-                mockInitializer::isInitialized,
-                false, // allowHiddenTableAccess
-                () -> 1L, // lockAcquireTimeoutMs
-                TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
-                TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                false, // initializeAsync
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                MultiTableSweepQueueWriter.NO_OP);
+    private static class ClusterAvailabilityStatusBlockingCallback extends Callback<TransactionManager> {
+        private volatile boolean invoked = false;
+        private volatile boolean block = true;
 
-        when(mockKvs.isInitialized()).thenReturn(false);
-        when(mockTimelockService.isInitialized()).thenReturn(false);
-        when(mockCleaner.isInitialized()).thenReturn(false);
-        when(mockInitializer.isInitialized()).thenReturn(false);
+        boolean wasInvoked() {
+            return invoked;
+        }
 
-        assertTrue(theManager.isInitialized());
+        void stopBlocking() {
+            block = false;
+        }
+
+        @Override
+        public void init(TransactionManager transactionManager) {
+            invoked = true;
+            transactionManager.getKeyValueServiceStatus();
+            if (block) {
+                throw new RuntimeException();
+            }
+        }
+
+        @Override
+        public void cleanup(TransactionManager transactionManager, Throwable initException) {
+            try {
+                Thread.sleep(500L);
+            } catch (InterruptedException e) {
+                fail();
+            }
+        }
     }
 }

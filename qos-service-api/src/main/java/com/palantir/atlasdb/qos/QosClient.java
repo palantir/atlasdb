@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.qos;
 
-public interface QosClient {
+public interface QosClient extends AutoCloseable {
 
     interface Query<T, E extends Exception> {
         T execute() throws E;
@@ -36,4 +36,6 @@ public interface QosClient {
             Query<T, E> query,
             QueryWeigher<T> weigher) throws E;
 
+    @Override
+    void close();
 }

@@ -10,6 +10,7 @@ repositories {
 
 libsDirName = file('build/artifacts')
 dependencies {
+    compile project(":commons-executors-api")
     compile "com.palantir.remoting3:tracing"
 
     testCompile group: 'com.google.guava', name: 'guava'

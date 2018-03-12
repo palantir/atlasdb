@@ -20,6 +20,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ExecutionException;
 
 import com.palantir.common.base.Throwables;
+import com.palantir.remoting.api.errors.QosException;
 
 public final class QosAwareThrowables {
     private QosAwareThrowables() {
@@ -36,8 +37,8 @@ public final class QosAwareThrowables {
         if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
             // Needs to be this way in case you have ITE(RLE) or variants of that.
             throw unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(ex.getCause());
-        } else if (ex instanceof RateLimitExceededException) {
-            throw (RateLimitExceededException) ex;
+        } else if (ex instanceof QosException.Throttle) {
+            throw (QosException.Throttle) ex;
         }
         throw Throwables.unwrapAndThrowAtlasDbDependencyException(ex);
     }

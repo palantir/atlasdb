@@ -32,7 +32,6 @@ public final class CassandraConstants {
     static final long TS_SIZE = 4L;
 
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
-    static final String SSTABLE_SIZE_IN_MB = "80";
     static final double DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.1;
     static final double DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.01;
     static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
@@ -80,6 +79,11 @@ public final class CassandraConstants {
     public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
 
     static final int SCHEMA_MUTATION_LOCK_TIMEOUT_MULTIPLIER = 10;
+
+    public static final int DEFAULT_FETCH_BATCH_COUNT = 5000;
+    public static final int DEFAULT_MUTATION_BATCH_SIZE_BYTES = 4 * 1024 * 1024;
+    public static final int DEFAULT_MUTATION_BATCH_COUNT = 5000;
+    public static final int DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS = 30;
 
     private CassandraConstants() {
         // Utility class

@@ -23,21 +23,21 @@ import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
 class CassandraTables {
     private final CassandraClientPool clientPool;
-    private final CassandraKeyValueServiceConfigManager configManager;
+    private final CassandraKeyValueServiceConfig config;
 
-    CassandraTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfigManager configManager) {
+    CassandraTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
         this.clientPool = clientPool;
-        this.configManager = configManager;
+        this.config = config;
     }
 
     Set<String> getExisting() {
-        String keyspace = configManager.getConfig().getKeyspaceOrThrow();
+        String keyspace = config.getKeyspaceOrThrow();
 
         try {
             return clientPool.runWithRetry(new FunctionCheckedException<CassandraClient, Set<String>, Exception>() {
@@ -61,7 +61,7 @@ class CassandraTables {
     }
 
     Set<String> getExistingLowerCased() throws TException {
-        return getExistingLowerCased(configManager.getConfig().getKeyspaceOrThrow());
+        return getExistingLowerCased(config.getKeyspaceOrThrow());
     }
 
     private Set<String> getExistingLowerCased(String keyspace) throws TException {

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.logging;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -29,6 +30,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -101,6 +103,10 @@ public final class LoggingArgs {
         return tableRef("tableRef", tableReference);
     }
 
+    public static boolean isSafe(TableReference tableReference) {
+        return logArbitrator.isTableReferenceSafe(tableReference);
+    }
+
     /**
      * If table is safe, returns the table. If unsafe, returns a placeholder.
      */
@@ -123,6 +129,14 @@ public final class LoggingArgs {
         }
     }
 
+    public static Arg<String> safeInternalTableName(String internalTableReference) {
+        if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
+            return SafeArg.of("tableRef", internalTableReference);
+        } else {
+            return UnsafeArg.of("unsafeTableRef", internalTableReference);
+        }
+    }
+
     public static Arg<String> tableRef(String argName, TableReference tableReference) {
         return getArg(argName, tableReference.toString(), logArbitrator.isTableReferenceSafe(tableReference));
     }
@@ -141,6 +155,14 @@ public final class LoggingArgs {
         return getArg(argName,
                 columnName,
                 logArbitrator.isColumnNameSafe(tableReference, columnName));
+    }
+
+    public static boolean isSafeForLogging(TableReference tableRef, Cell cell) {
+        String rowName = new String(cell.getRowName(), Charset.defaultCharset());
+        String columnName = new String(cell.getColumnName(), Charset.defaultCharset());
+
+        return logArbitrator.isRowComponentNameSafe(tableRef, rowName)
+                && logArbitrator.isColumnNameSafe(tableRef, columnName);
     }
 
     public static Arg<Long> durationMillis(Stopwatch stopwatch) {
@@ -170,6 +192,10 @@ public final class LoggingArgs {
     public static Arg<?> columnCount(ColumnSelection columnSelection) {
         return getArg("columnCount", columnSelection.allColumnsSelected()
                 ? "all" : Iterables.size(columnSelection.getSelectedColumns()), true);
+    }
+
+    public static Arg<?> columnCount(int numberOfColumns) {
+        return getArg("columnCount", numberOfColumns == Integer.MAX_VALUE ? "all" : numberOfColumns, true);
     }
 
     public static Arg<Integer> batchHint(int batchHint) {

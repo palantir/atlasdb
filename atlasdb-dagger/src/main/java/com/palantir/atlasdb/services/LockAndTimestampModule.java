@@ -32,11 +32,14 @@ public class LockAndTimestampModule {
     @Provides
     @Singleton
     public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(ServicesConfig config) {
-        return TransactionManagers.createLockAndTimestampServices(
+        return TransactionManagers.createLockAndTimestampServicesForCli(
                 config.atlasDbConfig(),
+                config::atlasDbRuntimeConfig,
                 resource -> { },
                 LockServiceImpl::create,
-                () -> config.atlasDbSupplier().getTimestampService());
+                () -> config.atlasDbSupplier().getTimestampService(),
+                config.atlasDbSupplier().getTimestampStoreInvalidator(),
+                "cli");
     }
 
     @Provides

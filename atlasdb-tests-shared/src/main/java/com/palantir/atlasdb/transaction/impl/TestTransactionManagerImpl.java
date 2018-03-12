@@ -109,16 +109,13 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     @Override
     public Transaction createNewTransaction() {
-        Map<TableReference, ConflictHandler> conflictHandlersWithOverrides = new HashMap<>();
-        conflictHandlersWithOverrides.putAll(conflictDetectionManager.getCachedValues());
-        conflictHandlersWithOverrides.putAll(conflictHandlerOverrides);
         return new SnapshotTransaction(
                 keyValueService,
                 timelockService,
                 transactionService,
                 cleaner,
                 timelockService.getFreshTimestamp(),
-                TestConflictDetectionManagers.createWithStaticConflictDetection(conflictHandlersWithOverrides),
+                getConflictDetectionManager(),
                 constraintModeSupplier.get(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampValidationReadCache,
@@ -128,7 +125,19 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
+    ConflictDetectionManager getConflictDetectionManager() {
+        return TestConflictDetectionManagers.createWithStaticConflictDetection(getConflictHandlerWithOverrides());
+    }
+
+    @Override
     public void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
         conflictHandlerOverrides.put(table, conflictHandler);
+    }
+
+    private Map<TableReference, ConflictHandler> getConflictHandlerWithOverrides() {
+        Map<TableReference, ConflictHandler> conflictHandlersWithOverrides = new HashMap<>();
+        conflictHandlersWithOverrides.putAll(conflictDetectionManager.getCachedValues());
+        conflictHandlersWithOverrides.putAll(conflictHandlerOverrides);
+        return conflictHandlersWithOverrides;
     }
 }

@@ -98,7 +98,7 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
                 HostAndPort hostAndPort = HostAndPort.fromString(proxyConfig.hostAndPort()
                         .orElseThrow(() -> new IllegalArgumentException(
                                 "Expected to find proxy hostAndPort configuration for HTTP proxy")));
-                InetSocketAddress addr = new InetSocketAddress(hostAndPort.getHostText(), hostAndPort.getPort());
+                InetSocketAddress addr = new InetSocketAddress(hostAndPort.getHost(), hostAndPort.getPort());
                 return fixedProxySelectorFor(new Proxy(Proxy.Type.HTTP, addr));
             default:
                 // fall through

@@ -16,13 +16,13 @@ CONTAINER_2=(':atlasdb-ete-tests:check')
 
 CONTAINER_3=(':atlasdb-perf:postgresBenchmarkTest')
 
-CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check')
+CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check'  ':atlasdb-cassandra-integration-tests:longTest')
 
 CONTAINER_5=(':atlasdb-ete-tests:longTest' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
 
 CONTAINER_6=(':atlasdb-ete-tests:startupIndependenceTest' ':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check' ':atlasdb-jepsen-tests:check' ':atlasdb-cli:check')
 
-CONTAINER_7=('compileJava' 'compileTestJava' ':atlasdb-cassandra-integration-tests:longTest')
+CONTAINER_7=('compileJava' 'compileTestJava')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}")
@@ -51,8 +51,13 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 
 # External builds have a 4GB limit so we have to tune everything so it fits in memory (only just!)
 if [[ $INTERNAL_BUILD == true ]]; then
-    BASE_GRADLE_ARGS+=" --parallel"
-    export _JAVA_OPTIONS="-Xmx1024m ${JAVA_GC_LOGGING_OPTIONS}"
+    if [ "$CIRCLE_NODE_INDEX" -eq "7" ]; then
+        export _JAVA_OPTIONS="-Xms2g -Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
+    else
+        BASE_GRADLE_ARGS+=" --parallel"
+        export _JAVA_OPTIONS="-Xmx1024m ${JAVA_GC_LOGGING_OPTIONS}"
+        BASE_GRADLE_ARGS+=" --parallel"
+    fi
     export CASSANDRA_MAX_HEAP_SIZE=512m
     export CASSANDRA_HEAP_NEWSIZE=64m
 else

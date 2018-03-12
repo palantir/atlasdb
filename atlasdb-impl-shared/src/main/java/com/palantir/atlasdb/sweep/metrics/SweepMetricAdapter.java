@@ -20,57 +20,60 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import org.immutables.value.Value;
-import org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramReservoir;
 
-import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
-import com.palantir.tritium.metrics.registry.MetricName;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @Value.Immutable
-public abstract class SweepMetricAdapter<M extends Metric> {
-    public abstract String getNameComponent();
+public abstract class SweepMetricAdapter<M extends Metric, T> {
     public abstract BiFunction<MetricRegistry, String, M> getMetricConstructor();
-    public abstract BiFunction<TaggedMetricRegistry, MetricName, M> getTaggedMetricConstructor();
-    public abstract BiConsumer<M, Long> getUpdateMethod();
+    abstract BiConsumer<M, T> getSetMethod();
 
-    public void updateNonTaggedMetric(MetricRegistry metricRegistry, String name, Long value) {
-        getUpdateMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
+    @Value.Default
+    BiConsumer<M, T> getAccumulateMethod() {
+        return getSetMethod();
     }
 
-    public void updateTaggedMetric(TaggedMetricRegistry taggedMetricRegistry, MetricName metricName, Long value) {
-        getUpdateMethod().accept(getTaggedMetricConstructor().apply(taggedMetricRegistry, metricName), value);
+    void setValue(MetricRegistry metricRegistry, String name, T value) {
+        getSetMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
     }
 
-    public static final SweepMetricAdapter<Meter> METER_ADAPTER =
-            ImmutableSweepMetricAdapter.<Meter>builder()
-                    .nameComponent("meter")
+    void accumulateValue(MetricRegistry metricRegistry, String name, T value) {
+        getAccumulateMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
+    }
+
+    static final SweepMetricAdapter<Meter, Long> METER_ADAPTER =
+            ImmutableSweepMetricAdapter.<Meter, Long>builder()
                     .metricConstructor(MetricRegistry::meter)
-                    .taggedMetricConstructor(TaggedMetricRegistry::meter)
-                    .updateMethod(Meter::mark)
-                    .build();
-
-    public static final SweepMetricAdapter<Histogram> HISTOGRAM_ADAPTER =
-            ImmutableSweepMetricAdapter.<Histogram>builder()
-                    .nameComponent("histogram")
-                    .metricConstructor((metricRegistry, name) ->
-                            metricRegistry.histogram(name, () -> new Histogram(new HdrHistogramReservoir())))
-                    .taggedMetricConstructor(TaggedMetricRegistry::histogram)
-                    .updateMethod(Histogram::update)
+                    .setMethod(Meter::mark)
                     .build();
 
     // We know that the unchecked casts will be fine.
     @SuppressWarnings("unchecked")
-    public static final SweepMetricAdapter<CurrentValueMetric<Long>> CURRENT_VALUE_ADAPTER =
-            ImmutableSweepMetricAdapter.<CurrentValueMetric<Long>>builder()
-                    .nameComponent("currentValue")
+    static final SweepMetricAdapter<CurrentValueMetric<Long>, Long> CURRENT_VALUE_ADAPTER_LONG =
+            ImmutableSweepMetricAdapter.<CurrentValueMetric<Long>, Long>builder()
                     .metricConstructor((metricRegistry, name) ->
                             (CurrentValueMetric<Long>) metricRegistry.gauge(name, CurrentValueMetric::new))
-                    .taggedMetricConstructor((taggedMetricRegistry, metricName) -> (CurrentValueMetric<Long>)
-                            taggedMetricRegistry.gauge(metricName, new CurrentValueMetric<Long>()))
-                    .updateMethod(CurrentValueMetric::setValue)
+                    .setMethod(CurrentValueMetric::setValue)
+                    .build();
+
+    // We know that the unchecked casts will be fine.
+    @SuppressWarnings("unchecked")
+    static final SweepMetricAdapter<CurrentValueMetric<String>, String> CURRENT_VALUE_ADAPTER_STRING =
+            ImmutableSweepMetricAdapter.<CurrentValueMetric<String>, String>builder()
+                    .metricConstructor((metricRegistry, name) ->
+                            (CurrentValueMetric<String>) metricRegistry.gauge(name, CurrentValueMetric::new))
+                    .setMethod(CurrentValueMetric::setValue)
+                    .build();
+
+    static final SweepMetricAdapter<AccumulatingValueMetric, Long> ACCUMULATING_VALUE_ADAPTER =
+            ImmutableSweepMetricAdapter.<AccumulatingValueMetric, Long>builder()
+                    .metricConstructor((metricRegistry, name) ->
+                            (AccumulatingValueMetric) metricRegistry.gauge(name, AccumulatingValueMetric::new))
+                    .setMethod(AccumulatingValueMetric::setValue)
+                    .accumulateMethod(AccumulatingValueMetric::accumulateValue)
                     .build();
 }

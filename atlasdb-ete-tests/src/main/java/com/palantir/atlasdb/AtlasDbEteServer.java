@@ -26,6 +26,7 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
@@ -34,6 +35,7 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
+import com.palantir.atlasdb.schema.CleanupMetadataResourceImpl;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
@@ -54,7 +56,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final long CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS = 5;
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
             CheckAndSetSchema.getSchema(),
-            TodoSchema.getSchema());
+            TodoSchema.getSchema(),
+            BlobSchema.getSchema());
 
     public static void main(String[] args) throws Exception {
         new AtlasDbEteServer().run(args);
@@ -75,6 +78,9 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
+        environment.jersey().register(new CleanupMetadataResourceImpl(
+                transactionManager,
+                config.getAtlasDbConfig().initializeAsync()));
     }
 
     private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)
@@ -88,6 +94,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         }
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private TransactionManager createTransactionManagerWithRetry(AtlasDbConfig config,
             Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig,
             Environment environment)
@@ -104,6 +111,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private TransactionManager createTransactionManager(AtlasDbConfig config,
             Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfigOptional, Environment environment) {
         return TransactionManagers.builder()
@@ -113,6 +121,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment.jersey()::register)
                 .addAllSchemas(ETE_SCHEMAS)
+                .runtimeConfigSupplier(() -> atlasDbRuntimeConfigOptional)
                 .build()
                 .serializable();
     }

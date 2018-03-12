@@ -37,6 +37,7 @@ public class StreamStoreDefinition {
     private final String longName;
     private final ValueType idType;
     private final boolean compressStream;
+    private final int numberOfRowComponentsHashed;
 
     private int inMemoryThreshold;
 
@@ -46,17 +47,27 @@ public class StreamStoreDefinition {
             String longName,
             ValueType idType,
             int inMemoryThreshold,
-            boolean compressStream) {
+            boolean compressStream,
+            int numberOfRowComponentsHashed) {
         this.streamStoreTables = streamStoreTables;
         this.shortName = shortName;
         this.longName = longName;
         this.idType = idType;
         this.inMemoryThreshold = inMemoryThreshold;
         this.compressStream = compressStream;
+        this.numberOfRowComponentsHashed = numberOfRowComponentsHashed;
     }
 
     public Map<String, TableDefinition> getTables() {
         return streamStoreTables;
+    }
+
+    public ValueType getIdType() {
+        return idType;
+    }
+
+    public int getNumberOfRowComponentsHashed() {
+        return numberOfRowComponentsHashed;
     }
 
     public StreamStoreRenderer getRenderer(String packageName, String name) {

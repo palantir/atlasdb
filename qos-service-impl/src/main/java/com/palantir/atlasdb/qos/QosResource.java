@@ -15,30 +15,46 @@
  */
 package com.palantir.atlasdb.qos;
 
-import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosClientConfigLoader;
+import com.palantir.atlasdb.qos.agent.QosClientConfigLoader;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
 import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
+import com.palantir.atlasdb.util.MetricsManager;
 
 public class QosResource implements QosService {
     private final QosClientConfigLoader qosClientConfigLoader;
     private final ClientLimitMultiplier clientLimitMultiplier;
+    private static volatile double readLimitMultiplier = 1.0;
+    private static volatile double writeLimitMultiplier = 1.0;
+    private static final MetricsManager metricsManager = new MetricsManager();
 
     public QosResource(QosClientConfigLoader qosClientConfigLoader, ClientLimitMultiplier clientLimitMultiplier) {
         this.qosClientConfigLoader = qosClientConfigLoader;
         this.clientLimitMultiplier = clientLimitMultiplier;
+        metricsManager.registerMetric(QosResource.class, "readLimitMultiplier", this::getReadLimitMultiplier);
+        metricsManager.registerMetric(QosResource.class, "writeLimitMultiplier", this::getWriteLimitMultiplier);
     }
 
     @Override
     public long readLimit(String client) {
         QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
-        return (long) (clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
-                * qosClientLimitsConfig.limits().readBytesPerSecond());
+        readLimitMultiplier = this.clientLimitMultiplier.getClientLimitMultiplier(
+        );
+        return (long) (readLimitMultiplier * qosClientLimitsConfig.limits().readBytesPerSecond());
     }
 
     @Override
     public long writeLimit(String client) {
         QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
-        return (long) (clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
-                * qosClientLimitsConfig.limits().writeBytesPerSecond());
+        writeLimitMultiplier = this.clientLimitMultiplier.getClientLimitMultiplier(
+        );
+        return (long) (writeLimitMultiplier * qosClientLimitsConfig.limits().writeBytesPerSecond());
+    }
+
+    private double getReadLimitMultiplier() {
+        return readLimitMultiplier;
+    }
+
+    private double getWriteLimitMultiplier() {
+        return writeLimitMultiplier;
     }
 }
