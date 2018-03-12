@@ -145,6 +145,11 @@ v0.77.0
     *    - |fixed|
          - Fix NPE when warming conflict detection cache if table is being created.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2993>`__)
+           
+    *    - |improved|
+         - Removed remote calls to check immutable lock validity on all reads to tables with THOROUGH sweep enabled.
+           These locks were a safeguard against clients using data from uncommitted or failed transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2996>`__)
 
     *    - |improved| |devbreak|
          - Introduced configurable ``writeThreshold`` and ``writeSizeThreshold`` parameters for when to write stats for the Sweep prioritization.
