@@ -226,7 +226,7 @@ import com.palantir.timestamp.TimestampService;
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter::enqueue);
+                sweepQueueWriter);
         return runTaskThrowOnConflict(task, new ReadTransaction(transaction, sweepStrategyManager));
     }
 

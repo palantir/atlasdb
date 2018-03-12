@@ -61,7 +61,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     @Override
     protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
         when(timestamps.getSweepTimestamp(any())).thenReturn(ts);
-        processor.sweepOneBatchForAllTable();
+        processor.sweepOneBatchForAllTables();
         return Optional.empty();
     }
 

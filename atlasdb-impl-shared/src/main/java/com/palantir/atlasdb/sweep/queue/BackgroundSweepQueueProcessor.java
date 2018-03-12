@@ -21,6 +21,7 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -39,13 +40,13 @@ public class BackgroundSweepQueueProcessor {
         this.processorFactory = processorFactory;
     }
 
-    public void sweepOneBatchForAllTable() {
+    public void sweepOneBatchForAllTables() {
         for (TableReference table : kvs.getAllTableNames()) {
             trySweepOneBatch(table);
         }
     }
 
-    // visible for testing
+    @VisibleForTesting
     public void trySweepOneBatch(TableReference table) {
         try {
             processorFactory.apply(table).processNextBatch();
