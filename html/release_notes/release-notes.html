@@ -544,6 +544,10 @@ Previously, when services were shutting down, the background sweeper thread cont
 due to a closed <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2900">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Removed <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueServiceConfigManager</span></code>. If you’re affected by this, please contact the AtlasDB team.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2886">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -574,10 +578,6 @@ The regression was introduced with (<a class="reference external" href="https://
 <td>All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2868">Pull Request</a>)
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2874">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>Removed <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueServiceConfigManager</span></code>. If you’re affected by this, please contact the AtlasDB team.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2872">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>

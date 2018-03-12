@@ -375,6 +375,10 @@ v0.74.0
            Previously, when services were shutting down, the background sweeper thread continuously logged warnings
            due to a closed ``TransactionManager``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2900>`__)
+           
+    *    - |devbreak|
+         - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2886>`__)
 
 =======
 v0.73.1
@@ -402,10 +406,6 @@ v0.73.1
          - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2868>`__)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2874>`__)
-
-    *    - |devbreak|
-         - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
 
 =======
 v0.73.0
