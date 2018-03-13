@@ -57,7 +57,7 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
     private TransactionManagerConsistencyResult checkAndAggregateResults(TransactionManager resource) {
         return consistencyChecks.stream()
                 .map(check -> check.apply(resource))
-                .max(Comparator.comparingLong(result -> result.consistencyState().ordinal()))
+                .max(Comparator.comparingLong(result -> result.consistencyState().severity()))
                 .orElse(TransactionManagerConsistencyResult.CONSISTENT_RESULT);
     }
 
