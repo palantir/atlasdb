@@ -16,13 +16,38 @@
 
 package com.palantir.atlasdb.compact;
 
+import java.util.concurrent.TimeUnit;
+
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CompactorConfig {
-    boolean inSafeHours();
+    long DEFAULT_COMPACT_CONNECTION_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(10);
+    long DEFAULT_COMPACT_PAUSE_ON_FAILURE_MILLIS = TimeUnit.SECONDS.toMillis(1800);
+    long DEFAULT_COMPACT_PAUSE_MILLIS = TimeUnit.SECONDS.toMillis(10);
 
-    static CompactorConfig defaultCompactorConfig() {
-        return ImmutableCompactorConfig.builder().inSafeHours(true).build();
+    @Value.Default
+    default boolean enableCompaction() {
+        return false;
+    }
+
+    @Value.Default
+    default boolean inMaintenanceHours() {
+        return false;
+    }
+
+    @Value.Default
+    default long compactConnectionTimeoutMillis() {
+        return DEFAULT_COMPACT_CONNECTION_TIMEOUT_MILLIS;
+    }
+
+    @Value.Default
+    default long compactPauseOnFailureMillis() {
+        return DEFAULT_COMPACT_PAUSE_ON_FAILURE_MILLIS;
+    }
+
+    @Value.Default
+    default long compactPauseMillis() {
+        return DEFAULT_COMPACT_PAUSE_MILLIS;
     }
 }

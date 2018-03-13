@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.compact;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -34,16 +35,14 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SingleLockService;
 
 public final class BackgroundCompactor implements AutoCloseable {
-    private static final int SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS = 5000;
-    private static final int SLEEP_TIME_WHEN_NO_LOCK_MILLIS = 60 * 1000;
-    private static final int SLEEP_TIME_AFTER_FAILURE_MILLIS = 60 * 1000;
+    private static final long SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MIN_MILLIS = TimeUnit.SECONDS.toMillis(5);
 
     private static final Logger log = LoggerFactory.getLogger(BackgroundCompactor.class);
 
     private final TransactionManager transactionManager;
     private final KeyValueService keyValueService;
     private final RemoteLockService lockService;
-    private final Supplier<Boolean> inMaintenanceHours;
+    private final Supplier<CompactorConfig> compactorConfigSupplier;
     private final CompactPriorityCalculator compactPriorityCalculator;
 
     private final CompactionOutcomeMetrics compactionOutcomeMetrics = new CompactionOutcomeMetrics();
@@ -53,7 +52,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     public static Optional<BackgroundCompactor> createAndRun(TransactionManager transactionManager,
             KeyValueService keyValueService,
             RemoteLockService lockService,
-            Supplier<Boolean> inMaintenanceHours) {
+            Supplier<CompactorConfig> compactorConfigSupplier) {
         if (!keyValueService.shouldTriggerCompactions()) {
             log.info("Not starting a background compactor, because we don't believe our KVS needs one.");
             return Optional.empty();
@@ -63,7 +62,7 @@ public final class BackgroundCompactor implements AutoCloseable {
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
                 keyValueService,
                 lockService,
-                inMaintenanceHours,
+                compactorConfigSupplier,
                 compactPriorityCalculator);
         backgroundCompactor.runInBackground();
 
@@ -76,12 +75,12 @@ public final class BackgroundCompactor implements AutoCloseable {
     BackgroundCompactor(TransactionManager transactionManager,
             KeyValueService keyValueService,
             RemoteLockService lockService,
-            Supplier<Boolean> inMaintenanceHours,
+            Supplier<CompactorConfig> compactorConfigSupplier,
             CompactPriorityCalculator compactPriorityCalculator) {
         this.transactionManager = transactionManager;
         this.keyValueService = keyValueService;
         this.lockService = lockService;
-        this.inMaintenanceHours = inMaintenanceHours;
+        this.compactorConfigSupplier = compactorConfigSupplier;
         this.compactPriorityCalculator = compactPriorityCalculator;
     }
 
@@ -139,7 +138,7 @@ public final class BackgroundCompactor implements AutoCloseable {
             log.warn("Unexpected exception occurred whilst performing background compaction!", e);
         }
         compactionOutcomeMetrics.registerOccurrenceOf(outcome);
-        Thread.sleep(outcome.getSleepTime());
+        Thread.sleep(getSleepTime(compactorConfigSupplier, outcome));
     }
 
     @VisibleForTesting
@@ -211,26 +210,34 @@ public final class BackgroundCompactor implements AutoCloseable {
     private void compactTable(String tableToCompact) {
         // System tables MAY be involved in this process.
         keyValueService.compactInternally(TableReference.createUnsafe(tableToCompact),
-                inMaintenanceHours.get());
+                compactorConfigSupplier.get().inMaintenanceHours());
+    }
+
+    private long getSleepTime(
+            Supplier<CompactorConfig> compactorConfigSupplier,
+            CompactionOutcome outcome) {
+        switch (outcome) {
+            case SUCCESS:
+            case COMPACTED_BUT_NOT_REGISTERED:
+            case SHUTDOWN:
+                return compactorConfigSupplier.get().compactPauseMillis();
+            case NOTHING_TO_COMPACT:
+                return Math.max(compactorConfigSupplier.get().compactPauseMillis(),
+                        SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MIN_MILLIS);
+            case UNABLE_TO_ACQUIRE_LOCKS:
+            case FAILED_TO_COMPACT:
+                return compactorConfigSupplier.get().compactPauseOnFailureMillis();
+            default:
+                throw new IllegalStateException("Unexpected outcome enum type: " + outcome);
+        }
     }
 
     enum CompactionOutcome {
-        SUCCESS(0),
-        NOTHING_TO_COMPACT(SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS),
-        COMPACTED_BUT_NOT_REGISTERED(0),
-        UNABLE_TO_ACQUIRE_LOCKS(SLEEP_TIME_WHEN_NO_LOCK_MILLIS),
-        FAILED_TO_COMPACT(SLEEP_TIME_AFTER_FAILURE_MILLIS),
-        SHUTDOWN(0);
-
-        private final int sleepTime;
-
-        CompactionOutcome(int sleepTime) {
-            this.sleepTime = sleepTime;
-        }
-
-        public int getSleepTime() {
-            return sleepTime;
-        }
+        SUCCESS,
+        NOTHING_TO_COMPACT,
+        COMPACTED_BUT_NOT_REGISTERED,
+        UNABLE_TO_ACQUIRE_LOCKS,
+        FAILED_TO_COMPACT,
+        SHUTDOWN
     }
-
 }

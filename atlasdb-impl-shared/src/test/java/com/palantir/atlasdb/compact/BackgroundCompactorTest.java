@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.junit.Before;
@@ -47,7 +48,7 @@ public class BackgroundCompactorTest {
     private final BackgroundCompactor compactor = new BackgroundCompactor(txManager,
             kvs,
             mock(LockService.class),
-            () -> true,
+            () -> ImmutableCompactorConfig.builder().inMaintenanceHours(true).build(),
             priorityCalculator);
     private final SingleLockService lockService = mock(SingleLockService.class);
 
@@ -102,7 +103,7 @@ public class BackgroundCompactorTest {
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(txManager,
                 kvs,
                 mock(LockService.class),
-                Stream.iterate(true, bool -> !bool).iterator()::next,
+                createAlternatingInMaintenanceHoursSupplier(),
                 priorityCalculator);
 
         BackgroundCompactor.CompactionOutcome firstOutcome = backgroundCompactor.grabLockAndRunOnce(lockService);
@@ -114,6 +115,14 @@ public class BackgroundCompactorTest {
         assertThat(firstOutcome).isEqualTo(BackgroundCompactor.CompactionOutcome.SUCCESS);
         assertThat(secondOutcome).isEqualTo(BackgroundCompactor.CompactionOutcome.SUCCESS);
         verifyNoMoreInteractions(kvs);
+    }
+
+    private Supplier<CompactorConfig> createAlternatingInMaintenanceHoursSupplier() {
+        return Stream.iterate(ImmutableCompactorConfig.builder().inMaintenanceHours(true).build(),
+                oldConfig -> ImmutableCompactorConfig.builder()
+                        .from(oldConfig)
+                        .inMaintenanceHours(!oldConfig.inMaintenanceHours())
+                        .build()).iterator()::next;
     }
 
     @Test
