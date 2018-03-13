@@ -63,18 +63,19 @@ public class TimestampCorroborationConsistencyCheck implements TransactionManage
             return indeterminateResultForException(e);
         }
         if (freshTimestamp <= lowerBound) {
-            log.error("Your AtlasDB client believes that a lower bound for the timestamp was {} (typically by reading"
-                            + " the unreadable timestamp), but that's newer than a fresh timestamp of {}, which implies"
-                            + " clocks went back. If using TimeLock, this could be because timestamp bounds were not"
-                            + " migrated properly - which can happen if you've moved TimeLock Server without moving its"
-                            + " persistent state. For safety, AtlasDB will refuse to start.",
+            log.error("Your AtlasDB client believes that a strict lower bound for the timestamp was {} (typically by"
+                            + " reading the unreadable timestamp), but that's newer than a fresh timestamp of {}, which"
+                            + " implies clocks went back. If using TimeLock, this could be because timestamp bounds"
+                            + " were not migrated properly - which can happen if you've moved TimeLock Server without"
+                            + " moving its persistent state. For safety, AtlasDB will refuse to start.",
                     SafeArg.of("timestampLowerBound", lowerBound),
                     SafeArg.of("freshTimestamp", freshTimestamp));
             return ImmutableTransactionManagerConsistencyResult.builder()
                     .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.TERMINAL)
+                    .reasonForInconsistency(clocksWentBackwards(lowerBound, freshTimestamp))
                     .build();
         }
-        log.info("Passed timestamp corroboration consistency check; expected a lower bound of {}, which was"
+        log.info("Passed timestamp corroboration consistency check; expected a strict lower bound of {}, which was"
                         + " lower than a fresh timestamp of {}.",
                 SafeArg.of("timestampLowerBound", lowerBound),
                 SafeArg.of("freshTimestamp", freshTimestamp));
@@ -88,5 +89,10 @@ public class TimestampCorroborationConsistencyCheck implements TransactionManage
                 .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.INDETERMINATE)
                 .reasonForInconsistency(e)
                 .build();
+    }
+
+    private AssertionError clocksWentBackwards(long lowerBound, long freshTimestamp) {
+        String errorMessage = "Expected timestamp to be greater than %s, but a fresh timestamp was %s!";
+        return new AssertionError(String.format(errorMessage, lowerBound, freshTimestamp));
     }
 }

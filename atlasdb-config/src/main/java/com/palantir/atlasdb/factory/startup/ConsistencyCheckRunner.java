@@ -35,7 +35,7 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
     private static final Logger log = LoggerFactory.getLogger(ConsistencyCheckRunner.class);
 
-    private static final RuntimeException UNKNOWN = new RuntimeException("unknown");;
+    private static final RuntimeException UNKNOWN = new RuntimeException("unknown");
 
     private final List<TransactionManagerConsistencyCheck> consistencyChecks;
 
