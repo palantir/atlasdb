@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cleaner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.junit.Before;
@@ -107,6 +108,15 @@ public class KeyValueServicePuncherStoreTest {
         assertThat(puncherStore.get(WALL_CLOCK_2))
                 .isEqualTo(TIMESTAMP_1)
                 .isNotEqualTo(TIMESTAMP_2); // strictly speaking not needed but better for readability
+    }
+
+    @Test
+    public void canGetAcrossRowBoundaries() {
+        long atlasTime = 12345;
+        puncherStore = initializePuncherStore(Collections.emptyMap());
+        puncherStore.put(atlasTime, 0);
+        assertThat(puncherStore.get(KeyValueServicePuncherStore.MILLIS_IN_TWO_WEEKS + 100))
+                .isEqualTo(atlasTime);
     }
 
     private static long mean(long first, long second) {

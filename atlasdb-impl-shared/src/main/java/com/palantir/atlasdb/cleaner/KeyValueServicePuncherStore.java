@@ -15,25 +15,35 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Spliterators;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+import java.util.stream.StreamSupport;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -43,7 +53,24 @@ import com.palantir.processors.AutoDelegate;
 /**
  * A PuncherStore implemented as a table in the KeyValueService.
  *
- * @author jweel
+ * This utilises dynamic columns to remove the necessity of range scans.
+ *
+ * The schema is:
+ *
+ * row: time rounded to 14 days
+ * column: rest of the timestamp, with inverted bits to ensure reverse range scans
+ * value: Atlas timestamp
+ *
+ * In order to look up a value for a give time, truncate in the same way and range scan within the row
+ * for the first cell beneath the provided time.
+ *
+ * Selecting the wall clock timestamp for a given Atlas timestamp still requires a full table scan,
+ * but should not be used in production code.
+ *
+ * It is expected that each row contains (with default setting) (1440 * 14 = 20k cells).
+ *
+ * Note one caveat of this implementation - as written, the get method only works if it is in the last
+ * 420 days, and defaults to Long.MIN_VALUE otherwise.
  */
 @AutoDelegate(typeToExtend = PuncherStore.class)
 public final class KeyValueServicePuncherStore implements PuncherStore {
@@ -65,7 +92,8 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         }
     }
 
-    private static final byte[] COLUMN = "t".getBytes(StandardCharsets.UTF_8);
+    @VisibleForTesting
+    static final long MILLIS_IN_TWO_WEEKS = TimeUnit.DAYS.toMillis(14);
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
     private final KeyValueService keyValueService;
@@ -88,12 +116,15 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, new TableMetadata(
                 NameMetadataDescription.create(ImmutableList.of(
                         new NameComponentDescription.Builder()
-                                .componentName("time")
-                                .type(ValueType.VAR_LONG)
-                                .byteOrder(ValueByteOrder.DESCENDING)
+                                .componentName("time_rounded_millis")
+                                .type(ValueType.FIXED_LONG_LITTLE_ENDIAN)
                                 .build())),
-                new ColumnMetadataDescription(ImmutableList.of(
-                        new NamedColumnDescription("t", "t", ColumnValueDescription.forType(ValueType.VAR_LONG)))),
+                new ColumnMetadataDescription(new DynamicColumnDescription(
+                        NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
+                                .componentName("remainder_millis")
+                                .type(ValueType.VAR_LONG)
+                                .build())),
+                        ColumnValueDescription.forType(ValueType.VAR_LONG))),
                 ConflictHandler.IGNORE_ALL,
                 TableMetadataPersistence.LogSafety.SAFE).persistToBytes());
     }
@@ -105,30 +136,28 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
 
     @Override
     public void put(long timestamp, long timeMillis) {
-        byte[] row = EncodingUtils.encodeUnsignedVarLong(timeMillis);
-        EncodingUtils.flipAllBitsInPlace(row);
-        Cell cell = Cell.create(row, COLUMN);
+        Cell cell = Cell.create(row(timeMillis), column(timeMillis));
         byte[] value = EncodingUtils.encodeUnsignedVarLong(timestamp);
         keyValueService.put(AtlasDbConstants.PUNCH_TABLE, ImmutableMap.of(cell, value), timestamp);
     }
 
     @Override
     public Long get(Long timeMillis) {
-        byte[] row = EncodingUtils.encodeUnsignedVarLong(timeMillis);
-        EncodingUtils.flipAllBitsInPlace(row);
-        RangeRequest rangeRequest =
-                RangeRequest.builder().startRowInclusive(row).batchHint(1).build();
-        ClosableIterator<RowResult<Value>> result =
-                keyValueService.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, Long.MAX_VALUE);
-        try {
-            if (result.hasNext()) {
-                return EncodingUtils.decodeUnsignedVarLong(result.next().getColumns().get(COLUMN).getContents());
-            } else {
-                return Long.MIN_VALUE;
-            }
-        } finally {
-            result.close();
+        byte[] row = row(timeMillis);
+        byte[] column = column(timeMillis);
+        BatchColumnRangeSelection rangeSelection = BatchColumnRangeSelection.create(column, null, 1);
+        Iterator<Map.Entry<Cell, Value>> iterator = keyValueService.getRowsColumnRange(
+                AtlasDbConstants.PUNCH_TABLE,
+                ImmutableList.of(row),
+                rangeSelection,
+                Long.MAX_VALUE).get(row);
+
+        if (iterator.hasNext()) {
+            return getAtlasTimestamp(iterator.next().getValue());
         }
+
+        return getHistoric(timeMillis, 1)
+                .orElseGet(() -> getHistoric(timeMillis, 30).orElse(Long.MIN_VALUE));
     }
 
     @Override
@@ -136,28 +165,59 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         return getMillisForTimestamp(keyValueService, timestamp);
     }
 
+    private Optional<Long> getHistoric(long timeMillis, int numRowsToCheck) {
+        List<byte[]> rows = LongStream.rangeClosed(1, numRowsToCheck)
+                .map(i -> timeMillis - i * MILLIS_IN_TWO_WEEKS)
+                .mapToObj(KeyValueServicePuncherStore::row)
+                .collect(Collectors.toList());
+        Map<byte[], RowColumnRangeIterator> itMap = keyValueService.getRowsColumnRange(
+                AtlasDbConstants.PUNCH_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(null, null, 1),
+                Long.MAX_VALUE);
+
+        return rows.stream()
+                .map(itMap::get)
+                .filter(Iterator::hasNext)
+                .map(Iterator::next)
+                .map(Map.Entry::getValue)
+                .map(KeyValueServicePuncherStore::getAtlasTimestamp)
+                .findFirst();
+    }
+
+    private static long getAtlasTimestamp(Value value) {
+        return EncodingUtils.decodeUnsignedVarLong(value.getContents());
+    }
+
+    // Relies on a full table scan, but should only be used in a cli.
     public static long getMillisForTimestamp(KeyValueService kvs, long timestamp) {
         long timestampExclusive = timestamp + 1;
-        // punch table is keyed by the real value we're trying to find so we have to do a whole table
-        // scan, which is fine because this table should be really small
-        byte[] startRow = EncodingUtils.encodeUnsignedVarLong(Long.MAX_VALUE);
-        EncodingUtils.flipAllBitsInPlace(startRow);
-        RangeRequest rangeRequest =
-                RangeRequest.builder().startRowInclusive(startRow).batchHint(1).build();
-        ClosableIterator<RowResult<Value>> result =
-                kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, timestampExclusive);
-
-        try {
-            if (result.hasNext()) {
-                byte[] encodedMillis = result.next().getRowName();
-                EncodingUtils.flipAllBitsInPlace(encodedMillis);
-                return EncodingUtils.decodeUnsignedVarLong(encodedMillis);
-            } else {
-                return 0L;
-            }
-        } finally {
-            result.close();
+        RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
+        try (ClosableIterator<RowResult<Value>> result =
+                kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, timestampExclusive)) {
+            // With Guava 21.0, can do Streams.stream(result), Streams.stream(row.getCells())
+            return StreamSupport.stream(Spliterators.spliteratorUnknownSize(result, 0), false)
+                    .flatMap(row -> StreamSupport.stream(row.getCells().spliterator(), false))
+                    .map(Map.Entry::getKey)
+                    .mapToLong(KeyValueServicePuncherStore::timestamp)
+                    .max()
+                    .orElse(0L);
         }
     }
 
+    private static long timestamp(Cell cell) {
+        return MILLIS_IN_TWO_WEEKS * EncodingUtils.decodeLittleEndian(cell.getRowName(), 0)
+                + EncodingUtils.decodeUnsignedVarLong(EncodingUtils.flipAllBits(cell.getColumnName()));
+    }
+
+    // floorDiv and floorMod are to ensure that this works properly if the time is somehow negative.
+    private static byte[] column(long timeMillis) {
+        byte[] ret = EncodingUtils.encodeUnsignedVarLong(Math.floorMod(timeMillis, MILLIS_IN_TWO_WEEKS));
+        EncodingUtils.flipAllBitsInPlace(ret);
+        return ret;
+    }
+
+    private static byte[] row(long timeMillis) {
+        return EncodingUtils.encodeLittleEndian(Math.floorDiv(timeMillis, MILLIS_IN_TWO_WEEKS));
+    }
 }

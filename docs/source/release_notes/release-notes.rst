@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - AtlasDB's puncher table now no longer uses range scans
+           The puncher table no longer requires that AtlasDB keys be globally sortable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2981>`__)
+
     *    - |fixed|
          - The Cassandra client pool is now cleaned up in the event of a failure to construct the Cassandra KVS (e.g. because we lost our connection to Cassandra midway).
            Previously, the client pool was not shut down, leading to a thread leak.
