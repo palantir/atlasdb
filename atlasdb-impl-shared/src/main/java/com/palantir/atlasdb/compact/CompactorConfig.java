@@ -20,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.immutables.value.Value;
 
+import com.google.common.base.Preconditions;
+
 @Value.Immutable
 public interface CompactorConfig {
     long DEFAULT_COMPACT_PAUSE_ON_FAILURE_MILLIS = TimeUnit.SECONDS.toMillis(1800);
@@ -59,5 +61,13 @@ public interface CompactorConfig {
     @Value.Default
     default long compactPauseMillis() {
         return DEFAULT_COMPACT_PAUSE_MILLIS;
+    }
+
+    @Value.Check
+    default void checkIntervalsNonnegative() {
+        Preconditions.checkState(compactPauseOnFailureMillis() >= 0,
+                "Compact pause-on-failure interval must be greater than 0 but found %s", compactPauseOnFailureMillis());
+        Preconditions.checkState(compactPauseMillis() >= 0,
+                "Compact pause interval must be greater than 0 but found %s", compactPauseMillis());
     }
 }
