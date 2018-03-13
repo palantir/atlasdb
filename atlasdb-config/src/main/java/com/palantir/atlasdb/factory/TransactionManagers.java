@@ -269,7 +269,7 @@ public final class TransactionManagers {
         BackgroundCompactor.createAndRun(transactionManager, kvs, lockAndTimestampServices.lock(),
                 () -> ImmutableCompactorConfig.builder().build()); // TEMP: never in safe hours
                 // TODO fixup config - does 0.39.x even have runtime config?
-//                JavaSuppliers.compose(o -> o.compact().inMaintenanceHours(), runtimeConfigSupplier));
+//                JavaSuppliers.compose(o -> o.compact().inMaintenanceMode(), runtimeConfigSupplier));
 
         return transactionManager;
     }

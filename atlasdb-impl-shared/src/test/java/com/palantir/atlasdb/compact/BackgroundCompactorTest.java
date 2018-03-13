@@ -41,6 +41,15 @@ public class BackgroundCompactorTest {
     private static final String TABLE_STRING = "ns.table";
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName(TABLE_STRING);
 
+    private static final long COMPACT_PAUSE_MILLIS = 123;
+    private static final long COMPACT_PAUSE_ON_FAILURE_MILLIS = 456;
+    private static final long COMPACT_MINIMUM_PAUSE_ON_NOTHING_TO_COMPACT_MILLIS
+            = BackgroundCompactor.SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS;
+    private static final CompactorConfig COMPACTOR_CONFIG = ImmutableCompactorConfig.builder()
+            .compactPauseMillis(COMPACT_PAUSE_MILLIS)
+            .compactPauseOnFailureMillis(COMPACT_PAUSE_ON_FAILURE_MILLIS)
+            .build();
+
     private final KeyValueService kvs = mock(KeyValueService.class);
     private final TransactionManager txManager = mock(TransactionManager.class);
     private final CompactPriorityCalculator priorityCalculator = mock(CompactPriorityCalculator.class);
@@ -50,7 +59,7 @@ public class BackgroundCompactorTest {
             mock(LockService.class),
             () -> ImmutableCompactorConfig.builder()
                     .enableCompaction(true)
-                    .inMaintenanceHours(true)
+                    .inMaintenanceMode(true)
                     .build(),
             priorityCalculator);
     private final SingleLockService lockService = mock(SingleLockService.class);
@@ -146,14 +155,60 @@ public class BackgroundCompactorTest {
         verifyNoMoreInteractions(kvs);
     }
 
+    @Test
+    public void sleepsForShortDurationIfCompactSucceeds() {
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> COMPACTOR_CONFIG,
+                BackgroundCompactor.CompactionOutcome.SUCCESS))
+                .isEqualTo(COMPACT_PAUSE_MILLIS);
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> COMPACTOR_CONFIG,
+                BackgroundCompactor.CompactionOutcome.COMPACTED_BUT_NOT_REGISTERED))
+                .isEqualTo(COMPACT_PAUSE_MILLIS);
+    }
+
+    @Test
+    public void sleepsForCompactDurationIfGreaterThanMinimumAndNothingToCompact() {
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> ImmutableCompactorConfig.builder()
+                        .from(COMPACTOR_CONFIG)
+                        .compactPauseMillis(COMPACT_MINIMUM_PAUSE_ON_NOTHING_TO_COMPACT_MILLIS + 1)
+                        .build(),
+                BackgroundCompactor.CompactionOutcome.NOTHING_TO_COMPACT))
+                .isEqualTo(COMPACT_MINIMUM_PAUSE_ON_NOTHING_TO_COMPACT_MILLIS + 1);
+    }
+
+    @Test
+    public void sleepsForAtLeastMinimumDurationIfNothingToCompact() {
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> ImmutableCompactorConfig.builder()
+                        .from(COMPACTOR_CONFIG)
+                        .compactPauseMillis(COMPACT_MINIMUM_PAUSE_ON_NOTHING_TO_COMPACT_MILLIS - 1)
+                        .build(),
+                BackgroundCompactor.CompactionOutcome.NOTHING_TO_COMPACT))
+                .isEqualTo(COMPACT_MINIMUM_PAUSE_ON_NOTHING_TO_COMPACT_MILLIS);
+    }
+
+    @Test
+    public void sleepsForLongerDurationIfCompactFails() {
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> COMPACTOR_CONFIG,
+                BackgroundCompactor.CompactionOutcome.FAILED_TO_COMPACT))
+                .isEqualTo(COMPACT_PAUSE_ON_FAILURE_MILLIS);
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> COMPACTOR_CONFIG,
+                BackgroundCompactor.CompactionOutcome.UNABLE_TO_ACQUIRE_LOCKS))
+                .isEqualTo(COMPACT_PAUSE_ON_FAILURE_MILLIS);
+    }
+
     private Supplier<CompactorConfig> createAlternatingInMaintenanceHoursSupplier() {
         return Stream.iterate(ImmutableCompactorConfig.builder()
                         .enableCompaction(true)
-                        .inMaintenanceHours(true)
+                        .inMaintenanceMode(true)
                         .build(),
                 oldConfig -> ImmutableCompactorConfig.builder()
                         .from(oldConfig)
-                        .inMaintenanceHours(!oldConfig.inMaintenanceHours())
+                        .inMaintenanceMode(!oldConfig.inMaintenanceMode())
                         .build()).iterator()::next;
     }
 }

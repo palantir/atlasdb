@@ -35,7 +35,7 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SingleLockService;
 
 public final class BackgroundCompactor implements AutoCloseable {
-    private static final long SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MIN_MILLIS = TimeUnit.SECONDS.toMillis(5);
+    public static final long SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS = TimeUnit.SECONDS.toMillis(5);
 
     private static final Logger log = LoggerFactory.getLogger(BackgroundCompactor.class);
 
@@ -216,10 +216,11 @@ public final class BackgroundCompactor implements AutoCloseable {
     private void compactTable(String tableToCompact, CompactorConfig config) {
         // System tables MAY be involved in this process.
         keyValueService.compactInternally(TableReference.createUnsafe(tableToCompact),
-                config.inMaintenanceHours());
+                config.inMaintenanceMode());
     }
 
-    private long getSleepTime(
+    @VisibleForTesting
+    static long getSleepTime(
             Supplier<CompactorConfig> compactorConfigSupplier,
             CompactionOutcome outcome) {
         switch (outcome) {
@@ -230,7 +231,7 @@ public final class BackgroundCompactor implements AutoCloseable {
             case NOTHING_TO_COMPACT:
             case DISABLED:
                 return Math.max(compactorConfigSupplier.get().compactPauseMillis(),
-                        SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MIN_MILLIS);
+                        SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS);
             case UNABLE_TO_ACQUIRE_LOCKS:
             case FAILED_TO_COMPACT:
                 return compactorConfigSupplier.get().compactPauseOnFailureMillis();

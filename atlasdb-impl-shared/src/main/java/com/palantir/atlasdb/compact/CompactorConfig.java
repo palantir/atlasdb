@@ -22,34 +22,40 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CompactorConfig {
-    long DEFAULT_COMPACT_CONNECTION_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(10);
     long DEFAULT_COMPACT_PAUSE_ON_FAILURE_MILLIS = TimeUnit.SECONDS.toMillis(1800);
     long DEFAULT_COMPACT_PAUSE_MILLIS = TimeUnit.SECONDS.toMillis(10);
 
     /**
-     * Indicates whether 
-     * @return
+     * Indicates whether background compaction should run at all.
      */
     @Value.Default
     default boolean enableCompaction() {
         return false;
     }
 
+    /**
+     * Indicates whether the background compactor is configured to run in maintenance mode.
+     *
+     * Compactors that are running in maintenance mode may perform more aggressive operations that could have
+     * significant impacts on other queries to the underlying key-value service (such as blocking, un-cancelable
+     * calls that acquire a table lock).
+     */
     @Value.Default
-    default boolean inMaintenanceHours() {
+    default boolean inMaintenanceMode() {
         return false;
     }
 
-    @Value.Default
-    default long compactConnectionTimeoutMillis() {
-        return DEFAULT_COMPACT_CONNECTION_TIMEOUT_MILLIS;
-    }
-
+    /**
+     * Indicates the time interval to wait after a failed compaction before trying again.
+     */
     @Value.Default
     default long compactPauseOnFailureMillis() {
         return DEFAULT_COMPACT_PAUSE_ON_FAILURE_MILLIS;
     }
 
+    /**
+     * Indicates the time interval to wait after a successful compaction before trying again (e.g. on a new table).
+     */
     @Value.Default
     default long compactPauseMillis() {
         return DEFAULT_COMPACT_PAUSE_MILLIS;
