@@ -53,7 +53,6 @@ develop
     *    - |new|
          - Added a new parameter ``addressTranslation`` to ``CassandraKeyValueServiceConfig``.
            This parameter is a static map specifying how internal Cassandra endpoints should be translated to InetSocketAddresses.
-           Previously, the client pool was not shut down, leading to a thread leak.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3040>`__)
 
     *    - |fixed|
