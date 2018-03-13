@@ -19,9 +19,13 @@ package com.palantir.paxos;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
 
 public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
+    private static final Logger log = LoggerFactory.getLogger(PaxosLatestRoundVerifierImpl.class);
 
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
@@ -51,7 +55,12 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
     }
 
     private boolean acceptorAgreesIsLatestRound(PaxosAcceptor acceptor, long round) {
-        return round >= acceptor.getLatestSequencePreparedOrAccepted();
+        try {
+            return round >= acceptor.getLatestSequencePreparedOrAccepted();
+        } catch (Exception e) {
+            log.debug("latest sequence retrieval failed for acceptor: {}", acceptor, e);
+            throw e;
+        }
     }
 
     private PaxosQuorumStatus determineQuorumStatus(List<PaxosResponse> responses) {
