@@ -17,9 +17,14 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Collection;
+import java.util.function.Consumer;
 
-public interface SweepQueueWriter {
+public interface SweepQueueReader {
 
-    void enqueue(Collection<WriteInfo> writes);
+    // Passes the next batch of writes to the given consumer. If the consumer returns without throwing,
+    // the batch is considered consumed, and future invocations of this method will consume only newer writes.
+    // On the other hand, if the consumer fails by throwing an exception, the same batch will be consumed
+    // on the next invocation.
+    void consumeNextBatch(Consumer<Collection<WriteInfo>> consumer, long maxTimestampExclusive);
 
 }

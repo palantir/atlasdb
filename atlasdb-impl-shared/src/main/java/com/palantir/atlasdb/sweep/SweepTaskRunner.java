@@ -187,7 +187,7 @@ public class SweepTaskRunner {
                 .batchSizeHint(batchConfig.candidateBatchSize())
                 .maxTimestampExclusive(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(sweeper.shouldSweepLastCommitted())
-                .timestampsToIgnore(sweeper.getTimestampsToIgnore())
+                .shouldDeleteGarbageCollectionSentinels(!sweeper.shouldAddSentinels())
                 .build();
 
         SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(transactionService, sweeper, sweepTs);

@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
@@ -45,11 +45,10 @@ public interface CellWithTimestamps {
     }
 
     default CandidateCellForSweeping toSweepCandidate(
-            long maxTimestampExclusive,
-            Set<Long> timestampsToIgnore,
+            Predicate<Long> shouldSweepTimestampPredicate,
             boolean latestValueEmpty) {
         List<Long> filteredTimestamps = sortedTimestamps().stream()
-                .filter(ts -> ts < maxTimestampExclusive && !timestampsToIgnore.contains(ts))
+                .filter(shouldSweepTimestampPredicate)
                 .collect(Collectors.toList());
         return ImmutableCandidateCellForSweeping.builder()
                 .cell(cell())
@@ -57,5 +56,4 @@ public interface CellWithTimestamps {
                 .isLatestValueEmpty(latestValueEmpty)
                 .build();
     }
-
 }

@@ -16,10 +16,25 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Collection;
+import java.util.function.Supplier;
 
-public interface SweepQueueWriter {
+public class SweepQueueProcessor {
 
-    void enqueue(Collection<WriteInfo> writes);
+    private final Supplier<Long> sweepTimestamp;
+    private final SweepQueueReader reader;
+    private final SweepDeleter deleter;
+
+    public SweepQueueProcessor(
+            Supplier<Long> sweepTimestamp,
+            SweepQueueReader reader,
+            SweepDeleter deleter) {
+        this.sweepTimestamp = sweepTimestamp;
+        this.reader = reader;
+        this.deleter = deleter;
+    }
+
+    public void processNextBatch() {
+        reader.consumeNextBatch(deleter::sweep, sweepTimestamp.get());
+    }
 
 }

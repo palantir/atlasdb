@@ -41,6 +41,7 @@ import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -189,7 +190,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 cleaner,
                 DEFAULT_MAX_CONCURRENT_RANGES,
                 DEFAULT_GET_RANGES_CONCURRENCY,
-                () -> DEFAULT_TIMESTAMP_CACHE_SIZE);
+                () -> DEFAULT_TIMESTAMP_CACHE_SIZE,
+                MultiTableSweepQueueWriter.NO_OP);
         cleaner.start(ret);
         return ret;
     }

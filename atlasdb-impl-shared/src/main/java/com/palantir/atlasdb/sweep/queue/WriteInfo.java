@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.sweep.Sweeper;
 
 /**
  * Contains information about a committed write, for use by the sweep queue.
@@ -39,6 +40,14 @@ public interface WriteInfo {
 
     @JsonProperty("d")
     boolean isTombstone();
+
+    default long timestampToDeleteAtExclusive(Sweeper sweeper) {
+        if (sweeper.shouldSweepLastCommitted() && isTombstone()) {
+            return timestamp() + 1L;
+        }
+
+        return timestamp();
+    }
 
     static WriteInfo of(Cell cell, boolean isTombstone, long timestamp) {
         return ImmutableWriteInfo.builder().cell(cell).isTombstone(isTombstone).timestamp(timestamp).build();
