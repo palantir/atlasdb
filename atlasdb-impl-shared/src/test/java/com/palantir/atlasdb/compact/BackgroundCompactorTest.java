@@ -48,7 +48,10 @@ public class BackgroundCompactorTest {
     private final BackgroundCompactor compactor = new BackgroundCompactor(txManager,
             kvs,
             mock(LockService.class),
-            () -> ImmutableCompactorConfig.builder().inMaintenanceHours(true).build(),
+            () -> ImmutableCompactorConfig.builder()
+                    .enableCompaction(true)
+                    .inMaintenanceHours(true)
+                    .build(),
             priorityCalculator);
     private final SingleLockService lockService = mock(SingleLockService.class);
 
@@ -117,14 +120,6 @@ public class BackgroundCompactorTest {
         verifyNoMoreInteractions(kvs);
     }
 
-    private Supplier<CompactorConfig> createAlternatingInMaintenanceHoursSupplier() {
-        return Stream.iterate(ImmutableCompactorConfig.builder().inMaintenanceHours(true).build(),
-                oldConfig -> ImmutableCompactorConfig.builder()
-                        .from(oldConfig)
-                        .inMaintenanceHours(!oldConfig.inMaintenanceHours())
-                        .build()).iterator()::next;
-    }
-
     @Test
     public void sanityTestMetrics() {
         CompactionOutcomeMetrics metrics = new CompactionOutcomeMetrics();
@@ -136,5 +131,29 @@ public class BackgroundCompactorTest {
         assertThat(metrics.getOutcomeCount(BackgroundCompactor.CompactionOutcome.SUCCESS)).isEqualTo(2L);
         assertThat(metrics.getOutcomeCount(BackgroundCompactor.CompactionOutcome.NOTHING_TO_COMPACT)).isEqualTo(0L);
         assertThat(metrics.getOutcomeCount(BackgroundCompactor.CompactionOutcome.FAILED_TO_COMPACT)).isEqualTo(1L);
+    }
+
+    @Test
+    public void doesNotRunIfDisabled() throws InterruptedException {
+        BackgroundCompactor backgroundCompactor = new BackgroundCompactor(txManager,
+                kvs,
+                mock(LockService.class),
+                () -> ImmutableCompactorConfig.builder().enableCompaction(false).build(),
+                priorityCalculator);
+
+        BackgroundCompactor.CompactionOutcome outcome = backgroundCompactor.grabLockAndRunOnce(lockService);
+        assertThat(outcome).isEqualTo(BackgroundCompactor.CompactionOutcome.DISABLED);
+        verifyNoMoreInteractions(kvs);
+    }
+
+    private Supplier<CompactorConfig> createAlternatingInMaintenanceHoursSupplier() {
+        return Stream.iterate(ImmutableCompactorConfig.builder()
+                        .enableCompaction(true)
+                        .inMaintenanceHours(true)
+                        .build(),
+                oldConfig -> ImmutableCompactorConfig.builder()
+                        .from(oldConfig)
+                        .inMaintenanceHours(!oldConfig.inMaintenanceHours())
+                        .build()).iterator()::next;
     }
 }

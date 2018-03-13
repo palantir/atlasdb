@@ -26,6 +26,10 @@ public interface CompactorConfig {
     long DEFAULT_COMPACT_PAUSE_ON_FAILURE_MILLIS = TimeUnit.SECONDS.toMillis(1800);
     long DEFAULT_COMPACT_PAUSE_MILLIS = TimeUnit.SECONDS.toMillis(10);
 
+    /**
+     * Indicates whether 
+     * @return
+     */
     @Value.Default
     default boolean enableCompaction() {
         return false;
