@@ -47,6 +47,8 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.compact.BackgroundCompactor;
+import com.palantir.atlasdb.compact.CompactorConfig;
+import com.palantir.atlasdb.compact.ImmutableCompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -379,7 +381,7 @@ public abstract class TransactionManagers {
                         lockAndTimestampServices,
                         keyValueService,
                         transactionManager,
-                        JavaSuppliers.compose(o -> o.compact().inSafeHours(), runtimeConfigSupplier)),
+                        JavaSuppliers.compose(AtlasDbRuntimeConfig::compact, runtimeConfigSupplier)),
                 closeables);
 
         return transactionManager;
@@ -389,12 +391,12 @@ public abstract class TransactionManagers {
             LockAndTimestampServices lockAndTimestampServices,
             KeyValueService keyValueService,
             SerializableTransactionManager transactionManager,
-            Supplier<Boolean> inSafeHours) {
+            Supplier<CompactorConfig> compactorConfigSupplier) {
         Optional<BackgroundCompactor> backgroundCompactorOptional = BackgroundCompactor.createAndRun(
                 transactionManager,
                 keyValueService,
                 lockAndTimestampServices.lock(),
-                inSafeHours);
+                compactorConfigSupplier);
 
         backgroundCompactorOptional.ifPresent(backgroundCompactor ->
                 transactionManager.registerClosingCallback(backgroundCompactor::close));

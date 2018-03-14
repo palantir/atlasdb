@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.junit.Before;
@@ -40,6 +41,15 @@ public class BackgroundCompactorTest {
     private static final String TABLE_STRING = "ns.table";
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName(TABLE_STRING);
 
+    private static final long COMPACT_PAUSE_MILLIS = 123;
+    private static final long COMPACT_PAUSE_ON_FAILURE_MILLIS = 456;
+    private static final long COMPACT_MINIMUM_PAUSE_ON_NOTHING_TO_COMPACT_MILLIS
+            = BackgroundCompactor.SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS;
+    private static final CompactorConfig COMPACTOR_CONFIG = ImmutableCompactorConfig.builder()
+            .compactPauseMillis(COMPACT_PAUSE_MILLIS)
+            .compactPauseOnFailureMillis(COMPACT_PAUSE_ON_FAILURE_MILLIS)
+            .build();
+
     private final KeyValueService kvs = mock(KeyValueService.class);
     private final TransactionManager txManager = mock(TransactionManager.class);
     private final CompactPriorityCalculator priorityCalculator = mock(CompactPriorityCalculator.class);
@@ -47,7 +57,10 @@ public class BackgroundCompactorTest {
     private final BackgroundCompactor compactor = new BackgroundCompactor(txManager,
             kvs,
             mock(LockService.class),
-            () -> true,
+            () -> ImmutableCompactorConfig.builder()
+                    .enableCompaction(true)
+                    .inMaintenanceMode(true)
+                    .build(),
             priorityCalculator);
     private final SingleLockService lockService = mock(SingleLockService.class);
 
@@ -102,7 +115,7 @@ public class BackgroundCompactorTest {
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(txManager,
                 kvs,
                 mock(LockService.class),
-                Stream.iterate(true, bool -> !bool).iterator()::next,
+                createAlternatingInMaintenanceHoursSupplier(),
                 priorityCalculator);
 
         BackgroundCompactor.CompactionOutcome firstOutcome = backgroundCompactor.grabLockAndRunOnce(lockService);
@@ -127,5 +140,75 @@ public class BackgroundCompactorTest {
         assertThat(metrics.getOutcomeCount(BackgroundCompactor.CompactionOutcome.SUCCESS)).isEqualTo(2L);
         assertThat(metrics.getOutcomeCount(BackgroundCompactor.CompactionOutcome.NOTHING_TO_COMPACT)).isEqualTo(0L);
         assertThat(metrics.getOutcomeCount(BackgroundCompactor.CompactionOutcome.FAILED_TO_COMPACT)).isEqualTo(1L);
+    }
+
+    @Test
+    public void doesNotRunIfDisabled() throws InterruptedException {
+        BackgroundCompactor backgroundCompactor = new BackgroundCompactor(txManager,
+                kvs,
+                mock(LockService.class),
+                () -> ImmutableCompactorConfig.builder().enableCompaction(false).build(),
+                priorityCalculator);
+
+        BackgroundCompactor.CompactionOutcome outcome = backgroundCompactor.grabLockAndRunOnce(lockService);
+        assertThat(outcome).isEqualTo(BackgroundCompactor.CompactionOutcome.DISABLED);
+        verifyNoMoreInteractions(kvs);
+    }
+
+    @Test
+    public void sleepsForShortDurationIfCompactSucceeds() {
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> COMPACTOR_CONFIG,
+                BackgroundCompactor.CompactionOutcome.SUCCESS))
+                .isEqualTo(COMPACT_PAUSE_MILLIS);
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> COMPACTOR_CONFIG,
+                BackgroundCompactor.CompactionOutcome.COMPACTED_BUT_NOT_REGISTERED))
+                .isEqualTo(COMPACT_PAUSE_MILLIS);
+    }
+
+    @Test
+    public void sleepsForCompactDurationIfGreaterThanMinimumAndNothingToCompact() {
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> ImmutableCompactorConfig.builder()
+                        .from(COMPACTOR_CONFIG)
+                        .compactPauseMillis(COMPACT_MINIMUM_PAUSE_ON_NOTHING_TO_COMPACT_MILLIS + 1)
+                        .build(),
+                BackgroundCompactor.CompactionOutcome.NOTHING_TO_COMPACT))
+                .isEqualTo(COMPACT_MINIMUM_PAUSE_ON_NOTHING_TO_COMPACT_MILLIS + 1);
+    }
+
+    @Test
+    public void sleepsForAtLeastMinimumDurationIfNothingToCompact() {
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> ImmutableCompactorConfig.builder()
+                        .from(COMPACTOR_CONFIG)
+                        .compactPauseMillis(COMPACT_MINIMUM_PAUSE_ON_NOTHING_TO_COMPACT_MILLIS - 1)
+                        .build(),
+                BackgroundCompactor.CompactionOutcome.NOTHING_TO_COMPACT))
+                .isEqualTo(COMPACT_MINIMUM_PAUSE_ON_NOTHING_TO_COMPACT_MILLIS);
+    }
+
+    @Test
+    public void sleepsForLongerDurationIfCompactFails() {
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> COMPACTOR_CONFIG,
+                BackgroundCompactor.CompactionOutcome.FAILED_TO_COMPACT))
+                .isEqualTo(COMPACT_PAUSE_ON_FAILURE_MILLIS);
+        assertThat(BackgroundCompactor.getSleepTime(
+                () -> COMPACTOR_CONFIG,
+                BackgroundCompactor.CompactionOutcome.UNABLE_TO_ACQUIRE_LOCKS))
+                .isEqualTo(COMPACT_PAUSE_ON_FAILURE_MILLIS);
+    }
+
+    private Supplier<CompactorConfig> createAlternatingInMaintenanceHoursSupplier() {
+        return Stream.iterate(ImmutableCompactorConfig.builder()
+                        .enableCompaction(true)
+                        .inMaintenanceMode(true)
+                        .build(),
+                oldConfig -> ImmutableCompactorConfig.builder()
+                        .from(oldConfig)
+                        .inMaintenanceMode(!oldConfig.inMaintenanceMode())
+                        .build()).iterator()::next;
     }
 }
