@@ -246,22 +246,29 @@
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
                 "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing",
-                "io.airlift:airline"
+                "com.palantir.tritium:tritium-tracing"
             ]
         },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
                 "com.google.code.findbugs:annotations",
+                "com.google.guava:guava",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
+                "io.airlift:airline",
                 "io.dropwizard:dropwizard-util"
             ]
         },
+        "com.google.errorprone:error_prone_annotations": {
+            "locked": "2.1.3",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "23.6-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
@@ -286,6 +293,12 @@
                 "io.airlift:airline",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-util"
+            ]
+        },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -913,7 +926,7 @@
             ]
         },
         "io.airlift:airline": {
-            "locked": "0.7",
+            "locked": "0.8",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cli"
             ]
@@ -1067,6 +1080,18 @@
             "locked": "0.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {

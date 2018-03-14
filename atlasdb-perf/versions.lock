@@ -248,6 +248,7 @@
             "locked": "3.0.1",
             "transitive": [
                 "com.google.code.findbugs:annotations",
+                "com.google.guava:guava",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
@@ -260,8 +261,14 @@
                 "com.palantir.atlasdb:atlasdb-dagger"
             ]
         },
+        "com.google.errorprone:error_prone_annotations": {
+            "locked": "2.1.3",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "23.6-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
@@ -288,6 +295,12 @@
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-util",
                 "org.reflections:reflections"
+            ]
+        },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -1081,6 +1094,18 @@
         },
         "org.awaitility:awaitility": {
             "locked": "3.0.0"
+        },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
@@ -1460,6 +1485,7 @@
             "locked": "3.0.1",
             "transitive": [
                 "com.google.code.findbugs:annotations",
+                "com.google.guava:guava",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
@@ -1472,8 +1498,14 @@
                 "com.palantir.atlasdb:atlasdb-dagger"
             ]
         },
+        "com.google.errorprone:error_prone_annotations": {
+            "locked": "2.1.3",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "23.6-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
@@ -1500,6 +1532,12 @@
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-util",
                 "org.reflections:reflections"
+            ]
+        },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -2293,6 +2331,18 @@
         },
         "org.awaitility:awaitility": {
             "locked": "3.0.0"
+        },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",

@@ -7,7 +7,7 @@ dependencies {
     compile project(':atlasdb-cassandra')
     compile project(path: ':atlasdb-dagger', configuration: 'shadow')
     compileOnly 'com.google.dagger:dagger'
-    compile 'io.airlift:airline:0.7'
+    compile 'io.airlift:airline'
 
     processor group: 'org.immutables', name: 'value'
 

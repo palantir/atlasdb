@@ -36,6 +36,12 @@ if (enableErrorProne.toBoolean()) {
         options.compilerArgs += ['-Xep:PreconditionsConstantMessage:OFF']
         options.compilerArgs += ['-Xep:ValidateConstantMessage:OFF']
     }
+
+    compileTestJava {
+        // CheckReturnValue can be problematic for tests asserting that various Immutable objects may or may not
+        // be created.
+        options.compilerArgs += ['-Xep:CheckReturnValue:OFF']
+    }
 }
 
 apply plugin: 'com.palantir.baseline-eclipse'
