@@ -73,6 +73,17 @@ develop
          - CleanCassLocksStateCommand is now using Atlas namespace if provided.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
 
+    *    - |new|
+         - AtlasDB now schedules KVS compactions on a background thread, as opposed to triggering a compaction after each table was swept.
+           This allows for better control over KVS load arising from compactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
+
+    *    - |new|
+         - AtlasDB now supports configuration of a maintenance mode for compactions.
+           If compactions are run in maintenance mode, AtlasDB may perform more costly operations which may be able to recover more space.
+           For example, for Oracle KVS, ``SHRINK SPACE`` (which acquires locks on the entire table) will only be run if compactions are carried out in maintenance mode.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
+
 =======
 v0.78.0
 =======
