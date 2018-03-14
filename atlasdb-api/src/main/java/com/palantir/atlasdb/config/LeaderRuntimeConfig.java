@@ -27,5 +27,5 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class LeaderRuntimeConfig {
 
     @Value.Default
-    public boolean logOnlyOnQuorumFailure() { return true; }
+    public boolean onlyLogOnQuorumFailure() { return true; }
 }
