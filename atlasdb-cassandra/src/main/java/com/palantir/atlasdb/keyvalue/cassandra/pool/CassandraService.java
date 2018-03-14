@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -144,11 +145,14 @@ public class CassandraService implements AutoCloseable {
     }
 
     public InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
-        InetAddress resolvedHost = InetAddress.getByName(host);
+        if (config.addressTranslation().containsKey(host)) {
+            return config.addressTranslation().get(host);
+        }
 
+        InetAddress resolvedHost = InetAddress.getByName(host);
         Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
         for (InetSocketAddress address : allKnownHosts) {
-            if (address.getAddress().equals(resolvedHost)) {
+            if (Objects.equals(address.getAddress(), resolvedHost)) {
                 return address;
             }
         }
