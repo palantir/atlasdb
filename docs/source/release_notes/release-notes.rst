@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |metrics|
+         - Sweep metrics are now updated to the result value of the last run iteration of sweep instead of the cumulative values for the run of sweep on the table.
+           This has been done in order to improve the granularity of the metrics, since cumulative results can be several orders of magnitude larger, thus obfuscating the delta.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3055>`__)
+
+
     *    - |new|
          - Added a new parameter ``addressTranslation`` to ``CassandraKeyValueServiceConfig``.
            This parameter is a static map specifying how internal Cassandra endpoints should be translated to InetSocketAddresses.

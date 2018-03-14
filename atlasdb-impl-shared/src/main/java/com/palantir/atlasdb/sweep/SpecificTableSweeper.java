@@ -177,9 +177,9 @@ public class SpecificTableSweeper {
     }
 
     private void processSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
-        SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
+        updateMetricsOneIteration(currentIteration, tableToSweep.getTableRef());
 
-        updateMetricsOneIteration(cumulativeResults, tableToSweep.getTableRef());
+        SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
 
         if (currentIteration.getNextStartRow().isPresent()) {
             saveIntermediateSweepResults(tableToSweep, cumulativeResults);
