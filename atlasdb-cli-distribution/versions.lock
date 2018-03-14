@@ -465,8 +465,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-dbkvs",
-                "com.palantir.atlasdb:atlasdb-service"
+                "com.palantir.atlasdb:atlasdb-dbkvs"
             ]
         },
         "com.palantir.atlasdb:atlasdb-jdbc": {
