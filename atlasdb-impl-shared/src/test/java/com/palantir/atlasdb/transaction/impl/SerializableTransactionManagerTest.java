@@ -41,7 +41,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 
@@ -222,7 +222,7 @@ public class SerializableTransactionManagerTest {
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 initializeAsync,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                SweepQueueWriter.NO_OP,
+                MultiTableSweepQueueWriter.NO_OP,
                 callBack);
     }
 

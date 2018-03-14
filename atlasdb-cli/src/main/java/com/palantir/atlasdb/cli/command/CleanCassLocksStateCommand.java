@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import java.util.Optional;
+
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigs;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
@@ -30,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.util.OptionalResolver;
 
 import io.airlift.airline.Command;
 
@@ -65,7 +69,11 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
                     String.format("KeyValueService must be of type %s, but yours is %s",
                             CassandraKeyValueServiceConfig.TYPE, kvsConfig.type()));
         }
-        return (CassandraKeyValueServiceConfig) kvsConfig;
+        CassandraKeyValueServiceConfig cassandraConfig = (CassandraKeyValueServiceConfig) kvsConfig;
+
+        Optional<String> namespace = getAtlasDbConfig().namespace();
+        String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
+        return CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
     }
 
 }

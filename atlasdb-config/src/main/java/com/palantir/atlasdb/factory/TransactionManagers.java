@@ -94,7 +94,7 @@ import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
-import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -352,7 +352,7 @@ public abstract class TransactionManagers {
                         config.keyValueService().defaultGetRangesConcurrency(),
                         config.initializeAsync(),
                         () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
-                        SweepQueueWriter.NO_OP,
+                        MultiTableSweepQueueWriter.NO_OP,
                         asyncInitializationCallback()),
                 closeables);
 
@@ -454,14 +454,14 @@ public abstract class TransactionManagers {
         AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() ->
                 getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService()));
 
-
+        SweepMetricsManager sweepMetrics = new SweepMetricsManager();
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
                 env,
                 kvs,
                 transactionManager,
                 sweepRunner,
                 sweepPerfLogger,
-                sweepMetricsManager,
+                sweepMetrics,
                 config.initializeAsync(),
                 sweepBatchConfigSource);
 
@@ -484,7 +484,7 @@ public abstract class TransactionManagers {
             SerializableTransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetricsManager sweepMetricsManager,
+            SweepMetricsManager sweepMetrics,
             boolean initializeAsync,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
@@ -493,7 +493,7 @@ public abstract class TransactionManagers {
                 sweepRunner,
                 SweepTableFactory.of(),
                 sweepPerfLogger,
-                sweepMetricsManager,
+                sweepMetrics,
                 initializeAsync);
         env.accept(new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource));
         return specificTableSweeper;

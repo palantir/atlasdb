@@ -101,7 +101,7 @@ import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.logging.LoggingArgs.SafeAndUnsafeTableReferences;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
-import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -185,7 +185,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Supplier<Long> startTimestamp;
     private static final MetricsManager metricsManager = new MetricsManager();
 
-    private final SweepQueueWriter sweepQueue;
+    private final MultiTableSweepQueueWriter sweepQueue;
 
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;
@@ -242,7 +242,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                long lockAcquireTimeoutMs,
                                ExecutorService getRangesExecutor,
                                int defaultGetRangesConcurrency,
-                               SweepQueueWriter sweepQueue) {
+                               MultiTableSweepQueueWriter sweepQueue) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -278,7 +278,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         TimestampCache timestampValidationReadCache,
                         ExecutorService getRangesExecutor,
                         int defaultGetRangesConcurrency,
-                        SweepQueueWriter sweepQueue) {
+                        MultiTableSweepQueueWriter sweepQueue) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -330,7 +330,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
-        this.sweepQueue = SweepQueueWriter.NO_OP;
+        this.sweepQueue = MultiTableSweepQueueWriter.NO_OP;
         this.hasReads = false;
     }
 

@@ -30,7 +30,7 @@ import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.services.ServicesConfig;
-import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -110,7 +110,7 @@ public class TestTransactionManagerModule {
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
-                SweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP);
     }
 
 }

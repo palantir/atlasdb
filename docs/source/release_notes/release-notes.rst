@@ -50,8 +50,23 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |new|
+         - Added a new parameter ``addressTranslation`` to ``CassandraKeyValueServiceConfig``.
+           This parameter is a static map specifying how internal Cassandra endpoints should be translated to InetSocketAddresses.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3040>`__)
+
+    *    - |fixed|
+         - The Cassandra client pool is now cleaned up in the event of a failure to construct the Cassandra KVS (e.g. because we lost our connection to Cassandra midway).
+           Previously, the client pool was not shut down, leading to a thread leak.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
+
+    *    - |improved| |logs|
+         - Log an ERROR in the case of failure to create a Cell due to a key greater than 1500 bytes. Previously we logged at DEBUG.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`)
+
+    *    - |fixed|
+         - CleanCassLocksStateCommand is now using Atlas namespace if provided.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
 
 =======
 v0.78.0
@@ -144,6 +159,12 @@ v0.77.0
     *    - |fixed|
          - Fix ``SnapshotTransaction#getRows`` to apply ``ColumnSelection`` when there are local writes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3008>`__)
+
+    *    - |fixed|
+         - CassandraKVS sstable size in MB was not being correctly set.
+           This resulted in requirements on the entire cluster being up during startup of certain stacks.
+           CF metadata mismatch messages are also now correctly safety marked for logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2989>`__)
 
 =======
 v0.76.0
@@ -359,6 +380,10 @@ v0.74.0
            Previously, when services were shutting down, the background sweeper thread continuously logged warnings
            due to a closed ``TransactionManager``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2900>`__)
+           
+    *    - |devbreak|
+         - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2886>`__)
 
 =======
 v0.73.1
@@ -386,16 +411,6 @@ v0.73.1
          - All Atlas executor services now run tasks wrapped in http-remoting utilities to preserve trace logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2868>`__)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2874>`__)
-
-    *    - |devbreak|
-         - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2872>`__)
-
-    *    - |fixed|
-         - CassandraKVS sstable size in MB was not being correctly set.
-           This resulted in requirements on the entire cluster being up during startup of certain stacks.
-           CF metadata mismatch messages are also now correctly safety marked for logging.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2989>`__)
 
 =======
 v0.73.0
