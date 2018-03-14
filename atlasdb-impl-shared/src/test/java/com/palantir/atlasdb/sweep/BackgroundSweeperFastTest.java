@@ -202,7 +202,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testPerIterationMetricsAccumulateResults() {
+    public void testMetricsUseIntermediateResultsPerIteration() {
         setProgress(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
                         .staleValuesDeleted(3)
