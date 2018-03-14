@@ -161,7 +161,7 @@ public final class Leaders {
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
                 .eventRecorder(leadershipEventRecorder)
-                .onlyLogOnQuorumFailure(JavaSuppliers.compose(LeaderRuntimeConfig::logOnlyOnQuorumFailure, runtime))
+                .onlyLogOnQuorumFailure(JavaSuppliers.compose(LeaderRuntimeConfig::onlyLogOnQuorumFailure, runtime))
                 .build();
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(
