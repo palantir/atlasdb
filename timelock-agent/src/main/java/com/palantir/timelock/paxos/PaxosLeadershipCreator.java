@@ -19,10 +19,13 @@ package com.palantir.timelock.paxos;
 import java.nio.file.Paths;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
@@ -60,6 +63,7 @@ public class PaxosLeadershipCreator {
 
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createInstrumentedLocalServices(
                 leaderConfig,
+                JavaSuppliers.compose(getLeaderRuntimeConfig, runtime),
                 ImmutableRemotePaxosServerSpec.builder()
                         .remoteLeaderUris(remoteServers)
                         .remoteAcceptorUris(paxosSubresourceUris)
@@ -101,6 +105,11 @@ public class PaxosLeadershipCreator {
                 .randomWaitBeforeProposingLeadershipMs(paxosRuntimeConfiguration.pingRateMs())
                 .build();
     }
+
+    private Function<PaxosRuntimeConfiguration, LeaderRuntimeConfig> getLeaderRuntimeConfig =
+            runtime -> ImmutableLeaderRuntimeConfig.builder()
+                    .logOnlyOnQuorumFailure(runtime.onlyLogOnQuorumFailure())
+                    .build();
 
     public Supplier<LeaderPingHealthCheck> getHealthCheck() {
         return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
