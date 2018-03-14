@@ -367,20 +367,16 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
     @Override
     public void compactInternally(TableReference tableRef, boolean inMaintenanceHours) {
-        if (log.isTraceEnabled()) {
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.compactInternally(tableRef, inMaintenanceHours);
+        maybeLog(() -> delegate.compactInternally(tableRef, inMaintenanceHours), (logger, stopwatch) -> {
             if (inMaintenanceHours) {
                 // Log differently in maintenance hours - if a compactInternally is slow this might be bad in normal
                 // operational hours, but is probably okay in maintenance hours.
-                log.trace("Call to KVS.compactInternally (in maintenance hours) on table {} took {} ms.",
-                        tableRef.getQualifiedName(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                logger.log("Call to KVS.compactInternally (in maintenance hours) on table {} took {} ms.",
+                        LoggingArgs.tableRef(tableRef), LoggingArgs.durationMillis(stopwatch));
             } else {
-                logTimeAndTable("compactInternally", tableRef.getQualifiedName(), stopwatch);
+                logTimeAndTable("compactInternally", tableRef);
             }
-        } else {
-            delegate.compactInternally(tableRef, inMaintenanceHours);
-        }
+        });
     }
 
     @Override

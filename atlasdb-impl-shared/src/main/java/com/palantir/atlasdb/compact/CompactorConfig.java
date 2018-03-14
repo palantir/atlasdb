@@ -70,4 +70,8 @@ public interface CompactorConfig {
         Preconditions.checkState(compactPauseMillis() >= 0,
                 "Compact pause interval must be nonnegative, but found %s", compactPauseMillis());
     }
+
+    static CompactorConfig defaultCompactorConfig() {
+        return ImmutableCompactorConfig.builder().build();
+    }
 }
