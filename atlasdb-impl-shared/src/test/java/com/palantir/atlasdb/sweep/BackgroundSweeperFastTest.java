@@ -221,17 +221,10 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .timeInMillis(20L)
                 .timeSweepStarted(50L)
                 .build();
-        SweepResults fullResults = ImmutableSweepResults.builder()
-                .staleValuesDeleted(5)
-                .cellTsPairsExamined(21)
-                .minSweptTimestamp(4567L)
-                .timeInMillis(30L)
-                .timeSweepStarted(20L)
-                .build();
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetricsManager).updateMetrics(fullResults, TABLE_REF);
+        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF);
     }
 
     @Test
