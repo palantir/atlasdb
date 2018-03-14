@@ -58,7 +58,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
         try {
             return round >= acceptor.getLatestSequencePreparedOrAccepted();
         } catch (Exception e) {
-            log.info("latest sequence retrieval failed for acceptor: {}", acceptor, e);
+            log.info("latest sequence retrieval failed", e);
             throw e;
         }
     }
