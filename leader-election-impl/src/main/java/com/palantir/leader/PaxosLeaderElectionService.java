@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -97,10 +98,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                                       ExecutorService executor,
                                       long updatePollingWaitInMs,
                                       long randomWaitBeforeProposingLeadership,
-                                      long leaderPingResponseWaitMs) {
+                                      long leaderPingResponseWaitMs,
+                                      Supplier<Boolean> onlyLogOnQuorumFailure) {
         this(proposer, knowledge, otherPotentialLeadersToHosts, acceptors, learners, executor,
                 updatePollingWaitInMs, randomWaitBeforeProposingLeadership, leaderPingResponseWaitMs,
-                PaxosLeaderElectionEventRecorder.NO_OP);
+                PaxosLeaderElectionEventRecorder.NO_OP, onlyLogOnQuorumFailure);
     }
 
     PaxosLeaderElectionService(PaxosProposer proposer,
@@ -112,7 +114,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             long updatePollingWaitInMs,
             long randomWaitBeforeProposingLeadership,
             long leaderPingResponseWaitMs,
-            PaxosLeaderElectionEventRecorder eventRecorder) {
+            PaxosLeaderElectionEventRecorder eventRecorder,
+            Supplier<Boolean> onlyLogOnQuorumFailure) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
@@ -126,7 +129,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
         this.latestRoundVerifier = new CoalescingPaxosLatestRoundVerifier(
-                new PaxosLatestRoundVerifierImpl(acceptors, proposer.getQuorumSize(), executor));
+                new PaxosLatestRoundVerifierImpl(acceptors, proposer.getQuorumSize(), executor, onlyLogOnQuorumFailure));
     }
 
     @Override
