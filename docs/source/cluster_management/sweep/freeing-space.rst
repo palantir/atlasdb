@@ -16,26 +16,26 @@ compactor periodically chooses a table [#tableChoice]_, and runs ``KeyValueServi
 Oracle - Standard Edition
 -------------------------
 
-The background compaction thread runs one of two commands, depending on whether the wall-clock time is within safe hours.
-Safe hours indicate when users are unlikely to be accessing the system, and so blocking operations can safely be run.
-They are configured by a live-reloaded boolean ``inSafeHours`` (config path ``runtime/compact/inSafeHours``)
+The background compaction thread runs one of two commands, depending on whether the system is in maintenance mode.
+Maintenance mode indicates that users are unlikely to be accessing the system, and so blocking operations can safely be run.
+They are configured by a live-reloaded boolean ``inMaintenanceMode`` (config path ``runtime/compact/inMaintenanceMode``)
 
 .. warning::
 
-   ``inSafeHours`` only determines when we *start* running ``SHRINK SPACE``.
+   ``inMaintenanceMode`` only determines when we *start* running ``SHRINK SPACE``.
    The operation cannot be aborted once started, so it is strongly recommended to allow for a buffer time of up to three hours before database access is required.
-   For example, if users come online at 9am, then safe hours should end by 6am.
+   For example, if users come online at 9am, then maintenance mode should be disabled by 6am.
 
-If we are within safe hours, then ``ALTER TABLE table SHRINK SPACE`` will be run. This locks the entire table,
+If we are in maintenance mode, then ``ALTER TABLE table SHRINK SPACE`` will be run. This locks the entire table,
 meaning that no new transactions can be run on the table until the operation completes.
 This is usually fast, but has been seen to take hours on some very large tables.
 
-If we are not within safe hours (i.e. we assume users are online), ``ALTER TABLE table SHRINK SPACE COMPACT`` will be run.
+If we are not in maintenance mode (i.e. we assume users are online), ``ALTER TABLE table SHRINK SPACE COMPACT`` will be run.
 This does not block the table; however, space freed by the operation is only available for use by the same table.
 
 .. warning::
 
-   Installations that do not specify any safe hours may need manual action to free space after ``SHRINK SPACE COMPACT`` has run.
+   Installations that are never set to maintenance mode may need manual action to free space after ``SHRINK SPACE COMPACT`` has run.
    To do this for table ``foo``, run ``ALTER TABLE foo SHRINK SPACE``.
    Again, note that this will lock the entire table until the operation completes.
 
