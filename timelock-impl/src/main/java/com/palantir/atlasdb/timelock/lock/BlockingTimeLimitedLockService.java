@@ -34,6 +34,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -70,7 +71,7 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
         // Currently maintaining existing behaviour.
         return new BlockingTimeLimitedLockService(
                 lockService,
-                SimpleTimeLimiter.create(Executors.newCachedThreadPool()),
+                SimpleTimeLimiter.create(PTExecutors.newCachedThreadPool()),
                 blockingTimeLimitMillis);
     }
 
