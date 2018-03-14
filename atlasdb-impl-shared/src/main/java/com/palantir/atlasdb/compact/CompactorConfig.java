@@ -66,8 +66,8 @@ public interface CompactorConfig {
     @Value.Check
     default void checkIntervalsNonnegative() {
         Preconditions.checkState(compactPauseOnFailureMillis() >= 0,
-                "Compact pause-on-failure interval must be greater than 0 but found %s", compactPauseOnFailureMillis());
+                "Compact pause-on-failure interval must be nonnegative, but found %s", compactPauseOnFailureMillis());
         Preconditions.checkState(compactPauseMillis() >= 0,
-                "Compact pause interval must be greater than 0 but found %s", compactPauseMillis());
+                "Compact pause interval must be nonnegative, but found %s", compactPauseMillis());
     }
 }
