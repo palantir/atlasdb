@@ -146,6 +146,8 @@ public class CassandraService implements AutoCloseable {
 
     public InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
         if (config.addressTranslation().containsKey(host)) {
+            log.info("Found address translation mapping for host {}. The InetSocketAddress this host maps to is {}.",
+                    SafeArg.of("host", host), SafeArg.of("address", config.addressTranslation().get(host)));
             return config.addressTranslation().get(host);
         }
 
@@ -245,7 +247,7 @@ public class CassandraService implements AutoCloseable {
         List<InetSocketAddress> hostsForKey = getHostsFor(key);
 
         if (hostsForKey == null) {
-            log.debug("We attempted to route your query to a cassandra host that already contains the relevant data."
+            log.info("We attempted to route your query to a cassandra host that already contains the relevant data."
                     + " However, the mapping of which host contains which data is not available yet."
                     + " We will choose a random host instead.");
             return getRandomGoodHost().getHost();
