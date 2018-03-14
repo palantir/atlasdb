@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @JsonDeserialize(as = ImmutableLeaderRuntimeConfig.class)
-@JsonSerialize(as = ImmutableLeaderConfig.class)
+@JsonSerialize(as = ImmutableLeaderRuntimeConfig.class)
 @Value.Immutable
 public abstract class LeaderRuntimeConfig {
 
