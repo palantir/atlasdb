@@ -34,6 +34,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
+import com.palantir.logsafe.SafeArg;
 
 public final class BackgroundCompactor implements AutoCloseable {
     public static final long SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS = TimeUnit.SECONDS.toMillis(5);
@@ -111,6 +112,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     public void run() {
         log.info("Attempting to start the background compactor for the very first time.");
         try (SingleLockService compactorLock = createSimpleLocks()) {
+            waitUntilTransactionManagerIsReady();
             log.info("Starting background compactor");
             while (true) {
                 if (Thread.currentThread().isInterrupted()) {
@@ -126,6 +128,14 @@ public final class BackgroundCompactor implements AutoCloseable {
                     + "Please restart the service to resume compactions", e);
             compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SHUTDOWN);
             Thread.currentThread().interrupt();
+        }
+    }
+
+    private void waitUntilTransactionManagerIsReady() throws InterruptedException {
+        while (!transactionManager.isInitialized()) {
+            log.info("Waiting for transaction manager to be initialized; going to sleep for {} seconds while waiting",
+                    SafeArg.of("sleepTime", SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS));
+            Thread.sleep(SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS);
         }
     }
 
