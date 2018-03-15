@@ -34,7 +34,6 @@ import org.apache.cassandra.thrift.TokenRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Iterables;
@@ -131,11 +130,6 @@ public class CassandraService implements AutoCloseable {
             // return the set of servers we knew about last time we successfully constructed the tokenMap
             return tokenMap.asMapOfRanges().values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
         }
-    }
-
-    @VisibleForTesting
-    protected void setTokenMap(RangeMap<LightweightOppToken, List<InetSocketAddress>> map) {
-        this.tokenMap = map;
     }
 
     private List<TokenRange> getTokenRanges() throws Exception {
