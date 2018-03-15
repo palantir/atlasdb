@@ -39,6 +39,7 @@ public interface PaxosRuntimeConfiguration {
         return true;
     }
 
+    @Value.Check
     default void check() {
         Preconditions.checkArgument(pingRateMs() > 0,
                 "Ping rate must be positive; found '%s'.", pingRateMs());
