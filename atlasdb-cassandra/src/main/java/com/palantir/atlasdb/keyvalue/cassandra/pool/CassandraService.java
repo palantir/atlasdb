@@ -34,6 +34,7 @@ import org.apache.cassandra.thrift.TokenRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Iterables;
@@ -103,7 +104,7 @@ public class CassandraService implements AutoCloseable {
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
                     List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
-                            .map(host -> getAddressForHostThrowUnchecked(host)).collect(Collectors.toList());
+                            .map(this::getAddressForHostThrowUnchecked).collect(Collectors.toList());
 
                     servers.addAll(hosts);
 
@@ -144,7 +145,8 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    public InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
+    @VisibleForTesting
+    InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
         if (config.addressTranslation().containsKey(host)) {
             return config.addressTranslation().get(host);
         }
@@ -168,7 +170,7 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    public List<InetSocketAddress> getHostsFor(byte[] key) {
+    private List<InetSocketAddress> getHostsFor(byte[] key) {
         return tokenMap.get(new LightweightOppToken(key));
     }
 
@@ -200,7 +202,7 @@ public class CassandraService implements AutoCloseable {
                 () -> new IllegalStateException("No hosts available."));
     }
 
-    public String getRingViewDescription() {
+    private String getRingViewDescription() {
         return CassandraLogHelper.tokenMap(tokenMap).toString();
     }
 
