@@ -21,6 +21,7 @@ import org.immutables.value.Value;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 
+// Note that this class has an Auxiliary field, and therefore serialization might not work as expected
 @Value.Immutable
 public abstract class SweepResults {
 
@@ -57,6 +58,7 @@ public abstract class SweepResults {
     /**
      * Time in milliseconds when we started sweeping this table.
      */
+    @Value.Auxiliary
     public abstract long getTimeSweepStarted();
 
     public long getTimeElapsedSinceStartedSweeping() {

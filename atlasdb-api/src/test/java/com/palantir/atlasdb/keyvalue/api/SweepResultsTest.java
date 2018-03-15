@@ -112,4 +112,14 @@ public class SweepResultsTest {
                         .timeSweepStarted(1_000L)
                         .build()));
     }
+
+    @Test
+    public void equalsIgnoresTimeSweepStarted() {
+        SweepResults emptySweepResult = SweepResults.createEmptySweepResult(Optional.empty());
+        SweepResults laterEmptySweepResult = SweepResults.builder().from(emptySweepResult)
+                .timeSweepStarted(emptySweepResult.getTimeSweepStarted() + 1)
+                .build();
+
+        Assert.assertThat(emptySweepResult, Matchers.equalTo(laterEmptySweepResult));
+    }
 }

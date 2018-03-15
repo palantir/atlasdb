@@ -65,7 +65,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     }
 
     @Test(timeout = 50000)
-    public void testSweepStrategyNothing() {
+    public void testSweepStrategyNothing() throws InterruptedException {
         createTable(SweepStrategy.NOTHING);
         putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
@@ -80,6 +80,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 PtBytes.EMPTY_BYTE_ARRAY);
+        Thread.sleep(1);
         assertEquals(SweepResults.createEmptySweepResult(Optional.empty()), results);
         assertEquals(ImmutableSet.of(50L, 75L, 100L, 125L, 150L), getAllTsFromDefaultColumn("foo"));
     }
@@ -225,7 +226,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     }
 
     @Test(timeout = 50000)
-    public void testSweeperFailsHalfwayThroughOnDeleteTable() {
+    public void testSweeperFailsHalfwayThroughOnDeleteTable() throws InterruptedException {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
         putIntoDefaultColumn("foo2", "bang", 75);
@@ -243,6 +244,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 nextStartRow);
+        Thread.sleep(1);
         assertEquals(SweepResults.createEmptySweepResult(Optional.empty()), results);
     }
 
