@@ -265,24 +265,21 @@ public class CassandraService implements AutoCloseable {
 
         Set<InetSocketAddress> liveOwnerHosts = blacklist.filterBlacklistedHostsFrom(hostsForKey);
 
-        if (liveOwnerHosts.isEmpty()) {
-            log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
-                    + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
-                    + " Current host blacklist is {}."
-                    + " Current state logged at TRACE",
-                    SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
-            log.trace("Current ring view is: {}.",
-                    SafeArg.of("tokenMap", getRingViewDescription()));
-            return getRandomGoodHost().getHost();
-        } else {
-            Optional<InetSocketAddress> activeHost = getRandomHostByActiveConnections(
-                    liveOwnerHosts);
+        if (!liveOwnerHosts.isEmpty()) {
+            Optional<InetSocketAddress> activeHost = getRandomHostByActiveConnections(liveOwnerHosts);
             if (activeHost.isPresent()) {
                 return activeHost.get();
-            } else {
-                return getRandomGoodHost().getHost();
             }
         }
+
+        log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
+                + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
+                + " Current host blacklist is {}."
+                + " Current state logged at TRACE",
+                SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
+        log.trace("Current ring view is: {}.",
+                SafeArg.of("tokenMap", getRingViewDescription()));
+        return getRandomGoodHost().getHost();
     }
 
     public void addPool(InetSocketAddress server) {
