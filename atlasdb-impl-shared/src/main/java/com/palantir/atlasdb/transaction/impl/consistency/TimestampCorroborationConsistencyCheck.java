@@ -26,6 +26,13 @@ import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.SafeArg;
 
+/**
+ * Compares a source of fresh timestamps against a conservative lower bound that should always be strictly lower than
+ * a fresh timestamp, reporting inconsistency if a fresh timestamp is actually lower than this lower bound.
+ *
+ * In typical usage, the unreadable timestamp is used as a conservative bound, and the source of fresh
+ * timestamps could be a TimeLock server or other timestamp service.
+ */
 public class TimestampCorroborationConsistencyCheck implements TransactionManagerConsistencyCheck {
     private static final Logger log = LoggerFactory.getLogger(TimestampCorroborationConsistencyCheck.class);
 

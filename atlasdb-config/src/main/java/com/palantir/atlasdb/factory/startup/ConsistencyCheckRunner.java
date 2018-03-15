@@ -31,6 +31,14 @@ import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsi
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 
+/**
+ * Executes multiple {@link TransactionManagerConsistencyCheck}s in sequence, aggregating the
+ * {@link TransactionManagerConsistencyResult}s they return. Aggregation is done by taking the result with the highest
+ * severity score.
+ *
+ * The aggregated result is then processed: we throw an {@link AssertionError} on a TERMINAL result and throw a
+ * {@link NotInitializedException} on an INDETERMINATE result.
+ */
 public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
     private static final Logger log = LoggerFactory.getLogger(ConsistencyCheckRunner.class);
