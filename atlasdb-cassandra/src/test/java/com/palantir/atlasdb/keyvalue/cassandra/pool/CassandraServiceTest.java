@@ -26,9 +26,13 @@ import java.util.Optional;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.qos.FakeQosClient;
@@ -110,6 +114,23 @@ public class CassandraServiceTest {
         Optional<CassandraClientPoolingContainer> container
                 = cassandra.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertContainerHasHostOne(container);
+    }
+
+    // As of 0.78.0, we can get an exception if the token map somehow gets out of sync with our current view of the pool
+    // This can happen because the token map and current pools variables are NOT updated together, but the programmer
+    // must instead call refreshTokenRanges() after the pools have been updated.
+    // If they do not, and all the hosts for a given token are removed from the pool, we should return a random host.
+    // This matches behaviour in other host-picking methods where we pick a random host if we can't match our predicate.
+    @Test
+    public void shouldNotThrowIfTokenMapDoesNotMatchPool() {
+        CassandraService cassandra = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
+
+        cassandra.setTokenMap(ImmutableRangeMap.of(Range.all(), ImmutableList.of(HOST_1)));
+
+        cassandra.removePool(HOST_1);
+
+        InetSocketAddress key = cassandra.getRandomHostForKey(PtBytes.toBytes("key"));
+        assertThat(key, is(HOST_2));
     }
 
     @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "ConstantConditions"})
