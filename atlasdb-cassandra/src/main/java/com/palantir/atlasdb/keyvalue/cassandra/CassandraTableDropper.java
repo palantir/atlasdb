@@ -67,7 +67,7 @@ class CassandraTableDropper {
         try {
             clientPool.runWithRetry(
                     (FunctionCheckedException<CassandraClient, Void, Exception>) client -> {
-                        KsDef ks = client.rawClient().describe_keyspace(
+                        KsDef ks = client.describe_keyspace(
                                 config.getKeyspaceOrThrow());
                         Set<TableReference> existingTables = Sets.newHashSet();
 
@@ -78,7 +78,7 @@ class CassandraTableDropper {
                         for (TableReference table : tablesToDrop) {
                             CassandraVerifier.sanityCheckTableName(table);
                             if (existingTables.contains(table)) {
-                                client.rawClient().system_drop_column_family(
+                                client.system_drop_column_family(
                                         CassandraKeyValueServiceImpl.internalTableName(table));
                                 putMetadataWithoutChangingSettings(table,
                                         AtlasDbConstants.EMPTY_TABLE_METADATA);

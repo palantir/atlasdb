@@ -271,7 +271,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         @Override
         public CqlPreparedResult prepare(ByteBuffer query, byte[] rowHintForHostSelection, Compression compression) {
             FunctionCheckedException<CassandraClient, CqlPreparedResult, TException> prepareFunction = client ->
-                    client.rawClient().prepare_cql3_query(query, compression);
+                    client.prepare_cql3_query(query, compression);
 
             try {
                 InetSocketAddress hostForRow = getHostForRow(rowHintForHostSelection);
@@ -287,7 +287,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         @Override
         public CqlResult executePrepared(int queryId, List<ByteBuffer> values) {
             FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction = client ->
-                    client.rawClient().execute_prepared_cql3_query(queryId, values, consistency);
+                    client.execute_prepared_cql3_query(queryId, values, consistency);
 
             InetSocketAddress host = hostsPerPreparedQuery.getOrDefault(queryId, getHostForRow(values.get(0).array()));
 

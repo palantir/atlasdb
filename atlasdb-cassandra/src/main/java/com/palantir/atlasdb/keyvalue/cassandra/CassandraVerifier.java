@@ -57,7 +57,7 @@ public final class CassandraVerifier {
     }
 
     static final FunctionCheckedException<CassandraClient, Void, Exception> healthCheck = client -> {
-        client.rawClient().describe_version();
+        client.describe_version();
         return null;
     };
 
@@ -246,7 +246,7 @@ public final class CassandraVerifier {
     private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
             throws TException {
         clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, TException>) client -> {
-            KsDef originalKsDef = client.rawClient().describe_keyspace(config.getKeyspaceOrThrow());
+            KsDef originalKsDef = client.describe_keyspace(config.getKeyspaceOrThrow());
             // there was an existing keyspace
             // check and make sure it's definition is up to date with our config
             KsDef modifiedKsDef = originalKsDef.deepCopy();
@@ -259,7 +259,7 @@ public final class CassandraVerifier {
             if (!modifiedKsDef.equals(originalKsDef)) {
                 // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 modifiedKsDef.setCf_defs(ImmutableList.of());
-                client.rawClient().system_update_keyspace(modifiedKsDef);
+                client.system_update_keyspace(modifiedKsDef);
                 CassandraKeyValueServices.waitForSchemaVersions(
                         config,
                         client.rawClient(),
@@ -341,7 +341,7 @@ public final class CassandraVerifier {
     static final FunctionCheckedException<CassandraClient, Boolean, UnsupportedOperationException>
             underlyingCassandraClusterSupportsCASOperations = client -> {
                 try {
-                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.rawClient().describe_version());
+                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
                     log.debug("Connected cassandra thrift version is: {}",
                             SafeArg.of("cassandraVersion", serverVersion));
                     return serverVersion.supportsCheckAndSet();

@@ -160,7 +160,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             InetSocketAddress host) {
         // eagerly cleanup idle-connection read buffer to keep a smaller memory footprint
         try {
-            TTransport transport = idleClient.rawClient().getInputProtocol().getTransport();
+            TTransport transport = idleClient.getInputProtocol().getTransport();
             if (transport instanceof TFramedTransport) {
                 Field readBuffer = ((TFramedTransport) transport).getClass().getDeclaredField("readBuffer_");
                 readBuffer.setAccessible(true);

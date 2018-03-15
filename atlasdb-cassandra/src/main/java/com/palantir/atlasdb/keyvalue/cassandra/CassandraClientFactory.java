@@ -187,7 +187,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     @Override
     public boolean validateObject(PooledObject<CassandraClient> client) {
-        return client.getObject().rawClient().getOutputProtocol().getTransport().isOpen();
+        return client.getObject().getOutputProtocol().getTransport().isOpen();
     }
 
     @Override
@@ -197,7 +197,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     @Override
     public void destroyObject(PooledObject<CassandraClient> client) {
-        client.getObject().rawClient().getOutputProtocol().getTransport().close();
+        client.getObject().getOutputProtocol().getTransport().close();
         log.debug("Closed transport for client {} of host {}",
                 UnsafeArg.of("client", client),
                 SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));

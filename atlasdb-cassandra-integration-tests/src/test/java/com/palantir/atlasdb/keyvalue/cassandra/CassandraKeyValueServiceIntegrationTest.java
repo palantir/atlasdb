@@ -206,7 +206,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.rawClient().describe_keyspace("atlasdb").getCf_defs());
+                client.describe_keyspace("atlasdb").getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
@@ -230,7 +230,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         kvs.createTable(testTable, tableMetadata);
 
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.rawClient().describe_keyspace("atlasdb").getCf_defs());
+                client.describe_keyspace("atlasdb").getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));

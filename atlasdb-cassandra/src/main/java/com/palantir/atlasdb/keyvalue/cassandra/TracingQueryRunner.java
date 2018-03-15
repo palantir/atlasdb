@@ -60,7 +60,7 @@ public class TracingQueryRunner {
     }
 
     public  <V> V trace(Action<V> action, CassandraClient client, Set<TableReference> tableRefs) throws TException {
-        ByteBuffer traceId = client.rawClient().trace_next_query();
+        ByteBuffer traceId = client.trace_next_query();
         Stopwatch stopwatch = Stopwatch.createStarted();
         boolean failed = false;
         try {

@@ -55,7 +55,7 @@ public class SchemaMutationLockTables {
     }
 
     private Set<TableReference> getAllLockTablesInternal(CassandraClient client) throws TException {
-        return client.rawClient().describe_keyspace(config.getKeyspaceOrThrow()).getCf_defs().stream()
+        return client.describe_keyspace(config.getKeyspaceOrThrow()).getCf_defs().stream()
                 .map(CfDef::getName)
                 .filter(IS_LOCK_TABLE)
                 .map(TableReference::createWithEmptyNamespace)
@@ -83,7 +83,7 @@ public class SchemaMutationLockTables {
         CfDef cf = ColumnFamilyDefinitions.getStandardCfDef(
                 config.getKeyspaceOrThrow(),
                 CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        client.rawClient().system_add_column_family(cf);
+        client.system_add_column_family(cf);
         CassandraKeyValueServices.waitForSchemaVersions(
                 config,
                 client.rawClient(),
