@@ -161,6 +161,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         @Override
+        public boolean shouldTriggerCompactions() {
+            return CassandraKeyValueServiceImpl.this.shouldTriggerCompactions();
+        }
+
+        @Override
         public CassandraClientPool getClientPool() {
             return CassandraKeyValueServiceImpl.this.getClientPool();
         }
