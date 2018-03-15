@@ -75,6 +75,10 @@ develop
          - Log an ERROR in the case of failure to create a Cell due to a key greater than 1500 bytes. Previously we logged at DEBUG.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`)
 
+    *    - |improved| |logs|
+         - Logging exceptions in the case of quorum is runtime configurable now, using `logOnlyOnQuorumFailure` flag. Previously it was set to true by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3057>`)
+
     *    - |fixed|
          - CleanCassLocksStateCommand is now using Atlas namespace if provided.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
