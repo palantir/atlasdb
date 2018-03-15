@@ -79,6 +79,10 @@ develop
          - CleanCassLocksStateCommand is now using Atlas namespace if provided.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
 
+    *    - |improved| |logs|
+         - Logging exceptions in the case of quorum is runtime configurable now, using `logOnlyOnQuorumFailure` flag. Previously it was set to true by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3057>`__)
+
 =======
 v0.78.0
 =======
