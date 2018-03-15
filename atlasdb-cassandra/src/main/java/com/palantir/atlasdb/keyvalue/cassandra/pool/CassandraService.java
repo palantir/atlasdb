@@ -197,8 +197,8 @@ public class CassandraService implements AutoCloseable {
             livingHosts = filteredHosts;
         }
 
-        InetSocketAddress randomLivingHost = getRandomHostByActiveConnections(livingHosts);
-        return Optional.ofNullable(pools.get(randomLivingHost));
+        Optional<InetSocketAddress> randomLivingHost = getRandomHostByActiveConnections(livingHosts);
+        return randomLivingHost.flatMap(host -> Optional.ofNullable(pools.get(host)));
     }
 
     public CassandraClientPoolingContainer getRandomGoodHost() {
@@ -222,8 +222,14 @@ public class CassandraService implements AutoCloseable {
         return currentPools;
     }
 
-    public InetSocketAddress getRandomHostByActiveConnections(Set<InetSocketAddress> desiredHosts) {
-        return WeightedHosts.create(Maps.filterKeys(currentPools, desiredHosts::contains)).getRandomHost();
+    private Optional<InetSocketAddress> getRandomHostByActiveConnections(Set<InetSocketAddress> desiredHosts) {
+        Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools = Maps.filterKeys(currentPools,
+                desiredHosts::contains);
+        if (matchingPools.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(WeightedHosts.create(matchingPools).getRandomHost());
     }
 
     public void debugLogStateOfPool() {
@@ -269,7 +275,13 @@ public class CassandraService implements AutoCloseable {
                     SafeArg.of("tokenMap", getRingViewDescription()));
             return getRandomGoodHost().getHost();
         } else {
-            return getRandomHostByActiveConnections(liveOwnerHosts);
+            Optional<InetSocketAddress> activeHost = getRandomHostByActiveConnections(
+                    liveOwnerHosts);
+            if (activeHost.isPresent()) {
+                return activeHost.get();
+            } else {
+                return getRandomGoodHost().getHost();
+            }
         }
     }
 
