@@ -227,11 +227,10 @@ public abstract class TransactionManagers {
     @JsonIgnore
     @Value.Derived
     public SerializableTransactionManager serializable() {
-        SerializableTransactionManager serializableTransactionManager;
         List<AutoCloseable> closeables = Lists.newArrayList();
 
         try {
-            serializableTransactionManager = serializableInternal(closeables);
+            return serializableInternal(closeables);
         } catch (Throwable throwable) {
             List<String> closeablesClasses = closeables.stream()
                     .map(autoCloseable -> autoCloseable.getClass().toString())
@@ -250,8 +249,6 @@ public abstract class TransactionManagers {
             });
             throw throwable;
         }
-
-        return serializableTransactionManager;
     }
 
     private SerializableTransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {

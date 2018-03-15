@@ -20,6 +20,10 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+/**
+ * A TransactionManagerConsistencyResult may be returned from a consistency check, which AtlasDB can execute to
+ * determine that it is safe (or, at least, not obviously unsafe) to service requests.
+ */
 @Value.Immutable
 public interface TransactionManagerConsistencyResult {
     TransactionManagerConsistencyResult CONSISTENT_RESULT = ImmutableTransactionManagerConsistencyResult.builder()
@@ -31,8 +35,19 @@ public interface TransactionManagerConsistencyResult {
     Optional<Throwable> reasonForInconsistency();
 
     enum ConsistencyState {
+        /**
+         * Indicates that the transaction manager is in a state that is inconsistent, and automated recovery
+         * is generally not possible. Typically, to avoid further inconsistencies, AtlasDB will refuse to serve
+         * requests in this state; manual action will be needed.
+         */
         TERMINAL(2),
+        /**
+         * Indicates that we don't know whether the transaction manager is in a consistent state or not.
+         */
         INDETERMINATE(1),
+        /**
+         * Indicates that we did not detect any inconsistencies in the transaction manager.
+         */
         CONSISTENT(0);
 
         private final int severity;

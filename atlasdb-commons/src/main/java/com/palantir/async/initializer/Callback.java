@@ -82,6 +82,25 @@ public abstract class Callback<R> {
         }
     }
 
+    /**
+     * A CallChain executes a list of callbacks in sequence.
+     *
+     * Note that a given callback is executed only once all previous callbacks in the chain have successfully executed.
+     * Also, callbacks are retried independently. In other words, given a CallChain of two callbacks C1 and C2:
+     *
+     * <ul>
+     *     <li>
+     *         C1 is executed first. If it fails, C1's cleanup will be invoked, and then C1 will be retried.
+     *     </li>
+     *     <li>
+     *         C2 is then executed. If it fails, C2's cleanup will be invoked and then C2 will be retried.
+     *         (Note that we will not re-invoke C1's cleanup, nor will we execute it again.)
+     *         Once C2 succeeds, the CallChain as a whole will be treated as complete.
+     *     </li>
+     * </ul>
+     *
+     * Please see the examples in CallChainTest for more detail.
+     */
     public static class CallChain<T> extends Callback<T> {
         private final List<Callback<T>> callbacks;
 

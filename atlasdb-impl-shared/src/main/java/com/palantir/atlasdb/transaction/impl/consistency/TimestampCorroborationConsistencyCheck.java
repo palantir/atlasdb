@@ -39,7 +39,6 @@ public class TimestampCorroborationConsistencyCheck implements TransactionManage
         this.freshTimestampSource = freshTimestampSource;
     }
 
-
     @Override
     public TransactionManagerConsistencyResult apply(TransactionManager transactionManager) {
         // The ordering is important, because if we get a timestamp first, we may have a false positive if we have
