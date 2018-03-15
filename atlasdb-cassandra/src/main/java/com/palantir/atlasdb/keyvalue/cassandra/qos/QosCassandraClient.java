@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.AutoDelegate_CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
 import com.palantir.atlasdb.keyvalue.cassandra.HiddenTables;
@@ -49,7 +50,7 @@ import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 @SuppressWarnings({"all"}) // thrift variable names.
-public class QosCassandraClient implements CassandraClient {
+public class QosCassandraClient implements AutoDelegate_CassandraClient {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);
     private static final Function<TableReference, Boolean> ZERO_ESTIMATE_DETERMINING_FUNCTION = tRef ->
@@ -61,6 +62,11 @@ public class QosCassandraClient implements CassandraClient {
     public QosCassandraClient(CassandraClient client, QosClient qosClient) {
         this.client = client;
         this.qosClient = qosClient;
+    }
+
+    @Override
+    public CassandraClient delegate() {
+        return this.client;
     }
 
     @Override

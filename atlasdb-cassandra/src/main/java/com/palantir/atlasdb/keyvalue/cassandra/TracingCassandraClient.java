@@ -43,13 +43,18 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 
 @SuppressWarnings({"all"}) // thrift variable names.
-public class TracingCassandraClient implements CassandraClient {
+public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     private static final String SERVICE_NAME = "cassandra-thrift-client";
 
     private final CassandraClient client;
 
     public TracingCassandraClient(CassandraClient client) {
         this.client = client;
+    }
+
+    @Override
+    public CassandraClient delegate() {
+        return this.client;
     }
 
     @Override

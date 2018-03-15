@@ -45,11 +45,16 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"all"}) // thrift variable names.
-public class ProfilingCassandraClient implements CassandraClient {
+public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     private final CassandraClient client;
 
     public ProfilingCassandraClient(CassandraClient client) {
         this.client = client;
+    }
+
+    @Override
+    public CassandraClient delegate() {
+        return this.client;
     }
 
     @Override
