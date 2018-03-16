@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.thrift.TException;
 import org.junit.Assert;
 import org.junit.BeforeClass;

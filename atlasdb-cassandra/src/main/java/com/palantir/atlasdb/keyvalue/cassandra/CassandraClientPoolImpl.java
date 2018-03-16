@@ -25,7 +25,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
 import org.slf4j.Logger;

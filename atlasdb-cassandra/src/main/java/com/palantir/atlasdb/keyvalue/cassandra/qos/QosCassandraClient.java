@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.Compression;

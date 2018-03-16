@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
