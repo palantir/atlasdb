@@ -18,11 +18,6 @@ package com.palantir.atlasdb.config;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
-@JsonDeserialize(as = ImmutableLeaderRuntimeConfig.class)
-@JsonSerialize(as = ImmutableLeaderRuntimeConfig.class)
 @Value.Immutable
 public abstract class LeaderRuntimeConfig {
 

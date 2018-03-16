@@ -80,7 +80,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
 
     *    - |improved| |logs|
-         - Logging exceptions in the case of quorum is runtime configurable now, using `logOnlyOnQuorumFailure` flag. Previously it was set to true by default.
+         - Logging exceptions in the case of quorum is runtime configurable now, using `only-log-on-quorum-failure` flag, for external timelock services. Previously it was set to true by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3057>`__)
 
 =======
