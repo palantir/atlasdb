@@ -18,23 +18,23 @@ package com.palantir.paxos;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
 
 public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
-    private static final Logger log = LoggerFactory.getLogger(PaxosLatestRoundVerifierImpl.class);
-
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
     private final ExecutorService executor;
+    private final Supplier<Boolean> onlyLogOnQuorumFailure;
 
-    public PaxosLatestRoundVerifierImpl(List<PaxosAcceptor> acceptors, int quorumSize, ExecutorService executor) {
+    public PaxosLatestRoundVerifierImpl(
+            List<PaxosAcceptor> acceptors, int quorumSize,
+            ExecutorService executor, Supplier<Boolean> onlyLogOnQuorumFailure) {
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.quorumSize = quorumSize;
         this.executor = executor;
+        this.onlyLogOnQuorumFailure = onlyLogOnQuorumFailure;
     }
 
     @Override
@@ -51,16 +51,11 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
                 quorumSize,
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                true);
+                onlyLogOnQuorumFailure.get());
     }
 
     private boolean acceptorAgreesIsLatestRound(PaxosAcceptor acceptor, long round) {
-        try {
-            return round >= acceptor.getLatestSequencePreparedOrAccepted();
-        } catch (Exception e) {
-            log.info("latest sequence retrieval failed", e);
-            throw e;
-        }
+        return round >= acceptor.getLatestSequencePreparedOrAccepted();
     }
 
     private PaxosQuorumStatus determineQuorumStatus(List<PaxosResponse> responses) {

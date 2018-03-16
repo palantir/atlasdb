@@ -18,6 +18,7 @@ package com.palantir.leader;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
@@ -36,6 +37,7 @@ public class PaxosLeaderElectionServiceBuilder {
     private long randomWaitBeforeProposingLeadershipMs;
     private long leaderPingResponseWaitMs;
     private PaxosLeaderElectionEventRecorder eventRecorder = PaxosLeaderElectionEventRecorder.NO_OP;
+    private Supplier<Boolean> onlyLogOnQuorumFailure;
 
     public PaxosLeaderElectionServiceBuilder proposer(PaxosProposer proposer) {
         this.proposer = proposer;
@@ -92,6 +94,11 @@ public class PaxosLeaderElectionServiceBuilder {
         return this;
     }
 
+    public PaxosLeaderElectionServiceBuilder onlyLogOnQuorumFailure(Supplier<Boolean> onlyLogOnQuorumFailure) {
+        this.onlyLogOnQuorumFailure = onlyLogOnQuorumFailure;
+        return this;
+    }
+
     public PaxosLeaderElectionService build() {
         return new PaxosLeaderElectionService(
                 proposer,
@@ -103,6 +110,7 @@ public class PaxosLeaderElectionServiceBuilder {
                 pingRateMs,
                 randomWaitBeforeProposingLeadershipMs,
                 leaderPingResponseWaitMs,
-                eventRecorder);
+                eventRecorder,
+                onlyLogOnQuorumFailure);
     }
 }
