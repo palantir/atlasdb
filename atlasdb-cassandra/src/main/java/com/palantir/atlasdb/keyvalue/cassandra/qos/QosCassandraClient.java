@@ -70,11 +70,6 @@ public class QosCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public Cassandra.Client rawClient() {
-        return client.rawClient();
-    }
-
-    @Override
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName, TableReference tableRef,
             List<ByteBuffer> keys, SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {

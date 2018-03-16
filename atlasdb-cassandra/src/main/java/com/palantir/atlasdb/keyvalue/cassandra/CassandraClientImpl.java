@@ -58,11 +58,6 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
-    public Cassandra.Client rawClient() {
-        return client;
-    }
-
-    @Override
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(
             String kvsMethodName,
             TableReference tableRef,

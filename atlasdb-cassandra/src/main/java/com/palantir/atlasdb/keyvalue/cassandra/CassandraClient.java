@@ -47,8 +47,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public interface CassandraClient {
-    Cassandra.Client rawClient();
-
     Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
             TableReference tableRef,
             List<ByteBuffer> keys,
