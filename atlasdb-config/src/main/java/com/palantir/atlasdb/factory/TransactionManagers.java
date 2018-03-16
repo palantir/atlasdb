@@ -58,6 +58,7 @@ import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.AtlasSchema;
+import com.palantir.atlasdb.schema.CompactSchema;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -206,6 +207,7 @@ public final class TransactionManagers {
 
         Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
                 .add(SweepSchema.INSTANCE.getLatestSchema())
+                .add(CompactSchema.INSTANCE.getLatestSchema())
                 .addAll(schemas)
                 .build();
         for (Schema schema : allSchemas) {

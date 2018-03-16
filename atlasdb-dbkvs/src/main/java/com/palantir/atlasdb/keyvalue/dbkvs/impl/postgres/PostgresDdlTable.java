@@ -15,11 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import java.util.Optional;
+import java.util.concurrent.Semaphore;
 import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
@@ -29,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.util.VersionStrings;
@@ -45,6 +50,7 @@ public class PostgresDdlTable implements DbDdlTable {
     private final TableReference tableName;
     private final ConnectionSupplier conns;
     private final PostgresDdlConfig config;
+    private final Semaphore compactionSemaphore = new Semaphore(1);
 
     public PostgresDdlTable(TableReference tableName,
                             ConnectionSupplier conns,
@@ -135,6 +141,69 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @Override
     public void compactInternally(boolean unused) {
+        if (compactionSemaphore.tryAcquire()) {
+            try {
+                if (shouldRunCompaction()) {
+                    runCompactOnTable();
+                }
+            } finally {
+                compactionSemaphore.release();
+            }
+        }
+    }
+
+    @VisibleForTesting
+    boolean shouldRunCompaction() {
+        long compactIntervalMillis = config.compactInterval().toMilliseconds();
+
+        if (compactIntervalMillis <= 0) {
+            return true;
+        }
+
+        boolean noOverlyRecentCompaction = getMillisSinceLastCompact() >= compactIntervalMillis;
+        if (noOverlyRecentCompaction) {
+            log.info("Compacting table {} because there wasn't an overly recent compaction.", prefixedTableName());
+        } else {
+            log.info("Not compacting table {} because it was recently compacted.", prefixedTableName());
+        }
+        return noOverlyRecentCompaction;
+    }
+
+    /**
+     * Returns the number of milliseconds since the last compaction, or Long.MAX_VALUE if
+     * compaction has never run.
+     */
+    private long getMillisSinceLastCompact() {
+        AgnosticResultSet rs = conns.get().selectResultSetUnregisteredQuery(
+                "SELECT FLOOR(EXTRACT(EPOCH FROM GREATEST( "
+                        + "  last_vacuum, last_autovacuum, last_analyze, last_autoanalyze"
+                        + "))*1000) AS last, "
+                        + "FLOOR(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)*1000) AS current "
+                        + "FROM pg_stat_user_tables WHERE relname = ?",
+                prefixedTableName());
+
+        AgnosticResultRow row = Iterables.getOnlyElement(rs.rows());
+
+        Optional<Long> lastVacuumTime = getLastVacuumTime(row);
+        if (vacuumWasNeverRun(lastVacuumTime)) {
+            return Long.MAX_VALUE;
+        }
+        long currentVacuumTime = row.getLong("current");
+        long timeSinceLastCompact = currentVacuumTime - lastVacuumTime.orElseThrow(
+                () -> new IllegalStateException("Should not calculate time since last compact if it doesn't exist!"));
+        log.info("For table {}, we compacted {} ms ago", timeSinceLastCompact, prefixedTableName());
+        return timeSinceLastCompact;
+    }
+
+    private boolean vacuumWasNeverRun(Optional<Long> lastVacuumTime) {
+        return !lastVacuumTime.isPresent();
+    }
+
+    private Optional<Long> getLastVacuumTime(AgnosticResultRow resultRow) {
+        return Optional.ofNullable(resultRow.getLongObject("last"));
+    }
+
+    private void runCompactOnTable() {
         // VACUUM FULL is /really/ what we want here, but it takes out a table lock
         conns.get().executeUnregisteredQuery("VACUUM ANALYZE " + prefixedTableName());
     }
