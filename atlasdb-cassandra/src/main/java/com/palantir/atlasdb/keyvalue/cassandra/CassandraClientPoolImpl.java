@@ -473,7 +473,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         RuntimeException ex = new IllegalStateException("Hosts have differing ring descriptions."
                 + " This can lead to inconsistent reads and lost data. ");
-        log.error("Cassandra does not appear to have a consistent ring across all of it's nodes. This could cause us to"
+        log.error("Cassandra does not appear to have a consistent ring across all of its nodes. This could cause us to"
                         + " lose writes. The mapping of token ranges to hosts is:\n{}",
                 UnsafeArg.of("tokenRangesToHost", CassandraLogHelper.tokenRangesToHost(tokenRangesToHost)),
                 ex);
