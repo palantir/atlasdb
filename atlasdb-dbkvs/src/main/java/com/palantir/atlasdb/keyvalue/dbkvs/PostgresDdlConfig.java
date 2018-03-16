@@ -49,6 +49,6 @@ public abstract class PostgresDdlConfig extends DdlConfig {
 
     @Value.Default
     public HumanReadableDuration compactInterval() {
-        return HumanReadableDuration.seconds(0);
+        return HumanReadableDuration.seconds(7);
     }
 }
