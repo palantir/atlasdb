@@ -35,7 +35,7 @@ import com.palantir.lock.SingleLockService;
 
 public final class BackgroundCompactor implements AutoCloseable {
     private static final int SLEEP_TIME_WHEN_NO_TABLE_TO_COMPACT_MILLIS = 5000;
-    private static final int SLEEP_TIME_WHEN_NO_LOCK_MILLIS = 60 * 1000;
+    private static final int SLEEP_TIME_WHEN_NO_LOCK_MILLIS = 5 * 1000;
     private static final int SLEEP_TIME_AFTER_FAILURE_MILLIS = 60 * 1000;
 
     private static final Logger log = LoggerFactory.getLogger(BackgroundCompactor.class);
