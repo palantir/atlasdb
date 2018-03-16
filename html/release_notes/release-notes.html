@@ -224,6 +224,10 @@ This unblocks users using libraries which have dependencies on more recent versi
 <td>CleanCassLocksStateCommand is now using Atlas namespace if provided.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3035">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>Logging exceptions in the case of quorum is runtime configurable now, using <cite>only-log-on-quorum-failure</cite> flag, for external timelock services. Previously it was set to true by default.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3057">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
