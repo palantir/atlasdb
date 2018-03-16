@@ -160,11 +160,16 @@ public class PostgresDdlTable implements DbDdlTable {
             return true;
         }
 
-        boolean noOverlyRecentCompaction = getMillisSinceLastCompact() >= compactIntervalMillis;
+        long millisSinceLastCompact = getMillisSinceLastCompact();
+        boolean noOverlyRecentCompaction = millisSinceLastCompact >= compactIntervalMillis;
         if (noOverlyRecentCompaction) {
-            log.info("Compacting table {} because there wasn't an overly recent compaction.", prefixedTableName());
+            log.info("Compacting table {} because there wasn't an overly recent compaction (was {} ms ago).",
+                    prefixedTableName(),
+                    millisSinceLastCompact);
         } else {
-            log.info("Not compacting table {} because it was recently compacted.", prefixedTableName());
+            log.info("Not compacting table {} because it was recently compacted (was {} ms ago).",
+                    prefixedTableName(),
+                    millisSinceLastCompact);
         }
         return noOverlyRecentCompaction;
     }
@@ -191,7 +196,7 @@ public class PostgresDdlTable implements DbDdlTable {
         long currentVacuumTime = row.getLong("current");
         long timeSinceLastCompact = currentVacuumTime - lastVacuumTime.orElseThrow(
                 () -> new IllegalStateException("Should not calculate time since last compact if it doesn't exist!"));
-        log.info("For table {}, we compacted {} ms ago", timeSinceLastCompact, prefixedTableName());
+        log.info("For table {}, we compacted {} ms ago", prefixedTableName(), timeSinceLastCompact);
         return timeSinceLastCompact;
     }
 
