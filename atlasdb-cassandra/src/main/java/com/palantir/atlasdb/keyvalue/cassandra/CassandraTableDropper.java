@@ -89,7 +89,7 @@ class CassandraTableDropper {
                         }
                         CassandraKeyValueServices.waitForSchemaVersions(
                                 config,
-                                client.rawClient(),
+                                client,
                                 "(all tables in a call to dropTables)");
                         return null;
                     });

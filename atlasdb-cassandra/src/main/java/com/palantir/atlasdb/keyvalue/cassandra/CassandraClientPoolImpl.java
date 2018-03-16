@@ -440,7 +440,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
         for (InetSocketAddress host : cassandra.getPools().keySet()) {
-            Cassandra.Client client = null;
+            CassandraClient client = null;
             try {
                 client = CassandraClientFactory.getClientInternal(host, config);
                 try {

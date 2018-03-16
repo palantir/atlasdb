@@ -86,7 +86,7 @@ public class SchemaMutationLockTables {
         client.system_add_column_family(cf);
         CassandraKeyValueServices.waitForSchemaVersions(
                 config,
-                client.rawClient(),
+                client,
                 tableRef.getQualifiedName(),
                 true);
     }

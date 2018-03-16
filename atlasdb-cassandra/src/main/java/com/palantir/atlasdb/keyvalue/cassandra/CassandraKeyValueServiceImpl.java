@@ -420,7 +420,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             dcs = clientPool.runWithRetry(client ->
                     CassandraVerifier.sanityCheckDatacenters(
-                            client.rawClient(),
+                            client,
                             config));
             KsDef ksDef = clientPool.runWithRetry(client ->
                     client.describe_keyspace(config.getKeyspaceOrThrow()));
@@ -1461,7 +1461,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             CassandraKeyValueServices.waitForSchemaVersions(
                     config,
-                    client.rawClient(),
+                    client,
                     "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")",
                     true);
             return null;
@@ -1669,7 +1669,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                     CassandraKeyValueServices.waitForSchemaVersions(
                             config,
-                            client.rawClient(),
+                            client,
                             "(all tables in a call to putMetadataForTables)");
                 }
                 // Done with actual schema mutation, push the metadata
@@ -1941,7 +1941,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private boolean doesConfigReplicationFactorMatchWithCluster() {
         return clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client.rawClient(), config);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, config);
                 return true;
             } catch (Exception e) {
                 log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);

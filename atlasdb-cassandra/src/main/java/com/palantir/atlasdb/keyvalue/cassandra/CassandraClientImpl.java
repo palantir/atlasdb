@@ -88,6 +88,17 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
+    public String system_add_keyspace(KsDef ks_def)
+            throws InvalidRequestException, SchemaDisagreementException, TException {
+        return client.system_add_keyspace(ks_def);
+    }
+
+    @Override
+    public List<KsDef> describe_keyspaces() throws InvalidRequestException, TException {
+        return client.describe_keyspaces();
+    }
+
+    @Override
     public void batch_mutate(String kvsMethodName,
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)

@@ -120,4 +120,8 @@ public interface CassandraClient {
 
     Map<String, List<String>> describe_schema_versions() throws InvalidRequestException, TException;
 
+    String system_add_keyspace(KsDef ks_def) throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    List<KsDef> describe_keyspaces() throws InvalidRequestException, TException;
+
 }

@@ -66,7 +66,7 @@ public final class CassandraKeyValueServices {
 
     static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
-            Cassandra.Client client,
+            CassandraClient client,
             String tableName)
             throws TException {
         waitForSchemaVersions(config, client, tableName, false);
@@ -83,7 +83,7 @@ public final class CassandraKeyValueServices {
      */
     static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
-            Cassandra.Client client,
+            CassandraClient client,
             String tableName,
             boolean allowQuorumAgreement)
             throws TException {
@@ -183,7 +183,7 @@ public final class CassandraKeyValueServices {
             clientPool.run(client -> {
                 waitForSchemaVersions(
                         config,
-                        client.rawClient(),
+                        client,
                         "(none, just an initialization check)",
                         true);
                 return null;
