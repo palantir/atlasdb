@@ -86,7 +86,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         return new InstrumentedExecutorService(
                 executor,
                 AtlasDbMetrics.getMetricRegistry(),
-                MetricRegistry.name(AbstractKeyValueService.class, "kvsExecutorService"));
+                MetricRegistry.name(AbstractKeyValueService.class, "executorService"));
     }
 
     @Override
