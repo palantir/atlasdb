@@ -309,7 +309,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Optional<CassandraJmxCompactionManager> compactionManager,
             Optional<LeaderConfig> leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
-                config.poolSize() * config.servers().size()));
+                config.maxConnectionBurstSize() * config.servers().size()));
         this.log = log;
         this.config = config;
         this.clientPool = clientPool;
