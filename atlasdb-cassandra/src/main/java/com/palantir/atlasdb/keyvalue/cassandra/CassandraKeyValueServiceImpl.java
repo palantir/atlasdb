@@ -346,7 +346,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Optional<LeaderConfig> leaderConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
-                config.poolSize() * config.servers().size()));
+                config.maxConnectionBurstSize() * config.servers().size()));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
