@@ -125,7 +125,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     @Override
     public TimelockServiceStatus getTimelockServiceStatus() {
         Map<String, Meter> meters = AtlasDbMetrics.getMetricRegistry().getMeters();
-        if (!meters.containsKey("timelock.success") && !meters.containsKey("timelock.fail")) {
+        if (!meters.containsKey("timelock.success") || !meters.containsKey("timelock.fail")) {
             log.error("Timelock client metrics is not properly set");
             throw new IllegalStateException();
         }

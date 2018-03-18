@@ -31,7 +31,7 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-public class InstrumentedTimelockService implements TimelockService{
+public class InstrumentedTimelockService implements TimelockService {
     private final TimelockService timelockService;
     private final Meter success;
     private final Meter fail;

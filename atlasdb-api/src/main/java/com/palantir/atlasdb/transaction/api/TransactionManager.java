@@ -138,6 +138,14 @@ public interface TransactionManager extends AutoCloseable {
      */
     KeyValueServiceStatus getKeyValueServiceStatus();
 
+    /**
+     * Provides a {@link TimelockServiceStatus}, indicating the current availability of the timelock service.
+     * This can be used to infer product health - in the usual, conservative case, products can call
+     * {@link TimelockServiceStatus#isHealthy()}, which returns true only a healthy connection to timelock
+     * service is established.
+     *
+     * @return status of the timelock service
+     */
     TimelockServiceStatus getTimelockServiceStatus();
 
     /**
