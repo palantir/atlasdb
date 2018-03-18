@@ -83,6 +83,18 @@ develop
          - Logging exceptions in the case of quorum is runtime configurable now, using `only-log-on-quorum-failure` flag, for external timelock services. Previously it was set to true by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3057>`__)
 
+    *    - |improved| |logs|
+         - CassandraKVS's and DbKVS's ``ExecutorService``s are now instrumented.
+           This ExecutorService is responsible for submitting queries to the underlying DB. It being throttled will increase the latency of queries and transactions.
+           The following metrics are available:
+
+              - ``com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService.executorService.submitted``
+              - ``com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService.executorService.running``
+              - ``com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService.executorService.completed``
+              - ``com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService.executorService.duration``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3064>`__)
+
 =======
 v0.78.0
 =======
