@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
@@ -53,7 +54,6 @@ import org.apache.thrift.transport.TTransportException;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
-import com.palantir.common.base.Throwables;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
@@ -131,12 +131,12 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public TProtocol getOutputProtocol() {
-        return executeMethod(() -> client.getOutputProtocol());
+        return executeMethodWithoutException(() -> client.getOutputProtocol());
     }
 
     @Override
     public TProtocol getInputProtocol() {
-        return executeMethod(() -> client.getInputProtocol());
+        return executeMethodWithoutException(() -> client.getInputProtocol());
     }
 
     @Override
@@ -240,8 +240,8 @@ public class CassandraClientImpl implements CassandraClient {
         return new ColumnParent(AbstractKeyValueService.internalTableName(tableRef));
     }
 
-    private <T, E extends Throwable> T executeMethod(ThrowingSupplier<T, E> supplier)
-            throws E {
+    private <T> T executeMethod(ThrowingSupplier<T> supplier)
+            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
         try {
             return supplier.apply();
         } catch (Exception e) {
@@ -251,22 +251,32 @@ public class CassandraClientImpl implements CassandraClient {
         }
     }
 
-    private <E extends Throwable> void executeMethod(ThrowingVoidSupplier<E> supplier)
-            throws E {
+    private void executeMethod(ThrowingVoidSupplier supplier)
+            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
         try {
             supplier.apply();
         } catch (Exception e) {
-            isValid = blackListedExceptions.stream()
+            isValid = !blackListedExceptions.stream()
                     .anyMatch(b -> e.getClass().isInstance(b));
-            throw Throwables.rewrapAndThrowUncheckedException(e);
+            throw e;
         }
     }
 
-    private interface ThrowingVoidSupplier<E extends Throwable> {
-        void apply() throws E;
+    private <T> T executeMethodWithoutException(Supplier<T> supplier) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            isValid = !blackListedExceptions.stream()
+                    .anyMatch(b -> e.getClass().isInstance(b));
+            throw e;
+        }
     }
 
-    private interface ThrowingSupplier<T, E extends Throwable> {
-        T apply() throws E;
+    private interface ThrowingVoidSupplier {
+        void apply() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException;
+    }
+
+    private interface ThrowingSupplier<T> {
+        T apply() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException;
     }
 }
