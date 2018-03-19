@@ -51,8 +51,8 @@ develop
          - Change
 
     *    - |fixed| |devbreak|
-         - Centralize how PersistentLockServices were being created in a dagger context.
-           Also remove old creater for CellsSweeper.
+         - Centralize how ``PersistentLockManager`` is created in a dagger context.
+           Also, removed the old constructor for ``CellsSweeper``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3047> __)
 
     *    - |fixed|
