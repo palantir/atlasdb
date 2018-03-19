@@ -51,9 +51,11 @@ import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
@@ -711,7 +713,12 @@ public abstract class TransactionManagers {
             com.google.common.base.Supplier<TimestampService> time,
             String userAgent) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
-        LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(env, leaderConfig, userAgent);
+        LeaderRuntimeConfig defaultRuntime = ImmutableLeaderRuntimeConfig.builder().build();
+        LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
+                env,
+                leaderConfig,
+                () -> defaultRuntime,
+                userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.createInstrumentedService(
                 AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leader),

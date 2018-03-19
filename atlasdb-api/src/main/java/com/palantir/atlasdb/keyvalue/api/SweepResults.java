@@ -57,6 +57,7 @@ public abstract class SweepResults {
     /**
      * Time in milliseconds when we started sweeping this table.
      */
+    @Value.Auxiliary
     public abstract long getTimeSweepStarted();
 
     public long getTimeElapsedSinceStartedSweeping() {

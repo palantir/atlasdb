@@ -33,6 +33,12 @@ public interface PaxosRuntimeConfiguration {
         return 5000L;
     }
 
+    @JsonProperty("only-log-on-quorum-failure")
+    @Value.Default
+    default boolean onlyLogOnQuorumFailure() {
+        return true;
+    }
+
     @Value.Check
     default void check() {
         Preconditions.checkArgument(pingRateMs() > 0,

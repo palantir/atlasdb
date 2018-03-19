@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |metrics|
+         - Sweep metrics are now updated to the result value of the last run iteration of sweep instead of the cumulative values for the run of sweep on the table.
+           This has been done in order to improve the granularity of the metrics, since cumulative results can be several orders of magnitude larger, thus obfuscating the delta.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3055>`__)
+
+
     *    - |new|
          - Added a new parameter ``addressTranslation`` to ``CassandraKeyValueServiceConfig``.
            This parameter is a static map specifying how internal Cassandra endpoints should be translated to InetSocketAddresses.
@@ -83,6 +89,10 @@ develop
            If compactions are run in maintenance mode, AtlasDB may perform more costly operations which may be able to recover more space.
            For example, for Oracle KVS, ``SHRINK SPACE`` (which acquires locks on the entire table) will only be run if compactions are carried out in maintenance mode.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
+
+    *    - |improved| |logs|
+         - Logging exceptions in the case of quorum is runtime configurable now, using `only-log-on-quorum-failure` flag, for external timelock services. Previously it was set to true by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3057>`__)
 
 =======
 v0.78.0

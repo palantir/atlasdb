@@ -96,7 +96,7 @@ public class PersistentLockManager implements AutoCloseable {
             if (!actualValues.isEmpty()) {
                 // This should be the only element, otherwise something really odd happened.
                 LockEntry actualEntry = LockEntry.fromStoredValue(actualValues.get(0));
-                log.debug("CAS failed on lock acquire. We thought the lockId was {}, and the database has {}",
+                log.info("CAS failed on lock acquire. We thought the lockId was {}, and the database has {}",
                         SafeArg.of("lockId", lockId),
                         SafeArg.of("actualEntry", actualEntry));
                 if (lockId != null && actualEntry.instanceId().equals(lockId.value())) {
