@@ -73,11 +73,11 @@ develop
     *    - |fixed| |devbreak|
          - Centralize how ``PersistentLockManager`` is created in a dagger context.
            Also, removed the old constructor for ``CellsSweeper``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047> __)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
 
     *    - |improved| |logs|
          - Log an ERROR in the case of failure to create a Cell due to a key greater than 1500 bytes. Previously we logged at DEBUG.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`__)
 
     *    - |fixed|
          - CleanCassLocksStateCommand is now using Atlas namespace if provided.
