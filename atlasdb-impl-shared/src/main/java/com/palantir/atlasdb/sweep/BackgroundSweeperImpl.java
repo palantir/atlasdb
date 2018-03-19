@@ -293,7 +293,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     @VisibleForTesting
     SingleLockService createSweepLocks() {
-        return new SingleLockService(lockService, "atlas sweep");
+        return SingleLockService.createSingleLockServiceWithSafeLockId(lockService, "atlas sweep");
     }
 
     @Override

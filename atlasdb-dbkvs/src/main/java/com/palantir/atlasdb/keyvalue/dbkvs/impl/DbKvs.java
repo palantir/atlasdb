@@ -1179,9 +1179,9 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void compactInternally(TableReference tableRef, boolean inMaintenanceHours) {
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         runDdl(tableRef, (Function<DbDdlTable, Void>) table -> {
-            table.compactInternally(inMaintenanceHours);
+            table.compactInternally(inMaintenanceMode);
             return null;
         });
     }

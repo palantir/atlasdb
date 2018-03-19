@@ -376,8 +376,8 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void compactInternally(TableReference tableRef, boolean inMaintenanceHours) {
-        getDelegate(tableRef).compactInternally(tableRef, inMaintenanceHours);
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        getDelegate(tableRef).compactInternally(tableRef, inMaintenanceMode);
     }
 
     @Override

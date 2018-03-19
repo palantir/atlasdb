@@ -116,10 +116,10 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
-    public void compactInternally(TableReference tableRef, boolean inMaintenanceHours) {
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("compactInternally({})", tableRef)) {
-            delegate().compactInternally(tableRef, inMaintenanceHours);
+            delegate().compactInternally(tableRef, inMaintenanceMode);
         }
     }
 

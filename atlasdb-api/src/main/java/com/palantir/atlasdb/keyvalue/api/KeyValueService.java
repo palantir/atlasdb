@@ -667,10 +667,10 @@ public interface KeyValueService extends AutoCloseable {
     void compactInternally(TableReference tableRef);
 
     /**
-     * Some compaction operations might make block reads and writes.
-     * These operations will just trigger when inMaintenanceHours is set to true.
+     * Some compaction operations might block reads and writes.
+     * These operations will trigger only if inMaintenanceMode is set to true.
      */
-    default void compactInternally(TableReference tableRef, boolean inMaintenanceHours) {
+    default void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         compactInternally(tableRef);
     }
 
@@ -714,8 +714,7 @@ public interface KeyValueService extends AutoCloseable {
     }
 
     /**
-     * @return If {@link #compactInternally(TableReference)} should be called to free disk space,
-     * e.g. after a table has been swept.
+     * @return If {@link #compactInternally(TableReference)} should be called to free disk space.
      */
     default boolean shouldTriggerCompactions() {
         return false;

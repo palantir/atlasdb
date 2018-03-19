@@ -267,9 +267,10 @@ public final class OracleDdlTable implements DbDdlTable {
             } catch (PalantirSqlException e) {
                 log.error(compactionFailureTemplate,
                         LoggingArgs.tableRef(tableRef),
-                        "(Enterprise Edition that requires this user to be able to perform DDL operations)."
-                                + " Please change the `enableOracleEnterpriseFeatures` config to false.",
-                        e.getMessage());
+                        SafeArg.of("auxiliary message",
+                                "(Enterprise Edition that requires this user to be able to perform DDL operations)."
+                                + " Please change the `enableOracleEnterpriseFeatures` config to false."),
+                        UnsafeArg.of("exception message", e.getMessage()));
             } catch (TableMappingNotFoundException e) {
                 throw new RuntimeException(e);
             }
@@ -297,7 +298,7 @@ public final class OracleDdlTable implements DbDdlTable {
             } catch (PalantirSqlException e) {
                 log.error(compactionFailureTemplate,
                         LoggingArgs.tableRef(tableRef),
-                        SafeArg.of("message", "(If you are running against Enterprise Edition,"
+                        SafeArg.of("auxiliary message", "(If you are running against Enterprise Edition,"
                                 + " you can set enableOracleEnterpriseFeatures to true in the configuration.)"),
                         UnsafeArg.of("exception message", e.getMessage()));
             } catch (TableMappingNotFoundException e) {

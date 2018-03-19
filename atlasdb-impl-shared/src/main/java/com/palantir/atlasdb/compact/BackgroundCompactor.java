@@ -68,7 +68,7 @@ public final class BackgroundCompactor implements AutoCloseable {
                 compactPriorityCalculator);
         backgroundCompactor.runInBackground();
 
-        log.info("Started background compactor {}", backgroundCompactor);
+        log.info("Created and started the background compactor.");
 
         return Optional.of(backgroundCompactor);
     }
@@ -133,8 +133,8 @@ public final class BackgroundCompactor implements AutoCloseable {
 
     private void waitUntilTransactionManagerIsReady() throws InterruptedException {
         while (!transactionManager.isInitialized()) {
-            log.info("Waiting for transaction manager to be initialized; going to sleep for {} seconds while waiting",
-                    SafeArg.of("sleepTime", SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS));
+            log.info("Waiting for transaction manager to be initialized; going to sleep for {} ms while waiting",
+                    SafeArg.of("sleepTimeMillis", SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS));
             Thread.sleep(SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS);
         }
     }
@@ -210,7 +210,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     }
 
     private SingleLockService createSimpleLocks() {
-        return new SingleLockService(lockService, "atlas compact");
+        return SingleLockService.createSingleLockServiceWithSafeLockId(lockService, "atlas compact");
     }
 
     private void registerCompactedTable(String tableToCompact) {

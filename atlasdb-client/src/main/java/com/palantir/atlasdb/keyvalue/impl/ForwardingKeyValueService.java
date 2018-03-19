@@ -236,8 +236,8 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public void compactInternally(TableReference tableRef, boolean inMaintenanceHours) {
-        delegate().compactInternally(tableRef, inMaintenanceHours);
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        delegate().compactInternally(tableRef, inMaintenanceMode);
     }
 
     @Override
