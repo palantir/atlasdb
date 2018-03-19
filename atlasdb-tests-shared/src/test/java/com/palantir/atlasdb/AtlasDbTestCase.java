@@ -36,7 +36,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
-import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
@@ -75,9 +75,9 @@ public class AtlasDbTestCase {
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
     protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
-    protected SweepQueueWriter sweepQueue = mock(SweepQueueWriter.class);
+    protected MultiTableSweepQueueWriter sweepQueue = mock(MultiTableSweepQueueWriter.class);
     // default methods make mockito confusing, so we delegate just the important method to the mock
-    protected SweepQueueWriter wrappingSweepQueue = (table, writes) -> sweepQueue.enqueue(table, writes);
+    protected MultiTableSweepQueueWriter wrappingSweepQueue = (table, writes) -> sweepQueue.enqueue(table, writes);
 
     @BeforeClass
     public static void setupLockClient() {

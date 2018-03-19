@@ -64,7 +64,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -120,7 +120,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 timestampCache,
                 GET_RANGES_EXECUTOR,
                 DEFAULT_GET_RANGES_CONCURRENCY,
-                SweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP);
     }
 
     @Test

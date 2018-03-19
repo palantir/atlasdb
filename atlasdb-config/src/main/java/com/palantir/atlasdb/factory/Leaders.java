@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -36,10 +37,12 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
@@ -62,17 +65,19 @@ public final class Leaders {
      * Creates a LeaderElectionService using the supplied configuration and
      * registers appropriate endpoints for that service.
      */
-    public static LeaderElectionService create(Consumer<Object> env, LeaderConfig config) {
-        return create(env, config, UserAgents.DEFAULT_USER_AGENT);
+    public static LeaderElectionService create(
+            Consumer<Object> env, LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime) {
+        return create(env, config, runtime, UserAgents.DEFAULT_USER_AGENT);
     }
 
-    public static LeaderElectionService create(Consumer<Object> env, LeaderConfig config, String userAgent) {
-        return createAndRegisterLocalServices(env, config, userAgent).leaderElectionService();
+    public static LeaderElectionService create(
+            Consumer<Object> env, LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime, String userAgent) {
+        return createAndRegisterLocalServices(env, config, runtime, userAgent).leaderElectionService();
     }
 
     public static LocalPaxosServices createAndRegisterLocalServices(
-            Consumer<Object> env, LeaderConfig config, String userAgent) {
-        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(config, userAgent);
+            Consumer<Object> env, LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime, String userAgent) {
+        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(config, runtime, userAgent);
 
         env.accept(localPaxosServices.ourAcceptor());
         env.accept(localPaxosServices.ourLearner());
@@ -81,7 +86,8 @@ public final class Leaders {
         return localPaxosServices;
     }
 
-    public static LocalPaxosServices createInstrumentedLocalServices(LeaderConfig config, String userAgent) {
+    public static LocalPaxosServices createInstrumentedLocalServices(
+            LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime, String userAgent) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
@@ -90,11 +96,12 @@ public final class Leaders {
                 .remoteAcceptorUris(remoteLeaderUris)
                 .remoteLearnerUris(remoteLeaderUris)
                 .build();
-        return createInstrumentedLocalServices(config, remotePaxosServerSpec, userAgent);
+        return createInstrumentedLocalServices(config, runtime, remotePaxosServerSpec, userAgent);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(
             LeaderConfig config,
+            Supplier<LeaderRuntimeConfig> runtime,
             RemotePaxosServerSpec remotePaxosServerSpec,
             String userAgent) {
         UUID leaderUuid = UUID.randomUUID();
@@ -154,6 +161,7 @@ public final class Leaders {
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
                 .eventRecorder(leadershipEventRecorder)
+                .onlyLogOnQuorumFailure(JavaSuppliers.compose(LeaderRuntimeConfig::onlyLogOnQuorumFailure, runtime))
                 .build();
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(

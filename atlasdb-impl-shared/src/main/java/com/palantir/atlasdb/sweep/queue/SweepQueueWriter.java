@@ -16,34 +16,10 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Collection;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
-
-/**
- * Adds {@link WriteInfo}s to a global queue to be swept.
- */
 public interface SweepQueueWriter {
 
-    SweepQueueWriter NO_OP = (table, writes) -> { };
-
-    default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writesByTable, long timestamp) {
-        writesByTable.forEach((table, writes) -> enqueue(table, writes, timestamp));
-    }
-
-    default void enqueue(TableReference table, Map<Cell, byte[]> writes, long timestamp) {
-        enqueue(table, writes.entrySet().stream()
-                .map(entry -> ImmutableWriteInfo.builder()
-                        .cell(entry.getKey())
-                        .isTombstone(Value.isTombstone(entry.getValue()))
-                        .timestamp(timestamp)
-                        .build())
-                .collect(Collectors.toList()));
-    }
-
-    void enqueue(TableReference table, Iterable<WriteInfo> writes);
+    void enqueue(Collection<WriteInfo> writes);
 
 }

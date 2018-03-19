@@ -48,6 +48,7 @@ dependencies {
   explicitShadow group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
 
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
+  testCompile project(":atlasdb-config")
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'

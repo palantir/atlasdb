@@ -49,9 +49,11 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
@@ -94,10 +96,9 @@ import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
-import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -181,7 +182,7 @@ public abstract class TransactionManagers {
      * the TransactionManager will not become initialized and it will be closed.
      */
     @Value.Default
-    Callback<TransactionManager> asyncInitializationCallback() {
+    Callback<SerializableTransactionManager> asyncInitializationCallback() {
         return new Callback.NoOp<>();
     }
 
@@ -353,7 +354,7 @@ public abstract class TransactionManagers {
                         config.keyValueService().defaultGetRangesConcurrency(),
                         config.initializeAsync(),
                         () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
-                        SweepQueueWriter.NO_OP,
+                        MultiTableSweepQueueWriter.NO_OP,
                         asyncInitializationCallback()),
                 closeables);
 
@@ -455,14 +456,14 @@ public abstract class TransactionManagers {
         AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() ->
                 getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService()));
 
-
+        SweepMetricsManager sweepMetrics = new SweepMetricsManager();
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
                 env,
                 kvs,
                 transactionManager,
                 sweepRunner,
                 sweepPerfLogger,
-                sweepMetricsManager,
+                sweepMetrics,
                 config.initializeAsync(),
                 sweepBatchConfigSource);
 
@@ -485,7 +486,7 @@ public abstract class TransactionManagers {
             SerializableTransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetricsManager sweepMetricsManager,
+            SweepMetricsManager sweepMetrics,
             boolean initializeAsync,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
@@ -494,7 +495,7 @@ public abstract class TransactionManagers {
                 sweepRunner,
                 SweepTableFactory.of(),
                 sweepPerfLogger,
-                sweepMetricsManager,
+                sweepMetrics,
                 initializeAsync);
         env.accept(new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource));
         return specificTableSweeper;
@@ -678,7 +679,12 @@ public abstract class TransactionManagers {
             com.google.common.base.Supplier<TimestampService> time,
             String userAgent) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
-        LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(env, leaderConfig, userAgent);
+        LeaderRuntimeConfig defaultRuntime = ImmutableLeaderRuntimeConfig.builder().build();
+        LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
+                env,
+                leaderConfig,
+                () -> defaultRuntime,
+                userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.createInstrumentedService(
                 AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leader),

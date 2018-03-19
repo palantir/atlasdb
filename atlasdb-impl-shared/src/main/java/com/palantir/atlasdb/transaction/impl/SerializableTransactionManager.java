@@ -29,10 +29,9 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
-import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -52,7 +51,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
         private final SerializableTransactionManager txManager;
         private final Supplier<Boolean> initializationPrerequisite;
-        private final Callback<TransactionManager> callback;
+        private final Callback<SerializableTransactionManager> callback;
 
         private State status = State.INITIALIZING;
         private Throwable callbackThrowable = null;
@@ -62,7 +61,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         InitializeCheckingWrapper(SerializableTransactionManager manager,
                 Supplier<Boolean> initializationPrerequisite,
-                Callback<TransactionManager> callBack) {
+                Callback<SerializableTransactionManager> callBack) {
             this.txManager = manager;
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callBack;
@@ -186,7 +185,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     // TODO(ssouza): it's hard to change the interface of STM with this.
     // We should extract interfaces and delete this hack.
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, null, () -> 1L, false, null, 1, 1, SweepQueueWriter.NO_OP);
+        this(null, null, null, null, null, null, null, null, null, () -> 1L, false, null, 1, 1,
+                MultiTableSweepQueueWriter.NO_OP);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,
@@ -204,8 +204,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
             Supplier<Long> timestampCacheSize,
-            SweepQueueWriter sweepQueueWriter,
-            Callback<TransactionManager> callback) {
+            MultiTableSweepQueueWriter sweepQueueWriter,
+            Callback<SerializableTransactionManager> callback) {
         TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
                 timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
@@ -245,7 +245,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            Supplier<Long> timestampCacheSize) {
+            Supplier<Long> timestampCacheSize,
+            MultiTableSweepQueueWriter sweepQueue) {
         return new SerializableTransactionManager(keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
@@ -260,7 +261,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
-                SweepQueueWriter.NO_OP);
+                sweepQueue);
     }
 
     /**
@@ -297,7 +298,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
-                SweepQueueWriter.NO_OP
+                MultiTableSweepQueueWriter.NO_OP
         );
     }
 
@@ -316,7 +317,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            SweepQueueWriter sweepQueueWriter) {
+            MultiTableSweepQueueWriter sweepQueueWriter) {
         super(
                 keyValueService,
                 timelockService,
