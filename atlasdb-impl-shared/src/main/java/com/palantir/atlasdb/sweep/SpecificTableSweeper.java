@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
@@ -24,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -221,7 +218,6 @@ public class SpecificTableSweeper {
 
     private void processFinishedSweep(TableToSweep tableToSweep, SweepResults cumulativeResults) {
         saveFinalSweepResults(tableToSweep, cumulativeResults);
-        performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
         log.info("Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values. Time taken "
                         + "sweeping: {} ms, time elapsed since sweep first started on this table: {} ms.",
                 LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
@@ -230,24 +226,6 @@ public class SpecificTableSweeper {
                 SafeArg.of("time sweeping table", cumulativeResults.getTimeInMillis()),
                 SafeArg.of("time elapsed", cumulativeResults.getTimeElapsedSinceStartedSweeping()));
         sweepProgressStore.clearProgress();
-    }
-
-    private void performInternalCompactionIfNecessary(TableReference tableRef, SweepResults results) {
-        if (results.getStaleValuesDeleted() > 0) {
-            Stopwatch watch = Stopwatch.createStarted();
-            kvs.compactInternally(tableRef);
-            long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Finished performing compactInternally on {} in {} ms.",
-                    LoggingArgs.tableRef("tableRef", tableRef),
-                    SafeArg.of("elapsedMillis", elapsedMillis));
-            sweepPerfLogger.logInternalCompaction(
-                    SweepCompactionPerformanceResults.builder()
-                            .tableName(tableRef.getQualifiedName())
-                            .cellsDeleted(results.getStaleValuesDeleted())
-                            .cellsExamined(results.getCellTsPairsExamined())
-                            .elapsedMillis(elapsedMillis)
-                            .build());
-        }
     }
 
     private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults finalSweepResults) {
