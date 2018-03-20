@@ -232,7 +232,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @VisibleForTesting
     SingleLockService createSweepLocks() {
-        return new SingleLockService(lockService, "atlas sweep");
+        return SingleLockService.createSingleLockServiceWithSafeLockId(lockService, "atlas sweep");
     }
 
     @Override
@@ -246,6 +246,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             daemon.join();
             daemon = null;
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }

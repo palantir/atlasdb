@@ -114,6 +114,13 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("compactInternally({})", tableRef)) {
+            delegate().compactInternally(tableRef, inMaintenanceMode);
+        }
+    }
+
     @Override
     public boolean isInitialized() {
         return delegate().isInitialized();
@@ -385,5 +392,9 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate().shouldTriggerCompactions();
+    }
 }
 

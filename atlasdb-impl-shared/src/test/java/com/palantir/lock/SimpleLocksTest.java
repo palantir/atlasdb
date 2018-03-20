@@ -40,7 +40,7 @@ public class SimpleLocksTest {
 
     @Before
     public void setUp() {
-        lockService = new SingleLockService(mockLockService, lockId);
+        lockService = SingleLockService.createSingleLockService(mockLockService, lockId);
     }
 
     @Test

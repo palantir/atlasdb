@@ -369,4 +369,14 @@ public final class TableSplittingKeyValueService implements KeyValueService {
                 .findFirst()
                 .orElse(ClusterAvailabilityStatus.ALL_AVAILABLE);
     }
+
+    @Override
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        getDelegate(tableRef).compactInternally(tableRef, inMaintenanceMode);
+    }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegates.stream().anyMatch(KeyValueService::shouldTriggerCompactions);
+    }
 }

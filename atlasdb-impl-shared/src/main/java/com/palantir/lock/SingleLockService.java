@@ -17,23 +17,45 @@ package com.palantir.lock;
 
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class SingleLockService implements AutoCloseable {
-    private final LockService lockService;
+    private static final Logger log = LoggerFactory.getLogger(SingleLockService.class);
+
+    private final RemoteLockService lockService;
     private final String lockId;
+    private final boolean isLockIdSafeForLogging;
 
     private LockRefreshToken token = null;
 
-    public SingleLockService(LockService lockService, String lockId) {
+    private SingleLockService(LockService lockService, String lockId, boolean isLockIdSafeForLogging) {
         this.lockService = lockService;
         this.lockId = lockId;
+        this.isLockIdSafeForLogging = isLockIdSafeForLogging;
+    }
+
+    public static SingleLockService createSingleLockService(LockService lockService, String lockId) {
+        return new SingleLockService(lockService, lockId, false);
+    }
+
+    public static SingleLockService createSingleLockServiceWithSafeLockId(LockService lockService, String lockId) {
+        return new SingleLockService(lockService, lockId, true);
     }
 
     public void lockOrRefresh() throws InterruptedException {
         if (token != null) {
             Set<LockRefreshToken> refreshedTokens = lockService.refreshLockRefreshTokens(ImmutableList.of(token));
+            log.info("Refreshed an existing lock token for {} in a single lock service (token {}); got {}",
+                    getLockIdLoggingArg(),
+                    SafeArg.of("existingLockToken", token),
+                    SafeArg.of("refreshedTokens", refreshedTokens));
             if (refreshedTokens.isEmpty()) {
                 token = null;
             }
@@ -42,6 +64,9 @@ public class SingleLockService implements AutoCloseable {
             LockRequest request = LockRequest.builder(
                     ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
             token = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
+            log.info("Attempted to acquire the lock {} in a single lock service; got {}",
+                    getLockIdLoggingArg(),
+                    SafeArg.of("acquiredToken", token));
         }
     }
 
@@ -54,5 +79,9 @@ public class SingleLockService implements AutoCloseable {
         if (token != null) {
             lockService.unlock(token);
         }
+    }
+
+    private Arg<String> getLockIdLoggingArg() {
+        return isLockIdSafeForLogging ? SafeArg.of("lockId", lockId) : UnsafeArg.of("lockId", lockId);
     }
 }

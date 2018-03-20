@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.compact.CompactorConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
@@ -29,6 +30,11 @@ public abstract class AtlasDbRuntimeConfig {
     @Value.Default
     public SweepConfig sweep() {
         return SweepConfig.defaultSweepConfig();
+    }
+
+    @Value.Default
+    public CompactorConfig compact() {
+        return CompactorConfig.defaultCompactorConfig();
     }
 
     /**

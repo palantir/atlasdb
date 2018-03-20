@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +40,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
+import com.palantir.atlasdb.compact.BackgroundCompactor;
+import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -286,8 +289,8 @@ public final class TransactionManagers {
                 config.getTimestampCacheSize());
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
-                persistentLockService,
-                config.getSweepPersistentLockWaitMillis());
+                        persistentLockService, config.getSweepPersistentLockWaitMillis());
+
         initializeSweepEndpointAndBackgroundProcess(
                 config,
                 runtimeConfigSupplier,
@@ -299,7 +302,30 @@ public final class TransactionManagers {
                 transactionManager,
                 persistentLockManager);
 
+        initializeCompactBackgroundProcess(
+                lockAndTimestampServices,
+                kvs,
+                transactionManager,
+                () -> runtimeConfigSupplier.get().compact());
+
         return transactionManager;
+    }
+
+    private static Optional<BackgroundCompactor> initializeCompactBackgroundProcess(
+            LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService keyValueService,
+            SerializableTransactionManager transactionManager,
+            java.util.function.Supplier<CompactorConfig> compactorConfigSupplier) {
+        Optional<BackgroundCompactor> backgroundCompactorOptional = BackgroundCompactor.createAndRun(
+                transactionManager,
+                keyValueService,
+                lockAndTimestampServices.lock(),
+                compactorConfigSupplier);
+
+        backgroundCompactorOptional.ifPresent(backgroundCompactor ->
+                transactionManager.registerClosingCallback(backgroundCompactor::close));
+
+        return backgroundCompactorOptional;
     }
 
     private static void checkInstallConfig(AtlasDbConfig config) {
