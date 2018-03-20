@@ -49,6 +49,22 @@ develop
 
     *    - Type
          - Change
+    
+    *    -
+         -
+
+=======
+v0.79.0
+=======
+
+20 March 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |improved| |metrics|
          - Sweep metrics are now updated to the result value of the last run iteration of sweep instead of the cumulative values for the run of sweep on the table.
@@ -76,11 +92,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`)
 
     *    - |fixed|
-         - CleanCassLocksStateCommand is now using Atlas namespace if provided.
+         - ``clean-cass-locks-state`` command is now using Atlas namespace as Cassandra keyspace if provided.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
 
     *    - |improved| |logs|
-         - Logging exceptions in the case of quorum is runtime configurable now, using `only-log-on-quorum-failure` flag, for external timelock services. Previously it was set to true by default.
+         - Logging exceptions in the case of quorum is runtime configurable now, using ``only-log-on-quorum-failure`` flag, for external timelock services. Previously it was set to true by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3057>`__)
 
 =======
