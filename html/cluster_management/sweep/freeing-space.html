@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>AtlasDB Sweep CLI &mdash; OSS AtlasDB develop documentation</title>
+  <title>Freeing space after sweep &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -41,8 +41,8 @@
         <link rel="search" title="Search" href="../../search.html"/>
     <link rel="top" title="OSS AtlasDB develop documentation" href="../../index.html"/>
         <link rel="up" title="AtlasDB Sweep Job" href="../sweep.html"/>
-        <link rel="next" title="Background Sweep Inner Workings and Logs" href="sweep-logs.html"/>
-        <link rel="prev" title="AtlasDB Sweep Endpoints" href="sweep-endpoints.html"/> 
+        <link rel="next" title="Services" href="../../services/index.html"/>
+        <link rel="prev" title="Background Sweep Inner Workings and Logs" href="sweep-logs.html"/> 
 
   
   <script src="../../_static/js/modernizr.min.js"></script>
@@ -108,9 +108,9 @@
 <li class="toctree-l2 current"><a class="reference internal" href="../sweep.html">AtlasDB Sweep Job</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="background-sweep.html">Background Sweep</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sweep-endpoints.html">AtlasDB Sweep Endpoints</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">AtlasDB Sweep CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sweep-cli.html">AtlasDB Sweep CLI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sweep-logs.html">Background Sweep Inner Workings and Logs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="freeing-space.html">Freeing space after sweep</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Freeing space after sweep</a></li>
 </ul>
 </li>
 </ul>
@@ -168,14 +168,14 @@
         
           <li><a href="../sweep.html">AtlasDB Sweep Job</a> &raquo;</li>
         
-      <li>AtlasDB Sweep CLI</li>
+      <li>Freeing space after sweep</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
             
-              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/sweep/sweep-cli.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/sweep/freeing-space.rst" class="fa fa-github"> Edit on GitHub</a>
             
           
         
@@ -189,58 +189,59 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="atlasdb-sweep-cli">
-<span id="id1"></span><h1>AtlasDB Sweep CLI<a class="headerlink" href="#atlasdb-sweep-cli" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="freeing-space-after-sweep">
+<span id="freeing-space"></span><h1>Freeing space after sweep<a class="headerlink" href="#freeing-space-after-sweep" title="Permalink to this headline">¶</a></h1>
+<p>The sweep job issues KVS-level deletes to remove stale data.
+However, this does not immediately free data, and for Oracle KVS, manual action may be required in order to gain space.</p>
+<div class="section" id="dbkvs">
+<h2>DbKvs<a class="headerlink" href="#dbkvs" title="Permalink to this headline">¶</a></h2>
+<p>DbKvs uses a background compaction thread to free up disk space. Similar to the background sweeper, the background
+compactor periodically chooses a table <a class="footnote-reference" href="#tablechoice" id="id1">[1]</a>, and runs <code class="docutils literal notranslate"><span class="pre">KeyValueService.compactInternally</span></code> on that table.</p>
+<div class="section" id="oracle-standard-edition">
+<h3>Oracle - Standard Edition<a class="headerlink" href="#oracle-standard-edition" title="Permalink to this headline">¶</a></h3>
+<p>The background compaction thread runs one of two commands, depending on whether the system is in maintenance mode.
+Maintenance mode indicates that users are unlikely to be accessing the system, and so blocking operations can safely be run.
+They are configured by a live-reloaded boolean <code class="docutils literal notranslate"><span class="pre">inMaintenanceMode</span></code> (config path <code class="docutils literal notranslate"><span class="pre">runtime/compact/inMaintenanceMode</span></code>)</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">This is now deprecated in favor of <a class="reference internal" href="sweep-endpoints.html#atlasdb-sweep-endpoints"><span class="std std-ref">Sweep Endpoints</span></a>.</p>
+<p class="last"><code class="docutils literal notranslate"><span class="pre">inMaintenanceMode</span></code> only determines when we <em>start</em> running <code class="docutils literal notranslate"><span class="pre">SHRINK</span> <span class="pre">SPACE</span></code>.
+The operation cannot be aborted once started, so it is strongly recommended to allow for a buffer time of up to three hours before database access is required.
+For example, if users come online at 9am, then maintenance mode should be disabled by 6am.</p>
 </div>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">For instructions on how to run an AtlasDB CLI, see <a class="reference internal" href="../clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a>.
-If you are using a recent version of AtlasDB, it may be easier to run the command via the
-<a class="reference internal" href="../dropwizard-bundle.html#dropwizard-bundle"><span class="std std-ref">Dropwizard Bundle</span></a> instead.</p>
+<p>If we are in maintenance mode, then <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span> <span class="pre">table</span> <span class="pre">SHRINK</span> <span class="pre">SPACE</span></code> will be run. This locks the entire table,
+meaning that no new transactions can be run on the table until the operation completes.
+This is usually fast, but has been seen to take hours on some very large tables.</p>
+<p>If we are not in maintenance mode (i.e. we assume users are online), <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span> <span class="pre">table</span> <span class="pre">SHRINK</span> <span class="pre">SPACE</span> <span class="pre">COMPACT</span></code> will be run.
+This does not block the table; however, space freed by the operation is only available for use by the same table.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Installations that are never set to maintenance mode may need manual action to free space after <code class="docutils literal notranslate"><span class="pre">SHRINK</span> <span class="pre">SPACE</span> <span class="pre">COMPACT</span></code> has run.
+To do this for table <code class="docutils literal notranslate"><span class="pre">foo</span></code>, run <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span> <span class="pre">foo</span> <span class="pre">SHRINK</span> <span class="pre">SPACE</span></code>.
+Again, note that this will lock the entire table until the operation completes.</p>
 </div>
-<p>If you ever need to force a particular table or namespace to be swept immediately, you can run the CLI <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">sweep</span></code>.
-The CLI has the following arguments:</p>
-<table border="1" class="colwidths-given docutils">
-<colgroup>
-<col width="8%" />
-<col width="15%" />
-<col width="77%" />
-</colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Short option</th>
-<th class="head">Long option</th>
-<th class="head">Description</th>
-</tr>
-</thead>
+</div>
+<div class="section" id="oracle-enterprise">
+<h3>Oracle - Enterprise<a class="headerlink" href="#oracle-enterprise" title="Permalink to this headline">¶</a></h3>
+<p>The background compaction thread runs <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span> <span class="pre">table</span> <span class="pre">MOVE</span> <span class="pre">ONLINE</span></code> on the chosen table.
+This runs online, and no user action is required.</p>
+</div>
+<div class="section" id="postgres">
+<h3>Postgres<a class="headerlink" href="#postgres" title="Permalink to this headline">¶</a></h3>
+<p>The background compaction thread runs <code class="docutils literal notranslate"><span class="pre">VACUUM</span> <span class="pre">ANALYZE</span></code> on the chosen table.
+This runs online, and no user action is required.</p>
+</div>
+</div>
+<div class="section" id="cassandra-kvs">
+<h2>Cassandra KVS<a class="headerlink" href="#cassandra-kvs" title="Permalink to this headline">¶</a></h2>
+<p>The delete operation on Cassandra KVS creates a Cassandra tombstone that prevents the data from being read.
+Cassandra uses compactions to free up disk space, which will eventually happen without manual intervention.</p>
+<table class="docutils footnote" frame="void" id="tablechoice" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">-a</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">--all</span></code></td>
-<td>Sweep all tables, in all AtlasDB namespaces.</td>
-</tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">-n</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">--namespace</span> <span class="pre">&lt;namespace</span> <span class="pre">name&gt;</span></code></td>
-<td>A namespace name to sweep, for instance <code class="docutils literal notranslate"><span class="pre">-n</span> <span class="pre">product</span></code></td>
-</tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">-t</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">--table</span> <span class="pre">&lt;table</span> <span class="pre">name&gt;</span></code></td>
-<td>A fully qualified table name to sweep. For example, to sweep the accounts table in the bank namespace, you would use <code class="docutils literal notranslate"><span class="pre">-t</span> <span class="pre">bank.accounts</span></code>.</td>
-</tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">-r</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">--row</span> <span class="pre">&lt;row</span> <span class="pre">name&gt;</span></code></td>
-<td>A row name encoded in hexadecimal to start sweeping from. The CLI prints out row names as it runs, so you can use this to easily resume a manual sweep job without unnecessarily processing rows that have already been recently swept. If this option is omitted, sweeping will process all rows of the table.</td>
-</tr>
-<tr class="row-even"><td>&#160;</td>
-<td><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></td>
-<td>Perform a dry run of sweep. Instead of actually deleting cells, this will tell you how many cells would be deleted. Note that running a dry run and then running a regular sweep may produce slightly different results, as more data may have been added to the database in the meantime.</td>
-</tr>
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>The compactor tracks when each table was last compacted (Tc), and compares those times with the last swept times (Ts), choosing the table with greatest (Ts-Tc), i.e. largest gap between compaction and sweep.</td></tr>
 </tbody>
 </table>
-<p>You must specify exactly one of <code class="docutils literal notranslate"><span class="pre">-a</span></code>, <code class="docutils literal notranslate"><span class="pre">-n</span></code>, and <code class="docutils literal notranslate"><span class="pre">-t</span></code>. If you are sweeping a specific table with <code class="docutils literal notranslate"><span class="pre">-t</span></code>, you may additionally specify the start row with <code class="docutils literal notranslate"><span class="pre">-r</span></code>. This is useful for resuming failed jobs.</p>
-<p>Additionally, see the list of <a class="reference internal" href="../sweep.html#sweep-tunable-parameters"><span class="std std-ref">tunable sweep parameters</span></a> if the defaults are not working well for your AtlasDB instance.</p>
-<p>Be aware that manual sweeping will ignore all conditions that factor into determining whether background sweepers should run, and that the background sweeper will also be affected by system property changes.</p>
+</div>
 </div>
 
 
@@ -253,10 +254,10 @@ The CLI has the following arguments:</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="sweep-logs.html" class="btn btn-neutral float-right" title="Background Sweep Inner Workings and Logs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../../services/index.html" class="btn btn-neutral float-right" title="Services" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="sweep-endpoints.html" class="btn btn-neutral" title="AtlasDB Sweep Endpoints" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="sweep-logs.html" class="btn btn-neutral" title="Background Sweep Inner Workings and Logs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

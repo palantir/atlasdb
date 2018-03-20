@@ -12,7 +12,7 @@ At a high level, the background sweep thread works as follows:
 5. If the table still has values, go to step 2.
 6. If the table has no new values, go to step 1.
 
-In order to know if sweep is working, or it's current progress, look for the following:
+In order to know if sweep is working, or its current progress, look for the following:
 
 - ``Starting background sweeper.``
 
