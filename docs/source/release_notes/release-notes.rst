@@ -66,11 +66,15 @@ v0.79.0
     *    - Type
          - Change
 
+    *    - |improved| |devbreak|
+         - Guava has been updated from 21.0 to 23.6-jre.
+           This unblocks users using libraries which have dependencies on more recent versions of Guava, owing to API changes in ``SimpleTimeLimiter``, among other classes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3038>`__)
+
     *    - |improved| |metrics|
          - Sweep metrics are now updated to the result value of the last run iteration of sweep instead of the cumulative values for the run of sweep on the table.
            This has been done in order to improve the granularity of the metrics, since cumulative results can be several orders of magnitude larger, thus obfuscating the delta.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3055>`__)
-
 
     *    - |new|
          - Added a new parameter ``addressTranslation`` to ``CassandraKeyValueServiceConfig``.
@@ -82,14 +86,9 @@ v0.79.0
            Previously, the client pool was not shut down, leading to a thread leak.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
 
-    *    - |improved| |devbreak|
-         - Guava has been updated from 21.0 to 23.6-jre.
-           This unblocks users using libraries which have dependencies on more recent versions of Guava, owing to API changes in ``SimpleTimeLimiter``, among other classes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3038>`__)
-
     *    - |improved| |logs|
          - Log an ERROR in the case of failure to create a Cell due to a key greater than 1500 bytes. Previously we logged at DEBUG.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`__)
 
     *    - |fixed|
          - ``clean-cass-locks-state`` command is now using Atlas namespace as Cassandra keyspace if provided.
