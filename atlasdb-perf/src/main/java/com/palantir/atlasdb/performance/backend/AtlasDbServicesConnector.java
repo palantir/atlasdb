@@ -61,8 +61,8 @@ public class AtlasDbServicesConnector implements Closeable {
 
 
         SslConfiguration ssl = SslConfiguration.builder()
-                .keyStorePath(Paths.get("/opt/palantir/services/.1378/var/security/keystore.jks"))
-                .trustStorePath(Paths.get("/opt/palantir/services/.1378/var/security/truststore.jks"))
+                .keyStorePath(Paths.get("/tmp/keystore.jks"))
+                .trustStorePath(Paths.get("/tmp/truststore.jks"))
                 .keyStorePassword("upVkPSqf4heABZXA")
                 .build();
 
