@@ -246,7 +246,7 @@ public class CassandraClientImpl implements CassandraClient {
             return supplier.apply();
         } catch (Exception e) {
             isValid = blackListedExceptions.stream()
-                    .anyMatch(b -> e.getClass().isInstance(b));
+                    .anyMatch(b -> b.isInstance(e));
             throw e;
         }
     }
@@ -257,7 +257,7 @@ public class CassandraClientImpl implements CassandraClient {
             supplier.apply();
         } catch (Exception e) {
             isValid = !blackListedExceptions.stream()
-                    .anyMatch(b -> e.getClass().isInstance(b));
+                    .anyMatch(b -> b.isInstance(e));
             throw e;
         }
     }
@@ -267,7 +267,7 @@ public class CassandraClientImpl implements CassandraClient {
             return supplier.get();
         } catch (Exception e) {
             isValid = !blackListedExceptions.stream()
-                    .anyMatch(b -> e.getClass().isInstance(b));
+                    .anyMatch(b -> b.isInstance(e));
             throw e;
         }
     }
