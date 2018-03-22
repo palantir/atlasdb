@@ -98,13 +98,17 @@ class CassandraRequestExceptionHandler {
         if (ex instanceof TTransportException
                 && ex.getCause() != null
                 && (ex.getCause().getClass() == SocketException.class)) {
-            log.error(CONNECTION_FAILURE_MSG, numberOfAttempts, ex);
-            String errorMsg =
-                    MessageFormatter.format(CONNECTION_FAILURE_MSG, numberOfAttempts).getMessage();
+            log.warn(CONNECTION_FAILURE_MSG_WITH_EXCEPTION_INFO,
+                    SafeArg.of("numTries", numberOfAttempts),
+                    SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
+                    UnsafeArg.of("exceptionMessage", ex.getMessage()));
+            String errorMsg = MessageFormatter.format(CONNECTION_FAILURE_MSG, numberOfAttempts).getMessage();
             throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
         } else {
-            log.error("Tried to connect to cassandra {} times.",
-                    SafeArg.of("numTries", numberOfAttempts), ex);
+            log.warn("Tried to connect to cassandra {} times. Exception message was: {} : {}",
+                    SafeArg.of("numTries", numberOfAttempts),
+                    SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
+                    UnsafeArg.of("exceptionMessage", ex.getMessage()));
             throw (K) ex;
         }
     }
@@ -221,6 +225,8 @@ class CassandraRequestExceptionHandler {
             + " Error writing to Cassandra socket."
             + " Likely cause: Exceeded maximum thrift frame size;"
             + " unlikely cause: network issues.";
+    private static final String CONNECTION_FAILURE_MSG_WITH_EXCEPTION_INFO = CONNECTION_FAILURE_MSG
+            + " Exception message was: {} : {}";
 
     @VisibleForTesting
     interface RequestExceptionHandlerStrategy {
