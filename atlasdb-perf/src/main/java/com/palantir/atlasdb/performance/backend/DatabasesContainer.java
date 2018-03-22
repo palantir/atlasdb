@@ -28,6 +28,7 @@ public final class DatabasesContainer implements AutoCloseable {
         List<DockerizedDatabase> dbs = Lists.newArrayList();
         try {
             for (KeyValueServiceInstrumentation backend : backends) {
+                System.out.println("Starting database " + backend.getClassName());
                 DockerizedDatabase db = DockerizedDatabase.start(backend);
                 Awaitility.await()
                         .atMost(Duration.FIVE_MINUTES)
