@@ -667,6 +667,14 @@ public interface KeyValueService extends AutoCloseable {
     void compactInternally(TableReference tableRef);
 
     /**
+     * Some compaction operations might block reads and writes.
+     * These operations will trigger only if inMaintenanceMode is set to true.
+     */
+    default void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        compactInternally(tableRef);
+    }
+
+    /**
      * Provides a {@link ClusterAvailabilityStatus}, indicating the current availability of the key value store.
      * This can be used to infer product health - in the usual, conservative case, products can call
      * {@link ClusterAvailabilityStatus#isHealthy()}, which returns true only if all KVS nodes are up.
@@ -684,6 +692,10 @@ public interface KeyValueService extends AutoCloseable {
     @Consumes(MediaType.APPLICATION_JSON)
     ClusterAvailabilityStatus getClusterAvailabilityStatus();
 
+    ////////////////////////////////////////////////////////////
+    // SPECIAL CASING SOME KVSs
+    ////////////////////////////////////////////////////////////
+
     /**
      * @return true iff the KeyValueService has been initialized and is ready to use
      *         Note that this check ignores the cluster's availability - use {@link #getClusterAvailabilityStatus()} if
@@ -698,6 +710,13 @@ public interface KeyValueService extends AutoCloseable {
      * This is used by sweep to determine if it should wait a while between runs after deleting a large number of cells.
      */
     default boolean performanceIsSensitiveToTombstones() {
+        return false;
+    }
+
+    /**
+     * @return If {@link #compactInternally(TableReference)} should be called to free disk space.
+     */
+    default boolean shouldTriggerCompactions() {
         return false;
     }
 }

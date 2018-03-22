@@ -49,6 +49,29 @@ develop
 
     *    - Type
          - Change
+    
+    *    - |fixed| |devbreak|
+         - Centralize how ``PersistentLockManager`` is created in a dagger context.
+           Also, removed the old constructor for ``CellsSweeper``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
+
+=======
+v0.79.0
+=======
+
+20 March 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved| |devbreak|
+         - Guava has been updated from 21.0 to 23.6-jre.
+           This unblocks users using libraries which have dependencies on more recent versions of Guava, owing to API changes in ``SimpleTimeLimiter``, among other classes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3038>`__)
 
     *    - |improved| |metrics|
          - Sweep metrics are now updated to the result value of the last run iteration of sweep instead of the cumulative values for the run of sweep on the table.
@@ -65,26 +88,27 @@ develop
            Previously, the client pool was not shut down, leading to a thread leak.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3006>`__)
 
-    *    - |improved| |devbreak|
-         - Guava has been updated from 21.0 to 23.6-jre.
-           This unblocks users using libraries which have dependencies on more recent versions of Guava, owing to API changes in ``SimpleTimeLimiter``, among other classes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3038>`__)
-
-    *    - |fixed| |devbreak|
-         - Centralize how ``PersistentLockManager`` is created in a dagger context.
-           Also, removed the old constructor for ``CellsSweeper``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
-
     *    - |improved| |logs|
          - Log an ERROR in the case of failure to create a Cell due to a key greater than 1500 bytes. Previously we logged at DEBUG.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3034>`__)
 
     *    - |fixed|
-         - CleanCassLocksStateCommand is now using Atlas namespace if provided.
+         - ``clean-cass-locks-state`` command is now using Atlas namespace as Cassandra keyspace if provided.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
 
+    *    - |new|
+         - AtlasDB now schedules KVS compactions on a background thread, as opposed to triggering a compaction after each table was swept.
+           This allows for better control over KVS load arising from compactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
+
+    *    - |new|
+         - AtlasDB now supports configuration of a maintenance mode for compactions.
+           If compactions are run in maintenance mode, AtlasDB may perform more costly operations which may be able to recover more space.
+           For example, for Oracle KVS, ``SHRINK SPACE`` (which acquires locks on the entire table) will only be run if compactions are carried out in maintenance mode.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
+
     *    - |improved| |logs|
-         - Logging exceptions in the case of quorum is runtime configurable now, using `only-log-on-quorum-failure` flag, for external timelock services. Previously it was set to true by default.
+         - Logging exceptions in the case of quorum is runtime configurable now, using ``only-log-on-quorum-failure`` flag, for external timelock services. Previously it was set to true by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3057>`__)
 
 =======

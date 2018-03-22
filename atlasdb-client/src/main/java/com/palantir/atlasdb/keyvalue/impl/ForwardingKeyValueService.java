@@ -234,4 +234,14 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         return delegate().getClusterAvailabilityStatus();
     }
+
+    @Override
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        delegate().compactInternally(tableRef, inMaintenanceMode);
+    }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate().shouldTriggerCompactions();
+    }
 }

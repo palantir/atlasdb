@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -51,7 +50,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -91,8 +89,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
@@ -113,6 +109,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -164,6 +161,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         @Override
+        public boolean shouldTriggerCompactions() {
+            return CassandraKeyValueServiceImpl.this.shouldTriggerCompactions();
+        }
+
+        @Override
         public CassandraClientPool getClientPool() {
             return CassandraKeyValueServiceImpl.this.getClientPool();
         }
@@ -182,7 +184,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final Logger log;
 
     private final CassandraKeyValueServiceConfig config;
-    private final Optional<CassandraJmxCompactionManager> compactionManager;
     private final CassandraClientPool clientPool;
 
     private SchemaMutationLock schemaMutationLock;
@@ -291,13 +292,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Optional<LeaderConfig> leaderConfig,
             Logger log,
             boolean initializeAsync) {
-        Optional<CassandraJmxCompactionManager> compactionManager =
-                CassandraJmxCompaction.createJmxCompactionManager(config);
         CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
                 log,
                 config,
                 clientPool,
-                compactionManager,
                 leaderConfig);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
@@ -306,14 +304,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private CassandraKeyValueServiceImpl(Logger log,
             CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
-            Optional<CassandraJmxCompactionManager> compactionManager,
             Optional<LeaderConfig> leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 config.poolSize() * config.servers().size()));
         this.log = log;
         this.config = config;
         this.clientPool = clientPool;
-        this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
@@ -328,10 +324,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 writeConsistency);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellLoader, cellValuePutter,
                 wrappingQueryRunner, deleteConsistency);
-
-        if (!compactionManager.isPresent()) {
-            logLackOfCompactionManager(config.getKeyspaceOrThrow());
-        }
     }
 
     @Override
@@ -1559,7 +1551,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 for (Entry<Cell, Value> entry : cells) {
                     Value value = entry.getValue();
-                    TableReference tableRef = CassandraKeyValueServices.tableReferenceFromBytes(entry.getKey().getRowName());
+                    TableReference tableRef = CassandraKeyValueServices.tableReferenceFromBytes(
+                            entry.getKey().getRowName());
                     byte[] contents;
                     if (value == null) {
                         contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
@@ -1767,9 +1760,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
-        if (compactionManager.isPresent()) {
-            compactionManager.get().close();
-        }
         super.close();
     }
 
@@ -1927,47 +1917,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return newColumn;
     }
 
-    /**
-     * Does whatever can be done to compact or cleanup a table. Intended to be called after many
-     * deletions are performed.
-     *
-     * @param tableRef the name of the table to compact.
-     */
     @Override
     public void compactInternally(TableReference tableRef) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
-                "tableRef:[%s] should not be null or empty.", tableRef);
-        if (!compactionManager.isPresent()) {
-            return;
-        }
-        long timeoutInSeconds = config.jmx().get().compactionTimeoutSeconds();
-        String keyspace = config.getKeyspaceOrThrow();
-        try {
-            alterGcAndTombstone(keyspace, tableRef, 0, 0.0f);
-            compactionManager.get().performTombstoneCompaction(timeoutInSeconds, keyspace, tableRef);
-        } catch (TimeoutException e) {
-            log.error("Compaction for {}.{} could not finish in {} seconds.", UnsafeArg.of("keyspace", keyspace),
-                    LoggingArgs.tableRef(tableRef), SafeArg.of("timeout", timeoutInSeconds), e);
-            log.error("Compaction status: {}",
-                    UnsafeArg.of("compactionStatus", compactionManager.get().getCompactionStatus()));
-        } catch (InterruptedException e) {
-            log.error("Compaction for {}.{} was interrupted.", UnsafeArg.of("keyspace", keyspace),
-                    LoggingArgs.tableRef(tableRef));
-        } finally {
-            alterGcAndTombstone(
-                    keyspace,
-                    tableRef,
-                    config.gcGraceSeconds(),
-                    CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
-        }
-    }
-
-    private void logLackOfCompactionManager(String keyspace) {
-        log.info("No compaction client was configured. Sweep and other operations may delete data from an Atlas "
-                + "perspective, but if you actually want to clear deleted data from Cassandra, "
-                + "you will need to run `nodetool compact {} <table_name>`. "
-                + "This will clear data that was deleted more than gc_grace_seconds ago.",
-                UnsafeArg.of("keyspace", keyspace));
+        log.info("Called compactInternally on {}, but this is a no-op for Cassandra KVS."
+                + "Cassandra should eventually decide to compact this table for itself.",
+                LoggingArgs.tableRef(tableRef));
     }
 
     @Override
@@ -2033,64 +1987,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private boolean isQuorumAvailable(int countUnreachableNodes) {
         int replicationFactor = config.replicationFactor();
         return countUnreachableNodes < (replicationFactor + 1) / 2;
-    }
-
-    private void alterGcAndTombstone(
-            String keyspace,
-            TableReference tableRef,
-            int gcGraceSeconds,
-            float tombstoneThresholdRatio) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(keyspace),
-                "keyspace:[%s] should not be null or empty.", keyspace);
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
-                "tableRef:[%s] should not be null or empty.", tableRef);
-        Preconditions.checkArgument(gcGraceSeconds >= 0,
-                "gc_grace_seconds:[%s] should not be negative.", gcGraceSeconds);
-        Preconditions.checkArgument(tombstoneThresholdRatio >= 0.0f && tombstoneThresholdRatio <= 1.0f,
-                "tombstone_threshold_ratio:[%s] should be between [0.0, 1.0]", tombstoneThresholdRatio);
-
-        schemaMutationLock.runWithLock(() ->
-                alterGcAndTombstoneInternal(keyspace, tableRef, gcGraceSeconds, tombstoneThresholdRatio));
-    }
-
-    private void alterGcAndTombstoneInternal(
-            String keyspace,
-            TableReference tableRef,
-            int gcGraceSeconds,
-            float tombstoneThresholdRatio) {
-        try {
-            clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, Exception>) client -> {
-                KsDef ks = client.rawClient().describe_keyspace(keyspace);
-                List<CfDef> cfs = ks.getCf_defs();
-                for (CfDef cf : cfs) {
-                    if (cf.getName().equalsIgnoreCase(internalTableName(tableRef))) {
-                        cf.setGc_grace_seconds(gcGraceSeconds);
-                        cf.setCompaction_strategy_options(ImmutableMap.of(
-                                "tombstone_threshold",
-                                String.valueOf(tombstoneThresholdRatio)));
-                        client.rawClient().system_update_column_family(cf);
-                        CassandraKeyValueServices.waitForSchemaVersions(
-                                config,
-                                client.rawClient(),
-                                tableRef.getQualifiedName());
-                        log.trace("gc_grace_seconds is set to {} for {}.{}",
-                                SafeArg.of("gcGraceSeconds", gcGraceSeconds), UnsafeArg.of("keyspace", keyspace),
-                                LoggingArgs.tableRef(tableRef));
-                        log.trace("tombstone_threshold_ratio is set to {} for {}.{}",
-                                SafeArg.of("tombstoneThresholdRatio", tombstoneThresholdRatio),
-                                UnsafeArg.of("keyspace", keyspace), LoggingArgs.tableRef(tableRef));
-                    }
-                }
-                return null;
-            });
-        } catch (Exception e) {
-            log.error("Exception encountered while setting gc_grace_seconds:{} and tombstone_threshold:{} for {}.{}",
-                    SafeArg.of("gcGraceSeconds", gcGraceSeconds),
-                    SafeArg.of("tombstoneThresholdRatio", tombstoneThresholdRatio),
-                    UnsafeArg.of("keyspace", keyspace),
-                    LoggingArgs.tableRef(tableRef),
-                    e);
-        }
     }
 
     @Override

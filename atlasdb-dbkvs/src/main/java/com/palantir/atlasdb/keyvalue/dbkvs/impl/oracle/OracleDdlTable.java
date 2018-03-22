@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import java.sql.SQLException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
@@ -22,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -34,9 +37,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
+import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.util.VersionStrings;
 
 public final class OracleDdlTable implements DbDdlTable {
@@ -48,18 +55,21 @@ public final class OracleDdlTable implements DbDdlTable {
     private final TableReference tableRef;
     private final OracleTableNameGetter oracleTableNameGetter;
     private final TableValueStyleCache valueStyleCache;
+    private final ExecutorService compactionTimeoutExecutor;
 
     private OracleDdlTable(
             OracleDdlConfig config,
             ConnectionSupplier conns,
             TableReference tableRef,
             OracleTableNameGetter oracleTableNameGetter,
-            TableValueStyleCache valueStyleCache) {
+            TableValueStyleCache valueStyleCache,
+            ExecutorService compactionTimeoutExecutor) {
         this.config = config;
         this.conns = conns;
         this.tableRef = tableRef;
         this.oracleTableNameGetter = oracleTableNameGetter;
         this.valueStyleCache = valueStyleCache;
+        this.compactionTimeoutExecutor = compactionTimeoutExecutor;
     }
 
     public static OracleDdlTable create(
@@ -67,8 +77,10 @@ public final class OracleDdlTable implements DbDdlTable {
             ConnectionSupplier conns,
             OracleDdlConfig config,
             OracleTableNameGetter oracleTableNameGetter,
-            TableValueStyleCache valueStyleCache) {
-        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter, valueStyleCache);
+            TableValueStyleCache valueStyleCache,
+            ExecutorService compactionTimeoutExecutor) {
+        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter, valueStyleCache,
+                compactionTimeoutExecutor);
     }
 
     @Override
@@ -240,56 +252,80 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     @Override
-    public void compactInternally() {
-        final String compactionFailureTemplate = "Tried to clean up {} bloat after a sweep operation,"
+    public void compactInternally(boolean inMaintenanceHours) {
+        final String compactionFailureTemplate = "Tried to clean up {} bloat,"
                 + " but underlying Oracle database or configuration does not support this {} feature online. "
-                + " Since this can't be automated in your configuration,"
-                + " good practice would be do to occasional offline manual maintenance of rebuilding"
+                + " Good practice could be do to occasional offline manual maintenance of rebuilding"
                 + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
                 + " like more information. Underlying error was: {}";
 
         if (config.enableOracleEnterpriseFeatures()) {
             try {
-                conns.get().executeUnregisteredQuery(
+                getCompactionConnection().executeUnregisteredQuery(
                         "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
                                 + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
                 log.error(compactionFailureTemplate,
-                        tableRef,
-                        "(Enterprise Edition that requires this user to be able to perform DDL operations)",
-                        e.getMessage());
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("auxiliary message",
+                                "(Enterprise Edition that requires this user to be able to perform DDL operations)."
+                                + " Please change the `enableOracleEnterpriseFeatures` config to false."),
+                        UnsafeArg.of("exception message", e.getMessage()));
             } catch (TableMappingNotFoundException e) {
                 throw new RuntimeException(e);
             }
         } else if (config.enableShrinkOnOracleStandardEdition()) {
             Stopwatch timer = Stopwatch.createStarted();
             try {
-                Stopwatch shrinkAndCompactTimer = Stopwatch.createStarted();
-                conns.get().executeUnregisteredQuery(
-                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
-                                + " SHRINK SPACE COMPACT");
-                log.info("Call to SHRINK SPACE COMPACT on table {} took {} ms.",
-                        tableRef, shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS));
-
-                Stopwatch shrinkTimer = Stopwatch.createStarted();
-                conns.get().executeUnregisteredQuery(
-                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
-                                + " SHRINK SPACE");
-                log.info("Call to SHRINK SPACE on table {} took {} ms."
-                                + " This implies that locks on the entire table were held for this period.",
-                        tableRef, shrinkTimer.elapsed(TimeUnit.MILLISECONDS));
+                if (inMaintenanceHours) {
+                    Stopwatch shrinkTimer = Stopwatch.createStarted();
+                    getCompactionConnection().executeUnregisteredQuery(
+                            "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                    + " SHRINK SPACE");
+                    log.info("Call to SHRINK SPACE on table {} took {} ms."
+                                    + " This implies that locks on the entire table were held for this period.",
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("elapsed time", shrinkTimer.elapsed(TimeUnit.MILLISECONDS)));
+                } else {
+                    Stopwatch shrinkAndCompactTimer = Stopwatch.createStarted();
+                    getCompactionConnection().executeUnregisteredQuery(
+                            "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                    + " SHRINK SPACE COMPACT");
+                    log.info("Call to SHRINK SPACE COMPACT on table {} took {} ms.",
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("elapsed time", shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS)));
+                }
             } catch (PalantirSqlException e) {
                 log.error(compactionFailureTemplate,
-                        tableRef,
-                        "(If you are running against Enterprise Edition,"
-                                + " you can set enableOracleEnterpriseFeatures to true in the configuration.)",
-                        e.getMessage());
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("auxiliary message", "(If you are running against Enterprise Edition,"
+                                + " you can set enableOracleEnterpriseFeatures to true in the configuration.)"),
+                        UnsafeArg.of("exception message", e.getMessage()));
             } catch (TableMappingNotFoundException e) {
                 throw new RuntimeException(e);
             } finally {
                 log.info("Call to KVS.compactInternally on table {} took {} ms.",
-                        tableRef, timer.elapsed(TimeUnit.MILLISECONDS));
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("elapsed time", timer.elapsed(TimeUnit.MILLISECONDS)));
             }
         }
+    }
+
+    private SqlConnection getCompactionConnection() {
+        SqlConnection sqlConnection = conns.get();
+
+        try {
+            int originalNetworkTimeout = sqlConnection.getUnderlyingConnection().getNetworkTimeout();
+            int newNetworkMillis = Ints.saturatedCast(config.compactionConnectionTimeout());
+
+            log.info("Increased sql socket read timeout from {} to {}",
+                    SafeArg.of("originalNetworkTimeoutMillis", originalNetworkTimeout),
+                    SafeArg.of("newNetworkTimeoutMillis", newNetworkMillis));
+            sqlConnection.getUnderlyingConnection().setNetworkTimeout(compactionTimeoutExecutor, newNetworkMillis);
+        } catch (SQLException e) {
+            log.warn("Failed to increase socket read timeout for the connection. Encountered an exception:", e);
+        }
+
+        return sqlConnection;
     }
 }

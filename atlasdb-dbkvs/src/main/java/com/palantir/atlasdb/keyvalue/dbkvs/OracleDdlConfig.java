@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import org.immutables.value.Value;
@@ -62,6 +63,11 @@ public abstract class OracleDdlConfig extends DdlConfig {
     @Value.Default
     public boolean enableShrinkOnOracleStandardEdition() {
         return false;
+    }
+
+    @Value.Default
+    public long compactionConnectionTimeout() {
+        return Duration.ofHours(10).toMillis();
     }
 
     @Value.Default

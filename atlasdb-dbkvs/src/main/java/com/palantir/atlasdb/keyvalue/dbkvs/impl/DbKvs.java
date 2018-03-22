@@ -210,7 +210,8 @@ public final class DbKvs extends AbstractKeyValueService {
         return new DbKvs(
                 executor,
                 oracleDdlConfig,
-                new OracleDbTableFactory(oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache),
+                new OracleDbTableFactory(oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache,
+                        PTExecutors.newSingleThreadScheduledExecutor()),
                 connections,
                 new ImmediateSingleBatchTaskRunner(),
                 overflowValueLoader,
@@ -1168,9 +1169,19 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
+    public boolean shouldTriggerCompactions() {
+        return true;
+    }
+
+    @Override
     public void compactInternally(TableReference tableRef) {
+        compactInternally(tableRef, false);
+    }
+
+    @Override
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         runDdl(tableRef, (Function<DbDdlTable, Void>) table -> {
-            table.compactInternally();
+            table.compactInternally(inMaintenanceMode);
             return null;
         });
     }

@@ -34,6 +34,7 @@ import org.apache.cassandra.thrift.TokenRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Iterables;
@@ -103,7 +104,7 @@ public class CassandraService implements AutoCloseable {
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
                     List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
-                            .map(host -> getAddressForHostThrowUnchecked(host)).collect(Collectors.toList());
+                            .map(this::getAddressForHostThrowUnchecked).collect(Collectors.toList());
 
                     servers.addAll(hosts);
 
@@ -144,7 +145,8 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    public InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
+    @VisibleForTesting
+    InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
         if (config.addressTranslation().containsKey(host)) {
             return config.addressTranslation().get(host);
         }
@@ -168,7 +170,7 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    public List<InetSocketAddress> getHostsFor(byte[] key) {
+    private List<InetSocketAddress> getHostsFor(byte[] key) {
         return tokenMap.get(new LightweightOppToken(key));
     }
 
@@ -191,8 +193,8 @@ public class CassandraService implements AutoCloseable {
             livingHosts = filteredHosts;
         }
 
-        InetSocketAddress randomLivingHost = getRandomHostByActiveConnections(livingHosts);
-        return Optional.ofNullable(pools.get(randomLivingHost));
+        Optional<InetSocketAddress> randomLivingHost = getRandomHostByActiveConnections(livingHosts);
+        return randomLivingHost.flatMap(host -> Optional.ofNullable(pools.get(host)));
     }
 
     public CassandraClientPoolingContainer getRandomGoodHost() {
@@ -200,7 +202,7 @@ public class CassandraService implements AutoCloseable {
                 () -> new IllegalStateException("No hosts available."));
     }
 
-    public String getRingViewDescription() {
+    private String getRingViewDescription() {
         return CassandraLogHelper.tokenMap(tokenMap).toString();
     }
 
@@ -216,8 +218,14 @@ public class CassandraService implements AutoCloseable {
         return currentPools;
     }
 
-    public InetSocketAddress getRandomHostByActiveConnections(Set<InetSocketAddress> desiredHosts) {
-        return WeightedHosts.create(Maps.filterKeys(currentPools, desiredHosts::contains)).getRandomHost();
+    private Optional<InetSocketAddress> getRandomHostByActiveConnections(Set<InetSocketAddress> desiredHosts) {
+        Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools = Maps.filterKeys(currentPools,
+                desiredHosts::contains);
+        if (matchingPools.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(WeightedHosts.create(matchingPools).getRandomHost());
     }
 
     public void debugLogStateOfPool() {
@@ -253,18 +261,21 @@ public class CassandraService implements AutoCloseable {
 
         Set<InetSocketAddress> liveOwnerHosts = blacklist.filterBlacklistedHostsFrom(hostsForKey);
 
-        if (liveOwnerHosts.isEmpty()) {
-            log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
-                    + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
-                    + " Current host blacklist is {}."
-                    + " Current state logged at TRACE",
-                    SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
-            log.trace("Current ring view is: {}.",
-                    SafeArg.of("tokenMap", getRingViewDescription()));
-            return getRandomGoodHost().getHost();
-        } else {
-            return getRandomHostByActiveConnections(liveOwnerHosts);
+        if (!liveOwnerHosts.isEmpty()) {
+            Optional<InetSocketAddress> activeHost = getRandomHostByActiveConnections(liveOwnerHosts);
+            if (activeHost.isPresent()) {
+                return activeHost.get();
+            }
         }
+
+        log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
+                + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
+                + " Current host blacklist is {}."
+                + " Current state logged at TRACE",
+                SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
+        log.trace("Current ring view is: {}.",
+                SafeArg.of("tokenMap", getRingViewDescription()));
+        return getRandomGoodHost().getHost();
     }
 
     public void addPool(InetSocketAddress server) {
