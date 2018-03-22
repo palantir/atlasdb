@@ -41,15 +41,25 @@ public final class SweepTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
+    public SimpleSweepQueueTable getSimpleSweepQueueTable(Transaction t,
+            SimpleSweepQueueTable.SimpleSweepQueueTrigger... triggers) {
+        return SimpleSweepQueueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public SweepPriorityTable getSweepPriorityTable(Transaction t,
             SweepPriorityTable.SweepPriorityTrigger... triggers) {
         return SweepPriorityTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends SweepPriorityTable.SweepPriorityTrigger {
+    public interface SharedTriggers extends SimpleSweepQueueTable.SimpleSweepQueueTrigger, SweepPriorityTable.SweepPriorityTrigger {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putSimpleSweepQueue(Multimap<SimpleSweepQueueTable.SimpleSweepQueueRow, ? extends SimpleSweepQueueTable.SimpleSweepQueueColumnValue> newRows) {
+            // do nothing
+        }
+
         @Override
         public void putSweepPriority(Multimap<SweepPriorityTable.SweepPriorityRow, ? extends SweepPriorityTable.SweepPriorityNamedColumnValue<?>> newRows) {
             // do nothing

@@ -65,6 +65,18 @@ public enum SweepSchema implements AtlasSchema {
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
 
+        schema.addTableDefinition("simpleQueue", new TableDefinition() {{
+            javaTableName("SimpleSweepQueue");
+            rowName();
+            ignoreHotspottingChecks();
+            rowComponent("full_table_name", ValueType.STRING);
+
+            dynamicColumns();
+                columnComponent("offset", ValueType.FIXED_LONG);
+                value(ValueType.BLOB);
+//                columnComponent("value", ValueType.BLOB);
+        }});
+
         schema.validate();
         return schema;
     }
