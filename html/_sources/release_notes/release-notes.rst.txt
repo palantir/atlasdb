@@ -49,9 +49,12 @@ develop
 
     *    - Type
          - Change
-    
-    *    -
-         -
+
+    *    - |improved| |logs|
+         - Downgraded "Tried to connect to Cassandra {} times" logs from ``ERROR`` to ``WARN``, and stopped printing the stack trace.
+           An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3069>`__)
+
 
 =======
 v0.79.0
@@ -125,7 +128,7 @@ v0.78.0
     *    - |new|
          - The ``TransactionManagers`` builder now optionally accepts a ``Callback`` object.
            If ``initializeAsync`` is set to true, then this callback will be run after all the initialization prerequisites for the TransactionManager have been met, and the TransactionManager will start returning true on calls to its ``isInitialized()`` method only once the callback has returned.
-           If ``initializeAsync`` is set to false, then this callback will be run just before the TransactionManager is returned, blocking until it is done. 
+           If ``initializeAsync`` is set to false, then this callback will be run just before the TransactionManager is returned, blocking until it is done.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3011>`__)
 
     *    - |fixed|
@@ -421,7 +424,7 @@ v0.74.0
            Previously, when services were shutting down, the background sweeper thread continuously logged warnings
            due to a closed ``TransactionManager``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2900>`__)
-           
+
     *    - |devbreak|
          - Removed ``CassandraKeyValueServiceConfigManager``. If you're affected by this, please contact the AtlasDB team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2886>`__)

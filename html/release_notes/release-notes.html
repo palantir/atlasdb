@@ -196,8 +196,10 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>Downgraded “Tried to connect to Cassandra {} times” logs from <code class="docutils literal notranslate"><span class="pre">ERROR</span></code> to <code class="docutils literal notranslate"><span class="pre">WARN</span></code>, and stopped printing the stack trace.
+An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3069">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
