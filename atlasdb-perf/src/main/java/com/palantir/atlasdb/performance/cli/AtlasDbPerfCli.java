@@ -98,6 +98,7 @@ public class AtlasDbPerfCli {
         }
 
         if (hasValidArgs(cli)) {
+            System.out.println("Args are valid, running benchmarks");
             run(cli);
         } else {
             System.exit(1);
@@ -164,6 +165,7 @@ public class AtlasDbPerfCli {
     }
 
     private static DatabasesContainer startupDatabase(Set<String> backends) {
+        System.out.println("Starting databases");
         return DatabasesContainer.startup(
                 backends.stream()
                         .map(KeyValueServiceInstrumentation::forDatabase)
