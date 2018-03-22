@@ -57,6 +57,16 @@ public class KvsPutBenchmarks {
 
     @Benchmark
     @Threads(1)
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 6, timeUnit = TimeUnit.SECONDS)
+    public Object singleRandomPutWithSweepStats(EmptyTables tables) {
+        Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
+        tables.getKvs().put(tables.getSecondTableRef(), batch, DUMMY_TIMESTAMP);
+        return batch;
+    }
+
+    @Benchmark
+    @Threads(1)
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomPut(EmptyTables tables) {

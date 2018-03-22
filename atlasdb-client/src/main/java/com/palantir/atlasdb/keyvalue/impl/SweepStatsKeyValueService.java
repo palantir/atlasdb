@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +47,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -52,9 +55,11 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.SweepSchema;
+import com.palantir.atlasdb.schema.generated.SimpleSweepQueueTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityNamedColumn;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow;
+import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.persist.Persistables;
@@ -123,9 +128,29 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
         delegate().put(tableRef, values, timestamp);
         writesByTable.add(tableRef, values.size());
+
+        if (shouldAddToSweepQueue(tableRef)) {
+            // Temp - add hacky version of sweep info
+            TableReference sweepQueueTable = TableReference.create(SweepSchema.INSTANCE.getNamespace(),
+                    SimpleSweepQueueTable.getRawTableName());
+            List<WriteInfo> writes = values.keySet().stream().map(cell -> WriteInfo.of(cell, false, timestamp))
+                    .collect(Collectors.toList());
+            // location of the write?
+            Cell writeRef = Cell.create(tableRef.getQualifiedName().getBytes(), PtBytes.toBytes(timestamp));
+            byte[] writeCells = PtBytes.toBytes(writes.toString());
+
+            // writes to bytes
+            delegate.put(sweepQueueTable, ImmutableMap.of(writeRef, writeCells), timestamp);
+        }
+
         recordModifications(values.size());
         recordModificationsSize(values.entrySet().stream().mapToLong(cellEntry -> cellEntry.getValue().length)
                 .sum());
+    }
+
+    private boolean shouldAddToSweepQueue(TableReference tableRef) {
+        // Extreme hack - we have table1 and table2 available to us.
+        return tableRef.getTablename().endsWith("2");
     }
 
     @Override
