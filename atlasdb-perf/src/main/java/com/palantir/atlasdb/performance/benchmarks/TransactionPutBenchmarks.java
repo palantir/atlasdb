@@ -53,12 +53,36 @@ public class TransactionPutBenchmarks {
 
     @Benchmark
     @Threads(1)
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    public Object singleRandomPutWithSweepStats(EmptyTables tables) {
+        return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
+            txn.put(tables.getSecondTableRef(), batch);
+            return batch;
+        });
+    }
+
+    @Benchmark
+    @Threads(1)
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomPut(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
             txn.put(tables.getFirstTableRef(), batch);
+            return batch;
+        });
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    public Object batchRandomPutWithSweepStats(EmptyTables tables) {
+        return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
+            txn.put(tables.getSecondTableRef(), batch);
             return batch;
         });
     }
