@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -45,14 +46,14 @@ import com.palantir.util.crypto.Sha256Hash;
 
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long>
         implements PersistentStreamStore {
-    private final StreamStorePersistenceConfiguration persistenceConfiguration;
+    private final Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration;
 
     protected AbstractPersistentStreamStore(TransactionManager txManager) {
-        this(txManager, StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        this(txManager, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
     }
 
     protected AbstractPersistentStreamStore(TransactionManager txManager,
-            StreamStorePersistenceConfiguration persistenceConfiguration) {
+            Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
         super(txManager);
         this.persistenceConfiguration = persistenceConfiguration;
     }
@@ -205,13 +206,13 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     }
 
     private void backoffBetweenBlocksIfRequired(long blockNumber) {
-        if (persistenceConfiguration.writePauseDurationMillis() == 0) {
+        if (persistenceConfiguration.get().writePauseDurationMillis() == 0) {
             return;
         }
 
         if (shouldBackoffBeforeWritingBlockNumber(blockNumber)) {
             try {
-                Thread.sleep(persistenceConfiguration.writePauseDurationMillis());
+                Thread.sleep(persistenceConfiguration.get().writePauseDurationMillis());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 // Preserving uninterruptibility, which is current behaviour.
@@ -220,7 +221,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     }
 
     private boolean shouldBackoffBeforeWritingBlockNumber(long blockNumber) {
-        return blockNumber % persistenceConfiguration.numBlocksToWriteBeforePause() == 0;
+        return blockNumber % persistenceConfiguration.get().numBlocksToWriteBeforePause() == 0;
     }
 
     protected void storeBlockWithNonNullTransaction(@Nullable Transaction tx, final long id, final long blockNumber,
