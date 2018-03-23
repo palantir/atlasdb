@@ -173,7 +173,7 @@ public final class SimpleSweepQueueTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] fullTableNameBytes = EncodingUtils.encodeVarString(fullTableName);
+            byte[] fullTableNameBytes = PtBytes.toBytes(fullTableName);
             return EncodingUtils.add(fullTableNameBytes);
         }
 
@@ -181,8 +181,8 @@ public final class SimpleSweepQueueTable implements
             @Override
             public SimpleSweepQueueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                String fullTableName = EncodingUtils.decodeVarString(__input, __index);
-                __index += EncodingUtils.sizeOfVarString(fullTableName);
+                String fullTableName = PtBytes.toString(__input, __index, __input.length-__index);
+                __index += 0;
                 return new SimpleSweepQueueRow(fullTableName);
             }
         };
@@ -742,5 +742,5 @@ public final class SimpleSweepQueueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qmeiaAPplBNIAqoTzaMSUQ==";
+    static String __CLASS_HASH = "PFJ6VW/V8ZET/cx8qui0Ww==";
 }

@@ -41,8 +41,8 @@ public class TransactionPutBenchmarks {
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 100, timeUnit = TimeUnit.SECONDS)
     public Object singleRandomPut(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
@@ -53,8 +53,8 @@ public class TransactionPutBenchmarks {
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 100, timeUnit = TimeUnit.SECONDS)
     public Object singleRandomPutWithSweepStats(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
@@ -65,8 +65,8 @@ public class TransactionPutBenchmarks {
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 30, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 150, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomPut(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
@@ -77,8 +77,8 @@ public class TransactionPutBenchmarks {
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 30, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 150, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomPutWithSweepStats(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);

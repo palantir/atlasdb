@@ -39,6 +39,18 @@ public enum SweepSchema implements AtlasSchema {
                 NAMESPACE,
                 OptionalType.JAVA8);
 
+        schema.addTableDefinition("simpleQueue", new TableDefinition() {{
+            javaTableName("SimpleSweepQueue");
+            rowName();
+            ignoreHotspottingChecks();
+            rowComponent("full_table_name", ValueType.STRING);
+
+            dynamicColumns();
+            columnComponent("offset", ValueType.FIXED_LONG);
+            value(ValueType.BLOB);
+            //                columnComponent("value", ValueType.BLOB);
+        }});
+
         // This table tracks stats about tables that are relevant
         // in determining when and in which order they should be swept.
         schema.addTableDefinition("priority", new TableDefinition() {{
@@ -63,18 +75,6 @@ public enum SweepSchema implements AtlasSchema {
                 // was last swept.
                 column("cells_examined", "e", ValueType.VAR_LONG);
             conflictHandler(ConflictHandler.IGNORE_ALL);
-        }});
-
-        schema.addTableDefinition("simpleQueue", new TableDefinition() {{
-            javaTableName("SimpleSweepQueue");
-            rowName();
-            ignoreHotspottingChecks();
-            rowComponent("full_table_name", ValueType.STRING);
-
-            dynamicColumns();
-                columnComponent("offset", ValueType.FIXED_LONG);
-                value(ValueType.BLOB);
-//                columnComponent("value", ValueType.BLOB);
         }});
 
         schema.validate();
