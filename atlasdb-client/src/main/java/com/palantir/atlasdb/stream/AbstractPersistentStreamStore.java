@@ -205,6 +205,10 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     }
 
     private void backoffBetweenBlocksIfRequired(long blockNumber) {
+        if (persistenceConfiguration.writePauseDurationMillis() == 0) {
+            return;
+        }
+
         if (shouldBackoffBeforeWritingBlockNumber(blockNumber)) {
             try {
                 Thread.sleep(persistenceConfiguration.writePauseDurationMillis());
