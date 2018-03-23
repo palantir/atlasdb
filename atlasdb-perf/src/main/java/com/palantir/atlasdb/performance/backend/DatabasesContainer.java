@@ -35,6 +35,7 @@ public final class DatabasesContainer implements AutoCloseable {
                         .pollInterval(Duration.ONE_MINUTE)
                         .until(() -> backend.canConnect(db.getUri().getAddress()));
                 dbs.add(db);
+                System.out.println("...done");
             }
             return new DatabasesContainer(dbs);
         } catch (Throwable t) {

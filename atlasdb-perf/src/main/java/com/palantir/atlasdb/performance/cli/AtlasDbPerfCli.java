@@ -141,6 +141,7 @@ public class AtlasDbPerfCli {
         }
 
         if (!cli.testRun) {
+            System.out.println("Running cli!");
             runCli(cli, optBuilder);
         } else {
             runCliInTestMode(optBuilder);
