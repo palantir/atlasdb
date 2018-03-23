@@ -30,7 +30,7 @@ public interface StreamStorePersistenceConfiguration {
             .build();
 
     @Value.Default
-    default int numBlocksToWriteBeforePause() {
+    default long numBlocksToWriteBeforePause() {
         return 1;
     }
 

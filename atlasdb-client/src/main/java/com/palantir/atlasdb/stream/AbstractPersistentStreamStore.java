@@ -46,7 +46,7 @@ import com.palantir.util.crypto.Sha256Hash;
 
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long>
         implements PersistentStreamStore {
-    private final Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration;
+    private final StreamStoreBackoffStrategy backoffStrategy;
 
     protected AbstractPersistentStreamStore(TransactionManager txManager) {
         this(txManager, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
@@ -55,7 +55,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     protected AbstractPersistentStreamStore(TransactionManager txManager,
             Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
         super(txManager);
-        this.persistenceConfiguration = persistenceConfiguration;
+        this.backoffStrategy = StandardPeriodicBackoffStrategy.create(persistenceConfiguration);
     }
 
     protected final void storeMetadataAndIndex(final long streamId, final StreamMetadata metadata) {
@@ -201,27 +201,8 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 storeBlockWithNonNullTransaction(tx, id, blockNumber, bytesToStore);
             }
             blockNumber++;
-            backoffBetweenBlocksIfRequired(blockNumber);
+            backoffStrategy.accept(blockNumber);
         }
-    }
-
-    private void backoffBetweenBlocksIfRequired(long blockNumber) {
-        if (persistenceConfiguration.get().writePauseDurationMillis() == 0) {
-            return;
-        }
-
-        if (shouldBackoffBeforeWritingBlockNumber(blockNumber)) {
-            try {
-                Thread.sleep(persistenceConfiguration.get().writePauseDurationMillis());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                // Preserving uninterruptibility, which is current behaviour.
-            }
-        }
-    }
-
-    private boolean shouldBackoffBeforeWritingBlockNumber(long blockNumber) {
-        return blockNumber % persistenceConfiguration.get().numBlocksToWriteBeforePause() == 0;
     }
 
     protected void storeBlockWithNonNullTransaction(@Nullable Transaction tx, final long id, final long blockNumber,
