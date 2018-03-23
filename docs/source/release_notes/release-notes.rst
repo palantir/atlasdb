@@ -55,6 +55,22 @@ develop
            An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3069>`__)
 
+    *    - |new|
+         - AtlasDB now supports runtime configuration of throttling for stream stores when streams are written block by block in a non-transactional fashion.
+           Previously, such streams would be written using a separate transaction for each block, though in cases where data volume is high this may still cause load on the key-value-service Atlas is using.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3073>`__)
+
+    *    - |new|
+         - AtlasDB now schedules KVS compactions on a background thread, as opposed to triggering a compaction after each table was swept.
+           This allows for better control over KVS load arising from compactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
+
+    *    - |new|
+         - AtlasDB now supports configuration of a maintenance mode for compactions.
+           If compactions are run in maintenance mode, AtlasDB may perform more costly operations which may be able to recover more space.
+           For example, for Oracle KVS, ``SHRINK SPACE`` (which acquires locks on the entire table) will only be run if compactions are carried out in maintenance mode.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
+
 
 =======
 v0.79.0
@@ -96,17 +112,6 @@ v0.79.0
     *    - |fixed|
          - ``clean-cass-locks-state`` command is now using Atlas namespace as Cassandra keyspace if provided.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
-
-    *    - |new|
-         - AtlasDB now schedules KVS compactions on a background thread, as opposed to triggering a compaction after each table was swept.
-           This allows for better control over KVS load arising from compactions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
-
-    *    - |new|
-         - AtlasDB now supports configuration of a maintenance mode for compactions.
-           If compactions are run in maintenance mode, AtlasDB may perform more costly operations which may be able to recover more space.
-           For example, for Oracle KVS, ``SHRINK SPACE`` (which acquires locks on the entire table) will only be run if compactions are carried out in maintenance mode.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
 
     *    - |improved| |logs|
          - Logging exceptions in the case of quorum is runtime configurable now, using ``only-log-on-quorum-failure`` flag, for external timelock services. Previously it was set to true by default.

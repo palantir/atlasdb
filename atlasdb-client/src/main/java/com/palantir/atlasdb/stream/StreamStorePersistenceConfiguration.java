@@ -29,11 +29,28 @@ public interface StreamStorePersistenceConfiguration {
     StreamStorePersistenceConfiguration DEFAULT_CONFIG = ImmutableStreamStorePersistenceConfiguration.builder()
             .build();
 
+    /**
+     * The number of blocks that a nontransactional storeStream() will store before pausing for
+     * writePauseDurationMillis. For example, if a value of 5 is specified, then storeStream() will
+     * write blocks 0 through 4 (inclusive) of a stream before sleeping; then 5 through 9, etc.
+     *
+     * This parameter is live reloadable. If live reloaded, we guarantee that after the next sleep, storeStream()
+     * will store the new number of blocks to write before pausing. The number of blocks written from the time the
+     * config parameter is reloaded until the next pause is guaranteed to be bounded by the sum of the old and new
+     * numbers of blocks.
+     */
     @Value.Default
     default long numBlocksToWriteBeforePause() {
         return 1;
     }
 
+    /**
+     * The number of milliseconds to pause nontransactional storeStream() operations for, following the
+     * back-pressure mechanism described under numBlocksToWriteBeforePause.
+     *
+     * This parameter is live reloadable. If live reloaded, we guarantee that future pauses will sleep for the new
+     * value in configuration. However, no guarantees are made if the storeStream() call in flight is currently asleep.
+     */
     @Value.Default
     default long writePauseDurationMillis() {
         return 0;
