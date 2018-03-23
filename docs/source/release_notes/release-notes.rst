@@ -55,6 +55,10 @@ develop
            An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3069>`__)
 
+    *    - |fixed|
+         - Fixed a bug that causes Cassandra clients to return to the pool even if they have thrown blacklisted exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3063>`__)
+
 
 =======
 v0.79.0
