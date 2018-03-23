@@ -16,7 +16,9 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
@@ -51,6 +53,14 @@ public class KvsDeleteBenchmarks {
         return rangeRequests;
     }
 
+    private Map<Cell, Long> doDeleteAllTimestamps(ConsecutiveNarrowTable table, long maxTimestamp, int numCells) {
+        Map<Cell, Long> timestampsByCell = table.getCellsRequest(numCells).stream()
+                .collect(Collectors.toMap(cell -> cell, cell -> maxTimestamp));
+
+        table.getKvs().deleteAllTimestamps(table.getTableRef(), timestampsByCell);
+        return timestampsByCell;
+    }
+
     @Benchmark
     @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
@@ -81,6 +91,38 @@ public class KvsDeleteBenchmarks {
     @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
     public Object allRangeDelete(ConsecutiveNarrowTable.RegeneratingCleanNarrowTable table) {
         return doDeleteRange(table, 1);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    public Object deleteAllTimestamps(ConsecutiveNarrowTable.RegeneratingCleanNarrowTable table) {
+        return doDeleteAllTimestamps(table, 1000, 1);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    public Object deleteAllTimestampsLarge(ConsecutiveNarrowTable.RegeneratingCleanNarrowTable table) {
+        return doDeleteAllTimestamps(table, 1000000, 1);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    public Object deleteAllTimestampsBatch(ConsecutiveNarrowTable.RegeneratingCleanNarrowTable table) {
+        return doDeleteAllTimestamps(table, 1000, 250);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    public Object deleteAllTimestampsLargeBatch(ConsecutiveNarrowTable.RegeneratingCleanNarrowTable table) {
+        return doDeleteAllTimestamps(table, 1000000, 250);
     }
 
 }
