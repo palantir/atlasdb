@@ -45,8 +45,16 @@ import com.palantir.util.crypto.Sha256Hash;
 
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long>
         implements PersistentStreamStore {
+    private final StreamStorePersistenceConfiguration persistenceConfiguration;
+
     protected AbstractPersistentStreamStore(TransactionManager txManager) {
+        this(txManager, StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+    }
+
+    protected AbstractPersistentStreamStore(TransactionManager txManager,
+            StreamStorePersistenceConfiguration persistenceConfiguration) {
         super(txManager);
+        this.persistenceConfiguration = persistenceConfiguration;
     }
 
     protected final void storeMetadataAndIndex(final long streamId, final StreamMetadata metadata) {
@@ -192,7 +200,23 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 storeBlockWithNonNullTransaction(tx, id, blockNumber, bytesToStore);
             }
             blockNumber++;
+            backoffBetweenBlocksIfRequired(blockNumber);
         }
+    }
+
+    private void backoffBetweenBlocksIfRequired(long blockNumber) {
+        if (shouldBackoffBeforeWritingBlockNumber(blockNumber)) {
+            try {
+                Thread.sleep(persistenceConfiguration.writePauseDurationMillis());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                // Preserving uninterruptibility, which is current behaviour.
+            }
+        }
+    }
+
+    private boolean shouldBackoffBeforeWritingBlockNumber(long blockNumber) {
+        return blockNumber % persistenceConfiguration.numBlocksToWriteBeforePause() == 0;
     }
 
     protected void storeBlockWithNonNullTransaction(@Nullable Transaction tx, final long id, final long blockNumber,

@@ -221,12 +221,22 @@ public class StreamStoreRenderer {
 
             private void constructors() {
                 line("private ", StreamStore, "(TransactionManager txManager, ", TableFactory, " tables) {"); {
-                    line("super(txManager);");
+                    line("this(txManager, tables, StreamStoreBlockWriterConfiguration.DEFAULT_CONFIG);");
+                } line("}");
+                line();
+                line("private ", StreamStore, "(TransactionManager txManager, ", TableFactory, " tables, ",
+                        "StreamStoreBlockWriterConfiguration blockWriterConfiguration) {"); {
+                    line("super(txManager, blockWriterConfiguration);");
                     line("this.tables = tables;");
                 } line("}");
                 line();
                 line("public static ", StreamStore, " of(TransactionManager txManager, ", TableFactory, " tables) {"); {
                     line("return new ", StreamStore, "(txManager, tables);");
+                } line("}");
+                line();
+                line("public static ", StreamStore, " of(TransactionManager txManager, ", TableFactory, " tables, ",
+                        " StreamStoreBlockWriterConfiguration blockWriterConfiguration) {"); {
+                    line("return new ", StreamStore, "(txManager, tables, blockWriterConfiguration);");
                 } line("}");
                 line();
                 line("/**");
