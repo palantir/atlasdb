@@ -47,6 +47,11 @@ public class AtlasDbRuntimeConfigDeserializationTest {
                         "https://foo3:9421");
         assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration()).satisfies(
                 sslConfiguration -> sslConfiguration.ifPresent(this::assertSslConfigDeserializedCorrectly));
+        assertThat(runtimeConfig.streamStorePersistence()).satisfies(
+                persistenceConfig -> {
+                    assertThat(persistenceConfig.numBlocksToWriteBeforePause()).isEqualTo(7);
+                    assertThat(persistenceConfig.writePauseDurationMillis()).isEqualTo(77);
+                });
     }
 
     private void assertSslConfigDeserializedCorrectly(SslConfiguration sslConfiguration) {

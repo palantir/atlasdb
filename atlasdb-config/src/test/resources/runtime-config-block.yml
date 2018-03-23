@@ -11,3 +11,7 @@ timelockRuntime:
       trustStorePath: var/security/trustStore.jks
       keyStorePath: var/security/keyStore.jks
       keyStorePassword: 0987654321
+
+streamStorePersistence:
+  numBlocksToWriteBeforePause: 7
+  writePauseDurationMillis: 77
