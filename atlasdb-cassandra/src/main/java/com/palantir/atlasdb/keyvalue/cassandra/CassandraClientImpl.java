@@ -58,9 +58,10 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
     private final Cassandra.Client client;
-    private boolean isValid;
+    private volatile boolean isValid;
 
-    private static final Set<Class> blackListedExceptions =
+    //Client is considered to be invalid if a blacklisted exception is thrown.
+    private static final Set<Class> BLACKLISTED_EXCEPTIONS =
             ImmutableSet.of(TTransportException.class,  TProtocolException.class, NoSuchElementException.class);
 
     public CassandraClientImpl(Cassandra.Client client) {
@@ -83,7 +84,7 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         ColumnParent colFam = getColumnParent(tableRef);
 
-        return executeMethod(() -> client.multiget_slice(keys, colFam, predicate, consistency_level));
+        return executeHandlingExceptions(() -> client.multiget_slice(keys, colFam, predicate, consistency_level));
     }
 
     @Override
@@ -95,18 +96,18 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         ColumnParent colFam = getColumnParent(tableRef);
 
-        return executeMethod(() -> client.get_range_slices(colFam, predicate, range, consistency_level));
+        return executeHandlingExceptions(() -> client.get_range_slices(colFam, predicate, range, consistency_level));
     }
 
     @Override
     public String system_add_keyspace(KsDef ks_def)
             throws InvalidRequestException, SchemaDisagreementException, TException {
-        return executeMethod(() -> client.system_add_keyspace(ks_def));
+        return executeHandlingExceptions(() -> client.system_add_keyspace(ks_def));
     }
 
     @Override
     public List<KsDef> describe_keyspaces() throws InvalidRequestException, TException {
-        return executeMethod(() -> client.describe_keyspaces());
+        return executeHandlingExceptions(() -> client.describe_keyspaces());
     }
 
     @Override
@@ -114,7 +115,7 @@ public class CassandraClientImpl implements CassandraClient {
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        executeMethod(() -> client.batch_mutate(mutation_map, consistency_level));
+        executeHandlingExceptions(() -> client.batch_mutate(mutation_map, consistency_level));
     }
 
     @Override
@@ -126,7 +127,7 @@ public class CassandraClientImpl implements CassandraClient {
         ColumnPath columnPath = new ColumnPath(tableReference.getQualifiedName());
         columnPath.setColumn(column);
 
-        return executeMethod(() -> client.get(key, columnPath, consistency_level));
+        return executeHandlingExceptions(() -> client.get(key, columnPath, consistency_level));
     }
 
     @Override
@@ -141,74 +142,74 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public KsDef describe_keyspace(String keyspace) throws NotFoundException, InvalidRequestException, TException {
-        return executeMethod(() -> client.describe_keyspace(keyspace));
+        return executeHandlingExceptions(() -> client.describe_keyspace(keyspace));
     }
 
     @Override
     public String system_drop_column_family(String column_family)
             throws InvalidRequestException, SchemaDisagreementException, TException {
-        return executeMethod(() -> client.system_drop_column_family(column_family));
+        return executeHandlingExceptions(() -> client.system_drop_column_family(column_family));
     }
 
     @Override
     public void truncate(String cfname)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        executeMethod(() -> client.truncate(cfname));
+        executeHandlingExceptions(() -> client.truncate(cfname));
     }
 
     @Override
     public String system_add_column_family(CfDef cf_def)
             throws InvalidRequestException, SchemaDisagreementException, TException {
-        return executeMethod(() -> client.system_add_column_family(cf_def));
+        return executeHandlingExceptions(() -> client.system_add_column_family(cf_def));
     }
 
     @Override
     public String system_update_column_family(CfDef cf_def)
             throws InvalidRequestException, SchemaDisagreementException, TException {
-        return executeMethod(() -> client.system_update_column_family(cf_def));
+        return executeHandlingExceptions(() -> client.system_update_column_family(cf_def));
     }
 
     @Override
     public String describe_partitioner() throws TException {
-        return executeMethod(() -> client.describe_partitioner());
+        return executeHandlingExceptions(() -> client.describe_partitioner());
     }
 
     @Override
     public List<TokenRange> describe_ring(String keyspace) throws InvalidRequestException, TException {
-        return executeMethod(() -> client.describe_ring(keyspace));
+        return executeHandlingExceptions(() -> client.describe_ring(keyspace));
     }
 
     @Override
     public String describe_version() throws TException {
-        return executeMethod(() -> client.describe_version());
+        return executeHandlingExceptions(() -> client.describe_version());
     }
 
     @Override
     public String system_update_keyspace(KsDef ks_def)
             throws InvalidRequestException, SchemaDisagreementException, TException {
-        return executeMethod(() -> client.system_update_keyspace(ks_def));
+        return executeHandlingExceptions(() -> client.system_update_keyspace(ks_def));
     }
 
     @Override
     public CqlPreparedResult prepare_cql3_query(ByteBuffer query, Compression compression)
             throws InvalidRequestException, TException {
-        return executeMethod(() -> client.prepare_cql3_query(query, compression));
+        return executeHandlingExceptions(() -> client.prepare_cql3_query(query, compression));
     }
 
     @Override
     public CqlResult execute_prepared_cql3_query(int intemId, List<ByteBuffer> values, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
-        return executeMethod(() -> client.execute_prepared_cql3_query(intemId, values, consistency));
+        return executeHandlingExceptions(() -> client.execute_prepared_cql3_query(intemId, values, consistency));
     }
 
     @Override
     public ByteBuffer trace_next_query() throws TException {
-        return executeMethod(() -> client.trace_next_query());
+        return executeHandlingExceptions(() -> client.trace_next_query());
     }
 
     @Override
     public Map<String, List<String>> describe_schema_versions() throws InvalidRequestException, TException {
-        return executeMethod(() -> client.describe_schema_versions());
+        return executeHandlingExceptions(() -> client.describe_schema_versions());
     }
 
     @Override
@@ -221,7 +222,7 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         String internalTableName = AbstractKeyValueService.internalTableName(tableReference);
 
-        return executeMethod(() -> client.cas(key, internalTableName, expected, updates, serial_consistency_level,
+        return executeHandlingExceptions(() -> client.cas(key, internalTableName, expected, updates, serial_consistency_level,
                 commit_consistency_level));
     }
 
@@ -233,41 +234,41 @@ public class CassandraClientImpl implements CassandraClient {
             TException {
         ByteBuffer queryBytes = ByteBuffer.wrap(cqlQuery.toString().getBytes(StandardCharsets.UTF_8));
 
-        return executeMethod(() -> client.execute_cql3_query(queryBytes, compression, consistency));
+        return executeHandlingExceptions(() -> client.execute_cql3_query(queryBytes, compression, consistency));
     }
 
     private ColumnParent getColumnParent(TableReference tableRef) {
         return new ColumnParent(AbstractKeyValueService.internalTableName(tableRef));
     }
 
-    private <T> T executeMethod(ThrowingSupplier<T> supplier)
+    private <T> T executeHandlingExceptions(ThrowingSupplier<T> supplier)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
+        checkIfValidClient();
         try {
             return supplier.apply();
         } catch (Exception e) {
-            isValid = blackListedExceptions.stream()
-                    .anyMatch(b -> b.isInstance(e));
+            updateIsValid(e);
             throw e;
         }
     }
 
-    private void executeMethod(ThrowingVoidSupplier supplier)
+    private void executeHandlingExceptions(ThrowingVoidSupplier supplier)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
+        checkIfValidClient();
         try {
             supplier.apply();
         } catch (Exception e) {
-            isValid = !blackListedExceptions.stream()
-                    .anyMatch(b -> b.isInstance(e));
+            updateIsValid(e);
             throw e;
         }
     }
 
     private <T> T executeMethodWithoutException(Supplier<T> supplier) {
+        checkIfValidClient();
         try {
             return supplier.get();
         } catch (Exception e) {
-            isValid = !blackListedExceptions.stream()
-                    .anyMatch(b -> b.isInstance(e));
+            updateIsValid(e);
             throw e;
         }
     }
@@ -278,5 +279,19 @@ public class CassandraClientImpl implements CassandraClient {
 
     private interface ThrowingSupplier<T> {
         T apply() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException;
+    }
+
+    private void updateIsValid(Exception e) {
+        boolean blacklisted = BLACKLISTED_EXCEPTIONS.stream()
+                .anyMatch(b -> b.isInstance(e));
+        if (blacklisted) {
+            this.isValid = false;
+        }
+    }
+
+    private void checkIfValidClient() {
+        if (!isValid) {
+            throw new IllegalStateException("Method execution on invalid client");
+        }
     }
 }

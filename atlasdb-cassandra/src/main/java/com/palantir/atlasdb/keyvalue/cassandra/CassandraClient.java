@@ -46,6 +46,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public interface CassandraClient {
+    /**
+     * Checks if the client has a valid connection to Cassandra cluster. Can be used by a client pool
+     * to eliminate clients in bad state.
+     *
+     * @return true if client is in good state.
+     */
     boolean isValid();
 
     Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
@@ -91,36 +97,43 @@ public interface CassandraClient {
 
     TProtocol getInputProtocol();
 
-    KsDef describe_keyspace(String keyspace)
-            throws NotFoundException, InvalidRequestException, TException;
-
-    String system_drop_column_family(String column_family)
-            throws InvalidRequestException, SchemaDisagreementException, TException;
-
-    void truncate(String cfname) throws InvalidRequestException, UnavailableException, TimedOutException, TException;
-
-    String system_add_column_family(CfDef cf_def) throws InvalidRequestException, SchemaDisagreementException, TException;
-
-    String system_update_column_family(CfDef cf_def) throws InvalidRequestException, SchemaDisagreementException, TException;
-
-    String describe_partitioner() throws TException;
-
     List<TokenRange> describe_ring(String keyspace) throws InvalidRequestException, TException;
 
     String describe_version() throws TException;
 
-    String system_update_keyspace(KsDef ks_def) throws InvalidRequestException, SchemaDisagreementException, TException;
+    Map<String, List<String>> describe_schema_versions() throws InvalidRequestException, TException;
 
-    CqlPreparedResult prepare_cql3_query(ByteBuffer query, Compression compression) throws InvalidRequestException, TException;
+    String describe_partitioner() throws TException;
 
-    CqlResult execute_prepared_cql3_query(int intemId, List<ByteBuffer> values, ConsistencyLevel consistency) throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException;
+    KsDef describe_keyspace(String keyspace)
+            throws NotFoundException, InvalidRequestException, TException;
+
+    List<KsDef> describe_keyspaces() throws InvalidRequestException, TException;
+
+    String system_add_keyspace(KsDef ks_def)
+            throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    String system_update_keyspace(KsDef ks_def)
+            throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    String system_add_column_family(CfDef cf_def)
+            throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    String system_update_column_family(CfDef cf_def)
+            throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    String system_drop_column_family(String column_family)
+            throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    CqlPreparedResult prepare_cql3_query(ByteBuffer query, Compression compression)
+            throws InvalidRequestException, TException;
+
+    CqlResult execute_prepared_cql3_query(int intemId, List<ByteBuffer> values, ConsistencyLevel consistency)
+            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException;
 
     ByteBuffer trace_next_query() throws TException;
 
-    Map<String, List<String>> describe_schema_versions() throws InvalidRequestException, TException;
-
-    String system_add_keyspace(KsDef ks_def) throws InvalidRequestException, SchemaDisagreementException, TException;
-
-    List<KsDef> describe_keyspaces() throws InvalidRequestException, TException;
+    void truncate(String cfname)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
 }
