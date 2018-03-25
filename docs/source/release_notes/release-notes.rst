@@ -55,6 +55,11 @@ develop
            An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3069>`__)
 
+    *    - |improved|
+         - Applications can now easily determine whether their Timelock cluster is healthy by querying ``TransactionManager.getTimelockServiceStatus().isHealthy()``.
+           This returns true only if a healthy connection to timelock service is established.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3030>`__)
+
 
 =======
 v0.79.0
