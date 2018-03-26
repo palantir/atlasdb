@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.thrift.TException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -45,7 +44,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 public class CassandraKeyValueServicesTest {
     private static CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
     private static CassandraKeyValueServiceConfig waitingConfig = mock(CassandraKeyValueServiceConfig.class);
-    private static Cassandra.Client client = mock(Cassandra.Client.class);
+    private static CassandraClient client = mock(CassandraClient.class);
 
     private static final Set<InetSocketAddress> FIVE_SERVERS = ImmutableSet.of(
             new InetSocketAddress("1", 0),
@@ -144,7 +143,7 @@ public class CassandraKeyValueServicesTest {
 
     @Test
     public void waitWaitsForSchemaVersions() throws TException {
-        Cassandra.Client waitingClient = mock(Cassandra.Client.class);
+        CassandraClient waitingClient = mock(CassandraClient.class);
         when(waitingClient.describe_schema_versions()).thenReturn(
                 ImmutableMap.of(),
                 ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),

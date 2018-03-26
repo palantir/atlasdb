@@ -56,6 +56,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3069>`__)
 
     *    - |fixed|
+         - Fixed a bug that causes Cassandra clients to return to the pool even if they have thrown blacklisted exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3063>`__)
+
+    *    - |fixed|
          - Fix NPE if PaxosLeaderElectionServiceBuilder's new field onlyLogOnQuorumFailure is never set.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3074>`__)
 

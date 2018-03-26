@@ -29,13 +29,13 @@ public final class CassandraUtils {
     public static FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner(
             CassandraKeyValueServiceConfig config) {
         return client -> {
-            CassandraVerifier.validatePartitioner(client.rawClient().describe_partitioner(), config);
+            CassandraVerifier.validatePartitioner(client.describe_partitioner(), config);
             return null;
         };
     }
 
     public static FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> getDescribeRing(
             CassandraKeyValueServiceConfig config) {
-        return client -> client.rawClient().describe_ring(config.getKeyspaceOrThrow());
+        return client -> client.describe_ring(config.getKeyspaceOrThrow());
     }
 }
