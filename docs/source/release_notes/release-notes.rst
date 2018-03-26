@@ -267,6 +267,10 @@ v0.76.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2948>`__)
 
     *    - |fixed|
+         - Fixed a bug where a resource that threw a connection exception could be returned to the Cassandra pool to be later reused.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2978>`__)
+
+    *    - |fixed|
          - Close AsyncInitializer executors. This should reduce memory pressure of clients after startup.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2945>`__)
 
