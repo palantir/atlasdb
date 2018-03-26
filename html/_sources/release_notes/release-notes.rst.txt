@@ -55,6 +55,10 @@ develop
            An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3069>`__)
 
+    *    - |fixed|
+         - Fix NPE if PaxosLeaderElectionServiceBuilder's new field onlyLogOnQuorumFailure is never set.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3074>`__)
+
 
 =======
 v0.79.0
