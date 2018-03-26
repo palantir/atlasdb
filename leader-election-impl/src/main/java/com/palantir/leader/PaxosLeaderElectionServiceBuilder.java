@@ -37,7 +37,7 @@ public class PaxosLeaderElectionServiceBuilder {
     private long randomWaitBeforeProposingLeadershipMs;
     private long leaderPingResponseWaitMs;
     private PaxosLeaderElectionEventRecorder eventRecorder = PaxosLeaderElectionEventRecorder.NO_OP;
-    private Supplier<Boolean> onlyLogOnQuorumFailure;
+    private Supplier<Boolean> onlyLogOnQuorumFailure = () -> true;
 
     public PaxosLeaderElectionServiceBuilder proposer(PaxosProposer proposer) {
         this.proposer = proposer;
