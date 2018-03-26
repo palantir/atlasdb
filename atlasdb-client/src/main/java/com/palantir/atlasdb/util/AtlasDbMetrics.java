@@ -15,8 +15,10 @@
  */
 package com.palantir.atlasdb.util;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -27,6 +29,7 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
+import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
 import com.palantir.tritium.event.log.LoggingLevel;
 import com.palantir.tritium.event.metrics.MetricsInvocationEventHandler;
@@ -97,6 +100,20 @@ public final class AtlasDbMetrics {
     public static <T, U extends T> T instrument(Class<T> serviceInterface, U service, String name) {
         return Instrumentation.builder(serviceInterface, service)
                 .withHandler(new MetricsInvocationEventHandler(getMetricRegistry(), name))
+                .withLogging(
+                        LoggerFactory.getLogger("performance." + name),
+                        LoggingLevel.TRACE,
+                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
+                .build();
+    }
+
+    public static <T, U extends T> T instrumentWithTaggedMetrics(
+            Class<T> serviceInterface,
+            U service,
+            String name,
+            Function<InvocationContext, Map<String, String>> tagFunction) {
+        return Instrumentation.builder(serviceInterface, service)
+                .withHandler(new TaggedMetricsInvocationEventHandler(getTaggedMetricRegistry(), name, tagFunction))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,
