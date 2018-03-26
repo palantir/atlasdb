@@ -103,21 +103,24 @@ public class CassandraService implements AutoCloseable {
                 newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
-                    List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
+                    List<InetSocketAddress> internalHostAddresses = tokenRange.getEndpoints().stream()
                             .map(this::getAddressForHostThrowUnchecked).collect(Collectors.toList());
 
-                    servers.addAll(hosts);
+                    List<InetSocketAddress> externalHostAddresses = cassandraHosts.stream().map(
+                            host -> getInternalAddressForHost(host)).collect(Collectors.toList());
+
+                    servers.addAll(externalHostAddresses);
 
                     LightweightOppToken startToken = new LightweightOppToken(
                             BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
                     LightweightOppToken endToken = new LightweightOppToken(
                             BaseEncoding.base16().decode(tokenRange.getEnd_token().toUpperCase()));
                     if (startToken.compareTo(endToken) <= 0) {
-                        newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
+                        newTokenRing.put(Range.openClosed(startToken, endToken), externalHostAddresses);
                     } else {
                         // Handle wrap-around
-                        newTokenRing.put(Range.greaterThan(startToken), hosts);
-                        newTokenRing.put(Range.atMost(endToken), hosts);
+                        newTokenRing.put(Range.greaterThan(startToken), externalHostAddresses);
+                        newTokenRing.put(Range.atMost(endToken), externalHostAddresses);
                     }
                 }
             }
@@ -137,6 +140,24 @@ public class CassandraService implements AutoCloseable {
         return getRandomGoodHost().runWithPooledResource(CassandraUtils.getDescribeRing(config));
     }
 
+    private InetSocketAddress getInternalAddressForHost(InetSocketAddress host) {
+        try {
+            return currentPools.get(host).runWithPooledResource(CassandraUtils.getLocalInternalAddress(host.getPort()));
+        } catch (Exception e) {
+            // <temporary hack> to let me piggy-back off of existing testa infra to test this change
+            throw new RuntimeException(e);
+            // </temporary hack>
+
+            /*
+            log.error("Failed to grab external to internal IP address mapping for Cassandra node: {}"
+                            + " This will cause some queries to not be ideally routed in larger clusters."
+                            + " Please check to make sure this Cassandra node is up and operational.",
+                    UnsafeArg.of("external hostname", host), e);
+            */
+        }
+        // return host;
+    }
+
     private InetSocketAddress getAddressForHostThrowUnchecked(String host) {
         try {
             return getAddressForHost(host);
@@ -147,10 +168,6 @@ public class CassandraService implements AutoCloseable {
 
     @VisibleForTesting
     InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
-        if (config.addressTranslation().containsKey(host)) {
-            return config.addressTranslation().get(host);
-        }
-
         InetAddress resolvedHost = InetAddress.getByName(host);
         Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
         for (InetSocketAddress address : allKnownHosts) {

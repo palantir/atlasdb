@@ -26,9 +26,7 @@ import java.net.URL;
 
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 public class CassandraKeyValueServiceConfigsTest {
@@ -50,7 +48,6 @@ public class CassandraKeyValueServiceConfigsTest {
     public void canDeserialize() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(SERVERS)
-                .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
                 .replicationFactor(1)
                 .build();
 

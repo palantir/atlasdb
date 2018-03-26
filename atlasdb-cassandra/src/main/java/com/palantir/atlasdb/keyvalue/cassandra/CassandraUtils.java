@@ -16,10 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.List;
 
+import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.TokenRange;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 
@@ -37,5 +43,18 @@ public final class CassandraUtils {
     public static FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> getDescribeRing(
             CassandraKeyValueServiceConfig config) {
         return client -> client.rawClient().describe_ring(config.getKeyspaceOrThrow());
+    }
+
+    public static FunctionCheckedException<CassandraClient, InetSocketAddress, Exception> getLocalInternalAddress(
+            int port) {
+        return client -> new InetSocketAddress(new String(
+                Iterables.getOnlyElement(
+                        Iterables.getOnlyElement(
+                                client.rawClient().execute_cql3_query(
+                                        ByteBuffer.wrap(
+                                                "select broadcast_address from system.local;".getBytes(Charsets.UTF_8)),
+                                        Compression.NONE,
+                                        ConsistencyLevel.ONE).rows).columns).value.array()),
+                port);
     }
 }
