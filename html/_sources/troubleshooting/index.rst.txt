@@ -46,10 +46,20 @@ To use the CLI, shut down your AtlasDB clients and run:
 
    ./service/bin/<service> atlasdb clean-cass-locks-state var/conf/<service>.yml --offline
 
+Alternatively, one can also run the CLIs as a separate distribution. These distributions are published on
+`Bintray <https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/0.78.0/>`__ - please make
+sure to use the corresponding version of the CLIs with your service. The command can then be invoked as
+
+.. code-block:: bash
+
+   ./service/bin/atlasdb-cli clean-cass-locks-state var/conf/<service>.yml --offline
+
 Clear with CQL
 --------------
 
 If you prefer to clear the lock with the Cassandra Query Language (CQL), then you can run commands similar to the below.
+Note that on more recent versions of AtlasDB, the ``_locks`` table will have a hexadecimal string suffix; however, the
+truncation process remains similar.
 
 .. code-block:: none
 

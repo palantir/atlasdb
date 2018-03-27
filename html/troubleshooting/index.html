@@ -215,10 +215,18 @@ To use the CLI, shut down your AtlasDB clients and run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/&lt;service&gt; atlasdb clean-cass-locks-state var/conf/&lt;service&gt;.yml --offline
 </pre></div>
 </div>
+<p>Alternatively, one can also run the CLIs as a separate distribution. These distributions are published on
+<a class="reference external" href="https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/0.78.0/">Bintray</a> - please make
+sure to use the corresponding version of the CLIs with your service. The command can then be invoked as</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/atlasdb-cli clean-cass-locks-state var/conf/&lt;service&gt;.yml --offline
+</pre></div>
+</div>
 </div>
 <div class="section" id="clear-with-cql">
 <h3><a class="toc-backref" href="#id5">Clear with CQL</a><a class="headerlink" href="#clear-with-cql" title="Permalink to this headline">¶</a></h3>
-<p>If you prefer to clear the lock with the Cassandra Query Language (CQL), then you can run commands similar to the below.</p>
+<p>If you prefer to clear the lock with the Cassandra Query Language (CQL), then you can run commands similar to the below.
+Note that on more recent versions of AtlasDB, the <code class="docutils literal notranslate"><span class="pre">_locks</span></code> table will have a hexadecimal string suffix; however, the
+truncation process remains similar.</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cd my/cassandra/service/dir
 ./bin/cqlsh
 cqlsh&gt; use &quot;myKeyspace&quot;;
