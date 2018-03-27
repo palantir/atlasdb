@@ -33,7 +33,7 @@ public interface SecureTimelockService extends AsyncTimelockService {
      * that may have been observed before the request was initiated.
      */
     @POST // This has to be POST because we can't allow caching.
-    @Path("secure-fresh-timestamp")
+    @Path("v1/fresh-timestamp")
     @Produces(MediaType.APPLICATION_JSON)
     long getFreshTimestamp(@HeaderParam(HttpHeaders.AUTHORIZATION) AuthHeader authHeader);
 
