@@ -37,7 +37,7 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 
-public class SecureTimelockServiceImpl implements SecureTimelockService, AsyncTimelockService {
+public class SecureTimelockServiceImpl implements SecureTimelockService {
 
     private final AsyncTimelockService delegate;
 

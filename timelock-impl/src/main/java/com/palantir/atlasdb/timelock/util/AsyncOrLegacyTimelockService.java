@@ -21,19 +21,19 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.timelock.AsyncTimelockResource;
+import com.palantir.atlasdb.timelock.SecureTimelockResource;
 import com.palantir.lock.v2.TimelockService;
 
 @Value.Immutable
 public abstract class AsyncOrLegacyTimelockService {
     @Value.Parameter
-    public abstract Optional<AsyncTimelockResource> getAsyncTimelockResource();
+    public abstract Optional<SecureTimelockResource> getSecureTimelockResource();
 
     @Value.Parameter
     public abstract Optional<TimelockService> getLegacyTimelockService();
 
-    public static AsyncOrLegacyTimelockService createFromAsyncTimelock(AsyncTimelockResource asyncTimelockResource) {
-        return ImmutableAsyncOrLegacyTimelockService.of(Optional.of(asyncTimelockResource), Optional.empty());
+    public static AsyncOrLegacyTimelockService createFromAsyncTimelock(SecureTimelockResource secureTimelockResource) {
+        return ImmutableAsyncOrLegacyTimelockService.of(Optional.of(secureTimelockResource), Optional.empty());
     }
 
     public static AsyncOrLegacyTimelockService createFromLegacyTimelock(TimelockService legacyTimelockService) {
@@ -43,16 +43,16 @@ public abstract class AsyncOrLegacyTimelockService {
     @Value.Check
     protected void check() {
         Preconditions.checkState(
-                getAsyncTimelockResource().isPresent() || getLegacyTimelockService().isPresent(),
+                getSecureTimelockResource().isPresent() || getLegacyTimelockService().isPresent(),
                 "Either the async timelock resource or legacy timelock service should be present!");
         Preconditions.checkState(
-                !(getAsyncTimelockResource().isPresent() && getLegacyTimelockService().isPresent()),
+                !(getSecureTimelockResource().isPresent() && getLegacyTimelockService().isPresent()),
                 "It shouldn't be that both the async and legacy timelock services are available.");
     }
 
     public Object getPresentService() {
-        if (getAsyncTimelockResource().isPresent()) {
-            return getAsyncTimelockResource().get();
+        if (getSecureTimelockResource().isPresent()) {
+            return getSecureTimelockResource().get();
         }
         // safe because when creating we know there must be 1
         return getLegacyTimelockService().get();

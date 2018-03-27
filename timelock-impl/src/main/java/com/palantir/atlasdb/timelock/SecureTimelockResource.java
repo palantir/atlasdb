@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -38,16 +39,23 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.tokens.auth.AuthHeader;
 
 @Path("/timelock")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-public class AsyncTimelockResource {
+public class SecureTimelockResource {
 
-    private final AsyncTimelockService timelock;
+    private final SecureTimelockService timelock;
 
-    public AsyncTimelockResource(AsyncTimelockService timelock) {
+    public SecureTimelockResource(SecureTimelockService timelock) {
         this.timelock = timelock;
+    }
+
+    @POST
+    @Path("secure-fresh-timestamp")
+    long getFreshTimestamp(@HeaderParam("auth") AuthHeader authHeader) {
+        return timelock.getFreshTimestamp(authHeader);
     }
 
     @POST

@@ -24,15 +24,15 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.tokens.auth.AuthHeader;
 
-@Path("/secure-timelock")
-public interface SecureTimelockService {
+@Path("/timelock")
+public interface SecureTimelockService extends AsyncTimelockService {
 
     /**
      * A request to this method should return a timestamp greater than any timestamp
      * that may have been observed before the request was initiated.
      */
     @POST // This has to be POST because we can't allow caching.
-    @Path("fresh-timestamp")
+    @Path("secure-fresh-timestamp")
     @Produces(MediaType.APPLICATION_JSON)
     long getFreshTimestamp(@HeaderParam("auth") AuthHeader authHeader);
 
