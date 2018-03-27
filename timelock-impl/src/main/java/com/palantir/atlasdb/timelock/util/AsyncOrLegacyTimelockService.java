@@ -23,7 +23,6 @@ import org.immutables.value.Value;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.SecureTimelockResource;
-import com.palantir.atlasdb.timelock.SecureTimelockService;
 import com.palantir.lock.v2.TimelockService;
 
 @Value.Immutable
