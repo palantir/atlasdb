@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -26,18 +24,18 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Meter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.health.MetricsBasedTimelockHealthCheck;
+import com.palantir.atlasdb.health.TimelockHealthCheck;
 import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
     private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
@@ -45,6 +43,8 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
     final TimestampCache timestampValidationReadCache;
     private volatile boolean closed = false;
+
+    private static final TimelockHealthCheck timelockHealthCheck = new MetricsBasedTimelockHealthCheck();
 
     AbstractTransactionManager(Supplier<Long> timestampCacheSize) {
         this.timestampValidationReadCache = new TimestampCache(timestampCacheSize);
@@ -124,17 +124,6 @@ public abstract class AbstractTransactionManager implements TransactionManager {
 
     @Override
     public TimelockServiceStatus getTimelockServiceStatus() {
-        Map<String, Meter> meters = AtlasDbMetrics.getMetricRegistry().getMeters();
-        if (!meters.containsKey("timelock.success") || !meters.containsKey("timelock.fail")) {
-            log.error("Timelock client metrics is not properly set");
-            throw new IllegalStateException();
-        }
-
-        boolean isHealthy = meters.get("timelock.success").getFiveMinuteRate() >= meters.get("timelock.fail").getFiveMinuteRate();
-        if (isHealthy) {
-            return TimelockServiceStatus.HEALTHY;
-        } else {
-            return TimelockServiceStatus.UNHEALTHY;
-        }
+        return timelockHealthCheck.getStatus();
     }
 }
