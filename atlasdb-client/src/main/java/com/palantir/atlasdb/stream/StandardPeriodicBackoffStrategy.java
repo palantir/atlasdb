@@ -18,9 +18,15 @@ package com.palantir.atlasdb.stream;
 
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.logsafe.SafeArg;
 
 public class StandardPeriodicBackoffStrategy implements StreamStoreBackoffStrategy {
+    private final Logger log = LoggerFactory.getLogger(StandardPeriodicBackoffStrategy.class);
+
     private final Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration;
     private final BackoffMechanism backoff;
 
@@ -44,7 +50,11 @@ public class StandardPeriodicBackoffStrategy implements StreamStoreBackoffStrate
 
         if (shouldBackoffBeforeWritingBlockNumber(blockNumber)) {
             try {
-                backoff.backoff(persistenceConfiguration.get().writePauseDurationMillis());
+                long sweepPauseMillis = persistenceConfiguration.get().writePauseDurationMillis();
+                log.info("Invoking backoff for {} ms, because we are writing block {} of a stream",
+                        SafeArg.of("blockNumber", blockNumber),
+                        SafeArg.of("sweepPauseMillis", sweepPauseMillis));
+                backoff.backoff(sweepPauseMillis);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 // Preserving uninterruptibility, which is current behaviour.
