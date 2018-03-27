@@ -27,8 +27,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.atlasdb.timelock.SecureTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
+import com.palantir.atlasdb.timelock.SecureTimelockResource;
 import com.palantir.atlasdb.timelock.SecureTimelockService;
 import com.palantir.atlasdb.timelock.SecureTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -75,7 +75,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 client);
 
         if (runtime.get().clientTokens().containsKey(client)) {
-
             SecureTimelockService secureTimelockService = instrumentInLeadershipProxy(
                     SecureTimelockService.class,
                     () -> AsyncTimeLockServicesCreator.createRawSecureTimelockService(client,
@@ -112,7 +111,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         return new SecureTimelockServiceImpl(createRawAsyncTimelockService(client, timestampServiceSupplier));
     }
 
-    private static AsyncTimelockServiceImpl createRawAsyncTimelockService(String client,
+    private static AsyncTimelockService createRawAsyncTimelockService(String client,
             Supplier<ManagedTimestampService> timestampServiceSupplier) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
                 PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()

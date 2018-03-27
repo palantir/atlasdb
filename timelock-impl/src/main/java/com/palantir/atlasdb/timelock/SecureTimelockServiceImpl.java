@@ -45,7 +45,6 @@ public class SecureTimelockServiceImpl implements SecureTimelockService {
 
     @Override
     public long getFreshTimestamp(AuthHeader authHeader) {
-        // check the authHeader
         if (authHeader.equals(AuthHeader.valueOf("foo"))) {
             return delegate.getFreshTimestamp();
         }

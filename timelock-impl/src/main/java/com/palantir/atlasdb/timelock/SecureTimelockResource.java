@@ -54,7 +54,7 @@ public class SecureTimelockResource {
     }
 
     @POST
-    @Path("secure-fresh-timestamp")
+    @Path("v1/fresh-timestamp")
     long getFreshTimestamp(@HeaderParam(HttpHeaders.AUTHORIZATION) AuthHeader authHeader) {
         return timelock.getFreshTimestamp(authHeader);
     }
