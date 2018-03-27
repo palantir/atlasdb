@@ -21,6 +21,7 @@ import java.util.function.Supplier;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -38,8 +39,8 @@ public class InstrumentedTimelockService implements TimelockService {
 
     public InstrumentedTimelockService(TimelockService timelockService, MetricRegistry metricRegistry) {
         this.timelockService = timelockService;
-        this.success = metricRegistry.meter("timelock.success");
-        this.fail = metricRegistry.meter("timelock.fail");
+        this.success = metricRegistry.meter(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST);
+        this.fail = metricRegistry.meter(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST);
     }
 
     @Override
