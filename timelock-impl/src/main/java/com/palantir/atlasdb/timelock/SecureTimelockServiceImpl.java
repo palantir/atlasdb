@@ -97,7 +97,7 @@ public class SecureTimelockServiceImpl implements SecureTimelockService {
     @Path("fresh-timestamp")
     @Produces(MediaType.APPLICATION_JSON)
     public long getFreshTimestamp() {
-        return delegate.getFreshTimestamp();
+        throw new NotAuthorizedException("not authorized");
     }
 
     @Override
