@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -31,10 +32,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CountingInputStream;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
+import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -45,6 +48,9 @@ import com.palantir.util.crypto.Sha256Hash;
 
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long>
         implements PersistentStreamStore {
+
+    public static final int NUM_RETRIES_ON_QOS_EXCEPTION = 6;
+
     protected AbstractPersistentStreamStore(TransactionManager txManager) {
         super(txManager);
     }
@@ -200,12 +206,24 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         if (tx != null) {
             storeBlock(tx, id, blockNumber, bytesToStore);
         } else {
-            Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
-            txnMgr.runTaskThrowOnConflict(
-                    (TransactionTask<Void, RuntimeException>) t1 -> {
-                        storeBlock(t1, id, blockNumber, bytesToStore);
-                        return null;
-                    });
+            attemptToStoreBlockWithNewTransaction(id, blockNumber, bytesToStore);
+        }
+    }
+
+    private void attemptToStoreBlockWithNewTransaction(final long id, final long blockNumber,
+            final byte[] bytesToStore) {
+        Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
+
+        for (int attempt = 1; attempt <= NUM_RETRIES_ON_QOS_EXCEPTION; attempt++) {
+            try {
+                txnMgr.runTaskThrowOnConflict(
+                        (TransactionTask<Void, RuntimeException>) t1 -> {
+                            storeBlock(t1, id, blockNumber, bytesToStore);
+                            return null;
+                        });
+            } catch (RateLimitExceededException ex) {
+                Uninterruptibles.sleepUninterruptibly(attempt, TimeUnit.SECONDS);
+            }
         }
     }
 

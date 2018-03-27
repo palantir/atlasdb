@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.performance.benchmarks.table;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Random;
@@ -55,6 +56,7 @@ public class StreamingTable {
     private long veryLargeStreamId;
     private byte[] largeStreamFirstBytes;
     private byte[] veryLargeStreamFirstBytes;
+    private byte[] dataToWrite;
 
     public long getSmallStreamId() {
         return smallStreamId;
@@ -76,6 +78,10 @@ public class StreamingTable {
         return veryLargeStreamFirstBytes;
     }
 
+    public InputStream getStreamToWrite() {
+        return new ByteArrayInputStream(dataToWrite);
+    }
+
     public TransactionManager getTransactionManager() {
         return services.getTransactionManager();
     }
@@ -88,6 +94,10 @@ public class StreamingTable {
         Namespace namespace = Namespace.create("default", Namespace.UNCHECKED_NAME);
         String tableName = "blobs";
         return TableReference.create(namespace, tableName);
+    }
+
+    public byte[] getMarker() {
+        return "marker".getBytes(StandardCharsets.UTF_8);
     }
 
     @TearDown(Level.Trial)
@@ -120,6 +130,10 @@ public class StreamingTable {
         random.nextBytes(bigRandomData);
         veryLargeStreamId = storeStreamForRow(bigRandomData, "row3");
         veryLargeStreamFirstBytes = Arrays.copyOf(bigRandomData, 16);
+
+        // Longer streamable data
+        dataToWrite = new byte[60_000_000];
+        random.nextBytes(bigRandomData);
     }
 
     private Long storeStreamForRow(byte[] data, String rowName) {
