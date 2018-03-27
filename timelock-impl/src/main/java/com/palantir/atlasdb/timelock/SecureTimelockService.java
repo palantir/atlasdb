@@ -20,6 +20,7 @@ import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.tokens.auth.AuthHeader;
@@ -34,6 +35,6 @@ public interface SecureTimelockService extends AsyncTimelockService {
     @POST // This has to be POST because we can't allow caching.
     @Path("secure-fresh-timestamp")
     @Produces(MediaType.APPLICATION_JSON)
-    long getFreshTimestamp(@HeaderParam("auth") AuthHeader authHeader);
+    long getFreshTimestamp(@HeaderParam(HttpHeaders.AUTHORIZATION) AuthHeader authHeader);
 
 }

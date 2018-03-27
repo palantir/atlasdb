@@ -26,6 +26,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
@@ -54,7 +55,7 @@ public class SecureTimelockResource {
 
     @POST
     @Path("secure-fresh-timestamp")
-    long getFreshTimestamp(@HeaderParam("auth") AuthHeader authHeader) {
+    long getFreshTimestamp(@HeaderParam(HttpHeaders.AUTHORIZATION) AuthHeader authHeader) {
         return timelock.getFreshTimestamp(authHeader);
     }
 
