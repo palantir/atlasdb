@@ -25,6 +25,8 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.timelock.AsyncTimelockResource;
+import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.SecureTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.SecureTimelockService;
@@ -40,17 +42,21 @@ import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockServicesCreator.class);
 
     private final PaxosLeadershipCreator leadershipCreator;
     private final AsyncLockConfiguration asyncLockConfiguration;
+    private final Supplier<TimeLockRuntimeConfiguration> runtime;
 
     public AsyncTimeLockServicesCreator(PaxosLeadershipCreator leadershipCreator,
-            AsyncLockConfiguration asyncLockConfiguration) {
+            AsyncLockConfiguration asyncLockConfiguration,
+            Supplier<TimeLockRuntimeConfiguration> runtime) {
         this.leadershipCreator = leadershipCreator;
         this.asyncLockConfiguration = asyncLockConfiguration;
+        this.runtime = runtime;
     }
 
     @Override
@@ -60,12 +66,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
         AsyncOrLegacyTimelockService asyncOrLegacyTimelockService;
-        SecureTimelockService secureTimelockService = instrumentInLeadershipProxy(
-                SecureTimelockService.class,
-                () -> AsyncTimeLockServicesCreator.createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
-                client);
-        asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
-                new SecureTimelockResource(secureTimelockService));
 
         LockService lockService = instrumentInLeadershipProxy(
                 LockService.class,
@@ -74,15 +74,45 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier),
                 client);
 
+        if (runtime.get().clientTokens().containsKey(client)) {
+
+            SecureTimelockService secureTimelockService = instrumentInLeadershipProxy(
+                    SecureTimelockService.class,
+                    () -> AsyncTimeLockServicesCreator.createRawSecureTimelockService(client,
+                            rawTimestampServiceSupplier),
+                    client);
+            asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromSecureTimelock(
+                    new SecureTimelockResource(secureTimelockService));
+
+            return TimeLockServices.create(
+                    secureTimelockService,
+                    lockService,
+                    asyncOrLegacyTimelockService,
+                    secureTimelockService);
+        }
+
+        AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
+                AsyncTimelockService.class,
+                () -> AsyncTimeLockServicesCreator.createRawAsyncTimelockService(client,
+                        rawTimestampServiceSupplier),
+                client);
+        asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
+                new AsyncTimelockResource(asyncTimelockService));
+
         return TimeLockServices.create(
-                secureTimelockService,
+                asyncTimelockService,
                 lockService,
                 asyncOrLegacyTimelockService,
-                secureTimelockService);
+                asyncTimelockService);
     }
 
-    private static SecureTimelockService createRawAsyncTimelockService(
+    private static SecureTimelockService createRawSecureTimelockService(
             String client,
+            Supplier<ManagedTimestampService> timestampServiceSupplier) {
+        return new SecureTimelockServiceImpl(createRawAsyncTimelockService(client, timestampServiceSupplier));
+    }
+
+    private static AsyncTimelockServiceImpl createRawAsyncTimelockService(String client,
             Supplier<ManagedTimestampService> timestampServiceSupplier) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
                 PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
@@ -94,9 +124,9 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .setNameFormat("async-lock-timeouts-" + client + "-%d")
                         .setDaemon(true)
                         .build()), AtlasDbMetrics.getMetricRegistry(), "async-lock-timeouts");
-        return new SecureTimelockServiceImpl(new AsyncTimelockServiceImpl(
+        return new AsyncTimelockServiceImpl(
                 AsyncLockService.createDefault(reaperExecutor, timeoutExecutor),
-                timestampServiceSupplier.get()));
+                timestampServiceSupplier.get());
     }
 
     private <T> T instrumentInLeadershipProxy(Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {

@@ -80,7 +80,7 @@ public class TimeLockAgent {
         this.lockCreator = new LockCreator(runtime, deprecated);
         this.timestampCreator = getTimestampCreator();
         this.timelockCreator = install.asyncLock().useAsyncLockService()
-                ? new AsyncTimeLockServicesCreator(leadershipCreator, install.asyncLock())
+                ? new AsyncTimeLockServicesCreator(leadershipCreator, install.asyncLock(), runtime)
                 : new LegacyTimeLockServicesCreator(leadershipCreator);
     }
 
