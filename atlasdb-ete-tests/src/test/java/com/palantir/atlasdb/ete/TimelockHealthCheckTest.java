@@ -70,9 +70,9 @@ public class TimelockHealthCheckTest {
                 .until(() -> {
                     try {
                         serializableTransactionManager.getImmutableTimestamp();
-                        return true;
-                    } catch (Throwable t) {
                         return false;
+                    } catch (Throwable t) {
+                        return true;
                     }
                 });
 
