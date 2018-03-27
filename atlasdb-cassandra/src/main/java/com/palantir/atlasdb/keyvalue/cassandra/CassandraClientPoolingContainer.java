@@ -19,7 +19,6 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,7 +26,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.apache.thrift.protocol.TProtocolException;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TMemoryInputTransport;
 import org.apache.thrift.transport.TTransport;
@@ -128,7 +126,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             resource = clientPool.borrowObject();
             return fn.apply(resource);
         } catch (Exception e) {
-            if (isInvalidClientConnection(e)) {
+            if (isInvalidClientConnection(resource)) {
                 log.warn("Not reusing resource {} due to {} of host {}",
                         UnsafeArg.of("resource", resource),
                         UnsafeArg.of("exception", e.toString()),
@@ -160,7 +158,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             InetSocketAddress host) {
         // eagerly cleanup idle-connection read buffer to keep a smaller memory footprint
         try {
-            TTransport transport = idleClient.rawClient().getInputProtocol().getTransport();
+            TTransport transport = idleClient.getInputProtocol().getTransport();
             if (transport instanceof TFramedTransport) {
                 Field readBuffer = ((TFramedTransport) transport).getClass().getDeclaredField("readBuffer_");
                 readBuffer.setAccessible(true);
@@ -179,10 +177,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         }
     }
 
-    private static boolean isInvalidClientConnection(Exception ex) {
-        return ex instanceof TTransportException
-                || ex instanceof TProtocolException
-                || ex instanceof NoSuchElementException;
+    private static boolean isInvalidClientConnection(CassandraClient client) {
+        return client != null && client.isValid();
     }
 
     private void invalidateQuietly(CassandraClient resource) {

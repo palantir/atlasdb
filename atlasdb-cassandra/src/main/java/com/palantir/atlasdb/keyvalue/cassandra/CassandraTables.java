@@ -74,7 +74,7 @@ class CassandraTables {
 
     private Set<String> getTableNames(CassandraClient client, String keyspace,
             Function<CfDef, String> nameGetter) throws TException {
-        KsDef ks = client.rawClient().describe_keyspace(keyspace);
+        KsDef ks = client.describe_keyspace(keyspace);
 
         return ks.getCf_defs().stream()
                 .map(nameGetter)

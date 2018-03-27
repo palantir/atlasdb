@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.Compression;
@@ -43,7 +42,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 
 @SuppressWarnings({"all"}) // thrift variable names.
-public class TracingCassandraClient implements CassandraClient {
+public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     private static final String SERVICE_NAME = "cassandra-thrift-client";
 
     private final CassandraClient client;
@@ -53,8 +52,8 @@ public class TracingCassandraClient implements CassandraClient {
     }
 
     @Override
-    public Cassandra.Client rawClient() {
-        return client.rawClient();
+    public CassandraClient delegate() {
+        return this.client;
     }
 
     @Override

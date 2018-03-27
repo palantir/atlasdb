@@ -84,7 +84,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     @Override
     public CassandraClient create() throws Exception {
         try {
-            return instrumentClient(getRawClient(addr, config));
+            return instrumentClient(getRawClientWithKeyspace(addr, config));
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
@@ -105,10 +105,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         return client;
     }
 
-    private static Cassandra.Client getRawClient(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
+    private static Cassandra.Client getRawClientWithKeyspace(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
             throws Exception {
 
-        Client ret = getClientInternal(addr, config);
+        Client ret = getRawClient(addr, config);
         try {
             ret.set_keyspace(config.getKeyspaceOrThrow());
             log.debug("Created new client for {}/{}{}{}",
@@ -124,7 +124,12 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
     }
 
-    static Cassandra.Client getClientInternal(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
+    static CassandraClient getClientInternal(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
+            throws TException {
+        return new CassandraClientImpl(getRawClient(addr, config));
+    }
+
+    private static Cassandra.Client getRawClient(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
             throws TException {
         TSocket thriftSocket = new TSocket(addr.getHostString(), addr.getPort(), config.socketTimeoutMillis());
         thriftSocket.open();
@@ -187,7 +192,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     @Override
     public boolean validateObject(PooledObject<CassandraClient> client) {
-        return client.getObject().rawClient().getOutputProtocol().getTransport().isOpen();
+        return client.getObject().getOutputProtocol().getTransport().isOpen();
     }
 
     @Override
@@ -197,7 +202,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     @Override
     public void destroyObject(PooledObject<CassandraClient> client) {
-        client.getObject().rawClient().getOutputProtocol().getTransport().close();
+        client.getObject().getOutputProtocol().getTransport().close();
         log.debug("Closed transport for client {} of host {}",
                 UnsafeArg.of("client", client),
                 SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));

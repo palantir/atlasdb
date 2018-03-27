@@ -49,7 +49,7 @@ develop
 
     *    - Type
          - Change
-
+    
     *    - |improved| |logs|
          - Downgraded "Tried to connect to Cassandra {} times" logs from ``ERROR`` to ``WARN``, and stopped printing the stack trace.
            An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
@@ -73,6 +73,18 @@ develop
            For example, for Oracle KVS, ``SHRINK SPACE`` (which acquires locks on the entire table) will only be run if compactions are carried out in maintenance mode.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
 
+    *    - |fixed|
+         - Fixed a bug that causes Cassandra clients to return to the pool even if they have thrown blacklisted exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3063>`__)
+
+    *    - |fixed|
+         - Fix NPE if PaxosLeaderElectionServiceBuilder's new field onlyLogOnQuorumFailure is never set.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3074>`__)
+
+    *    - |fixed| |devbreak|
+         - Centralize how ``PersistentLockManager`` is created in a dagger context.
+           Also, removed the old constructor for ``CellsSweeper``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
 
 =======
 v0.79.0

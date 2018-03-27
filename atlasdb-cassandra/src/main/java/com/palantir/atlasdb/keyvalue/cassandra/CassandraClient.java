@@ -21,27 +21,38 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
+import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
+import org.apache.cassandra.thrift.TokenRange;
 import org.apache.cassandra.thrift.UnavailableException;
+import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TProtocol;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public interface CassandraClient {
-    Cassandra.Client rawClient();
+    /**
+     * Checks if the client has a valid connection to Cassandra cluster. Can be used by a client pool
+     * to eliminate clients in bad state.
+     *
+     * @return true if client is in good state.
+     */
+    boolean isValid();
 
     Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
             TableReference tableRef,
@@ -81,4 +92,48 @@ public interface CassandraClient {
             ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             org.apache.thrift.TException;
+
+    TProtocol getOutputProtocol();
+
+    TProtocol getInputProtocol();
+
+    List<TokenRange> describe_ring(String keyspace) throws InvalidRequestException, TException;
+
+    String describe_version() throws TException;
+
+    Map<String, List<String>> describe_schema_versions() throws InvalidRequestException, TException;
+
+    String describe_partitioner() throws TException;
+
+    KsDef describe_keyspace(String keyspace)
+            throws NotFoundException, InvalidRequestException, TException;
+
+    List<KsDef> describe_keyspaces() throws InvalidRequestException, TException;
+
+    String system_add_keyspace(KsDef ks_def)
+            throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    String system_update_keyspace(KsDef ks_def)
+            throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    String system_add_column_family(CfDef cf_def)
+            throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    String system_update_column_family(CfDef cf_def)
+            throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    String system_drop_column_family(String column_family)
+            throws InvalidRequestException, SchemaDisagreementException, TException;
+
+    CqlPreparedResult prepare_cql3_query(ByteBuffer query, Compression compression)
+            throws InvalidRequestException, TException;
+
+    CqlResult execute_prepared_cql3_query(int intemId, List<ByteBuffer> values, ConsistencyLevel consistency)
+            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException;
+
+    ByteBuffer trace_next_query() throws TException;
+
+    void truncate(String cfname)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
+
 }
