@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
+import com.palantir.atlasdb.timelock.SecureTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
@@ -93,9 +94,9 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .setNameFormat("async-lock-timeouts-" + client + "-%d")
                         .setDaemon(true)
                         .build()), AtlasDbMetrics.getMetricRegistry(), "async-lock-timeouts");
-        return new AsyncTimelockServiceImpl(
+        return new SecureTimelockServiceImpl(new AsyncTimelockServiceImpl(
                 AsyncLockService.createDefault(reaperExecutor, timeoutExecutor),
-                timestampServiceSupplier.get());
+                timestampServiceSupplier.get()));
     }
 
     private <T> T instrumentInLeadershipProxy(Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {
