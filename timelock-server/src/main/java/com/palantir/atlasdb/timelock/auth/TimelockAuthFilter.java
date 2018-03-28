@@ -23,22 +23,26 @@ import javax.annotation.Priority;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.Provider;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.dropwizard.auth.AuthFilter;
-
+@Secured
+@Provider
 @Priority(Priorities.AUTHENTICATION)
-public class TimelockAuthFilter extends AuthFilter {
+public class TimelockAuthFilter implements ContainerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(TimelockAuthFilter.class);
 
     private final Map<String, String> clientTokens;
     private final String adminToken = "admin";
+
+    private static final String AUTHENTICATION_SCHEME = "Bearer";
 
     public TimelockAuthFilter(Map<String, String> clientTokens) {
         this.clientTokens = clientTokens;
@@ -47,7 +51,9 @@ public class TimelockAuthFilter extends AuthFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String namespace = requestContext.getUriInfo().getPathParameters().getFirst("namespace");
-        String providedToken = requestContext.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        String providedToken = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION)
+                .substring(AUTHENTICATION_SCHEME.length())
+                .trim();
 
         log.info("namespace:", namespace);
         log.info("providedToken:", providedToken);
