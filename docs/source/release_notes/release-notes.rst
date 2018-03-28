@@ -60,6 +60,7 @@ develop
            Previously, such streams would be written using a separate transaction for each block, though in cases where data volume is high this may still cause load on the key-value-service Atlas is using.
            Please note that if you wish to use this feature, you will need to regenerate your Atlas schemas and suitably inject the stream persistence configuration into your stream stores.
            However, if you do not intend to use this feature, no action is required, and your stream stores' behaviour will not be changed.
+           Note that enabling throttling may make nontransactional ``storeStream`` operations take longer, though the length of constituent transactions should not be affected.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3073>`__)
 
     *    - |new|

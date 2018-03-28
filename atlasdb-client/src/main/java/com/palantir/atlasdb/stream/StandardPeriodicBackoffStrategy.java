@@ -50,11 +50,11 @@ public class StandardPeriodicBackoffStrategy implements StreamStoreBackoffStrate
 
         if (shouldBackoffBeforeWritingBlockNumber(blockNumber)) {
             try {
-                long sweepPauseMillis = persistenceConfiguration.get().writePauseDurationMillis();
+                long writePauseDurationMillis = persistenceConfiguration.get().writePauseDurationMillis();
                 log.info("Invoking backoff for {} ms, because we are writing block {} of a stream",
                         SafeArg.of("blockNumber", blockNumber),
-                        SafeArg.of("sweepPauseMillis", sweepPauseMillis));
-                backoff.backoff(sweepPauseMillis);
+                        SafeArg.of("writePauseDurationMillis", writePauseDurationMillis));
+                backoff.backoff(writePauseDurationMillis);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 // Preserving uninterruptibility, which is current behaviour.
