@@ -26,6 +26,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
@@ -84,6 +85,11 @@ public abstract class AtlasDbRuntimeConfig {
      * We do not currently support live reloading from a leader block or using embedded services to using TimeLock.
      */
     public abstract Optional<TimeLockRuntimeConfig> timelockRuntime();
+
+    @Value.Default
+    public StreamStorePersistenceConfiguration streamStorePersistence() {
+        return StreamStorePersistenceConfiguration.DEFAULT_CONFIG;
+    }
 
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
         return ImmutableAtlasDbRuntimeConfig.builder().build();
