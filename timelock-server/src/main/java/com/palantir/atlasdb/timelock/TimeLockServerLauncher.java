@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.palantir.atlasdb.timelock.auth.TimelockAuthFilter;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
@@ -32,6 +33,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
+import io.dropwizard.auth.AuthDynamicFeature;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
@@ -62,6 +64,10 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
         CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
+
+        TimelockAuthFilter timelockAuthFilter = new TimelockAuthFilter(combined.runtime().clientTokens());
+        registrar.accept(new AuthDynamicFeature(timelockAuthFilter));
+
         TimeLockAgent.create(
                 combined.install(),
                 combined::runtime, // this won't actually live reload
