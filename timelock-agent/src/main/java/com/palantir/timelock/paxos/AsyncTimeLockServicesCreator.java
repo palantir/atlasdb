@@ -43,6 +43,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import com.palantir.tokens.auth.AuthHeader;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockServicesCreator.class);
@@ -75,10 +76,11 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 client);
 
         if (runtime.get().clientTokens().containsKey(client)) {
+            AuthHeader clientAuthHeader = AuthHeader.valueOf(runtime.get().clientTokens().get(client));
             SecureTimelockService secureTimelockService = instrumentInLeadershipProxy(
                     SecureTimelockService.class,
                     () -> AsyncTimeLockServicesCreator.createRawSecureTimelockService(client,
-                            rawTimestampServiceSupplier),
+                            rawTimestampServiceSupplier, clientAuthHeader),
                     client);
             asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromSecureTimelock(
                     new SecureTimelockResource(secureTimelockService));
@@ -107,8 +109,11 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
     private static SecureTimelockService createRawSecureTimelockService(
             String client,
-            Supplier<ManagedTimestampService> timestampServiceSupplier) {
-        return new SecureTimelockServiceImpl(createRawAsyncTimelockService(client, timestampServiceSupplier));
+            Supplier<ManagedTimestampService> timestampServiceSupplier,
+            AuthHeader clientAuthHeader
+            ) {
+        return new SecureTimelockServiceImpl(createRawAsyncTimelockService(client, timestampServiceSupplier),
+                clientAuthHeader);
     }
 
     private static AsyncTimelockService createRawAsyncTimelockService(String client,

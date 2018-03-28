@@ -34,7 +34,8 @@ public class SecureTimelockServiceImplTest {
 
     @Before
     public void setUp() {
-        secureTimelockService = new SecureTimelockServiceImpl(mockService);
+        AuthHeader clientAuthHeader = AuthHeader.valueOf("foo");
+        secureTimelockService = new SecureTimelockServiceImpl(mockService, clientAuthHeader);
     }
 
     @Test(expected = NotAuthorizedException.class)

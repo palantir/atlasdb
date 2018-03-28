@@ -40,12 +40,16 @@ import com.palantir.tokens.auth.AuthHeader;
 public class SecureTimelockServiceImpl implements SecureTimelockService {
 
     private final AsyncTimelockService delegate;
+    private final AuthHeader clientAuthHeader;
 
-    public SecureTimelockServiceImpl(AsyncTimelockService delegate) {this.delegate = delegate;}
+    public SecureTimelockServiceImpl(AsyncTimelockService delegate, AuthHeader clientAuthHeader) {
+        this.delegate = delegate;
+        this.clientAuthHeader = clientAuthHeader;
+    }
 
     @Override
-    public long getFreshTimestamp(AuthHeader authHeader) {
-        if (authHeader.equals(AuthHeader.valueOf("foo"))) {
+    public long getFreshTimestamp(AuthHeader receivedAuthHeader) {
+        if (receivedAuthHeader.equals(clientAuthHeader)) {
             return delegate.getFreshTimestamp();
         }
         throw new NotAuthorizedException("not authorized token");
