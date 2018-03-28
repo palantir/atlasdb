@@ -27,11 +27,15 @@ import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.dropwizard.auth.AuthFilter;
 
-@PreMatching
 @Priority(Priorities.AUTHENTICATION)
 public class TimelockAuthFilter extends AuthFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(TimelockAuthFilter.class);
 
     private final Map<String, String> clientTokens;
     private final String adminToken = "admin";
@@ -44,9 +48,17 @@ public class TimelockAuthFilter extends AuthFilter {
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String namespace = requestContext.getUriInfo().getPathParameters().getFirst("namespace");
         String providedToken = requestContext.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+
+        log.info("namespace:", namespace);
+        log.info("providedToken:", providedToken);
+        log.info("expected token:", clientTokens.get(namespace));
+
         if (clientTokens.containsKey(namespace) && !clientTokens.get(namespace).equals(providedToken)
                 && !providedToken.equals(adminToken)) {
             throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+        }
+        else {
+            log.info("authorized");
         }
     }
 }
