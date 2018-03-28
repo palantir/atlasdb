@@ -20,13 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.lock.v2.TimelockService;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.lock.v2.TimelockService;
 
 public class MetricsBasedTimelockHealthCheckTest {
     private static final TimelockService timelockService = mock(TimelockService.class);
