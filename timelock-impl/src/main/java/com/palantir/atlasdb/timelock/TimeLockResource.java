@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.timelock.auth.Secured;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Safe;
@@ -61,7 +60,6 @@ public class TimeLockResource {
         return getOrCreateServices(namespace).getTimestampService();
     }
 
-    @Secured
     @Path("/timelock")
     public Object getTimelockService(@Safe @PathParam("namespace") String namespace) {
         return getOrCreateServices(namespace).getTimelockService().getPresentService();
