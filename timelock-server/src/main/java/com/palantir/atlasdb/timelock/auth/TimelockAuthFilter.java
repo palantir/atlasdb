@@ -61,7 +61,7 @@ public class TimelockAuthFilter implements ContainerRequestFilter {
 
         if (clientTokens.containsKey(namespace) && !clientTokens.get(namespace).equals(providedToken)
                 && !providedToken.equals(adminToken)) {
-            throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
         }
         else {
             log.info("authorized");

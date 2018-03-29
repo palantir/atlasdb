@@ -65,8 +65,8 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
 
-//        TimelockAuthFilter timelockAuthFilter = new TimelockAuthFilter(combined.runtime().clientTokens());
-//        registrar.accept(new AuthDynamicFeature(timelockAuthFilter));
+        TimelockAuthFilter timelockAuthFilter = new TimelockAuthFilter(combined.runtime().clientTokens());
+        registrar.accept(new AuthDynamicFeature(timelockAuthFilter));
 
         TimeLockAgent.create(
                 combined.install(),
