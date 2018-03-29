@@ -20,47 +20,91 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import java.util.concurrent.TimeUnit;
 
+import org.junit.Test;
+
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.v2.TimelockService;
 
 public class MetricsBasedTimelockHealthCheckTest {
-    private static final TimelockService timelockService = mock(TimelockService.class);
-    private static final TimelockHealthCheck timelockHealthCheck = new MetricsBasedTimelockHealthCheck();
+    private static final long METRICS_TICK_INTERVAL = TimeUnit.SECONDS.toNanos(5);
 
-    @Rule
-    public final ExpectedException exception = ExpectedException.none();
+    private static final TimelockHealthCheck timelockHealthCheck = new MetricsBasedTimelockHealthCheck();
+    private static TimelockService timelockService = mock(TimelockService.class);
 
     @Test
     public void timelockIsHealthyAfterSuccessfulRequests() {
-        TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
-                timelockService,
-                AtlasDbMetrics.getMetricRegistry()
-        );
-        instrumentedTimelockService.getFreshTimestamp();
+        TimelockService instrumentedTimelockService = getFreshInstrumentedTimelockService();
+        when(timelockService.getFreshTimestamp()).thenReturn(0L);
+
+        tryGetFreshTimestamp(instrumentedTimelockService, 10);
+        waitForClockTick();
+
         assertThat(timelockHealthCheck.getStatus().isHealthy()).isTrue();
     }
 
     @Test
     public void timelockIsUnhealthyAfterFailedRequests() {
+        TimelockService instrumentedTimelockService = getFreshInstrumentedTimelockService();
         when(timelockService.getFreshTimestamp()).thenThrow(new RuntimeException());
+
+        tryGetFreshTimestamp(instrumentedTimelockService, 10);
+        waitForClockTick();
+
+        assertThat(timelockHealthCheck.getStatus().isHealthy()).isFalse();
+    }
+
+    @Test
+    public void timlockIsUnhealthyAfterOneSuccessMultipleFailures() {
+        TimelockService instrumentedTimelockService = getFreshInstrumentedTimelockService();
+        when(timelockService.getFreshTimestamp()).thenReturn(0L).thenThrow(new RuntimeException());
+
+        tryGetFreshTimestamp(instrumentedTimelockService, 10);
+        waitForClockTick();
+
+        assertThat(timelockHealthCheck.getStatus().isHealthy()).isFalse();
+    }
+
+    @Test
+    public void timlockIsHealthyAfterOneFailureMultipleSuccesses() {
+        TimelockService instrumentedTimelockService = getFreshInstrumentedTimelockService();
+        when(timelockService.getFreshTimestamp()).thenThrow(new RuntimeException()).thenReturn(0L);
+
+        tryGetFreshTimestamp(instrumentedTimelockService, 10);
+        waitForClockTick();
+
+        assertThat(timelockHealthCheck.getStatus().isHealthy()).isTrue();
+    }
+
+    private static TimelockService getFreshInstrumentedTimelockService() {
+        //Remove previously set metrics
+        AtlasDbMetrics.getMetricRegistry().remove(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST);
+        AtlasDbMetrics.getMetricRegistry().remove(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST);
+
+        timelockService = mock(TimelockService.class);
         TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
                 timelockService,
                 AtlasDbMetrics.getMetricRegistry()
         );
 
-        exception.expect(RuntimeException.class);
-        instrumentedTimelockService.getFreshTimestamp();
+        return instrumentedTimelockService;
+    }
 
-        //wait for metrics clock to tick
+    private static void tryGetFreshTimestamp(TimelockService timelockService, int repetition) {
+        for (int i=0; i<repetition; i++) {
+            try {
+                timelockService.getFreshTimestamp();
+            } catch (RuntimeException e) {
+            }
+        }
+    }
+
+    private static void waitForClockTick() {
         try {
-            Thread.sleep(5000);
+            Thread.sleep(METRICS_TICK_INTERVAL);
         } catch (InterruptedException e) {}
-
-        assertThat(timelockHealthCheck.getStatus().isHealthy()).isFalse();
     }
 }
