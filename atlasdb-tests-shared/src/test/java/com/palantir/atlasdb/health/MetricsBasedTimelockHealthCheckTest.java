@@ -30,7 +30,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.v2.TimelockService;
 
 public class MetricsBasedTimelockHealthCheckTest {
-    private static final long METRICS_TICK_INTERVAL = TimeUnit.SECONDS.toNanos(5);
+    private static final long METRICS_TICK_INTERVAL = TimeUnit.SECONDS.toMillis(5);
 
     private static final TimelockHealthCheck timelockHealthCheck = new MetricsBasedTimelockHealthCheck();
     private static TimelockService timelockService = mock(TimelockService.class);
