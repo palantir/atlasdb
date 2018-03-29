@@ -53,6 +53,9 @@ public abstract class TimeLockRuntimeConfiguration {
         return ImmutableMap.of();
     }
 
+    @JsonProperty("admin-token")
+    public abstract String adminToken();
+
     @Value.Check
     public void check() {
         Preconditions.checkState(slowLockLogTriggerMillis() >= 0,
