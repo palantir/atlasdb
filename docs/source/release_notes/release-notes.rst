@@ -87,6 +87,11 @@ develop
            Also, removed the old constructor for ``CellsSweeper``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
 
+    *    - |new|
+         - If using TimeLock, AtlasDB now checks the value of a fresh timestamp against the unreadable timestamp on startup, failing if the fresh timestamp is smaller.
+           That implies clocks went backwards; doing this mitigates the damage that a bogus TimeLock migration or other corruption of TimeLock can do.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3018>`__)
+
 =======
 v0.79.0
 =======
@@ -104,11 +109,6 @@ v0.79.0
          - Guava has been updated from 21.0 to 23.6-jre.
            This unblocks users using libraries which have dependencies on more recent versions of Guava, owing to API changes in ``SimpleTimeLimiter``, among other classes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3038>`__)
-
-    *    - |new|
-         - If using TimeLock, AtlasDB now checks the value of a fresh timestamp against the unreadable timestamp on startup, failing if the fresh timestamp is smaller.
-           That implies clocks went backwards; doing this mitigates the damage that a bogus TimeLock migration or other corruption of TimeLock can do.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3018>`__)
 
     *    - |improved| |metrics|
          - Sweep metrics are now updated to the result value of the last run iteration of sweep instead of the cumulative values for the run of sweep on the table.
