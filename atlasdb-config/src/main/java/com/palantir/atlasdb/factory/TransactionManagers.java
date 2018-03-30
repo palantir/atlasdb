@@ -62,6 +62,7 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
+import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
@@ -107,6 +108,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
+import com.palantir.atlasdb.transaction.impl.consistency.TimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -357,7 +359,11 @@ public abstract class TransactionManagers {
                         config.initializeAsync(),
                         () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
                         MultiTableSweepQueueWriter.NO_OP,
-                        asyncInitializationCallback()),
+                        wrapInitializationCallbackAndAddConsistencyChecks(
+                                config,
+                                runtimeConfigSupplier.get(),
+                                lockAndTimestampServices,
+                                asyncInitializationCallback())),
                 closeables);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
@@ -557,6 +563,32 @@ public abstract class TransactionManagers {
         return pls;
     }
 
+    private static Callback<TransactionManager> wrapInitializationCallbackAndAddConsistencyChecks(
+            AtlasDbConfig atlasDbConfig,
+            AtlasDbRuntimeConfig initialRuntimeConfig,
+            LockAndTimestampServices lockAndTimestampServices,
+            Callback<TransactionManager> asyncInitializationCallback) {
+        if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
+            // Only do the consistency check if we're using TimeLock.
+            // This avoids a bootstrapping problem with leader-block services without async initialisation,
+            // where you need a working timestamp service to check consistency, you need to check consistency
+            // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
+            // ports in order to get a working timestamp service.
+            List<Callback<TransactionManager>> callbacks = Lists.newArrayList();
+            callbacks.add(ConsistencyCheckRunner.create(
+                    new TimestampCorroborationConsistencyCheck(
+                            TransactionManager::getUnreadableTimestamp,
+                            (unused) -> lockAndTimestampServices.timelock().getFreshTimestamp())));
+            callbacks.add(asyncInitializationCallback);
+            return new Callback.CallChain<>(callbacks);
+        }
+        return asyncInitializationCallback;
+    }
+
+    private static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
+        return atlasDbConfig.timelock().isPresent() || runtimeConfig.timelockRuntime().isPresent();
+    }
+
     /**
      * This method should not be used directly. It remains here to support the AtlasDB-Dagger module and the CLIs, but
      * may be removed at some point in the future.
@@ -638,7 +670,7 @@ public abstract class TransactionManagers {
             return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
-        } else if (config.timelock().isPresent() || initialRuntimeConfig.timelockRuntime().isPresent()) {
+        } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
             return createRawServicesFromTimeLock(config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);
