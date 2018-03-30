@@ -102,6 +102,7 @@ import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -563,18 +564,18 @@ public abstract class TransactionManagers {
         return pls;
     }
 
-    private static Callback<TransactionManager> wrapInitializationCallbackAndAddConsistencyChecks(
+    private static Callback<SerializableTransactionManager> wrapInitializationCallbackAndAddConsistencyChecks(
             AtlasDbConfig atlasDbConfig,
             AtlasDbRuntimeConfig initialRuntimeConfig,
             LockAndTimestampServices lockAndTimestampServices,
-            Callback<TransactionManager> asyncInitializationCallback) {
+            Callback<SerializableTransactionManager> asyncInitializationCallback) {
         if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
             // Only do the consistency check if we're using TimeLock.
             // This avoids a bootstrapping problem with leader-block services without async initialisation,
             // where you need a working timestamp service to check consistency, you need to check consistency
             // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
             // ports in order to get a working timestamp service.
-            List<Callback<TransactionManager>> callbacks = Lists.newArrayList();
+            List<Callback<SerializableTransactionManager>> callbacks = Lists.newArrayList();
             callbacks.add(ConsistencyCheckRunner.create(
                     new TimestampCorroborationConsistencyCheck(
                             TransactionManager::getUnreadableTimestamp,
