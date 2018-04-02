@@ -104,6 +104,7 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -648,10 +649,14 @@ public abstract class TransactionManagers {
                         lockAndTimestampServices.timelock(),
                         timestampClientConfigSupplier);
 
+        TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
+                timelockServiceWithBatching,
+                AtlasDbMetrics.getMetricRegistry());
+
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .timestamp(new TimelockTimestampServiceAdapter(timelockServiceWithBatching))
-                .timelock(timelockServiceWithBatching)
+                .timelock(instrumentedTimelockService)
                 .build();
     }
 

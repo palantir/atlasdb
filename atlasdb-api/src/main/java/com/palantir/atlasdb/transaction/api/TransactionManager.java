@@ -139,6 +139,16 @@ public interface TransactionManager extends AutoCloseable {
     KeyValueServiceStatus getKeyValueServiceStatus();
 
     /**
+     * Provides a {@link TimelockServiceStatus}, indicating the current availability of the timelock service.
+     * This can be used to infer product health - in the usual, conservative case, products can call
+     * {@link TimelockServiceStatus#isHealthy()}, which returns true only a healthy connection to timelock
+     * service is established.
+     *
+     * @return status of the timelock service
+     */
+    TimelockServiceStatus getTimelockServiceStatus();
+
+    /**
      * Returns the timestamp that is before any open start timestamps. This is different from the immutable
      * timestamp, because it takes into account open read-only transactions. There is likely to be NO
      * running transactions open at a timestamp before the unreadable timestamp, however this cannot be guaranteed.

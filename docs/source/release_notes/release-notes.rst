@@ -87,6 +87,11 @@ develop
            Also, removed the old constructor for ``CellsSweeper``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
 
+    *    - |improved|
+         - Applications can now easily determine whether their Timelock cluster is healthy by querying ``TransactionManager.getTimelockServiceStatus().isHealthy()``.
+           This returns true only if a healthy connection to timelock service is established.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3030>`__)
+
 =======
 v0.79.0
 =======
