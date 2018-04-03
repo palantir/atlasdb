@@ -212,12 +212,15 @@ public final class AtlasDbHttpClients {
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
             Optional<SSLSocketFactory> sslSocketFactory,
-            Optional<ProxySelector> proxySelector, Collection<String> endpointUris, Class<T> type) {
+            Supplier<Optional<String>> authTokenSupplier,
+            Optional<ProxySelector> proxySelector,
+            Collection<String> endpointUris,
+            Class<T> type) {
         return AtlasDbMetrics.instrument(
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
                         sslSocketFactory,
-                        Optional::empty,
+                        authTokenSupplier,
                         proxySelector,
                         endpointUris,
                         QUICK_FEIGN_TIMEOUT_MILLIS,

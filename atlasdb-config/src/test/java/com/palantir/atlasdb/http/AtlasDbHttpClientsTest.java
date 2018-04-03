@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.ws.rs.GET;
@@ -66,6 +67,7 @@ public class AtlasDbHttpClientsTest {
     private int unavailablePort;
     private int proxyPort;
     private Set<String> bothUris;
+    private Optional<String> authToken = Optional.empty();
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
@@ -119,6 +121,53 @@ public class AtlasDbHttpClientsTest {
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
         availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
                 .withHeader(FeignOkHttpClients.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
+    }
+
+    @Test
+    public void authHeaderIsPresentOnClientRequests() {
+        String authHeader = "foo";
+        TestResource client = AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(NO_SSL,
+                () -> Optional.of(authHeader),
+                Optional.empty(),
+                ImmutableSet.of(getUriForPort(availablePort)),
+                TestResource.class);
+        client.getTestNumber();
+
+        availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
+                .withHeader(FeignOkHttpClients.AUTHORIZATION_HEADER, WireMock.equalTo(authHeader)));
+    }
+
+    @Test
+    public void authHeaderNotPresentIfNotSupplied() {
+        TestResource client = AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(NO_SSL,
+                Optional::empty,
+                Optional.empty(),
+                ImmutableSet.of(getUriForPort(availablePort)),
+                TestResource.class);
+        client.getTestNumber();
+
+        availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
+                .withoutHeader(FeignOkHttpClients.AUTHORIZATION_HEADER));
+    }
+
+    @Test
+    public void authHeaderIsLiveReloadable() {
+        Supplier<Optional<String>> authTokenSupplier = () -> authToken;
+        TestResource client = AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(NO_SSL,
+                authTokenSupplier,
+                Optional.empty(),
+                ImmutableSet.of(getUriForPort(availablePort)),
+                TestResource.class);
+
+        client.getTestNumber();
+        availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
+                .withoutHeader(FeignOkHttpClients.AUTHORIZATION_HEADER));
+
+        authToken = Optional.of("foo");
+
+        client.getTestNumber();
+        availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
+                .withHeader(FeignOkHttpClients.AUTHORIZATION_HEADER, WireMock.equalTo(authToken.get())));
     }
 
     @Test

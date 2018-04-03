@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.ws.rs.core.HttpHeaders;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -40,6 +41,9 @@ import okhttp3.TlsVersion;
 public final class FeignOkHttpClients {
     @VisibleForTesting
     static final String USER_AGENT_HEADER = "User-Agent";
+    @VisibleForTesting
+    static final String AUTHORIZATION_HEADER = HttpHeaders.AUTHORIZATION;
+
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
 
@@ -134,8 +138,9 @@ public final class FeignOkHttpClients {
         if (sslSocketFactory.isPresent()) {
             builder.sslSocketFactory(sslSocketFactory.get());
         }
-        // TODO add interceptor for auth token header
+
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
+        builder.interceptors().add(new AuthTokenAddingInterceptor(authTokenSupplier));
 
         globalClientSettings.accept(builder);
         return builder.build();
@@ -154,6 +159,28 @@ public final class FeignOkHttpClients {
             okhttp3.Request requestWithUserAgent = chain.request()
                     .newBuilder()
                     .addHeader(USER_AGENT_HEADER, userAgent)
+                    .build();
+            return chain.proceed(requestWithUserAgent);
+        }
+    }
+
+    private static class AuthTokenAddingInterceptor implements Interceptor {
+        private final Supplier<Optional<String>> authTokenSupplier;
+
+        private AuthTokenAddingInterceptor(Supplier<Optional<String>> authTokenSupplier) {
+            this.authTokenSupplier = authTokenSupplier;
+        }
+
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            Optional<String> authToken = authTokenSupplier.get();
+            if (!authToken.isPresent()) {
+                return chain.proceed(chain.request());
+            }
+
+            okhttp3.Request requestWithUserAgent = chain.request()
+                    .newBuilder()
+                    .addHeader(AUTHORIZATION_HEADER, authToken.get())
                     .build();
             return chain.proceed(requestWithUserAgent);
         }
