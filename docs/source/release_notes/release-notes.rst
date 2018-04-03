@@ -97,6 +97,15 @@ develop
            This returns true only if a healthy connection to timelock service is established.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3030>`__)
 
+    *    - |improved| |devbreak|
+         - Bumped several libraries to get past known security vulns:
+           cassandra thrift and CQL libs
+           jackson
+           logback
+           netty (indirectly via cassandra lib bump)
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
+            
 =======
 v0.79.0
 =======
