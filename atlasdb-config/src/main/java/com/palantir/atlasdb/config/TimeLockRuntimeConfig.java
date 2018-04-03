@@ -16,8 +16,11 @@
 
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -28,5 +31,11 @@ public abstract class TimeLockRuntimeConfig {
     @Value.Default
     public ServerListConfig serversList() {
         return ImmutableServerListConfig.builder().build();
+    }
+
+    @JsonProperty("auth-token")
+    @Value.Default
+    public Optional<String> authToken() {
+        return Optional.empty();
     }
 }
