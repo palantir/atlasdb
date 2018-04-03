@@ -64,7 +64,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
         try {
             return round >= acceptor.getLatestSequencePreparedOrAccepted();
         } catch (Exception e) {
-            if (picked()) {
+            if (isPicked()) {
                 log.warn("failed to get latest sequence", e);
             }
             throw e;
@@ -75,7 +75,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
         return PaxosQuorumChecker.getQuorumResult(responses, quorumSize);
     }
 
-    private boolean picked() {
+    private boolean isPicked() {
         return Math.random() < SAMPLE_RATE;
     }
 }
