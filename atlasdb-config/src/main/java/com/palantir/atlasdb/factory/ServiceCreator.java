@@ -55,8 +55,13 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     // Semi-horrible, but given that we create ServiceCreators explicitly and I'd rather not API break our
     // implementation of Function, leaving this here for now.
     public T applyDynamic(Supplier<ServerListConfig> input) {
+        return applyDynamic(input, Optional::empty);
+    }
+
+    public T applyDynamic(Supplier<ServerListConfig> serverListConfig, Supplier<Optional<String>> authToken) {
         return createService(
-                input,
+                serverListConfig,
+                authToken,
                 SslSocketFactories::createSslSocketFactory,
                 ServiceCreator::createProxySelector,
                 serviceClass,
@@ -72,12 +77,13 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
 
     private static <T> T createService(
             Supplier<ServerListConfig> serverListConfigSupplier,
+            Supplier<Optional<String>> authTokenSupplier,
             java.util.function.Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
             java.util.function.Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
-        return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent);
+        return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(serverListConfigSupplier, authTokenSupplier,
+                sslSocketFactoryCreator, proxySelectorCreator, type, userAgent);
     }
 
     public static <T> T createInstrumentedService(T service, Class<T> serviceClass) {

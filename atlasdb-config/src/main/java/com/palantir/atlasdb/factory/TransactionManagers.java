@@ -60,6 +60,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -669,11 +670,13 @@ public abstract class TransactionManagers {
             String userAgent) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
+        Supplier<Optional<String>> authTokenSupplier = () -> runtimeConfigSupplier.get().timelockRuntime().flatMap(
+                TimeLockRuntimeConfig::authToken);
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(serverListConfigSupplier, invalidator, userAgent, config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
         return ImmutableLockAndTimestampServices.copyOf(
-                getLockAndTimestampServices(serverListConfigSupplier, userAgent))
+                getLockAndTimestampServices(serverListConfigSupplier, authTokenSupplier, userAgent))
                 .withMigrator(migrator);
     }
 
@@ -692,11 +695,12 @@ public abstract class TransactionManagers {
 
     private static LockAndTimestampServices getLockAndTimestampServices(
             Supplier<ServerListConfig> timelockServerListConfig,
+            Supplier<Optional<String>> authTokenSupplier,
             String userAgent) {
         LockService lockService = new ServiceCreator<>(LockService.class, userAgent)
-                .applyDynamic(timelockServerListConfig);
+                .applyDynamic(timelockServerListConfig, authTokenSupplier);
         TimelockService timelockService = new ServiceCreator<>(TimelockService.class, userAgent)
-                .applyDynamic(timelockServerListConfig);
+                .applyDynamic(timelockServerListConfig, authTokenSupplier);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)

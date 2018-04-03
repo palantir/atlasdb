@@ -20,6 +20,7 @@ import java.net.ProxySelector;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -100,7 +101,13 @@ public final class FeignOkHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
             String userAgent) {
-        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+        Supplier<Optional<String>> authTokenSupplier = Optional::empty;
+        return newOkHttpClient(sslSocketFactory, proxySelector, userAgent, authTokenSupplier);
+    }
+
+    static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory, Optional<ProxySelector> proxySelector,
+            String userAgent, Supplier<Optional<String>> authTokenSupplier) {
+        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, proxySelector, userAgent, authTokenSupplier));
     }
 
     /**
@@ -116,10 +123,8 @@ public final class FeignOkHttpClients {
     }
 
     @VisibleForTesting
-    static okhttp3.OkHttpClient newRawOkHttpClient(
-            Optional<SSLSocketFactory> sslSocketFactory,
-            Optional<ProxySelector> proxySelector,
-            String userAgent) {
+    static okhttp3.OkHttpClient newRawOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector, String userAgent, Supplier<Optional<String>> authTokenSupplier) {
         // Don't allow retrying on connection failures - see ticket #2194
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
                 .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
@@ -129,6 +134,7 @@ public final class FeignOkHttpClients {
         if (sslSocketFactory.isPresent()) {
             builder.sslSocketFactory(sslSocketFactory.get());
         }
+        // TODO add interceptor for auth token header
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
 
         globalClientSettings.accept(builder);

@@ -175,14 +175,15 @@ public final class AtlasDbHttpClients {
 
     public static <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
+            Supplier<Optional<String>> authTokenSupplier,
             Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
         return AtlasDbMetrics.instrument(
                 type,
-                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
-                        serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent),
+                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(serverListConfigSupplier,
+                        authTokenSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent),
                 MetricRegistry.name(type));
     }
 
@@ -197,6 +198,7 @@ public final class AtlasDbHttpClients {
                 type,
                 AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
+                        Optional::empty,
                         sslSocketFactoryCreator,
                         proxySelectorCreator,
                         QUICK_FEIGN_TIMEOUT_MILLIS,
@@ -215,6 +217,7 @@ public final class AtlasDbHttpClients {
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
                         sslSocketFactory,
+                        Optional::empty,
                         proxySelector,
                         endpointUris,
                         QUICK_FEIGN_TIMEOUT_MILLIS,
