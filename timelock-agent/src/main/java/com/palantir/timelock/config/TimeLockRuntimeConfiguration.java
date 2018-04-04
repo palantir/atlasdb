@@ -4,6 +4,7 @@
 
 package com.palantir.timelock.config;
 
+import java.util.List;
 import java.util.Map;
 
 import org.immutables.value.Value;
@@ -12,7 +13,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.auth.TimelockAuthClient;
 
 /**
  * Dynamic (live-reloaded) portions of TimeLock's configuration.
@@ -51,6 +54,12 @@ public abstract class TimeLockRuntimeConfiguration {
     @Value.Default
     public Map<String, String> clientTokens() {
         return ImmutableMap.of();
+    }
+
+    @JsonProperty("auth-clients")
+    @Value.Default
+    public List<TimelockAuthClient> authClients() {
+        return ImmutableList.of();
     }
 
     @JsonProperty("admin-token")
