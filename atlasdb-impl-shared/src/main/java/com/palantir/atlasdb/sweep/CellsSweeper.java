@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -62,10 +64,15 @@ public class CellsSweeper {
             return;
         }
 
-        log.info("Attempted to delete {} stale cell+timestamp pairs from table {}, and add {} sentinels.",
+        log.info("Attempted to delete {} stale cell+timestamp pairs from table {}, and add {} sentinels."
+                        + " (To see what these were, please set this logger to log at TRACE.)",
                 SafeArg.of("numCellTsPairsToDelete", cellTsPairsToSweep.size()),
                 LoggingArgs.tableRef(tableRef),
                 SafeArg.of("numGarbageCollectionSentinelsToAdd", sentinelsToAdd.size()));
+        if (log.isTraceEnabled()) {
+            log.trace("Attempted to delete cell+timestamp pairs: {}",
+                    UnsafeArg.of("cellTsPairs", getMessage(cellTsPairsToSweep)));
+        }
 
         for (Follower follower : followers) {
             follower.run(txManager, tableRef, cellTsPairsToSweep.keySet(), Transaction.TransactionType.HARD_DELETE);
@@ -110,7 +117,7 @@ public class CellsSweeper {
 
     private <T> String getMessage(Multimap<Cell, Long> cellTsPairsToSweep) {
         return cellTsPairsToSweep.entries().stream()
-                .sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
+                .sorted(Comparator.comparing(Map.Entry::getKey))
                 .map(entry -> entry.getKey().toString() + "->" + entry.getValue())
                 .collect(Collectors.joining(", ", "[", "]"));
     }
