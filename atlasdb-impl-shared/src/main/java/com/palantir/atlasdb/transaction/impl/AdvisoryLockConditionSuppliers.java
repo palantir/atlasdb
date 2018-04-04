@@ -77,7 +77,7 @@ public final class AdvisoryLockConditionSuppliers {
             if (response == null) {
                 RuntimeException ex = new LockAcquisitionException(
                         "Failed to lock using the provided lock request: " + lockRequest);
-                log.warn("Count not lock successfully", ex);
+                log.warn("Could not lock successfully", ex);
                 ++failureCount;
                 if (failureCount >= NUM_RETRIES) {
                     log.warn("Failing after {} tries", failureCount, ex);
