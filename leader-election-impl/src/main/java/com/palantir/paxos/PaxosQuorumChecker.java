@@ -53,9 +53,8 @@ public final class PaxosQuorumChecker {
             new NamedThreadFactory("paxos-quorum-checker-canceller", true));
     private static final long OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS = 2;
 
-    private static final MetricRegistry metricRegistry = new MetricRegistry();
-    private static final Meter cancelOutstandingRequestNoOp =  metricRegistry.meter("quorum-checker.cancel-outstanding-request.no-op");
-    private static final Meter cancelOutstandingRequestSuccess = metricRegistry.meter("quorum-checker.cancel-outstanding-request.success");
+    private static final Meter cancelOutstandingRequestNoOp =  new Meter();
+    private static final Meter cancelOutstandingRequestSuccess = new Meter();
 
     private PaxosQuorumChecker() {
         // Private constructor. Disallow instantiation.
