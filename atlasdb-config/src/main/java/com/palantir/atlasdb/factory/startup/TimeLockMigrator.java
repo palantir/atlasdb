@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory.startup;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.palantir.async.initializer.AsyncInitializer;
@@ -45,17 +46,18 @@ public class TimeLockMigrator extends AsyncInitializer {
             ServerListConfig serverListConfig,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
-        return create(() -> serverListConfig, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(() -> serverListConfig, Optional::empty, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimeLockMigrator create(
             Supplier<ServerListConfig> serverListConfigSupplier,
+            Supplier<Optional<String>> authTokenSupplier,
             TimestampStoreInvalidator invalidator,
             String userAgent,
             boolean initializeAsync) {
         TimestampManagementService remoteTimestampManagementService =
                 createRemoteManagementService(
-                        serverListConfigSupplier, userAgent);
+                        serverListConfigSupplier, authTokenSupplier, userAgent);
         return new TimeLockMigrator(invalidator, remoteTimestampManagementService, initializeAsync);
     }
 
@@ -79,9 +81,9 @@ public class TimeLockMigrator extends AsyncInitializer {
 
     private static TimestampManagementService createRemoteManagementService(
             Supplier<ServerListConfig> serverListConfig,
-            String userAgent) {
+            Supplier<Optional<String>> authTokenSupplier, String userAgent) {
         return new ServiceCreator<>(TimestampManagementService.class, userAgent)
-                .applyDynamic(serverListConfig);
+                .applyDynamic(serverListConfig, authTokenSupplier);
     }
 
     @Override

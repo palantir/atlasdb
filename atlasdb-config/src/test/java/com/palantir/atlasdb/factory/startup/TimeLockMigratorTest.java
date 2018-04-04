@@ -29,6 +29,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -139,7 +140,7 @@ public class TimeLockMigratorTest {
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(() -> timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT, true);
+                TimeLockMigrator.create(() -> timelockConfig.toNamespacedServerList(), Optional::empty, invalidator, USER_AGENT, true);
         migrator.migrate();
 
         Awaitility.await()
@@ -168,7 +169,7 @@ public class TimeLockMigratorTest {
 
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(() -> timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT, true);
+                TimeLockMigrator.create(() -> timelockConfig.toNamespacedServerList(), Optional::empty, invalidator, USER_AGENT, true);
         migrator.migrate();
 
         Awaitility.await()

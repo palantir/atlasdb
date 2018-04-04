@@ -673,7 +673,7 @@ public abstract class TransactionManagers {
         Supplier<Optional<String>> authTokenSupplier = () -> runtimeConfigSupplier.get().timelockRuntime().flatMap(
                 TimeLockRuntimeConfig::authToken);
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(serverListConfigSupplier, invalidator, userAgent, config.initializeAsync());
+                TimeLockMigrator.create(serverListConfigSupplier, authTokenSupplier, invalidator, userAgent, config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
         return ImmutableLockAndTimestampServices.copyOf(
                 getLockAndTimestampServices(serverListConfigSupplier, authTokenSupplier, userAgent))
