@@ -196,12 +196,37 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-80-0">
+<h2>v0.80.0<a class="headerlink" href="#v0-80-0" title="Permalink to this headline">¶</a></h2>
+<p>04 April 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Centralize how <code class="docutils literal notranslate"><span class="pre">PersistentLockManager</span></code> is created in a dagger context.
+Also, removed the old constructor for <code class="docutils literal notranslate"><span class="pre">CellsSweeper</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3047">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>Downgraded “Tried to connect to Cassandra {} times” logs from <code class="docutils literal notranslate"><span class="pre">ERROR</span></code> to <code class="docutils literal notranslate"><span class="pre">WARN</span></code>, and stopped printing the stack trace.
 An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3069">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now supports runtime configuration of throttling for stream stores when streams are written block by block in a non-transactional fashion.
 Previously, such streams would be written using a separate transaction for each block, though in cases where data volume is high this may still cause load on the key-value-service Atlas is using.
 Please note that if you wish to use this feature, you will need to regenerate your Atlas schemas and suitably inject the stream persistence configuration into your stream stores.
@@ -209,29 +234,24 @@ However, if you do not intend to use this feature, no action is required, and yo
 Note that enabling throttling may make nontransactional <code class="docutils literal notranslate"><span class="pre">storeStream</span></code> operations take longer, though the length of constituent transactions should not be affected.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3073">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now schedules KVS compactions on a background thread, as opposed to triggering a compaction after each table was swept.
 This allows for better control over KVS load arising from compactions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3058">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now supports configuration of a maintenance mode for compactions.
 If compactions are run in maintenance mode, AtlasDB may perform more costly operations which may be able to recover more space.
 For example, for Oracle KVS, <code class="docutils literal notranslate"><span class="pre">SHRINK</span> <span class="pre">SPACE</span></code> (which acquires locks on the entire table) will only be run if compactions are carried out in maintenance mode.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3058">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug that causes Cassandra clients to return to the pool even if they have thrown blacklisted exceptions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3063">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fix NPE if PaxosLeaderElectionServiceBuilder’s new field onlyLogOnQuorumFailure is never set.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3074">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>Centralize how <code class="docutils literal notranslate"><span class="pre">PersistentLockManager</span></code> is created in a dagger context.
-Also, removed the old constructor for <code class="docutils literal notranslate"><span class="pre">CellsSweeper</span></code>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3047">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>If using TimeLock, AtlasDB now checks the value of a fresh timestamp against the unreadable timestamp on startup, failing if the fresh timestamp is smaller.
