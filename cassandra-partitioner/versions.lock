@@ -33,8 +33,8 @@
             ]
         },
         "org.apache.cassandra:cassandra-all": {
-            "locked": "3.10",
-            "requested": "3.10"
+            "locked": "3.11.2",
+            "requested": "3.11.2"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1",
@@ -87,8 +87,8 @@
             ]
         },
         "org.apache.cassandra:cassandra-all": {
-            "locked": "3.10",
-            "requested": "3.10"
+            "locked": "3.11.2",
+            "requested": "3.11.2"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1",
