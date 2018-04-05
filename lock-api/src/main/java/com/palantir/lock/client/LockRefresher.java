@@ -67,7 +67,13 @@ public class LockRefresher implements AutoCloseable {
             log.info("Attempting to refresh locks: {}", SafeArg.of("locksToRefresh", toRefresh));
 
             Set<LockToken> refreshed = timelockService.refreshLockLeases(toRefresh);
-            tokensToRefresh.removeAll(Sets.difference(toRefresh, refreshed));
+
+            Set<LockToken> notRefreshed = Sets.difference(toRefresh, refreshed);
+            if (!notRefreshed.isEmpty()) {
+                log.info("Some locks weren't refreshed: {}", SafeArg.of("notRefreshedLocks", notRefreshed));
+            }
+
+            tokensToRefresh.removeAll(notRefreshed);
         } catch (Throwable error) {
             log.warn("Error while refreshing locks. Trying again on next iteration", error);
         }
