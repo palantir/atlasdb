@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 
 public class LockRefresher implements AutoCloseable {
 
@@ -59,8 +60,11 @@ public class LockRefresher implements AutoCloseable {
         try {
             Set<LockToken> toRefresh = ImmutableSet.copyOf(tokensToRefresh);
             if (toRefresh.isEmpty()) {
+                log.info("No locks to refresh");
                 return;
             }
+
+            log.info("Attempting to refresh locks: {}", SafeArg.of("locksToRefresh", toRefresh));
 
             Set<LockToken> refreshed = timelockService.refreshLockLeases(toRefresh);
             tokensToRefresh.removeAll(Sets.difference(toRefresh, refreshed));

@@ -1486,6 +1486,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         immutableTimestampLock.ifPresent(toRefresh::add);
 
+        if (immutableTimestampLock.isPresent()) {
+            log.info("Refreshing immutable timestamp lock: {}",
+                    SafeArg.of("lockToken", immutableTimestampLock.get().getRequestId()));
+        }
+
         if (toRefresh.isEmpty()) {
             return ImmutableSet.of();
         }

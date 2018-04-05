@@ -48,6 +48,7 @@ import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampService;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
@@ -130,6 +131,9 @@ import com.palantir.timestamp.TimestampService;
         LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
                 LockImmutableTimestampRequest.create());
         try {
+            log.info("Setting up transaction with immutable timestamp lock {}",
+                    SafeArg.of("immutableTimestampRequestId", immutableTsResponse.getLock().getRequestId()));
+
             LockToken immutableTsLock = immutableTsResponse.getLock();
             long immutableTs = immutableTsResponse.getImmutableTimestamp();
             recordImmutableTimestamp(immutableTs);

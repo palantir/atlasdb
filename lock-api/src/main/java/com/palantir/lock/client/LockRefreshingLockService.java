@@ -33,6 +33,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimplifyingLockService;
+import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
 public class LockRefreshingLockService extends SimplifyingLockService {
@@ -122,8 +123,12 @@ public class LockRefreshingLockService extends SimplifyingLockService {
     private void refreshLocks() {
         ImmutableSet<LockRefreshToken> refreshCopy = ImmutableSet.copyOf(toRefresh);
         if (refreshCopy.isEmpty()) {
+            log.info("No locks to refresh");
             return;
         }
+
+        log.info("Attempting to refresh locks: {}", SafeArg.of("locksToRefresh", refreshCopy));
+
         Set<LockRefreshToken> refreshedTokens = delegate().refreshLockRefreshTokens(refreshCopy);
         for (LockRefreshToken token : refreshCopy) {
             if (!refreshedTokens.contains(token)
