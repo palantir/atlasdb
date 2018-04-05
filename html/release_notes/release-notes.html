@@ -25,31 +25,21 @@
   
 
   
-  
     <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  
-
-  
-    <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
-  
-    <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
-  
-
-  
-        <link rel="index" title="Index"
-              href="../genindex.html"/>
-        <link rel="search" title="Search" href="../search.html"/>
-    <link rel="top" title="OSS AtlasDB develop documentation" href="../index.html"/>
-        <link rel="up" title="Releases" href="index.html"/>
-        <link rel="next" title="Release Process" href="release-process.html"/>
-        <link rel="prev" title="Releases" href="index.html"/> 
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Release Process" href="release-process.html" />
+    <link rel="prev" title="Releases" href="index.html" /> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
 
 </head>
 
-<body class="wy-body-for-nav" role="document">
+<body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
@@ -123,7 +113,7 @@
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
       
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+      <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">OSS AtlasDB</a>
@@ -131,9 +121,10 @@
       </nav>
 
 
-      
       <div class="wy-nav-content">
+        
         <div class="rst-content">
+        
           
 
 
@@ -165,7 +156,7 @@
         
             
             
-              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/release_notes/release-notes.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/palantir/atlasdb//develop/docs/source/release_notes/release-notes.rst" class="fa fa-github"> Edit on GitHub</a>
             
           
         
@@ -262,6 +253,15 @@ That implies clocks went backwards; doing this mitigates the damage that a bogus
 <td>Applications can now easily determine whether their Timelock cluster is healthy by querying <code class="docutils literal notranslate"><span class="pre">TransactionManager.getTimelockServiceStatus().isHealthy()</span></code>.
 This returns true only if a healthy connection to timelock service is established.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3030">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><p class="first">Bumped several libraries to get past known security vulns:
+cassandra thrift and CQL libs
+jackson
+logback
+netty (indirectly via cassandra lib bump)</p>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3084">Pull Request</a>)</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -5164,9 +5164,7 @@ The error has been downgraded to INFO and made less scary.</td>
 
 
            </div>
-           <div class="articleComments">
-            
-           </div>
+           
           </div>
           <footer>
   
@@ -5188,7 +5186,7 @@ The error has been downgraded to INFO and made less scary.</td>
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -5207,6 +5205,7 @@ The error has been downgraded to INFO and made less scary.</td>
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
             VERSION:'develop',
+            LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
@@ -5224,14 +5223,13 @@ The error has been downgraded to INFO and made less scary.</td>
     <script type="text/javascript" src="../_static/js/theme.js"></script>
   
 
-  
-  
   <script type="text/javascript">
       jQuery(function () {
-          SphinxRtdTheme.StickyNav.enable();
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
       });
-  </script>
-   
+  </script> 
 
 </body>
 </html>
