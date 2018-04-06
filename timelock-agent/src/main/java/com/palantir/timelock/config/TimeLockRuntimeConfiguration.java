@@ -50,12 +50,6 @@ public abstract class TimeLockRuntimeConfiguration {
         return 10000;
     }
 
-    @JsonProperty("client-tokens")
-    @Value.Default
-    public Map<String, String> clientTokens() {
-        return ImmutableMap.of();
-    }
-
     @JsonProperty("auth-clients")
     @Value.Default
     public List<TimelockAuthClient> authClients() {
