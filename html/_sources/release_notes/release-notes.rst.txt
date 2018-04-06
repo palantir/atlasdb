@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved| |metrics|
+         - Async TimeLock Service metric timers are now tagged with (1) the relevant clients, and (2) whether the current node is the leader or not.
+           This allows for easier analysis and consumption of these metrics.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
 
 =======
 v0.80.0
@@ -119,9 +121,9 @@ v0.80.0
            jackson
            logback
            netty (indirectly via cassandra lib bump)
-
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
-            
+
+
 =======
 v0.79.0
 =======
