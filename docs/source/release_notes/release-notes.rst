@@ -55,6 +55,11 @@ develop
            This allows for easier analysis and consumption of these metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
 
+    *    - |improved|
+         - Common annotations can now be imported via the commons-annotations library,
+           instead of needing to pull in atlasdb-commons. Existing code that uses atlasdb-commons
+           for the annotations will still be able ot resolve them.
+
 =======
 v0.80.0
 =======
