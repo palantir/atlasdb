@@ -29,10 +29,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 @Value.Immutable
 public abstract class SweepConfig {
     /**
-     * If true, a background thread will periodically delete cells that
-     * have been overwritten or deleted. This differs from scrubbing
-     * because it is an untargeted cleaning process that scans all data
-     * looking for cells to delete.
+     * If true, a background thread will periodically delete cells that have been overwritten or deleted. This differs
+     * from scrubbing because it is an untargeted cleaning process that scans all data looking for cells to delete.
      */
     @Value.Default
     public Boolean enabled() {
@@ -40,8 +38,7 @@ public abstract class SweepConfig {
     }
 
     /**
-     * The number of milliseconds to wait between each batch of cells
-     * processed by the background sweeper.
+     * The number of milliseconds to wait between each batch of cells processed by the background sweeper.
      */
     @Value.Default
     public long pauseMillis() {
@@ -69,11 +66,19 @@ public abstract class SweepConfig {
         return AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT;
     }
 
+    /**
+     * The number of cells to be written before information on write patterns to a given table is flushed into
+     * the sweep priority table (thus increasing the probability that the background sweeper selects it).
+     */
     @Value.Default
     public Integer writeThreshold() {
         return AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD;
     }
 
+    /**
+     * The number of bytes to be written before information on write patterns to a given table is flushed into
+     * the sweep priority table (thus increasing the probability that the background sweeper selects it).
+     */
     @Value.Default
     public Long writeSizeThreshold() {
         return AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD;
