@@ -516,6 +516,7 @@
         "com.palantir.atlasdb:commons-annotations": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-api"
             ]
         },
@@ -2206,6 +2207,7 @@
         "com.palantir.atlasdb:commons-annotations": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-api"
             ]
         },
