@@ -110,7 +110,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
-import com.palantir.atlasdb.transaction.impl.consistency.TimestampCorroborationConsistencyCheck;
+import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -578,9 +578,10 @@ public abstract class TransactionManagers {
             // ports in order to get a working timestamp service.
             List<Callback<SerializableTransactionManager>> callbacks = Lists.newArrayList();
             callbacks.add(ConsistencyCheckRunner.create(
-                    new TimestampCorroborationConsistencyCheck(
-                            TransactionManager::getUnreadableTimestamp,
-                            (unused) -> lockAndTimestampServices.timelock().getFreshTimestamp())));
+                    ImmutableTimestampCorroborationConsistencyCheck.builder()
+                            .conservativeBound(TransactionManager::getUnreadableTimestamp)
+                            .freshTimestampSource(unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
+                            .build()));
             callbacks.add(asyncInitializationCallback);
             return new Callback.CallChain<>(callbacks);
         }
