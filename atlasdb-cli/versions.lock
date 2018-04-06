@@ -19,7 +19,7 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "2.2.0-rc3",
+            "locked": "3.4.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
@@ -176,6 +176,37 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider"
+            ]
+        },
+        "com.github.jnr:jffi": {
+            "locked": "1.2.10",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
+        "com.github.jnr:jnr-constants": {
+            "locked": "0.9.0",
+            "transitive": [
+                "com.github.jnr:jnr-posix"
+            ]
+        },
+        "com.github.jnr:jnr-ffi": {
+            "locked": "2.0.7",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.github.jnr:jnr-posix"
+            ]
+        },
+        "com.github.jnr:jnr-posix": {
+            "locked": "3.0.27",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core"
+            ]
+        },
+        "com.github.jnr:jnr-x86asm": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
             ]
         },
         "com.github.rholder:snowball-stemmer": {
@@ -821,6 +852,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
             "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.tritium:tritium-registry"
@@ -839,32 +871,32 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.47.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.47.Final",
             "transitive": [
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.47.Final",
             "transitive": [
                 "io.netty:netty-buffer"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.47.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.47.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler"
@@ -922,7 +954,7 @@
             ]
         },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "3.10",
+            "locked": "3.11.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
@@ -1010,6 +1042,40 @@
                 "com.palantir.tritium:tritium-metrics"
             ]
         },
+        "org.ow2.asm:asm": {
+            "locked": "5.0.4",
+            "transitive": [
+                "com.github.jnr:jnr-ffi",
+                "org.ow2.asm:asm-tree"
+            ]
+        },
+        "org.ow2.asm:asm-analysis": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
+        "org.ow2.asm:asm-commons": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
+        "org.ow2.asm:asm-tree": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi",
+                "org.ow2.asm:asm-analysis",
+                "org.ow2.asm:asm-commons",
+                "org.ow2.asm:asm-util"
+            ]
+        },
+        "org.ow2.asm:asm-util": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.25",
             "transitive": [
@@ -1025,6 +1091,7 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
@@ -1080,7 +1147,7 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "2.2.0-rc3",
+            "locked": "3.4.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
@@ -1237,6 +1304,37 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider"
+            ]
+        },
+        "com.github.jnr:jffi": {
+            "locked": "1.2.10",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
+        "com.github.jnr:jnr-constants": {
+            "locked": "0.9.0",
+            "transitive": [
+                "com.github.jnr:jnr-posix"
+            ]
+        },
+        "com.github.jnr:jnr-ffi": {
+            "locked": "2.0.7",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.github.jnr:jnr-posix"
+            ]
+        },
+        "com.github.jnr:jnr-posix": {
+            "locked": "3.0.27",
+            "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core"
+            ]
+        },
+        "com.github.jnr:jnr-x86asm": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
             ]
         },
         "com.github.rholder:snowball-stemmer": {
@@ -1879,6 +1977,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
             "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.tritium:tritium-registry"
@@ -1897,32 +1996,32 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.47.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.47.Final",
             "transitive": [
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.47.Final",
             "transitive": [
                 "io.netty:netty-buffer"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.47.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.0.27.Final",
+            "locked": "4.0.47.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler"
@@ -1979,7 +2078,7 @@
             ]
         },
         "org.apache.cassandra:cassandra-thrift": {
-            "locked": "3.10",
+            "locked": "3.11.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
@@ -2067,6 +2166,40 @@
                 "com.palantir.tritium:tritium-metrics"
             ]
         },
+        "org.ow2.asm:asm": {
+            "locked": "5.0.4",
+            "transitive": [
+                "com.github.jnr:jnr-ffi",
+                "org.ow2.asm:asm-tree"
+            ]
+        },
+        "org.ow2.asm:asm-analysis": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
+        "org.ow2.asm:asm-commons": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
+        "org.ow2.asm:asm-tree": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi",
+                "org.ow2.asm:asm-analysis",
+                "org.ow2.asm:asm-commons",
+                "org.ow2.asm:asm-util"
+            ]
+        },
+        "org.ow2.asm:asm-util": {
+            "locked": "5.0.3",
+            "transitive": [
+                "com.github.jnr:jnr-ffi"
+            ]
+        },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.25",
             "transitive": [
@@ -2082,6 +2215,7 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",

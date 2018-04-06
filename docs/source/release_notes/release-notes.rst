@@ -49,7 +49,28 @@ develop
 
     *    - Type
          - Change
+
+    *    -
+         -
+
+=======
+v0.80.0
+=======
+
+04 April 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
     
+    *    - |fixed| |devbreak|
+         - Centralize how ``PersistentLockManager`` is created in a dagger context.
+           Also, removed the old constructor for ``CellsSweeper``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
+
     *    - |improved| |logs|
          - Downgraded "Tried to connect to Cassandra {} times" logs from ``ERROR`` to ``WARN``, and stopped printing the stack trace.
            An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
@@ -82,16 +103,25 @@ develop
          - Fix NPE if PaxosLeaderElectionServiceBuilder's new field onlyLogOnQuorumFailure is never set.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3074>`__)
 
-    *    - |fixed| |devbreak|
-         - Centralize how ``PersistentLockManager`` is created in a dagger context.
-           Also, removed the old constructor for ``CellsSweeper``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
-
     *    - |new|
          - If using TimeLock, AtlasDB now checks the value of a fresh timestamp against the unreadable timestamp on startup, failing if the fresh timestamp is smaller.
            That implies clocks went backwards; doing this mitigates the damage that a bogus TimeLock migration or other corruption of TimeLock can do.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3018>`__)
 
+    *    - |improved|
+         - Applications can now easily determine whether their Timelock cluster is healthy by querying ``TransactionManager.getTimelockServiceStatus().isHealthy()``.
+           This returns true only if a healthy connection to timelock service is established.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3030>`__)
+
+    *    - |improved| |devbreak|
+         - Bumped several libraries to get past known security vulns:
+           cassandra thrift and CQL libs
+           jackson
+           logback
+           netty (indirectly via cassandra lib bump)
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
+            
 =======
 v0.79.0
 =======

@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 
 public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
     private static final Logger log = LoggerFactory.getLogger(PaxosLatestRoundVerifierImpl.class);
+    private static final double SAMPLE_RATE = 0.01;
 
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
@@ -63,7 +64,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
         try {
             return round >= acceptor.getLatestSequencePreparedOrAccepted();
         } catch (Exception e) {
-            if (!onlyLogOnQuorumFailure.get()) {
+            if (isPicked()) {
                 log.warn("failed to get latest sequence", e);
             }
             throw e;
@@ -74,4 +75,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
         return PaxosQuorumChecker.getQuorumResult(responses, quorumSize);
     }
 
+    private boolean isPicked() {
+        return Math.random() < SAMPLE_RATE;
+    }
 }
