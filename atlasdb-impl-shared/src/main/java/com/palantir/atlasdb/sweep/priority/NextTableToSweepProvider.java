@@ -21,7 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -40,10 +42,18 @@ public class NextTableToSweepProvider {
     private static final Logger log = LoggerFactory.getLogger(NextTableToSweepProvider.class);
 
     private final StreamStoreRemappingSweepPriorityCalculator calculator;
+    private final Supplier<SweepPriorityOverrideConfig> priorityOverrideConfigSupplier;
 
     @VisibleForTesting
     NextTableToSweepProvider(StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator) {
+        this(streamStoreRemappingSweepPriorityCalculator, SweepPriorityOverrideConfig::defaultConfig);
+    }
+
+    private NextTableToSweepProvider(
+            StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator,
+            Supplier<SweepPriorityOverrideConfig> priorityOverrideConfigSupplier) {
         this.calculator = streamStoreRemappingSweepPriorityCalculator;
+        this.priorityOverrideConfigSupplier = priorityOverrideConfigSupplier;
     }
 
     public static NextTableToSweepProvider create(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
@@ -55,11 +65,21 @@ public class NextTableToSweepProvider {
     }
 
     public Optional<TableReference> getNextTableToSweep(Transaction tx, long conservativeSweepTimestamp) {
+        SweepPriorityOverrideConfig overrideConfig = priorityOverrideConfigSupplier.get();
+        if (!overrideConfig.priorityList().isEmpty()) {
+            TableReference tableToSweep =
+                    TableReference.createFromFullyQualifiedName(getRandomValueFromList(overrideConfig.priorityList()));
+            log.info("Decided to start sweeping {} because it is on the sweep priority list.",
+                    LoggingArgs.safeTableOrPlaceholder(tableToSweep));
+            return Optional.of(tableToSweep);
+        }
+
         Map<TableReference, Double> scores = calculator.calculateSweepPriorityScores(tx, conservativeSweepTimestamp);
 
-        Map<TableReference, Double> tablesWithNonZeroPriority = Maps.filterValues(scores, score -> score > 0.0);
+        Map<TableReference, Double> tablesWithNonZeroPriority
+                = getTablesToBeConsideredForSweepAndScores(overrideConfig, scores);
         if (tablesWithNonZeroPriority.isEmpty()) {
-            return logDecision(Optional.empty(), scores);
+            return logDecision(Optional.empty(), scores, overrideConfig);
         }
 
         List<TableReference> tablesWithHighestPriority = findTablesWithHighestPriority(tablesWithNonZeroPriority);
@@ -68,7 +88,21 @@ public class NextTableToSweepProvider {
                 ? Optional.of(getRandomValueFromList(tablesWithHighestPriority))
                 : Optional.empty();
 
-        return logDecision(chosenTable, scores);
+        return logDecision(chosenTable, scores, overrideConfig);
+    }
+
+    private Map<TableReference, Double> getTablesToBeConsideredForSweepAndScores(
+            SweepPriorityOverrideConfig overrideConfig, Map<TableReference, Double> scores) {
+        Set<TableReference> blacklistedTableReferences = overrideConfig.blacklist().stream()
+                .map(TableReference::createFromFullyQualifiedName)
+                .collect(Collectors.toSet());
+        return Maps.filterEntries(scores, entry -> shouldTableBeConsideredForSweep(
+                blacklistedTableReferences, entry));
+    }
+
+    private static boolean shouldTableBeConsideredForSweep(Set<TableReference> blacklistedTables,
+            Map.Entry<TableReference, Double> entry) {
+        return blacklistedTables.contains(entry.getKey()) && entry.getValue() > 0.0;
     }
 
     private static List<TableReference> findTablesWithHighestPriority(
@@ -81,12 +115,14 @@ public class NextTableToSweepProvider {
                 .collect(Collectors.toList());
     }
 
-    private TableReference getRandomValueFromList(List<TableReference> tables) {
-        return tables.get(ThreadLocalRandom.current().nextInt(tables.size()));
+    private static <T> T getRandomValueFromList(List<T> values) {
+        return values.get(ThreadLocalRandom.current().nextInt(values.size()));
     }
 
-    private Optional<TableReference> logDecision(Optional<TableReference> chosenTable,
-            Map<TableReference, Double> scores) {
+    private Optional<TableReference> logDecision(
+            Optional<TableReference> chosenTable,
+            Map<TableReference, Double> scores,
+            SweepPriorityOverrideConfig sweepPriorityOverrideConfig) {
         if (!log.isDebugEnabled()) {
             return chosenTable;
         }
@@ -100,10 +136,11 @@ public class NextTableToSweepProvider {
                 ? LoggingArgs.safeTableOrPlaceholder(chosenTable.get()).toString()
                 : "no table";
 
-        log.debug("Chose {} from scores: {}, unsafeScores: {}",
+        log.debug("Chose {} from scores: {}, unsafeScores: {}, overrides: {}",
                 SafeArg.of("chosenTable", chosenTableString),
                 SafeArg.of("scores", safeTableNamesToScore),
-                UnsafeArg.of("unsafeScores", scores));
+                UnsafeArg.of("unsafeScores", scores),
+                SafeArg.of("overrides", sweepPriorityOverrideConfig));
 
         return chosenTable;
     }

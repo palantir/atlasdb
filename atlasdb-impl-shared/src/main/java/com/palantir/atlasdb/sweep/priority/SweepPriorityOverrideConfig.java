@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.config;
+package com.palantir.atlasdb.sweep.priority;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -34,8 +34,6 @@ public abstract class SweepPriorityOverrideConfig {
      * In a steady state, if any tables are configured in priorityList, then the background sweeper will select
      * randomly from these tables. Otherwise, the background sweeper will rely on existing heuristics for determining
      * which tables might be attractive candidates for sweeping.
-     *
-     * Removal of tables from the priority list guarantees that
      *
      * Live reloading: In all cases, consideration of the priority list only takes place between iterations of
      * sweep (so an existing iteration of sweep on a non-priority table will run to completion or failure before we
