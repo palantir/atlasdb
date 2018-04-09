@@ -64,9 +64,10 @@ public class NextTableToSweepProvider {
             Transaction tx,
             long conservativeSweepTimestamp,
             SweepPriorityOverrideConfig overrideConfig) {
-        if (!overrideConfig.priorityList().isEmpty()) {
+        if (!overrideConfig.priorityTables().isEmpty()) {
             TableReference tableToSweep =
-                    TableReference.createFromFullyQualifiedName(getRandomValueFromList(overrideConfig.priorityList()));
+                    TableReference.createFromFullyQualifiedName(
+                            getRandomValueFromList(overrideConfig.priorityTablesAsList()));
             log.info("Decided to start sweeping {} because it is on the sweep priority list.",
                     LoggingArgs.safeTableOrPlaceholder(tableToSweep));
             return Optional.of(tableToSweep);
@@ -91,7 +92,7 @@ public class NextTableToSweepProvider {
 
     private Map<TableReference, Double> getTablesToBeConsideredForSweepAndScores(
             SweepPriorityOverrideConfig overrideConfig, Map<TableReference, Double> scores) {
-        Set<TableReference> blacklistedTableReferences = overrideConfig.blacklist().stream()
+        Set<TableReference> blacklistedTableReferences = overrideConfig.blacklistTables().stream()
                 .map(TableReference::createFromFullyQualifiedName)
                 .collect(Collectors.toSet());
         return Maps.filterEntries(scores, entry -> shouldTableBeConsideredForSweep(
@@ -100,7 +101,7 @@ public class NextTableToSweepProvider {
 
     private static boolean shouldTableBeConsideredForSweep(Set<TableReference> blacklistedTables,
             Map.Entry<TableReference, Double> entry) {
-        return blacklistedTables.contains(entry.getKey()) && entry.getValue() > 0.0;
+        return !blacklistedTables.contains(entry.getKey()) && entry.getValue() > 0.0;
     }
 
     private static List<TableReference> findTablesWithHighestPriority(

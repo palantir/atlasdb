@@ -96,6 +96,54 @@ public class NextTableToSweepProviderTest {
         Assert.assertThat(tableToSweep.get(), anyOf(is(table("table2")), is(table("table3")), is(table("table4"))));
     }
 
+    @Test
+    public void calculatorReturnsNonMaximumForPriorityTable_thenProviderStillSelectsIt() {
+        givenPriority(table("table1"), 1.0);
+        givenPriority(table("table2"), 10_000.0);
+
+        whenGettingNextTableToSweepWithOverrides(ImmutableSweepPriorityOverrideConfig.builder()
+                .addPriorityTables(table("table1").getQualifiedName())
+                .build());
+
+        thenTableChosenIs(table("table1"));
+    }
+
+    @Test
+    public void calculatorReturnsZeroForPriorityTable_thenProviderStillSelectsIt() {
+        givenPriority(table("table1"), 0.0);
+        givenPriority(table("table2"), 1.0);
+
+        whenGettingNextTableToSweepWithOverrides(ImmutableSweepPriorityOverrideConfig.builder()
+                .addPriorityTables(table("table1").getQualifiedName())
+                .build());
+
+        thenTableChosenIs(table("table1"));
+    }
+
+    @Test
+    public void calculatorReturnsLargeValueForBlacklistedTable_thenProviderStillDoesNotSelectIt() {
+        givenPriority(table("table1"), 10_000.0);
+        givenPriority(table("table2"), 1.0);
+
+        whenGettingNextTableToSweepWithOverrides(ImmutableSweepPriorityOverrideConfig.builder()
+                .addBlacklistTables(table("table1").getQualifiedName())
+                .build());
+
+        thenTableChosenIs(table("table2"));
+    }
+
+    @Test
+    public void allTablesBlacklisted_thenProviderReturnsEmpty() {
+        givenPriority(table("table1"), 1.0);
+        givenPriority(table("table2"), 1.0);
+
+        whenGettingNextTableToSweepWithOverrides(ImmutableSweepPriorityOverrideConfig.builder()
+                .addBlacklistTables(table("table1").getQualifiedName(), table("table2").getQualifiedName())
+                .build());
+
+        thenProviderReturnsEmpty();
+    }
+
     private void givenNoPrioritiesReturned() {
         //Nothing to do
     }
@@ -108,6 +156,11 @@ public class NextTableToSweepProviderTest {
         when(calculator.calculateSweepPriorityScores(any(), anyLong())).thenReturn(priorities);
 
         tableToSweep = provider.getNextTableToSweep(null, 0L);
+    }
+
+    private void whenGettingNextTableToSweepWithOverrides(SweepPriorityOverrideConfig overrideConfig) {
+        when(calculator.calculateSweepPriorityScores(any(), anyLong())).thenReturn(priorities);
+        tableToSweep = provider.getNextTableToSweep(null, 0L, overrideConfig);
     }
 
     private void thenProviderReturnsEmpty() {

@@ -16,12 +16,14 @@
 
 package com.palantir.atlasdb.sweep.priority;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
@@ -42,6 +44,15 @@ public abstract class SweepPriorityOverrideConfig {
     @Value.Default
     public Set<String> priorityTables() {
         return ImmutableSet.of();
+    }
+
+    /**
+     * Derived from {@link SweepPriorityOverrideConfig::priorityTables}, but returns a list, which is useful for
+     * fast random selection of priority tables.
+     */
+    @Value.Derived
+    public List<String> priorityTablesAsList() {
+        return ImmutableList.copyOf(priorityTables());
     }
 
     /**
