@@ -67,7 +67,7 @@ public abstract class SweepPriorityOverrideConfig {
 
     //TODO(jkong): validate disjointness
     @Value.Check
-    private void validateTableNames() {
+    void validateTableNames() {
         Stream.concat(priorityList().stream(), blacklist().stream()).forEach(tableName -> Preconditions.checkState(
                 TableReference.isFullyQualifiedName(tableName),
                 "%s is not a fully qualified table name",

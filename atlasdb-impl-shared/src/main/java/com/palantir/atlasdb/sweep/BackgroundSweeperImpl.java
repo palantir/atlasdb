@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
+import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -51,6 +52,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
+    private final Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig;
     private final PersistentLockManager persistentLockManager;
     private final SpecificTableSweeper specificTableSweeper;
 
@@ -67,6 +69,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
+            Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         this.lockService = lockService;
@@ -74,6 +77,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         this.sweepBatchConfigSource = sweepBatchConfigSource;
         this.isSweepEnabled = isSweepEnabled;
         this.sweepPauseMillis = sweepPauseMillis;
+        this.sweepPriorityOverrideConfig = sweepPriorityOverrideConfig;
         this.persistentLockManager = persistentLockManager;
         this.specificTableSweeper = specificTableSweeper;
     }
@@ -82,6 +86,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
+            Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         NextTableToSweepProvider nextTableToSweepProvider = NextTableToSweepProvider
@@ -93,6 +98,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
                 sweepBatchConfigSource,
                 isSweepEnabled,
                 sweepPauseMillis,
+                sweepPriorityOverrideConfig,
                 persistentLockManager,
                 specificTableSweeper);
     }

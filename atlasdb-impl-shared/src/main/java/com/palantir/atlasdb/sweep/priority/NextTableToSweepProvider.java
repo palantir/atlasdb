@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -42,18 +41,10 @@ public class NextTableToSweepProvider {
     private static final Logger log = LoggerFactory.getLogger(NextTableToSweepProvider.class);
 
     private final StreamStoreRemappingSweepPriorityCalculator calculator;
-    private final Supplier<SweepPriorityOverrideConfig> priorityOverrideConfigSupplier;
 
     @VisibleForTesting
     NextTableToSweepProvider(StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator) {
-        this(streamStoreRemappingSweepPriorityCalculator, SweepPriorityOverrideConfig::defaultConfig);
-    }
-
-    private NextTableToSweepProvider(
-            StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator,
-            Supplier<SweepPriorityOverrideConfig> priorityOverrideConfigSupplier) {
         this.calculator = streamStoreRemappingSweepPriorityCalculator;
-        this.priorityOverrideConfigSupplier = priorityOverrideConfigSupplier;
     }
 
     public static NextTableToSweepProvider create(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
@@ -64,8 +55,15 @@ public class NextTableToSweepProvider {
         return new NextTableToSweepProvider(streamStoreRemappingSweepPriorityCalculator);
     }
 
-    public Optional<TableReference> getNextTableToSweep(Transaction tx, long conservativeSweepTimestamp) {
-        SweepPriorityOverrideConfig overrideConfig = priorityOverrideConfigSupplier.get();
+    public Optional<TableReference> getNextTableToSweep(Transaction tx,
+            long conservativeSweepTimestamp) {
+        return getNextTableToSweep(tx, conservativeSweepTimestamp, SweepPriorityOverrideConfig.defaultConfig());
+    }
+
+    public Optional<TableReference> getNextTableToSweep(
+            Transaction tx,
+            long conservativeSweepTimestamp,
+            SweepPriorityOverrideConfig overrideConfig) {
         if (!overrideConfig.priorityList().isEmpty()) {
             TableReference tableToSweep =
                     TableReference.createFromFullyQualifiedName(getRandomValueFromList(overrideConfig.priorityList()));

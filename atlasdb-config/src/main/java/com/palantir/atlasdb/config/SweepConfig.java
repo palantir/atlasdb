@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 
 @JsonDeserialize(as = ImmutableSweepConfig.class)
 @JsonSerialize(as = ImmutableSweepConfig.class)
@@ -82,6 +83,11 @@ public abstract class SweepConfig {
     @Value.Default
     public Long writeSizeThreshold() {
         return AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD;
+    }
+
+    @Value.Default
+    public SweepPriorityOverrideConfig sweepPriorityOverrides() {
+        return SweepPriorityOverrideConfig.defaultConfig();
     }
 
     public static SweepConfig defaultSweepConfig() {
