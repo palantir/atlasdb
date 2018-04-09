@@ -16,36 +16,36 @@
 
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Value.Immutable
 public abstract class SweepPriorityOverrideConfig {
     /**
-     * List of fully qualified table references (of the form namespace.tablename) that the background sweeper should
+     * Fully qualified table references (of the form namespace.tablename) that the background sweeper should
      * prioritise for sweeping. Tables that do not exist in the key-value service will be ignored.
      *
-     * In a steady state, if any tables are configured in priorityList, then the background sweeper will select
+     * In a steady state, if any tables are configured in priorityTables, then the background sweeper will select
      * randomly from these tables. Otherwise, the background sweeper will rely on existing heuristics for determining
      * which tables might be attractive candidates for sweeping.
      *
-     * Live reloading: In all cases, consideration of the priority list only takes place between iterations of
+     * Live reloading: In all cases, consideration of the priority tables only takes place between iterations of
      * sweep (so an existing iteration of sweep on a non-priority table will run to completion or failure before we
      * shift to a table on the priority list).
      */
     @Value.Default
-    public List<String> priorityList() {
-        return ImmutableList.of();
+    public Set<String> priorityTables() {
+        return ImmutableSet.of();
     }
 
     /**
-     * List of fully qualified table references (of the form namespace.tablename) that the background sweeper
+     * Fully qualified table references (of the form namespace.tablename) that the background sweeper
      * should not sweep. Tables that do not exist in the key-value service will be ignored. If all tables eligible
      * for sweep are blacklisted, then the background sweeper will report that there is nothing to sweep.
      *
@@ -54,8 +54,8 @@ public abstract class SweepPriorityOverrideConfig {
      * selected for sweeping.
      */
     @Value.Default
-    public List<String> blacklist() {
-        return ImmutableList.of();
+    public Set<String> blacklistTables() {
+        return ImmutableSet.of();
     }
 
     /**
@@ -68,9 +68,10 @@ public abstract class SweepPriorityOverrideConfig {
     //TODO(jkong): validate disjointness
     @Value.Check
     void validateTableNames() {
-        Stream.concat(priorityList().stream(), blacklist().stream()).forEach(tableName -> Preconditions.checkState(
-                TableReference.isFullyQualifiedName(tableName),
-                "%s is not a fully qualified table name",
-                tableName));
+        Stream.concat(priorityTables().stream(), blacklistTables().stream()).forEach(
+                tableName -> Preconditions.checkState(
+                        TableReference.isFullyQualifiedName(tableName),
+                        "%s is not a fully qualified table name",
+                        tableName));
     }
 }
