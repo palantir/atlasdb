@@ -25,6 +25,7 @@ import org.immutables.value.Value;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Value.Immutable
@@ -48,7 +49,9 @@ public abstract class SweepPriorityOverrideConfig {
 
     /**
      * Derived from {@link SweepPriorityOverrideConfig::priorityTables}, but returns a list, which is useful for
-     * fast random selection of priority tables.
+     * fast random selection of priority tables. There are no guarantees on the order of elements in this list,
+     * though it is guaranteed that on the same {@link SweepPriorityOverrideConfig} object, the list elements are
+     * in a consistent order.
      */
     @Value.Derived
     public List<String> priorityTablesAsList() {
@@ -76,7 +79,6 @@ public abstract class SweepPriorityOverrideConfig {
         return ImmutableSweepPriorityOverrideConfig.builder().build();
     }
 
-    //TODO(jkong): validate disjointness
     @Value.Check
     void validateTableNames() {
         Stream.concat(priorityTables().stream(), blacklistTables().stream()).forEach(
@@ -84,5 +86,12 @@ public abstract class SweepPriorityOverrideConfig {
                         TableReference.isFullyQualifiedName(tableName),
                         "%s is not a fully qualified table name",
                         tableName));
+    }
+
+    @Value.Check
+    void validatePriorityTablesAndBlacklistTablesAreDisjoint() {
+        Preconditions.checkState(Sets.intersection(priorityTables(), blacklistTables()).isEmpty(),
+                "The priority and blacklist tables should not have any overlap, but found %s",
+                Sets.intersection(priorityTables(), blacklistTables()));
     }
 }
