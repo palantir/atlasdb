@@ -59,7 +59,7 @@ develop
          - Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) blacklist.
            This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a blacklisted table, as appropriate.
            Please see :ref:`Sweep Priority Overrides <sweep-priority-overrides>` for more details.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3090>`__)
 
 =======
 v0.80.0
