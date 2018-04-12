@@ -63,6 +63,10 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
    ``candidateBatchHint``, ``candidateBatchSize``, "128", "Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
    ``deleteBatchHint``, ``deleteBatchSize``, "128", "Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance."
    ``pauseMillis``, "Only specified in config", "5000 ms", "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours."
+   ``sweepPriorityOverrides``, "Only specified in config", "No overrides", "Fully-qualified names of tables that Sweep should prioritise particularly highly, or ignore completely. Please see `Priority Overrides`_ for more details."
+
+Batch Parameters
+~~~~~~~~~~~~~~~~
 
 Following is more information about when each of the batching parameters is useful.
 In short, the recommendation is:
@@ -71,7 +75,7 @@ In short, the recommendation is:
 - Decrease ``candidateBatchHint`` if there is memory pressure on the KVS.
 
 Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``candidateBatchHint`` specifies the number of values to load from the KVS on each round-trip. ``readLimit`` specifies the number of values that should be swept in a batch, potentially fetching them through multiple KVS round-trips.
 If each batch takes little time, it's advisable to increase the ``readLimit`` and ``deleteBatchHint``, to make sweep's batches bigger.
@@ -80,7 +84,7 @@ Since each batch contains at least ``candidateBatchHint`` values, if ``readLimit
 Note that since sweep still needs to sweep at least a full row on every batch, it might be the case that the client is OOMing because the row it's trying to sweep is very large. Please contact the AtlasDB team if you think you're hitting this issue.
 
 Memory pressure in the backing KVS: decrease candidateBatchHint
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The sweep job works by requesting ``candidateBatchHint`` values from the KVS in each round-trip.
 In some rare cases, the Cassandra KVS will not be able to fetch ``candidateBatchHint`` values, likely due to specific cells being overwritten many times and/or containing very large values.
@@ -88,6 +92,36 @@ If that happens, KVS requests from AtlasDB will fail and sweep will reduce ``can
 If subsequent KVS round-trips are successful, the value of ``candidateBatchHint`` is slowly increased back to the configured value, which is also the maximum it reaches. Therefore, if the configured value is too high, failures will happen again.
 
 You can check the sweep logs to verify if this is happening frequently — and if this is the case — reduce this config to a value that the load on the KVS doesn't trigger failures and sweep is able to run.
+
+.. _sweep-priority-overrides:
+
+Priority Overrides
+~~~~~~~~~~~~~~~~~~
+
+.. warning::
+   Specifying priority tables can be useful for influencing sweep's behaviour in the short run.
+   However, while configured, no table that is not marked as a priority table will ever be swept, meaning that old versions of cells will not be cleaned up.
+   It is not intended for priority tables to be specified in a steady state, generally speaking.
+
+There may be situations in which the background sweeper's heuristics for selecting tables to sweep may not satisfy one's requirements.
+One can influence the selection process by configuring the ``sweepPriorityOverrides`` parameter in runtime configuration.
+
+.. csv-table::
+   :header: "AtlasDB Runtime Config", "Default", "Description"
+   :widths: 20, 40, 200
+
+   ``blacklistTables``, "[]", "List of fully qualified table names (e.g. ``namespace.tablename``) which the background sweeper should not sweep."
+   ``priorityTables``, "[]", "List of fully qualified table names which the background sweeper should prioritise for sweep."
+
+Note that the conditions for table selection are only checked between iterations of sweep. The algorithm for deciding
+whether a table that is currently being swept should continue to be swept is as follows:
+
+1. If the table being swept is a priority table, continue sweeping it.
+2. If there are any priority tables and the table currently being swept is not a priority table, stop sweeping it and
+   switch to a random priority table.
+3. If the table being swept is not blacklisted, continue sweeping it.
+4. There are no priority tables, and the table being swept is blacklisted; select another table using standard sweep
+   heuristics.
 
 .. toctree::
     :maxdepth: 1
