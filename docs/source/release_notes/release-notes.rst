@@ -55,6 +55,11 @@ develop
            This allows for easier analysis and consumption of these metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
 
+    *    - |fixed|
+         - Transaction managers now shut down threads associated with the QoS client and TimeLock lock refresher when they are closed.
+           Previously, these threads would continue running and needlessly using resources.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3096>`__)
+
 =======
 v0.80.0
 =======
