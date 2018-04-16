@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.logging;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,7 +29,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -155,14 +153,6 @@ public final class LoggingArgs {
         return getArg(argName,
                 columnName,
                 logArbitrator.isColumnNameSafe(tableReference, columnName));
-    }
-
-    public static boolean isSafeForLogging(TableReference tableRef, Cell cell) {
-        String rowName = new String(cell.getRowName(), Charset.defaultCharset());
-        String columnName = new String(cell.getColumnName(), Charset.defaultCharset());
-
-        return logArbitrator.isRowComponentNameSafe(tableRef, rowName)
-                && logArbitrator.isColumnNameSafe(tableRef, columnName);
     }
 
     public static Arg<Long> durationMillis(Stopwatch stopwatch) {
