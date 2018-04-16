@@ -136,28 +136,32 @@ public final class SweepableTimestampsTable implements
     /**
      * <pre>
      * SweepableTimestampsRow {
-     *   {@literal Sha256Hash shard};
+     *   {@literal Long hashOfRowComponents};
+     *   {@literal Long shard};
      *   {@literal Long timestampPartition};
      *   {@literal String sweepMode};
      * }
      * </pre>
      */
     public static final class SweepableTimestampsRow implements Persistable, Comparable<SweepableTimestampsRow> {
-        private final Sha256Hash shard;
+        private final long hashOfRowComponents;
+        private final long shard;
         private final long timestampPartition;
         private final String sweepMode;
 
-        public static SweepableTimestampsRow of(Sha256Hash shard, long timestampPartition, String sweepMode) {
-            return new SweepableTimestampsRow(shard, timestampPartition, sweepMode);
+        public static SweepableTimestampsRow of(long shard, long timestampPartition, String sweepMode) {
+            long hashOfRowComponents = computeHashFirstComponents(shard);
+            return new SweepableTimestampsRow(hashOfRowComponents, shard, timestampPartition, sweepMode);
         }
 
-        private SweepableTimestampsRow(Sha256Hash shard, long timestampPartition, String sweepMode) {
+        private SweepableTimestampsRow(long hashOfRowComponents, long shard, long timestampPartition, String sweepMode) {
+            this.hashOfRowComponents = hashOfRowComponents;
             this.shard = shard;
             this.timestampPartition = timestampPartition;
             this.sweepMode = sweepMode;
         }
 
-        public Sha256Hash getShard() {
+        public long getShard() {
             return shard;
         }
 
@@ -169,10 +173,10 @@ public final class SweepableTimestampsTable implements
             return sweepMode;
         }
 
-        public static Function<SweepableTimestampsRow, Sha256Hash> getShardFun() {
-            return new Function<SweepableTimestampsRow, Sha256Hash>() {
+        public static Function<SweepableTimestampsRow, Long> getShardFun() {
+            return new Function<SweepableTimestampsRow, Long>() {
                 @Override
-                public Sha256Hash apply(SweepableTimestampsRow row) {
+                public Long apply(SweepableTimestampsRow row) {
                     return row.shard;
                 }
             };
@@ -198,29 +202,38 @@ public final class SweepableTimestampsTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] shardBytes = shard.getBytes();
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
+            byte[] shardBytes = EncodingUtils.encodeUnsignedVarLong(shard);
             byte[] timestampPartitionBytes = EncodingUtils.encodeUnsignedVarLong(timestampPartition);
             byte[] sweepModeBytes = PtBytes.toBytes(sweepMode);
-            return EncodingUtils.add(shardBytes, timestampPartitionBytes, sweepModeBytes);
+            return EncodingUtils.add(hashOfRowComponentsBytes, shardBytes, timestampPartitionBytes, sweepModeBytes);
         }
 
         public static final Hydrator<SweepableTimestampsRow> BYTES_HYDRATOR = new Hydrator<SweepableTimestampsRow>() {
             @Override
             public SweepableTimestampsRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Sha256Hash shard = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
-                __index += 32;
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                __index += 8;
+                Long shard = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                __index += EncodingUtils.sizeOfUnsignedVarLong(shard);
                 Long timestampPartition = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(timestampPartition);
                 String sweepMode = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
-                return new SweepableTimestampsRow(shard, timestampPartition, sweepMode);
+                return new SweepableTimestampsRow(hashOfRowComponents, shard, timestampPartition, sweepMode);
             }
         };
+
+        public static long computeHashFirstComponents(long shard) {
+            byte[] shardBytes = EncodingUtils.encodeUnsignedVarLong(shard);
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(shardBytes)).asLong();
+        }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("hashOfRowComponents", hashOfRowComponents)
                 .add("shard", shard)
                 .add("timestampPartition", timestampPartition)
                 .add("sweepMode", sweepMode)
@@ -239,18 +252,19 @@ public final class SweepableTimestampsTable implements
                 return false;
             }
             SweepableTimestampsRow other = (SweepableTimestampsRow) obj;
-            return Objects.equal(shard, other.shard) && Objects.equal(timestampPartition, other.timestampPartition) && Objects.equal(sweepMode, other.sweepMode);
+            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(shard, other.shard) && Objects.equal(timestampPartition, other.timestampPartition) && Objects.equal(sweepMode, other.sweepMode);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ shard, timestampPartition, sweepMode });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, shard, timestampPartition, sweepMode });
         }
 
         @Override
         public int compareTo(SweepableTimestampsRow o) {
             return ComparisonChain.start()
+                .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.shard, o.shard)
                 .compare(this.timestampPartition, o.timestampPartition)
                 .compare(this.sweepMode, o.sweepMode)
@@ -716,5 +730,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7AedIXae1FMBLBCpyi+CAg==";
+    static String __CLASS_HASH = "WPP7x4rcweJUek1Tq+iWlg==";
 }

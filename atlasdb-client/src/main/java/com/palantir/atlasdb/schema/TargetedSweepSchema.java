@@ -62,7 +62,8 @@ public enum TargetedSweepSchema implements AtlasSchema {
             javaTableName("SweepableTimestamps");
             allSafeForLoggingByDefault();
             rowName();
-                rowComponent("shard", ValueType.SHA256HASH);
+                hashFirstRowComponent();
+                rowComponent("shard", ValueType.VAR_LONG);
                 rowComponent("timestamp_partition", ValueType.VAR_LONG);
                 rowComponent("sweep_mode", ValueType.STRING);
             columns();
