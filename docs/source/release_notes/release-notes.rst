@@ -50,6 +50,33 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |metrics|
+         - Async TimeLock Service metric timers are now tagged with (1) the relevant clients, and (2) whether the current node is the leader or not.
+           This allows for easier analysis and consumption of these metrics.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
+           
+    *    - |fixed|
+         - Logs in ``CassandraRequestExceptionHandler`` are logged using a logger named after that class instead of ``CassandraClientPool``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3082>`__)
+
+=======
+v0.80.0
+=======
+
+04 April 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+    
+    *    - |fixed| |devbreak|
+         - Centralize how ``PersistentLockManager`` is created in a dagger context.
+           Also, removed the old constructor for ``CellsSweeper``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
+
     *    - |improved| |logs|
          - Downgraded "Tried to connect to Cassandra {} times" logs from ``ERROR`` to ``WARN``, and stopped printing the stack trace.
            An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
@@ -82,14 +109,23 @@ develop
          - Fix NPE if PaxosLeaderElectionServiceBuilder's new field onlyLogOnQuorumFailure is never set.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3074>`__)
 
-    *    - |fixed| |devbreak|
-         - Centralize how ``PersistentLockManager`` is created in a dagger context.
-           Also, removed the old constructor for ``CellsSweeper``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
+    *    - |new|
+         - If using TimeLock, AtlasDB now checks the value of a fresh timestamp against the unreadable timestamp on startup, failing if the fresh timestamp is smaller.
+           That implies clocks went backwards; doing this mitigates the damage that a bogus TimeLock migration or other corruption of TimeLock can do.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3018>`__)
 
-    *    - |fixed|
-         - Logs in ``CassandraRequestExceptionHandler`` are logged using a logger named after that class instead of ``CassandraClientPool``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3082>`__)
+    *    - |improved|
+         - Applications can now easily determine whether their Timelock cluster is healthy by querying ``TransactionManager.getTimelockServiceStatus().isHealthy()``.
+           This returns true only if a healthy connection to timelock service is established.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3030>`__)
+
+    *    - |improved| |devbreak|
+         - Bumped several libraries to get past known security vulns:
+           cassandra thrift and CQL libs
+           jackson
+           logback
+           netty (indirectly via cassandra lib bump)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
 
 =======
 v0.79.0
@@ -108,11 +144,6 @@ v0.79.0
          - Guava has been updated from 21.0 to 23.6-jre.
            This unblocks users using libraries which have dependencies on more recent versions of Guava, owing to API changes in ``SimpleTimeLimiter``, among other classes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3038>`__)
-
-    *    - |new|
-         - If using TimeLock, AtlasDB now checks the value of a fresh timestamp against the unreadable timestamp on startup, failing if the fresh timestamp is smaller.
-           That implies clocks went backwards; doing this mitigates the damage that a bogus TimeLock migration or other corruption of TimeLock can do.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3018>`__)
 
     *    - |improved| |metrics|
          - Sweep metrics are now updated to the result value of the last run iteration of sweep instead of the cumulative values for the run of sweep on the table.

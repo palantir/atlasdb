@@ -46,10 +46,10 @@ import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ProtocolOptions.Compression;
 import com.datastax.driver.core.QueryOptions;
+import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
@@ -161,8 +161,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
 
         if (config.sslConfiguration().isPresent()) {
             SSLContext sslContext = SslSocketFactories.createSslContext(config.sslConfiguration().get());
-            SSLOptions sslOptions = new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
-            clusterBuilder.withSSL(sslOptions);
+            clusterBuilder.withSSL(RemoteEndpointAwareJdkSSLOptions.builder().withSSLContext(sslContext).build());
         } else if (config.ssl().isPresent() && config.ssl().get()) {
             clusterBuilder.withSSL();
         }

@@ -19,6 +19,7 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -60,6 +61,11 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     @Override
     public KeyValueServiceStatus getKeyValueServiceStatus() {
         return delegate().getKeyValueServiceStatus();
+    }
+
+    @Override
+    public TimelockServiceStatus getTimelockServiceStatus() {
+        return delegate().getTimelockServiceStatus();
     }
 
     @Override

@@ -102,13 +102,15 @@ import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
-import com.palantir.atlasdb.transaction.impl.consistency.TimestampCorroborationConsistencyCheck;
+import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -563,22 +565,23 @@ public abstract class TransactionManagers {
         return pls;
     }
 
-    private static Callback<TransactionManager> wrapInitializationCallbackAndAddConsistencyChecks(
+    private static Callback<SerializableTransactionManager> wrapInitializationCallbackAndAddConsistencyChecks(
             AtlasDbConfig atlasDbConfig,
             AtlasDbRuntimeConfig initialRuntimeConfig,
             LockAndTimestampServices lockAndTimestampServices,
-            Callback<TransactionManager> asyncInitializationCallback) {
+            Callback<SerializableTransactionManager> asyncInitializationCallback) {
         if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
             // Only do the consistency check if we're using TimeLock.
             // This avoids a bootstrapping problem with leader-block services without async initialisation,
             // where you need a working timestamp service to check consistency, you need to check consistency
             // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
             // ports in order to get a working timestamp service.
-            List<Callback<TransactionManager>> callbacks = Lists.newArrayList();
+            List<Callback<SerializableTransactionManager>> callbacks = Lists.newArrayList();
             callbacks.add(ConsistencyCheckRunner.create(
-                    new TimestampCorroborationConsistencyCheck(
-                            TransactionManager::getUnreadableTimestamp,
-                            (unused) -> lockAndTimestampServices.timelock().getFreshTimestamp())));
+                    ImmutableTimestampCorroborationConsistencyCheck.builder()
+                            .conservativeBound(TransactionManager::getUnreadableTimestamp)
+                            .freshTimestampSource(unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
+                            .build()));
             callbacks.add(asyncInitializationCallback);
             return new Callback.CallChain<>(callbacks);
         }
@@ -648,10 +651,14 @@ public abstract class TransactionManagers {
                         lockAndTimestampServices.timelock(),
                         timestampClientConfigSupplier);
 
+        TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
+                timelockServiceWithBatching,
+                AtlasDbMetrics.getMetricRegistry());
+
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .timestamp(new TimelockTimestampServiceAdapter(timelockServiceWithBatching))
-                .timelock(timelockServiceWithBatching)
+                .timelock(instrumentedTimelockService)
                 .build();
     }
 
