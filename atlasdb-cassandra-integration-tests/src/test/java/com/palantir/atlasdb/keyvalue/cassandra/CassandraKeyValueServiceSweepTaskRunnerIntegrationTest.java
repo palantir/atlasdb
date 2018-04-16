@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Arrays;
-import java.util.Optional;
-import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
@@ -94,16 +92,6 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
 
         SweepResults results = completeSweep(350).get();
         Assert.assertEquals(28, results.getStaleValuesDeleted());
-    }
-
-    @Test
-    public void should_be_able_to_sweep_wide_rows() {
-        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
-
-        IntStream.range(0, 50_000)
-                .forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
-        Optional<SweepResults> results = completeSweep(TABLE_NAME, 100_000, 1);
-        Assert.assertEquals(49_999, results.get().getStaleValuesDeleted());
     }
 
     private void insertMultipleValues(long numInsertions) {

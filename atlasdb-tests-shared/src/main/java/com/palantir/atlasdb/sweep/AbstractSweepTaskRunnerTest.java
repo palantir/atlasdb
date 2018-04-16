@@ -31,7 +31,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
+import java.util.stream.IntStream;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -45,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.util.Pair;
 
@@ -285,6 +289,16 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(5);
         assertEquals("foo", getFromDefaultColumn("foo", 200));
         assertEquals(ImmutableSet.of(125L), getAllTsFromDefaultColumn("foo"));
+    }
+
+    @Test(timeout = 50000)
+    public void testSweepHighlyVersionedCell() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+
+        IntStream.rangeClosed(1, 50_000)
+                .forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
+        Optional<SweepResults> results = completeSweep(TABLE_NAME, 100_000, 1);
+        Assert.assertEquals(50_000 - 1, results.get().getStaleValuesDeleted());
     }
 
     @SuppressWarnings("unchecked")
