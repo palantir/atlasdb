@@ -60,7 +60,7 @@ develop
            Previously, it returned true only if the cell's row matched the name of a row component which was declared as safe.
            However, knowledge of the existence of such a cell may not actually be safe.
            There currently isn't an API for declaring specific row or dynamic column components as safe; please contact the AtlasDB team if you have such a use case.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3093>`__)
 
 =======
 v0.80.0
