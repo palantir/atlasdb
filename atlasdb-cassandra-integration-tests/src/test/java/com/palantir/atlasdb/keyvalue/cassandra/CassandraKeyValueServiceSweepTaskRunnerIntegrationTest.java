@@ -100,10 +100,10 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
     public void bad() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
-        IntStream.range(0, 100_000)
+        IntStream.range(0, 50_000)
                 .forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
-        Optional<SweepResults> results = completeSweep(TABLE_NAME, 200_000, 1);
-        System.out.println(results);
+        Optional<SweepResults> results = completeSweep(TABLE_NAME, 100_000, 1);
+        Assert.assertEquals(49_999, results.get().getStaleValuesDeleted());
     }
 
     private void insertMultipleValues(long numInsertions) {
