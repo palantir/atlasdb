@@ -5,7 +5,7 @@
 package com.palantir.timelock.config;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
@@ -14,7 +14,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.auth.TimelockAuthClient;
 
 /**
@@ -57,7 +56,9 @@ public abstract class TimeLockRuntimeConfiguration {
     }
 
     @JsonProperty("admin-token")
-    public abstract String adminToken();
+    public Optional<String> adminToken() {
+        return Optional.empty();
+    }
 
     @Value.Check
     public void check() {
