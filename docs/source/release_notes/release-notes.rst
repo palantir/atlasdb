@@ -52,7 +52,7 @@ develop
 
     *    - |fixed|
          - The ``_locks`` table is now created with a deterministic column family ID.
-         This means that multi-node installations will no longer create multiple ``_locks_<uuid>`` tables on first start-up.
+           This means that multi-node installations will no longer create multiple locks tables on first start-up.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3088>`__)
 
 =======
