@@ -55,6 +55,12 @@ develop
            This allows for easier analysis and consumption of these metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
 
+    *    - |fixed| |improved|
+         - AtlasDB now partitions versions of cells to be swept into batches more robustly and more efficiently.
+           Previously, this could cause stack overflows when sweeping a very wide row, because the partitioning algorithm attempted to traverse a recursive hierarchy of sublists.
+           Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3095>`__)
+
 =======
 v0.80.0
 =======

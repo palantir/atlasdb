@@ -97,7 +97,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
     }
 
     @Test
-    public void bad() {
+    public void should_be_able_to_sweep_wide_rows() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
         IntStream.range(0, 50_000)
