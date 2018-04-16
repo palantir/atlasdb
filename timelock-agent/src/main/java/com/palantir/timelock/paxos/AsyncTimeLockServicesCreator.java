@@ -28,9 +28,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
-import com.palantir.atlasdb.timelock.SecureTimelockResource;
-import com.palantir.atlasdb.timelock.SecureTimelockService;
-import com.palantir.atlasdb.timelock.SecureTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
@@ -42,22 +39,17 @@ import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
-import com.palantir.tokens.auth.AuthHeader;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockServicesCreator.class);
 
     private final PaxosLeadershipCreator leadershipCreator;
     private final AsyncLockConfiguration asyncLockConfiguration;
-    private final Supplier<TimeLockRuntimeConfiguration> runtime;
 
     public AsyncTimeLockServicesCreator(PaxosLeadershipCreator leadershipCreator,
-            AsyncLockConfiguration asyncLockConfiguration,
-            Supplier<TimeLockRuntimeConfiguration> runtime) {
+            AsyncLockConfiguration asyncLockConfiguration) {
         this.leadershipCreator = leadershipCreator;
         this.asyncLockConfiguration = asyncLockConfiguration;
-        this.runtime = runtime;
     }
 
     @Override
@@ -75,23 +67,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier),
                 client);
 
-        if (runtime.get().clientTokens().containsKey(client)) {
-            AuthHeader clientAuthHeader = AuthHeader.valueOf(runtime.get().clientTokens().get(client));
-            SecureTimelockService secureTimelockService = instrumentInLeadershipProxy(
-                    SecureTimelockService.class,
-                    () -> AsyncTimeLockServicesCreator.createRawSecureTimelockService(client,
-                            rawTimestampServiceSupplier, clientAuthHeader),
-                    client);
-            asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromSecureTimelock(
-                    new SecureTimelockResource(secureTimelockService));
-
-            return TimeLockServices.create(
-                    secureTimelockService,
-                    lockService,
-                    asyncOrLegacyTimelockService,
-                    secureTimelockService);
-        }
-
         AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
                 AsyncTimelockService.class,
                 () -> AsyncTimeLockServicesCreator.createRawAsyncTimelockService(client,
@@ -105,15 +80,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 lockService,
                 asyncOrLegacyTimelockService,
                 asyncTimelockService);
-    }
-
-    private static SecureTimelockService createRawSecureTimelockService(
-            String client,
-            Supplier<ManagedTimestampService> timestampServiceSupplier,
-            AuthHeader clientAuthHeader
-            ) {
-        return new SecureTimelockServiceImpl(createRawAsyncTimelockService(client, timestampServiceSupplier),
-                clientAuthHeader);
     }
 
     private static AsyncTimelockService createRawAsyncTimelockService(String client,
