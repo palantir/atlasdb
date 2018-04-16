@@ -56,6 +56,7 @@ public abstract class TimeLockRuntimeConfiguration {
     }
 
     @JsonProperty("admin-token")
+    @Value.Default
     public Optional<String> adminToken() {
         return Optional.empty();
     }
