@@ -58,6 +58,20 @@ public enum TargetedSweepSchema implements AtlasSchema {
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
 
+        schema.addTableDefinition("sweepableTimestamps", new TableDefinition() {{
+            javaTableName("SweepableTimestamps");
+            allSafeForLoggingByDefault();
+            rowName();
+                rowComponent("shard", ValueType.SHA256HASH);
+                rowComponent("timestamp_partition", ValueType.VAR_LONG);
+                rowComponent("sweep_mode", ValueType.STRING);
+            columns();
+               column("timestamp_modulus", "ts_mod", ValueType.VAR_LONG);
+
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+        }});
+
         schema.validate();
         return schema;
     }
