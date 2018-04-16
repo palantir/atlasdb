@@ -314,6 +314,10 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     }
 
     protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
+        return completeSweep(tableReference, ts, DEFAULT_BATCH_SIZE);
+    }
+
+    protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts, int batchSize) {
         sweepTimestamp.set(ts);
         byte[] startRow = PtBytes.EMPTY_BYTE_ARRAY;
         long totalStaleValuesDeleted = 0;
@@ -322,9 +326,9 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
             SweepResults results = sweepRunner.run(
                     tableReference,
                     ImmutableSweepBatchConfig.builder()
-                            .deleteBatchSize(DEFAULT_BATCH_SIZE)
-                            .candidateBatchSize(DEFAULT_BATCH_SIZE)
-                            .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
+                            .deleteBatchSize(batchSize)
+                            .candidateBatchSize(batchSize)
+                            .maxCellTsPairsToExamine(batchSize)
                             .build(),
                     startRow);
             assertEquals(ts, results.getMinSweptTimestamp());

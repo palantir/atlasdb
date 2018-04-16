@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Arrays;
+import java.util.Optional;
+import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
@@ -92,6 +94,16 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
 
         SweepResults results = completeSweep(350).get();
         Assert.assertEquals(28, results.getStaleValuesDeleted());
+    }
+
+    @Test
+    public void bad() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+
+        IntStream.range(0, 100_000)
+                .forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
+        Optional<SweepResults> results = completeSweep(TABLE_NAME, 200_000, 1);
+        System.out.println(results);
     }
 
     private void insertMultipleValues(long numInsertions) {
