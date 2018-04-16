@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -261,28 +262,29 @@ public class SweepTaskRunner {
                 currentBatchSentinels.add(cell.cell());
             }
 
-            List<Long> currentCellTimestamps = TDecorators.wrap(cell.sortedTimestamps());
+            // Taking an immutable copy is done here to allow for faster sublist extraction.
+            List<Long> currentCellTimestamps =
+                    ImmutableList.copyOf(TDecorators.wrap(cell.sortedTimestamps()));
 
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
                 currentBatch.putAll(cell.cell(), currentCellTimestamps);
-                continue;
-            }
+            } else {
+                while (currentBatch.size() + currentCellTimestamps.size() >= deleteBatchSize) {
+                    int numberOfTimestampsForThisBatch = deleteBatchSize - currentBatch.size();
 
-            while (currentBatch.size() + currentCellTimestamps.size() >= deleteBatchSize) {
-                int numberOfTimestampsForThisBatch = deleteBatchSize - currentBatch.size();
+                    currentBatch.putAll(cell.cell(), currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch));
+                    if (runType == RunType.FULL) {
+                        cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
+                    }
+                    numberOfSweptCells += currentBatch.size();
 
-                currentBatch.putAll(cell.cell(), currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch));
-                if (runType == RunType.FULL) {
-                    cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
+                    currentBatch.clear();
+                    currentBatchSentinels.clear();
+                    currentCellTimestamps = currentCellTimestamps.subList(
+                            numberOfTimestampsForThisBatch, currentCellTimestamps.size());
                 }
-                numberOfSweptCells += currentBatch.size();
-
-                currentBatch.clear();
-                currentBatchSentinels.clear();
-                currentCellTimestamps = currentCellTimestamps.subList(
-                        numberOfTimestampsForThisBatch, currentCellTimestamps.size());
+                currentBatch.putAll(cell.cell(), currentCellTimestamps);
             }
-            currentBatch.putAll(cell.cell(), currentCellTimestamps);
         }
 
         if (!currentBatch.isEmpty() && runType == RunType.FULL) {
