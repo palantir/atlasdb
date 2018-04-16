@@ -37,7 +37,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private static Schema generateSchema() {
         Schema schema = new Schema("TargetedSweep",
-                SweepSchema.class.getPackage().getName() + ".generated",
+                TargetedSweepSchema.class.getPackage().getName() + ".generated",
                 NAMESPACE,
                 OptionalType.JAVA8);
 
