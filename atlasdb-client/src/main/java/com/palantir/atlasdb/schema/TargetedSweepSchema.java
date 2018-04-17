@@ -52,7 +52,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
             dynamicColumns();
                 columnComponent("timestamp_modulus", ValueType.VAR_LONG);
                 columnComponent("write_index", ValueType.VAR_LONG);
-                value(ValueType.BLOB);
+                value(ValueType.STRING);
 
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
