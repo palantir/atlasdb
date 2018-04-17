@@ -22,13 +22,10 @@ import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
-import com.palantir.atlasdb.timelock.SecureTimelockResource;
 import com.palantir.lock.v2.TimelockService;
 
 @Value.Immutable
 public abstract class AsyncOrLegacyTimelockService {
-    @Value.Parameter
-    public abstract Optional<SecureTimelockResource> getSecureTimelockResource();
 
     @Value.Parameter
     public abstract Optional<AsyncTimelockResource> getAsyncTimelockResource();
@@ -37,44 +34,22 @@ public abstract class AsyncOrLegacyTimelockService {
     public abstract Optional<TimelockService> getLegacyTimelockService();
 
     public static AsyncOrLegacyTimelockService createFromAsyncTimelock(AsyncTimelockResource asyncTimelockResource) {
-        return ImmutableAsyncOrLegacyTimelockService.of(Optional.empty(), Optional.of(asyncTimelockResource),
-                Optional.empty());
-    }
-
-    public static AsyncOrLegacyTimelockService createFromSecureTimelock(SecureTimelockResource secureTimelockResource) {
-        return ImmutableAsyncOrLegacyTimelockService.of(Optional.of(secureTimelockResource), Optional.empty(),
+        return ImmutableAsyncOrLegacyTimelockService.of(Optional.of(asyncTimelockResource),
                 Optional.empty());
     }
 
     public static AsyncOrLegacyTimelockService createFromLegacyTimelock(TimelockService legacyTimelockService) {
-        return ImmutableAsyncOrLegacyTimelockService.of(Optional.empty(), Optional.empty(),
+        return ImmutableAsyncOrLegacyTimelockService.of(Optional.empty(),
                 Optional.of(legacyTimelockService));
     }
 
     @Value.Check
     protected void check() {
-        Preconditions.checkState(
-                getSecureTimelockResource().isPresent() || getLegacyTimelockService().isPresent()
-                        || getAsyncTimelockResource().isPresent(),
-                "Either the async or secure timelock resource or legacy timelock service should be present!");
-        Preconditions.checkState(
-                !(getSecureTimelockResource().isPresent() && getLegacyTimelockService().isPresent()),
-                "It shouldn't be that both the secure and legacy timelock services are available.");
-
-        Preconditions.checkState(
-                !(getAsyncTimelockResource().isPresent() && getLegacyTimelockService().isPresent()),
+        Preconditions.checkState(!(getAsyncTimelockResource().isPresent() && getLegacyTimelockService().isPresent()),
                 "It shouldn't be that both the async and legacy timelock services are available.");
-
-        Preconditions.checkState(
-                !(getSecureTimelockResource().isPresent() && getAsyncTimelockResource().isPresent()),
-                "It shouldn't be that both the secure and async timelock services are available.");
     }
 
     public Object getPresentService() {
-        if (getSecureTimelockResource().isPresent()) {
-            return getSecureTimelockResource().get();
-        }
-
         if (getAsyncTimelockResource().isPresent()) {
             return getAsyncTimelockResource().get();
         }
