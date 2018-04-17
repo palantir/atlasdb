@@ -40,7 +40,7 @@ import okhttp3.TlsVersion;
 
 public final class FeignOkHttpClients {
     @VisibleForTesting
-    static final String USER_AGENT_HEADER = "User-Agent";
+    static final String USER_AGENT_HEADER = HttpHeaders.USER_AGENT;
     @VisibleForTesting
     static final String AUTHORIZATION_HEADER = HttpHeaders.AUTHORIZATION;
 

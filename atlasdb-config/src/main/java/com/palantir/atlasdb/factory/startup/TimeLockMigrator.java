@@ -81,7 +81,8 @@ public class TimeLockMigrator extends AsyncInitializer {
 
     private static TimestampManagementService createRemoteManagementService(
             Supplier<ServerListConfig> serverListConfig,
-            Supplier<Optional<String>> authTokenSupplier, String userAgent) {
+            Supplier<Optional<String>> authTokenSupplier,
+            String userAgent) {
         return new ServiceCreator<>(TimestampManagementService.class, userAgent)
                 .applyDynamic(serverListConfig, authTokenSupplier);
     }
