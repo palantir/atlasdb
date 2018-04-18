@@ -26,10 +26,12 @@ import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.SafeArg;
@@ -66,9 +68,22 @@ public class SchemaMutationLockTables {
 
     public TableReference createLockTable() throws TException {
         TableReference lockTable = TableReference.createWithEmptyNamespace(LOCK_TABLE_PREFIX);
-        log.info("Creating lock table {}", SafeArg.of("schemaMutationTableName", lockTable));
-        createTableWithCustomId(lockTable);
-        return lockTable;
+
+        try {
+            log.info("Creating lock table {}", SafeArg.of("schemaMutationTableName", lockTable));
+            createTableWithCustomId(lockTable);
+            return lockTable;
+        } catch (InvalidRequestException ire) {
+            // This can happen if multiple nodes concurrently attempt to create the locks table
+            Set<TableReference> lockTables = getAllLockTables();
+            if (lockTables.size() == 1) {
+                log.info("Lock table was created by another node - returning it.");
+                return Iterables.getOnlyElement(lockTables);
+            } else {
+                throw new IllegalStateException(String.format("Expected 1 locks table to exist, but found %d",
+                        lockTables.size()));
+            }
+        }
     }
 
     private void createTableWithCustomId(TableReference tableRef) throws TException {

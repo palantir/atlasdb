@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -83,15 +82,10 @@ public class SchemaMutationLockTablesIntegrationTest {
     }
 
     @Test
-    public void secondTableCreationFailsAndOnlyOneTableExistsAfterwards() throws Exception {
+    public void secondTableCreationSucceedsButOnlyOneTableExistsAfterwards() throws Exception {
         lockTables.createLockTable();
 
-        try {
-            lockTables.createLockTable();
-            fail("Should have thrown an InvalidRequestException!");
-        } catch (InvalidRequestException ire) {
-            // expected
-        }
+        lockTables.createLockTable();
 
         assertThat(lockTables.getAllLockTables(), hasSize(1));
     }
