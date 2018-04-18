@@ -55,6 +55,10 @@ develop
            This allows for easier analysis and consumption of these metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
 
+    *    - |fixed|
+         - Logs in ``CassandraRequestExceptionHandler`` are logged using a logger named after that class instead of ``CassandraClientPool``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3092>`__)
+
 =======
 v0.80.0
 =======
@@ -67,7 +71,7 @@ v0.80.0
 
     *    - Type
          - Change
-    
+
     *    - |fixed| |devbreak|
          - Centralize how ``PersistentLockManager`` is created in a dagger context.
            Also, removed the old constructor for ``CellsSweeper``.

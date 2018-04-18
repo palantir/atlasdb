@@ -38,7 +38,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 class CassandraRequestExceptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraRequestExceptionHandler.class);
 
     private final Supplier<Integer> maxTriesSameHost;
     private final Supplier<Integer> maxTriesTotal;
