@@ -36,15 +36,15 @@ public abstract class TargetedSweepMetadata implements Persistable {
 
     @Override
     public byte[] persistToBytes() {
-        byte[] result = new byte[4];
+        byte[] result = new byte[] { 0, 0, 0, 0};
         if (conservative()) {
-            result[0] = (byte) 0x80;
+            result[0] |= 0x80;
         }
         if (dedicatedRow()) {
             result[0] |= 0x40;
         }
         result[0] |= shard() >> 2;
-        result[1] = (byte) (shard() << 6);
+        result[1] |= shard() << 6;
         result[1] |= dedicatedRowNumber();
         return result;
     }
