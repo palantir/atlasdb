@@ -35,9 +35,11 @@ public class TimestampCorroborationConsistencyCheckTest {
 
     @Test
     public void returnsIndeterminateIfCannotGetConservativeBound() {
-        TimestampCorroborationConsistencyCheck checkFailingToGetBound = new TimestampCorroborationConsistencyCheck(
-                EXCEPTION_THROWER,
-                txMgr -> 7L);
+        TimestampCorroborationConsistencyCheck checkFailingToGetBound =
+                ImmutableTimestampCorroborationConsistencyCheck.builder()
+                        .conservativeBound(EXCEPTION_THROWER)
+                        .freshTimestampSource(txMgr -> 7L)
+                        .build();
         assertThat(checkFailingToGetBound.apply(mock(TransactionManager.class)))
                 .isEqualTo(ImmutableTransactionManagerConsistencyResult.builder()
                         .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.INDETERMINATE)
@@ -47,9 +49,11 @@ public class TimestampCorroborationConsistencyCheckTest {
 
     @Test
     public void returnsIndeterminateIfCannotGetFreshTimestamp() {
-        TimestampCorroborationConsistencyCheck checkFailingToGetFresh = new TimestampCorroborationConsistencyCheck(
-                txMgr -> 10L,
-                EXCEPTION_THROWER);
+        TimestampCorroborationConsistencyCheck checkFailingToGetFresh =
+                ImmutableTimestampCorroborationConsistencyCheck.builder()
+                        .conservativeBound(txMgr -> 10L)
+                        .freshTimestampSource(EXCEPTION_THROWER)
+                        .build();
         assertThat(checkFailingToGetFresh.apply(mock(TransactionManager.class)))
                 .isEqualTo(ImmutableTransactionManagerConsistencyResult.builder()
                         .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.INDETERMINATE)
@@ -89,6 +93,9 @@ public class TimestampCorroborationConsistencyCheckTest {
     }
 
     private TimestampCorroborationConsistencyCheck createForTimestamps(long conservativeBound, long freshTimestamp) {
-        return new TimestampCorroborationConsistencyCheck(unused -> conservativeBound, unused -> freshTimestamp);
+        return ImmutableTimestampCorroborationConsistencyCheck.builder()
+                .conservativeBound(unused -> conservativeBound)
+                .freshTimestampSource(unused -> freshTimestamp)
+                .build();
     }
 }

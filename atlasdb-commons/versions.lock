@@ -65,6 +65,7 @@
         "com.google.code.findbugs:annotations": {
             "locked": "3.0.1",
             "transitive": [
+                "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api"
             ]
@@ -94,6 +95,9 @@
             "transitive": [
                 "com.google.guava:guava"
             ]
+        },
+        "com.palantir.atlasdb:commons-annotations": {
+            "project": true
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true
@@ -232,6 +236,7 @@
         "com.google.code.findbugs:annotations": {
             "locked": "3.0.1",
             "transitive": [
+                "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api"
             ]
@@ -261,6 +266,9 @@
             "transitive": [
                 "com.google.guava:guava"
             ]
+        },
+        "com.palantir.atlasdb:commons-annotations": {
+            "project": true
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true

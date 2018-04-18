@@ -55,6 +55,21 @@ develop
            This means that multi-node installations will no longer create multiple locks tables on first start-up.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3088>`__)
 
+    *    - |improved| |metrics|
+         - Async TimeLock Service metric timers are now tagged with (1) the relevant clients, and (2) whether the current node is the leader or not.
+           This allows for easier analysis and consumption of these metrics.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
+
+    *    - |improved|
+         - Common annotations can now be imported via the commons-annotations library,
+           instead of needing to pull in atlasdb-commons. Existing code that uses atlasdb-commons
+           for the annotations will still be able to resolve them.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3089>`__)
+
+    *    - |fixed|
+         - Logs in ``CassandraRequestExceptionHandler`` are logged using a logger named after that class instead of ``CassandraClientPool``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3092>`__)
+
 =======
 v0.80.0
 =======
@@ -114,6 +129,15 @@ v0.80.0
          - Applications can now easily determine whether their Timelock cluster is healthy by querying ``TransactionManager.getTimelockServiceStatus().isHealthy()``.
            This returns true only if a healthy connection to timelock service is established.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3030>`__)
+
+    *    - |improved| |devbreak|
+         - Bumped several libraries to get past known security vulns:
+           cassandra thrift and CQL libs
+           jackson
+           logback
+           netty (indirectly via cassandra lib bump)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
+
 
 =======
 v0.79.0
