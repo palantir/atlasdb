@@ -92,7 +92,6 @@ public class SchemaMutationLockTables {
         String fullTableNameForUuid = keyspace + "." + internalTableName;
         UUID uuid = UUID.nameUUIDFromBytes(fullTableNameForUuid.getBytes());
 
-        // TODO use parameters as in ColumnFamilyDefinitions.getStandardCfDef
         String createTableStatement = "CREATE TABLE \"%s\".\"%s\" (\n"
                 + "    key blob,\n"
                 + "    column1 blob,\n"
@@ -100,20 +99,6 @@ public class SchemaMutationLockTables {
                 + "    value blob,\n"
                 + "    PRIMARY KEY (key, column1, column2)\n"
                 + ") WITH COMPACT STORAGE\n"
-                + "    AND CLUSTERING ORDER BY (column1 ASC, column2 ASC)\n"
-                + "    AND bloom_filter_fp_chance = 0.1\n"
-                + "    AND caching = '{\"keys\":\"ALL\", \"rows_per_partition\":\"NONE\"}'\n"
-                + "    AND comment = ''\n"
-                + "    AND compaction = {'class': 'org.apache.cassandra.db.compaction.LeveledCompactionStrategy'}\n"
-                + "    AND compression = {}\n"
-                + "    AND dclocal_read_repair_chance = 0.1\n"
-                + "    AND default_time_to_live = 0\n"
-                + "    AND gc_grace_seconds = 3600\n"
-                + "    AND max_index_interval = 2048\n"
-                + "    AND memtable_flush_period_in_ms = 0\n"
-                + "    AND min_index_interval = 128\n"
-                + "    AND read_repair_chance = 0.0\n"
-                + "    AND speculative_retry = 'NONE'"
                 + "    AND id = '%s'";
         CqlQuery query = new CqlQuery(createTableStatement,
                 SafeArg.of("keyspace", keyspace),
