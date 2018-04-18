@@ -70,7 +70,7 @@ public class SchemaMutationLockTables {
         TableReference lockTable = TableReference.createWithEmptyNamespace(LOCK_TABLE_PREFIX);
 
         try {
-            log.info("Creating lock table {}", SafeArg.of("schemaMutationTableName", lockTable));
+            log.info("Creating lock table {}", SafeArg.of("schemaMutationTableName", lockTable.getQualifiedName()));
             createTableWithCustomId(lockTable);
             return lockTable;
         } catch (InvalidRequestException ire) {
