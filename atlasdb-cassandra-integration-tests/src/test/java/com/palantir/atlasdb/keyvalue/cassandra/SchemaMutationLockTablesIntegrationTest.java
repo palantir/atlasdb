@@ -31,11 +31,6 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.function.IntConsumer;
 import java.util.stream.IntStream;
 
-import org.apache.cassandra.db.marshal.UUIDType;
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.Compression;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.thrift.TException;
 import org.junit.Before;
@@ -48,7 +43,6 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.logsafe.SafeArg;
 
 public class SchemaMutationLockTablesIntegrationTest {
     @ClassRule
@@ -102,30 +96,6 @@ public class SchemaMutationLockTablesIntegrationTest {
         lockTables.createLockTable();
 
         assertThat(Iterables.getOnlyElement(lockTables.getAllLockTables()).getTablename(), equalTo("_locks"));
-    }
-
-    @Test
-    public void shouldCreateLockTableWithFixedCfId() throws Exception {
-        lockTables.createLockTable();
-
-        TableReference lockTable = Iterables.getOnlyElement(lockTables.getAllLockTables());
-        String query = "SELECT cf_id FROM system.schema_columnfamilies WHERE keyspace_name = '%s' "
-                + "AND columnfamily_name = '%s'";
-        CqlQuery cqlQuery = new CqlQuery(query, SafeArg.of("keyspace", config.getKeyspaceOrThrow()),
-                SafeArg.of("tableName", lockTable.getTablename()));
-        byte[] storedBytes = clientPool.run(client -> {
-            CqlResult cqlResult = client.execute_cql3_query(cqlQuery, Compression.NONE, ConsistencyLevel.QUORUM);
-            Column column = cqlResult.getRows().stream().findFirst().get().getColumns().get(0);
-            return column.getValue();
-        });
-
-        String fullTableName = config.getKeyspaceOrThrow() + "." + lockTable.getTablename();
-        UUID expectedUuid = UUID.nameUUIDFromBytes(fullTableName.getBytes());
-        byte[] expectedBytes = UUIDType.instance.fromString(expectedUuid.toString()).array();
-
-        assertThat("Created a lock table with the wrong ID!",
-                storedBytes, equalTo(expectedBytes));
-
     }
 
     @Test
