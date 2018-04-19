@@ -295,10 +295,10 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     public void testSweepHighlyVersionedCell() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
-        IntStream.rangeClosed(1, 50_000)
+        IntStream.rangeClosed(1, 1_000)
                 .forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
         Optional<SweepResults> results = completeSweep(TABLE_NAME, 100_000, 1);
-        Assert.assertEquals(50_000 - 1, results.get().getStaleValuesDeleted());
+        Assert.assertEquals(1_000 - 1, results.get().getStaleValuesDeleted());
     }
 
     @SuppressWarnings("unchecked")
