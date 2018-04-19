@@ -66,7 +66,7 @@ class CompactPriorityCalculator {
 
         Optional<String> tableToCompact = maybeChooseUncompactedTable(tableToLastTimeSwept, tableToLastTimeCompacted);
         if (!tableToCompact.isPresent()) {
-            tableToCompact = maybeChooseTableSweptAfterCompact(tableToLastTimeSwept,tableToLastTimeCompacted);
+            tableToCompact = maybeChooseTableSweptAfterCompact(tableToLastTimeSwept, tableToLastTimeCompacted);
         }
         if (!tableToCompact.isPresent()) {
             tableToCompact = maybeChooseTableCompactedOver1HourAgo(tableToLastTimeCompacted);
