@@ -72,9 +72,8 @@ v0.81.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
 
     *    - |improved|
-         - Common annotations can now be imported via the commons-annotations library,
-           instead of needing to pull in atlasdb-commons. Existing code that uses atlasdb-commons
-           for the annotations will still be able to resolve them.
+         - Common annotations can now be imported via the commons-annotations library, instead of needing to pull in atlasdb-commons.
+           Existing code that uses atlasdb-commons for the annotations will still be able to resolve them.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3089>`__)
 
     *    - |fixed|
