@@ -79,7 +79,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                MultiTableSweepQueueWriter.NO_OP);
+                getSweepQueueWriter());
     }
 
     @Override
@@ -108,12 +108,16 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP) {
+                getSweepQueueWriter()) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());
             }
         };
+    }
+
+    protected MultiTableSweepQueueWriter getSweepQueueWriter() {
+        return MultiTableSweepQueueWriter.NO_OP;
     }
 
     @Test

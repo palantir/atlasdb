@@ -61,7 +61,7 @@ public final class TargetedSweepTableFactory {
         }
 
         @Override
-        public void putSweepableTimestamps(Multimap<SweepableTimestampsTable.SweepableTimestampsRow, ? extends SweepableTimestampsTable.SweepableTimestampsNamedColumnValue<?>> newRows) {
+        public void putSweepableTimestamps(Multimap<SweepableTimestampsTable.SweepableTimestampsRow, ? extends SweepableTimestampsTable.SweepableTimestampsColumnValue> newRows) {
             // do nothing
         }
     }

@@ -49,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -70,6 +71,9 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.atlasdb.sweep.queue.KvsSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -125,6 +129,20 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Ignore
     public void testGetAllTableNames() {
         //
+    }
+
+    @Test
+    public void cassandraSweepQueueTest() {
+        KvsSweepQueueWriter queue = new KvsSweepQueueWriter(keyValueService, TargetedSweepTableFactory.of());
+        queue.initialize();
+        Cell cell1 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col1"));
+        Cell cell2 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col2"));
+        Cell cell3 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col3"));
+        queue.enqueue(TableReference.createFromFullyQualifiedName("abc.def"), ImmutableList.of(WriteInfo.of(cell1, false, 1000L),
+                WriteInfo.of(cell2, false, 2000001L)));
+        queue.enqueue(TableReference.createFromFullyQualifiedName("abc.abc"), ImmutableList.of(WriteInfo.of(cell3, false, 100000L),
+                WriteInfo.of(cell3, false, 100001L)));
+        System.out.println();
     }
 
     @Test

@@ -27,4 +27,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public interface TableReferenceAndCell {
     TableReference tableRef();
     Cell cell();
+
+    static TableReferenceAndCell of(TableReference tableRef, Cell cell) {
+        return ImmutableTableReferenceAndCell.builder().tableRef(tableRef).cell(cell).build();
+    }
 }

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 
 /**
@@ -50,7 +51,11 @@ public interface WriteInfo {
     }
 
     static WriteInfo of(Cell cell, boolean isTombstone, long timestamp) {
-        return ImmutableWriteInfo.builder().cell(cell).isTombstone(isTombstone).timestamp(timestamp).build();
+        return ImmutableWriteInfo.builder()
+                .cell(cell)
+                .isTombstone(isTombstone)
+                .timestamp(timestamp)
+                .build();
     }
 
 }

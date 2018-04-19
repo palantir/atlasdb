@@ -22,6 +22,7 @@ dependencies {
   explicitShadow project(":atlasdb-client")
   explicitShadow project(":atlasdb-processors")
   explicitShadow project(":atlasdb-api")
+  explicitShadow project(":atlasdb-impl-shared")
   explicitShadow project(":commons-api")
   explicitShadow project(':timestamp-impl')
 
