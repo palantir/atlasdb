@@ -70,7 +70,7 @@ public class Blacklist {
             container.runWithPooledResource(CassandraUtils.getValidatePartitioner(config));
             return true;
         } catch (Exception e) {
-            log.warn("We tried to add blacklisted host '{}' back into the pool, but got an exception"
+            log.debug("We tried to add blacklisted host '{}' back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
                     SafeArg.of("host", CassandraLogHelper.host(container.getHost())),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
@@ -89,7 +89,7 @@ public class Blacklist {
 
     public void add(InetSocketAddress host) {
         blacklist.put(host, System.currentTimeMillis());
-        log.warn("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
+        log.info("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
     }
 
     void addAll(Set<InetSocketAddress> hosts) {

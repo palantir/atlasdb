@@ -462,7 +462,7 @@ public abstract class TransactionManagers {
                 || config.getSweepReadLimit() != null
                 || config.getSweepCandidateBatchHint() != null
                 || config.getSweepDeleteBatchHint() != null) {
-            log.error("Your configuration specifies sweep parameters on the install config. They will be ignored."
+            log.warn("Your configuration specifies sweep parameters on the install config. They will be ignored."
                     + " Please use the runtime config to specify them.");
         }
     }

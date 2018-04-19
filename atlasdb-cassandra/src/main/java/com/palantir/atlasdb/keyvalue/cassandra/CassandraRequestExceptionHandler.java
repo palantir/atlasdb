@@ -117,13 +117,13 @@ class CassandraRequestExceptionHandler {
     private <K extends Exception> void logNumberOfAttempts(Exception ex, int numberOfAttempts) throws K {
         // Only log the actual exception the first time
         if (numberOfAttempts > 1) {
-            log.info("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
+            log.debug("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
                     SafeArg.of("numTries", numberOfAttempts),
                     SafeArg.of("maxTotalTries", maxTriesTotal),
                     SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                     UnsafeArg.of("exceptionMessage", ex.getMessage()));
         } else {
-            log.info("Error occurred talking to cassandra. Attempt {} of {}.",
+            log.debug("Error occurred talking to cassandra. Attempt {} of {}.",
                     SafeArg.of("numTries", numberOfAttempts),
                     SafeArg.of("maxTotalTries", maxTriesTotal),
                     ex);

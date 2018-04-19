@@ -126,7 +126,7 @@ public class CassandraService implements AutoCloseable {
             tokenRangeWritesLogger.updateTokenRanges(tokenMap.asMapOfRanges().keySet());
             return servers;
         } catch (Exception e) {
-            log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
+            log.warn("Couldn't grab new token ranges for token aware cassandra mapping!", e);
 
             // return the set of servers we knew about last time we successfully constructed the tokenMap
             return tokenMap.asMapOfRanges().values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
@@ -182,13 +182,13 @@ public class CassandraService implements AutoCloseable {
                 .filter(predicate)
                 .collect(Collectors.toSet());
         if (filteredHosts.isEmpty()) {
-            log.error("No hosts match the provided predicate.");
+            log.info("No hosts match the provided predicate.");
             return Optional.empty();
         }
 
         Set<InetSocketAddress> livingHosts = blacklist.filterBlacklistedHostsFrom(filteredHosts);
         if (livingHosts.isEmpty()) {
-            log.warn("There are no known live hosts in the connection pool matching the predicate. We're choosing"
+            log.info("There are no known live hosts in the connection pool matching the predicate. We're choosing"
                     + " one at random in a last-ditch attempt at forward progress.");
             livingHosts = filteredHosts;
         }

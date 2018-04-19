@@ -207,7 +207,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         } catch (RuntimeException e) {
             specificTableSweeper.updateSweepErrorMetric();
 
-            log.error("Sweep failed", e);
+            log.info("Sweep failed", e);
             return SweepOutcome.ERROR;
         }
     }
@@ -230,7 +230,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), batchConfig);
             return SweepOutcome.SUCCESS;
         } catch (InsufficientConsistencyException e) {
-            log.warn("Could not sweep because not all nodes of the database are online.", e);
+            log.info("Could not sweep because not all nodes of the database are online.", e);
             return SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE;
         } catch (RuntimeException e) {
             specificTableSweeper.updateSweepErrorMetric();
@@ -270,13 +270,13 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
                 return SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
             }
 
-            log.warn("The background sweep job failed unexpectedly; will retry with a lower batch size...",
+            log.info("The background sweep job failed unexpectedly; will retry with a lower batch size...",
                     originalException);
             return SweepOutcome.ERROR;
 
         } catch (RuntimeException newE) {
-            log.error("Sweep failed", originalException);
-            log.error("Failed to check whether the table being swept was dropped. Retrying...", newE);
+            log.warn("Sweep failed", originalException);
+            log.warn("Failed to check whether the table being swept was dropped. Retrying...", newE);
             return SweepOutcome.ERROR;
         }
     }

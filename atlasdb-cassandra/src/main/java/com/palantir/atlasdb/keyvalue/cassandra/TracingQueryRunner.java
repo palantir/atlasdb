@@ -85,13 +85,13 @@ public class TracingQueryRunner {
     }
 
     private void logFailedCall(Set<TableReference> tableRefs) {
-        log.error("A call to table(s) {} failed with an exception.",
+        log.warn("A call to table(s) {} failed with an exception.",
                 tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")));
     }
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
         if (failed || duration > tracingPrefs.getMinimumDurationToTraceMillis()) {
-            log.error("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
+            log.warn("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
                     tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),
                     failed ? "failed and " : "",
                     duration,

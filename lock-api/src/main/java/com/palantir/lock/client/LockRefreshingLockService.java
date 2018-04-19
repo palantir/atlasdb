@@ -51,15 +51,15 @@ public class LockRefreshingLockService extends SimplifyingLockService {
             try {
                 ret.refreshLocks();
             } catch (Throwable t) {
-                log.error("Failed to refresh locks", t);
+                log.warn("Failed to refresh locks", t);
             } finally {
                 long elapsed = System.currentTimeMillis() - startTime;
 
                 if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
-                    log.error("Refreshing locks took {} milliseconds"
+                    log.warn("Refreshing locks took {} milliseconds"
                             + " for tokens: {}", elapsed, ret.toRefresh);
                 } else if (elapsed > ret.refreshFrequencyMillis) {
-                    log.warn("Refreshing locks took {} milliseconds"
+                    log.info("Refreshing locks took {} milliseconds"
                             + " for tokens: {}", elapsed, ret.toRefresh);
                 }
             }
@@ -128,7 +128,7 @@ public class LockRefreshingLockService extends SimplifyingLockService {
         for (LockRefreshToken token : refreshCopy) {
             if (!refreshedTokens.contains(token)
                     && toRefresh.contains(token)) {
-                log.error("failed to refresh lock: {}", token);
+                log.warn("failed to refresh lock: {}", token);
                 toRefresh.remove(token);
             }
         }
