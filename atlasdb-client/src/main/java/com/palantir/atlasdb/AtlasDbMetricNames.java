@@ -44,4 +44,7 @@ public final class AtlasDbMetricNames {
     public static final String TIME_ELAPSED_SWEEPING = "sweepTimeElapsedSinceStart";
     public static final String TABLE_BEING_SWEPT = "tableBeingSwept";
     public static final String SWEEP_ERROR = "sweepError";
+
+    public static final String TIMELOCK_SUCCESSFUL_REQUEST = "timelockSuccessfulRequest";
+    public static final String TIMELOCK_FAILED_REQUEST = "timelockFailedRequest";
 }

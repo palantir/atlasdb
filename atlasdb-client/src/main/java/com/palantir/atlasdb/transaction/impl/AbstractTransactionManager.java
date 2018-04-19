@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -30,6 +29,9 @@ import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.health.MetricsBasedTimelockHealthCheck;
+import com.palantir.atlasdb.health.TimelockHealthCheck;
+import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -41,6 +43,8 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
     final TimestampCache timestampValidationReadCache;
     private volatile boolean closed = false;
+
+    private static final TimelockHealthCheck timelockHealthCheck = new MetricsBasedTimelockHealthCheck();
 
     AbstractTransactionManager(Supplier<Long> timestampCacheSize) {
         this.timestampValidationReadCache = new TimestampCache(timestampCacheSize);
@@ -116,5 +120,10 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 numThreads, numThreads, 0L, TimeUnit.MILLISECONDS, workQueue,
                 new ThreadFactoryBuilder().setNameFormat(
                         AbstractTransactionManager.this.getClass().getSimpleName() + "-get-ranges-%d").build());
+    }
+
+    @Override
+    public TimelockServiceStatus getTimelockServiceStatus() {
+        return timelockHealthCheck.getStatus();
     }
 }

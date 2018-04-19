@@ -33,6 +33,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -43,6 +44,7 @@ public class PaxosLeadershipCreator {
     private final Supplier<PaxosRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
 
+    private PingableLeader localPingableLeader;
     private LeaderElectionService leaderElectionService;
 
     public PaxosLeadershipCreator(
@@ -70,9 +72,10 @@ public class PaxosLeadershipCreator {
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
                 "leader-election-service");
+        localPingableLeader = localPaxosServices.pingableLeader();
         leaderElectionService = localPaxosServices.leaderElectionService();
 
-        registrar.accept(localPaxosServices.pingableLeader());
+        registrar.accept(localPingableLeader);
         registrar.accept(new LeadershipResource(
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
@@ -113,5 +116,9 @@ public class PaxosLeadershipCreator {
 
     public Supplier<LeaderPingHealthCheck> getHealthCheck() {
         return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
+    }
+
+    public boolean isCurrentSuspectedLeader() {
+        return localPingableLeader.ping();
     }
 }

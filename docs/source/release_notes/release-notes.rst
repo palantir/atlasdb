@@ -49,11 +49,63 @@ develop
 
     *    - Type
          - Change
-    
+
+    *    - |improved| |metrics|
+         - Async TimeLock Service metric timers are now tagged with (1) the relevant clients, and (2) whether the current node is the leader or not.
+           This allows for easier analysis and consumption of these metrics.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
+
+    *    - |improved|
+         - Common annotations can now be imported via the commons-annotations library,
+           instead of needing to pull in atlasdb-commons. Existing code that uses atlasdb-commons
+           for the annotations will still be able to resolve them.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3089>`__)
+
+    *    - |fixed|
+         - Logs in ``CassandraRequestExceptionHandler`` are logged using a logger named after that class instead of ``CassandraClientPool``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3092>`__)
+
+=======
+v0.80.0
+=======
+
+04 April 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed| |devbreak|
+         - Centralize how ``PersistentLockManager`` is created in a dagger context.
+           Also, removed the old constructor for ``CellsSweeper``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
+
     *    - |improved| |logs|
          - Downgraded "Tried to connect to Cassandra {} times" logs from ``ERROR`` to ``WARN``, and stopped printing the stack trace.
            An exception is thrown to the service who made the request; this service has the opportunity to log at a higher level if desired.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3069>`__)
+
+    *    - |new|
+         - AtlasDB now supports runtime configuration of throttling for stream stores when streams are written block by block in a non-transactional fashion.
+           Previously, such streams would be written using a separate transaction for each block, though in cases where data volume is high this may still cause load on the key-value-service Atlas is using.
+           Please note that if you wish to use this feature, you will need to regenerate your Atlas schemas and suitably inject the stream persistence configuration into your stream stores.
+           However, if you do not intend to use this feature, no action is required, and your stream stores' behaviour will not be changed.
+           Note that enabling throttling may make nontransactional ``storeStream`` operations take longer, though the length of constituent transactions should not be affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3073>`__)
+
+    *    - |new|
+         - AtlasDB now schedules KVS compactions on a background thread, as opposed to triggering a compaction after each table was swept.
+           This allows for better control over KVS load arising from compactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
+
+    *    - |new|
+         - AtlasDB now supports configuration of a maintenance mode for compactions.
+           If compactions are run in maintenance mode, AtlasDB may perform more costly operations which may be able to recover more space.
+           For example, for Oracle KVS, ``SHRINK SPACE`` (which acquires locks on the entire table) will only be run if compactions are carried out in maintenance mode.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
 
     *    - |fixed|
          - Fixed a bug that causes Cassandra clients to return to the pool even if they have thrown blacklisted exceptions.
@@ -63,10 +115,24 @@ develop
          - Fix NPE if PaxosLeaderElectionServiceBuilder's new field onlyLogOnQuorumFailure is never set.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3074>`__)
 
-    *    - |fixed| |devbreak|
-         - Centralize how ``PersistentLockManager`` is created in a dagger context.
-           Also, removed the old constructor for ``CellsSweeper``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3047>`__)
+    *    - |new|
+         - If using TimeLock, AtlasDB now checks the value of a fresh timestamp against the unreadable timestamp on startup, failing if the fresh timestamp is smaller.
+           That implies clocks went backwards; doing this mitigates the damage that a bogus TimeLock migration or other corruption of TimeLock can do.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3018>`__)
+
+    *    - |improved|
+         - Applications can now easily determine whether their Timelock cluster is healthy by querying ``TransactionManager.getTimelockServiceStatus().isHealthy()``.
+           This returns true only if a healthy connection to timelock service is established.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3030>`__)
+
+    *    - |improved| |devbreak|
+         - Bumped several libraries to get past known security vulns:
+           cassandra thrift and CQL libs
+           jackson
+           logback
+           netty (indirectly via cassandra lib bump)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
+
 
 =======
 v0.79.0
@@ -108,17 +174,6 @@ v0.79.0
     *    - |fixed|
          - ``clean-cass-locks-state`` command is now using Atlas namespace as Cassandra keyspace if provided.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3035>`__)
-
-    *    - |new|
-         - AtlasDB now schedules KVS compactions on a background thread, as opposed to triggering a compaction after each table was swept.
-           This allows for better control over KVS load arising from compactions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
-
-    *    - |new|
-         - AtlasDB now supports configuration of a maintenance mode for compactions.
-           If compactions are run in maintenance mode, AtlasDB may perform more costly operations which may be able to recover more space.
-           For example, for Oracle KVS, ``SHRINK SPACE`` (which acquires locks on the entire table) will only be run if compactions are carried out in maintenance mode.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
 
     *    - |improved| |logs|
          - Logging exceptions in the case of quorum is runtime configurable now, using ``only-log-on-quorum-failure`` flag, for external timelock services. Previously it was set to true by default.
