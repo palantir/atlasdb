@@ -22,15 +22,12 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.HEAD;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 
 class CompactPriorityCalculator {
@@ -116,7 +113,7 @@ class CompactPriorityCalculator {
 
         if (tableToCompact != null) {
             log.info("Choosing to compact {}, because it was swept {} milliseconds after the last compaction",
-                    safeTableRef(tableToCompact),
+                    tableToCompact,
                     SafeArg.of("millisFromCompactionToSweep", maxSweptAfterCompact));
             return Optional.of(tableToCompact);
         }
@@ -135,14 +132,9 @@ class CompactPriorityCalculator {
             String randomlyChosenTable = filteredTablesCompactedAfterSweep.get(randomTableIndex);
             log.info("All swept tables have been compacted after the last sweep. Choosing to compact {} at random" +
                             " between tables which were compacted more than 1 hour ago.",
-                    safeTableRef(randomlyChosenTable));
+                    randomlyChosenTable);
             return Optional.of(randomlyChosenTable);
         }
         return Optional.empty();
     }
-
-    private Arg<String> safeTableRef(String fullyQualifiedName) {
-        return LoggingArgs.safeInternalTableName(fullyQualifiedName);
-    }
-
 }
