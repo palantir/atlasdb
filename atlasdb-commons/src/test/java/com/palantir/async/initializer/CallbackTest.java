@@ -93,7 +93,6 @@ public class CallbackTest {
         assertThat(System.currentTimeMillis()).isGreaterThanOrEqualTo(start + 2000L);
     }
 
-
     private static class CountingCallback extends Callback<AtomicLong> {
         private final boolean throwOnLegitReason;
 

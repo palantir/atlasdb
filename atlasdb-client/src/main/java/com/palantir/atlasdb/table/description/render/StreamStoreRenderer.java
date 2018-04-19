@@ -34,6 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Generated;
@@ -66,6 +67,7 @@ import com.palantir.atlasdb.stream.BlockGetter;
 import com.palantir.atlasdb.stream.BlockLoader;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -221,12 +223,22 @@ public class StreamStoreRenderer {
 
             private void constructors() {
                 line("private ", StreamStore, "(TransactionManager txManager, ", TableFactory, " tables) {"); {
-                    line("super(txManager);");
+                    line("this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);");
+                } line("}");
+                line();
+                line("private ", StreamStore, "(TransactionManager txManager, ", TableFactory, " tables, ",
+                        "Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {"); {
+                    line("super(txManager, persistenceConfiguration);");
                     line("this.tables = tables;");
                 } line("}");
                 line();
                 line("public static ", StreamStore, " of(TransactionManager txManager, ", TableFactory, " tables) {"); {
                     line("return new ", StreamStore, "(txManager, tables);");
+                } line("}");
+                line();
+                line("public static ", StreamStore, " of(TransactionManager txManager, ", TableFactory, " tables, ",
+                        " Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {"); {
+                    line("return new ", StreamStore, "(txManager, tables, persistenceConfiguration);");
                 } line("}");
                 line();
                 line("/**");
@@ -822,5 +834,7 @@ public class StreamStoreRenderer {
         Pair.class,
         Functions.class,
         ByteStreams.class,
+        Supplier.class,
+        StreamStorePersistenceConfiguration.class,
     };
 }

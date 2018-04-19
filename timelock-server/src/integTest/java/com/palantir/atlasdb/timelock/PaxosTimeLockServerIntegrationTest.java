@@ -438,10 +438,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
         MetricsOutput metrics = getMetricsOutput();
 
-        // time / lock services
-        metrics.assertContainsTimer(
-                "com.palantir.atlasdb.timelock.AsyncTimelockService.getFreshTimestamp");
-        metrics.assertContainsTimer("com.palantir.lock.LockService.currentTimeMillis");
+        // Note that time/lock services are logged to the tagged metrics registry, which isn't a thing in Dropwizard.
 
         // local leader election classes
         metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.learn");

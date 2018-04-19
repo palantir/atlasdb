@@ -86,6 +86,7 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-jdbc",
+                "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:qos-service-api",
@@ -219,6 +220,12 @@
         },
         "com.palantir.atlasdb:atlasdb-jdbc": {
             "project": true
+        },
+        "com.palantir.atlasdb:commons-annotations": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,
@@ -666,6 +673,7 @@
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-jdbc",
+                "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:qos-service-api",
@@ -799,6 +807,12 @@
         },
         "com.palantir.atlasdb:atlasdb-jdbc": {
             "project": true
+        },
+        "com.palantir.atlasdb:commons-annotations": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,
