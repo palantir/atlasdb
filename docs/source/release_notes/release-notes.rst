@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |logging|
+         - Reduce the logging level of various log messages.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3101>`__)
+
     *    - |improved| |metrics|
          - Async TimeLock Service metric timers are now tagged with (1) the relevant clients, and (2) whether the current node is the leader or not.
            This allows for easier analysis and consumption of these metrics.
