@@ -83,10 +83,12 @@ v0.81.0
 
     *    - |improved| |devbreak|
          - Bumped several libraries to get past known security vulns:
-           - cassandra thrift and CQL libs
-           - jackson
-           - logback
-           - netty (indirectly via cassandra lib bump)
+
+           - Cassandra Thrift and CQL libs
+           - Jackson
+           - Logback
+           - Netty (indirectly via cassandra lib bump)
+
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
 
 =======
