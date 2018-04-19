@@ -60,8 +60,8 @@ public class CompactPriorityCalculatorTest {
 
     @Test
     public void returnsTableWithBiggestSweepToCompactionPositiveTime() {
-        // TABLE_1 was swept more recently, and more time passed between its last
-        // compaction and its last sweep - so without other information, we assume there's more to compact.
+        // TABLE_1 is chosen because more time passed between its last compaction and its last sweep -
+        // so without other information, we assume there's more to compact.
         when(sweepHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 1L, TABLE_2, 5L));
         when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 5L, TABLE_2, 6L));
 

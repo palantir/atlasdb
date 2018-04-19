@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -68,7 +69,7 @@ class CompactPriorityCalculator {
             tableToCompact = maybeChooseTableSweptAfterCompact(tableToLastTimeSwept,tableToLastTimeCompacted);
         }
         if (!tableToCompact.isPresent()) {
-            tableToCompact = maybeChooseTableCompactedOver1HourAgo(tableToLastTimeSwept, tableToLastTimeCompacted);
+            tableToCompact = maybeChooseTableCompactedOver1HourAgo(tableToLastTimeCompacted);
         }
         if (!tableToCompact.isPresent()) {
             log.info("Not compacting, because it does not appear that any table has been swept" +
@@ -77,7 +78,7 @@ class CompactPriorityCalculator {
         return tableToCompact;
     }
 
-    private Optional<String> maybeChooseUncompactedTable(
+    private static Optional<String> maybeChooseUncompactedTable(
             Map<String, Long> tableToLastTimeSwept,
             Map<String, Long> tableToLastTimeCompacted) {
 
@@ -95,7 +96,7 @@ class CompactPriorityCalculator {
         return Optional.empty();
     }
 
-    private Optional<String> maybeChooseTableSweptAfterCompact(
+    private static Optional<String> maybeChooseTableSweptAfterCompact(
             Map<String, Long> tableToLastTimeSwept,
             Map<String, Long> tableToLastTimeCompacted) {
 
@@ -122,12 +123,12 @@ class CompactPriorityCalculator {
         return Optional.empty();
     }
 
-    private Optional<String> maybeChooseTableCompactedOver1HourAgo(
-            Map<String, Long> tableToLastTimeSwept,
+    private static Optional<String> maybeChooseTableCompactedOver1HourAgo(
             Map<String, Long> tableToLastTimeCompacted) {
 
-        List<String> filteredTablesCompactedAfterSweep = tableToLastTimeSwept.keySet().stream()
-                .filter(table -> tableToLastTimeCompacted.get(table) < System.currentTimeMillis() - 3_600_000)
+        List<String> filteredTablesCompactedAfterSweep = tableToLastTimeCompacted.entrySet().stream()
+                .filter(entry -> entry.getValue() < System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1L))
+                .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
         if (filteredTablesCompactedAfterSweep.size() > 0) {
             int randomTableIndex = ThreadLocalRandom.current().nextInt(filteredTablesCompactedAfterSweep.size());
@@ -140,7 +141,7 @@ class CompactPriorityCalculator {
         return Optional.empty();
     }
 
-    private Arg<String> safeTableRef(String fullyQualifiedName) {
+    private static Arg<String> safeTableRef(String fullyQualifiedName) {
         return LoggingArgs.safeInternalTableName(fullyQualifiedName);
     }
 
