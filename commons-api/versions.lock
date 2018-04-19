@@ -104,7 +104,10 @@
             "project": true
         },
         "com.palantir.atlasdb:commons-annotations": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,
@@ -298,7 +301,10 @@
             "project": true
         },
         "com.palantir.atlasdb:commons-annotations": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,

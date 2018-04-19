@@ -61,6 +61,17 @@ develop
            Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3095>`__)
 
+    *    - |improved|
+         - Common annotations can now be imported via the commons-annotations library,
+           instead of needing to pull in atlasdb-commons. Existing code that uses atlasdb-commons
+           for the annotations will still be able to resolve them.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3089>`__)
+
+    *    - |fixed|
+         - Logs in ``CassandraRequestExceptionHandler`` are logged using a logger named after that class instead of ``CassandraClientPool``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3092>`__)
+
+
 =======
 v0.80.0
 =======
@@ -73,7 +84,7 @@ v0.80.0
 
     *    - Type
          - Change
-    
+
     *    - |fixed| |devbreak|
          - Centralize how ``PersistentLockManager`` is created in a dagger context.
            Also, removed the old constructor for ``CellsSweeper``.
