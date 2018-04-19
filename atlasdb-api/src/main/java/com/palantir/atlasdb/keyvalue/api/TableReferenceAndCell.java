@@ -16,15 +16,43 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import java.io.IOException;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import com.palantir.common.persist.Persistable;
 
 @JsonDeserialize(as = ImmutableTableReferenceAndCell.class)
 @JsonSerialize(as = ImmutableTableReferenceAndCell.class)
 @Value.Immutable
-public interface TableReferenceAndCell {
-    TableReference tableRef();
-    Cell cell();
+public abstract class TableReferenceAndCell implements Persistable {
+    abstract TableReference tableRef();
+    abstract Cell cell();
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new Jdk8Module())
+            .registerModule(new AfterburnerModule());
+
+    public static final Hydrator<TableReferenceAndCell> BYTES_HYDRATOR = input -> {
+        try {
+            return OBJECT_MAPPER.readValue(input, TableReferenceAndCell.class);
+        } catch (IOException e) {
+            throw new RuntimeException("Exception hydrating object.");
+        }
+    };
+
+    @Override
+    public byte[] persistToBytes() {
+        try {
+             return OBJECT_MAPPER.writeValueAsBytes(this);
+        } catch (JsonProcessingException e) {
+             throw new RuntimeException("Exception processing JSON");
+        }
+    }
 }

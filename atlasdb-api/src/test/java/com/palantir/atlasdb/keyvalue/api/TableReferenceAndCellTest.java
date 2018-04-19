@@ -21,17 +21,9 @@ import java.io.IOException;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
-
 public class TableReferenceAndCellTest {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .registerModule(new Jdk8Module())
-            .registerModule(new AfterburnerModule());
-
     @Test
-    public void serializationDeserializationTest() throws IOException {
+    public void persistingHydrationTest() throws IOException {
         TableReference tableReference = TableReference.createFromFullyQualifiedName("abc.def");
         Cell cell = Cell.create(new byte[] {0, 0}, new byte[] {1, 1});
         TableReferenceAndCell tableRefCell = ImmutableTableReferenceAndCell.builder()
@@ -39,8 +31,8 @@ public class TableReferenceAndCellTest {
                 .cell(cell)
                 .build();
 
-        byte[] valueAsBytes = OBJECT_MAPPER.writeValueAsBytes(tableRefCell);
-        Assertions.assertThat(OBJECT_MAPPER.readValue(valueAsBytes, TableReferenceAndCell.class))
+        byte[] valueAsBytes = tableRefCell.persistToBytes();
+        Assertions.assertThat(TableReferenceAndCell.BYTES_HYDRATOR.hydrateFromBytes(valueAsBytes))
                 .isEqualTo(tableRefCell);
     }
 }
