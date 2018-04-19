@@ -62,8 +62,8 @@ public class CompactPriorityCalculatorTest {
     public void returnsTableWithBiggestSweepToCompactionPositiveTime() {
         // TABLE_1 is chosen because more time passed between its last compaction and its last sweep -
         // so without other information, we assume there's more to compact.
-        when(sweepHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 1L, TABLE_2, 5L));
-        when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 5L, TABLE_2, 6L));
+        when(sweepHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 5L, TABLE_2, 6L));
+        when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 1L, TABLE_2, 4L));
 
         Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
         assertThat(table).isEqualTo(Optional.of(TABLE_1));
@@ -84,9 +84,9 @@ public class CompactPriorityCalculatorTest {
         // Returns empty when all tables were swept and then compacted, and each compact time is the past hour
         Long currentTime = System.currentTimeMillis();
         when(sweepHistoryProvider.getHistory(mockTx))
-                .thenReturn(ImmutableMap.of(TABLE_1, currentTime, TABLE_2, currentTime + 1));
+                .thenReturn(ImmutableMap.of(TABLE_1, currentTime - 5, TABLE_2, currentTime - 4 ));
         when(compactionHistoryProvider.getHistory(mockTx))
-                .thenReturn(ImmutableMap.of(TABLE_1, currentTime  + 2, TABLE_2, currentTime + 3));
+                .thenReturn(ImmutableMap.of(TABLE_1, currentTime  - 1, TABLE_2, currentTime - 2));
 
         Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
         assertThat(table).isEmpty();
