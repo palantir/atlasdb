@@ -32,8 +32,8 @@ import com.palantir.common.persist.Persistable;
 @JsonSerialize(as = ImmutableTableReferenceAndCell.class)
 @Value.Immutable
 public abstract class TableReferenceAndCell implements Persistable {
-    abstract TableReference tableRef();
-    abstract Cell cell();
+    public abstract TableReference tableRef();
+    public abstract Cell cell();
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new Jdk8Module())

@@ -37,7 +37,7 @@ import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
-import com.palantir.atlasdb.sweep.queue.KvsSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.KvsSweepQueuePersister;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -116,7 +116,7 @@ public class AtlasDbTestCase {
         transactionService = TransactionServices.createTransactionService(kvs);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        sweepQueue = new KvsSweepQueueWriter(keyValueService, TargetedSweepTableFactory.of());
+        sweepQueue = new KvsSweepQueuePersister(keyValueService, TargetedSweepTableFactory.of());
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,

@@ -72,7 +72,7 @@ import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
-import com.palantir.atlasdb.sweep.queue.KvsSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.KvsSweepQueuePersister;
 import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -133,7 +133,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void cassandraSweepQueueTest() {
-        KvsSweepQueueWriter queue = new KvsSweepQueueWriter(keyValueService, TargetedSweepTableFactory.of());
+        KvsSweepQueuePersister queue = new KvsSweepQueuePersister(keyValueService, TargetedSweepTableFactory.of());
         queue.initialize();
         Cell cell1 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col1"));
         Cell cell2 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col2"));

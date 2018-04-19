@@ -52,7 +52,8 @@ public class SweepDeleterImpl implements SweepDeleter {
         Map<Cell, Long> deleteTimestampByCell = Maps.newHashMap();
 
         for (WriteInfo write : writes) {
-            deleteTimestampByCell.merge(write.cell(), write.timestampToDeleteAtExclusive(sweeper), Long::max);
+            // todo(gmaretic): since we don't know about deletes, makes it awkward for thorough sweep?
+            deleteTimestampByCell.merge(write.tableRefCell().cell(), write.timestamp(), Long::max);
         }
 
         return deleteTimestampByCell;

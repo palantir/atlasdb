@@ -18,44 +18,22 @@ package com.palantir.atlasdb.sweep.queue;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.atlasdb.keyvalue.api.TableReferenceAndCell;
 
 /**
  * Contains information about a committed write, for use by the sweep queue.
  */
 @Value.Immutable
-@JsonSerialize(as = ImmutableWriteInfo.class)
-@JsonDeserialize(as = ImmutableWriteInfo.class)
 public interface WriteInfo {
-
-    @JsonProperty("ts")
     long timestamp();
+    TableReferenceAndCell tableRefCell();
 
-    @JsonProperty("c")
-    Cell cell();
-
-    @JsonProperty("d")
-    boolean isTombstone();
-
-    default long timestampToDeleteAtExclusive(Sweeper sweeper) {
-        if (sweeper.shouldSweepLastCommitted() && isTombstone()) {
-            return timestamp() + 1L;
-        }
-
-        return timestamp();
-    }
-
-    static WriteInfo of(Cell cell, boolean isTombstone, long timestamp) {
+    static WriteInfo of(TableReference tableRef, Cell cell, long timestamp) {
         return ImmutableWriteInfo.builder()
-                .cell(cell)
-                .isTombstone(isTombstone)
+                .tableRefCell(TableReferenceAndCell.of(tableRef, cell))
                 .timestamp(timestamp)
                 .build();
     }
-
 }
