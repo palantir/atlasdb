@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import org.immutables.value.Value;
+
+import com.google.common.base.Preconditions;
 import com.palantir.common.persist.Persistable;
 
 @Value.Immutable
@@ -25,6 +27,18 @@ public abstract class TargetedSweepMetadata implements Persistable {
     public abstract boolean dedicatedRow();
     public abstract int shard();
     public abstract int dedicatedRowNumber();
+
+    @Value.Check
+    void checkShardSize() {
+        Preconditions.checkArgument(shard() >= 0 && shard() <= 255,
+                "Shard number must be between 0 and 255 inclusive, but it is %s.", shard());
+    }
+
+    @Value.Check
+    void checkRowNumber() {
+        Preconditions.checkArgument(dedicatedRowNumber() >= 0 && dedicatedRowNumber() <= 63,
+                "Dedicated row number must be between 0 and 63 inclusive, but it is %s.", dedicatedRowNumber());
+    }
 
     public static final Hydrator<TargetedSweepMetadata> BYTES_HYDRATOR = input ->
             ImmutableTargetedSweepMetadata.builder()
@@ -36,7 +50,7 @@ public abstract class TargetedSweepMetadata implements Persistable {
 
     @Override
     public byte[] persistToBytes() {
-        byte[] result = new byte[] { 0, 0, 0, 0};
+        byte[] result = new byte[] { 0, 0, 0, 0 };
         if (conservative()) {
             result[0] |= 0x80;
         }
