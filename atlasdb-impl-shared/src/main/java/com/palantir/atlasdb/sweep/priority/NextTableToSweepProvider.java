@@ -139,7 +139,7 @@ public class NextTableToSweepProvider {
                 SafeArg.of("chosenTable", chosenTableString),
                 SafeArg.of("scores", safeTableNamesToScore),
                 UnsafeArg.of("unsafeScores", scores),
-                SafeArg.of("overrides", sweepPriorityOverrideConfig));
+                UnsafeArg.of("overrides", sweepPriorityOverrideConfig));
 
         return chosenTable;
     }

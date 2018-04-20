@@ -123,6 +123,15 @@ whether a table that is currently being swept should continue to be swept is as 
 4. There are no priority tables, and the table being swept is blacklisted; select another table using standard sweep
    heuristics.
 
+Note that if blacklist/priority settings are subsequently removed, sweep will continue sweeping the table that those
+settings have made it select (in particular, it will not immediately return to the original table it was sweeping).
+
+Also, as we don't know the data distribution of the original table we were sweeping, we don't know how much of the
+table we have swept; we thus don't have enough information to update the sweep priority table with our results while
+registering that we have only done a partial sweep. In practice, this would tend to mean that the probability the
+original table being swept will be picked again for sweeping after overrides have been removed may be a little higher
+than if we accounted for the partial sweep.
+
 .. toctree::
     :maxdepth: 1
     :hidden:
