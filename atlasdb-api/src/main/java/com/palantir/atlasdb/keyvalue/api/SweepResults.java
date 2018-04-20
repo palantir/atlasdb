@@ -19,8 +19,13 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.encoding.PtBytes;
 
+@JsonDeserialize(as = ImmutableSweepResults.class)
+@JsonSerialize(as = ImmutableSweepResults.class)
 @Value.Immutable
 public abstract class SweepResults {
 
@@ -60,6 +65,7 @@ public abstract class SweepResults {
     @Value.Auxiliary
     public abstract long getTimeSweepStarted();
 
+    @JsonIgnore
     public long getTimeElapsedSinceStartedSweeping() {
         return System.currentTimeMillis() - getTimeSweepStarted();
     }
