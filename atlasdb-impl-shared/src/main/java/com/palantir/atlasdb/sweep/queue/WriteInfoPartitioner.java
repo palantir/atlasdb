@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -31,7 +32,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class WriteInfoPartitioner {
     // todo(gmaretic): temporarily constant
-    private static final int SHARDS = 128;
+    static final int SHARDS = 128;
 
     private final KeyValueService kvs;
 
@@ -45,13 +46,15 @@ public class WriteInfoPartitioner {
         return partitionWritesByShardStrategyTimestamp(filterOutUnsweepableTables(writes));
     }
 
-    private List<WriteInfo> filterOutUnsweepableTables(List<WriteInfo> writes) {
+    @VisibleForTesting
+    List<WriteInfo> filterOutUnsweepableTables(List<WriteInfo> writes) {
         return writes.stream()
                 .filter(writeInfo -> getStrategy(writeInfo) != TableMetadataPersistence.SweepStrategy.NOTHING)
                 .collect(Collectors.toList());
     }
 
-    private Map<PartitionInfo, List<WriteInfo>> partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
+    @VisibleForTesting
+    Map<PartitionInfo, List<WriteInfo>> partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
         Map<PartitionInfo, List<WriteInfo>> result = new HashMap<>();
         writes.forEach(write -> result.computeIfAbsent(getPartitionInfo(write), no -> new ArrayList<>()).add(write));
         return result;
@@ -61,7 +64,8 @@ public class WriteInfoPartitioner {
         return PartitionInfo.of(getShard(write), isConservative(write), write.timestamp());
     }
 
-    private TableMetadataPersistence.SweepStrategy getStrategy(WriteInfo writeInfo) {
+    @VisibleForTesting
+    TableMetadataPersistence.SweepStrategy getStrategy(WriteInfo writeInfo) {
         return cache.computeIfAbsent(writeInfo.tableRefCell().tableRef(), this::getStrategyFromKvs);
     }
 
