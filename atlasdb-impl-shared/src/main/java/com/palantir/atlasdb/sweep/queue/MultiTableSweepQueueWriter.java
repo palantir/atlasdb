@@ -30,16 +30,16 @@ public interface MultiTableSweepQueueWriter {
 
     MultiTableSweepQueueWriter NO_OP = ignored -> { };
 
-    default void enqueue(Map<TableReference, Map<Cell, byte[]>> writesByTable, long timestamp) {
-        enqueue(toWriteInfos(writesByTable, timestamp));
+    default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
+        enqueue(toWriteInfos(writes, timestamp));
     }
 
     void enqueue(List<WriteInfo> writes);
 
-    default List<WriteInfo> toWriteInfos(Map<TableReference, Map<Cell, byte[]>> writesByTable, long timestamp) {
-        return writesByTable.entrySet().stream()
-                .flatMap(writesByTableEntry -> writesByTableEntry.getValue().keySet().stream()
-                        .map(cell -> WriteInfo.of(writesByTableEntry.getKey(), cell, timestamp)))
+    default List<WriteInfo> toWriteInfos(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
+        return writes.entrySet().stream()
+                .flatMap(writesEntry -> writesEntry.getValue().keySet().stream()
+                        .map(cell -> WriteInfo.of(writesEntry.getKey(), cell, timestamp)))
                 .collect(Collectors.toList());
     }
 }

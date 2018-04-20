@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb;
 
-import static org.mockito.Mockito.mock;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
@@ -78,9 +76,6 @@ public class AtlasDbTestCase {
     protected TransactionService transactionService;
     protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     protected MultiTableSweepQueueWriter sweepQueue;
-//            = mock(MultiTableSweepQueueWriter.class);
-//    // default methods make mockito confusing, so we delegate just the important method to the mock
-//    protected MultiTableSweepQueueWriter wrappingSweepQueue = (table, writes) -> sweepQueue.enqueue(table, writes);
 
     @BeforeClass
     public static void setupLockClient() {
