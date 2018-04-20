@@ -62,6 +62,23 @@ develop
            Please see :ref:`Sweep Priority Overrides <sweep-priority-overrides>` for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3090>`__)
 
+    *    - |fixed| |improved|
+         - The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions
+           Previously, the strategy to choose the table to compact was:
+
+             1. if possible choose a table that was swept but not compacted
+             2. otherwise choose a table for which the time passed between last compact and last swept was longer
+
+           (when all tables are swept and afterward compacted, last point above could choose to compact the same table beacuse ``lastSweptTime`` - ``lastCompactTime`` is negative and largest among all tables)
+
+           The new strategy is:
+
+            1. if possible choose a table that was swept but not compacted
+            2. if there is no uncompacted table then choose a table swept further after it was compacted
+            3. otherwise, randomly choose a table after filtering out the ones compacted in the past hour
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3100>`__)
+
 =======
 v0.81.0
 =======
