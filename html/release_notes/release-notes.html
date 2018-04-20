@@ -193,6 +193,27 @@ Previously, this could cause stack overflows when sweeping a very wide row, beca
 Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3095">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td><p class="first">The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions
+Previously, the strategy to choose the table to compact was:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>if possible choose a table that was swept but not compacted</li>
+<li>otherwise choose a table for which the time passed between last compact and last swept was longer</li>
+</ol>
+</div></blockquote>
+<p>(when all tables are swept and afterward compacted, last point above could choose to compact the same table beacuse <code class="docutils literal notranslate"><span class="pre">lastSweptTime</span></code> - <code class="docutils literal notranslate"><span class="pre">lastCompactTime</span></code> is negative and largest among all tables)</p>
+<p>The new strategy is:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>if possible choose a table that was swept but not compacted</li>
+<li>if there is no uncompacted table then choose a table swept further after it was compacted</li>
+<li>otherwise, randomly choose a table after filtering out the ones compacted in the past hour</li>
+</ol>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3100">Pull Request</a>)</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
