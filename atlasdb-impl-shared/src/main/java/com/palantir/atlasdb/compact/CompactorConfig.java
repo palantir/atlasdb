@@ -20,8 +20,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 
+@JsonSerialize(as = ImmutableCompactorConfig.class)
+@JsonDeserialize(as = ImmutableCompactorConfig.class)
 @Value.Immutable
 public interface CompactorConfig {
     long DEFAULT_COMPACT_PAUSE_ON_FAILURE_MILLIS = TimeUnit.SECONDS.toMillis(1800);
