@@ -69,8 +69,8 @@ class CompactPriorityCalculator {
             tableToCompact = maybeChooseTableCompactedOver1HourAgo(tableToLastTimeCompacted);
         }
         if (!tableToCompact.isPresent()) {
-            log.info("Not compacting, because it does not appear that any table has been swept" +
-                    " or they were compacted too recently (the past hour).");
+            log.info("Not compacting, because it does not appear that any table has been swept"
+                    + " or they were compacted too recently (the past hour).");
         }
         return tableToCompact;
     }
@@ -130,8 +130,8 @@ class CompactPriorityCalculator {
         if (filteredTablesCompactedAfterSweep.size() > 0) {
             int randomTableIndex = ThreadLocalRandom.current().nextInt(filteredTablesCompactedAfterSweep.size());
             String randomlyChosenTable = filteredTablesCompactedAfterSweep.get(randomTableIndex);
-            log.info("All swept tables have been compacted after the last sweep. Choosing to compact {} at random" +
-                            " between tables which were compacted more than 1 hour ago.",
+            log.info("All swept tables have been compacted after the last sweep. Choosing to compact {} at random"
+                            + " between tables which were compacted more than 1 hour ago.",
                     randomlyChosenTable);
             return Optional.of(randomlyChosenTable);
         }
