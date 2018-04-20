@@ -74,7 +74,8 @@ public class WriteInfoPartitioner {
         return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(kvs.getMetadataForTable(tableRef)).getSweepStrategy();
     }
 
-    private static int getShard(WriteInfo writeInfo) {
+    @VisibleForTesting
+    static int getShard(WriteInfo writeInfo) {
         int shard = writeInfo.tableRefCell().hashCode() % SHARDS;
         return (shard + SHARDS) % SHARDS;
     }
