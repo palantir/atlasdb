@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.logsafe.SafeArg;
 
 class CompactPriorityCalculator {
     private static final Logger log = LoggerFactory.getLogger(CompactPriorityCalculator.class);
@@ -115,7 +114,7 @@ class CompactPriorityCalculator {
         if (tableToCompact != null) {
             log.info("Choosing to compact {}, because it was swept {} milliseconds after the last compaction",
                     tableToCompact,
-                    SafeArg.of("millisFromCompactionToSweep", maxSweptAfterCompact));
+                    maxSweptAfterCompact);
             return Optional.of(tableToCompact);
         }
         return Optional.empty();
