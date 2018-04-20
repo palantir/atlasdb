@@ -77,7 +77,7 @@ public final class InMemorySweepQueue implements SweepQueueReader, SweepQueueWri
         return batch;
     }
 
-    public synchronized void enqueue(Collection<WriteInfo> newWrites) {
+    public synchronized void enqueue(List<WriteInfo> newWrites) {
         writes.addAll(newWrites);
     }
 

@@ -16,83 +16,95 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReferenceAndCell;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
 
 public class SweepableCellsWriter extends KvsSweepQueueWriter {
-    private static final long PARTITION_FACTOR = 50_000L;
+    private static final long TS_FINE_GRANULARITY = 50_000L;
     private static final long MAX_CELLS_GENERIC = 50L;
     private static final long MAX_CELLS_DEDICATED = 100_000L;
 
-    private final SweepStrategyCache strategyCache;
+    private final WriteInfoPartitioner partitioner;
 
-    SweepableCellsWriter(KeyValueService kvs, TargetedSweepTableFactory tableFactory, SweepStrategyCache strategyCache) {
-        super(kvs, tableFactory.getSweepableCellsTable(null).getTableRef());
-        this.strategyCache = strategyCache;
+    SweepableCellsWriter(KeyValueService kvs, TargetedSweepTableFactory factory, WriteInfoPartitioner partitioner) {
+        super(kvs, factory.getSweepableCellsTable(null).getTableRef());
+        this.partitioner = partitioner;
     }
 
     @Override
     protected Map<Cell, byte[]> batchWrites(List<WriteInfo> writes) {
-        ImmutableMap.Builder<Cell, byte[]> resultBuilder = ImmutableMap.builder();
-        boolean dedicated = writes.size() > MAX_CELLS_GENERIC;
+        Map<Cell, byte[]> result = new HashMap<>();
+        Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(writes);
+        partitionedWrites.forEach((partitionInfo, writeInfos) -> putWrites(partitionInfo, writeInfos, result));
+        return result;
+    }
 
-        if (dedicated) {
-            addReferenceToDedicatedRows(writes, resultBuilder);
+    private void putWrites(PartitionInfo partitionInfo, List<WriteInfo> writes, Map<Cell, byte[]> result) {
+        boolean dedicate = writes.size() > MAX_CELLS_GENERIC;
+
+        if (dedicate) {
+            addReferenceToDedicatedRows(partitionInfo, writes, result);
         }
 
-        long writeIndex = 0;
+        long index = 0;
         for (WriteInfo write : writes) {
-            SweepableCellsTable.SweepableCellsRow row = createRow(write, dedicated, writeIndex / MAX_CELLS_DEDICATED);
-            SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(write, writeIndex);
-            resultBuilder.put(toCell(row, colVal), colVal.persistValue());
-            writeIndex++;
+            addWrite(partitionInfo, write, dedicate, index, result);
+            index++;
         }
-        return resultBuilder.build();
     }
 
-    private void addReferenceToDedicatedRows(List<WriteInfo> writes, ImmutableMap.Builder<Cell, byte[]> resultBuilder) {
-        SweepableCellsTable.SweepableCellsRow row = createRow(writes.get(0), false, 0);
-        SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(writes.get(0), -numDedicatedRows(writes));
-        resultBuilder.put(toCell(row, colVal), colVal.persistValue());
+    private void addReferenceToDedicatedRows(PartitionInfo info, List<WriteInfo> writes, Map<Cell, byte[]> result) {
+        insert(info, TableReferenceAndCell.DUMMY, false, 0, -requiredDedicatedRows(writes), result);
     }
 
-    private SweepableCellsTable.SweepableCellsRow createRow(WriteInfo write, boolean dedicated, long dedicatedRowNum) {
+    private void addWrite(PartitionInfo info, WriteInfo write, boolean dedicate, long index, Map<Cell, byte[]> result) {
+        insert(info, write.tableRefCell(), dedicate, index / MAX_CELLS_DEDICATED, index % MAX_CELLS_DEDICATED, result);
+    }
+
+    private void insert(PartitionInfo info, TableReferenceAndCell tableRefCell, boolean dedicate, long dedicatedRow,
+            long index, Map<Cell, byte[]> result) {
+        SweepableCellsTable.SweepableCellsRow row = createRow(info, dedicate, dedicatedRow);
+        SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(info.timestamp(), index, tableRefCell);
+        result.put(toCell(row, colVal), colVal.persistValue());
+    }
+
+    private SweepableCellsTable.SweepableCellsRow createRow(PartitionInfo info, boolean dedicate, long dedicatedRow) {
         TargetedSweepMetadata metadata = ImmutableTargetedSweepMetadata.builder()
-                .conservative(strategyCache.getStrategy(write) == TableMetadataPersistence.SweepStrategy.CONSERVATIVE)
-                .dedicatedRow(dedicated)
-                .shard(KvsSweepQueuePersister.getShard(write))
-                .dedicatedRowNumber(dedicatedRowNum)
+                .conservative(info.isConservative().value())
+                .dedicatedRow(dedicate)
+                .shard(info.shard())
+                .dedicatedRowNumber(dedicatedRow)
                 .build();
 
-        return SweepableCellsTable.SweepableCellsRow.of(tsPartition(write.timestamp()), metadata.persistToBytes());
+        return SweepableCellsTable.SweepableCellsRow.of(tsPartitionFine(info.timestamp()), metadata.persistToBytes());
     }
 
-    private SweepableCellsTable.SweepableCellsColumnValue createColVal(WriteInfo write, long writeIndex) {
-        SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn
-                .of(tsModulus(write.timestamp()), writeIndex % MAX_CELLS_DEDICATED);
-        return SweepableCellsTable.SweepableCellsColumnValue.of(col, write.tableRefCell());
+    private SweepableCellsTable.SweepableCellsColumnValue createColVal(long ts, long index,
+            TableReferenceAndCell tableRefCell) {
+        SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.of(tsMod(ts), index);
+        return SweepableCellsTable.SweepableCellsColumnValue.of(col, tableRefCell);
     }
 
-    private long numDedicatedRows(List<WriteInfo> writes) {
+    private long requiredDedicatedRows(List<WriteInfo> writes) {
         return 1 + (writes.size() - 1) / MAX_CELLS_DEDICATED;
     }
 
-    private long tsPartition(long timestamp) {
-        return timestamp / PARTITION_FACTOR;
+    private long tsPartitionFine(long timestamp) {
+        return timestamp / TS_FINE_GRANULARITY;
     }
 
-    private long tsModulus(long timestamp) {
-        return timestamp % PARTITION_FACTOR;
+    public static long tsMod(long timestamp) {
+        return timestamp % TS_FINE_GRANULARITY;
     }
 }
 

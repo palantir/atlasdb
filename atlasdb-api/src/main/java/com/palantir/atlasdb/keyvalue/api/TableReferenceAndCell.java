@@ -35,6 +35,10 @@ public abstract class TableReferenceAndCell implements Persistable {
     public abstract TableReference tableRef();
     public abstract Cell cell();
 
+    public static final TableReferenceAndCell DUMMY = TableReferenceAndCell.of(
+            TableReference.createFromFullyQualifiedName("dum.my"),
+            Cell.create(new byte[] {0}, new byte[] {0}));
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new Jdk8Module())
             .registerModule(new AfterburnerModule());

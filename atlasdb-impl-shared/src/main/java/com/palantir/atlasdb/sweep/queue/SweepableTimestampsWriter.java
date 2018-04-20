@@ -16,10 +16,10 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
@@ -27,32 +27,39 @@ import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
 public class SweepableTimestampsWriter extends KvsSweepQueueWriter {
     private static final long TS_COARSE_GRANULARITY = 10_000_000L;
-    private static final long TS_FINE_GRANULARITY = 50_000L;
     private static final byte[] DUMMY = new byte[0];
 
-    private final SweepStrategyCache strategyCache;
+    private final WriteInfoPartitioner partitioner;
 
-    SweepableTimestampsWriter(KeyValueService kvs, TargetedSweepTableFactory tableFactory, SweepStrategyCache cache) {
-        super(kvs, tableFactory.getSweepableTimestampsTable(null).getTableRef());
-        this.strategyCache = cache;
+    SweepableTimestampsWriter(KeyValueService kvs, TargetedSweepTableFactory factory, WriteInfoPartitioner part) {
+        super(kvs, factory.getSweepableTimestampsTable(null).getTableRef());
+        this.partitioner = part;
     }
 
     @Override
     protected Map<Cell, byte[]> batchWrites(List<WriteInfo> writes) {
-        ImmutableMap.Builder<Cell, byte[]> resultBuilder = ImmutableMap.builder();
-        for (WriteInfo writeInfo : writes) {
-            SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow
-                    .of(KvsSweepQueuePersister.getShard(writeInfo),
-                            writeInfo.timestamp() / TS_COARSE_GRANULARITY,
-                            strategyCache.getStrategy(writeInfo).toString());
-            SweepableTimestampsTable.SweepableTimestampsColumn col = SweepableTimestampsTable.SweepableTimestampsColumn
-                    .of(writeInfo.timestamp() % TS_COARSE_GRANULARITY / TS_FINE_GRANULARITY);
+        Map<Cell, byte[]> result = new HashMap<>();
+        Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(writes);
+        partitionedWrites.forEach((partitionInfo, writeInfos) -> putWrite(partitionInfo, result));
+        return result;
+    }
 
-            SweepableTimestampsTable.SweepableTimestampsColumnValue colVal =
-                    SweepableTimestampsTable.SweepableTimestampsColumnValue.of(col, DUMMY);
+    private void putWrite(PartitionInfo partitionInfo, Map<Cell, byte[]> result) {
+        SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow.of(
+                partitionInfo.shard(),
+                tsPartitionCoarse(partitionInfo.timestamp()),
+                partitionInfo.isConservative().persistToBytes());
 
-            resultBuilder.put(toCell(row, colVal), colVal.persistValue());
-        }
-        return resultBuilder.build();
+        SweepableTimestampsTable.SweepableTimestampsColumn col = SweepableTimestampsTable.SweepableTimestampsColumn.of(
+                SweepableCellsWriter.tsMod(partitionInfo.timestamp()));
+
+        SweepableTimestampsTable.SweepableTimestampsColumnValue colVal =
+                SweepableTimestampsTable.SweepableTimestampsColumnValue.of(col, DUMMY);
+
+        result.put(toCell(row, colVal), colVal.persistValue());
+    }
+
+    private long tsPartitionCoarse(long timestamp) {
+        return timestamp / TS_COARSE_GRANULARITY;
     }
 }
