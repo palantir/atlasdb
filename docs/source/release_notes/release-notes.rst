@@ -50,15 +50,47 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Transaction managers now shut down threads associated with the QoS client and TimeLock lock refresher when they are closed.
+           Previously, these threads would continue running and needlessly using resources.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3096>`__)
+
+=======
+v0.81.0
+=======
+
+19 April 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved| |metrics|
          - Async TimeLock Service metric timers are now tagged with (1) the relevant clients, and (2) whether the current node is the leader or not.
            This allows for easier analysis and consumption of these metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
 
+    *    - |improved|
+         - Common annotations can now be imported via the commons-annotations library, instead of needing to pull in atlasdb-commons.
+           Existing code that uses atlasdb-commons for the annotations will still be able to resolve them.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3089>`__)
+
     *    - |fixed|
-         - Transaction managers now shut down threads associated with the QoS client and TimeLock lock refresher when they are closed.
-           Previously, these threads would continue running and needlessly using resources.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3096>`__)
+         - Logs in ``CassandraRequestExceptionHandler`` are logged using a logger named after that class instead of ``CassandraClientPool``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3092>`__)
+
+    *    - |improved| |devbreak|
+         - Bumped several libraries to get past known security vulns:
+
+           - Cassandra Thrift and CQL libs
+           - Jackson
+           - Logback
+           - Netty (indirectly via cassandra lib bump)
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
 
 =======
 v0.80.0
@@ -72,7 +104,7 @@ v0.80.0
 
     *    - Type
          - Change
-    
+
     *    - |fixed| |devbreak|
          - Centralize how ``PersistentLockManager`` is created in a dagger context.
            Also, removed the old constructor for ``CellsSweeper``.
@@ -119,15 +151,6 @@ v0.80.0
          - Applications can now easily determine whether their Timelock cluster is healthy by querying ``TransactionManager.getTimelockServiceStatus().isHealthy()``.
            This returns true only if a healthy connection to timelock service is established.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3030>`__)
-
-    *    - |improved| |devbreak|
-         - Bumped several libraries to get past known security vulns:
-           cassandra thrift and CQL libs
-           jackson
-           logback
-           netty (indirectly via cassandra lib bump)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
-
 
 =======
 v0.79.0
