@@ -70,9 +70,7 @@ public class WriteInfoPartitionerTest {
     @Test
     public void getStrategyThrowsOnIllegalMetadata() {
         when(mockKvs.getMetadataForTable(any())).thenReturn(AtlasDbConstants.EMPTY_TABLE_METADATA);
-        assertThatThrownBy(() ->
-                partitioner.getStrategy(
-                        getWriteInfoWithFixedCellHash(TableReference.createFromFullyQualifiedName("test.a"), 0)))
+        assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedCellHash(getTableRef("a"), 0)))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -96,7 +94,7 @@ public class WriteInfoPartitionerTest {
     }
 
     @Test
-    public void filterOutUnsweepableRemovesWritesWithStrategyNothing(){
+    public void filterOutUnsweepableRemovesWritesWithStrategyNothing() {
         List<WriteInfo> writes = ImmutableList.of(
                 getWriteInfoWithFixedCellHash(CONSERVATIVE, 0),
                 getWriteInfoWithFixedCellHash(NOTHING, 1),
