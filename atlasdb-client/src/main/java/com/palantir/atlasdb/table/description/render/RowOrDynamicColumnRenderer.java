@@ -320,7 +320,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
                 if (comp.getType() == ValueType.BLOB || comp.getType() == ValueType.SIZED_BLOB) {
                     lineEnd(" Arrays.equals(", varName(comp), ", other.", varName(comp), ") &&");
                 } else {
-                    lineEnd(" Objects.equal(", varName(comp), ", other.", varName(comp), ") &&");
+                    lineEnd(" Objects.equals(", varName(comp), ", other.", varName(comp), ") &&");
                 }
             }
             replace(" &&", ";");
