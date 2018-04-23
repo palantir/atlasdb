@@ -187,13 +187,18 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The <code class="docutils literal notranslate"><span class="pre">_locks</span></code> table is now created with a deterministic column family ID.
+This means that multi-node installations will no longer create multiple locks tables on first start-up.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3088">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now partitions versions of cells to be swept into batches more robustly and more efficiently.
 Previously, this could cause stack overflows when sweeping a very wide row, because the partitioning algorithm attempted to traverse a recursive hierarchy of sublists.
 Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3095">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions
 Previously, the strategy to choose the table to compact was:</p>
 <blockquote>
