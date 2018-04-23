@@ -41,6 +41,11 @@ public final class TargetedSweepTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
+    public SweepShardProgressTable getSweepShardProgressTable(Transaction t,
+            SweepShardProgressTable.SweepShardProgressTrigger... triggers) {
+        return SweepShardProgressTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public SweepableCellsTable getSweepableCellsTable(Transaction t,
             SweepableCellsTable.SweepableCellsTrigger... triggers) {
         return SweepableCellsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
@@ -51,10 +56,15 @@ public final class TargetedSweepTableFactory {
         return SweepableTimestampsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends SweepableCellsTable.SweepableCellsTrigger, SweepableTimestampsTable.SweepableTimestampsTrigger {
+    public interface SharedTriggers extends SweepShardProgressTable.SweepShardProgressTrigger, SweepableCellsTable.SweepableCellsTrigger, SweepableTimestampsTable.SweepableTimestampsTrigger {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putSweepShardProgress(Multimap<SweepShardProgressTable.SweepShardProgressRow, ? extends SweepShardProgressTable.SweepShardProgressNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
         @Override
         public void putSweepableCells(Multimap<SweepableCellsTable.SweepableCellsRow, ? extends SweepableCellsTable.SweepableCellsColumnValue> newRows) {
             // do nothing

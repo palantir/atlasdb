@@ -75,6 +75,18 @@ public enum TargetedSweepSchema implements AtlasSchema {
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
 
+        schema.addTableDefinition("sweepProgressPerShard", new TableDefinition() {{
+            javaTableName("SweepShardProgress");
+            allSafeForLoggingByDefault();
+            rowName();
+                hashFirstRowComponent();
+                rowComponent("shard", ValueType.VAR_LONG);
+            columns();
+                column("value", "v", ValueType.VAR_LONG);
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+        }});
+
         schema.validate();
         return schema;
     }
