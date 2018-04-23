@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.util.PersistableBoolean;
 
 public class KvsSweepQueueProgress {
     private static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
@@ -43,36 +44,38 @@ public class KvsSweepQueueProgress {
     }
 
     public long numberOfShards() {
-        return getOrInitializeTo(NUMBER_OF_SHARDS_INDEX, 1L);
+        return getOrInitializeTo(NUMBER_OF_SHARDS_INDEX, true, 1L);
     }
 
     public void updateNumberOfShards(int newNumber) {
         Preconditions.checkArgument(newNumber <= 128);
-        increaseValue(NUMBER_OF_SHARDS_INDEX, newNumber);
+        increaseValue(NUMBER_OF_SHARDS_INDEX, true, newNumber);
     }
 
-    public long lastSweptTimestamp(int shard) {
-        return getOrInitializeTo(shard, 0L);
+    public long lastSweptTimestamp(int shard, boolean conservative) {
+        return getOrInitializeTo(shard, conservative, 0L);
     }
 
-    public void updateLastSweptTimestamp(int shard, long timestamp) {
-        increaseValue(shard, timestamp);
+    public void updateLastSweptTimestamp(int shard, boolean conservative, long timestamp) {
+        increaseValue(shard, conservative, timestamp);
     }
 
-    private long getOrInitializeTo(int shard, long initialValue) {
-        Map<Cell, Value> result = getEntry(shard);
+    private long getOrInitializeTo(int shard, boolean conservative, long initialValue) {
+        Map<Cell, Value> result = getEntry(shard, conservative);
         if (result.isEmpty()) {
-            return initializeShard(shard, initialValue);
+            return initializeShard(shard, conservative, initialValue);
         }
         return getValue(result);
     }
 
-    private Map<Cell, Value> getEntry(int shard) {
-        return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shard), CAS_TIMESTAMP));
+    private Map<Cell, Value> getEntry(int shard, boolean conservative) {
+        return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shard, conservative), CAS_TIMESTAMP));
     }
 
-    private Cell cellForShard(int shard) {
-        return Cell.create(SweepShardProgressTable.SweepShardProgressRow.of(shard).persistToBytes(),
+    private Cell cellForShard(int shard, boolean conservative) {
+        SweepShardProgressTable.SweepShardProgressRow row = SweepShardProgressTable.SweepShardProgressRow.of(shard,
+                PersistableBoolean.of(conservative).persistToBytes());
+        return Cell.create(row.persistToBytes(),
                 SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
     }
 
@@ -82,31 +85,31 @@ public class KvsSweepQueueProgress {
         return value.getValue();
     }
 
-    private long initializeShard(int shard, long initialVale) {
+    private long initializeShard(int shard, boolean conservative, long initialVale) {
         SweepShardProgressTable.Value colVal = SweepShardProgressTable.Value.of(initialVale);
         CheckAndSetRequest initializeRequest = CheckAndSetRequest
-                .newCell(TABLE_REF, cellForShard(shard), colVal.persistValue());
+                .newCell(TABLE_REF, cellForShard(shard, conservative), colVal.persistValue());
         try {
             kvs.checkAndSet(initializeRequest);
             return initialVale;
         } catch (CheckAndSetException e) {
-            return getValue(getEntry(shard));
+            return getValue(getEntry(shard, conservative));
         }
     }
 
-    private void increaseValue(int shard, long newValue){
-        long oldVal = getValue(getEntry(shard));
+    private void increaseValue(int shard, boolean conservative, long newValue) {
+        long oldVal = getValue(getEntry(shard, conservative));
         SweepShardProgressTable.Value colValNew = SweepShardProgressTable.Value.of(newValue);
 
         while (oldVal < newValue) {
             SweepShardProgressTable.Value colValOld = SweepShardProgressTable.Value.of(oldVal);
-            CheckAndSetRequest casRequest = CheckAndSetRequest
-                    .singleCell(TABLE_REF, cellForShard(shard), colValOld.persistValue(), colValNew.persistValue());
+            CheckAndSetRequest casRequest = CheckAndSetRequest.singleCell(
+                    TABLE_REF, cellForShard(shard, conservative), colValOld.persistValue(), colValNew.persistValue());
             try {
                 kvs.checkAndSet(casRequest);
                 return;
             } catch (CheckAndSetException e) {
-                oldVal = getValue(getEntry(shard));
+                oldVal = getValue(getEntry(shard, conservative));
             }
         }
     }
