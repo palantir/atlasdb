@@ -6,7 +6,8 @@ apply plugin: 'org.inferred.processors'
 
 schemas = [
         'com.palantir.atlasdb.cas.CheckAndSetSchema',
-        'com.palantir.atlasdb.blob.BlobSchema'
+        'com.palantir.atlasdb.blob.BlobSchema',
+        'com.palantir.atlasdb.todo.TodoSchema'
 ]
 
 dependencies {
