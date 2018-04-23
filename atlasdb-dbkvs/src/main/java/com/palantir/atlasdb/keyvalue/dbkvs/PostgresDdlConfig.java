@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
 @JsonDeserialize(as = ImmutablePostgresDdlConfig.class)
 @JsonSerialize(as = ImmutablePostgresDdlConfig.class)
@@ -44,5 +45,10 @@ public abstract class PostgresDdlConfig extends DdlConfig {
     @Override
     public <T> T accept(Visitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @Value.Default
+    public HumanReadableDuration compactInterval() {
+        return HumanReadableDuration.seconds(0);
     }
 }
