@@ -17,15 +17,13 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -33,6 +31,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.function.IntConsumer;
 import java.util.stream.IntStream;
 
+import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -77,10 +76,12 @@ public class SchemaMutationLockTablesIntegrationTest {
     }
 
     @Test
-    public void multipleLockTablesExistAfterCreation() throws Exception {
+    public void secondTableCreationSucceedsButOnlyOneTableExistsAfterwards() throws Exception {
         lockTables.createLockTable();
+
         lockTables.createLockTable();
-        assertThat(lockTables.getAllLockTables(), hasSize(2));
+
+        assertThat(lockTables.getAllLockTables(), hasSize(1));
     }
 
     @Test
@@ -91,33 +92,35 @@ public class SchemaMutationLockTablesIntegrationTest {
     }
 
     @Test
-    public void shouldCreateLockTablesStartingWithCorrectPrefix() throws TException {
+    public void shouldCreateLockTablesWithCorrectName() throws TException {
         lockTables.createLockTable();
 
-        assertThat(Iterables.getOnlyElement(lockTables.getAllLockTables()).getTablename(), startsWith("_locks_"));
+        assertThat(Iterables.getOnlyElement(lockTables.getAllLockTables()).getTablename(), equalTo("_locks"));
     }
 
     @Test
-    public void whenTablesAreCreatedConcurrentlyAtLeastOneThreadShouldSeeBothTables() {
+    public void whenTablesAreCreatedConcurrentlyThereIsStillOnlyOneTable() {
         CyclicBarrier barrier = new CyclicBarrier(2);
 
-        List<Set<TableReference>> lockTablesSeen = Collections.synchronizedList(new ArrayList<>());
+        Set<TableReference> lockTablesSeen = Collections.synchronizedSet(new HashSet<>());
 
         IntStream.range(0, 2).parallel()
                 .forEach(ignoringExceptions(() -> {
                     barrier.await();
                     lockTables.createLockTable();
-                    lockTablesSeen.add(lockTables.getAllLockTables());
+                    lockTablesSeen.addAll(lockTables.getAllLockTables());
                     return null;
                 }));
 
-        assertThat("Only one table was seen by both creation threads", lockTablesSeen, hasItem(hasSize(2)));
+        assertThat("Only one table should have been seen by both creation threads", lockTablesSeen, hasSize(1));
     }
 
     private IntConsumer ignoringExceptions(Callable function) {
         return (iterationCount) -> {
             try {
                 function.call();
+            } catch (InvalidRequestException ire) {
+                // ignore - expected if tables aren't quite created at the same time.
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - The ``_locks`` table is now created with a deterministic column family ID.
+           This means that multi-node installations will no longer create multiple locks tables on first start-up.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3088>`__)
+
     *    - |fixed| |improved|
          - AtlasDB now partitions versions of cells to be swept into batches more robustly and more efficiently.
            Previously, this could cause stack overflows when sweeping a very wide row, because the partitioning algorithm attempted to traverse a recursive hierarchy of sublists.
