@@ -33,7 +33,6 @@ import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 public class KvsSweepQueueProgress {
     private static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
             .getSweepShardProgressTable(null).getTableRef();
-    private static final byte[] COL_BYTES = SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName();
     private static final int NUMBER_OF_SHARDS_INDEX = 1024;
     private static final long CAS_TIMESTAMP = 1L;
 
@@ -73,8 +72,8 @@ public class KvsSweepQueueProgress {
     }
 
     private Cell cellForShard(int shard) {
-        SweepShardProgressTable.SweepShardProgressRow row = SweepShardProgressTable.SweepShardProgressRow.of(shard);
-        return Cell.create(row.persistToBytes(), COL_BYTES);
+        return Cell.create(SweepShardProgressTable.SweepShardProgressRow.of(shard).persistToBytes(),
+                SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
     }
 
     private long getValue(Map<Cell, Value> entry) {
@@ -95,7 +94,7 @@ public class KvsSweepQueueProgress {
         }
     }
 
-    void increaseValue(int shard, long newValue){
+    private void increaseValue(int shard, long newValue){
         long oldVal = getValue(getEntry(shard));
         SweepShardProgressTable.Value colValNew = SweepShardProgressTable.Value.of(newValue);
 
