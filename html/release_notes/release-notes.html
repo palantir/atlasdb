@@ -219,6 +219,13 @@ Previously, the strategy to choose the table to compact was:</p>
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3100">Pull Request</a>)</p>
 </td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">LoggingArgs::isSafeForLogging(TableReference,</span> <span class="pre">Cell)</span></code> was removed, as it behaved unexpectedly and could leak information.
+Previously, it returned true only if the cell’s row matched the name of a row component which was declared as safe.
+However, knowledge of the existence of such a cell may not actually be safe.
+There currently isn’t an API for declaring specific row or dynamic column components as safe; please contact the AtlasDB team if you have such a use case.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3093">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
