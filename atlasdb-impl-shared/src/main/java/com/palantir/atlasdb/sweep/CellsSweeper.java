@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -81,7 +83,7 @@ public class CellsSweeper {
             log.error("When sweeping table {} found cells to sweep with the start timestamp null."
                             + " This is unexpected. The cellTs pairs to sweep were: {}.",
                     LoggingArgs.tableRef(tableRef),
-                    getLoggingArgForCells(tableRef, cellTsPairsToSweep));
+                    getLoggingArgForCells(cellTsPairsToSweep));
         }
 
         persistentLockManager.acquirePersistentLockWithRetry();
@@ -93,24 +95,13 @@ public class CellsSweeper {
         }
     }
 
-    private Arg<String> getLoggingArgForCells(TableReference tableRef,  Multimap<Cell, Long> cellTsPairsToSweep) {
-        String message = getMessage(cellTsPairsToSweep);
-
-        if (allComponentsAreSafe(tableRef, cellTsPairsToSweep)) {
-            return SafeArg.of("cellTsPairsToSweep", message);
-        } else {
-            return UnsafeArg.of("cellTsPairsToSweep", message);
-        }
+    private Arg<String> getLoggingArgForCells(Multimap<Cell, Long> cellTsPairsToSweep) {
+        return UnsafeArg.of("cellTsPairsToSweep", getMessage(cellTsPairsToSweep));
     }
 
-    private boolean allComponentsAreSafe(TableReference tableRef, Multimap<Cell, Long> cellTsPairsToSweep) {
-        // all or nothing
-        return cellTsPairsToSweep.keySet().stream().allMatch(cell -> LoggingArgs.isSafeForLogging(tableRef, cell));
-    }
-
-    private <T> String getMessage(Multimap<Cell, Long> cellTsPairsToSweep) {
+    private String getMessage(Multimap<Cell, Long> cellTsPairsToSweep) {
         return cellTsPairsToSweep.entries().stream()
-                .sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
+                .sorted(Comparator.comparing(Map.Entry::getKey))
                 .map(entry -> entry.getKey().toString() + "->" + entry.getValue())
                 .collect(Collectors.joining(", ", "[", "]"));
     }
