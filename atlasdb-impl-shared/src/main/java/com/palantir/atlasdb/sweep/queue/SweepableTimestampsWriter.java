@@ -20,13 +20,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
 public class SweepableTimestampsWriter extends KvsSweepQueueWriter {
-    private static final long TS_COARSE_GRANULARITY = 10_000_000L;
+    public static final long TS_COARSE_GRANULARITY = 10_000_000L;
     private static final byte[] DUMMY = new byte[0];
 
     private final WriteInfoPartitioner partitioner;
@@ -57,6 +58,13 @@ public class SweepableTimestampsWriter extends KvsSweepQueueWriter {
                 SweepableTimestampsTable.SweepableTimestampsColumnValue.of(col, DUMMY);
 
         result.put(toCell(row, colVal), colVal.persistValue());
+    }
+
+    public void markLastSwept(int shard, long sweptTimestamp, boolean conservative) {
+        Map<Cell, byte[]> entry = new HashMap<>();
+        putWrite(PartitionInfo.of(shard, conservative, sweptTimestamp), entry);
+
+        kvs.put(tableRef, entry, -1L);
     }
 
     private long tsPartitionCoarse(long timestamp) {

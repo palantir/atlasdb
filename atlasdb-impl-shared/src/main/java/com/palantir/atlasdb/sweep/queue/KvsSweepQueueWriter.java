@@ -26,8 +26,8 @@ import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.persist.Persistable;
 
 public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
-    private final KeyValueService kvs;
-    private final TableReference tableRef;
+    final KeyValueService kvs;
+    final TableReference tableRef;
 
     public KvsSweepQueueWriter(KeyValueService kvs, TableReference tableRef) {
         this.kvs = kvs;
