@@ -81,6 +81,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
             rowName();
                 hashFirstRowComponent();
                 rowComponent("shard", ValueType.VAR_LONG);
+                rowComponent("sweep_conservative", ValueType.BLOB);
             columns();
                 column("value", "v", ValueType.VAR_LONG);
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);

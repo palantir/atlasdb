@@ -63,34 +63,60 @@ public class KvsSweepProgressQueueTest {
 
     @Test
     public void canReadInitialSweptTimestamp() {
-        assertThat(progress.lastSweptTimestamp(10)).isEqualTo(0L);
+        assertThat(progress.lastSweptTimestamp(10, true)).isEqualTo(0L);
     }
 
     @Test
     public void canUpdateSweptTimestamp() {
-        progress.lastSweptTimestamp(10);
-        progress.updateLastSweptTimestamp(10, 1024L);
-        assertThat(progress.lastSweptTimestamp(10)).isEqualTo(1024L);
+        progress.lastSweptTimestamp(10, true);
+        progress.updateLastSweptTimestamp(10, true, 1024L);
+        assertThat(progress.lastSweptTimestamp(10, true)).isEqualTo(1024L);
     }
 
     @Test
     public void attemptingToDecreaseSweptTimestampIsNoop() {
-        progress.lastSweptTimestamp(10);
-        progress.updateLastSweptTimestamp(10, 1024L);
-        progress.updateLastSweptTimestamp(10, 512L);
-        assertThat(progress.lastSweptTimestamp(10)).isEqualTo(1024L);
+        progress.lastSweptTimestamp(10, true);
+        progress.updateLastSweptTimestamp(10, true, 1024L);
+        progress.updateLastSweptTimestamp(10, true, 512L);
+        assertThat(progress.lastSweptTimestamp(10, true)).isEqualTo(1024L);
     }
 
     @Test
     public void updatingTimestampForOneShardDoesNotAffectOthers() {
-        assertThat(progress.lastSweptTimestamp(10)).isEqualTo(0L);
-        assertThat(progress.lastSweptTimestamp(20)).isEqualTo(0L);
-        progress.updateLastSweptTimestamp(10, 1024L);
+        assertThat(progress.lastSweptTimestamp(10, true)).isEqualTo(0L);
+        assertThat(progress.lastSweptTimestamp(20, true)).isEqualTo(0L);
+        progress.updateLastSweptTimestamp(10, true, 1024L);
+        assertThat(progress.lastSweptTimestamp(20, true)).isEqualTo(0L);
 
-        assertThat(progress.lastSweptTimestamp(20)).isEqualTo(0L);
+        progress.updateLastSweptTimestamp(20, true, 512L);
+        assertThat(progress.lastSweptTimestamp(20, true)).isEqualTo(512L);
+        assertThat(progress.lastSweptTimestamp(10, true)).isEqualTo(1024L);
+    }
 
-        progress.updateLastSweptTimestamp(20, 512L);
-        assertThat(progress.lastSweptTimestamp(20)).isEqualTo(512L);
-        assertThat(progress.lastSweptTimestamp(10)).isEqualTo(1024L);
+    @Test
+    public void updatingTimestampForOneConsistencyDoesNotAffectOther() {
+        assertThat(progress.lastSweptTimestamp(10, true)).isEqualTo(0L);
+        assertThat(progress.lastSweptTimestamp(10, false)).isEqualTo(0L);
+        progress.updateLastSweptTimestamp(10, true, 128L);
+        assertThat(progress.lastSweptTimestamp(10, false)).isEqualTo(0L);
+
+        progress.updateLastSweptTimestamp(10, false, 32L);
+        assertThat(progress.lastSweptTimestamp(10, true)).isEqualTo(128L);
+        assertThat(progress.lastSweptTimestamp(10, false)).isEqualTo(32L);
+    }
+
+    @Test
+    public void updatingTimestampsDoesNotAffectShardsAndViceVersa() {
+        assertThat(progress.numberOfShards()).isEqualTo(1);
+        assertThat(progress.lastSweptTimestamp(10, true)).isEqualTo(0L);
+        assertThat(progress.lastSweptTimestamp(10, false)).isEqualTo(0L);
+
+        progress.updateNumberOfShards(64);
+        progress.updateLastSweptTimestamp(10, true, 32L);
+        progress.updateLastSweptTimestamp(10, false, 128L);
+
+        assertThat(progress.numberOfShards()).isEqualTo(64);
+        assertThat(progress.lastSweptTimestamp(10, true)).isEqualTo(32L);
+        assertThat(progress.lastSweptTimestamp(10, false)).isEqualTo(128L);
     }
 }
