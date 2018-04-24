@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -60,6 +61,24 @@ class CompactPriorityCalculator {
         Map<String, Long> tableToLastTimeSwept = sweepHistoryProvider.getHistory(tx);
         Map<String, Long> tableToLastTimeCompacted = compactionHistoryProvider.getHistory(tx);
 
+        Optional<String> tableToCompact = maybeChooseUncompactedTable(tableToLastTimeSwept, tableToLastTimeCompacted);
+        if (!tableToCompact.isPresent()) {
+            tableToCompact = maybeChooseTableSweptAfterCompact(tableToLastTimeSwept, tableToLastTimeCompacted);
+        }
+        if (!tableToCompact.isPresent()) {
+            tableToCompact = maybeChooseTableCompactedOver1HourAgo(tableToLastTimeCompacted);
+        }
+        if (!tableToCompact.isPresent()) {
+            log.info("Not compacting, because it does not appear that any table has been swept"
+                    + " or they were compacted too recently (the past hour).");
+        }
+        return tableToCompact;
+    }
+
+    private static Optional<String> maybeChooseUncompactedTable(
+            Map<String, Long> tableToLastTimeSwept,
+            Map<String, Long> tableToLastTimeCompacted) {
+
         List<String> uncompactedTables = tableToLastTimeSwept.keySet().stream()
                 .filter(table -> !tableToLastTimeCompacted.keySet().contains(table))
                 .collect(Collectors.toList());
@@ -71,9 +90,15 @@ class CompactPriorityCalculator {
                     randomlyChosenTable);
             return Optional.of(randomlyChosenTable);
         }
+        return Optional.empty();
+    }
+
+    private static Optional<String> maybeChooseTableSweptAfterCompact(
+            Map<String, Long> tableToLastTimeSwept,
+            Map<String, Long> tableToLastTimeCompacted) {
 
         String tableToCompact = null;
-        long maxSweptAfterCompact = Long.MIN_VALUE;
+        long maxSweptAfterCompact = 0L;
         for (Map.Entry<String, Long> entry : tableToLastTimeSwept.entrySet()) {
             String table = entry.getKey();
             long lastSweptTime = entry.getValue();
@@ -86,25 +111,30 @@ class CompactPriorityCalculator {
             }
         }
 
-        if (tableToCompact == null) {
-            log.info("Not compacting, because it does not appear that any table has been swept.");
-        } else {
-            logCompactionChoice(tableToCompact, maxSweptAfterCompact);
-        }
-        return Optional.ofNullable(tableToCompact);
-    }
-
-    private void logCompactionChoice(String tableToCompact, long maxSweptAfterCompact) {
-        if (maxSweptAfterCompact > 0) {
+        if (tableToCompact != null) {
             log.info("Choosing to compact {}, because it was swept {} milliseconds after the last compaction",
                     tableToCompact,
                     maxSweptAfterCompact);
-        } else {
-            log.info("All swept tables have been compacted after the last sweep. Choosing to compact {} anyway - "
-                    + "this may be a no-op. It was last compacted {} milliseconds after it was last swept.",
-                    tableToCompact,
-                    Math.abs(maxSweptAfterCompact));
+            return Optional.of(tableToCompact);
         }
+        return Optional.empty();
     }
 
+    private static Optional<String> maybeChooseTableCompactedOver1HourAgo(
+            Map<String, Long> tableToLastTimeCompacted) {
+
+        List<String> filteredTablesCompactedAfterSweep = tableToLastTimeCompacted.entrySet().stream()
+                .filter(entry -> entry.getValue() < System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1L))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+        if (filteredTablesCompactedAfterSweep.size() > 0) {
+            int randomTableIndex = ThreadLocalRandom.current().nextInt(filteredTablesCompactedAfterSweep.size());
+            String randomlyChosenTable = filteredTablesCompactedAfterSweep.get(randomTableIndex);
+            log.info("All swept tables have been compacted after the last sweep. Choosing to compact {} at random"
+                            + " between tables which were compacted more than 1 hour ago.",
+                    randomlyChosenTable);
+            return Optional.of(randomlyChosenTable);
+        }
+        return Optional.empty();
+    }
 }

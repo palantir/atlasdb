@@ -59,11 +59,11 @@ public class CompactPriorityCalculatorTest {
     }
 
     @Test
-    public void returnsTableWithBiggestCompactionToSweepTime() {
-        // TABLE_1 was compacted more recently, but was also swept more recently, and more time passed between its last
-        // compaction and its last sweep - so without other information, we assume there's more to compact.
-        when(sweepHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 7L, TABLE_2, 5L));
-        when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 4L, TABLE_2, 3L));
+    public void returnsTableWithBiggestSweepToCompactionPositiveTime() {
+        // TABLE_1 is chosen because more time passed between its last compaction and its last sweep -
+        // so without other information, we assume there's more to compact.
+        when(sweepHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 5L, TABLE_2, 6L));
+        when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 1L, TABLE_2, 4L));
 
         Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
         assertThat(table).isEqualTo(Optional.of(TABLE_1));
@@ -71,10 +71,25 @@ public class CompactPriorityCalculatorTest {
 
     @Test
     public void canReturnTableEvenIfItWasCompactedAfterTheLastSweep() {
+        // TABLE_1 was compacted too recently, chooses randomly one compacted over one hour ago
         when(sweepHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 4L, TABLE_2, 3L));
-        when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 7L, TABLE_2, 5L));
+        when(compactionHistoryProvider.getHistory(mockTx))
+                .thenReturn(ImmutableMap.of(TABLE_1, System.currentTimeMillis(), TABLE_2, 5L));
 
         Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
         assertThat(table).isEqualTo(Optional.of(TABLE_2));
+    }
+
+    @Test
+    public void returnsEmptyWhenTablesWereCompactedRecently() {
+        // Returns empty when all tables were swept and then compacted, and each compact time is the past hour
+        Long currentTime = System.currentTimeMillis();
+        when(sweepHistoryProvider.getHistory(mockTx))
+                .thenReturn(ImmutableMap.of(TABLE_1, currentTime - 5, TABLE_2, currentTime - 4));
+        when(compactionHistoryProvider.getHistory(mockTx))
+                .thenReturn(ImmutableMap.of(TABLE_1, currentTime  - 1, TABLE_2, currentTime - 2));
+
+        Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
+        assertThat(table).isEmpty();
     }
 }
