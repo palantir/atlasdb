@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2016 Palantir Technologies Inc. All rights reserved.
  * <p>
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
