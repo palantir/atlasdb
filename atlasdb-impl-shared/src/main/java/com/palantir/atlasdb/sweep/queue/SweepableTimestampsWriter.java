@@ -55,6 +55,6 @@ public class SweepableTimestampsWriter extends KvsSweepQueueWriter {
         SweepableTimestampsTable.SweepableTimestampsColumnValue colVal =
                 SweepableTimestampsTable.SweepableTimestampsColumnValue.of(col, DUMMY);
 
-        result.put(toCell(row, colVal), colVal.persistValue());
+        result.put(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
     }
 }

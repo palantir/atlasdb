@@ -22,12 +22,10 @@ import java.util.Map;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.api.ColumnValue;
-import com.palantir.common.persist.Persistable;
 
 public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
-    final KeyValueService kvs;
-    final TableReference tableRef;
+    private final KeyValueService kvs;
+    private final TableReference tableRef;
 
     public KvsSweepQueueWriter(KeyValueService kvs, TableReference tableRef) {
         this.kvs = kvs;
@@ -40,8 +38,4 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
     }
 
     protected abstract Map<Cell, byte[]> batchWrites(List<WriteInfo> writes);
-
-    public static Cell toCell(Persistable row, ColumnValue<?> col) {
-        return Cell.create(row.persistToBytes(), col.persistColumnName());
-    }
 }

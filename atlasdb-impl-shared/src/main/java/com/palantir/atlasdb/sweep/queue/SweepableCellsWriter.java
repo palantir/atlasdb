@@ -74,7 +74,7 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
             long index, Map<Cell, byte[]> result) {
         SweepableCellsTable.SweepableCellsRow row = createRow(info, dedicate, dedicatedRow);
         SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(info.timestamp(), index, tableRefCell);
-        result.put(toCell(row, colVal), colVal.persistValue());
+        result.put(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
     }
 
     private SweepableCellsTable.SweepableCellsRow createRow(PartitionInfo info, boolean dedicate, long dedicatedRow) {
