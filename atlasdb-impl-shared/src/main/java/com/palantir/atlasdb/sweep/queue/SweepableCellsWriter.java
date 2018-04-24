@@ -30,14 +30,13 @@ import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
 
 public class SweepableCellsWriter extends KvsSweepQueueWriter {
-    private static final long TS_FINE_GRANULARITY = 50_000L;
     private static final long MAX_CELLS_GENERIC = 50L;
     private static final long MAX_CELLS_DEDICATED = 100_000L;
 
     private final WriteInfoPartitioner partitioner;
 
-    SweepableCellsWriter(KeyValueService kvs, TargetedSweepTableFactory factory, WriteInfoPartitioner partitioner) {
-        super(kvs, factory.getSweepableCellsTable(null).getTableRef());
+    SweepableCellsWriter(KeyValueService kvs, WriteInfoPartitioner partitioner) {
+        super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef());
         this.partitioner = partitioner;
     }
 
@@ -86,7 +85,8 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
                 .dedicatedRowNumber(dedicatedRow)
                 .build();
 
-        return SweepableCellsTable.SweepableCellsRow.of(tsPartitionFine(info.timestamp()), metadata.persistToBytes());
+        return SweepableCellsTable.SweepableCellsRow.of(
+                SweepQueueUtils.tsPartitionFine(info.timestamp()), metadata.persistToBytes());
     }
 
     private SweepableCellsTable.SweepableCellsColumnValue createColVal(long ts, long index,
@@ -99,12 +99,8 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
         return 1 + (writes.size() - 1) / MAX_CELLS_DEDICATED;
     }
 
-    private long tsPartitionFine(long timestamp) {
-        return timestamp / TS_FINE_GRANULARITY;
-    }
-
-    public static long tsMod(long timestamp) {
-        return timestamp % TS_FINE_GRANULARITY;
+    private static long tsMod(long timestamp) {
+        return timestamp % SweepQueueUtils.TS_FINE_GRANULARITY;
     }
 }
 

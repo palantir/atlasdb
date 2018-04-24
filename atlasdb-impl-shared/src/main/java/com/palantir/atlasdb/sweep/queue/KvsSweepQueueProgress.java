@@ -35,7 +35,6 @@ public class KvsSweepQueueProgress {
     private static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
             .getSweepShardProgressTable(null).getTableRef();
     private static final int NUMBER_OF_SHARDS_INDEX = 1024;
-    private static final long CAS_TIMESTAMP = 1L;
 
     private final KeyValueService kvs;
 
@@ -43,8 +42,8 @@ public class KvsSweepQueueProgress {
         this.kvs = kvs;
     }
 
-    public long numberOfShards() {
-        return getOrInitializeTo(NUMBER_OF_SHARDS_INDEX, true, 1L);
+    public long getNumberOfShards() {
+        return getOrReturnInitial(NUMBER_OF_SHARDS_INDEX, true, 1L);
     }
 
     public void updateNumberOfShards(int newNumber) {
@@ -52,29 +51,29 @@ public class KvsSweepQueueProgress {
         increaseValue(NUMBER_OF_SHARDS_INDEX, true, newNumber);
     }
 
-    public long lastSweptTimestamp(int shard, boolean conservative) {
-        return getOrInitializeTo(shard, conservative, 0L);
+    public long getLastSweptTimestampPartition(int shard, boolean conservative) {
+        return getOrReturnInitial(shard, conservative, -1L);
     }
 
-    public void updateLastSweptTimestamp(int shard, boolean conservative, long timestamp) {
+    public void updateLastSweptTimestampPartition(int shard, boolean conservative, long timestamp) {
         increaseValue(shard, conservative, timestamp);
     }
 
-    private long getOrInitializeTo(int shard, boolean conservative, long initialValue) {
+    private long getOrReturnInitial(int shard, boolean conservative, long initialValue) {
         Map<Cell, Value> result = getEntry(shard, conservative);
         if (result.isEmpty()) {
-            return initializeShard(shard, conservative, initialValue);
+            return initialValue;
         }
         return getValue(result);
     }
 
     private Map<Cell, Value> getEntry(int shard, boolean conservative) {
-        return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shard, conservative), CAS_TIMESTAMP));
+        return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shard, conservative), SweepQueueUtils.CAS_TS));
     }
 
     private Cell cellForShard(int shard, boolean conservative) {
-        SweepShardProgressTable.SweepShardProgressRow row = SweepShardProgressTable.SweepShardProgressRow.of(shard,
-                PersistableBoolean.of(conservative).persistToBytes());
+        SweepShardProgressTable.SweepShardProgressRow row = SweepShardProgressTable.SweepShardProgressRow.of(
+                shard, PersistableBoolean.of(conservative).persistToBytes());
         return Cell.create(row.persistToBytes(),
                 SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
     }
@@ -85,26 +84,13 @@ public class KvsSweepQueueProgress {
         return value.getValue();
     }
 
-    private long initializeShard(int shard, boolean conservative, long initialVale) {
-        SweepShardProgressTable.Value colVal = SweepShardProgressTable.Value.of(initialVale);
-        CheckAndSetRequest initializeRequest = CheckAndSetRequest
-                .newCell(TABLE_REF, cellForShard(shard, conservative), colVal.persistValue());
-        try {
-            kvs.checkAndSet(initializeRequest);
-            return initialVale;
-        } catch (CheckAndSetException e) {
-            return getValue(getEntry(shard, conservative));
-        }
-    }
-
     private void increaseValue(int shard, boolean conservative, long newValue) {
-        long oldVal = getValue(getEntry(shard, conservative));
-        SweepShardProgressTable.Value colValNew = SweepShardProgressTable.Value.of(newValue);
+        long oldVal = getLastSweptTimestampPartition(shard, conservative);
+        byte[] colValNew = SweepShardProgressTable.Value.of(newValue).persistValue();
 
+        // todo(gmaretic): is the potential infinite loop here scary? Should we code defensively and fail if oldVal remains constant?
         while (oldVal < newValue) {
-            SweepShardProgressTable.Value colValOld = SweepShardProgressTable.Value.of(oldVal);
-            CheckAndSetRequest casRequest = CheckAndSetRequest.singleCell(
-                    TABLE_REF, cellForShard(shard, conservative), colValOld.persistValue(), colValNew.persistValue());
+            CheckAndSetRequest casRequest = createRequest(shard, conservative, oldVal, colValNew);
             try {
                 kvs.checkAndSet(casRequest);
                 return;
@@ -112,5 +98,13 @@ public class KvsSweepQueueProgress {
                 oldVal = getValue(getEntry(shard, conservative));
             }
         }
+    }
+
+    private CheckAndSetRequest createRequest(int shard, boolean conservative, long oldVal, byte[] colValNew) {
+        if (oldVal == -1) {
+            return CheckAndSetRequest.newCell(TABLE_REF, cellForShard(shard, conservative), colValNew);
+        }
+        byte[] colValOld = SweepShardProgressTable.Value.of(oldVal).persistValue();
+        return CheckAndSetRequest.singleCell(TABLE_REF, cellForShard(shard, conservative), colValOld, colValNew);
     }
 }

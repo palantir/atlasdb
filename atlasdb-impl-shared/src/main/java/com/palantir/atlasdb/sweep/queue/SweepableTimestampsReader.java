@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Set;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.primitives.UnsignedBytes;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -32,48 +30,69 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.PersistableBoolean;
 
 public class SweepableTimestampsReader {
+    private static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
+            .getSweepableTimestampsTable(null).getTableRef();
     private final KeyValueService kvs;
-    private final TableReference tableRef;
+    private final SweepTimestampProvider timestampProvider;
+    private final KvsSweepQueueProgress progress;
 
-    SweepableTimestampsReader(KeyValueService kvs, TargetedSweepTableFactory factory) {
+    SweepableTimestampsReader(KeyValueService kvs, SweepTimestampProvider provider) {
         this.kvs = kvs;
-        this.tableRef = factory.getSweepableTimestampsTable(null).getTableRef();
+        this.timestampProvider = provider;
+        this.progress = new KvsSweepQueueProgress(kvs);
     }
 
-    Set<SweepableTimestampsTable.SweepableTimestampsColumnValue> getSweptColumns(long shard, long tsBucket, boolean conservative) {
-        return getColumns(shard, tsBucket, conservative, -1L);
+    public Optional<Long> nextSweepableTimestampPartition(int shard, boolean conservative) {
+        long lastSweptPartitionFine = progress.getLastSweptTimestampPartition(shard, conservative);
+        long lastSweptPartitionCoarse = SweepQueueUtils.partitionFineToCoarse(lastSweptPartitionFine);
+        return nextSweepablePartition(shard, conservative, lastSweptPartitionCoarse, lastSweptPartitionFine);
     }
 
-    Set<SweepableTimestampsTable.SweepableTimestampsColumnValue> getColumns(long shard, long tsBucket, boolean conservative) {
-        return getColumns(shard, tsBucket, conservative, 0L);
+    private Optional<Long> nextSweepablePartition(int shard, boolean conservative, long sweptCoarse, long sweptFine) {
+        long sweepTimestamp = timestampProvider.getSweepTimestamp(Sweeper.fromBoolean(conservative));
+        long sweepTimestampFine = SweepQueueUtils.tsPartitionFine(sweepTimestamp);
+        long sweepTimestampCoarse = SweepQueueUtils.tsPartitionCoarse(sweepTimestamp);
+        long currentCoarse = sweptCoarse;
+
+        while (currentCoarse <= sweepTimestampCoarse) {
+            Optional<Long> candidateFine = getCandidatesInCoarsePartition(shard, currentCoarse, conservative).stream()
+                    .filter(ts -> ts > sweptFine && ts < sweepTimestampFine)
+                    .min(Long::compareTo);
+            if (candidateFine.isPresent()) {
+                return candidateFine;
+            }
+            currentCoarse++;
+        }
+        return Optional.empty();
     }
 
-
-        Set<SweepableTimestampsTable.SweepableTimestampsColumnValue> getColumns(long shard, long tsBucket, boolean conservative, long ts) {
+    List<Long> getCandidatesInCoarsePartition(long shard, long partitionCoarse, boolean conservative) {
         byte[] row = SweepableTimestampsTable.SweepableTimestampsRow.of(
-                shard, tsBucket, PersistableBoolean.of(conservative).persistToBytes())
+                shard, partitionCoarse, PersistableBoolean.of(conservative).persistToBytes())
                 .persistToBytes();
-        RangeRequest rangeRequest = RangeRequest.builder()
+        RangeRequest request = RangeRequest.builder()
                 .startRowInclusive(row)
                 .endRowExclusive(RangeRequests.nextLexicographicName(row))
                 .retainColumns(ColumnSelection.all())
                 .batchHint(1)
                 .build();
-        ClosableIterator<RowResult<Value>> rowResultIterator = kvs.getRange(tableRef, rangeRequest, ts + 1L);
+        ClosableIterator<RowResult<Value>> rowResultIterator = kvs.getRange(TABLE_REF, request, SweepQueueUtils.CAS_TS);
 
         if (!rowResultIterator.hasNext()) {
-            return ImmutableSet.of();
+            return ImmutableList.of();
         }
 
         RowResult<Value> rowResult = rowResultIterator.next();
 
-        Preconditions.checkState(!rowResultIterator.hasNext(), "WAT");
-
-        return SweepableTimestampsTable.SweepableTimestampsRowResult.of(RowResult.create(rowResult.getRowName(),
-                ImmutableSortedMap.<byte[], byte[]>orderedBy(UnsignedBytes.lexicographicalComparator()).putAll(rowResult.getColumns().entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue().getContents()))).build())).getColumnValues();
+        // todo(gmaretic): is it better to use EncodingUtils.decodeUnsignedVarLong? This seems slightly clearer
+        return rowResult.getColumns().keySet().stream()
+                .map(SweepableTimestampsTable.SweepableTimestampsColumn.BYTES_HYDRATOR::hydrateFromBytes)
+                .map(SweepableTimestampsTable.SweepableTimestampsColumn.getTimestampModulusFun())
+                .collect(Collectors.toList());
     }
 }

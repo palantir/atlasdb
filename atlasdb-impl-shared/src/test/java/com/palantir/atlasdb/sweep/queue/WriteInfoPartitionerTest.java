@@ -40,11 +40,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
-
 
 public class WriteInfoPartitionerTest {
     private static final TableReference NOTHING = getTableRef("nothing");
@@ -52,10 +47,10 @@ public class WriteInfoPartitionerTest {
     private static final TableReference CONSERVATIVE2 = getTableRef("conservative2");
     private static final TableReference THOROUGH = getTableRef("thorough");
     private static final Map<TableReference, byte[]> METADATA_MAP = ImmutableMap.of(
-            NOTHING, metadataBytes(TableMetadataPersistence.SweepStrategy.NOTHING),
-            CONSERVATIVE, metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
-            CONSERVATIVE2, metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
-            THOROUGH, metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
+            NOTHING, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.NOTHING),
+            CONSERVATIVE, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
+            CONSERVATIVE2, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
+            THOROUGH, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
 
     private KeyValueService mockKvs = mock(KeyValueService.class);
     private WriteInfoPartitioner partitioner;
@@ -134,20 +129,6 @@ public class WriteInfoPartitionerTest {
                 .isEqualTo(PartitionInfo.of(WriteInfoPartitioner.getShard(writes.get(0)), true, 1L));
         assertThat(Iterables.getOnlyElement(partitions.values()))
                 .hasSameElementsAs(writes);
-    }
-
-    private static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {
-        return new TableMetadata(new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_WRITE_WRITE,
-                TableMetadataPersistence.CachePriority.WARM,
-                false,
-                0,
-                false,
-                sweepStrategy,
-                false,
-                TableMetadataPersistence.LogSafety.UNSAFE)
-                .persistToBytes();
     }
 
     private static TableReference getTableRef(String tableName) {

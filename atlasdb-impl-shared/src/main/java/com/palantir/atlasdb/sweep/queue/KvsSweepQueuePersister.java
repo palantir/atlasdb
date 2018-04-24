@@ -20,7 +20,6 @@ import java.util.List;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
-import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.table.description.Schemas;
 
 public class KvsSweepQueuePersister implements MultiTableSweepQueueWriter {
@@ -28,11 +27,11 @@ public class KvsSweepQueuePersister implements MultiTableSweepQueueWriter {
     private final SweepableCellsWriter sweepableCellsWriter;
     private final SweepableTimestampsWriter sweepableTimestampsWriter;
 
-    public KvsSweepQueuePersister(KeyValueService kvs, TargetedSweepTableFactory tableFactory) {
+    public KvsSweepQueuePersister(KeyValueService kvs) {
         WriteInfoPartitioner partitioner =  new WriteInfoPartitioner(kvs);
         this.kvs = kvs;
-        this.sweepableCellsWriter = new SweepableCellsWriter(kvs, tableFactory, partitioner);
-        this.sweepableTimestampsWriter = new SweepableTimestampsWriter(kvs, tableFactory, partitioner);
+        this.sweepableCellsWriter = new SweepableCellsWriter(kvs, partitioner);
+        this.sweepableTimestampsWriter = new SweepableTimestampsWriter(kvs, partitioner);
         initialize();
     }
 
