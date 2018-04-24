@@ -55,12 +55,40 @@ develop
            Previously, these threads would continue running and needlessly using resources.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3096>`__)
 
+    *    - |fixed|
+         - The ``_locks`` table is now created with a deterministic column family ID.
+           This means that multi-node installations will no longer create multiple locks tables on first start-up.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3088>`__)
+
     *    - |fixed| |improved|
          - AtlasDB now partitions versions of cells to be swept into batches more robustly and more efficiently.
            Previously, this could cause stack overflows when sweeping a very wide row, because the partitioning algorithm attempted to traverse a recursive hierarchy of sublists.
            Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3095>`__)
 
+    *    - |fixed| |improved|
+         - The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions
+           Previously, the strategy to choose the table to compact was:
+
+             1. if possible choose a table that was swept but not compacted
+             2. otherwise choose a table for which the time passed between last compact and last swept was longer
+
+           (when all tables are swept and afterward compacted, last point above could choose to compact the same table beacuse ``lastSweptTime`` - ``lastCompactTime`` is negative and largest among all tables)
+
+           The new strategy is:
+
+            1. if possible choose a table that was swept but not compacted
+            2. if there is no uncompacted table then choose a table swept further after it was compacted
+            3. otherwise, randomly choose a table after filtering out the ones compacted in the past hour
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3100>`__)
+
+    *    - |fixed| |devbreak|
+         - ``LoggingArgs::isSafeForLogging(TableReference, Cell)`` was removed, as it behaved unexpectedly and could leak information.
+           Previously, it returned true only if the cell's row matched the name of a row component which was declared as safe.
+           However, knowledge of the existence of such a cell may not actually be safe.
+           There currently isn't an API for declaring specific row or dynamic column components as safe; please contact the AtlasDB team if you have such a use case.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3093>`__)
 
 =======
 v0.81.0
