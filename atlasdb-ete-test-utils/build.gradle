@@ -1,7 +1,14 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
+schemas = [
+        'com.palantir.atlasdb.todo.TodoSchema'
+]
+
 dependencies {
+    compile project(':atlasdb-api')
+    compile project(':atlasdb-client')
+
     compile group: 'junit', name: 'junit'
     compile group: 'org.hamcrest', name: 'hamcrest-all'
     compile group: 'commons-io', name: 'commons-io'
