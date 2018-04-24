@@ -120,8 +120,8 @@ public class SweeperTestSetup {
     }
 
     protected void setNextTableToSweep(TableReference tableRef) {
-        doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider)
-                .getNextTableToSweep(any(), anyLong());
+        doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider).getNextTableToSweep(any(), anyLong());
+        doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider).getNextTableToSweep(any(), anyLong(), any());
     }
 
     protected void setupTaskRunner(SweepResults results) {
