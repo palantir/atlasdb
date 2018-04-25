@@ -48,7 +48,7 @@ public final class KvsSweepQueuePersister implements MultiTableSweepQueueWriter 
 
     @Override
     public void enqueue(List<WriteInfo> writes) {
-        sweepableCellsWriter.enqueue(writes);
         sweepableTimestampsWriter.enqueue(writes);
+        sweepableCellsWriter.enqueue(writes);
     }
 }

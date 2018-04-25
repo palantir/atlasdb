@@ -18,25 +18,36 @@ package com.palantir.util;
 
 import java.util.Arrays;
 
-import org.immutables.value.Value;
-
 import com.palantir.common.persist.Persistable;
 
-@Value.Immutable
-public abstract class PersistableBoolean implements Persistable {
-    public abstract boolean value();
+public enum PersistableBoolean implements Persistable {
+    TRUE {
+        @Override
+        public byte[] persistToBytes() {
+            return ONE;
+        }
+    },
+    FALSE {
+        @Override
+        public byte[] persistToBytes() {
+            return ZERO;
+        }
+    };
 
-    private static final byte[] FALSE = new byte[]{0};
-    private static final byte[] NOT_FALSE = new byte[]{1};
+    private static final byte[] ONE = new byte[]{1};
+    private static final byte[] ZERO = new byte[]{0};
 
-    public static final Hydrator<PersistableBoolean> BYTES_HYDRATOR = input -> PersistableBoolean.of(!Arrays.equals(input, FALSE));
-
-    @Override
-    public byte[] persistToBytes() {
-        return value() ? NOT_FALSE : FALSE;
-    }
+    /**
+     *  returns FALSE iff the provided byte array is a single zero byte. Otherwise returns TRUE
+     */
+    public static final Hydrator<PersistableBoolean> BYTES_HYDRATOR = val ->
+            PersistableBoolean.of(Arrays.equals(val, ZERO));
 
     public static PersistableBoolean of(boolean value) {
-        return ImmutablePersistableBoolean.builder().value(value).build();
+        return value ? TRUE : FALSE;
+    }
+
+    public boolean isTrue() {
+        return this == TRUE;
     }
 }
