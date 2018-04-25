@@ -30,10 +30,14 @@ public interface WriteInfo {
     long timestamp();
     TableReferenceAndCell tableRefCell();
 
-    static WriteInfo of(TableReference tableRef, Cell cell, long timestamp) {
+    static WriteInfo of(TableReferenceAndCell tableRefCell, long timestamp) {
         return ImmutableWriteInfo.builder()
-                .tableRefCell(TableReferenceAndCell.of(tableRef, cell))
+                .tableRefCell(tableRefCell)
                 .timestamp(timestamp)
                 .build();
+    }
+
+    static WriteInfo of(TableReference tableRef, Cell cell, long timestamp) {
+        return WriteInfo.of(TableReferenceAndCell.of(tableRef, cell), timestamp);
     }
 }

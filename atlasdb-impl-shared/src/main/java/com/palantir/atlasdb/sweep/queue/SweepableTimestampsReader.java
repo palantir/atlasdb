@@ -21,10 +21,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -75,12 +73,7 @@ public class SweepableTimestampsReader {
         byte[] row = SweepableTimestampsTable.SweepableTimestampsRow.of(
                 shard, partitionCoarse, PersistableBoolean.of(conservative).persistToBytes())
                 .persistToBytes();
-        RangeRequest request = RangeRequest.builder()
-                .startRowInclusive(row)
-                .endRowExclusive(RangeRequests.nextLexicographicName(row))
-                .retainColumns(ColumnSelection.all())
-                .batchHint(1)
-                .build();
+        RangeRequest request = SweepQueueUtils.requestColsForRow(row);
         ClosableIterator<RowResult<Value>> rowResultIterator = kvs.getRange(TABLE_REF, request, SweepQueueUtils.CAS_TS);
 
         if (!rowResultIterator.hasNext()) {

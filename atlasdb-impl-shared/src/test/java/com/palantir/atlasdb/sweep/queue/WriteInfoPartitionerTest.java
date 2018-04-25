@@ -47,10 +47,10 @@ public class WriteInfoPartitionerTest {
     private static final TableReference CONSERVATIVE2 = getTableRef("conservative2");
     private static final TableReference THOROUGH = getTableRef("thorough");
     private static final Map<TableReference, byte[]> METADATA_MAP = ImmutableMap.of(
-            NOTHING, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.NOTHING),
-            CONSERVATIVE, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
-            CONSERVATIVE2, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
-            THOROUGH, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
+            NOTHING, SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.NOTHING),
+            CONSERVATIVE, SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
+            CONSERVATIVE2, SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
+            THOROUGH, SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
 
     private KeyValueService mockKvs = mock(KeyValueService.class);
     private WriteInfoPartitioner partitioner;

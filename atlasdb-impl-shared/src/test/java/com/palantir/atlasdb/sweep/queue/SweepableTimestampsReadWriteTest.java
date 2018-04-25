@@ -27,27 +27,16 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
-public class SweepableTimestampsReadWriteTest {
+public class SweepableTimestampsReadWriteTest extends SweepQueueReadWriteTest{
     private static final long TS = 1_000_000_100L;
     private static final long TS2 = 2 * TS;
     private static final long TS_REF = tsPartitionFine(TS);
     private static final long TS2_REF = tsPartitionFine(TS2);
-    private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.test");
-    private static final TableReference TABLE_REF2 = TableReference.createFromFullyQualifiedName("test.test2");
-    private static final byte[] ROW = new byte[] {'r'};
-    private static final byte[] COL = new byte[] {'c'};
 
-    private KeyValueService mockKvs = mock(KeyValueService.class);
-    private KeyValueService kvs = new InMemoryKeyValueService(true);
-    private WriteInfoPartitioner partitioner;
-    private SweepableTimestampsWriter writer;
     private SweepableTimestampsReader reader;
     private SweepTimestampProvider provider;
     private KvsSweepQueueProgress progress;
@@ -58,17 +47,13 @@ public class SweepableTimestampsReadWriteTest {
     private long unreadableTs;
 
     @Before
+    @Override
     public void setup() {
-        when(mockKvs.getMetadataForTable(TABLE_REF))
-                .thenReturn(SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
-        when(mockKvs.getMetadataForTable(TABLE_REF2))
-                .thenReturn(SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
-        partitioner = new WriteInfoPartitioner(mockKvs);
-
+        super.setup();
+        provider = new SweepTimestampProvider(() -> unreadableTs, () -> immutableTs);
         writer = new SweepableTimestampsWriter(kvs, partitioner);
         reader = new SweepableTimestampsReader(kvs, provider);
         progress = new KvsSweepQueueProgress(kvs);
-        provider = new SweepTimestampProvider(() -> unreadableTs, () -> immutableTs);
 
         shard = writeTs(writer, TS, true);
         shard2 = writeTs(writer, TS2, false);
@@ -186,9 +171,5 @@ public class SweepableTimestampsReadWriteTest {
         assertThat(reader.nextSweepableTimestampPartition(shard, true)).isEmpty();
     }
 
-    private static int writeTs(SweepableTimestampsWriter writer, long timestamp, boolean conservative) {
-        WriteInfo write = WriteInfo.of(conservative ? TABLE_REF : TABLE_REF2, Cell.create(ROW, COL), timestamp);
-        writer.enqueue(ImmutableList.of(write));
-        return WriteInfoPartitioner.getShard(write);
-    }
+
 }
