@@ -51,6 +51,11 @@ develop
          - Change
 
     *    - |fixed|
+         - Transaction managers now shut down threads associated with the QoS client and TimeLock lock refresher when they are closed.
+           Previously, these threads would continue running and needlessly using resources.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3096>`__)
+
+    *    - |fixed|
          - The ``_locks`` table is now created with a deterministic column family ID.
            This means that multi-node installations will no longer create multiple locks tables on first start-up.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3088>`__)
@@ -60,6 +65,12 @@ develop
            Previously, this could cause stack overflows when sweeping a very wide row, because the partitioning algorithm attempted to traverse a recursive hierarchy of sublists.
            Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3095>`__)
+
+    *    - |new|
+         - Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) blacklist.
+           This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a blacklisted table, as appropriate.
+           Please see :ref:`Sweep Priority Overrides <sweep-priority-overrides>` for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3090>`__)
 
     *    - |fixed| |improved|
          - The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions

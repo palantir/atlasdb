@@ -281,8 +281,15 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
 <td>5000 ms</td>
 <td>Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours.</td>
 </tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">sweepPriorityOverrides</span></code></td>
+<td>Only specified in config</td>
+<td>No overrides</td>
+<td>Fully-qualified names of tables that Sweep should prioritise particularly highly, or ignore completely. Please see <a class="reference internal" href="#priority-overrides">Priority Overrides</a> for more details.</td>
+</tr>
 </tbody>
 </table>
+<div class="section" id="batch-parameters">
+<h3>Batch Parameters<a class="headerlink" href="#batch-parameters" title="Permalink to this headline">¶</a></h3>
 <p>Following is more information about when each of the batching parameters is useful.
 In short, the recommendation is:</p>
 <ul class="simple">
@@ -290,7 +297,7 @@ In short, the recommendation is:</p>
 <li>Decrease <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> if there is memory pressure on the KVS.</li>
 </ul>
 <div class="section" id="memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit">
-<h3>Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit<a class="headerlink" href="#memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit" title="Permalink to this headline">¶</a></h3>
+<h4>Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit<a class="headerlink" href="#memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit" title="Permalink to this headline">¶</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> specifies the number of values to load from the KVS on each round-trip. <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> specifies the number of values that should be swept in a batch, potentially fetching them through multiple KVS round-trips.
 If each batch takes little time, it’s advisable to increase the <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> and <code class="docutils literal notranslate"><span class="pre">deleteBatchHint</span></code>, to make sweep’s batches bigger.
 If the client is OOMing, it’s advisable to decrease the <code class="docutils literal notranslate"><span class="pre">readLimit</span></code>, to have a lower number of values per batches.
@@ -298,12 +305,64 @@ Since each batch contains at least <code class="docutils literal notranslate"><s
 Note that since sweep still needs to sweep at least a full row on every batch, it might be the case that the client is OOMing because the row it’s trying to sweep is very large. Please contact the AtlasDB team if you think you’re hitting this issue.</p>
 </div>
 <div class="section" id="memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint">
-<h3>Memory pressure in the backing KVS: decrease candidateBatchHint<a class="headerlink" href="#memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint" title="Permalink to this headline">¶</a></h3>
+<h4>Memory pressure in the backing KVS: decrease candidateBatchHint<a class="headerlink" href="#memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint" title="Permalink to this headline">¶</a></h4>
 <p>The sweep job works by requesting <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> values from the KVS in each round-trip.
 In some rare cases, the Cassandra KVS will not be able to fetch <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> values, likely due to specific cells being overwritten many times and/or containing very large values.
 If that happens, KVS requests from AtlasDB will fail and sweep will reduce <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> automatically, trying to fetch fewer values in the following round-trips to the KVS.
 If subsequent KVS round-trips are successful, the value of <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> is slowly increased back to the configured value, which is also the maximum it reaches. Therefore, if the configured value is too high, failures will happen again.</p>
 <p>You can check the sweep logs to verify if this is happening frequently — and if this is the case — reduce this config to a value that the load on the KVS doesn’t trigger failures and sweep is able to run.</p>
+</div>
+</div>
+<div class="section" id="priority-overrides">
+<span id="sweep-priority-overrides"></span><h3>Priority Overrides<a class="headerlink" href="#priority-overrides" title="Permalink to this headline">¶</a></h3>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Specifying priority tables can be useful for influencing sweep’s behaviour in the short run.
+However, while configured, no table that is not marked as a priority table will ever be swept, meaning that old versions of cells will not be cleaned up.
+It is not intended for priority tables to be specified in a steady state, generally speaking.</p>
+</div>
+<p>There may be situations in which the background sweeper’s heuristics for selecting tables to sweep may not satisfy one’s requirements.
+One can influence the selection process by configuring the <code class="docutils literal notranslate"><span class="pre">sweepPriorityOverrides</span></code> parameter in runtime configuration.</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="8%" />
+<col width="15%" />
+<col width="77%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">AtlasDB Runtime Config</th>
+<th class="head">Default</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">blacklistTables</span></code></td>
+<td>[]</td>
+<td>List of fully qualified table names (e.g. <code class="docutils literal notranslate"><span class="pre">namespace.tablename</span></code>) which the background sweeper should not sweep.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">priorityTables</span></code></td>
+<td>[]</td>
+<td>List of fully qualified table names which the background sweeper should prioritise for sweep.</td>
+</tr>
+</tbody>
+</table>
+<p>Note that the conditions for table selection are only checked between iterations of sweep. The algorithm for deciding
+whether a table that is currently being swept should continue to be swept is as follows:</p>
+<ol class="arabic simple">
+<li>If the table being swept is a priority table, continue sweeping it.</li>
+<li>If there are any priority tables and the table currently being swept is not a priority table, stop sweeping it and
+switch to a random priority table.</li>
+<li>If the table being swept is not blacklisted, continue sweeping it.</li>
+<li>There are no priority tables, and the table being swept is blacklisted; select another table using standard sweep
+heuristics.</li>
+</ol>
+<p>Note that if blacklist/priority settings are subsequently removed, sweep will continue sweeping the table that those
+settings have made it select (in particular, it will not immediately return to the original table it was sweeping).</p>
+<p>Also, as we don’t know the data distribution of the original table we were sweeping, we don’t know how much of the
+table we have swept; we thus don’t have enough information to update the sweep priority table with our results while
+registering that we have only done a partial sweep. In practice, this would tend to mean that the probability the
+original table being swept will be picked again for sweeping after overrides have been removed may be a little higher
+than if we accounted for the partial sweep.</p>
 <div class="toctree-wrapper compound">
 </div>
 </div>
