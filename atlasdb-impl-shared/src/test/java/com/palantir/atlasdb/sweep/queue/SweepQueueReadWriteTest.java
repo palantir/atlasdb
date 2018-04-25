@@ -19,6 +19,12 @@ package com.palantir.atlasdb.sweep.queue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import org.junit.Before;
 
 import com.google.common.collect.ImmutableList;
@@ -34,10 +40,14 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public abstract class SweepQueueReadWriteTest {
-    public static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.test");
-    public static final TableReference TABLE_REF2 = TableReference.createFromFullyQualifiedName("test.test2");
-    private static final byte[] ROW = new byte[] {'r'};
-    private static final byte[] COL = new byte[] {'c'};
+    static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.test");
+    static final TableReference TABLE_REF2 = TableReference.createFromFullyQualifiedName("test.test2");
+    static final byte[] ROW = new byte[] {'r'};
+    static final byte[] COL = new byte[] {'c'};
+    static final long TS = 1_000_000_100L;
+    static final long TS2 = 2 * TS;
+    static final long TS_REF = tsPartitionFine(TS);
+    static final long TS2_REF = tsPartitionFine(TS2);
 
     protected KeyValueService mockKvs = mock(KeyValueService.class);
     protected KeyValueService kvs = new InMemoryKeyValueService(true);
@@ -75,6 +85,17 @@ public abstract class SweepQueueReadWriteTest {
         WriteInfo write = WriteInfo.of(conservative ? TABLE_REF : TABLE_REF2, cell, timestamp);
         writer.enqueue(ImmutableList.of(write));
         return WriteInfoPartitioner.getShard(write);
+    }
+
+    public static List<WriteInfo> writeToUniqueCellsInSameShard(KvsSweepQueueWriter writer, long timestamp, int number, boolean conservative) {
+        TableReference tableRef = conservative ? TABLE_REF : TABLE_REF2;
+        List<WriteInfo> result = new ArrayList<>();
+        for (int i = 0; i < number; i++) {
+            Cell cell = getCellWithFixedHash(i);
+            result.add(WriteInfo.of(tableRef, cell, timestamp));
+        }
+        writer.enqueue(result);
+        return result;
     }
 
     public static Cell getCellWithFixedHash(int seed) {

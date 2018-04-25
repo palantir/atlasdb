@@ -16,50 +16,24 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
-
 import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
 public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
-    private static final long TS = 1_000_000_100L;
-    private static final long TS2 = 2 * TS;
-    private static final long TS_REF = tsPartitionFine(TS);
-    private static final long TS2_REF = tsPartitionFine(TS2);
-    private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.test");
-    private static final TableReference TABLE_REF2 = TableReference.createFromFullyQualifiedName("test.test2");
-    private static final byte[] ROW = new byte[] {'r'};
-    private static final byte[] COL = new byte[] {'c'};
-
-    private KeyValueService mockKvs = mock(KeyValueService.class);
-    private KeyValueService kvs = new InMemoryKeyValueService(true);
-    private WriteInfoPartitioner partitioner;
-    private SweepableCellsWriter writer;
     private SweepableCellsReader reader;
-    private SweepTimestampProvider provider;
-    private KvsSweepQueueProgress progress;
 
     int shard;
     int shard2;
 
     @Before
     public void setup() {
-        when(mockKvs.getMetadataForTable(TABLE_REF))
-                .thenReturn(SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
-        when(mockKvs.getMetadataForTable(TABLE_REF2))
-                .thenReturn(SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
-        partitioner = new WriteInfoPartitioner(mockKvs);
-
+        super.setup();
         writer = new SweepableCellsWriter(kvs, partitioner);
         reader = new SweepableCellsReader(kvs);
 
@@ -86,11 +60,27 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
     }
 
     @Test
-    public void canReadMultipleEntriesInSingleShard() {
+    public void canReadMultipleEntriesInSingleShardDifferentTransactions() {
         int fixedShard = writeTsToCell(writer, TS, getCellWithFixedHash(1), true);
         assertThat(writeTsToCell(writer, TS + 1, getCellWithFixedHash(2), true)).isEqualTo(fixedShard);
-        assertThat(reader.getTombstonesToWrite(TS_REF, fixedShard, true))
-                .containsExactlyInAnyOrder(WriteInfo.of(TABLE_REF, getCellWithFixedHash(1), TS),
-                        WriteInfo.of(TABLE_REF, getCellWithFixedHash(2), TS + 1));
+        assertThat(reader.getTombstonesToWrite(TS_REF, fixedShard, true)).containsExactlyInAnyOrder(
+                WriteInfo.of(TABLE_REF, getCellWithFixedHash(1), TS),
+                WriteInfo.of(TABLE_REF, getCellWithFixedHash(2), TS + 1));
+    }
+
+    @Test
+    public void canReadMultipleEntriesInSingleShardSameTransactionNotDedicated() {
+        List<WriteInfo> writes = writeToUniqueCellsInSameShard(writer, TS, 10, true);
+        int fixedShard = WriteInfoPartitioner.getShard(writes.get(0));
+        assertThat(writes.size()).isEqualTo(10);
+        assertThat(reader.getTombstonesToWrite(TS_REF, fixedShard, true)).hasSameElementsAs(writes);
+    }
+
+    @Test
+    public void canReadMultipleEntriesInSingleShardSameTransactionDedicated() {
+        List<WriteInfo> writes = writeToUniqueCellsInSameShard(writer, TS, 257, true);
+        int fixedShard = WriteInfoPartitioner.getShard(writes.get(0));
+        assertThat(writes.size()).isEqualTo(257);
+        assertThat(reader.getTombstonesToWrite(TS_REF, fixedShard, true)).hasSameElementsAs(writes);
     }
 }

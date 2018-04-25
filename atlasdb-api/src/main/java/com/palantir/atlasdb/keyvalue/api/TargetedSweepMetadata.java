@@ -41,25 +41,26 @@ public abstract class TargetedSweepMetadata implements Persistable {
     }
 
     public static final Hydrator<TargetedSweepMetadata> BYTES_HYDRATOR = input ->
-            ImmutableTargetedSweepMetadata.builder()
-                    .conservative((input[0] & 0x80) != 0)
-                    .dedicatedRow((input[0] & 0x40) != 0)
-                    .shard((input[0] << 2 | input[1] >> 6) & 0xFF)
-                    .dedicatedRowNumber(input[1] & 0x3F)
-                    .build();
+        ImmutableTargetedSweepMetadata.builder()
+                .conservative((input[0] & 0x80) != 0)
+                .dedicatedRow((input[0] & 0x40) != 0)
+                .shard((input[0] << 2 | (input[1] & 0xFF) >> 6) & 0xFF)
+                .dedicatedRowNumber(input[1] & 0x3F)
+                .build();
+
 
     @Override
     public byte[] persistToBytes() {
         byte[] result = new byte[] { 0, 0, 0, 0 };
-        if (conservative()) {
-            result[0] |= 0x80;
-        }
+        result[0] |= (shard() & 0xFF) >> 2;
         if (dedicatedRow()) {
             result[0] |= 0x40;
         }
-        result[0] |= shard() >> 2;
-        result[1] |= shard() << 6;
+        if (conservative()) {
+            result[0] |= 0x80;
+        }
         result[1] |= dedicatedRowNumber();
+        result[1] |= (shard() << 6) & 0xFF;
         return result;
     }
 }

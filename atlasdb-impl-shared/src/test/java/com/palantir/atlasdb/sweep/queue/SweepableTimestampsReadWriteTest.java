@@ -32,11 +32,6 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
 public class SweepableTimestampsReadWriteTest extends SweepQueueReadWriteTest{
-    private static final long TS = 1_000_000_100L;
-    private static final long TS2 = 2 * TS;
-    private static final long TS_REF = tsPartitionFine(TS);
-    private static final long TS2_REF = tsPartitionFine(TS2);
-
     private SweepableTimestampsReader reader;
     private SweepTimestampProvider provider;
     private KvsSweepQueueProgress progress;

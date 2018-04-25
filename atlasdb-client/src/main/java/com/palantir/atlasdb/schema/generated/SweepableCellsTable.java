@@ -299,7 +299,7 @@ public final class SweepableCellsTable implements
         @Override
         public byte[] persistToBytes() {
             byte[] timestampModulusBytes = EncodingUtils.encodeUnsignedVarLong(timestampModulus);
-            byte[] writeIndexBytes = EncodingUtils.encodeUnsignedVarLong(writeIndex);
+            byte[] writeIndexBytes = EncodingUtils.encodeSignedVarLong(writeIndex);
             return EncodingUtils.add(timestampModulusBytes, writeIndexBytes);
         }
 
@@ -309,8 +309,8 @@ public final class SweepableCellsTable implements
                 int __index = 0;
                 Long timestampModulus = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(timestampModulus);
-                Long writeIndex = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(writeIndex);
+                Long writeIndex = EncodingUtils.decodeSignedVarLong(__input, __index);
+                __index += EncodingUtils.sizeOfSignedVarLong(writeIndex);
                 return new SweepableCellsColumn(timestampModulus, writeIndex);
             }
         };
@@ -791,5 +791,5 @@ public final class SweepableCellsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5ydTaw55TeGApvRChJSpfw==";
+    static String __CLASS_HASH = "oqRNpjMhqfnJNar4CJBjKg==";
 }

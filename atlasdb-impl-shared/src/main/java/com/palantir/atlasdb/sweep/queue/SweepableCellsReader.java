@@ -77,8 +77,9 @@ public class SweepableCellsReader {
                 .hydrateFromBytes(entry.getKey());
         if (isReferenceToDedicatedRows(col)) {
             addDedicated(row, col, list);
+        } else {
+            addNonDedicated(row, col, entry.getValue(), list);
         }
-        addNonDedicated(row, col, entry.getValue(), list);
     }
 
     private void addNonDedicated(SweepableCellsTable.SweepableCellsRow row,
