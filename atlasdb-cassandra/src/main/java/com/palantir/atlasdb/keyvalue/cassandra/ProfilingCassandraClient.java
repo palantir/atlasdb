@@ -65,15 +65,17 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfKeys = keys.size();
         int numberOfColumns = predicate.slice_range.count;
+        long startTime = System.currentTimeMillis();
 
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<Map<ByteBuffer, List<ColumnOrSuperColumn>>, TException>)
                         () -> client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level),
-                (logger, timer) -> logger.log("CassandraClient.multiget_slice({}, {}, {}, {}) on kvs.{} took {} ms",
+                (logger, timer) -> logger.log("CassandraClient.multiget_slice({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.rowCount(numberOfKeys),
                         LoggingArgs.columnCount(numberOfColumns),
                         SafeArg.of("consistency", consistency_level.toString()),
+                        LoggingArgs.startTimeMillis(startTime),
                         SafeArg.of("kvsMethodName", kvsMethodName),
                         LoggingArgs.durationMillis(timer)),
                 (logger, rowsToColumns) -> logger.log("and returned {} cells in {} rows with {} bytes",
@@ -92,15 +94,17 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfKeys = predicate.slice_range.count;
         int numberOfColumns = range.count;
+        long startTime = System.currentTimeMillis();
 
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<List<KeySlice>, TException>)
                         () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
-                (logger, timer) -> logger.log("CassandraClient.get_range_slices({}, {}, {}, {}) on kvs.{} took {} ms",
+                (logger, timer) -> logger.log("CassandraClient.get_range_slices({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.rowCount(numberOfKeys),
                         LoggingArgs.columnCount(numberOfColumns),
                         SafeArg.of("consistency", consistency_level.toString()),
+                        LoggingArgs.startTimeMillis(startTime),
                         SafeArg.of("kvsMethodName", kvsMethodName),
                         LoggingArgs.durationMillis(timer)),
                 (logger, rows) -> logger.log("and returned {} rows with {} bytes",
@@ -113,6 +117,8 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        long startTime = System.currentTimeMillis();
+
         KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<Void, TException>)
                         () -> {
@@ -126,7 +132,8 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
                                 LoggingArgs.safeInternalTableNameOrPlaceholder(tableName),
                                 LoggingArgs.sizeInBytes(size));
                     });
-                    logger.log(") with consistency {} on kvs.{} took {} ms",
+                    logger.log(") with consistency {} at time {}, on kvs.{} took {} ms",
+                            LoggingArgs.startTimeMillis(startTime),
                             SafeArg.of("consistency", consistency_level.toString()),
                             SafeArg.of("kvsMethodName", kvsMethodName),
                             LoggingArgs.durationMillis(timer));
@@ -139,12 +146,15 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
             byte[] column,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
+        long startTime = System.currentTimeMillis();
+
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<ColumnOrSuperColumn, TException>)
                         () -> client.get(tableReference, key, column, consistency_level),
-                (logger, timer) -> logger.log("CassandraClient.get({}, {}) took {} ms",
+                (logger, timer) -> logger.log("CassandraClient.get({}, {}) at time {} took {} ms",
                         LoggingArgs.tableRef(tableReference),
                         SafeArg.of("consistency", consistency_level.toString()),
+                        LoggingArgs.startTimeMillis(startTime),
                         LoggingArgs.durationMillis(timer)));
     }
 
@@ -156,12 +166,15 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
             ConsistencyLevel serial_consistency_level,
             ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        long startTime = System.currentTimeMillis();
+
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<CASResult, TException>)
                         () -> client.cas(tableReference, key, expected, updates, serial_consistency_level,
                                 commit_consistency_level),
-                (logger, timer) -> logger.log("CassandraClient.cas({}) took {} ms",
+                (logger, timer) -> logger.log("CassandraClient.cas({}) at time {} took {} ms",
                         LoggingArgs.tableRef(tableReference),
+                        LoggingArgs.startTimeMillis(startTime),
                         LoggingArgs.durationMillis(timer)));
     }
 
@@ -169,11 +182,14 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     public CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
+        long startTime = System.currentTimeMillis();
+
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
                         () -> client.execute_cql3_query(cqlQuery, compression, consistency),
                 (logger, timer) -> cqlQuery.logSlowResult(logger, timer),
-                (logger, cqlResult) -> logger.log("and returned {} rows",
-                        SafeArg.of("numRows", cqlResult.getRows().size())));
+                (logger, cqlResult) -> logger.log("and returned {} rows, at time{}",
+                        SafeArg.of("numRows", cqlResult.getRows().size()),
+                        LoggingArgs.startTimeMillis(startTime)));
     }
 }

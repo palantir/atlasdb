@@ -159,6 +159,10 @@ public final class LoggingArgs {
         return getArg("durationMillis", stopwatch.elapsed(TimeUnit.MILLISECONDS), true);
     }
 
+    public static Arg<Long> startTimeMillis(long startTime) {
+        return getArg("startTimeMillis", startTime, true);
+    }
+
     public static Arg<String> method(String method) {
         return getArg("method", method, true);
     }
