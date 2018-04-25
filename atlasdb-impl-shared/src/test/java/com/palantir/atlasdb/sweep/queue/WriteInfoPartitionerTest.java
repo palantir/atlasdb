@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -33,7 +32,6 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -63,10 +61,10 @@ public class WriteInfoPartitionerTest {
     }
 
     @Test
-    public void getStrategyThrowsOnIllegalMetadata() {
+    public void getStrategyReturnsConservativeForIllegalMetadata() {
         when(mockKvs.getMetadataForTable(any())).thenReturn(AtlasDbConstants.EMPTY_TABLE_METADATA);
-        assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedCellHash(getTableRef("a"), 0)))
-                .isInstanceOf(RuntimeException.class);
+        assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(getTableRef("a"), 0)))
+                .isEqualTo(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
     }
 
     @Test
@@ -125,10 +123,10 @@ public class WriteInfoPartitionerTest {
             writes.add(getWriteInfoWithFixedCellHash(CONSERVATIVE, i));
         }
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
-        assertThat(Iterables.getOnlyElement(partitions.keySet()))
-                .isEqualTo(PartitionInfo.of(WriteInfoPartitioner.getShard(writes.get(0)), true, 1L));
-        assertThat(Iterables.getOnlyElement(partitions.values()))
-                .hasSameElementsAs(writes);
+        assertThat(partitions.keySet())
+                .containsExactly(PartitionInfo.of(WriteInfoPartitioner.getShard(writes.get(0)), true, 1L));
+        assertThat(partitions.values())
+                .containsExactly(writes);
     }
 
     private static TableReference getTableRef(String tableName) {
@@ -136,6 +134,7 @@ public class WriteInfoPartitionerTest {
     }
 
     private WriteInfo getWriteInfoWithFixedCellHash(TableReference tableRef, int cellIndex) {
+        // cell hash is rowname ^ colname, so equals 0 when they are equal
         return getWriteInfo(tableRef, cellIndex, cellIndex, 1L);
     }
 
