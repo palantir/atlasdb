@@ -20,23 +20,37 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.math.IntMath;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.logsafe.UnsafeArg;
 
 public class WriteInfoPartitioner {
+    private static final Logger log = LoggerFactory.getLogger(WriteInfoPartitioner.class);
     // todo(gmaretic): temporarily constant
     static final int SHARDS = 128;
 
     private final KeyValueService kvs;
 
-    private ConcurrentMap<TableReference, TableMetadataPersistence.SweepStrategy> cache = new ConcurrentHashMap<>();
+    private final LoadingCache<TableReference, TableMetadataPersistence.SweepStrategy> cache = CacheBuilder
+            .newBuilder().build(
+                    new CacheLoader<TableReference, TableMetadataPersistence.SweepStrategy>() {
+                        @Override
+                        public TableMetadataPersistence.SweepStrategy load(TableReference key) throws Exception {
+                            return getStrategyFromKvs(key);
+                        }
+                    });
 
     public WriteInfoPartitioner(KeyValueService kvs) {
         this.kvs = kvs;
@@ -66,18 +80,22 @@ public class WriteInfoPartitioner {
 
     @VisibleForTesting
     TableMetadataPersistence.SweepStrategy getStrategy(WriteInfo writeInfo) {
-        return cache.computeIfAbsent(writeInfo.tableRefCell().tableRef(), this::getStrategyFromKvs);
+        return cache.getUnchecked(writeInfo.tableRefCell().tableRef());
     }
 
     private TableMetadataPersistence.SweepStrategy getStrategyFromKvs(TableReference tableRef) {
-        // todo(gmaretic): fail gracefully if we cannot hydrate? How -- return NOTHING?
-        return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(kvs.getMetadataForTable(tableRef)).getSweepStrategy();
+        try {
+            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(kvs.getMetadataForTable(tableRef)).getSweepStrategy();
+        } catch (Throwable th) {
+            log.warn("Failed to obtain sweep strategy for table {}. Assuming sweep strategy is CONSERVATIVE.",
+                    UnsafeArg.of("tableRef", tableRef), th);
+            return TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
+        }
     }
 
     @VisibleForTesting
     static int getShard(WriteInfo writeInfo) {
-        int shard = writeInfo.tableRefCell().hashCode() % SHARDS;
-        return (shard + SHARDS) % SHARDS;
+        return IntMath.mod(writeInfo.tableRefCell().hashCode(), SHARDS);
     }
 
     private boolean isConservative(WriteInfo write) {

@@ -20,20 +20,26 @@ import java.util.List;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
-import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.table.description.Schemas;
 
-public class KvsSweepQueuePersister implements MultiTableSweepQueueWriter {
+public final class KvsSweepQueuePersister implements MultiTableSweepQueueWriter {
     private final KeyValueService kvs;
     private final SweepableCellsWriter sweepableCellsWriter;
     private final SweepableTimestampsWriter sweepableTimestampsWriter;
 
-    public KvsSweepQueuePersister(KeyValueService kvs, TargetedSweepTableFactory tableFactory) {
-        WriteInfoPartitioner partitioner =  new WriteInfoPartitioner(kvs);
+    private KvsSweepQueuePersister(KeyValueService kvs, SweepableCellsWriter cells, SweepableTimestampsWriter ts) {
         this.kvs = kvs;
-        this.sweepableCellsWriter = new SweepableCellsWriter(kvs, tableFactory, partitioner);
-        this.sweepableTimestampsWriter = new SweepableTimestampsWriter(kvs, tableFactory, partitioner);
-        initialize();
+        this.sweepableCellsWriter = cells;
+        this.sweepableTimestampsWriter = ts;
+    }
+
+    public static KvsSweepQueuePersister create(KeyValueService kvs) {
+        WriteInfoPartitioner partitioner =  new WriteInfoPartitioner(kvs);
+        SweepableCellsWriter cellsWriter = new SweepableCellsWriter(kvs, partitioner);
+        SweepableTimestampsWriter timestampsWriter = new SweepableTimestampsWriter(kvs, partitioner);
+        KvsSweepQueuePersister persister = new KvsSweepQueuePersister(kvs, cellsWriter, timestampsWriter);
+        persister.initialize();
+        return  persister;
     }
 
     public void initialize() {
@@ -42,7 +48,7 @@ public class KvsSweepQueuePersister implements MultiTableSweepQueueWriter {
 
     @Override
     public void enqueue(List<WriteInfo> writes) {
-        sweepableCellsWriter.enqueue(writes);
         sweepableTimestampsWriter.enqueue(writes);
+        sweepableCellsWriter.enqueue(writes);
     }
 }

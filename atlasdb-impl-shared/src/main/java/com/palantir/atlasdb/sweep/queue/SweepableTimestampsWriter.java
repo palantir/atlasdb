@@ -31,8 +31,8 @@ public class SweepableTimestampsWriter extends KvsSweepQueueWriter {
 
     private final WriteInfoPartitioner partitioner;
 
-    SweepableTimestampsWriter(KeyValueService kvs, TargetedSweepTableFactory factory, WriteInfoPartitioner part) {
-        super(kvs, factory.getSweepableTimestampsTable(null).getTableRef());
+    SweepableTimestampsWriter(KeyValueService kvs, WriteInfoPartitioner part) {
+        super(kvs, TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef());
         this.partitioner = part;
     }
 

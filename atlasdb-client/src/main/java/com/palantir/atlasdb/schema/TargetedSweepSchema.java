@@ -68,8 +68,8 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 rowComponent("timestamp_partition", ValueType.VAR_LONG);
                 rowComponent("sweep_conservative", ValueType.BLOB);
             dynamicColumns();
-               columnComponent("timestamp_modulus", ValueType.VAR_LONG);
-               value(ValueType.BLOB);
+                columnComponent("timestamp_modulus", ValueType.VAR_LONG);
+                value(ValueType.BLOB);
 
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             conflictHandler(ConflictHandler.IGNORE_ALL);

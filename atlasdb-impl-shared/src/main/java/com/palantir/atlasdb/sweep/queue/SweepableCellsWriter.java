@@ -36,8 +36,8 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
 
     private final WriteInfoPartitioner partitioner;
 
-    SweepableCellsWriter(KeyValueService kvs, TargetedSweepTableFactory factory, WriteInfoPartitioner partitioner) {
-        super(kvs, factory.getSweepableCellsTable(null).getTableRef());
+    SweepableCellsWriter(KeyValueService kvs, WriteInfoPartitioner partitioner) {
+        super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef());
         this.partitioner = partitioner;
     }
 
@@ -80,7 +80,8 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
 
     private SweepableCellsTable.SweepableCellsRow createRow(PartitionInfo info, boolean dedicate, long dedicatedRow) {
         TargetedSweepMetadata metadata = ImmutableTargetedSweepMetadata.builder()
-                .conservative(info.isConservative().value())
+
+                .conservative(info.isConservative().isTrue())
                 .dedicatedRow(dedicate)
                 .shard(info.shard())
                 .dedicatedRowNumber(dedicatedRow)
