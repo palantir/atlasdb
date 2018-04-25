@@ -53,6 +53,8 @@ develop
     *    - |fixed|
          - The ``_locks`` table is now created with a deterministic column family ID.
            This means that multi-node installations will no longer create multiple locks tables on first start-up.
+           Note that new installations using versions of Cassandra prior to 2.1.13, 2.2.5, 3.0.3 or 3.2 will fail to create this table, as we rely on syntax introduced by the fix to `CASSANDRA-9179 <https://issues.apache.org/jira/browse/CASSANDRA-9179>`__.
+           Existing installations will be unaffected.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3088>`__)
 
     *    - |fixed| |improved|
