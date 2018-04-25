@@ -79,7 +79,8 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
 
     private SweepableCellsTable.SweepableCellsRow createRow(PartitionInfo info, boolean dedicate, long dedicatedRow) {
         TargetedSweepMetadata metadata = ImmutableTargetedSweepMetadata.builder()
-                .conservative(info.isConservative().value())
+
+                .conservative(info.isConservative().isTrue())
                 .dedicatedRow(dedicate)
                 .shard(info.shard())
                 .dedicatedRowNumber(dedicatedRow)

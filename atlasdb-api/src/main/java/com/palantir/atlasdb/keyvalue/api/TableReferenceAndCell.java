@@ -56,7 +56,7 @@ public abstract class TableReferenceAndCell implements Persistable {
         try {
             return OBJECT_MAPPER.writeValueAsBytes(this);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Exception processing JSON");
+            throw new RuntimeException("Exception processing JSON", e);
         }
     }
 

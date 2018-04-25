@@ -40,7 +40,7 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriter() {
-        return new KvsSweepQueuePersister(getKeyValueService());
+        return KvsSweepQueuePersister.create(getKeyValueService());
     }
 
     @Override

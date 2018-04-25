@@ -110,7 +110,7 @@ public class AtlasDbTestCase {
         transactionService = TransactionServices.createTransactionService(kvs);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        sweepQueue = new KvsSweepQueuePersister(keyValueService);
+        sweepQueue = KvsSweepQueuePersister.create(keyValueService);
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,
