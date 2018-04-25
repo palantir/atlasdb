@@ -36,8 +36,8 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
 
     private final WriteInfoPartitioner partitioner;
 
-    SweepableCellsWriter(KeyValueService kvs, TargetedSweepTableFactory factory, WriteInfoPartitioner partitioner) {
-        super(kvs, factory.getSweepableCellsTable(null).getTableRef());
+    SweepableCellsWriter(KeyValueService kvs, WriteInfoPartitioner partitioner) {
+        super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef());
         this.partitioner = partitioner;
     }
 
