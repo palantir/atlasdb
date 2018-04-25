@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.blob.BlobSchema;
@@ -86,7 +88,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
         SerializableTransactionManager transactionManager = tryToCreateTransactionManager(config, environment);
-        SweepTaskRunner sweepTaskRunner = getSweepTaskRunner(transactionManager);
+        Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(transactionManager));
 
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager, sweepTaskRunner)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));

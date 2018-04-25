@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -51,10 +52,10 @@ public class TodoClient {
     private static final Logger log = LoggerFactory.getLogger(TodoClient.class);
 
     private final TransactionManager transactionManager;
-    private final SweepTaskRunner sweepTaskRunner;
+    private final Supplier<SweepTaskRunner> sweepTaskRunner;
     private final Random random = new Random();
 
-    public TodoClient(TransactionManager transactionManager, SweepTaskRunner sweepTaskRunner) {
+    public TodoClient(TransactionManager transactionManager, Supplier<SweepTaskRunner> sweepTaskRunner) {
         this.transactionManager = transactionManager;
         this.sweepTaskRunner = sweepTaskRunner;
     }
@@ -132,7 +133,7 @@ public class TodoClient {
                 .deleteBatchSize(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
                 .maxCellTsPairsToExamine(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
                 .build();
-        return sweepTaskRunner.run(indexTable, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
+        return sweepTaskRunner.get().run(indexTable, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
     }
 
     public SweepResults sweepSnapshotValues() {
@@ -143,6 +144,6 @@ public class TodoClient {
                 .deleteBatchSize(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
                 .maxCellTsPairsToExamine(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
                 .build();
-        return sweepTaskRunner.run(indexTable, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
+        return sweepTaskRunner.get().run(indexTable, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
     }
 }
