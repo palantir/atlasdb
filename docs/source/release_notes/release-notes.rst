@@ -51,6 +51,11 @@ develop
          - Change
 
     *    - |fixed|
+         - Transaction managers now shut down threads associated with the QoS client and TimeLock lock refresher when they are closed.
+           Previously, these threads would continue running and needlessly using resources.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3096>`__)
+
+    *    - |fixed|
          - The ``_locks`` table is now created with a deterministic column family ID.
            This means that multi-node installations will no longer create multiple locks tables on first start-up.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3088>`__)
