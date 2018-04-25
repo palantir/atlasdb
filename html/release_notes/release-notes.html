@@ -195,6 +195,8 @@ Previously, these threads would continue running and needlessly using resources.
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The <code class="docutils literal notranslate"><span class="pre">_locks</span></code> table is now created with a deterministic column family ID.
 This means that multi-node installations will no longer create multiple locks tables on first start-up.
+Note that new installations using versions of Cassandra prior to 2.1.13, 2.2.5, 3.0.3 or 3.2 will fail to create this table, as we rely on syntax introduced by the fix to <a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-9179">CASSANDRA-9179</a>.
+Existing installations will be unaffected.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3088">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
