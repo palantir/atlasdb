@@ -498,7 +498,8 @@ public abstract class AbstractSweepTest {
         Map<Cell, byte[]> writes = ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8));
         kvs.put(tableRef, writes, ts);
         putTimestampIntoTransactionTable(ts);
-        InMemorySweepQueue.writer().enqueue(tableRef, writes, ts);
+        // todo(gmaretic): remember to fix later
+//        InMemorySweepQueue.writer().enqueue(tableRef, writes, ts);
     }
 
     private void putTimestampIntoTransactionTable(long ts) {

@@ -32,8 +32,12 @@ import com.palantir.common.persist.Persistable;
 @JsonSerialize(as = ImmutableTableReferenceAndCell.class)
 @Value.Immutable
 public abstract class TableReferenceAndCell implements Persistable {
-    abstract TableReference tableRef();
-    abstract Cell cell();
+    public abstract TableReference tableRef();
+    public abstract Cell cell();
+
+    public static final TableReferenceAndCell DUMMY = TableReferenceAndCell.of(
+            TableReference.createFromFullyQualifiedName("dum.my"),
+            Cell.create(new byte[] {0}, new byte[] {0}));
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new Jdk8Module())
@@ -50,9 +54,13 @@ public abstract class TableReferenceAndCell implements Persistable {
     @Override
     public byte[] persistToBytes() {
         try {
-             return OBJECT_MAPPER.writeValueAsBytes(this);
+            return OBJECT_MAPPER.writeValueAsBytes(this);
         } catch (JsonProcessingException e) {
-             throw new RuntimeException("Exception processing JSON");
+            throw new RuntimeException("Exception processing JSON", e);
         }
+    }
+
+    public static TableReferenceAndCell of(TableReference tableRef, Cell cell) {
+        return ImmutableTableReferenceAndCell.builder().tableRef(tableRef).cell(cell).build();
     }
 }

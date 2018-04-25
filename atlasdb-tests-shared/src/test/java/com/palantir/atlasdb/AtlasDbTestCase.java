@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb;
 
-import static org.mockito.Mockito.mock;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
@@ -36,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
+import com.palantir.atlasdb.sweep.queue.KvsSweepQueuePersister;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -75,9 +74,7 @@ public class AtlasDbTestCase {
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
     protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
-    protected MultiTableSweepQueueWriter sweepQueue = mock(MultiTableSweepQueueWriter.class);
-    // default methods make mockito confusing, so we delegate just the important method to the mock
-    protected MultiTableSweepQueueWriter wrappingSweepQueue = (table, writes) -> sweepQueue.enqueue(table, writes);
+    protected MultiTableSweepQueueWriter sweepQueue;
 
     @BeforeClass
     public static void setupLockClient() {
@@ -113,6 +110,7 @@ public class AtlasDbTestCase {
         transactionService = TransactionServices.createTransactionService(kvs);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
+        sweepQueue = KvsSweepQueuePersister.create(keyValueService);
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,
@@ -122,7 +120,7 @@ public class AtlasDbTestCase {
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                wrappingSweepQueue);
+                sweepQueue);
         txManager = new CachingTestTransactionManager(serializableTxManager);
     }
 

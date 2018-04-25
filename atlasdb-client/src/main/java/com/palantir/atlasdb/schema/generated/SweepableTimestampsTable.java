@@ -87,17 +87,15 @@ import com.palantir.util.crypto.Sha256Hash;
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings("all")
 public final class SweepableTimestampsTable implements
-        AtlasDbMutablePersistentTable<SweepableTimestampsTable.SweepableTimestampsRow,
-                                         SweepableTimestampsTable.SweepableTimestampsNamedColumnValue<?>,
-                                         SweepableTimestampsTable.SweepableTimestampsRowResult>,
-        AtlasDbNamedMutableTable<SweepableTimestampsTable.SweepableTimestampsRow,
-                                    SweepableTimestampsTable.SweepableTimestampsNamedColumnValue<?>,
-                                    SweepableTimestampsTable.SweepableTimestampsRowResult> {
+        AtlasDbDynamicMutablePersistentTable<SweepableTimestampsTable.SweepableTimestampsRow,
+                                                SweepableTimestampsTable.SweepableTimestampsColumn,
+                                                SweepableTimestampsTable.SweepableTimestampsColumnValue,
+                                                SweepableTimestampsTable.SweepableTimestampsRowResult> {
     private final Transaction t;
     private final List<SweepableTimestampsTrigger> triggers;
     private final static String rawTableName = "sweepableTimestamps";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(SweepableTimestampsNamedColumn.values());
+    private final static ColumnSelection allColumns = ColumnSelection.all();
 
     static SweepableTimestampsTable of(Transaction t, Namespace namespace) {
         return new SweepableTimestampsTable(t, namespace, ImmutableList.<SweepableTimestampsTrigger>of());
@@ -139,7 +137,7 @@ public final class SweepableTimestampsTable implements
      *   {@literal Long hashOfRowComponents};
      *   {@literal Long shard};
      *   {@literal Long timestampPartition};
-     *   {@literal String sweepMode};
+     *   {@literal byte[] sweepConservative};
      * }
      * </pre>
      */
@@ -147,18 +145,18 @@ public final class SweepableTimestampsTable implements
         private final long hashOfRowComponents;
         private final long shard;
         private final long timestampPartition;
-        private final String sweepMode;
+        private final byte[] sweepConservative;
 
-        public static SweepableTimestampsRow of(long shard, long timestampPartition, String sweepMode) {
+        public static SweepableTimestampsRow of(long shard, long timestampPartition, byte[] sweepConservative) {
             long hashOfRowComponents = computeHashFirstComponents(shard);
-            return new SweepableTimestampsRow(hashOfRowComponents, shard, timestampPartition, sweepMode);
+            return new SweepableTimestampsRow(hashOfRowComponents, shard, timestampPartition, sweepConservative);
         }
 
-        private SweepableTimestampsRow(long hashOfRowComponents, long shard, long timestampPartition, String sweepMode) {
+        private SweepableTimestampsRow(long hashOfRowComponents, long shard, long timestampPartition, byte[] sweepConservative) {
             this.hashOfRowComponents = hashOfRowComponents;
             this.shard = shard;
             this.timestampPartition = timestampPartition;
-            this.sweepMode = sweepMode;
+            this.sweepConservative = sweepConservative;
         }
 
         public long getShard() {
@@ -169,8 +167,8 @@ public final class SweepableTimestampsTable implements
             return timestampPartition;
         }
 
-        public String getSweepMode() {
-            return sweepMode;
+        public byte[] getSweepConservative() {
+            return sweepConservative;
         }
 
         public static Function<SweepableTimestampsRow, Long> getShardFun() {
@@ -191,11 +189,11 @@ public final class SweepableTimestampsTable implements
             };
         }
 
-        public static Function<SweepableTimestampsRow, String> getSweepModeFun() {
-            return new Function<SweepableTimestampsRow, String>() {
+        public static Function<SweepableTimestampsRow, byte[]> getSweepConservativeFun() {
+            return new Function<SweepableTimestampsRow, byte[]>() {
                 @Override
-                public String apply(SweepableTimestampsRow row) {
-                    return row.sweepMode;
+                public byte[] apply(SweepableTimestampsRow row) {
+                    return row.sweepConservative;
                 }
             };
         }
@@ -205,8 +203,8 @@ public final class SweepableTimestampsTable implements
             byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] shardBytes = EncodingUtils.encodeUnsignedVarLong(shard);
             byte[] timestampPartitionBytes = EncodingUtils.encodeUnsignedVarLong(timestampPartition);
-            byte[] sweepModeBytes = PtBytes.toBytes(sweepMode);
-            return EncodingUtils.add(hashOfRowComponentsBytes, shardBytes, timestampPartitionBytes, sweepModeBytes);
+            byte[] sweepConservativeBytes = sweepConservative;
+            return EncodingUtils.add(hashOfRowComponentsBytes, shardBytes, timestampPartitionBytes, sweepConservativeBytes);
         }
 
         public static final Hydrator<SweepableTimestampsRow> BYTES_HYDRATOR = new Hydrator<SweepableTimestampsRow>() {
@@ -219,9 +217,9 @@ public final class SweepableTimestampsTable implements
                 __index += EncodingUtils.sizeOfUnsignedVarLong(shard);
                 Long timestampPartition = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(timestampPartition);
-                String sweepMode = PtBytes.toString(__input, __index, __input.length-__index);
+                byte[] sweepConservative = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
                 __index += 0;
-                return new SweepableTimestampsRow(hashOfRowComponents, shard, timestampPartition, sweepMode);
+                return new SweepableTimestampsRow(hashOfRowComponents, shard, timestampPartition, sweepConservative);
             }
         };
 
@@ -236,7 +234,7 @@ public final class SweepableTimestampsTable implements
                 .add("hashOfRowComponents", hashOfRowComponents)
                 .add("shard", shard)
                 .add("timestampPartition", timestampPartition)
-                .add("sweepMode", sweepMode)
+                .add("sweepConservative", sweepConservative)
                 .toString();
         }
 
@@ -252,13 +250,13 @@ public final class SweepableTimestampsTable implements
                 return false;
             }
             SweepableTimestampsRow other = (SweepableTimestampsRow) obj;
-            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(shard, other.shard) && Objects.equal(timestampPartition, other.timestampPartition) && Objects.equal(sweepMode, other.sweepMode);
+            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(shard, other.shard) && Objects.equal(timestampPartition, other.timestampPartition) && Arrays.equals(sweepConservative, other.sweepConservative);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, shard, timestampPartition, sweepMode });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, shard, timestampPartition, sweepConservative });
         }
 
         @Override
@@ -267,129 +265,225 @@ public final class SweepableTimestampsTable implements
                 .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.shard, o.shard)
                 .compare(this.timestampPartition, o.timestampPartition)
-                .compare(this.sweepMode, o.sweepMode)
+                .compare(this.sweepConservative, o.sweepConservative, UnsignedBytes.lexicographicalComparator())
                 .result();
         }
     }
 
-    public interface SweepableTimestampsNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
-
     /**
      * <pre>
-     * Column value description {
-     *   type: Long;
+     * SweepableTimestampsColumn {
+     *   {@literal Long timestampModulus};
      * }
      * </pre>
      */
-    public static final class TimestampModulus implements SweepableTimestampsNamedColumnValue<Long> {
-        private final Long value;
+    public static final class SweepableTimestampsColumn implements Persistable, Comparable<SweepableTimestampsColumn> {
+        private final long timestampModulus;
 
-        public static TimestampModulus of(Long value) {
-            return new TimestampModulus(value);
+        public static SweepableTimestampsColumn of(long timestampModulus) {
+            return new SweepableTimestampsColumn(timestampModulus);
         }
 
-        private TimestampModulus(Long value) {
-            this.value = value;
+        private SweepableTimestampsColumn(long timestampModulus) {
+            this.timestampModulus = timestampModulus;
+        }
+
+        public long getTimestampModulus() {
+            return timestampModulus;
+        }
+
+        public static Function<SweepableTimestampsColumn, Long> getTimestampModulusFun() {
+            return new Function<SweepableTimestampsColumn, Long>() {
+                @Override
+                public Long apply(SweepableTimestampsColumn row) {
+                    return row.timestampModulus;
+                }
+            };
+        }
+
+        public static Function<Long, SweepableTimestampsColumn> fromTimestampModulusFun() {
+            return new Function<Long, SweepableTimestampsColumn>() {
+                @Override
+                public SweepableTimestampsColumn apply(Long row) {
+                    return SweepableTimestampsColumn.of(row);
+                }
+            };
         }
 
         @Override
-        public String getColumnName() {
-            return "timestamp_modulus";
+        public byte[] persistToBytes() {
+            byte[] timestampModulusBytes = EncodingUtils.encodeUnsignedVarLong(timestampModulus);
+            return EncodingUtils.add(timestampModulusBytes);
         }
 
-        @Override
-        public String getShortColumnName() {
-            return "ts_mod";
-        }
-
-        @Override
-        public Long getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("ts_mod");
-        }
-
-        public static final Hydrator<TimestampModulus> BYTES_HYDRATOR = new Hydrator<TimestampModulus>() {
+        public static final Hydrator<SweepableTimestampsColumn> BYTES_HYDRATOR = new Hydrator<SweepableTimestampsColumn>() {
             @Override
-            public TimestampModulus hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(EncodingUtils.decodeUnsignedVarLong(bytes, 0));
+            public SweepableTimestampsColumn hydrateFromBytes(byte[] __input) {
+                int __index = 0;
+                Long timestampModulus = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                __index += EncodingUtils.sizeOfUnsignedVarLong(timestampModulus);
+                return new SweepableTimestampsColumn(timestampModulus);
             }
         };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("timestampModulus", timestampModulus)
+                .toString();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            SweepableTimestampsColumn other = (SweepableTimestampsColumn) obj;
+            return Objects.equal(timestampModulus, other.timestampModulus);
+        }
+
+        @SuppressWarnings("ArrayHashCode")
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(timestampModulus);
+        }
+
+        @Override
+        public int compareTo(SweepableTimestampsColumn o) {
+            return ComparisonChain.start()
+                .compare(this.timestampModulus, o.timestampModulus)
+                .result();
+        }
+    }
+
+    public interface SweepableTimestampsTrigger {
+        public void putSweepableTimestamps(Multimap<SweepableTimestampsRow, ? extends SweepableTimestampsColumnValue> newRows);
+    }
+
+    /**
+     * <pre>
+     * Column name description {
+     *   {@literal Long timestampModulus};
+     * }
+     * Column value description {
+     *   type: byte[];
+     * }
+     * </pre>
+     */
+    public static final class SweepableTimestampsColumnValue implements ColumnValue<byte[]> {
+        private final SweepableTimestampsColumn columnName;
+        private final byte[] value;
+
+        public static SweepableTimestampsColumnValue of(SweepableTimestampsColumn columnName, byte[] value) {
+            return new SweepableTimestampsColumnValue(columnName, value);
+        }
+
+        private SweepableTimestampsColumnValue(SweepableTimestampsColumn columnName, byte[] value) {
+            this.columnName = columnName;
+            this.value = value;
+        }
+
+        public SweepableTimestampsColumn getColumnName() {
+            return columnName;
+        }
+
+        @Override
+        public byte[] getValue() {
+            return value;
+        }
+
+        @Override
+        public byte[] persistColumnName() {
+            return columnName.persistToBytes();
+        }
+
+        @Override
+        public byte[] persistValue() {
+            byte[] bytes = value;
+            return CompressionUtils.compress(bytes, Compression.NONE);
+        }
+
+        public static byte[] hydrateValue(byte[] bytes) {
+            bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+            return EncodingUtils.getBytesFromOffsetToEnd(bytes, 0);
+        }
+
+        public static Function<SweepableTimestampsColumnValue, SweepableTimestampsColumn> getColumnNameFun() {
+            return new Function<SweepableTimestampsColumnValue, SweepableTimestampsColumn>() {
+                @Override
+                public SweepableTimestampsColumn apply(SweepableTimestampsColumnValue columnValue) {
+                    return columnValue.getColumnName();
+                }
+            };
+        }
+
+        public static Function<SweepableTimestampsColumnValue, byte[]> getValueFun() {
+            return new Function<SweepableTimestampsColumnValue, byte[]>() {
+                @Override
+                public byte[] apply(SweepableTimestampsColumnValue columnValue) {
+                    return columnValue.getValue();
+                }
+            };
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("ColumnName", this.columnName)
                 .add("Value", this.value)
                 .toString();
         }
     }
 
-    public interface SweepableTimestampsTrigger {
-        public void putSweepableTimestamps(Multimap<SweepableTimestampsRow, ? extends SweepableTimestampsNamedColumnValue<?>> newRows);
-    }
-
     public static final class SweepableTimestampsRowResult implements TypedRowResult {
-        private final RowResult<byte[]> row;
+        private final SweepableTimestampsRow rowName;
+        private final ImmutableSet<SweepableTimestampsColumnValue> columnValues;
 
-        public static SweepableTimestampsRowResult of(RowResult<byte[]> row) {
-            return new SweepableTimestampsRowResult(row);
+        public static SweepableTimestampsRowResult of(RowResult<byte[]> rowResult) {
+            SweepableTimestampsRow rowName = SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());
+            Set<SweepableTimestampsColumnValue> columnValues = Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());
+            for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
+                SweepableTimestampsColumn col = SweepableTimestampsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                byte[] value = SweepableTimestampsColumnValue.hydrateValue(e.getValue());
+                columnValues.add(SweepableTimestampsColumnValue.of(col, value));
+            }
+            return new SweepableTimestampsRowResult(rowName, ImmutableSet.copyOf(columnValues));
         }
 
-        private SweepableTimestampsRowResult(RowResult<byte[]> row) {
-            this.row = row;
+        private SweepableTimestampsRowResult(SweepableTimestampsRow rowName, ImmutableSet<SweepableTimestampsColumnValue> columnValues) {
+            this.rowName = rowName;
+            this.columnValues = columnValues;
         }
 
         @Override
         public SweepableTimestampsRow getRowName() {
-            return SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+            return rowName;
+        }
+
+        public Set<SweepableTimestampsColumnValue> getColumnValues() {
+            return columnValues;
         }
 
         public static Function<SweepableTimestampsRowResult, SweepableTimestampsRow> getRowNameFun() {
             return new Function<SweepableTimestampsRowResult, SweepableTimestampsRow>() {
                 @Override
                 public SweepableTimestampsRow apply(SweepableTimestampsRowResult rowResult) {
-                    return rowResult.getRowName();
+                    return rowResult.rowName;
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, SweepableTimestampsRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, SweepableTimestampsRowResult>() {
+        public static Function<SweepableTimestampsRowResult, ImmutableSet<SweepableTimestampsColumnValue>> getColumnValuesFun() {
+            return new Function<SweepableTimestampsRowResult, ImmutableSet<SweepableTimestampsColumnValue>>() {
                 @Override
-                public SweepableTimestampsRowResult apply(RowResult<byte[]> rowResult) {
-                    return new SweepableTimestampsRowResult(rowResult);
-                }
-            };
-        }
-
-        public boolean hasTimestampModulus() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("ts_mod"));
-        }
-
-        public Long getTimestampModulus() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("ts_mod"));
-            if (bytes == null) {
-                return null;
-            }
-            TimestampModulus value = TimestampModulus.BYTES_HYDRATOR.hydrateFromBytes(bytes);
-            return value.getValue();
-        }
-
-        public static Function<SweepableTimestampsRowResult, Long> getTimestampModulusFun() {
-            return new Function<SweepableTimestampsRowResult, Long>() {
-                @Override
-                public Long apply(SweepableTimestampsRowResult rowResult) {
-                    return rowResult.getTimestampModulus();
+                public ImmutableSet<SweepableTimestampsColumnValue> apply(SweepableTimestampsRowResult rowResult) {
+                    return rowResult.columnValues;
                 }
             };
         }
@@ -398,98 +492,72 @@ public final class SweepableTimestampsTable implements
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("RowName", getRowName())
-                .add("TimestampModulus", getTimestampModulus())
+                .add("ColumnValues", getColumnValues())
                 .toString();
         }
     }
 
-    public enum SweepableTimestampsNamedColumn {
-        TIMESTAMP_MODULUS {
-            @Override
-            public byte[] getShortName() {
-                return PtBytes.toCachedBytes("ts_mod");
-            }
-        };
-
-        public abstract byte[] getShortName();
-
-        public static Function<SweepableTimestampsNamedColumn, byte[]> toShortName() {
-            return new Function<SweepableTimestampsNamedColumn, byte[]>() {
-                @Override
-                public byte[] apply(SweepableTimestampsNamedColumn namedColumn) {
-                    return namedColumn.getShortName();
-                }
-            };
-        }
-    }
-
-    public static ColumnSelection getColumnSelection(Collection<SweepableTimestampsNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, SweepableTimestampsNamedColumn.toShortName()));
-    }
-
-    public static ColumnSelection getColumnSelection(SweepableTimestampsNamedColumn... cols) {
-        return getColumnSelection(Arrays.asList(cols));
-    }
-
-    private static final Map<String, Hydrator<? extends SweepableTimestampsNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends SweepableTimestampsNamedColumnValue<?>>>builder()
-                .put("ts_mod", TimestampModulus.BYTES_HYDRATOR)
-                .build();
-
-    public Map<SweepableTimestampsRow, Long> getTimestampModuluss(Collection<SweepableTimestampsRow> rows) {
-        Map<Cell, SweepableTimestampsRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (SweepableTimestampsRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("ts_mod")), row);
-        }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<SweepableTimestampsRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = TimestampModulus.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
-            ret.put(cells.get(e.getKey()), val);
-        }
-        return ret;
-    }
-
-    public void putTimestampModulus(SweepableTimestampsRow row, Long value) {
-        put(ImmutableMultimap.of(row, TimestampModulus.of(value)));
-    }
-
-    public void putTimestampModulus(Map<SweepableTimestampsRow, Long> map) {
-        Map<SweepableTimestampsRow, SweepableTimestampsNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SweepableTimestampsRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), TimestampModulus.of(e.getValue()));
-        }
-        put(Multimaps.forMap(toPut));
-    }
-
-    public void putTimestampModulusUnlessExists(SweepableTimestampsRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, TimestampModulus.of(value)));
-    }
-
-    public void putTimestampModulusUnlessExists(Map<SweepableTimestampsRow, Long> map) {
-        Map<SweepableTimestampsRow, SweepableTimestampsNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SweepableTimestampsRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), TimestampModulus.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
+    @Override
+    public void delete(SweepableTimestampsRow row, SweepableTimestampsColumn column) {
+        delete(ImmutableMultimap.of(row, column));
     }
 
     @Override
-    public void put(Multimap<SweepableTimestampsRow, ? extends SweepableTimestampsNamedColumnValue<?>> rows) {
+    public void delete(Iterable<SweepableTimestampsRow> rows) {
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> toRemove = HashMultimap.create();
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> result = getRowsMultimap(rows);
+        for (Entry<SweepableTimestampsRow, SweepableTimestampsColumnValue> e : result.entries()) {
+            toRemove.put(e.getKey(), e.getValue().getColumnName());
+        }
+        delete(toRemove);
+    }
+
+    @Override
+    public void delete(Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> values) {
+        t.delete(tableRef, ColumnValues.toCells(values));
+    }
+
+    @Override
+    public void put(SweepableTimestampsRow rowName, Iterable<SweepableTimestampsColumnValue> values) {
+        put(ImmutableMultimap.<SweepableTimestampsRow, SweepableTimestampsColumnValue>builder().putAll(rowName, values).build());
+    }
+
+    @Override
+    public void put(SweepableTimestampsRow rowName, SweepableTimestampsColumnValue... values) {
+        put(ImmutableMultimap.<SweepableTimestampsRow, SweepableTimestampsColumnValue>builder().putAll(rowName, values).build());
+    }
+
+    @Override
+    public void put(Multimap<SweepableTimestampsRow, ? extends SweepableTimestampsColumnValue> values) {
         t.useTable(tableRef, this);
-        t.put(tableRef, ColumnValues.toCellValues(rows));
+        t.put(tableRef, ColumnValues.toCellValues(values));
         for (SweepableTimestampsTrigger trigger : triggers) {
-            trigger.putSweepableTimestamps(rows);
+            trigger.putSweepableTimestamps(values);
         }
     }
 
     /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
-    public void putUnlessExists(Multimap<SweepableTimestampsRow, ? extends SweepableTimestampsNamedColumnValue<?>> rows) {
-        Multimap<SweepableTimestampsRow, SweepableTimestampsNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<SweepableTimestampsRow, SweepableTimestampsNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<SweepableTimestampsRow, ? extends SweepableTimestampsNamedColumnValue<?>> entry : rows.entries()) {
+    public void putUnlessExists(SweepableTimestampsRow rowName, Iterable<SweepableTimestampsColumnValue> values) {
+        putUnlessExists(ImmutableMultimap.<SweepableTimestampsRow, SweepableTimestampsColumnValue>builder().putAll(rowName, values).build());
+    }
+
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
+    @Override
+    public void putUnlessExists(SweepableTimestampsRow rowName, SweepableTimestampsColumnValue... values) {
+        putUnlessExists(ImmutableMultimap.<SweepableTimestampsRow, SweepableTimestampsColumnValue>builder().putAll(rowName, values).build());
+    }
+
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
+    @Override
+    public void putUnlessExists(Multimap<SweepableTimestampsRow, ? extends SweepableTimestampsColumnValue> rows) {
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> toGet = Multimaps.transformValues(rows, SweepableTimestampsColumnValue.getColumnNameFun());
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> existing = get(toGet);
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> toPut = HashMultimap.create();
+        for (Entry<SweepableTimestampsRow, ? extends SweepableTimestampsColumnValue> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
             }
@@ -497,112 +565,101 @@ public final class SweepableTimestampsTable implements
         put(toPut);
     }
 
-    public void deleteTimestampModulus(SweepableTimestampsRow row) {
-        deleteTimestampModulus(ImmutableSet.of(row));
-    }
-
-    public void deleteTimestampModulus(Iterable<SweepableTimestampsRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("ts_mod");
-        Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
-    }
-
     @Override
-    public void delete(SweepableTimestampsRow row) {
-        delete(ImmutableSet.of(row));
-    }
-
-    @Override
-    public void delete(Iterable<SweepableTimestampsRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("ts_mod")));
-        t.delete(tableRef, cells);
-    }
-
-    public Optional<SweepableTimestampsRowResult> getRow(SweepableTimestampsRow row) {
-        return getRow(row, allColumns);
-    }
-
-    public Optional<SweepableTimestampsRowResult> getRow(SweepableTimestampsRow row, ColumnSelection columns) {
-        byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
-        if (rowResult == null) {
-            return Optional.empty();
-        } else {
-            return Optional.of(SweepableTimestampsRowResult.of(rowResult));
+    public void touch(Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> values) {
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> currentValues = get(values);
+        put(currentValues);
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> toDelete = HashMultimap.create(values);
+        for (Map.Entry<SweepableTimestampsRow, SweepableTimestampsColumnValue> e : currentValues.entries()) {
+            toDelete.remove(e.getKey(), e.getValue().getColumnName());
         }
+        delete(toDelete);
+    }
+
+    public static ColumnSelection getColumnSelection(Collection<SweepableTimestampsColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+    }
+
+    public static ColumnSelection getColumnSelection(SweepableTimestampsColumn... cols) {
+        return getColumnSelection(Arrays.asList(cols));
     }
 
     @Override
-    public List<SweepableTimestampsRowResult> getRows(Iterable<SweepableTimestampsRow> rows) {
-        return getRows(rows, allColumns);
-    }
-
-    @Override
-    public List<SweepableTimestampsRowResult> getRows(Iterable<SweepableTimestampsRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<SweepableTimestampsRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
-        for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(SweepableTimestampsRowResult.of(row));
-        }
-        return rowResults;
-    }
-
-    @Override
-    public List<SweepableTimestampsNamedColumnValue<?>> getRowColumns(SweepableTimestampsRow row) {
-        return getRowColumns(row, allColumns);
-    }
-
-    @Override
-    public List<SweepableTimestampsNamedColumnValue<?>> getRowColumns(SweepableTimestampsRow row, ColumnSelection columns) {
-        byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
-        if (rowResult == null) {
-            return ImmutableList.of();
-        } else {
-            List<SweepableTimestampsNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
-            for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
-                ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
-            }
-            return ret;
-        }
-    }
-
-    @Override
-    public Multimap<SweepableTimestampsRow, SweepableTimestampsNamedColumnValue<?>> getRowsMultimap(Iterable<SweepableTimestampsRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
-    }
-
-    @Override
-    public Multimap<SweepableTimestampsRow, SweepableTimestampsNamedColumnValue<?>> getRowsMultimap(Iterable<SweepableTimestampsRow> rows, ColumnSelection columns) {
-        return getRowsMultimapInternal(rows, columns);
-    }
-
-    private Multimap<SweepableTimestampsRow, SweepableTimestampsNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SweepableTimestampsRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        return getRowMapFromRowResults(results.values());
-    }
-
-    private static Multimap<SweepableTimestampsRow, SweepableTimestampsNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SweepableTimestampsRow, SweepableTimestampsNamedColumnValue<?>> rowMap = HashMultimap.create();
-        for (RowResult<byte[]> result : rowResults) {
-            SweepableTimestampsRow row = SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
-            for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
-                rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
+    public Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> get(Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> cells) {
+        Set<Cell> rawCells = ColumnValues.toCells(cells);
+        Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> rowMap = HashMultimap.create();
+        for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
+            if (e.getValue().length > 0) {
+                SweepableTimestampsRow row = SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+                SweepableTimestampsColumn col = SweepableTimestampsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+                byte[] val = SweepableTimestampsColumnValue.hydrateValue(e.getValue());
+                rowMap.put(row, SweepableTimestampsColumnValue.of(col, val));
             }
         }
         return rowMap;
     }
 
     @Override
-    public Map<SweepableTimestampsRow, BatchingVisitable<SweepableTimestampsNamedColumnValue<?>>> getRowsColumnRange(Iterable<SweepableTimestampsRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public List<SweepableTimestampsColumnValue> getRowColumns(SweepableTimestampsRow row) {
+        return getRowColumns(row, allColumns);
+    }
+
+    @Override
+    public List<SweepableTimestampsColumnValue> getRowColumns(SweepableTimestampsRow row, ColumnSelection columns) {
+        byte[] bytes = row.persistToBytes();
+        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        if (rowResult == null) {
+            return ImmutableList.of();
+        } else {
+            List<SweepableTimestampsColumnValue> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
+                SweepableTimestampsColumn col = SweepableTimestampsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                byte[] val = SweepableTimestampsColumnValue.hydrateValue(e.getValue());
+                ret.add(SweepableTimestampsColumnValue.of(col, val));
+            }
+            return ret;
+        }
+    }
+
+    @Override
+    public Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> getRowsMultimap(Iterable<SweepableTimestampsRow> rows) {
+        return getRowsMultimapInternal(rows, allColumns);
+    }
+
+    @Override
+    public Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> getRowsMultimap(Iterable<SweepableTimestampsRow> rows, ColumnSelection columns) {
+        return getRowsMultimapInternal(rows, columns);
+    }
+
+    private Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> getRowsMultimapInternal(Iterable<SweepableTimestampsRow> rows, ColumnSelection columns) {
+        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
+        return getRowMapFromRowResults(results.values());
+    }
+
+    private static Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> rowMap = HashMultimap.create();
+        for (RowResult<byte[]> result : rowResults) {
+            SweepableTimestampsRow row = SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
+                SweepableTimestampsColumn col = SweepableTimestampsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                byte[] val = SweepableTimestampsColumnValue.hydrateValue(e.getValue());
+                rowMap.put(row, SweepableTimestampsColumnValue.of(col, val));
+            }
+        }
+        return rowMap;
+    }
+
+    @Override
+    public Map<SweepableTimestampsRow, BatchingVisitable<SweepableTimestampsColumnValue>> getRowsColumnRange(Iterable<SweepableTimestampsRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<SweepableTimestampsRow, BatchingVisitable<SweepableTimestampsNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<SweepableTimestampsRow, BatchingVisitable<SweepableTimestampsColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             SweepableTimestampsRow row = SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<SweepableTimestampsNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            BatchingVisitable<SweepableTimestampsColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                SweepableTimestampsColumn col = SweepableTimestampsColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                byte[] val = SweepableTimestampsColumnValue.hydrateValue(result.getValue());
+                return SweepableTimestampsColumnValue.of(col, val);
             });
             transformed.put(row, bv);
         }
@@ -610,11 +667,13 @@ public final class SweepableTimestampsTable implements
     }
 
     @Override
-    public Iterator<Map.Entry<SweepableTimestampsRow, SweepableTimestampsNamedColumnValue<?>>> getRowsColumnRange(Iterable<SweepableTimestampsRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+    public Iterator<Map.Entry<SweepableTimestampsRow, SweepableTimestampsColumnValue>> getRowsColumnRange(Iterable<SweepableTimestampsRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
             SweepableTimestampsRow row = SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            SweepableTimestampsNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            SweepableTimestampsColumn col = SweepableTimestampsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+            byte[] val = SweepableTimestampsColumnValue.hydrateValue(e.getValue());
+            SweepableTimestampsColumnValue colValue = SweepableTimestampsColumnValue.of(col, val);
             return Maps.immutableEntry(row, colValue);
         });
     }
@@ -730,5 +789,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "WPP7x4rcweJUek1Tq+iWlg==";
+    static String __CLASS_HASH = "cN/0e5v/DaWSokHPM4AdJg==";
 }

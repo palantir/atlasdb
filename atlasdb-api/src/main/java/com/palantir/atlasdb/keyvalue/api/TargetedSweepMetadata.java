@@ -26,7 +26,7 @@ public abstract class TargetedSweepMetadata implements Persistable {
     public abstract boolean conservative();
     public abstract boolean dedicatedRow();
     public abstract int shard();
-    public abstract int dedicatedRowNumber();
+    public abstract long dedicatedRowNumber();
 
     @Value.Check
     void checkShardSize() {
