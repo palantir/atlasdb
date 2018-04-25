@@ -66,6 +66,12 @@ develop
            Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3095>`__)
 
+    *    - |new|
+         - Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) blacklist.
+           This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a blacklisted table, as appropriate.
+           Please see :ref:`Sweep Priority Overrides <sweep-priority-overrides>` for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3090>`__)
+
     *    - |fixed| |improved|
          - The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions
            Previously, the strategy to choose the table to compact was:
