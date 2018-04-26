@@ -18,6 +18,9 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
+import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
+
 import java.util.List;
 
 import org.junit.Before;
@@ -43,9 +46,9 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
 
     @Test
     public void canReadSingleEntryInSingleShard() {
-        assertThat(reader.getTombstonesToWrite(TS_REF, shard, true))
+        assertThat(reader.getLatestWrites(TS_REF, conservative(shard)))
                 .containsExactly(WriteInfo.of(TABLE_REF, Cell.create(ROW, COL), TS));
-        assertThat(reader.getTombstonesToWrite(TS2_REF, shard2, false))
+        assertThat(reader.getLatestWrites(TS2_REF, thorough(shard2)))
                 .containsExactly(WriteInfo.of(TABLE_REF2, Cell.create(ROW, COL), TS2));
     }
 
@@ -55,7 +58,7 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
         writeTs(writer, TS + 2, true);
         writeTs(writer, TS - 2, true);
         writeTs(writer, TS + 1, true);
-        assertThat(reader.getTombstonesToWrite(TS_REF, shard, true))
+        assertThat(reader.getLatestWrites(TS_REF, conservative(shard)))
                 .containsExactly(WriteInfo.of(TABLE_REF, Cell.create(ROW, COL), TS + 2));
     }
 
@@ -63,7 +66,7 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
     public void canReadMultipleEntriesInSingleShardDifferentTransactions() {
         int fixedShard = writeTsToCell(writer, TS, getCellWithFixedHash(1), true);
         assertThat(writeTsToCell(writer, TS + 1, getCellWithFixedHash(2), true)).isEqualTo(fixedShard);
-        assertThat(reader.getTombstonesToWrite(TS_REF, fixedShard, true)).containsExactlyInAnyOrder(
+        assertThat(reader.getLatestWrites(TS_REF, conservative(fixedShard))).containsExactlyInAnyOrder(
                 WriteInfo.of(TABLE_REF, getCellWithFixedHash(1), TS),
                 WriteInfo.of(TABLE_REF, getCellWithFixedHash(2), TS + 1));
     }
@@ -71,16 +74,16 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
     @Test
     public void canReadMultipleEntriesInSingleShardSameTransactionNotDedicated() {
         List<WriteInfo> writes = writeToUniqueCellsInSameShard(writer, TS, 10, true);
-        int fixedShard = WriteInfoPartitioner.getShard(writes.get(0));
+        ShardAndStrategy fixedShardAndStrategy = conservative(WriteInfoPartitioner.getShard(writes.get(0)));
         assertThat(writes.size()).isEqualTo(10);
-        assertThat(reader.getTombstonesToWrite(TS_REF, fixedShard, true)).hasSameElementsAs(writes);
+        assertThat(reader.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
     }
 
     @Test
     public void canReadMultipleEntriesInSingleShardSameTransactionDedicated() {
         List<WriteInfo> writes = writeToUniqueCellsInSameShard(writer, TS, 257, true);
-        int fixedShard = WriteInfoPartitioner.getShard(writes.get(0));
+        ShardAndStrategy fixedShardAndStrategy = conservative(WriteInfoPartitioner.getShard(writes.get(0)));
         assertThat(writes.size()).isEqualTo(257);
-        assertThat(reader.getTombstonesToWrite(TS_REF, fixedShard, true)).hasSameElementsAs(writes);
+        assertThat(reader.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
     }
 }
