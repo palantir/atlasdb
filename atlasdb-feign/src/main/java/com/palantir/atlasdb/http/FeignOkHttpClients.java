@@ -20,6 +20,7 @@ import java.net.ProxySelector;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -111,8 +112,10 @@ public final class FeignOkHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
             String userAgent) {
-        return CounterBackedRefreshingClient.createRefreshingClient(
+        Supplier<Client> clientSupplier = () -> CounterBackedRefreshingClient.createRefreshingClient(
                 () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+
+        return ExceptionCountingRefreshingClient.createRefreshingClient(clientSupplier);
     }
 
     @VisibleForTesting
