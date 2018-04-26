@@ -50,7 +50,6 @@ public class KvsSweepQueueProgress {
         this.kvs = kvs;
     }
 
-
     public long getNumberOfShards() {
         return getOrReturnInitial(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), INITIAL_SHARDS);
     }
