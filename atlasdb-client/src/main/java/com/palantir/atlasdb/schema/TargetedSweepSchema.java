@@ -68,9 +68,22 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 rowComponent("timestamp_partition", ValueType.VAR_LONG);
                 rowComponent("sweep_conservative", ValueType.BLOB);
             dynamicColumns();
-               columnComponent("timestamp_modulus", ValueType.VAR_LONG);
-               value(ValueType.BLOB);
+                columnComponent("timestamp_modulus", ValueType.VAR_LONG);
+                value(ValueType.BLOB);
 
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+        }});
+
+        schema.addTableDefinition("sweepProgressPerShard", new TableDefinition() {{
+            javaTableName("SweepShardProgress");
+            allSafeForLoggingByDefault();
+            rowName();
+                hashFirstRowComponent();
+                rowComponent("shard", ValueType.VAR_SIGNED_LONG);
+                rowComponent("sweep_conservative", ValueType.BLOB);
+            columns();
+                column("value", "v", ValueType.VAR_LONG);
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
