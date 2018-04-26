@@ -133,8 +133,8 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
                                 LoggingArgs.sizeInBytes(size));
                     });
                     logger.log(") with consistency {} at time {}, on kvs.{} took {} ms",
-                            LoggingArgs.startTimeMillis(startTime),
                             SafeArg.of("consistency", consistency_level.toString()),
+                            LoggingArgs.startTimeMillis(startTime),
                             SafeArg.of("kvsMethodName", kvsMethodName),
                             LoggingArgs.durationMillis(timer));
                 });
@@ -188,7 +188,7 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
                 (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
                         () -> client.execute_cql3_query(cqlQuery, compression, consistency),
                 (logger, timer) -> cqlQuery.logSlowResult(logger, timer),
-                (logger, cqlResult) -> logger.log("and returned {} rows, at time{}",
+                (logger, cqlResult) -> logger.log("and returned {} rows, at time {}",
                         SafeArg.of("numRows", cqlResult.getRows().size()),
                         LoggingArgs.startTimeMillis(startTime)));
     }

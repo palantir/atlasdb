@@ -398,7 +398,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.durationMillis(stopwatch));
             } else {
-                logTimeAndTable("compactInternally", tableRef);
+                logger.log("Call to KVS.{} at time {}, on table {} took {} ms.",
+                        LoggingArgs.method("compactInternally"),
+                        LoggingArgs.startTimeMillis(startTime),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.durationMillis(stopwatch));
             }
         });
     }
