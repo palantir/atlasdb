@@ -47,20 +47,20 @@ public class SweepableTimestampsReader {
         this.progress = new KvsSweepQueueProgress(kvs);
     }
 
-    public Optional<Long> nextSweepableTimestampPartition(int shard, boolean conservative) {
-        long lastSweptPartitionFine = progress.getLastSweptTimestampPartition(shard, conservative);
+    public Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardAndStrategy) {
+        long lastSweptPartitionFine = progress.getLastSweptTimestampPartition(shardAndStrategy);
         long lastSweptPartitionCoarse = SweepQueueUtils.partitionFineToCoarse(lastSweptPartitionFine);
-        return nextSweepablePartition(shard, conservative, lastSweptPartitionCoarse, lastSweptPartitionFine);
+        return nextSweepablePartition(shardAndStrategy, lastSweptPartitionCoarse, lastSweptPartitionFine);
     }
 
-    private Optional<Long> nextSweepablePartition(int shard, boolean conservative, long sweptCoarse, long sweptFine) {
-        long sweepTimestamp = timestampProvider.getSweepTimestamp(Sweeper.fromBoolean(conservative));
+    private Optional<Long> nextSweepablePartition(ShardAndStrategy shardAndStrategy, long sweptCoarse, long sweptFine) {
+        long sweepTimestamp = timestampProvider.getSweepTimestamp(Sweeper.of(shardAndStrategy.strategy()).get());
         long sweepTimestampFine = SweepQueueUtils.tsPartitionFine(sweepTimestamp);
         long sweepTimestampCoarse = SweepQueueUtils.tsPartitionCoarse(sweepTimestamp);
         long currentCoarse = sweptCoarse;
 
         while (currentCoarse <= sweepTimestampCoarse) {
-            Optional<Long> candidateFine = getCandidatesInCoarsePartition(shard, currentCoarse, conservative).stream()
+            Optional<Long> candidateFine = getCandidatesInCoarsePartition(shardAndStrategy, currentCoarse).stream()
                     .filter(ts -> ts > sweptFine && ts < sweepTimestampFine)
                     .min(Long::compareTo);
             if (candidateFine.isPresent()) {
@@ -71,9 +71,11 @@ public class SweepableTimestampsReader {
         return Optional.empty();
     }
 
-    List<Long> getCandidatesInCoarsePartition(long shard, long partitionCoarse, boolean conservative) {
+    List<Long> getCandidatesInCoarsePartition(ShardAndStrategy shardAndStrategy, long partitionCoarse) {
         byte[] row = SweepableTimestampsTable.SweepableTimestampsRow.of(
-                shard, partitionCoarse, PersistableBoolean.of(conservative).persistToBytes())
+                shardAndStrategy.shard(),
+                partitionCoarse,
+                PersistableBoolean.of(shardAndStrategy.isConservative()).persistToBytes())
                 .persistToBytes();
         RangeRequest request = RangeRequest.builder()
                 .startRowInclusive(row)
@@ -89,7 +91,6 @@ public class SweepableTimestampsReader {
 
         RowResult<Value> rowResult = rowResultIterator.next();
 
-        // todo(gmaretic): is it better to use EncodingUtils.decodeUnsignedVarLong? This seems slightly clearer
         return rowResult.getColumns().keySet().stream()
                 .map(SweepableTimestampsTable.SweepableTimestampsColumn.BYTES_HYDRATOR::hydrateFromBytes)
                 .map(SweepableTimestampsTable.SweepableTimestampsColumn.getTimestampModulusFun())
