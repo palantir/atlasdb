@@ -96,6 +96,10 @@ develop
            There currently isn't an API for declaring specific row or dynamic column components as safe; please contact the AtlasDB team if you have such a use case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3093>`__)
 
+    *    - |improved| |logs|
+         - ``kvs-slow-log`` messages now also include start time of the operation for easier debugging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3117>`__)
+
 =======
 v0.81.0
 =======
