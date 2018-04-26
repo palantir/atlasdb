@@ -79,7 +79,7 @@ public class KvsSweepProgressQueueTest {
 
     @Test
     public void canReadInitialSweptTimestamp() {
-        assertThat(progress.getLastSweptTimestampPartition(ShardAndStrategy.conservative(10))).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
     }
 
     @Test

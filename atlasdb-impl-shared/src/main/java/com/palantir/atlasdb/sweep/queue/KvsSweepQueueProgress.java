@@ -111,7 +111,7 @@ public class KvsSweepQueueProgress {
                 oldVal = updateOrRethrowIfNoChange(shardAndStrategy, oldVal, e);
             }
         }
-        return  oldVal;
+        return oldVal;
     }
 
     private long updateOrRethrowIfNoChange(ShardAndStrategy shardAndStrategy, long oldVal, CheckAndSetException ex) {
