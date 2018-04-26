@@ -47,22 +47,4 @@ public final class SweepQueueUtils {
     public static Cell toCell(Persistable row, ColumnValue<?> col) {
         return Cell.create(row.persistToBytes(), col.persistColumnName());
     }
-
-    public static RangeRequest requestColsForRow(byte[] row) {
-        return RangeRequest.builder()
-                .startRowInclusive(row)
-                .endRowExclusive(RangeRequests.nextLexicographicName(row))
-                .retainColumns(ColumnSelection.all())
-                .batchHint(1)
-                .build();
-    }
-
-    public static RangeRequest requestColsForRowRange(byte[] startRowInclusive, byte[] endRowInclusive, int hint) {
-        return RangeRequest.builder()
-                .startRowInclusive(startRowInclusive)
-                .endRowExclusive(RangeRequests.nextLexicographicName(endRowInclusive))
-                .retainColumns(ColumnSelection.all())
-                .batchHint(1)
-                .build();
-    }
 }
