@@ -187,7 +187,7 @@ public final class SweepShardProgressTable implements
         @Override
         public byte[] persistToBytes() {
             byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
-            byte[] shardBytes = EncodingUtils.encodeUnsignedVarLong(shard);
+            byte[] shardBytes = EncodingUtils.encodeSignedVarLong(shard);
             byte[] sweepConservativeBytes = sweepConservative;
             return EncodingUtils.add(hashOfRowComponentsBytes, shardBytes, sweepConservativeBytes);
         }
@@ -198,8 +198,8 @@ public final class SweepShardProgressTable implements
                 int __index = 0;
                 Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long shard = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(shard);
+                Long shard = EncodingUtils.decodeSignedVarLong(__input, __index);
+                __index += EncodingUtils.sizeOfSignedVarLong(shard);
                 byte[] sweepConservative = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
                 __index += 0;
                 return new SweepShardProgressRow(hashOfRowComponents, shard, sweepConservative);
@@ -207,7 +207,7 @@ public final class SweepShardProgressTable implements
         };
 
         public static long computeHashFirstComponents(long shard) {
-            byte[] shardBytes = EncodingUtils.encodeUnsignedVarLong(shard);
+            byte[] shardBytes = EncodingUtils.encodeSignedVarLong(shard);
             return Hashing.murmur3_128().hashBytes(EncodingUtils.add(shardBytes)).asLong();
         }
 
@@ -709,5 +709,5 @@ public final class SweepShardProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Md4QuTuH1k1aH1jRXeeqeg==";
+    static String __CLASS_HASH = "wUxlBDV2VZEpPgFfykXxqQ==";
 }
