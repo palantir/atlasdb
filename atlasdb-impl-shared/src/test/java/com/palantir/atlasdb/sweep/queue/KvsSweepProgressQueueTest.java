@@ -18,6 +18,11 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyMap;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import static com.palantir.atlasdb.sweep.queue.KvsSweepQueueProgress.INITIAL_SHARDS;
 import static com.palantir.atlasdb.sweep.queue.KvsSweepQueueProgress.INITIAL_TIMESTAMP;
@@ -25,8 +30,13 @@ import static com.palantir.atlasdb.sweep.queue.KvsSweepQueueProgress.INITIAL_TIM
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 
 public class KvsSweepProgressQueueTest {
     private KeyValueService kvs;
@@ -35,6 +45,8 @@ public class KvsSweepProgressQueueTest {
     private static final ShardAndStrategy CONSERVATIVE_TEN = ShardAndStrategy.conservative(10);
     private static final ShardAndStrategy THOROUGH_TEN = ShardAndStrategy.thorough(10);
     private static final ShardAndStrategy CONSERVATIVE_TWENTY = ShardAndStrategy.conservative(20);
+
+    private static final Cell DUMMY = Cell.create(new byte[]{0}, new byte[]{0});
 
     @Before
     public void setup() {
@@ -67,7 +79,7 @@ public class KvsSweepProgressQueueTest {
 
     @Test
     public void canReadInitialSweptTimestamp() {
-        assertThat(progress.getLastSweptTimestampPartition(ShardAndStrategy.conservative(10))).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
     }
 
     @Test
@@ -120,5 +132,40 @@ public class KvsSweepProgressQueueTest {
         assertThat(progress.getNumberOfShards()).isEqualTo(64);
         assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(32L);
         assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(128L);
+    }
+
+    @Test
+    public void progressivelyFailingCasSucceeds() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        when(mockKvs.get(any(), anyMap()))
+                .thenReturn(ImmutableMap.of())
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(5L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(15L)));
+        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
+        KvsSweepQueueProgress instrumentedProgress = new KvsSweepQueueProgress(mockKvs);
+
+        assertThat(instrumentedProgress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 12L))
+                .isEqualTo(15L);
+    }
+
+    @Test
+    public void repeatedlyFailingCasThrows() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        when(mockKvs.get(any(), anyMap()))
+                .thenReturn(ImmutableMap.of())
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(5L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)));
+        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
+        KvsSweepQueueProgress instrumentedProgress = new KvsSweepQueueProgress(mockKvs);
+
+        assertThatThrownBy(() -> instrumentedProgress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 12L))
+                .isInstanceOf(CheckAndSetException.class);
+    }
+
+    private Value createValue(long num) {
+        SweepShardProgressTable.Value value = SweepShardProgressTable.Value.of(num);
+        return Value.create(value.persistValue(), 0L);
     }
 }
