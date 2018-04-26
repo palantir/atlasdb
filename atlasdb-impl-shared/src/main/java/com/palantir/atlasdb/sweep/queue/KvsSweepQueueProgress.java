@@ -18,6 +18,9 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -29,9 +32,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.PersistableBoolean;
 
 public class KvsSweepQueueProgress {
+    private static final Logger log = LoggerFactory.getLogger(KvsSweepQueueProgress.class);
     private static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
             .getSweepShardProgressTable(null).getTableRef();
 
@@ -50,17 +55,17 @@ public class KvsSweepQueueProgress {
         return getOrReturnInitial(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), INITIAL_SHARDS);
     }
 
-    public void updateNumberOfShards(int newNumber) {
+    public long updateNumberOfShards(int newNumber) {
         Preconditions.checkArgument(newNumber <= 128);
-        increaseValueToAtLeast(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), newNumber);
+        return increaseValueToAtLeast(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), newNumber);
     }
 
     public long getLastSweptTimestampPartition(ShardAndStrategy shardAndStrategy) {
         return getOrReturnInitial(shardAndStrategy, INITIAL_TIMESTAMP);
     }
 
-    public void updateLastSweptTimestampPartition(ShardAndStrategy shardAndStrategy, long timestamp) {
-        increaseValueToAtLeast(shardAndStrategy, timestamp);
+    public long updateLastSweptTimestampPartition(ShardAndStrategy shardAndStrategy, long timestamp) {
+        return increaseValueToAtLeast(shardAndStrategy, timestamp);
     }
 
     private long getOrReturnInitial(ShardAndStrategy shardAndStrategy, long initialValue) {
@@ -89,21 +94,32 @@ public class KvsSweepQueueProgress {
         return value.getValue();
     }
 
-    private long increaseValueToAtLeast(ShardAndStrategy shardAndStrategy, long newValue) {
+    private long increaseValueToAtLeast(ShardAndStrategy shardAndStrategy, long newVal) {
         long oldVal = getLastSweptTimestampPartition(shardAndStrategy);
-        byte[] colValNew = SweepShardProgressTable.Value.of(newValue).persistValue();
+        byte[] colValNew = SweepShardProgressTable.Value.of(newVal).persistValue();
 
-        // todo(gmaretic): is the potential infinite loop here scary? Should we code defensively and fail if oldVal remains constant?
-        while (oldVal < newValue) {
+        while (oldVal < newVal) {
             CheckAndSetRequest casRequest = createRequest(shardAndStrategy, oldVal, colValNew);
             try {
                 kvs.checkAndSet(casRequest);
-                return newValue;
+                return newVal;
             } catch (CheckAndSetException e) {
-                oldVal = getValue(getEntry(shardAndStrategy));
+                log.info("Failed to check and set from expected old value {} to new value {}. Retrying if the old "
+                        + "value changed under us.",
+                        SafeArg.of("old value", oldVal),
+                        SafeArg.of("new value", newVal));
+                oldVal = updateOrRethrowIfNoChange(shardAndStrategy, oldVal, e);
             }
         }
         return  oldVal;
+    }
+
+    private long updateOrRethrowIfNoChange(ShardAndStrategy shardAndStrategy, long oldVal, CheckAndSetException ex) {
+        long updatedOldVal = getValue(getEntry(shardAndStrategy));
+        if (updatedOldVal == oldVal) {
+            throw ex;
+        }
+        return updatedOldVal;
     }
 
     private CheckAndSetRequest createRequest(ShardAndStrategy shardAndStrategy, long oldVal, byte[] colValNew) {

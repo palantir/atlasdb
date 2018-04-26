@@ -16,22 +16,20 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RangeRequests;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.Sweeper;
-import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.PersistableBoolean;
 
 public class SweepableTimestampsReader {
@@ -48,52 +46,63 @@ public class SweepableTimestampsReader {
     }
 
     public Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardAndStrategy) {
-        long lastSweptPartitionFine = progress.getLastSweptTimestampPartition(shardAndStrategy);
-        long lastSweptPartitionCoarse = SweepQueueUtils.partitionFineToCoarse(lastSweptPartitionFine);
-        return nextSweepablePartition(shardAndStrategy, lastSweptPartitionCoarse, lastSweptPartitionFine);
+        long minFineExclusive = progress.getLastSweptTimestampPartition(shardAndStrategy);
+        long maxFineExclusive = SweepQueueUtils.tsPartitionFine(timestampProvider.getSweepTimestamp(
+                Sweeper.of(shardAndStrategy.strategy()).get()));
+        return nextSweepablePartition(shardAndStrategy, minFineExclusive + 1, maxFineExclusive);
     }
 
-    private Optional<Long> nextSweepablePartition(ShardAndStrategy shardAndStrategy, long sweptCoarse, long sweptFine) {
-        long sweepTimestamp = timestampProvider.getSweepTimestamp(Sweeper.of(shardAndStrategy.strategy()).get());
-        long sweepTimestampFine = SweepQueueUtils.tsPartitionFine(sweepTimestamp);
-        long sweepTimestampCoarse = SweepQueueUtils.tsPartitionCoarse(sweepTimestamp);
-        long currentCoarse = sweptCoarse;
+    private Optional<Long> nextSweepablePartition(ShardAndStrategy shardAndStrategy, long minFine, long maxFine) {
+        Optional<BatchColumnRangeSelection> range = getColRangeSelection(minFine, maxFine);
 
-        while (currentCoarse <= sweepTimestampCoarse) {
-            Optional<Long> candidateFine = getCandidatesInCoarsePartition(shardAndStrategy, currentCoarse).stream()
-                    .filter(ts -> ts > sweptFine && ts < sweepTimestampFine)
-                    .min(Long::compareTo);
+        if (!range.isPresent()) {
+            return Optional.empty();
+        }
+
+        long current = SweepQueueUtils.partitionFineToCoarse(minFine);
+        long maxCoarse = SweepQueueUtils.partitionFineToCoarse(maxFine);
+
+        while (current <= maxCoarse) {
+            Optional<Long> candidateFine = getCandidatesInCoarsePartition(shardAndStrategy, current, range.get());
             if (candidateFine.isPresent()) {
                 return candidateFine;
             }
-            currentCoarse++;
+            current++;
         }
         return Optional.empty();
     }
 
-    List<Long> getCandidatesInCoarsePartition(ShardAndStrategy shardAndStrategy, long partitionCoarse) {
-        byte[] row = SweepableTimestampsTable.SweepableTimestampsRow.of(
-                shardAndStrategy.shard(),
-                partitionCoarse,
-                PersistableBoolean.of(shardAndStrategy.isConservative()).persistToBytes())
-                .persistToBytes();
-        RangeRequest request = RangeRequest.builder()
-                .startRowInclusive(row)
-                .endRowExclusive(RangeRequests.nextLexicographicName(row))
-                .retainColumns(ColumnSelection.all())
-                .batchHint(1)
-                .build();
-        ClosableIterator<RowResult<Value>> rowResultIterator = kvs.getRange(TABLE_REF, request, SweepQueueUtils.CAS_TS);
-
-        if (!rowResultIterator.hasNext()) {
-            return ImmutableList.of();
+    private Optional<BatchColumnRangeSelection> getColRangeSelection(long minFine, long maxFine) {
+        if (minFine >= maxFine) {
+            return Optional.empty();
         }
+        byte[] start = SweepableTimestampsTable.SweepableTimestampsColumn.of(minFine).persistToBytes();
+        byte[] end = SweepableTimestampsTable.SweepableTimestampsColumn.of(maxFine).persistToBytes();
+        return Optional.of(BatchColumnRangeSelection.create(start, end, 1));
+    }
 
-        RowResult<Value> rowResult = rowResultIterator.next();
+    Optional<Long> getCandidatesInCoarsePartition(ShardAndStrategy shardAndStrategy, long partitionCoarse,
+            BatchColumnRangeSelection colRange) {
+        byte[] row = SweepableTimestampsTable.SweepableTimestampsRow.of(shardAndStrategy.shard(),
+                    partitionCoarse,
+                    PersistableBoolean.of(shardAndStrategy.isConservative()).persistToBytes())
+                .persistToBytes();
 
-        return rowResult.getColumns().keySet().stream()
-                .map(SweepableTimestampsTable.SweepableTimestampsColumn.BYTES_HYDRATOR::hydrateFromBytes)
-                .map(SweepableTimestampsTable.SweepableTimestampsColumn.getTimestampModulusFun())
-                .collect(Collectors.toList());
+        Map<byte[], RowColumnRangeIterator> test = kvs.getRowsColumnRange(
+                TABLE_REF, ImmutableList.of(row), colRange, SweepQueueUtils.CAS_TS);
+
+        RowColumnRangeIterator col = Iterables.getOnlyElement(test.values());
+        if (!col.hasNext()) {
+            return Optional.empty();
+        }
+        Map.Entry<Cell, Value> firstColumnEntry = col.next();
+
+        return Optional.of(getPartitionFromEntry(firstColumnEntry));
+    }
+
+    private long getPartitionFromEntry(Map.Entry<Cell, Value> entry) {
+        byte[] colName = entry.getKey().getColumnName();
+        return SweepableTimestampsTable.SweepableTimestampsColumn.BYTES_HYDRATOR.hydrateFromBytes(colName)
+                .getTimestampModulus();
     }
 }
