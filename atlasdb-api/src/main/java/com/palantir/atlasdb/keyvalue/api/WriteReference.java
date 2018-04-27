@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -28,24 +29,29 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.palantir.common.persist.Persistable;
 
-@JsonDeserialize(as = ImmutableTableReferenceAndCell.class)
-@JsonSerialize(as = ImmutableTableReferenceAndCell.class)
+@JsonDeserialize(as = ImmutableWriteReference.class)
+@JsonSerialize(as = ImmutableWriteReference.class)
 @Value.Immutable
-public abstract class TableReferenceAndCell implements Persistable {
+public abstract class WriteReference implements Persistable {
+    @JsonProperty("t")
     public abstract TableReference tableRef();
+    @JsonProperty("c")
     public abstract Cell cell();
+    @Value.Auxiliary
+    @JsonProperty("d")
+    public abstract boolean isTombstone();
 
-    public static final TableReferenceAndCell DUMMY = TableReferenceAndCell.of(
+    public static final WriteReference DUMMY = WriteReference.of(
             TableReference.createFromFullyQualifiedName("dum.my"),
-            Cell.create(new byte[] {0}, new byte[] {0}));
+            Cell.create(new byte[] {0}, new byte[] {0}), false);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new Jdk8Module())
             .registerModule(new AfterburnerModule());
 
-    public static final Hydrator<TableReferenceAndCell> BYTES_HYDRATOR = input -> {
+    public static final Hydrator<WriteReference> BYTES_HYDRATOR = input -> {
         try {
-            return OBJECT_MAPPER.readValue(input, TableReferenceAndCell.class);
+            return OBJECT_MAPPER.readValue(input, WriteReference.class);
         } catch (IOException e) {
             throw new RuntimeException("Exception hydrating object.");
         }
@@ -60,7 +66,7 @@ public abstract class TableReferenceAndCell implements Persistable {
         }
     }
 
-    public static TableReferenceAndCell of(TableReference tableRef, Cell cell) {
-        return ImmutableTableReferenceAndCell.builder().tableRef(tableRef).cell(cell).build();
+    public static WriteReference of(TableReference tableRef, Cell cell, boolean isTombstone) {
+        return ImmutableWriteReference.builder().tableRef(tableRef).cell(cell).isTombstone(isTombstone).build();
     }
 }
