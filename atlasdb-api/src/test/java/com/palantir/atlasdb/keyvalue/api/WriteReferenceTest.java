@@ -26,14 +26,13 @@ public class WriteReferenceTest {
     public void persistingHydrationTest() throws IOException {
         TableReference tableReference = TableReference.createFromFullyQualifiedName("abc.def");
         Cell cell = Cell.create(new byte[] {0, 0}, new byte[] {1, 1});
-        WriteReference tableRefCell = ImmutableWriteReference.builder()
+        WriteReference writeRef = ImmutableWriteReference.builder()
                 .tableRef(tableReference)
                 .cell(cell)
                 .isTombstone(false)
                 .build();
 
-        byte[] valueAsBytes = tableRefCell.persistToBytes();
-        Assertions.assertThat(WriteReference.BYTES_HYDRATOR.hydrateFromBytes(valueAsBytes))
-                .isEqualTo(tableRefCell);
+        byte[] valueAsBytes = writeRef.persistToBytes();
+        Assertions.assertThat(WriteReference.BYTES_HYDRATOR.hydrateFromBytes(valueAsBytes)).isEqualTo(writeRef);
     }
 }

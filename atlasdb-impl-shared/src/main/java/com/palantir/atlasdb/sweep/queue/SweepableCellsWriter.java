@@ -69,10 +69,10 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
         insert(info, write.writeRef(), dedicate, index / MAX_CELLS_DEDICATED, index % MAX_CELLS_DEDICATED, result);
     }
 
-    private void insert(PartitionInfo info, WriteReference tableRefCell, boolean dedicate, long dedicatedRow,
+    private void insert(PartitionInfo info, WriteReference writeRef, boolean dedicate, long dedicatedRow,
             long index, Map<Cell, byte[]> result) {
         SweepableCellsTable.SweepableCellsRow row = createRow(info, dedicate, dedicatedRow);
-        SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(info.timestamp(), index, tableRefCell);
+        SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(info.timestamp(), index, writeRef);
         result.put(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
     }
 
@@ -88,10 +88,9 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
                 SweepQueueUtils.tsPartitionFine(info.timestamp()), metadata.persistToBytes());
     }
 
-    private SweepableCellsTable.SweepableCellsColumnValue createColVal(long ts, long index,
-            WriteReference tableRefCell) {
+    private SweepableCellsTable.SweepableCellsColumnValue createColVal(long ts, long index, WriteReference writeRef) {
         SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.of(tsMod(ts), index);
-        return SweepableCellsTable.SweepableCellsColumnValue.of(col, tableRefCell);
+        return SweepableCellsTable.SweepableCellsColumnValue.of(col, writeRef);
     }
 
     private long requiredDedicatedRows(List<WriteInfo> writes) {

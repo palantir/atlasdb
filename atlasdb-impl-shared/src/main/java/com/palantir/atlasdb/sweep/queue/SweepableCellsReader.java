@@ -118,11 +118,10 @@ public class SweepableCellsReader {
             SweepableCellsTable.SweepableCellsColumn col,
             Value value,
             Map<WriteReference, Long> results) {
-        WriteReference tableRefCell = SweepableCellsTable.SweepableCellsColumnValue
-                .hydrateValue(value.getContents());
+        WriteReference writeRef = SweepableCellsTable.SweepableCellsColumnValue.hydrateValue(value.getContents());
 
         long timestamp = row.getTimestampPartition() * SweepQueueUtils.TS_FINE_GRANULARITY + col.getTimestampModulus();
-        addIfMaxForCell(timestamp, tableRefCell, results);
+        addIfMaxForCell(timestamp, writeRef, results);
     }
 
     private void addIfMaxForCell(long ts, WriteReference refAndCell, Map<WriteReference, Long> result) {
