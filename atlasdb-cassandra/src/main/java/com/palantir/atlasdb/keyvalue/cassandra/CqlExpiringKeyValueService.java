@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.ResultSet;
@@ -36,8 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlKeyValueServices.TransactionType;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
 
@@ -47,17 +44,14 @@ public final class CqlExpiringKeyValueService extends CqlKeyValueService impleme
     public static CqlExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
-        Optional<CassandraJmxCompactionManager> compactionManager =
-                CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CqlExpiringKeyValueService kvs = new CqlExpiringKeyValueService(configManager, compactionManager);
+        CqlExpiringKeyValueService kvs = new CqlExpiringKeyValueService(configManager);
         kvs.initializeConnectionPool();
         kvs.performInitialSetup();
         return kvs;
     }
 
-    private CqlExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager,
-                                       Optional<CassandraJmxCompactionManager> compactionManager) {
-        super(configManager, compactionManager);
+    private CqlExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager) {
+        super(configManager);
     }
 
     @Override

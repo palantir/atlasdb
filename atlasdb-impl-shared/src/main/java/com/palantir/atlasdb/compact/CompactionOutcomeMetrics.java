@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.MetricsManager;
 
 class CompactionOutcomeMetrics {
@@ -32,8 +31,8 @@ class CompactionOutcomeMetrics {
 
     CompactionOutcomeMetrics() {
         Arrays.stream(BackgroundCompactor.CompactionOutcome.values()).forEach(outcome ->
-                metricsManager.registerOrAddToMetric(BackgroundCompactor.class, "outcome",
-                        () -> getOutcomeCount(outcome), ImmutableMap.of("status", outcome.name())));
+                metricsManager.registerMetric(BackgroundCompactor.class, "outcome",
+                        () -> getOutcomeCount(outcome)));
         reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
     }
 

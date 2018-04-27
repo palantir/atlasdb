@@ -694,7 +694,9 @@ public interface KeyValueService extends AutoCloseable {
     }
 
     /**
-     * @return If {@link #compactInternally(TableReference)} should be called to free disk space.
+     * Whether we should run compactions for this KVS.
+     *
+     * @return If {@link #compactInternally(TableReference)} should be called to free disk space
      */
     default boolean shouldTriggerCompactions() {
         return false;

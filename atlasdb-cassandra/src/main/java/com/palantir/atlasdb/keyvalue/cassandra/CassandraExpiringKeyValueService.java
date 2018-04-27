@@ -39,8 +39,6 @@ import com.palantir.atlasdb.keyvalue.api.ExpiringKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
-import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
@@ -53,10 +51,8 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
             Optional<LeaderConfig> leaderConfig) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
-        Optional<CassandraJmxCompactionManager> compactionManager =
-                CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraExpiringKeyValueService kvs =
-                new CassandraExpiringKeyValueService(configManager, compactionManager, leaderConfig,
+                new CassandraExpiringKeyValueService(configManager, leaderConfig,
                         AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         kvs.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return kvs;
@@ -64,10 +60,9 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
 
     private CassandraExpiringKeyValueService(
             CassandraKeyValueServiceConfigManager configManager,
-            Optional<CassandraJmxCompactionManager> compactionManager,
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
-        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig,
+        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, leaderConfig,
                 initializeAsync);
     }
 
