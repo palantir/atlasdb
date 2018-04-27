@@ -18,26 +18,36 @@ package com.palantir.atlasdb.logging;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 
 @Value.Immutable
 public abstract class SafeLoggableData implements KeyValueServiceLogArbitrator {
     public abstract Set<TableReference> permittedTableReferences();
 
+    @Value.Lazy
+    public Set<String> permittedInternalTableReferences() {
+        return permittedTableReferences().stream()
+                .map(AbstractKeyValueService::internalTableName)
+                .collect(Collectors.toSet());
+    }
+
     public abstract Map<TableReference, Set<String>> permittedRowComponents();
 
     public abstract Map<TableReference, Set<String>> permittedColumnNames();
 
-    public static SafeLoggableData fromTableMetadata(Map<TableReference, byte[]> tableRefToMetadata) {
-        return SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
-    }
-
     @Override
     public boolean isTableReferenceSafe(TableReference tableReference) {
         return permittedTableReferences().contains(tableReference);
+    }
+
+    @Override
+    public boolean isInternalTableReferenceSafe(String internalTableReference) {
+        return permittedInternalTableReferences().contains(internalTableReference);
     }
 
     @Override
