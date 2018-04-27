@@ -102,6 +102,10 @@ develop
          - ``kvs-slow-log`` messages now also include start time of the operation for easier debugging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3117>`__)
 
+    *    - |improved| |logs|
+         - AtlasDB internal tables will no longer produce warning messages about hotspotting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3126>`__)
+
 =======
 v0.81.0
 =======
