@@ -23,8 +23,8 @@ import java.util.Map;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReferenceAndCell;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
+import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
@@ -62,14 +62,14 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
     }
 
     private void addReferenceToDedicatedRows(PartitionInfo info, List<WriteInfo> writes, Map<Cell, byte[]> result) {
-        insert(info, TableReferenceAndCell.DUMMY, false, 0, -requiredDedicatedRows(writes), result);
+        insert(info, WriteReference.DUMMY, false, 0, -requiredDedicatedRows(writes), result);
     }
 
     private void addWrite(PartitionInfo info, WriteInfo write, boolean dedicate, long index, Map<Cell, byte[]> result) {
-        insert(info, write.tableRefCell(), dedicate, index / MAX_CELLS_DEDICATED, index % MAX_CELLS_DEDICATED, result);
+        insert(info, write.writeRef(), dedicate, index / MAX_CELLS_DEDICATED, index % MAX_CELLS_DEDICATED, result);
     }
 
-    private void insert(PartitionInfo info, TableReferenceAndCell tableRefCell, boolean dedicate, long dedicatedRow,
+    private void insert(PartitionInfo info, WriteReference tableRefCell, boolean dedicate, long dedicatedRow,
             long index, Map<Cell, byte[]> result) {
         SweepableCellsTable.SweepableCellsRow row = createRow(info, dedicate, dedicatedRow);
         SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(info.timestamp(), index, tableRefCell);
@@ -89,7 +89,7 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
     }
 
     private SweepableCellsTable.SweepableCellsColumnValue createColVal(long ts, long index,
-            TableReferenceAndCell tableRefCell) {
+            WriteReference tableRefCell) {
         SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.of(tsMod(ts), index);
         return SweepableCellsTable.SweepableCellsColumnValue.of(col, tableRefCell);
     }

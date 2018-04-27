@@ -38,8 +38,8 @@ public interface MultiTableSweepQueueWriter {
 
     default List<WriteInfo> toWriteInfos(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
         return writes.entrySet().stream()
-                .flatMap(writesEntry -> writesEntry.getValue().keySet().stream()
-                        .map(cell -> WriteInfo.of(writesEntry.getKey(), cell, timestamp)))
+                .flatMap(entry -> entry.getValue().entrySet().stream()
+                        .map(singleWrite -> SweepQueueUtils.toWriteInfo(entry.getKey(), singleWrite, timestamp)))
                 .collect(Collectors.toList());
     }
 }

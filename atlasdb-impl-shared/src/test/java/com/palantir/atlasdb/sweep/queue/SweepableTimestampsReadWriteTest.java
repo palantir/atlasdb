@@ -46,8 +46,8 @@ public class SweepableTimestampsReadWriteTest extends SweepQueueReadWriteTest{
         reader = new SweepableTimestampsReader(kvs, provider);
         progress = new KvsSweepQueueProgress(kvs);
 
-        shard = writeTs(writer, TS, true);
-        shard2 = writeTs(writer, TS2, false);
+        shard = writeToDefault(writer, TS, true);
+        shard2 = writeToDefault(writer, TS2, false);
 
         immutableTs = 10 * TS;
         unreadableTs = 10 * TS;
@@ -148,7 +148,7 @@ public class SweepableTimestampsReadWriteTest extends SweepQueueReadWriteTest{
     @Test
     public void getCorrectNextTimestampWhenMultipleCandidates() {
         for (long timestamp = 1000L; tsPartitionFine(timestamp) < 10L; timestamp += TS_FINE_GRANULARITY / 5) {
-            writeTs(writer, timestamp, true);
+            writeToDefault(writer, timestamp, true);
         }
         assertThat(reader.nextSweepableTimestampPartition(conservative(shard)))
                 .contains(tsPartitionFine(1000L));

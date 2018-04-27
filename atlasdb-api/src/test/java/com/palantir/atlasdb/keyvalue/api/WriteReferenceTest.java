@@ -21,18 +21,19 @@ import java.io.IOException;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-public class TableReferenceAndCellTest {
+public class WriteReferenceTest {
     @Test
     public void persistingHydrationTest() throws IOException {
         TableReference tableReference = TableReference.createFromFullyQualifiedName("abc.def");
         Cell cell = Cell.create(new byte[] {0, 0}, new byte[] {1, 1});
-        TableReferenceAndCell tableRefCell = ImmutableTableReferenceAndCell.builder()
+        WriteReference tableRefCell = ImmutableWriteReference.builder()
                 .tableRef(tableReference)
                 .cell(cell)
+                .isTombstone(false)
                 .build();
 
         byte[] valueAsBytes = tableRefCell.persistToBytes();
-        Assertions.assertThat(TableReferenceAndCell.BYTES_HYDRATOR.hydrateFromBytes(valueAsBytes))
+        Assertions.assertThat(WriteReference.BYTES_HYDRATOR.hydrateFromBytes(valueAsBytes))
                 .isEqualTo(tableRefCell);
     }
 }

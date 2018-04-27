@@ -29,9 +29,9 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.TableReferenceAndCell;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
@@ -53,7 +53,7 @@ public class SweepableCellsReader {
 
         RowColumnRangeIterator resultIterator = getAllColumns(row);
 
-        Map<TableReferenceAndCell, Long> results = new HashMap<>();
+        Map<WriteReference, Long> results = new HashMap<>();
         resultIterator.forEachRemaining(entry -> populateResults(row, entry, results));
 
         return results.entrySet().stream()
@@ -79,7 +79,7 @@ public class SweepableCellsReader {
     }
 
     private void populateResults(SweepableCellsTable.SweepableCellsRow row, Map.Entry<Cell, Value> entry,
-            Map<TableReferenceAndCell, Long> results) {
+            Map<WriteReference, Long> results) {
         SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.BYTES_HYDRATOR
                 .hydrateFromBytes(entry.getKey().getColumnName());
 
@@ -95,7 +95,7 @@ public class SweepableCellsReader {
     }
 
     private void populateFromDedicatedRows(SweepableCellsTable.SweepableCellsRow row,
-            SweepableCellsTable.SweepableCellsColumn col, Map<TableReferenceAndCell, Long> results) {
+            SweepableCellsTable.SweepableCellsColumn col, Map<WriteReference, Long> results) {
         TargetedSweepMetadata metadata = TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(row.getMetadata());
         long partitionFine = row.getTimestampPartition();
         int numberOfDedicatedRows = (int) -col.getWriteIndex();
@@ -117,15 +117,15 @@ public class SweepableCellsReader {
     private void populateFromValue(SweepableCellsTable.SweepableCellsRow row,
             SweepableCellsTable.SweepableCellsColumn col,
             Value value,
-            Map<TableReferenceAndCell, Long> results) {
-        TableReferenceAndCell tableRefCell = SweepableCellsTable.SweepableCellsColumnValue
+            Map<WriteReference, Long> results) {
+        WriteReference tableRefCell = SweepableCellsTable.SweepableCellsColumnValue
                 .hydrateValue(value.getContents());
 
         long timestamp = row.getTimestampPartition() * SweepQueueUtils.TS_FINE_GRANULARITY + col.getTimestampModulus();
         addIfMaxForCell(timestamp, tableRefCell, results);
     }
 
-    private void addIfMaxForCell(long ts, TableReferenceAndCell refAndCell, Map<TableReferenceAndCell, Long> result) {
+    private void addIfMaxForCell(long ts, WriteReference refAndCell, Map<WriteReference, Long> result) {
         result.merge(refAndCell, ts, Math::max);
     }
 
