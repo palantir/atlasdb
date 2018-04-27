@@ -74,7 +74,7 @@ public class ExceptionCountingRefreshingClient implements Client {
             try {
                 currentClient = refreshingSupplier.get();
             } catch (RuntimeException e) {
-                log.warn("An error occurred whilst trying to re-create an OkHttpClient, because {} exceptions have been thrown in a row by old client."
+                log.warn("An error occurred whilst trying to re-create an OkHttpClient."
                                 + " Continuing operation with the old client...",
                         SafeArg.of("count", currentCount),
                         e);

@@ -37,9 +37,9 @@ public class ExceptionCountingRefreshingClientTest {
     private Supplier<Client> clientSupplier = (Supplier<Client>) mock(Supplier.class);
     private Client client = mock(Client.class);
 
-    private Request request = Request.create("POST", "atlas.palantir.pt", ImmutableMap.of(), null, null);
-    private Response response = Response.create(204, "no content", ImmutableMap.of(), new byte[0]);
-    private Request.Options options = new Request.Options(1, 1);
+    private static final Request request = Request.create("POST", "atlas.palantir.pt", ImmutableMap.of(), null, null);
+    private static final Response response = Response.create(204, "no content", ImmutableMap.of(), new byte[0]);
+    private static final Request.Options options = new Request.Options(1, 1);
 
     private static final int EXCEPTION_COUNT_BEFORE_REFRESH = 2;
     private static final RuntimeException CLIENT_EXCEPTION = new RuntimeException("bad");
@@ -86,16 +86,13 @@ public class ExceptionCountingRefreshingClientTest {
 
     @Test
     public void requestsContinueWithOldClientIfDelegateSupplierThrows() throws IOException {
-        when(clientSupplier.get()).thenReturn(client);
+        when(clientSupplier.get()).thenReturn(client).thenThrow(new IllegalStateException("bad"));
         when(client.execute(request, options)).thenThrow(CLIENT_EXCEPTION);
 
         Client refreshingClient = new ExceptionCountingRefreshingClient(clientSupplier, EXCEPTION_COUNT_BEFORE_REFRESH);
-        callExecute(refreshingClient,1);
-
-        when(clientSupplier.get()).thenThrow(new IllegalStateException("bad"));
 
         int numberOfExecutions = EXCEPTION_COUNT_BEFORE_REFRESH + 1;
-        callExecute(refreshingClient, numberOfExecutions - 1);
+        callExecute(refreshingClient, numberOfExecutions);
 
         verify(clientSupplier, times((numberOfExecutions / EXCEPTION_COUNT_BEFORE_REFRESH + 1))).get();
         verify(client, times(numberOfExecutions)).execute(request, options);
