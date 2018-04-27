@@ -68,4 +68,8 @@ public enum Sweeper {
         }
     }
 
+    public static Sweeper fromBoolean(boolean conservative) {
+        return conservative ? CONSERVATIVE : THOROUGH;
+    }
+
 }

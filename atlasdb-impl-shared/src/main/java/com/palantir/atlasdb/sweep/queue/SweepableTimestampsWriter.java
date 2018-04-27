@@ -26,7 +26,6 @@ import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
 public class SweepableTimestampsWriter extends KvsSweepQueueWriter {
-    private static final long TS_COARSE_GRANULARITY = 10_000_000L;
     private static final byte[] DUMMY = new byte[0];
 
     private final WriteInfoPartitioner partitioner;
@@ -47,19 +46,15 @@ public class SweepableTimestampsWriter extends KvsSweepQueueWriter {
     private void putWrite(PartitionInfo partitionInfo, Map<Cell, byte[]> result) {
         SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow.of(
                 partitionInfo.shard(),
-                tsPartitionCoarse(partitionInfo.timestamp()),
+                SweepQueueUtils.tsPartitionCoarse(partitionInfo.timestamp()),
                 partitionInfo.isConservative().persistToBytes());
 
         SweepableTimestampsTable.SweepableTimestampsColumn col = SweepableTimestampsTable.SweepableTimestampsColumn.of(
-                SweepableCellsWriter.tsMod(partitionInfo.timestamp()));
+                SweepQueueUtils.tsPartitionFine(partitionInfo.timestamp()));
 
         SweepableTimestampsTable.SweepableTimestampsColumnValue colVal =
                 SweepableTimestampsTable.SweepableTimestampsColumnValue.of(col, DUMMY);
 
-        result.put(toCell(row, colVal), colVal.persistValue());
-    }
-
-    private long tsPartitionCoarse(long timestamp) {
-        return timestamp / TS_COARSE_GRANULARITY;
+        result.put(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
     }
 }

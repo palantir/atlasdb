@@ -23,20 +23,20 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class SweepTimestampProvider {
 
-    private final LongSupplier immutableTimestamp;
     private final LongSupplier unreadableTimestamp;
+    private final LongSupplier immutableTimestamp;
 
     public static SweepTimestampProvider create(TransactionManager txnManager) {
-        return new SweepTimestampProvider(txnManager::getImmutableTimestamp, txnManager::getUnreadableTimestamp);
+        return new SweepTimestampProvider(txnManager::getUnreadableTimestamp, txnManager::getImmutableTimestamp);
     }
 
-    public SweepTimestampProvider(LongSupplier immutableTimestamp, LongSupplier unreadableTimestamp) {
-        this.immutableTimestamp = immutableTimestamp;
+    public SweepTimestampProvider(LongSupplier unreadableTimestamp, LongSupplier immutableTimestamp) {
         this.unreadableTimestamp = unreadableTimestamp;
+        this.immutableTimestamp = immutableTimestamp;
     }
 
     public long getSweepTimestamp(Sweeper sweeper) {
-        return sweeper.getSweepTimestampSupplier().getSweepTimestamp(immutableTimestamp, unreadableTimestamp);
+        return sweeper.getSweepTimestampSupplier().getSweepTimestamp(unreadableTimestamp, immutableTimestamp);
     }
 
 }

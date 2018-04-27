@@ -18,6 +18,11 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyMap;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import static com.palantir.atlasdb.sweep.queue.KvsSweepQueueProgress.INITIAL_SHARDS;
 import static com.palantir.atlasdb.sweep.queue.KvsSweepQueueProgress.INITIAL_TIMESTAMP;
@@ -25,8 +30,13 @@ import static com.palantir.atlasdb.sweep.queue.KvsSweepQueueProgress.INITIAL_TIM
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 
 public class KvsSweepProgressQueueTest {
     private KeyValueService kvs;
@@ -36,6 +46,8 @@ public class KvsSweepProgressQueueTest {
     private static final ShardAndStrategy THOROUGH_TEN = ShardAndStrategy.thorough(10);
     private static final ShardAndStrategy CONSERVATIVE_TWENTY = ShardAndStrategy.conservative(20);
 
+    private static final Cell DUMMY = Cell.create(new byte[]{0}, new byte[]{0});
+
     @Before
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
@@ -44,86 +56,116 @@ public class KvsSweepProgressQueueTest {
 
     @Test
     public void canReadInitialNumberOfShards() {
-        assertThat(progress.numberOfShards()).isEqualTo(INITIAL_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(INITIAL_SHARDS);
     }
 
     @Test
     public void canUpdateNumberOfShards() {
-        progress.numberOfShards();
         progress.updateNumberOfShards(128);
-        assertThat(progress.numberOfShards()).isEqualTo(128);
+        assertThat(progress.getNumberOfShards()).isEqualTo(128);
     }
 
     @Test
     public void attemptingToDecreaseNumberOfShardsIsNoop() {
-        progress.numberOfShards();
         progress.updateNumberOfShards(64);
         progress.updateNumberOfShards(32);
-        assertThat(progress.numberOfShards()).isEqualTo(64);
+        assertThat(progress.getNumberOfShards()).isEqualTo(64);
     }
 
     @Test
     public void increasingNumberOfShardsAbove128Throws() {
-        progress.numberOfShards();
         assertThatThrownBy(() -> progress.updateNumberOfShards(256)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void canReadInitialSweptTimestamp() {
-        assertThat(progress.lastSweptTimestamp(ShardAndStrategy.conservative(10))).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
     }
 
     @Test
     public void canUpdateSweptTimestamp() {
-        progress.lastSweptTimestamp(CONSERVATIVE_TEN);
-        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 1024L);
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(1024L);
+        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 1024L);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(1024L);
     }
 
     @Test
     public void attemptingToDecreaseSweptTimestampIsNoop() {
-        progress.lastSweptTimestamp(CONSERVATIVE_TEN);
-        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 1024L);
-        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 512L);
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(1024L);
+        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 1024L);
+        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 512L);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(1024L);
     }
 
     @Test
     public void updatingTimestampForOneShardDoesNotAffectOthers() {
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(INITIAL_TIMESTAMP);
-        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 1024L);
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TWENTY)).isEqualTo(INITIAL_TIMESTAMP);
+        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 1024L);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TWENTY)).isEqualTo(INITIAL_TIMESTAMP);
 
-        progress.updateLastSweptTimestamp(CONSERVATIVE_TWENTY, 512L);
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(512L);
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(1024L);
+        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TWENTY, 512L);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TWENTY)).isEqualTo(512L);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(1024L);
     }
 
     @Test
     public void updatingTimestampForOneConsistencyDoesNotAffectOther() {
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
-        assertThat(progress.lastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
-        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 128L);
-        assertThat(progress.lastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 128L);
+        assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
 
-        progress.updateLastSweptTimestamp(THOROUGH_TEN, 32L);
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(128L);
-        assertThat(progress.lastSweptTimestamp(THOROUGH_TEN)).isEqualTo(32L);
+        progress.updateLastSweptTimestampPartition(THOROUGH_TEN, 32L);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(128L);
+        assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(32L);
     }
 
     @Test
     public void updatingTimestampsDoesNotAffectShardsAndViceVersa() {
-        assertThat(progress.numberOfShards()).isEqualTo(INITIAL_SHARDS);
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
-        assertThat(progress.lastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getNumberOfShards()).isEqualTo(INITIAL_SHARDS);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
 
         progress.updateNumberOfShards(64);
-        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 32L);
-        progress.updateLastSweptTimestamp(THOROUGH_TEN, 128L);
+        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 32L);
+        progress.updateLastSweptTimestampPartition(THOROUGH_TEN, 128L);
 
-        assertThat(progress.numberOfShards()).isEqualTo(64);
-        assertThat(progress.lastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(32L);
-        assertThat(progress.lastSweptTimestamp(THOROUGH_TEN)).isEqualTo(128L);
+        assertThat(progress.getNumberOfShards()).isEqualTo(64);
+        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(32L);
+        assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(128L);
+    }
+
+    @Test
+    public void progressivelyFailingCasSucceeds() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        when(mockKvs.get(any(), anyMap()))
+                .thenReturn(ImmutableMap.of())
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(5L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(15L)));
+        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
+        KvsSweepQueueProgress instrumentedProgress = new KvsSweepQueueProgress(mockKvs);
+
+        assertThat(instrumentedProgress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 12L))
+                .isEqualTo(15L);
+    }
+
+    @Test
+    public void repeatedlyFailingCasThrows() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        when(mockKvs.get(any(), anyMap()))
+                .thenReturn(ImmutableMap.of())
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(5L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)));
+        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
+        KvsSweepQueueProgress instrumentedProgress = new KvsSweepQueueProgress(mockKvs);
+
+        assertThatThrownBy(() -> instrumentedProgress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 12L))
+                .isInstanceOf(CheckAndSetException.class);
+    }
+
+    private Value createValue(long num) {
+        SweepShardProgressTable.Value value = SweepShardProgressTable.Value.of(num);
+        return Value.create(value.persistValue(), 0L);
     }
 }
