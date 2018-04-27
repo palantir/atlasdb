@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -121,7 +120,6 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollections;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
@@ -771,8 +769,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             });
             fail();
         } catch (TransactionLockTimeoutNonRetriableException e) {
-            Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
-            assertThat(e.getMessage(), containsString(expectedTokens.toString()));
+            LockDescriptor descriptor = Iterables.getFirst(expiredLockToken.getLockDescriptors(), null);
+            assertThat(e.getMessage(), containsString(descriptor.toString()));
             assertThat(e.getMessage(), containsString("Retry is not possible."));
         }
     }
