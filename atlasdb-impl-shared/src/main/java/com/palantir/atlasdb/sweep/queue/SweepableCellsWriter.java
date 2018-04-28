@@ -29,8 +29,8 @@ import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
 public class SweepableCellsWriter extends KvsSweepQueueWriter {
-    private static final long MAX_CELLS_GENERIC = 50L;
-    static final long MAX_CELLS_DEDICATED = 100_000L;
+    static final int MAX_CELLS_GENERIC = 50;
+    static final int MAX_CELLS_DEDICATED = 100_000;
 
     private final WriteInfoPartitioner partitioner;
 

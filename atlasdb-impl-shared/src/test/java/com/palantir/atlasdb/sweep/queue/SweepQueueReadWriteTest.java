@@ -101,7 +101,7 @@ public abstract class SweepQueueReadWriteTest {
             boolean conservative) {
         TableReference tableRef = conservative ? TABLE_REF : TABLE_REF2;
         List<WriteInfo> result = new ArrayList<>();
-        for (int i = 0; i < number; i++) {
+        for (long i = 0; i < number; i++) {
             Cell cell = getCellWithFixedHash(i);
             result.add(WriteInfo.write(tableRef, cell, timestamp));
         }
@@ -109,7 +109,7 @@ public abstract class SweepQueueReadWriteTest {
         return result;
     }
 
-    public static Cell getCellWithFixedHash(int seed) {
+    public static Cell getCellWithFixedHash(long seed) {
         return Cell.create(PtBytes.toBytes(seed), PtBytes.toBytes(seed));
     }
 }
