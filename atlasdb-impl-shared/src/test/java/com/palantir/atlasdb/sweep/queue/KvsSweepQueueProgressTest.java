@@ -38,7 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 
-public class KvsSweepProgressQueueTest {
+public class KvsSweepQueueProgressTest {
     private KeyValueService kvs;
     private KvsSweepQueueProgress progress;
 

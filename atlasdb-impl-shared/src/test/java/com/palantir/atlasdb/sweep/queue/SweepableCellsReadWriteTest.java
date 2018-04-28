@@ -46,16 +46,16 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
     @Test
     public void canReadSingleEntryInSingleShard() {
         assertThat(reader.getLatestWrites(TS_REF, conservative(shard)))
-                .containsExactly(WriteInfo.of(TABLE_REF, DEFAULT_CELL, false, TS));
+                .containsExactly(WriteInfo.write(TABLE_REF, DEFAULT_CELL, TS));
         assertThat(reader.getLatestWrites(TS2_REF, thorough(shard2)))
-                .containsExactly(WriteInfo.of(TABLE_REF2, DEFAULT_CELL, false, TS2));
+                .containsExactly(WriteInfo.write(TABLE_REF2, DEFAULT_CELL, TS2));
     }
 
     @Test
     public void canReadSingleTombstoneInSameShard() {
         int tombstoneShard = putTombstone(writer, TS + 1, DEFAULT_CELL, true);
         assertThat(reader.getLatestWrites(TS_REF, conservative(tombstoneShard)))
-                .containsExactly(WriteInfo.of(TABLE_REF, DEFAULT_CELL, true, TS + 1));
+                .containsExactly(WriteInfo.write(TABLE_REF, DEFAULT_CELL, TS + 1));
     }
 
     @Test
@@ -65,7 +65,7 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
         writeToDefault(writer, TS - 2, true);
         writeToDefault(writer, TS + 1, true);
         assertThat(reader.getLatestWrites(TS_REF, conservative(shard)))
-                .containsExactly(WriteInfo.of(TABLE_REF, DEFAULT_CELL, false, TS + 2));
+                .containsExactly(WriteInfo.write(TABLE_REF, DEFAULT_CELL, TS + 2));
     }
 
     @Test
@@ -73,8 +73,8 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
         int fixedShard = writeToCell(writer, TS, getCellWithFixedHash(1), true);
         assertThat(writeToCell(writer, TS + 1, getCellWithFixedHash(2), true)).isEqualTo(fixedShard);
         assertThat(reader.getLatestWrites(TS_REF, conservative(fixedShard))).containsExactlyInAnyOrder(
-                WriteInfo.of(TABLE_REF, getCellWithFixedHash(1), false, TS),
-                WriteInfo.of(TABLE_REF, getCellWithFixedHash(2), false, TS + 1));
+                WriteInfo.write(TABLE_REF, getCellWithFixedHash(1), TS),
+                WriteInfo.write(TABLE_REF, getCellWithFixedHash(2), TS + 1));
     }
 
     @Test

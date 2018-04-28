@@ -67,9 +67,4 @@ public enum Sweeper {
                 throw new IllegalArgumentException("Unknown sweep strategy: " + sweepStrategy);
         }
     }
-
-    public static Sweeper fromBoolean(boolean conservative) {
-        return conservative ? CONSERVATIVE : THOROUGH;
-    }
-
 }

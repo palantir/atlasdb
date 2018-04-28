@@ -51,7 +51,11 @@ public interface WriteInfo {
                 .build();
     }
 
-    static WriteInfo of(TableReference tableRef, Cell cell, boolean isTombstone, long timestamp) {
-        return WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
+    static WriteInfo tombstone(TableReference tableRef, Cell cell, long timestamp) {
+        return WriteInfo.of(WriteReference.of(tableRef, cell, true), timestamp);
+    }
+
+    static WriteInfo write(TableReference tableRef, Cell cell, long timestamp) {
+        return WriteInfo.of(WriteReference.of(tableRef, cell, false), timestamp);
     }
 }

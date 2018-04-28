@@ -29,17 +29,18 @@ public abstract class ShardAndStrategy {
         return strategy() == TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
     }
 
-    public static ShardAndStrategy conservative(int shard) {
+    public static ShardAndStrategy of(int shard, TableMetadataPersistence.SweepStrategy sweepStrategy) {
         return ImmutableShardAndStrategy.builder()
-                .strategy(TableMetadataPersistence.SweepStrategy.CONSERVATIVE)
                 .shard(shard)
+                .strategy(sweepStrategy)
                 .build();
     }
 
+    public static ShardAndStrategy conservative(int shard) {
+        return ShardAndStrategy.of(shard, TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+    }
+
     public static ShardAndStrategy thorough(int shard) {
-        return ImmutableShardAndStrategy.builder()
-                .strategy(TableMetadataPersistence.SweepStrategy.THOROUGH)
-                .shard(shard)
-                .build();
+        return ShardAndStrategy.of(shard, TableMetadataPersistence.SweepStrategy.THOROUGH);
     }
 }

@@ -22,6 +22,7 @@ import java.util.Map;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.persist.Persistable;
 
@@ -54,6 +55,6 @@ public final class SweepQueueUtils {
         Cell cell = write.getKey();
         // todo(gmaretic): verify this is indeed how a tombstone is encoded
         boolean isTombstone = Arrays.equals(write.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
-        return WriteInfo.of(tableRef, cell, isTombstone, timestamp);
+        return WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
     }
 }

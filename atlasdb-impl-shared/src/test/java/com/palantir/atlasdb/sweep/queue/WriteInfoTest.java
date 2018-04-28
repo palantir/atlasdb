@@ -57,10 +57,10 @@ public class WriteInfoTest {
     }
 
     private WriteInfo getWriteAt(long timestamp) {
-        return WriteInfo.of(TABLE_REF, CELL, false, timestamp);
+        return WriteInfo.write(TABLE_REF, CELL, timestamp);
     }
 
     private WriteInfo getTombstoneAt(long timestamp) {
-        return WriteInfo.of(TABLE_REF, CELL, true, timestamp);
+        return WriteInfo.tombstone(TABLE_REF, CELL, timestamp);
     }
 }

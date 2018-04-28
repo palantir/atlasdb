@@ -32,6 +32,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -90,7 +91,8 @@ public abstract class SweepQueueReadWriteTest {
 
     private static int write(KvsSweepQueueWriter writer,
             long timestamp, Cell cell, boolean isTombstone, boolean conservative) {
-        WriteInfo write = WriteInfo.of(conservative ? TABLE_REF : TABLE_REF2, cell, isTombstone, timestamp);
+        TableReference tableRef = conservative ? TABLE_REF : TABLE_REF2;
+        WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
         writer.enqueue(ImmutableList.of(write));
         return write.toShard(SHARDS);
     }
@@ -101,7 +103,7 @@ public abstract class SweepQueueReadWriteTest {
         List<WriteInfo> result = new ArrayList<>();
         for (int i = 0; i < number; i++) {
             Cell cell = getCellWithFixedHash(i);
-            result.add(WriteInfo.of(tableRef, cell, true, timestamp));
+            result.add(WriteInfo.write(tableRef, cell, timestamp));
         }
         writer.enqueue(result);
         return result;
