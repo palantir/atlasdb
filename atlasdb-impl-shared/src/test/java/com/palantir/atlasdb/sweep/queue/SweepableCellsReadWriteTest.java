@@ -20,11 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
+import static com.palantir.atlasdb.sweep.queue.SweepableCellsWriter.MAX_CELLS_DEDICATED;
+import static com.palantir.atlasdb.sweep.queue.SweepableCellsWriter.MAX_CELLS_GENERIC;
 import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
 
 import java.util.List;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
@@ -86,10 +89,19 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
     }
 
     @Test
-    public void canReadMultipleEntriesInSingleShardSameTransactionDedicated() {
-        List<WriteInfo> writes = writeToUniqueCellsInSameShard(writer, TS, 257, true);
+    public void canReadMultipleEntriesInSingleShardSameTransactionOneDedicated() {
+        List<WriteInfo> writes = writeToUniqueCellsInSameShard(writer, TS, MAX_CELLS_GENERIC * 2 + 1, true);
         ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
-        assertThat(writes.size()).isEqualTo(257);
+        assertThat(writes.size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
+        assertThat(reader.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+    }
+
+    @Test
+    @Ignore("This test takes 53 minutes to complete. Need to see how it performs with CassandraKVS")
+    public void canReadMultipleEntriesInSingleShardSameTransactionMultipleDedicated() {
+        List<WriteInfo> writes = writeToUniqueCellsInSameShard(writer, TS, MAX_CELLS_DEDICATED + 1, true);
+        ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
+        assertThat(writes.size()).isEqualTo(MAX_CELLS_DEDICATED + 1);
         assertThat(reader.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
     }
 }

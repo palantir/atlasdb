@@ -75,7 +75,7 @@ public class SweepableCellsReader {
     }
 
     private RowColumnRangeIterator getAllColumns(Iterable<byte[]> rows) {
-        return kvs.getRowsColumnRange(TABLE_REF, rows, ALL_COLUMNS, 1000, SweepQueueUtils.CAS_TS);
+        return kvs.getRowsColumnRange(TABLE_REF, rows, ALL_COLUMNS, 100_000, SweepQueueUtils.CAS_TS);
     }
 
     private void populateResults(SweepableCellsTable.SweepableCellsRow row, Map.Entry<Cell, Value> entry,
@@ -124,14 +124,14 @@ public class SweepableCellsReader {
         addIfMaxForCell(timestamp, writeRef, results);
     }
 
-    private void addIfMaxForCell(long ts, WriteReference refAndCell, Map<WriteReference, Long> result) {
-        result.merge(refAndCell, ts, Math::max);
+    private void addIfMaxForCell(long ts, WriteReference writeRef, Map<WriteReference, Long> result) {
+        result.merge(writeRef, ts, Math::max);
     }
 
     private static ColumnRangeSelection allPossibleColumns() {
         byte[] startCol = SweepableCellsTable.SweepableCellsColumn.of(0L, -TargetedSweepMetadata.MAX_DEDICATED_ROWS)
                 .persistToBytes();
-        byte[] endCol = SweepableCellsTable.SweepableCellsColumn.of(SweepQueueUtils.TS_FINE_GRANULARITY + 1, 0)
+        byte[] endCol = SweepableCellsTable.SweepableCellsColumn.of(SweepQueueUtils.TS_FINE_GRANULARITY, 0)
                 .persistToBytes();
         return new ColumnRangeSelection(startCol, endCol);
     }

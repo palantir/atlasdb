@@ -95,11 +95,11 @@ public abstract class SweepQueueReadWriteTest {
         return write.toShard(SHARDS);
     }
 
-    public static List<WriteInfo> writeToUniqueCellsInSameShard(KvsSweepQueueWriter writer, long timestamp, int number,
+    public static List<WriteInfo> writeToUniqueCellsInSameShard(KvsSweepQueueWriter writer, long timestamp, long number,
             boolean conservative) {
         TableReference tableRef = conservative ? TABLE_REF : TABLE_REF2;
         List<WriteInfo> result = new ArrayList<>();
-        for (int i = 0; i < number; i++) {
+        for (long i = 0; i < number; i++) {
             Cell cell = getCellWithFixedHash(i);
             result.add(WriteInfo.of(tableRef, cell, true, timestamp));
         }
@@ -107,7 +107,7 @@ public abstract class SweepQueueReadWriteTest {
         return result;
     }
 
-    public static Cell getCellWithFixedHash(int seed) {
+    public static Cell getCellWithFixedHash(long seed) {
         return Cell.create(PtBytes.toBytes(seed), PtBytes.toBytes(seed));
     }
 }
