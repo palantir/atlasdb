@@ -111,7 +111,7 @@ public class KvsSweepQueueTest {
         sweepQueue.enqueue(writeToDefaultCell(TABLE_THOROUGH, TS), TS);
         assertNothing(TABLE_THOROUGH, TS);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(THOR_SHARD));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertNothing(TABLE_THOROUGH, TS);
         assertValue(TABLE_THOROUGH, TS + 1, TS);
     }
@@ -135,7 +135,7 @@ public class KvsSweepQueueTest {
         assertValue(TABLE_THOROUGH, TS + 1, TS);
         assertValue(TABLE_THOROUGH, TS2 + 1, TS2);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(THOR_SHARD));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertNothing(TABLE_THOROUGH, TS + 1);
         assertValue(TABLE_THOROUGH, TS2 + 1, TS2);
     }
@@ -185,7 +185,7 @@ public class KvsSweepQueueTest {
         assertTombstone(TABLE_THOROUGH, TS + 1, TS);
         assertTombstone(TABLE_THOROUGH, TS2 + 1, TS2);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(THOR_SHARD));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertNothing(TABLE_THOROUGH, TS + 1);
         assertNothing(TABLE_THOROUGH, TS2 + 1);
     }
