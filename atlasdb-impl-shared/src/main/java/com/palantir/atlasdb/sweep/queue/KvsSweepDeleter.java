@@ -20,12 +20,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 
 public class KvsSweepDeleter implements SweepDeleter {
+    // todo(gmaretic): hide once scrubber is implemented
+    @VisibleForTesting
     KvsSweepQueueScrubber scrubber;
     private final KeyValueService kvs;
     private final Sweeper sweeper;

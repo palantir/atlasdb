@@ -24,6 +24,7 @@ import static com.palantir.atlasdb.sweep.queue.SweepableCellsWriter.MAX_CELLS_DE
 import static com.palantir.atlasdb.sweep.queue.SweepableCellsWriter.MAX_CELLS_GENERIC;
 import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
@@ -94,6 +95,20 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
         ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
         assertThat(writes.size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
         assertThat(reader.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+    }
+
+    @Test
+    public void canReadMultipleEntriesInSingleShardMultipleTransactionsCombined() {
+        List<WriteInfo> writesFirst = writeToUniqueCellsInSameShard(writer, TS, MAX_CELLS_GENERIC * 2 + 1, true);
+        List<WriteInfo> writesLast = writeToUniqueCellsInSameShard(writer, TS + 2, 1, true);
+        List<WriteInfo> writesMiddle = writeToUniqueCellsInSameShard(writer, TS + 1, MAX_CELLS_GENERIC + 1, true);
+        List<WriteInfo> expectedResult = new ArrayList<>(writesLast);
+        expectedResult.addAll(writesMiddle.subList(writesLast.size(), writesMiddle.size()));
+        expectedResult.addAll(writesFirst.subList(writesMiddle.size(), writesFirst.size()));
+
+        ShardAndStrategy fixedShardAndStrategy = conservative(writesFirst.get(0).toShard(SHARDS));
+        List<WriteInfo> result = reader.getLatestWrites(TS_REF, fixedShardAndStrategy);
+        assertThat(result).hasSameElementsAs(expectedResult);
     }
 
     @Test

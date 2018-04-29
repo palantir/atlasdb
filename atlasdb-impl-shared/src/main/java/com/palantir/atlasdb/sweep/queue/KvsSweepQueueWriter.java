@@ -34,7 +34,10 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
 
     @Override
     public void enqueue(List<WriteInfo> writes) {
-        kvs.put(tableRef, batchWrites(writes), 0L);
+        Map<Cell, byte[]> batchedWrites = batchWrites(writes);
+        if (!batchedWrites.isEmpty()) {
+            kvs.put(tableRef, batchWrites(writes), 0L);
+        }
     }
 
     protected abstract Map<Cell, byte[]> batchWrites(List<WriteInfo> writes);
