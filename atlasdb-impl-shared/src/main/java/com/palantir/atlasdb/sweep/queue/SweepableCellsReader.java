@@ -25,8 +25,11 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
@@ -47,9 +50,7 @@ public class SweepableCellsReader {
     }
 
     List<WriteInfo> getLatestWrites(long partitionFine, ShardAndStrategy shardAndStrategy) {
-        TargetedSweepMetadata metadata = getDefaultMetadata(shardAndStrategy);
-        SweepableCellsTable.SweepableCellsRow row = SweepableCellsTable.SweepableCellsRow.of(
-                partitionFine, metadata.persistToBytes());
+        SweepableCellsTable.SweepableCellsRow row = computeRow(partitionFine, shardAndStrategy);
 
         RowColumnRangeIterator resultIterator = getAllColumns(row);
 
@@ -59,6 +60,11 @@ public class SweepableCellsReader {
         return results.entrySet().stream()
                 .map(entry -> WriteInfo.of(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
+    }
+
+    private SweepableCellsTable.SweepableCellsRow computeRow(long partitionFine, ShardAndStrategy shardAndStrategy) {
+        TargetedSweepMetadata metadata = getDefaultMetadata(shardAndStrategy);
+        return SweepableCellsTable.SweepableCellsRow.of(partitionFine, metadata.persistToBytes());
     }
 
     private TargetedSweepMetadata getDefaultMetadata(ShardAndStrategy shardAndStrategy) {
@@ -80,8 +86,7 @@ public class SweepableCellsReader {
 
     private void populateResults(SweepableCellsTable.SweepableCellsRow row, Map.Entry<Cell, Value> entry,
             Map<WriteReference, Long> results) {
-        SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.BYTES_HYDRATOR
-                .hydrateFromBytes(entry.getKey().getColumnName());
+        SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
 
         if (isReferenceToDedicatedRows(col)) {
             populateFromDedicatedRows(row, col, results);
@@ -90,17 +95,63 @@ public class SweepableCellsReader {
         }
     }
 
+    private SweepableCellsTable.SweepableCellsColumn computeColumn(Map.Entry<Cell, Value> entry) {
+        return SweepableCellsTable.SweepableCellsColumn.BYTES_HYDRATOR
+                .hydrateFromBytes(entry.getKey().getColumnName());
+    }
+
     private boolean isReferenceToDedicatedRows(SweepableCellsTable.SweepableCellsColumn col) {
         return col.getWriteIndex() < 0;
     }
 
     private void populateFromDedicatedRows(SweepableCellsTable.SweepableCellsRow row,
             SweepableCellsTable.SweepableCellsColumn col, Map<WriteReference, Long> results) {
+        List<byte[]> dedicatedRows = computeDedicatedRows(row, col);
+        RowColumnRangeIterator iterator = getAllColumns(dedicatedRows);
+        iterator.forEachRemaining(entry -> populateFromValue(getTimestamp(row, col), entry.getValue(), results));
+    }
+
+    RangeRequest rangeRequestForNonDedicatedRow(ShardAndStrategy shardAndStrategy, long partitionFine) {
+        byte[] row = computeRow(partitionFine, shardAndStrategy).persistToBytes();
+        return computeRangeRequestForRows(row, row);
+    }
+
+    List<RangeRequest> rangeRequestsForDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {
+        SweepableCellsTable.SweepableCellsRow startingRow = computeRow(partitionFine, shardAndStrategy);
+        RowColumnRangeIterator rowIterator = getAllColumns(startingRow);
+        List<RangeRequest> requests = new ArrayList<>();
+        rowIterator.forEachRemaining(entry -> addRangeRequestIfDedicated(startingRow, computeColumn(entry), requests));
+
+        return requests;
+
+    }
+
+    private void addRangeRequestIfDedicated(SweepableCellsTable.SweepableCellsRow row,
+            SweepableCellsTable.SweepableCellsColumn col, List<RangeRequest> requests) {
+        if (!isReferenceToDedicatedRows(col)) {
+            return;
+        }
+        List<byte[]> dedicatedRows = computeDedicatedRows(row, col);
+        byte[] startRowInclusive = dedicatedRows.get(0);
+        byte[] endRowInclusive = dedicatedRows.get(dedicatedRows.size() - 1);
+        requests.add(computeRangeRequestForRows(startRowInclusive, endRowInclusive));
+    }
+
+    private RangeRequest computeRangeRequestForRows(byte[] startRowInclusive, byte[] endRowInclusive) {
+        return RangeRequest.builder()
+                .startRowInclusive(startRowInclusive)
+                .endRowExclusive(RangeRequests.nextLexicographicName(endRowInclusive))
+                .retainColumns(ColumnSelection.all())
+                .build();
+    }
+
+    List<byte[]> computeDedicatedRows(SweepableCellsTable.SweepableCellsRow row,
+            SweepableCellsTable.SweepableCellsColumn col) {
         TargetedSweepMetadata metadata = TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(row.getMetadata());
         long timestamp = getTimestamp(row, col);
         int numberOfDedicatedRows = (int) -col.getWriteIndex();
-
         List<byte[]> dedicatedRows = new ArrayList<>();
+
         for (int i = 0; i < numberOfDedicatedRows; i++) {
             byte[] metadataBytes = ImmutableTargetedSweepMetadata.builder()
                     .from(metadata)
@@ -110,8 +161,7 @@ public class SweepableCellsReader {
                     .persistToBytes();
             dedicatedRows.add(SweepableCellsTable.SweepableCellsRow.of(timestamp, metadataBytes).persistToBytes());
         }
-        RowColumnRangeIterator iterator = getAllColumns(dedicatedRows);
-        iterator.forEachRemaining(entry -> populateFromValue(timestamp, entry.getValue(), results));
+        return dedicatedRows;
     }
 
     private long getTimestamp(SweepableCellsTable.SweepableCellsRow row, SweepableCellsTable.SweepableCellsColumn col) {

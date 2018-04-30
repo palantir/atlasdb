@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
@@ -41,4 +42,8 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
     }
 
     protected abstract Map<Cell, byte[]> batchWrites(List<WriteInfo> writes);
+
+    void deleteRange(RangeRequest request) {
+        kvs.deleteRange(tableRef, request);
+    }
 }

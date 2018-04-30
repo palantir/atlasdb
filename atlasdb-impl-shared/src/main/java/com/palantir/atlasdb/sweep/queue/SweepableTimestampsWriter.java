@@ -21,7 +21,10 @@ import java.util.List;
 import java.util.Map;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
@@ -44,10 +47,7 @@ public class SweepableTimestampsWriter extends KvsSweepQueueWriter {
     }
 
     private void putWrite(PartitionInfo partitionInfo, Map<Cell, byte[]> result) {
-        SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow.of(
-                partitionInfo.shard(),
-                SweepQueueUtils.tsPartitionCoarse(partitionInfo.timestamp()),
-                partitionInfo.isConservative().persistToBytes());
+        SweepableTimestampsTable.SweepableTimestampsRow row = toRow(partitionInfo);
 
         SweepableTimestampsTable.SweepableTimestampsColumn col = SweepableTimestampsTable.SweepableTimestampsColumn.of(
                 SweepQueueUtils.tsPartitionFine(partitionInfo.timestamp()));
@@ -56,5 +56,24 @@ public class SweepableTimestampsWriter extends KvsSweepQueueWriter {
                 SweepableTimestampsTable.SweepableTimestampsColumnValue.of(col, DUMMY);
 
         result.put(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
+    }
+
+    void deleteRow(PartitionInfo partitionInfo) {
+        byte[] row = toRow(partitionInfo).persistToBytes();
+
+        RangeRequest request = RangeRequest.builder()
+                .startRowInclusive(row)
+                .endRowExclusive(RangeRequests.nextLexicographicName(row))
+                .retainColumns(ColumnSelection.all())
+                .build();
+
+        deleteRange(request);
+    }
+
+    private SweepableTimestampsTable.SweepableTimestampsRow toRow(PartitionInfo partitionInfo) {
+        return SweepableTimestampsTable.SweepableTimestampsRow.of(
+                partitionInfo.shard(),
+                SweepQueueUtils.tsPartitionCoarse(partitionInfo.timestamp()),
+                partitionInfo.isConservative().persistToBytes());
     }
 }

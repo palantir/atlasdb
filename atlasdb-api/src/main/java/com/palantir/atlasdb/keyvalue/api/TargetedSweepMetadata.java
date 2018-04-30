@@ -69,6 +69,4 @@ public abstract class TargetedSweepMetadata implements Persistable {
         result[1] |= (shard() << 6) & BYTE_MASK;
         return result;
     }
-
-    public static byte[] minMetadataBytesForConservative(boolean isConser)
 }

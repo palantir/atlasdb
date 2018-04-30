@@ -16,17 +16,14 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
-import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
-import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
 public class KvsSweepQueueScrubber {
     private KeyValueService kvs;
+    private SweepableCellsWriter sweepableCellsWriter;
+    private SweepableCellsReader sweepableCellsReader;
+    private SweepableTimestampsWriter sweepableTimestampsWriter;
+    private KvsSweepQueueProgress progress;
 
     /**
      * Cleans up all the sweep queue data from the last update of progress up to and including the given sweep
@@ -36,31 +33,32 @@ public class KvsSweepQueueScrubber {
      * @param newProgress last partition sweep has processed.
      */
     public void scrub(ShardAndStrategy shardStrategy, long previousProgress, long newProgress) {
-        scrubSweepableCells(shardStrategy, previousProgress, newProgress);
+        scrubSweepableCells(shardStrategy, newProgress);
         scrubSweepableTimestamps(shardStrategy, previousProgress, newProgress);
         progressTo(shardStrategy, newProgress);
     }
 
-    private void scrubSweepableCells(ShardAndStrategy shardStrategy, long previousProgress, long newProgress) {
-        TableReference sweepableCells = TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef();
-        TargetedSweepMetadata metadata = ImmutableTargetedSweepMetadata.builder()
-                .shard(shardStrategy.shard())
-                .conservative(shardStrategy.isConservative())
-                .
-        byte[] row = SweepableCellsTable.SweepableCellsRow.of(previousProgress)
-        RangeRequest request = RangeRequest.builder()
-                .startRowInclusive()
-                .endRowExclusive()
-                .retainColumns(ColumnSelection.all())
-                .build();
-        kvs.deleteRange(sweepableCells, );
+    private void scrubSweepableCells(ShardAndStrategy shardStrategy, long newProgress) {
+        scrubDedicatedRows(shardStrategy, newProgress);
+        scrubNonDedicatedRow(shardStrategy, newProgress);
     }
 
-    private void scrubSweepableTimestamps(ShardAndStrategy shardStrategy, long previousProgress, long newProgress) {
-
+    private void scrubDedicatedRows(ShardAndStrategy shardStrategy, long partition) {
+        sweepableCellsReader.rangeRequestsForDedicatedRows(shardStrategy, partition)
+                .forEach(sweepableCellsWriter::deleteRange);
     }
 
-    private void progressTo(ShardAndStrategy shardStrategy, long timestampPartitionFine) {
+    private void scrubNonDedicatedRow(ShardAndStrategy shardStrategy, long partition) {
+        sweepableCellsWriter.deleteRange(sweepableCellsReader.rangeRequestForNonDedicatedRow(shardStrategy, partition));
+    }
 
+    private void scrubSweepableTimestamps(ShardAndStrategy shardStrategy, long oldPartition, long newPartition) {
+        if (SweepQueueUtils.partitionFineToCoarse(newPartition) > SweepQueueUtils.partitionFineToCoarse(oldPartition)) {
+            sweepableTimestampsWriter.deleteRow(PartitionInfo.of(shardStrategy, oldPartition));
+        }
+    }
+
+    private void progressTo(ShardAndStrategy shardStrategy, long partition) {
+        progress.updateLastSweptTimestampPartition(shardStrategy, partition);
     }
 }
