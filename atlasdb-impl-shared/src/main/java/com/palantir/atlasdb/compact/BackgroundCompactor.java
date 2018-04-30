@@ -47,7 +47,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     private final Supplier<CompactorConfig> compactorConfigSupplier;
     private final CompactPriorityCalculator compactPriorityCalculator;
 
-    private final CompactionOutcomeMetrics compactionOutcomeMetrics = new CompactionOutcomeMetrics();
+//    private final CompactionOutcomeMetrics compactionOutcomeMetrics = new CompactionOutcomeMetrics();
 
     private Thread daemon;
 
@@ -88,7 +88,7 @@ public final class BackgroundCompactor implements AutoCloseable {
 
     @Override
     public void close() {
-        compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SHUTDOWN);
+//        compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SHUTDOWN);
         log.info("Closing BackgroundCompactor");
         daemon.interrupt();
         try {
@@ -126,7 +126,7 @@ public final class BackgroundCompactor implements AutoCloseable {
         } catch (InterruptedException e) {
             log.warn("Shutting down background compactor due to InterruptedException. "
                     + "Please restart the service to resume compactions", e);
-            compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SHUTDOWN);
+//            compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SHUTDOWN);
             Thread.currentThread().interrupt();
         }
     }
@@ -148,7 +148,7 @@ public final class BackgroundCompactor implements AutoCloseable {
         } catch (Exception e) {
             log.warn("Unexpected exception occurred whilst performing background compaction!", e);
         }
-        compactionOutcomeMetrics.registerOccurrenceOf(outcome);
+//        compactionOutcomeMetrics.registerOccurrenceOf(outcome);
         Thread.sleep(getSleepTime(compactorConfigSupplier, outcome));
     }
 
