@@ -92,6 +92,7 @@ public class TodoClient {
                 .collect(Collectors.toList());
     }
 
+    // Stores a new snapshot, marking the previous one as unused. We thus have at most one used stream at any time
     public void storeSnapshot(InputStream snapshot) {
         byte[] streamReference = "EteTest".getBytes();
 
@@ -128,22 +129,21 @@ public class TodoClient {
     public SweepResults sweepSnapshotIndices() {
         TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
         TableReference indexTable = tableFactory.getSnapshotsStreamIdxTable(null).getTableRef();
-        SweepBatchConfig sweepConfig = ImmutableSweepBatchConfig.builder()
-                .candidateBatchSize(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT)
-                .deleteBatchSize(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
-                .maxCellTsPairsToExamine(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
-                .build();
-        return sweepTaskRunner.get().run(indexTable, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
+        return sweepTable(indexTable);
     }
 
     public SweepResults sweepSnapshotValues() {
         TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
-        TableReference indexTable = tableFactory.getSnapshotsStreamValueTable(null).getTableRef();
+        TableReference valueTable = tableFactory.getSnapshotsStreamValueTable(null).getTableRef();
+        return sweepTable(valueTable);
+    }
+
+    SweepResults sweepTable(TableReference valueTable) {
         SweepBatchConfig sweepConfig = ImmutableSweepBatchConfig.builder()
                 .candidateBatchSize(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT)
                 .deleteBatchSize(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
                 .maxCellTsPairsToExamine(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
                 .build();
-        return sweepTaskRunner.get().run(indexTable, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
+        return sweepTaskRunner.get().run(valueTable, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
     }
 }

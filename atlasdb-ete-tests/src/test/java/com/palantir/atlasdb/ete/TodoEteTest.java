@@ -44,24 +44,47 @@ public class TodoEteTest {
     public void shouldSweepStreamIndices() {
         TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
+        // Stores five small streams, each of which fits into a single block
+        // Each time a stream is stored, the previous stream (if any) is deleted
+        // This is represented by a delete in the index table.
         storeFiveStreams(todoClient, 4321);
 
         SweepResults firstSweep = todoClient.sweepSnapshotIndices();
+
+        // The index table contains 5 rows, 4 with two cells (a reference and a delete), and one with just the reference
+        // Sweep examines these nine cells, and deletes the old references.
         assertThat(firstSweep.getCellTsPairsExamined(), equalTo(9L));
         assertThat(firstSweep.getStaleValuesDeleted(), equalTo(4L));
 
+        // When sweep deletes cells from the index table, a cleanup task is run to propagate the deletes to the value
+        // table. The value table thus contains 4 rows with two cells (stream data + a delete), and 1 with just the data
+        // Sweep examines these nine cells, and deletes the old values.
         SweepResults valueSweep = todoClient.sweepSnapshotValues();
         assertThat(valueSweep.getCellTsPairsExamined(), equalTo(9L));
         assertThat(valueSweep.getStaleValuesDeleted(), equalTo(4L));
 
+        // Stores five larger streams, which take 19 blocks each
         storeFiveStreams(todoClient, 7654321);
 
+        // The index table now contains ten rows:
+        // 4 rows with a sentinel and a delete (sweep sees the delete, but doesn't sweep it - 4 examined, 0 deleted)
+        // 5 rows with a reference and a delete (sweep sees both, and sweeps the references - 10 examined, 5 deleted)
+        // 1 row (the most recent) with just a reference - 1 examined, 0 deleted
+        // So sweep examines 15 cells in total, and deletes 5
         SweepResults secondSweep = todoClient.sweepSnapshotIndices();
         assertThat(secondSweep.getCellTsPairsExamined(), equalTo(15L));
         assertThat(secondSweep.getStaleValuesDeleted(), equalTo(5L));
 
+        // The deletes of the second index-sweep propagate deletes to *each* of the blocks in the value table
+        // The value table now contains ten rows:
+        // 4 rows with a sentinel and a delete (sweep sees the delete, but doesn't sweep it - 4 E, 0 D)
+        // 1 single-block row with one block and a delete (sweep sees both, and sweeps the value - 2 E, 1 D)
+        // 4 rows with 19 blocks and 19 deletes (38 E, 19 D per row = 152 E, 76 D)
+        // 1 row (the most recent) with 19 blocks (19 E, 0 D)
+        // The total cells examined is thus 4 + 2 + 4*2*19 + 19 = 177
+        // And the total cells deleted is 1 + 4*19 = 77
         SweepResults secondValueSweep = todoClient.sweepSnapshotValues();
-        assertThat(secondValueSweep.getCellTsPairsExamined(), equalTo(177L)); // 6L + 19 * 8L + 19L));
+        assertThat(secondValueSweep.getCellTsPairsExamined(), equalTo(177L));
         assertThat(secondValueSweep.getStaleValuesDeleted(), equalTo(1L + 19 * 4L));
     }
 
