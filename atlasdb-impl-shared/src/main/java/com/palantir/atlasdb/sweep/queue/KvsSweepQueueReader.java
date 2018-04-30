@@ -27,14 +27,14 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.util.Pair;
 
 public class KvsSweepQueueReader implements SweepQueueReader {
-    private final SweepableCellsReader cellsReader;
+    private final KeyValueService kvs;
     private final SweepableTimestampsReader timestampsReader;
     private final KvsSweepQueueProgress sweepQueueProgress;
     private KvsSweepQueueScrubber scrubber;
     private final ShardAndStrategy shardStrategy;
 
     KvsSweepQueueReader(KeyValueService kvs, ShardAndStrategy shardStrategy) {
-        this.cellsReader = new SweepableCellsReader(kvs);
+        this.kvs = kvs;
         this.timestampsReader = new SweepableTimestampsReader(kvs);
         this.sweepQueueProgress = new KvsSweepQueueProgress(kvs);
         this.shardStrategy = shardStrategy;
@@ -58,6 +58,6 @@ public class KvsSweepQueueReader implements SweepQueueReader {
         if (!partitionFine.isPresent()) {
             return Pair.create(ImmutableList.of(), SweepQueueUtils.tsPartitionFine(tsExclusive) - 1L);
         }
-        return Pair.create(cellsReader.getLatestWrites(partitionFine.get(), shardStrategy), partitionFine.get());
+        return Pair.create(SweepableCellsReader.getLatestWrites(kvs, partitionFine.get(), shardStrategy), partitionFine.get());
     }
 }

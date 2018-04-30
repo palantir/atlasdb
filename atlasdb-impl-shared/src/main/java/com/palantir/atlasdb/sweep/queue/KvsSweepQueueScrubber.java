@@ -44,7 +44,7 @@ public class KvsSweepQueueScrubber {
     }
 
     private void scrubDedicatedRows(ShardAndStrategy shardStrategy, long partition) {
-        sweepableCellsReader.rangeRequestsForDedicatedRows(shardStrategy, partition)
+        SweepableCellsReader.rangeRequestsForDedicatedRows(kvs, shardStrategy, partition)
                 .forEach(sweepableCellsWriter::deleteRange);
     }
 
