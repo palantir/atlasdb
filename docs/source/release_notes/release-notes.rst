@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |logs|
+         - Expired lock refreshes now tell you which locks expired, instead of just their refreshing token id.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3125>`__)
+
     *    - |fixed|
          - Transaction managers now shut down threads associated with the QoS client and TimeLock lock refresher when they are closed.
            Previously, these threads would continue running and needlessly using resources.
