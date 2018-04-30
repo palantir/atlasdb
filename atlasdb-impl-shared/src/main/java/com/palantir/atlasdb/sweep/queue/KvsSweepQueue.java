@@ -46,6 +46,19 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
         return new KvsSweepQueue(shards);
     }
 
+    public void initialize(SweepTimestampProvider provider, KeyValueService kvs) {
+        timestampProvider = provider;
+        writer = KvsSweepQueuePersister.create(kvs);
+        shardSpecificReaders = createReaders(kvs);
+        strategySpecificDeleters = createDeleters(kvs);
+        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+        createAndStartBackgroundThreads();
+    }
+
+    public void callbackInit(SerializableTransactionManager txManager) {
+        initialize(SweepTimestampProvider.create(txManager), txManager.getKeyValueService());
+    }
+
     private Map<ShardAndStrategy, KvsSweepQueueReader> createReaders(KeyValueService kvs) {
         long shards = numShards.get();
         Map<ShardAndStrategy, KvsSweepQueueReader> readers = new HashMap<>();
@@ -63,19 +76,6 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
                 new KvsSweepDeleter(kvs, Sweeper.CONSERVATIVE),
                 TableMetadataPersistence.SweepStrategy.THOROUGH,
                 new KvsSweepDeleter(kvs, Sweeper.THOROUGH));
-    }
-
-    public void initialize(SweepTimestampProvider provider, KeyValueService kvs) {
-        timestampProvider = provider;
-        writer = KvsSweepQueuePersister.create(kvs);
-        shardSpecificReaders = createReaders(kvs);
-        strategySpecificDeleters = createDeleters(kvs);
-        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        createAndStartBackgroundThreads();
-    }
-
-    public void callbackInit(SerializableTransactionManager txManager) {
-        initialize(SweepTimestampProvider.create(txManager), txManager.getKeyValueService());
     }
 
     private void createAndStartBackgroundThreads() {

@@ -43,6 +43,7 @@ public class SweepableTimestampsReader {
     }
 
     public Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardAndStrategy, long sweepTimestamp) {
+        // todo(gmaretic): if we find no candidates and the sweep timestamp is far enough in the future, andvance progress
         long minFineExclusive = progress.getLastSweptTimestampPartition(shardAndStrategy);
         long maxFineExclusive = SweepQueueUtils.tsPartitionFine(sweepTimestamp);
         return nextSweepablePartition(shardAndStrategy, minFineExclusive + 1, maxFineExclusive);
