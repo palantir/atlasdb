@@ -28,6 +28,12 @@ public abstract class TargetedSweepMetadata implements Persistable {
     public abstract int shard();
     public abstract long dedicatedRowNumber();
 
+    public static final int MAX_DEDICATED_ROWS = 64;
+    private static final int SWEEP_STRATEGY_MASK = 0x80;
+    private static final int USE_DEDICATED_ROWS_MASK = 0x40;
+    private static final int DEDICATED_ROW_NUMBER_MASK = 0x3F;
+    private static final int BYTE_MASK = 0xFF;
+
     @Value.Check
     void checkShardSize() {
         Preconditions.checkArgument(shard() >= 0 && shard() <= 255,
@@ -36,30 +42,31 @@ public abstract class TargetedSweepMetadata implements Persistable {
 
     @Value.Check
     void checkRowNumber() {
-        Preconditions.checkArgument(dedicatedRowNumber() >= 0 && dedicatedRowNumber() <= 63,
-                "Dedicated row number must be between 0 and 63 inclusive, but it is %s.", dedicatedRowNumber());
+        Preconditions.checkArgument(dedicatedRowNumber() >= 0 && dedicatedRowNumber() < MAX_DEDICATED_ROWS,
+                "Dedicated row number must be at least 0 and less than %s, but it is %s.",
+                MAX_DEDICATED_ROWS, dedicatedRowNumber());
     }
-
     public static final Hydrator<TargetedSweepMetadata> BYTES_HYDRATOR = input ->
-            ImmutableTargetedSweepMetadata.builder()
-                    .conservative((input[0] & 0x80) != 0)
-                    .dedicatedRow((input[0] & 0x40) != 0)
-                    .shard((input[0] << 2 | input[1] >> 6) & 0xFF)
-                    .dedicatedRowNumber(input[1] & 0x3F)
-                    .build();
+        ImmutableTargetedSweepMetadata.builder()
+                .conservative((input[0] & SWEEP_STRATEGY_MASK) != 0)
+                .dedicatedRow((input[0] & USE_DEDICATED_ROWS_MASK) != 0)
+                .shard((input[0] << 2 | (input[1] & BYTE_MASK) >> 6) & BYTE_MASK)
+                .dedicatedRowNumber(input[1] & DEDICATED_ROW_NUMBER_MASK)
+                .build();
+
 
     @Override
     public byte[] persistToBytes() {
         byte[] result = new byte[] { 0, 0, 0, 0 };
-        if (conservative()) {
-            result[0] |= 0x80;
-        }
+        result[0] |= (shard() & BYTE_MASK) >> 2;
         if (dedicatedRow()) {
-            result[0] |= 0x40;
+            result[0] |= USE_DEDICATED_ROWS_MASK;
         }
-        result[0] |= shard() >> 2;
-        result[1] |= shard() << 6;
-        result[1] |= dedicatedRowNumber();
+        if (conservative()) {
+            result[0] |= SWEEP_STRATEGY_MASK;
+        }
+        result[1] |= dedicatedRowNumber() & DEDICATED_ROW_NUMBER_MASK;
+        result[1] |= (shard() << 6) & BYTE_MASK;
         return result;
     }
 }

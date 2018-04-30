@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReferenceAndCell;
+import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
@@ -52,8 +52,8 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 rowComponent("metadata", ValueType.BLOB);
             dynamicColumns();
                 columnComponent("timestamp_modulus", ValueType.VAR_LONG);
-                columnComponent("write_index", ValueType.VAR_LONG);
-                value(TableReferenceAndCell.class);
+                columnComponent("write_index", ValueType.VAR_SIGNED_LONG);
+                value(WriteReference.class);
 
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             conflictHandler(ConflictHandler.IGNORE_ALL);

@@ -29,7 +29,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.math.IntMath;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -75,12 +74,12 @@ public class WriteInfoPartitioner {
     }
 
     private PartitionInfo getPartitionInfo(WriteInfo write) {
-        return PartitionInfo.of(getShard(write), isConservative(write), write.timestamp());
+        return PartitionInfo.of(write.toShard(SHARDS), isConservative(write), write.timestamp());
     }
 
     @VisibleForTesting
     TableMetadataPersistence.SweepStrategy getStrategy(WriteInfo writeInfo) {
-        return cache.getUnchecked(writeInfo.tableRefCell().tableRef());
+        return cache.getUnchecked(writeInfo.writeRef().tableRef());
     }
 
     private TableMetadataPersistence.SweepStrategy getStrategyFromKvs(TableReference tableRef) {
@@ -91,11 +90,6 @@ public class WriteInfoPartitioner {
                     UnsafeArg.of("tableRef", tableRef), th);
             return TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
         }
-    }
-
-    @VisibleForTesting
-    static int getShard(WriteInfo writeInfo) {
-        return IntMath.mod(writeInfo.tableRefCell().hashCode(), SHARDS);
     }
 
     private boolean isConservative(WriteInfo write) {

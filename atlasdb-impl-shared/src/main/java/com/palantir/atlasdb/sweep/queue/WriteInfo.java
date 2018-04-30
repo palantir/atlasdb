@@ -18,9 +18,11 @@ package com.palantir.atlasdb.sweep.queue;
 
 import org.immutables.value.Value;
 
+import com.google.common.math.IntMath;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.TableReferenceAndCell;
+import com.palantir.atlasdb.keyvalue.api.WriteReference;
+import com.palantir.atlasdb.sweep.Sweeper;
 
 /**
  * Contains information about a committed write, for use by the sweep queue.
@@ -28,12 +30,28 @@ import com.palantir.atlasdb.keyvalue.api.TableReferenceAndCell;
 @Value.Immutable
 public interface WriteInfo {
     long timestamp();
-    TableReferenceAndCell tableRefCell();
+    WriteReference writeRef();
 
-    static WriteInfo of(TableReference tableRef, Cell cell, long timestamp) {
+    default long timestampToDeleteAtExclusive(Sweeper sweeper) {
+        if (sweeper.shouldSweepLastCommitted() && writeRef().isTombstone()) {
+            return timestamp() + 1L;
+        }
+
+        return timestamp();
+    }
+
+    default int toShard(int numShards) {
+        return IntMath.mod(writeRef().hashCode(), numShards);
+    }
+
+    static WriteInfo of(WriteReference writeRef, long timestamp) {
         return ImmutableWriteInfo.builder()
-                .tableRefCell(TableReferenceAndCell.of(tableRef, cell))
+                .writeRef(writeRef)
                 .timestamp(timestamp)
                 .build();
+    }
+
+    static WriteInfo of(TableReference tableRef, Cell cell, boolean isTombstone, long timestamp) {
+        return WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
     }
 }

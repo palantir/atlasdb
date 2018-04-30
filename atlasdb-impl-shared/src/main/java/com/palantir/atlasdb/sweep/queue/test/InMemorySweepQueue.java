@@ -48,7 +48,7 @@ public final class InMemorySweepQueue implements SweepQueueReader, SweepQueueWri
     }
 
     public static MultiTableSweepQueueWriter writer() {
-        return writes -> instanceForTable(writes.get(0).tableRefCell().tableRef()).enqueue(writes);
+        return writes -> instanceForTable(writes.get(0).writeRef().tableRef()).enqueue(writes);
     }
 
     private InMemorySweepQueue() {}

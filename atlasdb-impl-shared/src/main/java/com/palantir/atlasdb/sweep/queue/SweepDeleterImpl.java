@@ -53,7 +53,7 @@ public class SweepDeleterImpl implements SweepDeleter {
 
         for (WriteInfo write : writes) {
             // todo(gmaretic): since we don't know about deletes, makes it awkward for thorough sweep?
-            deleteTimestampByCell.merge(write.tableRefCell().cell(), write.timestamp(), Long::max);
+            deleteTimestampByCell.merge(write.writeRef().cell(), write.timestamp(), Long::max);
         }
 
         return deleteTimestampByCell;

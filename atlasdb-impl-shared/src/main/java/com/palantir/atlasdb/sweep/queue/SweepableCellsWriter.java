@@ -23,15 +23,14 @@ import java.util.Map;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReferenceAndCell;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
+import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
-
 public class SweepableCellsWriter extends KvsSweepQueueWriter {
-    private static final long MAX_CELLS_GENERIC = 50L;
-    private static final long MAX_CELLS_DEDICATED = 100_000L;
+    static final int MAX_CELLS_GENERIC = 50;
+    static final int MAX_CELLS_DEDICATED = 100_000;
 
     private final WriteInfoPartitioner partitioner;
 
@@ -63,23 +62,22 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
     }
 
     private void addReferenceToDedicatedRows(PartitionInfo info, List<WriteInfo> writes, Map<Cell, byte[]> result) {
-        insert(info, TableReferenceAndCell.DUMMY, false, 0, -requiredDedicatedRows(writes), result);
+        insert(info, WriteReference.DUMMY, false, 0, -requiredDedicatedRows(writes), result);
     }
 
     private void addWrite(PartitionInfo info, WriteInfo write, boolean dedicate, long index, Map<Cell, byte[]> result) {
-        insert(info, write.tableRefCell(), dedicate, index / MAX_CELLS_DEDICATED, index % MAX_CELLS_DEDICATED, result);
+        insert(info, write.writeRef(), dedicate, index / MAX_CELLS_DEDICATED, index % MAX_CELLS_DEDICATED, result);
     }
 
-    private void insert(PartitionInfo info, TableReferenceAndCell tableRefCell, boolean dedicate, long dedicatedRow,
+    private void insert(PartitionInfo info, WriteReference writeRef, boolean dedicate, long dedicatedRow,
             long index, Map<Cell, byte[]> result) {
         SweepableCellsTable.SweepableCellsRow row = createRow(info, dedicate, dedicatedRow);
-        SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(info.timestamp(), index, tableRefCell);
+        SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(info.timestamp(), index, writeRef);
         result.put(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
     }
 
     private SweepableCellsTable.SweepableCellsRow createRow(PartitionInfo info, boolean dedicate, long dedicatedRow) {
         TargetedSweepMetadata metadata = ImmutableTargetedSweepMetadata.builder()
-
                 .conservative(info.isConservative().isTrue())
                 .dedicatedRow(dedicate)
                 .shard(info.shard())
@@ -90,10 +88,9 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
                 SweepQueueUtils.tsPartitionFine(info.timestamp()), metadata.persistToBytes());
     }
 
-    private SweepableCellsTable.SweepableCellsColumnValue createColVal(long ts, long index,
-            TableReferenceAndCell tableRefCell) {
+    private SweepableCellsTable.SweepableCellsColumnValue createColVal(long ts, long index, WriteReference writeRef) {
         SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.of(tsMod(ts), index);
-        return SweepableCellsTable.SweepableCellsColumnValue.of(col, tableRefCell);
+        return SweepableCellsTable.SweepableCellsColumnValue.of(col, writeRef);
     }
 
     private long requiredDedicatedRows(List<WriteInfo> writes) {

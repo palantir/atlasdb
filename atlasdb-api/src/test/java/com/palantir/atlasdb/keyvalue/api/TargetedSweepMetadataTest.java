@@ -63,12 +63,24 @@ public class TargetedSweepMetadataTest {
     }
 
     @Test
-    public void persistAndHydrate() {
+    public void persistAndHydrateWhenFirstByteHasLeadingOne() {
+        TargetedSweepMetadata metadata = ImmutableTargetedSweepMetadata.builder()
+                .conservative(true)
+                .dedicatedRow(true)
+                .shard(71)
+                .dedicatedRowNumber(0)
+                .build();
+        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
+                .isEqualTo(metadata);
+    }
+
+    @Test
+    public void persistAndHydrateWhenSecondByteHasLeadingOne() {
         TargetedSweepMetadata metadata = ImmutableTargetedSweepMetadata.builder()
                 .conservative(false)
                 .dedicatedRow(true)
-                .shard(196)
-                .dedicatedRowNumber(17)
+                .shard(56)
+                .dedicatedRowNumber(2)
                 .build();
         assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
                 .isEqualTo(metadata);

@@ -88,10 +88,10 @@ public class SweepableTimestampsReader {
                     PersistableBoolean.of(shardAndStrategy.isConservative()).persistToBytes())
                 .persistToBytes();
 
-        Map<byte[], RowColumnRangeIterator> test = kvs.getRowsColumnRange(
+        Map<byte[], RowColumnRangeIterator> response = kvs.getRowsColumnRange(
                 TABLE_REF, ImmutableList.of(row), colRange, SweepQueueUtils.CAS_TS);
 
-        RowColumnRangeIterator col = Iterables.getOnlyElement(test.values());
+        RowColumnRangeIterator col = Iterables.getOnlyElement(response.values());
         if (!col.hasNext()) {
             return Optional.empty();
         }

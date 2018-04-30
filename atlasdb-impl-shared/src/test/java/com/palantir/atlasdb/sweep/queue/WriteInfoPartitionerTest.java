@@ -23,6 +23,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -119,12 +121,12 @@ public class WriteInfoPartitionerTest {
     @Test
     public void partitionWritesByShardStrategyTimestampGroupsOnShardClash() {
         List<WriteInfo> writes = new ArrayList<>();
-        for (int i = 0; i <= WriteInfoPartitioner.SHARDS; i++) {
+        for (int i = 0; i <= SHARDS; i++) {
             writes.add(getWriteInfoWithFixedCellHash(CONSERVATIVE, i));
         }
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
         assertThat(partitions.keySet())
-                .containsExactly(PartitionInfo.of(WriteInfoPartitioner.getShard(writes.get(0)), true, 1L));
+                .containsExactly(PartitionInfo.of(writes.get(0).toShard(SHARDS), true, 1L));
         assertThat(partitions.values())
                 .containsExactly(writes);
     }
@@ -140,6 +142,6 @@ public class WriteInfoPartitionerTest {
 
     private WriteInfo getWriteInfo(TableReference tableRef, int rowIndex, int colIndex, long timestamp) {
         Cell cell = Cell.create(PtBytes.toBytes(rowIndex), PtBytes.toBytes(colIndex));
-        return WriteInfo.of(tableRef, cell, timestamp);
+        return WriteInfo.of(tableRef, cell, true, timestamp);
     }
 }
