@@ -138,12 +138,12 @@ public class TodoClient {
         return sweepTable(valueTable);
     }
 
-    SweepResults sweepTable(TableReference valueTable) {
+    SweepResults sweepTable(TableReference table) {
         SweepBatchConfig sweepConfig = ImmutableSweepBatchConfig.builder()
                 .candidateBatchSize(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT)
                 .deleteBatchSize(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
                 .maxCellTsPairsToExamine(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
                 .build();
-        return sweepTaskRunner.get().run(valueTable, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
+        return sweepTaskRunner.get().run(table, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
     }
 }
