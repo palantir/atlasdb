@@ -39,6 +39,7 @@ public class SweepableTimestampsReader {
 
     SweepableTimestampsReader(KeyValueService kvs) {
         this.kvs = kvs;
+        // todo(gmaretic): can be passed as an argument
         this.progress = new KvsSweepQueueProgress(kvs);
     }
 

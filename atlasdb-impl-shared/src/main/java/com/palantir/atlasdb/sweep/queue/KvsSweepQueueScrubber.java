@@ -16,8 +16,51 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Collection;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
-public interface KvsSweepQueueScrubber {
-    void scrub(Collection<WriteInfo> writes);
+public class KvsSweepQueueScrubber {
+    private KeyValueService kvs;
+
+    /**
+     * Cleans up all the sweep queue data from the last update of progress up to and including the given sweep
+     * partition. Then, updates the sweep queue progress.
+     * @param shardStrategy shard and strategy to scrub for.
+     * @param previousProgress previous last partition sweep has processed.
+     * @param newProgress last partition sweep has processed.
+     */
+    public void scrub(ShardAndStrategy shardStrategy, long previousProgress, long newProgress) {
+        scrubSweepableCells(shardStrategy, previousProgress, newProgress);
+        scrubSweepableTimestamps(shardStrategy, previousProgress, newProgress);
+        progressTo(shardStrategy, newProgress);
+    }
+
+    private void scrubSweepableCells(ShardAndStrategy shardStrategy, long previousProgress, long newProgress) {
+        TableReference sweepableCells = TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef();
+        TargetedSweepMetadata metadata = ImmutableTargetedSweepMetadata.builder()
+                .shard(shardStrategy.shard())
+                .conservative(shardStrategy.isConservative())
+                .
+        byte[] row = SweepableCellsTable.SweepableCellsRow.of(previousProgress)
+        RangeRequest request = RangeRequest.builder()
+                .startRowInclusive()
+                .endRowExclusive()
+                .retainColumns(ColumnSelection.all())
+                .build();
+        kvs.deleteRange(sweepableCells, );
+    }
+
+    private void scrubSweepableTimestamps(ShardAndStrategy shardStrategy, long previousProgress, long newProgress) {
+
+    }
+
+    private void progressTo(ShardAndStrategy shardStrategy, long timestampPartitionFine) {
+
+    }
 }

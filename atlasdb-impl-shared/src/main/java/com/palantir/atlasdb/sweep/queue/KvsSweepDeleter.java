@@ -27,9 +27,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 
 public class KvsSweepDeleter implements SweepDeleter {
-    // todo(gmaretic): hide once scrubber is implemented
-    @VisibleForTesting
-    KvsSweepQueueScrubber scrubber;
     private final KeyValueService kvs;
     private final Sweeper sweeper;
 
@@ -47,7 +44,6 @@ public class KvsSweepDeleter implements SweepDeleter {
             }
             kvs.deleteAllTimestamps(entry.getKey(), entry.getValue());
         }
-        scrubber.scrub(writes);
     }
 
     private Map<TableReference, Map<Cell, Long>> partitionWrites(Collection<WriteInfo> writes) {

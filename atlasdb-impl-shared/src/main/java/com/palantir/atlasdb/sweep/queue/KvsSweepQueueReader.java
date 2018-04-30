@@ -24,15 +24,19 @@ import java.util.function.Consumer;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.util.Pair;
 
 public class KvsSweepQueueReader implements SweepQueueReader {
     private final SweepableCellsReader cellsReader;
     private final SweepableTimestampsReader timestampsReader;
+    private final KvsSweepQueueProgress sweepQueueProgress;
+    private KvsSweepQueueScrubber scrubber;
     private final ShardAndStrategy shardStrategy;
 
     KvsSweepQueueReader(KeyValueService kvs, ShardAndStrategy shardStrategy) {
         this.cellsReader = new SweepableCellsReader(kvs);
         this.timestampsReader = new SweepableTimestampsReader(kvs);
+        this.sweepQueueProgress = new KvsSweepQueueProgress(kvs);
         this.shardStrategy = shardStrategy;
     }
 
@@ -43,14 +47,17 @@ public class KvsSweepQueueReader implements SweepQueueReader {
 
     @Override
     public void consumeNextBatch(Consumer<Collection<WriteInfo>> consumer, long maxTimestampExclusive) {
-        consumer.accept(getNextBatch(maxTimestampExclusive));
+        long previousProgress = sweepQueueProgress.getLastSweptTimestampPartition(shardStrategy);
+        Pair<List<WriteInfo>, Long> batchAndPartition = getNextBatchAndPartitionFine(maxTimestampExclusive);
+        consumer.accept(batchAndPartition.getLhSide());
+        scrubber.scrub(shardStrategy, previousProgress, batchAndPartition.getRhSide());
     }
 
-    private List<WriteInfo> getNextBatch(long tsExclusive) {
+    private Pair<List<WriteInfo>, Long> getNextBatchAndPartitionFine(long tsExclusive) {
         Optional<Long> partitionFine = timestampsReader.nextSweepableTimestampPartition(shardStrategy, tsExclusive);
         if (!partitionFine.isPresent()) {
-            return ImmutableList.of();
+            return Pair.create(ImmutableList.of(), SweepQueueUtils.tsPartitionFine(tsExclusive) - 1L);
         }
-        return cellsReader.getLatestWrites(partitionFine.get(), shardStrategy);
+        return Pair.create(cellsReader.getLatestWrites(partitionFine.get(), shardStrategy), partitionFine.get());
     }
 }
