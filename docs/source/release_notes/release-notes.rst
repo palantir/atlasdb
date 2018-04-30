@@ -110,6 +110,11 @@ develop
          - AtlasDB internal tables will no longer produce warning messages about hotspotting.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3126>`__)
 
+    *    - |fixed|
+         - OkHttp is not handling ``Thread.interrupt()`` well, and calling interrupts repeatedly may cause corrupted clients.
+           To avoid this issue, feign client is now wrapped with an ``ExceptionCountingRefreshingClient``, which will detect and refresh corrupted clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3121>`__)
+
 =======
 v0.81.0
 =======
