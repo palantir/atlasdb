@@ -86,7 +86,7 @@ public class SweepableCellsReader {
         if (isReferenceToDedicatedRows(col)) {
             populateFromDedicatedRows(row, col, results);
         } else {
-            populateFromValue(row, col, entry.getValue(), results);
+            populateFromValue(getTimestamp(row, col), entry.getValue(), results);
         }
     }
 
@@ -97,7 +97,7 @@ public class SweepableCellsReader {
     private void populateFromDedicatedRows(SweepableCellsTable.SweepableCellsRow row,
             SweepableCellsTable.SweepableCellsColumn col, Map<WriteReference, Long> results) {
         TargetedSweepMetadata metadata = TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(row.getMetadata());
-        long partitionFine = row.getTimestampPartition();
+        long timestamp = getTimestamp(row, col);
         int numberOfDedicatedRows = (int) -col.getWriteIndex();
 
         List<byte[]> dedicatedRows = new ArrayList<>();
@@ -108,19 +108,18 @@ public class SweepableCellsReader {
                     .dedicatedRowNumber(i)
                     .build()
                     .persistToBytes();
-            dedicatedRows.add(SweepableCellsTable.SweepableCellsRow.of(partitionFine, metadataBytes).persistToBytes());
+            dedicatedRows.add(SweepableCellsTable.SweepableCellsRow.of(timestamp, metadataBytes).persistToBytes());
         }
         RowColumnRangeIterator iterator = getAllColumns(dedicatedRows);
-        iterator.forEachRemaining(entry -> populateResults(row, entry, results));
+        iterator.forEachRemaining(entry -> populateFromValue(timestamp, entry.getValue(), results));
     }
 
-    private void populateFromValue(SweepableCellsTable.SweepableCellsRow row,
-            SweepableCellsTable.SweepableCellsColumn col,
-            Value value,
-            Map<WriteReference, Long> results) {
-        WriteReference writeRef = SweepableCellsTable.SweepableCellsColumnValue.hydrateValue(value.getContents());
+    private long getTimestamp(SweepableCellsTable.SweepableCellsRow row, SweepableCellsTable.SweepableCellsColumn col) {
+        return row.getTimestampPartition() * SweepQueueUtils.TS_FINE_GRANULARITY + col.getTimestampModulus();
+    }
 
-        long timestamp = row.getTimestampPartition() * SweepQueueUtils.TS_FINE_GRANULARITY + col.getTimestampModulus();
+    private void populateFromValue(long timestamp, Value value, Map<WriteReference, Long> results) {
+        WriteReference writeRef = SweepableCellsTable.SweepableCellsColumnValue.hydrateValue(value.getContents());
         addIfMaxForCell(timestamp, writeRef, results);
     }
 
