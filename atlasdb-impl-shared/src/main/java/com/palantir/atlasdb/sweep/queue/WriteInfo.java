@@ -36,7 +36,6 @@ public interface WriteInfo {
         if (sweeper.shouldSweepLastCommitted() && writeRef().isTombstone()) {
             return timestamp() + 1L;
         }
-
         return timestamp();
     }
 
