@@ -187,31 +187,35 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span></td>
+<td>Expired lock refreshes now tell you which locks expired, instead of just their refreshing token id.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3125">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Transaction managers now shut down threads associated with the QoS client and TimeLock lock refresher when they are closed.
 Previously, these threads would continue running and needlessly using resources.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3096">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The <code class="docutils literal notranslate"><span class="pre">_locks</span></code> table is now created with a deterministic column family ID.
 This means that multi-node installations will no longer create multiple locks tables on first start-up.
 Note that new installations using versions of Cassandra prior to 2.1.13, 2.2.5, 3.0.3 or 3.2 will fail to create this table, as we rely on syntax introduced by the fix to <a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-9179">CASSANDRA-9179</a>.
 Existing installations will be unaffected.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3088">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now partitions versions of cells to be swept into batches more robustly and more efficiently.
 Previously, this could cause stack overflows when sweeping a very wide row, because the partitioning algorithm attempted to traverse a recursive hierarchy of sublists.
 Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3095">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) blacklist.
 This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a blacklisted table, as appropriate.
 Please see <a class="reference internal" href="../cluster_management/sweep.html#sweep-priority-overrides"><span class="std std-ref">Sweep Priority Overrides</span></a> for more details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3090">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions
 Previously, the strategy to choose the table to compact was:</p>
 <blockquote>
@@ -232,18 +236,18 @@ Previously, the strategy to choose the table to compact was:</p>
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3100">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">LoggingArgs::isSafeForLogging(TableReference,</span> <span class="pre">Cell)</span></code> was removed, as it behaved unexpectedly and could leak information.
 Previously, it returned true only if the cell’s row matched the name of a row component which was declared as safe.
 However, knowledge of the existence of such a cell may not actually be safe.
 There currently isn’t an API for declaring specific row or dynamic column components as safe; please contact the AtlasDB team if you have such a use case.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3093">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">kvs-slow-log</span></code> messages now also include start time of the operation for easier debugging.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3117">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>AtlasDB internal tables will no longer produce warning messages about hotspotting.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3126">Pull Request</a>)</td>
 </tr>
