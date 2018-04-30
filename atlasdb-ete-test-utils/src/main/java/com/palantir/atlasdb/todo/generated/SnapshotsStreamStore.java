@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.schema.stream.generated;
+package com.palantir.atlasdb.todo.generated;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -74,38 +74,38 @@ import net.jpountz.lz4.LZ4BlockInputStream;
 
 @Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
 @SuppressWarnings("all")
-public final class TestHashComponentsStreamStore extends AbstractPersistentStreamStore {
+public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
     public static final int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
     public static final int IN_MEMORY_THRESHOLD = 4194304; // streams under this size are kept in memory when loaded
-    public static final String STREAM_FILE_PREFIX = "TestHashComponents_stream_";
+    public static final String STREAM_FILE_PREFIX = "Snapshots_stream_";
     public static final String STREAM_FILE_SUFFIX = ".tmp";
 
-    private static final Logger log = LoggerFactory.getLogger(TestHashComponentsStreamStore.class);
+    private static final Logger log = LoggerFactory.getLogger(SnapshotsStreamStore.class);
 
-    private final StreamTestTableFactory tables;
+    private final TodoSchemaTableFactory tables;
 
-    private TestHashComponentsStreamStore(TransactionManager txManager, StreamTestTableFactory tables) {
+    private SnapshotsStreamStore(TransactionManager txManager, TodoSchemaTableFactory tables) {
         this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
     }
 
-    private TestHashComponentsStreamStore(TransactionManager txManager, StreamTestTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
+    private SnapshotsStreamStore(TransactionManager txManager, TodoSchemaTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
         super(txManager, persistenceConfiguration);
         this.tables = tables;
     }
 
-    public static TestHashComponentsStreamStore of(TransactionManager txManager, StreamTestTableFactory tables) {
-        return new TestHashComponentsStreamStore(txManager, tables);
+    public static SnapshotsStreamStore of(TransactionManager txManager, TodoSchemaTableFactory tables) {
+        return new SnapshotsStreamStore(txManager, tables);
     }
 
-    public static TestHashComponentsStreamStore of(TransactionManager txManager, StreamTestTableFactory tables,  Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
-        return new TestHashComponentsStreamStore(txManager, tables, persistenceConfiguration);
+    public static SnapshotsStreamStore of(TransactionManager txManager, TodoSchemaTableFactory tables,  Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
+        return new SnapshotsStreamStore(txManager, tables, persistenceConfiguration);
     }
 
     /**
      * This should only be used by test code or as a performance optimization.
      */
-    static TestHashComponentsStreamStore of(StreamTestTableFactory tables) {
-        return new TestHashComponentsStreamStore(null, tables);
+    static SnapshotsStreamStore of(TodoSchemaTableFactory tables) {
+        return new SnapshotsStreamStore(null, tables);
     }
 
     @Override
@@ -116,11 +116,11 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
     @Override
     protected void storeBlock(Transaction t, long id, long blockNumber, final byte[] block) {
         Preconditions.checkArgument(block.length <= BLOCK_SIZE_IN_BYTES, "Block to store in DB must be less than BLOCK_SIZE_IN_BYTES");
-        final TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow row = TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow.of(id, blockNumber);
+        final SnapshotsStreamValueTable.SnapshotsStreamValueRow row = SnapshotsStreamValueTable.SnapshotsStreamValueRow.of(id, blockNumber);
         try {
             // Do a touch operation on this table to ensure we get a conflict if someone cleans it up.
             touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId());
-            tables.getTestHashComponentsStreamValueTable(t).putValue(row, block);
+            tables.getSnapshotsStreamValueTable(t).putValue(row, block);
         } catch (RuntimeException e) {
             log.error("Error storing block {} for stream id {}", row.getBlockId(), row.getId(), e);
             throw e;
@@ -128,8 +128,8 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
     }
 
     private void touchMetadataWhileStoringForConflicts(Transaction t, Long id, long blockNumber) {
-        TestHashComponentsStreamMetadataTable metaTable = tables.getTestHashComponentsStreamMetadataTable(t);
-        TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow row = TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow.of(id);
+        SnapshotsStreamMetadataTable metaTable = tables.getSnapshotsStreamMetadataTable(t);
+        SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow row = SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow.of(id);
         StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();
         Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks: %s", id);
         Builder builder = StreamMetadata.newBuilder(metadata);
@@ -139,11 +139,11 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
 
     @Override
     protected void putMetadataAndHashIndexTask(Transaction t, Map<Long, StreamMetadata> streamIdsToMetadata) {
-        TestHashComponentsStreamMetadataTable mdTable = tables.getTestHashComponentsStreamMetadataTable(t);
+        SnapshotsStreamMetadataTable mdTable = tables.getSnapshotsStreamMetadataTable(t);
         Map<Long, StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());
 
-        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();
-        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();
+        Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();
+        Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();
         for (Entry<Long, StreamMetadata> e : streamIdsToMetadata.entrySet()) {
             long streamId = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -153,18 +153,18 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
                     // This can happen if we cleanup old streams.
                     throw new TransactionFailedRetriableException("Cannot mark a stream as stored that isn't currently storing: " + prevMetadata);
                 }
-                rowsToStoredMetadata.put(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow.of(streamId), metadata);
+                rowsToStoredMetadata.put(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow.of(streamId), metadata);
             } else if (metadata.getStatus() == Status.STORING) {
                 // This will prevent two users trying to store the same id.
                 if (prevMetadata != null) {
                     throw new TransactionFailedRetriableException("Cannot reuse the same stream id: " + streamId);
                 }
-                rowsToUnstoredMetadata.put(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow.of(streamId), metadata);
+                rowsToUnstoredMetadata.put(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow.of(streamId), metadata);
             }
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> rowsToMetadata = Maps.newHashMap();
+        Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> rowsToMetadata = Maps.newHashMap();
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -183,7 +183,7 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
 
     @Override
     protected void loadSingleBlockToOutputStream(Transaction t, Long streamId, long blockId, OutputStream os) {
-        TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow row = TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow.of(streamId, blockId);
+        SnapshotsStreamValueTable.SnapshotsStreamValueRow row = SnapshotsStreamValueTable.SnapshotsStreamValueRow.of(streamId, blockId);
         try {
             os.write(getBlock(t, row));
         } catch (RuntimeException e) {
@@ -195,8 +195,8 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         }
     }
 
-    private byte[] getBlock(Transaction t, TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow row) {
-        TestHashComponentsStreamValueTable valueTable = tables.getTestHashComponentsStreamValueTable(t);
+    private byte[] getBlock(Transaction t, SnapshotsStreamValueTable.SnapshotsStreamValueRow row) {
+        SnapshotsStreamValueTable valueTable = tables.getSnapshotsStreamValueTable(t);
         return valueTable.getValues(ImmutableSet.of(row)).get(row);
     }
 
@@ -205,10 +205,10 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         if (streamIds.isEmpty()) {
             return ImmutableMap.of();
         }
-        TestHashComponentsStreamMetadataTable table = tables.getTestHashComponentsStreamMetadataTable(t);
-        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
+        SnapshotsStreamMetadataTable table = tables.getSnapshotsStreamMetadataTable(t);
+        Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
         Map<Long, StreamMetadata> ret = Maps.newHashMap();
-        for (Map.Entry<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
+        for (Map.Entry<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
         return ret;
@@ -219,13 +219,13 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         if (hashes.isEmpty()) {
             return ImmutableMap.of();
         }
-        TestHashComponentsStreamHashAidxTable idx = tables.getTestHashComponentsStreamHashAidxTable(t);
-        Set<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
+        SnapshotsStreamHashAidxTable idx = tables.getSnapshotsStreamHashAidxTable(t);
+        Set<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
-        Multimap<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
+        Multimap<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
         Map<Long, Sha256Hash> hashForStreams = Maps.newHashMap();
-        for (TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow r : m.keySet()) {
-            for (TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumnValue v : m.get(r)) {
+        for (SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow r : m.keySet()) {
+            for (SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
                 Sha256Hash hash = r.getHash();
                 if (hashForStreams.containsKey(streamId)) {
@@ -248,26 +248,26 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         return ret;
     }
 
-    private Set<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow> rows = Sets.newHashSet();
+    private Set<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
+        Set<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow> rows = Sets.newHashSet();
         for (Sha256Hash h : hashes) {
-            rows.add(TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow.of(h));
+            rows.add(SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow.of(h));
         }
         return rows;
     }
 
-    private Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> getMetadataRowsForIds(final Iterable<Long> ids) {
-        Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> rows = Sets.newHashSet();
+    private Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> getMetadataRowsForIds(final Iterable<Long> ids) {
+        Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> rows = Sets.newHashSet();
         for (Long id : ids) {
-            rows.add(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow.of(id));
+            rows.add(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow.of(id));
         }
         return rows;
     }
 
-    private void putHashIndexTask(Transaction t, Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> rowsToMetadata) {
-        Multimap<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumnValue> indexMap = HashMultimap.create();
-        for (Entry<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> e : rowsToMetadata.entrySet()) {
-            TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow row = e.getKey();
+    private void putHashIndexTask(Transaction t, Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> rowsToMetadata) {
+        Multimap<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumnValue> indexMap = HashMultimap.create();
+        for (Entry<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> e : rowsToMetadata.entrySet()) {
+            SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow row = e.getKey();
             StreamMetadata metadata = e.getValue();
             Preconditions.checkArgument(
                     metadata.getStatus() == Status.STORED,
@@ -277,12 +277,12 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
             if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {
                 hash = new Sha256Hash(metadata.getHash().toByteArray());
             }
-            TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow hashRow = TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow.of(hash);
-            TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumn column = TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumn.of(row.getId());
-            TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumnValue columnValue = TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumnValue.of(column, 0L);
+            SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow hashRow = SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow.of(hash);
+            SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumn column = SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumn.of(row.getId());
+            SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumnValue columnValue = SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumnValue.of(column, 0L);
             indexMap.put(hashRow, columnValue);
         }
-        TestHashComponentsStreamHashAidxTable hiTable = tables.getTestHashComponentsStreamHashAidxTable(t);
+        SnapshotsStreamHashAidxTable hiTable = tables.getSnapshotsStreamHashAidxTable(t);
         hiTable.put(indexMap);
     }
 
@@ -293,19 +293,19 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         if (streamIds.isEmpty()) {
             return;
         }
-        Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> smRows = Sets.newHashSet();
-        Multimap<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumn> shToDelete = HashMultimap.create();
+        Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> smRows = Sets.newHashSet();
+        Multimap<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumn> shToDelete = HashMultimap.create();
         for (Long streamId : streamIds) {
-            smRows.add(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow.of(streamId));
+            smRows.add(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow.of(streamId));
         }
-        TestHashComponentsStreamMetadataTable table = tables.getTestHashComponentsStreamMetadataTable(t);
-        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(smRows);
-        Set<TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow> streamValueToDelete = Sets.newHashSet();
-        for (Entry<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
+        SnapshotsStreamMetadataTable table = tables.getSnapshotsStreamMetadataTable(t);
+        Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(smRows);
+        Set<SnapshotsStreamValueTable.SnapshotsStreamValueRow> streamValueToDelete = Sets.newHashSet();
+        for (Entry<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             Long streamId = e.getKey().getId();
             long blocks = getNumberOfBlocksFromMetadata(e.getValue());
             for (long i = 0; i < blocks; i++) {
-                streamValueToDelete.add(TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow.of(streamId, i));
+                streamValueToDelete.add(SnapshotsStreamValueTable.SnapshotsStreamValueRow.of(streamId, i));
             }
             ByteString streamHash = e.getValue().getHash();
             Sha256Hash hash = Sha256Hash.EMPTY;
@@ -314,12 +314,12 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
             } else {
                 log.error("Empty hash for stream {}", streamId);
             }
-            TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow hashRow = TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow.of(hash);
-            TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumn column = TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumn.of(streamId);
+            SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow hashRow = SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow.of(hash);
+            SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumn column = SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumn.of(streamId);
             shToDelete.put(hashRow, column);
         }
-        tables.getTestHashComponentsStreamHashAidxTable(t).delete(shToDelete);
-        tables.getTestHashComponentsStreamValueTable(t).delete(streamValueToDelete);
+        tables.getSnapshotsStreamHashAidxTable(t).delete(shToDelete);
+        tables.getSnapshotsStreamValueTable(t).delete(streamValueToDelete);
         table.delete(smRows);
     }
 
@@ -328,14 +328,14 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         if (streamIdsToReference.isEmpty()) {
             return;
         }
-        TestHashComponentsStreamIdxTable index = tables.getTestHashComponentsStreamIdxTable(t);
-        Multimap<TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow, TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumnValue> rowsToValues = HashMultimap.create();
+        SnapshotsStreamIdxTable index = tables.getSnapshotsStreamIdxTable(t);
+        Multimap<SnapshotsStreamIdxTable.SnapshotsStreamIdxRow, SnapshotsStreamIdxTable.SnapshotsStreamIdxColumnValue> rowsToValues = HashMultimap.create();
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();
-            TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumn col = TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumn.of(reference);
-            TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumnValue value = TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumnValue.of(col, 0L);
-            rowsToValues.put(TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow.of(streamId), value);
+            SnapshotsStreamIdxTable.SnapshotsStreamIdxColumn col = SnapshotsStreamIdxTable.SnapshotsStreamIdxColumn.of(reference);
+            SnapshotsStreamIdxTable.SnapshotsStreamIdxColumnValue value = SnapshotsStreamIdxTable.SnapshotsStreamIdxColumnValue.of(col, 0L);
+            rowsToValues.put(SnapshotsStreamIdxTable.SnapshotsStreamIdxRow.of(streamId), value);
         }
         index.put(rowsToValues);
     }
@@ -345,32 +345,32 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         if (streamIdsToReference.isEmpty()) {
             return;
         }
-        TestHashComponentsStreamIdxTable index = tables.getTestHashComponentsStreamIdxTable(t);
-        Multimap<TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow, TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumn> toDelete = ArrayListMultimap.create(streamIdsToReference.size(), 1);
+        SnapshotsStreamIdxTable index = tables.getSnapshotsStreamIdxTable(t);
+        Multimap<SnapshotsStreamIdxTable.SnapshotsStreamIdxRow, SnapshotsStreamIdxTable.SnapshotsStreamIdxColumn> toDelete = ArrayListMultimap.create(streamIdsToReference.size(), 1);
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();
-            TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumn col = TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumn.of(reference);
-            toDelete.put(TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow.of(streamId), col);
+            SnapshotsStreamIdxTable.SnapshotsStreamIdxColumn col = SnapshotsStreamIdxTable.SnapshotsStreamIdxColumn.of(reference);
+            toDelete.put(SnapshotsStreamIdxTable.SnapshotsStreamIdxRow.of(streamId), col);
         }
         index.delete(toDelete);
     }
 
     @Override
     protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, Iterable<Long> ids) {
-        TestHashComponentsStreamMetadataTable metaTable = tables.getTestHashComponentsStreamMetadataTable(t);
-        Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> rows = Sets.newHashSet();
+        SnapshotsStreamMetadataTable metaTable = tables.getSnapshotsStreamMetadataTable(t);
+        Set<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> rows = Sets.newHashSet();
         for (Long id : ids) {
-            rows.add(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow.of(id));
+            rows.add(SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow.of(id));
         }
-        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> metadatas = metaTable.getMetadatas(rows);
-        for (Map.Entry<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
+        Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> metadatas = metaTable.getMetadatas(rows);
+        for (Map.Entry<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             StreamMetadata metadata = e.getValue();
             Preconditions.checkState(metadata.getStatus() == Status.STORED,
             "Stream: %s has status: %s", e.getKey().getId(), metadata.getStatus());
             metaTable.putMetadata(e.getKey(), metadata);
         }
-        SetView<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> missingRows = Sets.difference(rows, metadatas.keySet());
+        SetView<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> missingRows = Sets.difference(rows, metadatas.keySet());
         if (!missingRows.isEmpty()) {
             throw new IllegalStateException("Missing metadata rows for:" + missingRows
             + " rows: " + rows + " metadata: " + metadatas + " txn timestamp: " + t.getTimestamp());
