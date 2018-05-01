@@ -22,12 +22,16 @@ import java.util.stream.Stream;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
+@JsonSerialize(as = ImmutableSweepPriorityOverrideConfig.class)
+@JsonDeserialize(as = ImmutableSweepPriorityOverrideConfig.class)
 @Value.Immutable
 public abstract class SweepPriorityOverrideConfig {
     /**
