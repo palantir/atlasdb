@@ -40,7 +40,7 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-public abstract class SweepQueueReadWriteTest {
+public abstract class SweepQueueTablesTest {
     static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.test");
     static final TableReference TABLE_REF2 = TableReference.createFromFullyQualifiedName("test.test2");
     static final Cell DEFAULT_CELL = Cell.create(new byte[] {'r'}, new byte[] {'c'});
@@ -52,14 +52,13 @@ public abstract class SweepQueueReadWriteTest {
     protected KeyValueService mockKvs = mock(KeyValueService.class);
     protected KeyValueService kvs = new InMemoryKeyValueService(true);
     protected WriteInfoPartitioner partitioner;
-    protected KvsSweepQueueWriter writer;
 
     @Before
     public void setup() {
         when(mockKvs.getMetadataForTable(TABLE_REF))
-                .thenReturn(SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
+                .thenReturn(SweepQueueTablesTest.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
         when(mockKvs.getMetadataForTable(TABLE_REF2))
-                .thenReturn(SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
+                .thenReturn(SweepQueueTablesTest.metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
         partitioner = new WriteInfoPartitioner(mockKvs);
     }
 

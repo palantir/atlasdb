@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
-import static com.palantir.atlasdb.sweep.queue.SweepableCellsWriter.MAX_CELLS_DEDICATED;
-import static com.palantir.atlasdb.sweep.queue.SweepableCellsWriter.MAX_CELLS_GENERIC;
+import static com.palantir.atlasdb.sweep.queue.SweepableCells.MAX_CELLS_DEDICATED;
+import static com.palantir.atlasdb.sweep.queue.SweepableCells.MAX_CELLS_GENERIC;
 import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
 
 import java.util.ArrayList;
@@ -31,8 +31,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
-    private SweepableCellsReader reader;
+public class SweepableCellsTest extends SweepQueueTablesTest {
+    private SweepableCells sweepableCells;
 
     int shard;
     int shard2;
@@ -40,83 +40,82 @@ public class SweepableCellsReadWriteTest extends SweepQueueReadWriteTest {
     @Before
     public void setup() {
         super.setup();
-        writer = new SweepableCellsWriter(kvs, partitioner);
-        reader = new SweepableCellsReader(kvs);
+        sweepableCells = new SweepableCells(kvs, partitioner);
 
-        shard = writeToDefault(writer, TS, true);
-        shard2 = writeToDefault(writer, TS2, false);
+        shard = writeToDefault(sweepableCells, TS, true);
+        shard2 = writeToDefault(sweepableCells, TS2, false);
     }
 
     @Test
     public void canReadSingleEntryInSingleShard() {
-        assertThat(reader.getLatestWrites(TS_REF, conservative(shard)))
+        assertThat(sweepableCells.getLatestWrites(TS_REF, conservative(shard)))
                 .containsExactly(WriteInfo.write(TABLE_REF, DEFAULT_CELL, TS));
-        assertThat(reader.getLatestWrites(TS2_REF, thorough(shard2)))
+        assertThat(sweepableCells.getLatestWrites(TS2_REF, thorough(shard2)))
                 .containsExactly(WriteInfo.write(TABLE_REF2, DEFAULT_CELL, TS2));
     }
 
     @Test
     public void canReadSingleTombstoneInSameShard() {
-        int tombstoneShard = putTombstone(writer, TS + 1, DEFAULT_CELL, true);
-        assertThat(reader.getLatestWrites(TS_REF, conservative(tombstoneShard)))
+        int tombstoneShard = putTombstone(sweepableCells, TS + 1, DEFAULT_CELL, true);
+        assertThat(sweepableCells.getLatestWrites(TS_REF, conservative(tombstoneShard)))
                 .containsExactly(WriteInfo.write(TABLE_REF, DEFAULT_CELL, TS + 1));
     }
 
     @Test
     public void getOnlyMostRecentTimestampForCellAndTableRef() {
-        writeToDefault(writer, TS - 1, true);
-        writeToDefault(writer, TS + 2, true);
-        writeToDefault(writer, TS - 2, true);
-        writeToDefault(writer, TS + 1, true);
-        assertThat(reader.getLatestWrites(TS_REF, conservative(shard)))
+        writeToDefault(sweepableCells, TS - 1, true);
+        writeToDefault(sweepableCells, TS + 2, true);
+        writeToDefault(sweepableCells, TS - 2, true);
+        writeToDefault(sweepableCells, TS + 1, true);
+        assertThat(sweepableCells.getLatestWrites(TS_REF, conservative(shard)))
                 .containsExactly(WriteInfo.write(TABLE_REF, DEFAULT_CELL, TS + 2));
     }
 
     @Test
     public void canReadMultipleEntriesInSingleShardDifferentTransactions() {
-        int fixedShard = writeToCell(writer, TS, getCellWithFixedHash(1), true);
-        assertThat(writeToCell(writer, TS + 1, getCellWithFixedHash(2), true)).isEqualTo(fixedShard);
-        assertThat(reader.getLatestWrites(TS_REF, conservative(fixedShard))).containsExactlyInAnyOrder(
+        int fixedShard = writeToCell(sweepableCells, TS, getCellWithFixedHash(1), true);
+        assertThat(writeToCell(sweepableCells, TS + 1, getCellWithFixedHash(2), true)).isEqualTo(fixedShard);
+        assertThat(sweepableCells.getLatestWrites(TS_REF, conservative(fixedShard))).containsExactlyInAnyOrder(
                 WriteInfo.write(TABLE_REF, getCellWithFixedHash(1), TS),
                 WriteInfo.write(TABLE_REF, getCellWithFixedHash(2), TS + 1));
     }
 
     @Test
     public void canReadMultipleEntriesInSingleShardSameTransactionNotDedicated() {
-        List<WriteInfo> writes = writeToUniqueCellsInSameShard(writer, TS, 10, true);
+        List<WriteInfo> writes = writeToUniqueCellsInSameShard(sweepableCells, TS, 10, true);
         ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
         assertThat(writes.size()).isEqualTo(10);
-        assertThat(reader.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+        assertThat(sweepableCells.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
     }
 
     @Test
     public void canReadMultipleEntriesInSingleShardSameTransactionOneDedicated() {
-        List<WriteInfo> writes = writeToUniqueCellsInSameShard(writer, TS, MAX_CELLS_GENERIC * 2 + 1, true);
+        List<WriteInfo> writes = writeToUniqueCellsInSameShard(sweepableCells, TS, MAX_CELLS_GENERIC * 2 + 1, true);
         ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
         assertThat(writes.size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
-        assertThat(reader.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+        assertThat(sweepableCells.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
     }
 
     @Test
     public void canReadMultipleEntriesInSingleShardMultipleTransactionsCombined() {
-        List<WriteInfo> writesFirst = writeToUniqueCellsInSameShard(writer, TS, MAX_CELLS_GENERIC * 2 + 1, true);
-        List<WriteInfo> writesLast = writeToUniqueCellsInSameShard(writer, TS + 2, 1, true);
-        List<WriteInfo> writesMiddle = writeToUniqueCellsInSameShard(writer, TS + 1, MAX_CELLS_GENERIC + 1, true);
+        List<WriteInfo> writesFirst = writeToUniqueCellsInSameShard(sweepableCells, TS, MAX_CELLS_GENERIC * 2 + 1, true);
+        List<WriteInfo> writesLast = writeToUniqueCellsInSameShard(sweepableCells, TS + 2, 1, true);
+        List<WriteInfo> writesMiddle = writeToUniqueCellsInSameShard(sweepableCells, TS + 1, MAX_CELLS_GENERIC + 1, true);
         List<WriteInfo> expectedResult = new ArrayList<>(writesLast);
         expectedResult.addAll(writesMiddle.subList(writesLast.size(), writesMiddle.size()));
         expectedResult.addAll(writesFirst.subList(writesMiddle.size(), writesFirst.size()));
 
         ShardAndStrategy fixedShardAndStrategy = conservative(writesFirst.get(0).toShard(SHARDS));
-        List<WriteInfo> result = reader.getLatestWrites(TS_REF, fixedShardAndStrategy);
+        List<WriteInfo> result = sweepableCells.getLatestWrites(TS_REF, fixedShardAndStrategy);
         assertThat(result).hasSameElementsAs(expectedResult);
     }
 
     @Test
     @Ignore("This test takes 53 minutes to complete. Need to see how it performs with CassandraKVS")
     public void canReadMultipleEntriesInSingleShardSameTransactionMultipleDedicated() {
-        List<WriteInfo> writes = writeToUniqueCellsInSameShard(writer, TS, MAX_CELLS_DEDICATED + 1, true);
+        List<WriteInfo> writes = writeToUniqueCellsInSameShard(sweepableCells, TS, MAX_CELLS_DEDICATED + 1, true);
         ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
         assertThat(writes.size()).isEqualTo(MAX_CELLS_DEDICATED + 1);
-        assertThat(reader.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+        assertThat(sweepableCells.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
     }
 }

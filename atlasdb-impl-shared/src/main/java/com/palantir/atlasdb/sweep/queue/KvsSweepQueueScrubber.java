@@ -16,14 +16,16 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-
 public class KvsSweepQueueScrubber {
-    private KeyValueService kvs;
-    private SweepableCellsWriter sweepableCellsWriter;
-    private SweepableCellsReader sweepableCellsReader;
-    private SweepableTimestampsWriter sweepableTimestampsWriter;
+    private SweepableCells sweepableCells;
+    private SweepableTimestamps sweepableTimestamps;
     private KvsSweepQueueProgress progress;
+
+    public KvsSweepQueueScrubber(SweepableCells cells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress) {
+        this.sweepableCells = cells;
+        this.sweepableTimestamps = timestamps;
+        this.progress = progress;
+    }
 
     /**
      * Cleans up all the sweep queue data from the last update of progress up to and including the given sweep
@@ -44,17 +46,17 @@ public class KvsSweepQueueScrubber {
     }
 
     private void scrubDedicatedRows(ShardAndStrategy shardStrategy, long partition) {
-        SweepableCellsReader.rangeRequestsForDedicatedRows(kvs, shardStrategy, partition)
-                .forEach(sweepableCellsWriter::deleteRange);
+        sweepableCells.rangeRequestsForDedicatedRows(shardStrategy, partition)
+                .forEach(sweepableCells::deleteRange);
     }
 
     private void scrubNonDedicatedRow(ShardAndStrategy shardStrategy, long partition) {
-        sweepableCellsWriter.deleteRange(sweepableCellsReader.rangeRequestForNonDedicatedRow(shardStrategy, partition));
+        sweepableCells.deleteRange(sweepableCells.rangeRequestForNonDedicatedRow(shardStrategy, partition));
     }
 
     private void scrubSweepableTimestamps(ShardAndStrategy shardStrategy, long oldPartition, long newPartition) {
         if (SweepQueueUtils.partitionFineToCoarse(newPartition) > SweepQueueUtils.partitionFineToCoarse(oldPartition)) {
-            sweepableTimestampsWriter.deleteRow(PartitionInfo.of(shardStrategy, oldPartition));
+            sweepableTimestamps.deleteRow(PartitionInfo.of(shardStrategy, oldPartition));
         }
     }
 

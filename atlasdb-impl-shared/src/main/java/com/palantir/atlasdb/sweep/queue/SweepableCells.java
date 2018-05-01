@@ -31,25 +31,92 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
-public class SweepableCellsReader {
-    private static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
-            .getSweepableCellsTable(null).getTableRef();
-    private static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
+public class SweepableCells extends KvsSweepQueueWriter {
+    static final int MAX_CELLS_GENERIC = 50;
+    static final int MAX_CELLS_DEDICATED = 100_000;
 
-//    private final KeyValueService kvs;
+    private final WriteInfoPartitioner partitioner;
 
-    SweepableCellsReader(KeyValueService kvs) {
-//        this.kvs = kvs;
+    SweepableCells(KeyValueService kvs, WriteInfoPartitioner partitioner) {
+        super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef());
+        this.partitioner = partitioner;
     }
 
-    static List<WriteInfo> getLatestWrites(KeyValueService kvs, long partitionFine, ShardAndStrategy shardAndStrategy) {
+    @Override
+    protected Map<Cell, byte[]> batchWrites(List<WriteInfo> writes) {
+        Map<Cell, byte[]> result = new HashMap<>();
+        Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(writes);
+        partitionedWrites.forEach((partitionInfo, writeInfos) -> putWrites(partitionInfo, writeInfos, result));
+        return result;
+    }
+
+    private void putWrites(PartitionInfo partitionInfo, List<WriteInfo> writes, Map<Cell, byte[]> result) {
+        boolean dedicate = writes.size() > MAX_CELLS_GENERIC;
+
+        if (dedicate) {
+            addReferenceToDedicatedRows(partitionInfo, writes, result);
+        }
+
+        long index = 0;
+        for (WriteInfo write : writes) {
+            addWrite(partitionInfo, write, dedicate, index, result);
+            index++;
+        }
+    }
+
+    private void addReferenceToDedicatedRows(PartitionInfo info, List<WriteInfo> writes, Map<Cell, byte[]> result) {
+        insert(info, WriteReference.DUMMY, false, 0, -requiredDedicatedRows(writes), result);
+    }
+
+    private void addWrite(PartitionInfo info, WriteInfo write, boolean dedicate, long index, Map<Cell, byte[]> result) {
+        insert(info, write.writeRef(), dedicate, index / MAX_CELLS_DEDICATED, index % MAX_CELLS_DEDICATED, result);
+    }
+
+    private void insert(PartitionInfo info, WriteReference writeRef, boolean dedicate, long dedicatedRow,
+            long index, Map<Cell, byte[]> result) {
+        SweepableCellsTable.SweepableCellsRow row = createRow(info, dedicate, dedicatedRow);
+        SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(info.timestamp(), index, writeRef);
+        result.put(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
+    }
+
+    private SweepableCellsTable.SweepableCellsRow createRow(PartitionInfo info, boolean dedicate, long dedicatedRow) {
+        TargetedSweepMetadata metadata = ImmutableTargetedSweepMetadata.builder()
+                .conservative(info.isConservative().isTrue())
+                .dedicatedRow(dedicate)
+                .shard(info.shard())
+                .dedicatedRowNumber(dedicatedRow)
+                .build();
+
+        return SweepableCellsTable.SweepableCellsRow.of(getTimestampOrPartition(info, dedicate),
+                metadata.persistToBytes());
+    }
+
+    private SweepableCellsTable.SweepableCellsColumnValue createColVal(long ts, long index, WriteReference writeRef) {
+        SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.of(tsMod(ts), index);
+        return SweepableCellsTable.SweepableCellsColumnValue.of(col, writeRef);
+    }
+
+    private long getTimestampOrPartition(PartitionInfo info, boolean dedicate) {
+        return dedicate ? info.timestamp() : SweepQueueUtils.tsPartitionFine(info.timestamp());
+    }
+
+    private long requiredDedicatedRows(List<WriteInfo> writes) {
+        return 1 + (writes.size() - 1) / MAX_CELLS_DEDICATED;
+    }
+
+    private static long tsMod(long timestamp) {
+        return timestamp % SweepQueueUtils.TS_FINE_GRANULARITY;
+    }
+
+    private static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
+
+    List<WriteInfo> getLatestWrites(long partitionFine, ShardAndStrategy shardAndStrategy) {
         SweepableCellsTable.SweepableCellsRow row = computeRow(partitionFine, shardAndStrategy);
 
         RowColumnRangeIterator resultIterator = getAllColumns(kvs, row);
@@ -77,15 +144,15 @@ public class SweepableCellsReader {
                 .build();
     }
 
-    private static RowColumnRangeIterator getAllColumns(KeyValueService kvs, SweepableCellsTable.SweepableCellsRow row) {
+    private RowColumnRangeIterator getAllColumns(KeyValueService kvs, SweepableCellsTable.SweepableCellsRow row) {
         return getAllColumns(kvs, ImmutableList.of(row.persistToBytes()));
     }
 
-    private static RowColumnRangeIterator getAllColumns(KeyValueService kvs, Iterable<byte[]> rows) {
-        return kvs.getRowsColumnRange(TABLE_REF, rows, ALL_COLUMNS, 100_000, SweepQueueUtils.CAS_TS);
+    private RowColumnRangeIterator getAllColumns(KeyValueService kvs, Iterable<byte[]> rows) {
+        return kvs.getRowsColumnRange(tableRef, rows, ALL_COLUMNS, 100_000, SweepQueueUtils.CAS_TS);
     }
 
-    private static void populateResults(KeyValueService kvs, SweepableCellsTable.SweepableCellsRow row, Map.Entry<Cell, Value> entry,
+    private void populateResults(KeyValueService kvs, SweepableCellsTable.SweepableCellsRow row, Map.Entry<Cell, Value> entry,
             Map<WriteReference, Long> results) {
         SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
 
@@ -105,7 +172,7 @@ public class SweepableCellsReader {
         return col.getWriteIndex() < 0;
     }
 
-    private static void populateFromDedicatedRows(KeyValueService kvs, SweepableCellsTable.SweepableCellsRow row,
+    private void populateFromDedicatedRows(KeyValueService kvs, SweepableCellsTable.SweepableCellsRow row,
             SweepableCellsTable.SweepableCellsColumn col, Map<WriteReference, Long> results) {
         List<byte[]> dedicatedRows = computeDedicatedRows(row, col);
         RowColumnRangeIterator iterator = getAllColumns(kvs, dedicatedRows);
@@ -117,7 +184,7 @@ public class SweepableCellsReader {
         return computeRangeRequestForRows(row, row);
     }
 
-    static List<RangeRequest> rangeRequestsForDedicatedRows(KeyValueService kvs, ShardAndStrategy shardAndStrategy, long partitionFine) {
+    List<RangeRequest> rangeRequestsForDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {
         SweepableCellsTable.SweepableCellsRow startingRow = computeRow(partitionFine, shardAndStrategy);
         RowColumnRangeIterator rowIterator = getAllColumns(kvs, startingRow);
         List<RangeRequest> requests = new ArrayList<>();
@@ -186,3 +253,4 @@ public class SweepableCellsReader {
         return new ColumnRangeSelection(startCol, endCol);
     }
 }
+

@@ -23,33 +23,21 @@ import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.table.description.Schemas;
 
 public final class KvsSweepQueuePersister implements MultiTableSweepQueueWriter {
-    private final KeyValueService kvs;
-    private final SweepableCellsWriter sweepableCellsWriter;
-    private final SweepableTimestampsWriter sweepableTimestampsWriter;
+    private final SweepableCells sweepableCells;
+    private final SweepableTimestamps sweepableTimestamps;
 
-    private KvsSweepQueuePersister(KeyValueService kvs, SweepableCellsWriter cells, SweepableTimestampsWriter ts) {
-        this.kvs = kvs;
-        this.sweepableCellsWriter = cells;
-        this.sweepableTimestampsWriter = ts;
+    private KvsSweepQueuePersister(SweepableCells cells, SweepableTimestamps ts) {
+        this.sweepableCells = cells;
+        this.sweepableTimestamps = ts;
     }
 
-    public static KvsSweepQueuePersister create(KeyValueService kvs) {
-        WriteInfoPartitioner partitioner =  new WriteInfoPartitioner(kvs);
-        SweepableCellsWriter cellsWriter = new SweepableCellsWriter(kvs, partitioner);
-        SweepableTimestampsWriter timestampsWriter = new SweepableTimestampsWriter(kvs, partitioner);
-        KvsSweepQueuePersister persister = new KvsSweepQueuePersister(kvs, cellsWriter, timestampsWriter);
-        persister.initialize();
-        return persister;
-    }
-
-    // todo(gmaretic): remove this
-    public void initialize() {
-        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+    public static KvsSweepQueuePersister create(KvsSweepQueueTables tables) {
+        return new KvsSweepQueuePersister(tables.sweepableCells, tables.sweepableTimestamps);
     }
 
     @Override
     public void enqueue(List<WriteInfo> writes) {
-        sweepableTimestampsWriter.enqueue(writes);
-        sweepableCellsWriter.enqueue(writes);
+        sweepableTimestamps.enqueue(writes);
+        sweepableCells.enqueue(writes);
     }
 }
