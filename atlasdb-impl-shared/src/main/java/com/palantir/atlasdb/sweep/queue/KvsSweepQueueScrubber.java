@@ -55,7 +55,7 @@ public class KvsSweepQueueScrubber {
 
     private void scrubSweepableTimestamps(ShardAndStrategy shardStrategy, long oldPartition, long newPartition) {
         if (SweepQueueUtils.partitionFineToCoarse(newPartition) > SweepQueueUtils.partitionFineToCoarse(oldPartition)) {
-            sweepableTimestamps.deleteRow(PartitionInfo.of(shardStrategy, oldPartition));
+            sweepableTimestamps.deleteRow(shardStrategy, oldPartition);
         }
     }
 

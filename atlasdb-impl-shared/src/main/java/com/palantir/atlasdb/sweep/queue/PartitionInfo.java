@@ -33,8 +33,4 @@ public interface PartitionInfo {
                 .timestamp(timestamp)
                 .build();
     }
-
-    static PartitionInfo of(ShardAndStrategy shardStrategy, long timestamp) {
-        return PartitionInfo.of(shardStrategy.shard(), shardStrategy.isConservative(), timestamp);
-    }
 }

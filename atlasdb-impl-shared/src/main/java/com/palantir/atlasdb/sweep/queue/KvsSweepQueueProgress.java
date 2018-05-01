@@ -41,8 +41,8 @@ public class KvsSweepQueueProgress {
             .getSweepShardProgressTable(null).getTableRef();
 
     private static final int SHARD_COUNT_INDEX = -1;
-    static final long INITIAL_SHARDS = 1L;
-    static final long INITIAL_TIMESTAMP = -1L;
+    public static final long INITIAL_SHARDS = 1L;
+    public static final long INITIAL_TIMESTAMP = -1L;
 
     private final KeyValueService kvs;
 
