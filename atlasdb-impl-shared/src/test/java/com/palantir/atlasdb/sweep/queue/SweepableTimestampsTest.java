@@ -47,7 +47,7 @@ public class SweepableTimestampsTest extends SweepQueueTablesTest {
         super.setup();
         provider = new SweepTimestampProvider(() -> unreadableTs, () -> immutableTs);
         progress = new KvsSweepQueueProgress(kvs);
-        sweepableTimestamps = new SweepableTimestamps(kvs, partitioner, progress);
+        sweepableTimestamps = new SweepableTimestamps(kvs, partitioner);
 
         shard = writeToDefault(sweepableTimestamps, TS, true);
         shard2 = writeToDefault(sweepableTimestamps, TS2, false);
@@ -166,12 +166,16 @@ public class SweepableTimestampsTest extends SweepQueueTablesTest {
     }
 
     private Optional<Long> readConservative(int shardNumber) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(conservative(shardNumber),
+        return sweepableTimestamps.nextSweepableTimestampPartition(
+                conservative(shardNumber),
+                progress.getLastSweptTimestampPartition(ShardAndStrategy.conservative(shardNumber)),
                 provider.getSweepTimestamp(Sweeper.CONSERVATIVE));
     }
 
     private Optional<Long> readThorough(int shardNumber) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(thorough(shardNumber),
+        return sweepableTimestamps.nextSweepableTimestampPartition(
+                thorough(shardNumber),
+                progress.getLastSweptTimestampPartition(ShardAndStrategy.thorough(shardNumber)),
                 provider.getSweepTimestamp(Sweeper.THOROUGH));
     }
 }

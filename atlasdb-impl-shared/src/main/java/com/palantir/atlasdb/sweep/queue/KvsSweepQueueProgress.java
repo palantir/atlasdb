@@ -41,8 +41,8 @@ public class KvsSweepQueueProgress {
             .getSweepShardProgressTable(null).getTableRef();
 
     private static final int SHARD_COUNT_INDEX = -1;
-    public static final long INITIAL_SHARDS = 1L;
-    public static final long INITIAL_TIMESTAMP = -1L;
+    static final long INITIAL_SHARDS = 1L;
+    static final long INITIAL_TIMESTAMP = -1L;
 
     private final KeyValueService kvs;
 
@@ -76,7 +76,7 @@ public class KvsSweepQueueProgress {
     }
 
     private Map<Cell, Value> getEntry(ShardAndStrategy shardAndStrategy) {
-        return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shardAndStrategy), SweepQueueUtils.CAS_TS));
+        return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shardAndStrategy), SweepQueueUtils.READ_TS));
     }
 
     private Cell cellForShard(ShardAndStrategy shardAndStrategy) {

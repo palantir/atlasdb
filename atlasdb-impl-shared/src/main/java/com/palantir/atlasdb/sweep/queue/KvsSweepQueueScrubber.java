@@ -46,12 +46,11 @@ public class KvsSweepQueueScrubber {
     }
 
     private void scrubDedicatedRows(ShardAndStrategy shardStrategy, long partition) {
-        sweepableCells.rangeRequestsForDedicatedRows(shardStrategy, partition)
-                .forEach(sweepableCells::deleteRange);
+        sweepableCells.deleteDedicatedRows(shardStrategy, partition);
     }
 
     private void scrubNonDedicatedRow(ShardAndStrategy shardStrategy, long partition) {
-        sweepableCells.deleteRange(sweepableCells.rangeRequestForNonDedicatedRow(shardStrategy, partition));
+        sweepableCells.deleteNonDedicatedRow(shardStrategy, partition);
     }
 
     private void scrubSweepableTimestamps(ShardAndStrategy shardStrategy, long oldPartition, long newPartition) {

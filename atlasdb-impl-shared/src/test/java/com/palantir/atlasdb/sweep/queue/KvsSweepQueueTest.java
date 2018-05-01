@@ -17,11 +17,9 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -60,7 +58,6 @@ public class KvsSweepQueueTest {
 
     KeyValueService kvs;
     KvsSweepQueue sweepQueue = KvsSweepQueue.createUninitialized(() -> SHARDS);
-    KvsSweepQueueScrubber scrubber = mock(KvsSweepQueueScrubber.class);
     long unreadableTs;
     long immutableTs;
 
@@ -76,13 +73,6 @@ public class KvsSweepQueueTest {
         kvs.createTable(TABLE_THOROUGH, metadataBytes(THOROUGH));
         kvs.createTable(TABLE_NOTHING, metadataBytes(NOTHING));
     }
-
-//    // todo(gmaretic): scrubber interface needs to be changed, because we also need to progress if there is nothing to sweep
-//    @Test
-//    public void scrubberCalledEvenIfNothingToSweep() {
-//        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-//        verify(scrubber).scrub(anyCollection());
-//    }
 
     @Test
     public void sweepStrategyNothingDoesNotPersistAntything() {

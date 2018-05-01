@@ -48,16 +48,16 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
 
     @Test
     public void canReadSingleEntryInSingleShard() {
-        assertThat(sweepableCells.getLatestWrites(TS_REF, conservative(shard)))
+        assertThat(sweepableCells.getWritesFromPartition(TS_REF, conservative(shard)))
                 .containsExactly(WriteInfo.write(TABLE_REF, DEFAULT_CELL, TS));
-        assertThat(sweepableCells.getLatestWrites(TS2_REF, thorough(shard2)))
+        assertThat(sweepableCells.getWritesFromPartition(TS2_REF, thorough(shard2)))
                 .containsExactly(WriteInfo.write(TABLE_REF2, DEFAULT_CELL, TS2));
     }
 
     @Test
     public void canReadSingleTombstoneInSameShard() {
         int tombstoneShard = putTombstone(sweepableCells, TS + 1, DEFAULT_CELL, true);
-        assertThat(sweepableCells.getLatestWrites(TS_REF, conservative(tombstoneShard)))
+        assertThat(sweepableCells.getWritesFromPartition(TS_REF, conservative(tombstoneShard)))
                 .containsExactly(WriteInfo.write(TABLE_REF, DEFAULT_CELL, TS + 1));
     }
 
@@ -67,7 +67,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
         writeToDefault(sweepableCells, TS + 2, true);
         writeToDefault(sweepableCells, TS - 2, true);
         writeToDefault(sweepableCells, TS + 1, true);
-        assertThat(sweepableCells.getLatestWrites(TS_REF, conservative(shard)))
+        assertThat(sweepableCells.getWritesFromPartition(TS_REF, conservative(shard)))
                 .containsExactly(WriteInfo.write(TABLE_REF, DEFAULT_CELL, TS + 2));
     }
 
@@ -75,7 +75,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     public void canReadMultipleEntriesInSingleShardDifferentTransactions() {
         int fixedShard = writeToCell(sweepableCells, TS, getCellWithFixedHash(1), true);
         assertThat(writeToCell(sweepableCells, TS + 1, getCellWithFixedHash(2), true)).isEqualTo(fixedShard);
-        assertThat(sweepableCells.getLatestWrites(TS_REF, conservative(fixedShard))).containsExactlyInAnyOrder(
+        assertThat(sweepableCells.getWritesFromPartition(TS_REF, conservative(fixedShard))).containsExactlyInAnyOrder(
                 WriteInfo.write(TABLE_REF, getCellWithFixedHash(1), TS),
                 WriteInfo.write(TABLE_REF, getCellWithFixedHash(2), TS + 1));
     }
@@ -85,7 +85,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
         List<WriteInfo> writes = writeToUniqueCellsInSameShard(sweepableCells, TS, 10, true);
         ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
         assertThat(writes.size()).isEqualTo(10);
-        assertThat(sweepableCells.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+        assertThat(sweepableCells.getWritesFromPartition(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
     }
 
     @Test
@@ -93,7 +93,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
         List<WriteInfo> writes = writeToUniqueCellsInSameShard(sweepableCells, TS, MAX_CELLS_GENERIC * 2 + 1, true);
         ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
         assertThat(writes.size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
-        assertThat(sweepableCells.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+        assertThat(sweepableCells.getWritesFromPartition(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
     }
 
     @Test
@@ -106,7 +106,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
         expectedResult.addAll(writesFirst.subList(writesMiddle.size(), writesFirst.size()));
 
         ShardAndStrategy fixedShardAndStrategy = conservative(writesFirst.get(0).toShard(SHARDS));
-        List<WriteInfo> result = sweepableCells.getLatestWrites(TS_REF, fixedShardAndStrategy);
+        List<WriteInfo> result = sweepableCells.getWritesFromPartition(TS_REF, fixedShardAndStrategy);
         assertThat(result).hasSameElementsAs(expectedResult);
     }
 
@@ -116,6 +116,6 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
         List<WriteInfo> writes = writeToUniqueCellsInSameShard(sweepableCells, TS, MAX_CELLS_DEDICATED + 1, true);
         ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
         assertThat(writes.size()).isEqualTo(MAX_CELLS_DEDICATED + 1);
-        assertThat(sweepableCells.getLatestWrites(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+        assertThat(sweepableCells.getWritesFromPartition(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
     }
 }

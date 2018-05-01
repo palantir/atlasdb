@@ -18,13 +18,12 @@ package com.palantir.atlasdb.sweep.queue;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
-public class KvsSweepQueueTables {
+public final class KvsSweepQueueTables {
     final SweepableCells sweepableCells;
     final SweepableTimestamps sweepableTimestamps;
     final KvsSweepQueueProgress progress;
 
-    public KvsSweepQueueTables(SweepableCells cells,
-            SweepableTimestamps timestamps, KvsSweepQueueProgress progress) {
+    private KvsSweepQueueTables(SweepableCells cells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress) {
         this.sweepableCells = cells;
         this.sweepableTimestamps = timestamps;
         this.progress = progress;
@@ -32,9 +31,9 @@ public class KvsSweepQueueTables {
 
     public static KvsSweepQueueTables create(KeyValueService kvs) {
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs);
-        KvsSweepQueueProgress progress = new KvsSweepQueueProgress(kvs);
-        SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner, progress);
         SweepableCells cells = new SweepableCells(kvs, partitioner);
+        SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
+        KvsSweepQueueProgress progress = new KvsSweepQueueProgress(kvs);
         return new KvsSweepQueueTables(cells, timestamps, progress);
     }
 }

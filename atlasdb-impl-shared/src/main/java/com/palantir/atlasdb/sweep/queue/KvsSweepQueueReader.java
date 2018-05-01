@@ -18,20 +18,20 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.util.Pair;
 
-public class KvsSweepQueueReader implements SweepQueueReader {
+public final class KvsSweepQueueReader implements SweepQueueReader {
     private final SweepableCells sweepableCells;
     private final SweepableTimestamps sweepableTimestamps;
     private final KvsSweepQueueProgress progress;
     private final ShardAndStrategy shardStrategy;
     private final KvsSweepQueueScrubber scrubber;
 
-    KvsSweepQueueReader(SweepableCells sweepableCells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress, ShardAndStrategy shardStrategy) {
+    private KvsSweepQueueReader(SweepableCells sweepableCells, SweepableTimestamps timestamps,
+            KvsSweepQueueProgress progress, ShardAndStrategy shardStrategy) {
         this.sweepableCells = sweepableCells;
         this.sweepableTimestamps = timestamps;
         this.progress = progress;
@@ -39,23 +39,21 @@ public class KvsSweepQueueReader implements SweepQueueReader {
         this.scrubber = new KvsSweepQueueScrubber(sweepableCells, timestamps, progress);
     }
 
-    public static KvsSweepQueueReader create(KvsSweepQueueTables tables, ShardAndStrategy shardStrategy) {
-        return new KvsSweepQueueReader(tables.sweepableCells, tables.sweepableTimestamps, tables.progress, shardStrategy);
+    public static KvsSweepQueueReader create(KvsSweepQueueTables tables, ShardAndStrategy shardStrat) {
+        return new KvsSweepQueueReader(tables.sweepableCells, tables.sweepableTimestamps, tables.progress, shardStrat);
     }
 
     @Override
-    public void consumeNextBatch(Consumer<Collection<WriteInfo>> consumer, long maxTimestampExclusive) {
-        long previousProgress = progress.getLastSweptTimestampPartition(shardStrategy);
-        Pair<List<WriteInfo>, Long> batchAndPartition = getNextBatchAndPartitionFine(maxTimestampExclusive);
-        consumer.accept(batchAndPartition.getLhSide());
-        scrubber.scrub(shardStrategy, previousProgress, batchAndPartition.getRhSide());
+    public void consumeNextBatch(Consumer<Collection<WriteInfo>> consumer, long maxTsExclusive) {
+        long lastSweptTs = progress.getLastSweptTimestampPartition(shardStrategy);
+        Pair<List<WriteInfo>, Long> batchAndPartitionFine = getNextBatchAndPartitionFine(lastSweptTs, maxTsExclusive);
+        consumer.accept(batchAndPartitionFine.getLhSide());
+        scrubber.scrub(shardStrategy, lastSweptTs, batchAndPartitionFine.getRhSide());
     }
 
-    private Pair<List<WriteInfo>, Long> getNextBatchAndPartitionFine(long tsExclusive) {
-        Optional<Long> partitionFine = sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, tsExclusive);
-        if (!partitionFine.isPresent()) {
-            return Pair.create(ImmutableList.of(), SweepQueueUtils.tsPartitionFine(tsExclusive) - 1L);
-        }
-        return Pair.create(sweepableCells.getLatestWrites(partitionFine.get(), shardStrategy), partitionFine.get());
+    private Pair<List<WriteInfo>, Long> getNextBatchAndPartitionFine(long previousFine, long sweepTs) {
+        return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, previousFine, sweepTs)
+                .map(fine -> Pair.create(sweepableCells.getWritesFromPartition(fine, shardStrategy), fine))
+                .orElse(Pair.create(ImmutableList.of(), SweepQueueUtils.tsPartitionFine(sweepTs) - 1L));
     }
 }
