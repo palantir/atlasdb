@@ -57,10 +57,10 @@ develop
 v0.82.1
 =======
 
-.. replace this with the release date and the above with v<tag> (the v makes the permalinks nice)
+1 May 2018
 
 .. list-table::
-:widths: 5 40
+    :widths: 5 40
     :header-rows: 1
 
         *    - Type
