@@ -50,9 +50,33 @@ develop
     *    - Type
          - Change
 
-    *    - |logs|
-         - Expired lock refreshes now tell you which locks expired, instead of just their refreshing token id.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3125>`__)
+    *    -
+         -
+
+=======
+v0.82.0
+=======
+
+1 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - AtlasDB now partitions versions of cells to be swept into batches more robustly and more efficiently.
+           Previously, this could cause stack overflows when sweeping a very wide row, because the partitioning algorithm attempted to traverse a recursive hierarchy of sublists.
+           Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3095>`__)
+
+    *    - |new|
+         - Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) blacklist.
+           This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a blacklisted table, as appropriate.
+           Please see :ref:`Sweep Priority Overrides <sweep-priority-overrides>` for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3090>`__)
 
     *    - |fixed|
          - Transaction managers now shut down threads associated with the QoS client and TimeLock lock refresher when they are closed.
@@ -66,34 +90,11 @@ develop
            Existing installations will be unaffected.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3088>`__)
 
-    *    - |fixed| |improved|
-         - AtlasDB now partitions versions of cells to be swept into batches more robustly and more efficiently.
-           Previously, this could cause stack overflows when sweeping a very wide row, because the partitioning algorithm attempted to traverse a recursive hierarchy of sublists.
-           Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3095>`__)
-
-    *    - |new|
-         - Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) blacklist.
-           This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a blacklisted table, as appropriate.
-           Please see :ref:`Sweep Priority Overrides <sweep-priority-overrides>` for more details.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3090>`__)
-
-    *    - |fixed| |improved|
-         - The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions
-           Previously, the strategy to choose the table to compact was:
-
-             1. if possible choose a table that was swept but not compacted
-             2. otherwise choose a table for which the time passed between last compact and last swept was longer
-
-           (when all tables are swept and afterward compacted, last point above could choose to compact the same table beacuse ``lastSweptTime`` - ``lastCompactTime`` is negative and largest among all tables)
-
-           The new strategy is:
-
-            1. if possible choose a table that was swept but not compacted
-            2. if there is no uncompacted table then choose a table swept further after it was compacted
-            3. otherwise, randomly choose a table after filtering out the ones compacted in the past hour
-
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3100>`__)
+    *    - |fixed|
+         - OkHttp is not handling ``Thread.interrupt()`` well, and calling interrupts repeatedly may cause corrupted http clients.
+           This would cause TimeLock clients to appear silent (requests would not be accepted or logged), but would not have affected data integrity.
+           To avoid this issue, our Feign client is now wrapped with an ``ExceptionCountingRefreshingClient``, which will detect and refresh corrupted clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3121>`__)
 
     *    - |fixed| |devbreak|
          - ``LoggingArgs::isSafeForLogging(TableReference, Cell)`` was removed, as it behaved unexpectedly and could leak information.
@@ -103,17 +104,33 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3093>`__)
 
     *    - |improved| |logs|
+         - Expired lock refreshes now tell you which locks expired, instead of just their refreshing token id.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3125>`__)
+
+    *    - |improved|
+         - The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions.
+           Previously, the strategy to choose the table to compact was:
+
+             1. if possible choose a table that was swept but not compacted
+             2. otherwise choose a table for which the time passed between last compact and last swept was longer
+
+           When all tables are swept and afterward compacted, the last point above could choose to compact the same table because ``lastSweptTime - lastCompactTime`` is negative and largest among all tables.
+
+           The new strategy is:
+
+             1. if possible choose a table that was swept but not compacted
+             2. if there is no uncompacted table then choose a table swept further after it was compacted
+             3. otherwise, randomly choose a table after filtering out the ones compacted in the past hour
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3100>`__)
+
+    *    - |improved| |logs|
          - ``kvs-slow-log`` messages now also include start time of the operation for easier debugging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3117>`__)
 
     *    - |improved| |logs|
          - AtlasDB internal tables will no longer produce warning messages about hotspotting.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3126>`__)
-
-    *    - |fixed|
-         - OkHttp is not handling ``Thread.interrupt()`` well, and calling interrupts repeatedly may cause corrupted clients.
-           To avoid this issue, feign client is now wrapped with an ``ExceptionCountingRefreshingClient``, which will detect and refresh corrupted clients.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3121>`__)
 
 =======
 v0.81.0
