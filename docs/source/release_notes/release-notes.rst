@@ -63,13 +63,13 @@ v0.82.1
     :widths: 5 40
     :header-rows: 1
 
-        *    - Type
-             - Change
+    *    - Type
+         - Change
 
-        *    - |fixed|
-             - Specifying tables in configuration for sweep priority overrides now works properly.
-               Previously, attempting to deserialize configurations with these overrides would cause errors.
-               (`Pull Request <https://github.com/palantir/atlasdb/pull/3136>`__)
+    *    - |fixed|
+         - Specifying tables in configuration for sweep priority overrides now works properly.
+           Previously, attempting to deserialize configurations with these overrides would cause errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3136>`__)
 
 =======
 v0.82.0
