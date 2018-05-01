@@ -91,7 +91,8 @@ v0.82.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3088>`__)
 
     *    - |fixed|
-         - OkHttp is not handling ``Thread.interrupt()`` well, and calling interrupts repeatedly may cause corrupted clients.
+         - OkHttp is not handling ``Thread.interrupt()`` well, and calling interrupts repeatedly may cause corrupted http clients.
+           This would cause TimeLock clients to appear silent (requests would not be accepted or logged), but would not have affected data integrity.
            To avoid this issue, our Feign client is now wrapped with an ``ExceptionCountingRefreshingClient``, which will detect and refresh corrupted clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3121>`__)
 
