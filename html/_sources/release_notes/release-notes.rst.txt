@@ -54,6 +54,24 @@ develop
          -
 
 =======
+v0.82.1
+=======
+
+1 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Specifying tables in configuration for sweep priority overrides now works properly.
+           Previously, attempting to deserialize configurations with these overrides would cause errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3136>`__)
+
+=======
 v0.82.0
 =======
 
