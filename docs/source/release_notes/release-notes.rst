@@ -66,7 +66,7 @@ v0.82.0
     *    - Type
          - Change
 
-    *    - |fixed| |improved|
+    *    - |fixed|
          - AtlasDB now partitions versions of cells to be swept into batches more robustly and more efficiently.
            Previously, this could cause stack overflows when sweeping a very wide row, because the partitioning algorithm attempted to traverse a recursive hierarchy of sublists.
            Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
@@ -92,7 +92,7 @@ v0.82.0
 
     *    - |fixed|
          - OkHttp is not handling ``Thread.interrupt()`` well, and calling interrupts repeatedly may cause corrupted clients.
-           To avoid this issue, feign client is now wrapped with an ``ExceptionCountingRefreshingClient``, which will detect and refresh corrupted clients.
+           To avoid this issue, our Feign client is now wrapped with an ``ExceptionCountingRefreshingClient``, which will detect and refresh corrupted clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3121>`__)
 
     *    - |fixed| |devbreak|
@@ -102,24 +102,24 @@ v0.82.0
            There currently isn't an API for declaring specific row or dynamic column components as safe; please contact the AtlasDB team if you have such a use case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3093>`__)
 
-    *    - |logs|
+    *    - |improved| |logs|
          - Expired lock refreshes now tell you which locks expired, instead of just their refreshing token id.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3125>`__)
 
-    *    - |fixed| |improved|
-         - The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions
+    *    - |improved|
+         - The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions.
            Previously, the strategy to choose the table to compact was:
 
              1. if possible choose a table that was swept but not compacted
              2. otherwise choose a table for which the time passed between last compact and last swept was longer
 
-           (when all tables are swept and afterward compacted, last point above could choose to compact the same table beacuse ``lastSweptTime`` - ``lastCompactTime`` is negative and largest among all tables)
+           When all tables are swept and afterward compacted, the last point above could choose to compact the same table because ``lastSweptTime - lastCompactTime`` is negative and largest among all tables.
 
            The new strategy is:
 
-            1. if possible choose a table that was swept but not compacted
-            2. if there is no uncompacted table then choose a table swept further after it was compacted
-            3. otherwise, randomly choose a table after filtering out the ones compacted in the past hour
+             1. if possible choose a table that was swept but not compacted
+             2. if there is no uncompacted table then choose a table swept further after it was compacted
+             3. otherwise, randomly choose a table after filtering out the ones compacted in the past hour
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3100>`__)
 
