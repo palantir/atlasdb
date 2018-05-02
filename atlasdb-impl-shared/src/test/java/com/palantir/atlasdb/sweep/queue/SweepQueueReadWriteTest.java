@@ -41,8 +41,8 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public abstract class SweepQueueReadWriteTest {
-    static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("test.test");
-    static final TableReference TABLE_REF2 = TableReference.createFromFullyQualifiedName("test.test2");
+    static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");
+    static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.thorough");
     static final Cell DEFAULT_CELL = Cell.create(new byte[] {'r'}, new byte[] {'c'});
     static final long TS = 1_000_000_100L;
     static final long TS2 = 2 * TS;
@@ -56,9 +56,9 @@ public abstract class SweepQueueReadWriteTest {
 
     @Before
     public void setup() {
-        when(mockKvs.getMetadataForTable(TABLE_REF))
+        when(mockKvs.getMetadataForTable(TABLE_CONS))
                 .thenReturn(SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
-        when(mockKvs.getMetadataForTable(TABLE_REF2))
+        when(mockKvs.getMetadataForTable(TABLE_THOR))
                 .thenReturn(SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
         partitioner = new WriteInfoPartitioner(mockKvs);
     }
@@ -77,29 +77,27 @@ public abstract class SweepQueueReadWriteTest {
                 .persistToBytes();
     }
 
-    public static int writeToDefault(KvsSweepQueueWriter writer, long timestamp, boolean conservative) {
-        return writeToCell(writer, timestamp, DEFAULT_CELL, conservative);
+    public static int writeToDefault(KvsSweepQueueWriter writer, long timestamp, TableReference tableRef) {
+        return writeToCell(writer, timestamp, DEFAULT_CELL, tableRef);
     }
 
-    public static int writeToCell(KvsSweepQueueWriter writer, long timestamp, Cell cell, boolean conservative) {
-        return write(writer, timestamp, cell, false, conservative);
+    public static int writeToCell(KvsSweepQueueWriter writer, long timestamp, Cell cell, TableReference tableRef) {
+        return write(writer, timestamp, cell, false, tableRef);
     }
 
-    public static int putTombstone(KvsSweepQueueWriter writer, long timestamp, Cell cell, boolean conservative) {
-        return write(writer, timestamp, cell, true, conservative);
+    public static int putTombstone(KvsSweepQueueWriter writer, long timestamp, Cell cell, TableReference tableRef) {
+        return write(writer, timestamp, cell, true, tableRef);
     }
 
-    private static int write(KvsSweepQueueWriter writer,
-            long timestamp, Cell cell, boolean isTombstone, boolean conservative) {
-        TableReference tableRef = conservative ? TABLE_REF : TABLE_REF2;
+    private static int write(KvsSweepQueueWriter writer, long timestamp, Cell cell, boolean isTombstone,
+            TableReference tableRef) {
         WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
         writer.enqueue(ImmutableList.of(write));
         return write.toShard(SHARDS);
     }
 
-    public static List<WriteInfo> writeToUniqueCellsInSameShard(KvsSweepQueueWriter writer, long timestamp, int number,
-            boolean conservative) {
-        TableReference tableRef = conservative ? TABLE_REF : TABLE_REF2;
+    public static List<WriteInfo> writeToUniqueCellsInFixedShard(KvsSweepQueueWriter writer, long timestamp, int number,
+            TableReference tableRef) {
         List<WriteInfo> result = new ArrayList<>();
         for (long i = 0; i < number; i++) {
             Cell cell = getCellWithFixedHash(i);

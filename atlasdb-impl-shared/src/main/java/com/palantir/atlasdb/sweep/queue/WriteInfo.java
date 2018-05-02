@@ -40,7 +40,7 @@ public interface WriteInfo {
     }
 
     default int toShard(int numShards) {
-        return IntMath.mod(writeRef().hashCode(), numShards);
+        return IntMath.mod(writeRef().cellReference().hashCode(), numShards);
     }
 
     static WriteInfo of(WriteReference writeRef, long timestamp) {

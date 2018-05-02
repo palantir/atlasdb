@@ -37,9 +37,13 @@ public abstract class WriteReference implements Persistable {
     public abstract TableReference tableRef();
     @JsonProperty("c")
     public abstract Cell cell();
-    @Value.Auxiliary
     @JsonProperty("d")
     public abstract boolean isTombstone();
+
+    @Value.Lazy
+    public CellReference cellReference() {
+        return ImmutableCellReference.builder().tableRef(tableRef()).cell(cell()).build();
+    }
 
     public static final WriteReference DUMMY = WriteReference.of(
             TableReference.createFromFullyQualifiedName("dum.my"),

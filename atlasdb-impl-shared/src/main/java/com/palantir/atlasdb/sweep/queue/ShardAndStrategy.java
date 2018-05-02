@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.queue;
 
 import org.immutables.value.Value;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
 @Value.Immutable
@@ -25,8 +26,18 @@ public abstract class ShardAndStrategy {
     public abstract int shard();
     public abstract TableMetadataPersistence.SweepStrategy strategy();
 
+    @Value.Check
+    void allowOnlyConservativeAndThorough() {
+        Preconditions.checkArgument(isConservative() || isThorough(), "Sweep strategy should be CONSERVATIVE or "
+                + "THOROUGH, but it is %s instead.", strategy());
+    }
+
     public boolean isConservative() {
         return strategy() == TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
+    }
+
+    public boolean isThorough() {
+        return strategy() == TableMetadataPersistence.SweepStrategy.THOROUGH;
     }
 
     public static ShardAndStrategy of(int shard, TableMetadataPersistence.SweepStrategy sweepStrategy) {

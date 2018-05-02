@@ -20,10 +20,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -53,12 +53,10 @@ public class SweepableCellsReader {
 
         RowColumnRangeIterator resultIterator = getAllColumns(row);
 
-        Map<WriteReference, Long> results = new HashMap<>();
+        Map<CellReference, WriteInfo> results = new HashMap<>();
         resultIterator.forEachRemaining(entry -> populateResults(row, entry, results));
 
-        return results.entrySet().stream()
-                .map(entry -> WriteInfo.of(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+        return new ArrayList<>(results.values());
     }
 
     private TargetedSweepMetadata getDefaultMetadata(ShardAndStrategy shardAndStrategy) {
@@ -79,7 +77,7 @@ public class SweepableCellsReader {
     }
 
     private void populateResults(SweepableCellsTable.SweepableCellsRow row, Map.Entry<Cell, Value> entry,
-            Map<WriteReference, Long> results) {
+            Map<CellReference, WriteInfo> results) {
         SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.BYTES_HYDRATOR
                 .hydrateFromBytes(entry.getKey().getColumnName());
 
@@ -95,7 +93,7 @@ public class SweepableCellsReader {
     }
 
     private void populateFromDedicatedRows(SweepableCellsTable.SweepableCellsRow row,
-            SweepableCellsTable.SweepableCellsColumn col, Map<WriteReference, Long> results) {
+            SweepableCellsTable.SweepableCellsColumn col, Map<CellReference, WriteInfo> results) {
         TargetedSweepMetadata metadata = TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(row.getMetadata());
         long timestamp = getTimestamp(row, col);
         int numberOfDedicatedRows = (int) -col.getWriteIndex();
@@ -118,13 +116,15 @@ public class SweepableCellsReader {
         return row.getTimestampPartition() * SweepQueueUtils.TS_FINE_GRANULARITY + col.getTimestampModulus();
     }
 
-    private void populateFromValue(long timestamp, Value value, Map<WriteReference, Long> results) {
+    private void populateFromValue(long timestamp, Value value, Map<CellReference, WriteInfo> results) {
         WriteReference writeRef = SweepableCellsTable.SweepableCellsColumnValue.hydrateValue(value.getContents());
-        addIfMaxForCell(timestamp, writeRef, results);
+        populateLatestForCell(timestamp, writeRef, results);
     }
 
-    private void addIfMaxForCell(long ts, WriteReference writeRef, Map<WriteReference, Long> result) {
-        result.merge(writeRef, ts, Math::max);
+    private void populateLatestForCell(long ts, WriteReference writeRef, Map<CellReference, WriteInfo> result) {
+        WriteInfo newWrite = WriteInfo.of(writeRef, ts);
+        result.merge(writeRef.cellReference(), newWrite,
+                (fstWrite, sndWrite) -> fstWrite.timestamp() > sndWrite.timestamp() ? fstWrite : sndWrite);
     }
 
     private static ColumnRangeSelection allPossibleColumns() {
