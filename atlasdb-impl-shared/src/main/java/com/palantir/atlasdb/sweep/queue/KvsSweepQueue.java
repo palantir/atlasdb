@@ -32,7 +32,8 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 public class KvsSweepQueue implements MultiTableSweepQueueWriter {
     private final Supplier<Integer> numShards;
-    private KvsSweepQueueTables tables;
+    @VisibleForTesting
+    KvsSweepQueueTables tables;
     private KvsSweepQueuePersister writer;
     private Map<ShardAndStrategy, KvsSweepQueueReader> shardSpecificReaders;
     private Map<TableMetadataPersistence.SweepStrategy, KvsSweepDeleter> strategySpecificDeleters;
