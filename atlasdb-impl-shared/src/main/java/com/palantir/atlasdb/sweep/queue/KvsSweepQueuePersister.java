@@ -18,10 +18,6 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.List;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.schema.TargetedSweepSchema;
-import com.palantir.atlasdb.table.description.Schemas;
-
 public final class KvsSweepQueuePersister implements MultiTableSweepQueueWriter {
     private final SweepableCells sweepableCells;
     private final SweepableTimestamps sweepableTimestamps;

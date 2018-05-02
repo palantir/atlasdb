@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.eq;
@@ -44,7 +45,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
 public class KvsSweepQueueTest {
     private static final TableReference TABLE_CONSERVATIVE = TableReference.createFromFullyQualifiedName("test.cons");
@@ -76,120 +76,121 @@ public class KvsSweepQueueTest {
 
     @Test
     public void sweepStrategyNothingDoesNotPersistAntything() {
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_NOTHING, TS), TS);
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_NOTHING, TS2), TS2);
-        verify(kvs, times(0)).put(eq(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
-                anyMap(), anyLong());
-        verify(kvs, times(0)).put(eq(TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef()),
-                anyMap(), anyLong());
-        verify(kvs, times(0)).put(eq(TargetedSweepTableFactory.of().getSweepShardProgressTable(null).getTableRef()),
-                anyMap(), anyLong());
+        enqueueWrite(TABLE_NOTHING, TS);
+        enqueueWrite(TABLE_NOTHING, TS2);
+        verify(kvs, times(2)).put(any(TableReference.class), anyMap(), anyLong());
     }
 
     @Test
     public void conservativeSweepAddsSentinelAndLeavesSingleValue() {
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONSERVATIVE, TS), TS);
-        assertNothing(TABLE_CONSERVATIVE, TS);
+        enqueueWrite(TABLE_CONSERVATIVE, TS);
+        assertReadAtTimestampReturnsNothing(TABLE_CONSERVATIVE, TS);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSentinel(TABLE_CONSERVATIVE, TS);
-        assertValue(TABLE_CONSERVATIVE, TS + 1, TS);
+        assertReadAtTimestampReturnsSentinel(TABLE_CONSERVATIVE, TS);
+        assertReadAtTimestampReturnsValue(TABLE_CONSERVATIVE, TS + 1, TS);
     }
 
     @Test
     public void thoroughSweepDoesNotAddSentinelAndLeavesSingleValue() {
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_THOROUGH, TS), TS);
-        assertNothing(TABLE_THOROUGH, TS);
+        enqueueWrite(TABLE_THOROUGH, TS);
+        assertReadAtTimestampReturnsNothing(TABLE_THOROUGH, TS);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
-        assertNothing(TABLE_THOROUGH, TS);
-        assertValue(TABLE_THOROUGH, TS + 1, TS);
+        assertReadAtTimestampReturnsNothing(TABLE_THOROUGH, TS);
+        assertReadAtTimestampReturnsValue(TABLE_THOROUGH, TS + 1, TS);
     }
 
     @Test
     public void conservativeSweepDeletesLowerValue() {
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONSERVATIVE, TS), TS);
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONSERVATIVE, TS2), TS2);
-        assertValue(TABLE_CONSERVATIVE, TS + 1, TS);
-        assertValue(TABLE_CONSERVATIVE, TS2 + 1, TS2);
+        enqueueWrite(TABLE_CONSERVATIVE, TS);
+        enqueueWrite(TABLE_CONSERVATIVE, TS2);
+        assertReadAtTimestampReturnsValue(TABLE_CONSERVATIVE, TS + 1, TS);
+        assertReadAtTimestampReturnsValue(TABLE_CONSERVATIVE, TS2 + 1, TS2);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSentinel(TABLE_CONSERVATIVE, TS + 1);
-        assertValue(TABLE_CONSERVATIVE, TS2 + 1, TS2);
+        assertReadAtTimestampReturnsSentinel(TABLE_CONSERVATIVE, TS + 1);
+        assertReadAtTimestampReturnsValue(TABLE_CONSERVATIVE, TS2 + 1, TS2);
     }
 
     @Test
     public void thoroughSweepDeletesLowerValue() {
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_THOROUGH, TS), TS);
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_THOROUGH, TS2), TS2);
-        assertValue(TABLE_THOROUGH, TS + 1, TS);
-        assertValue(TABLE_THOROUGH, TS2 + 1, TS2);
+        enqueueWrite(TABLE_THOROUGH, TS);
+        enqueueWrite(TABLE_THOROUGH, TS2);
+        assertReadAtTimestampReturnsValue(TABLE_THOROUGH, TS + 1, TS);
+        assertReadAtTimestampReturnsValue(TABLE_THOROUGH, TS2 + 1, TS2);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
-        assertNothing(TABLE_THOROUGH, TS + 1);
-        assertValue(TABLE_THOROUGH, TS2 + 1, TS2);
+        assertReadAtTimestampReturnsNothing(TABLE_THOROUGH, TS + 1);
+        assertReadAtTimestampReturnsValue(TABLE_THOROUGH, TS2 + 1, TS2);
     }
 
     @Test
     public void sweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
         long numWrites = 1000L;
         for (long i = 1; i <= numWrites; i++) {
-            sweepQueue.enqueue(writeToDefaultCell(TABLE_CONSERVATIVE, i), i);
+            enqueueWrite(TABLE_CONSERVATIVE, i);
         }
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSentinel(TABLE_CONSERVATIVE, numWrites);
-        assertValue(TABLE_CONSERVATIVE, numWrites + 1, numWrites);
-        verify(kvs).deleteAllTimestamps(eq(TABLE_CONSERVATIVE), anyMap());
+        assertReadAtTimestampReturnsSentinel(TABLE_CONSERVATIVE, numWrites);
+        assertReadAtTimestampReturnsValue(TABLE_CONSERVATIVE, numWrites + 1, numWrites);
+        verify(kvs, times(1)).deleteAllTimestamps(eq(TABLE_CONSERVATIVE), anyMap());
     }
 
     @Test
-    public void nextBatchOfSweepIgnoresWritesWithLargeTimestamps() {
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONSERVATIVE, TS), TS);
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONSERVATIVE, TS2), TS2);
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONSERVATIVE, TS_FINE_GRANULARITY), TS_FINE_GRANULARITY);
+    public void onlySweepsOneBatchAtATime() {
+        enqueueWrite(TABLE_CONSERVATIVE, TS);
+        enqueueWrite(TABLE_CONSERVATIVE, TS2);
+        enqueueWrite(TABLE_CONSERVATIVE, TS_FINE_GRANULARITY);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSentinel(TABLE_CONSERVATIVE, TS + 1);
-        assertValue(TABLE_CONSERVATIVE, TS2 + 1, TS2);
-        assertValue(TABLE_CONSERVATIVE, TS_FINE_GRANULARITY + 1, TS_FINE_GRANULARITY);
+        assertReadAtTimestampReturnsSentinel(TABLE_CONSERVATIVE, TS + 1);
+        assertReadAtTimestampReturnsValue(TABLE_CONSERVATIVE, TS2 + 1, TS2);
+        assertReadAtTimestampReturnsValue(TABLE_CONSERVATIVE, TS_FINE_GRANULARITY + 1, TS_FINE_GRANULARITY);
     }
-
-
 
     @Test
     public void sweepDeletesWritesWhenTombstoneHasHigherTimestamp() {
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONSERVATIVE, TS), TS);
-        sweepQueue.enqueue(tombstoneToDefaultCell(TABLE_CONSERVATIVE, TS2), TS2);
-        assertValue(TABLE_CONSERVATIVE, TS + 1, TS);
-        assertTombstone(TABLE_CONSERVATIVE, TS2 + 1, TS2);
+        enqueueWrite(TABLE_CONSERVATIVE, TS);
+        enqueueTombstone(TABLE_CONSERVATIVE, TS2);
+        assertReadAtTimestampReturnsValue(TABLE_CONSERVATIVE, TS + 1, TS);
+        assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONSERVATIVE, TS2 + 1, TS2);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSentinel(TABLE_CONSERVATIVE, TS + 1);
-        assertTombstone(TABLE_CONSERVATIVE, TS2 + 1, TS2);
+        assertReadAtTimestampReturnsSentinel(TABLE_CONSERVATIVE, TS + 1);
+        assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONSERVATIVE, TS2 + 1, TS2);
     }
 
     @Test
     public void thoroughSweepDeletesTombstoneIfLatestWrite() {
-        sweepQueue.enqueue(tombstoneToDefaultCell(TABLE_THOROUGH, TS), TS);
-        sweepQueue.enqueue(tombstoneToDefaultCell(TABLE_THOROUGH, TS2), TS2);
-        assertTombstone(TABLE_THOROUGH, TS + 1, TS);
-        assertTombstone(TABLE_THOROUGH, TS2 + 1, TS2);
+        enqueueTombstone(TABLE_THOROUGH, TS);
+        enqueueTombstone(TABLE_THOROUGH, TS2);
+        assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_THOROUGH, TS + 1, TS);
+        assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_THOROUGH, TS2 + 1, TS2);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
-        assertNothing(TABLE_THOROUGH, TS + 1);
-        assertNothing(TABLE_THOROUGH, TS2 + 1);
+        assertReadAtTimestampReturnsNothing(TABLE_THOROUGH, TS + 1);
+        assertReadAtTimestampReturnsNothing(TABLE_THOROUGH, TS2 + 1);
     }
 
     @Test
     public void sweepDeletesTombstonesWhenWriteHasHigherTimestamp() {
-        sweepQueue.enqueue(tombstoneToDefaultCell(TABLE_CONSERVATIVE, TS), TS);
-        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONSERVATIVE, TS2), TS2);
-        assertTombstone(TABLE_CONSERVATIVE, TS + 1, TS);
-        assertValue(TABLE_CONSERVATIVE, TS2 + 1, TS2);
+        enqueueTombstone(TABLE_CONSERVATIVE, TS);
+        enqueueWrite(TABLE_CONSERVATIVE, TS2);
+        assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONSERVATIVE, TS + 1, TS);
+        assertReadAtTimestampReturnsValue(TABLE_CONSERVATIVE, TS2 + 1, TS2);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSentinel(TABLE_CONSERVATIVE, TS + 1);
-        assertValue(TABLE_CONSERVATIVE, TS2 + 1, TS2);
+        assertReadAtTimestampReturnsSentinel(TABLE_CONSERVATIVE, TS + 1);
+        assertReadAtTimestampReturnsValue(TABLE_CONSERVATIVE, TS2 + 1, TS2);
+    }
+
+    private void enqueueWrite(TableReference tableRef, long ts) {
+        sweepQueue.enqueue(writeToDefaultCell(tableRef, ts), ts);
+    }
+
+    private void enqueueTombstone(TableReference tableRef, long ts) {
+        sweepQueue.enqueue(tombstoneToDefaultCell(tableRef, ts), ts);
     }
 
     private Map<TableReference, ? extends Map<Cell, byte[]>> writeToDefaultCell(TableReference tableRef, long ts) {
@@ -204,26 +205,26 @@ public class KvsSweepQueueTest {
         return ImmutableMap.of(tableRef, singleWrite);
     }
 
-    private void assertValue(TableReference tableRef, long ts, long value) {
-        assertThat(readValueFromDefaultCell(tableRef, ts)).isEqualTo(value);
+    private void assertReadAtTimestampReturnsValue(TableReference tableRef, long readTs, long value) {
+        assertThat(readValueFromDefaultCell(tableRef, readTs)).isEqualTo(value);
     }
 
     private long readValueFromDefaultCell(TableReference tableRef, long ts) {
         return PtBytes.toLong(Iterables.getOnlyElement(readFromDefaultCell(tableRef, ts).values()).getContents());
     }
 
-    private void assertSentinel(TableReference tableRef, long ts) {
-        assertTombstone(tableRef, ts, -1L);
+    private void assertReadAtTimestampReturnsSentinel(TableReference tableRef, long readTs) {
+        assertReadAtTimestampReturnsTombstoneAtTimestamp(tableRef, readTs, -1L);
     }
 
-    private void assertTombstone(TableReference tableRef, long readTs, long tombTs) {
+    private void assertReadAtTimestampReturnsTombstoneAtTimestamp(TableReference tableRef, long readTs, long tombTs) {
         Value readValue = Iterables.getOnlyElement(readFromDefaultCell(tableRef, readTs).values());
         assertThat(readValue.getTimestamp()).isEqualTo(tombTs);
         assertThat(readValue.getContents()).isEmpty();
     }
 
-    private void assertNothing(TableReference tableRef, long ts) {
-        assertThat(readFromDefaultCell(tableRef, ts)).isEmpty();
+    private void assertReadAtTimestampReturnsNothing(TableReference tableRef, long readTs) {
+        assertThat(readFromDefaultCell(tableRef, readTs)).isEmpty();
     }
 
     private Map<Cell, Value> readFromDefaultCell(TableReference tableRef, long ts) {

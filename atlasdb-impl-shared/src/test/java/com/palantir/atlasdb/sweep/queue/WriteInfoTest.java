@@ -33,13 +33,20 @@ public class WriteInfoTest {
     private static final long TWO = 2L;
 
     @Test
-    public void tombstoneStatusIsIgnoredForEqualityAndSharding() {
-        assertThat(getWriteAt(ONE)).isEqualTo(getTombstoneAt(ONE));
+    public void cellReferenceIgnoresTombstoneStatus() {
+        assertThat(getWriteAt(ONE)).isNotEqualTo(getTombstoneAt(ONE));
+        assertThat(getWriteAt(ONE).writeRef().cellReference())
+                .isEqualTo(getTombstoneAt(ONE).writeRef().cellReference());
+    }
+
+    @Test
+    public void tombstoneStatusIsIgnoredForSharding() {
+        assertThat(getWriteAt(ONE)).isNotEqualTo(getTombstoneAt(ONE));
         assertThat(getWriteAt(ONE).toShard(SHARDS)).isEqualTo(getTombstoneAt(ONE).toShard(SHARDS));
     }
 
     @Test
-    public void timestampIsIgnoredForShardingOnly() {
+    public void timestampIsIgnoredForSharding() {
         assertThat(getWriteAt(ONE)).isNotEqualTo(getWriteAt(TWO));
         assertThat(getTombstoneAt(ONE)).isNotEqualTo(getTombstoneAt(TWO));
 
@@ -52,7 +59,6 @@ public class WriteInfoTest {
         assertThat(getWriteAt(ONE).timestampToDeleteAtExclusive(Sweeper.CONSERVATIVE)).isEqualTo(ONE);
         assertThat(getWriteAt(ONE).timestampToDeleteAtExclusive(Sweeper.THOROUGH)).isEqualTo(ONE);
         assertThat(getTombstoneAt(ONE).timestampToDeleteAtExclusive(Sweeper.CONSERVATIVE)).isEqualTo(ONE);
-
         assertThat(getTombstoneAt(ONE).timestampToDeleteAtExclusive(Sweeper.THOROUGH)).isEqualTo(TWO);
     }
 

@@ -20,11 +20,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
@@ -68,12 +68,10 @@ public class SweepableCells extends KvsSweepQueueWriter {
         SweepableCellsTable.SweepableCellsRow row = computeRow(partitionFine, shardAndStrategy);
         RowColumnRangeIterator resultIterator = getColumnRangeAllForRow(row);
 
-        Map<WriteReference, Long> writes = new HashMap<>();
+        Map<CellReference, WriteInfo> writes = new HashMap<>();
         resultIterator.forEachRemaining(entry -> populateWrites(row, entry, writes));
 
-        return writes.entrySet().stream()
-                .map(entry -> WriteInfo.of(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+        return new ArrayList<>(writes.values());
     }
 
     void deleteDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {
@@ -113,7 +111,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private void populateWrites(SweepableCellsTable.SweepableCellsRow row, Map.Entry<Cell, Value> entry,
-            Map<WriteReference, Long> writes) {
+            Map<CellReference, WriteInfo> writes) {
         SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
 
         if (isReferenceToDedicatedRows(col)) {
@@ -128,19 +126,21 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private void addWritesFromDedicated(SweepableCellsTable.SweepableCellsRow row,
-            SweepableCellsTable.SweepableCellsColumn col, Map<WriteReference, Long> writes) {
+            SweepableCellsTable.SweepableCellsColumn col, Map<CellReference, WriteInfo> writes) {
         List<byte[]> dedicatedRows = computeDedicatedRows(row, col);
         RowColumnRangeIterator iterator = getColumnRangeAll(dedicatedRows);
         iterator.forEachRemaining(entry -> addWriteFromValue(getTimestamp(row, col), entry.getValue(), writes));
     }
 
-    private void addWriteFromValue(long timestamp, Value value, Map<WriteReference, Long> writes) {
+    private void addWriteFromValue(long timestamp, Value value, Map<CellReference, WriteInfo> writes) {
         WriteReference writeRef = SweepableCellsTable.SweepableCellsColumnValue.hydrateValue(value.getContents());
-        addIfMaxTimestampForCell(timestamp, writeRef, writes);
+        updateLatestForCell(timestamp, writeRef, writes);
     }
 
-    private void addIfMaxTimestampForCell(long ts, WriteReference writeRef, Map<WriteReference, Long> result) {
-        result.merge(writeRef, ts, Math::max);
+    private void updateLatestForCell(long ts, WriteReference writeRef, Map<CellReference, WriteInfo> writes) {
+        WriteInfo newWrite = WriteInfo.of(writeRef, ts);
+        writes.merge(writeRef.cellReference(), newWrite,
+                (writeOne, writeTwo) -> writeOne.timestamp() > writeTwo.timestamp() ? writeOne : writeTwo);
     }
 
     private List<RangeRequest> rangeRequestsDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {
