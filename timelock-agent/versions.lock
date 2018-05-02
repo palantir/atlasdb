@@ -182,9 +182,10 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.1",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "com.palantir.config.crypto:encrypted-config-value"
             ]
         },
         "com.google.guava:guava": {
@@ -442,13 +443,13 @@
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
-            "locked": "1.0.0",
+            "locked": "2.0.1",
             "transitive": [
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value-module": {
-            "locked": "1.0.0",
+            "locked": "2.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]
@@ -1026,9 +1027,10 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.1",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "com.palantir.config.crypto:encrypted-config-value"
             ]
         },
         "com.google.guava:guava": {
@@ -1286,13 +1288,13 @@
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
-            "locked": "1.0.0",
+            "locked": "2.0.1",
             "transitive": [
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value-module": {
-            "locked": "1.0.0",
+            "locked": "2.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]
