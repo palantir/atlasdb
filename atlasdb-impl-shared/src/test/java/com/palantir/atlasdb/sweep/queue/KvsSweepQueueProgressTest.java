@@ -79,59 +79,59 @@ public class KvsSweepQueueProgressTest {
 
     @Test
     public void canReadInitialSweptTimestamp() {
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
     }
 
     @Test
     public void canUpdateSweptTimestamp() {
-        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 1024L);
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(1024L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 1024L);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(1024L);
     }
 
     @Test
     public void attemptingToDecreaseSweptTimestampIsNoop() {
-        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 1024L);
-        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 512L);
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(1024L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 1024L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 512L);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(1024L);
     }
 
     @Test
     public void updatingTimestampForOneShardDoesNotAffectOthers() {
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TWENTY)).isEqualTo(INITIAL_TIMESTAMP);
-        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 1024L);
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TWENTY)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(INITIAL_TIMESTAMP);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 1024L);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(INITIAL_TIMESTAMP);
 
-        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TWENTY, 512L);
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TWENTY)).isEqualTo(512L);
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(1024L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TWENTY, 512L);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(512L);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(1024L);
     }
 
     @Test
     public void updatingTimestampForOneConsistencyDoesNotAffectOther() {
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
-        assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
-        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 128L);
-        assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 128L);
+        assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
 
-        progress.updateLastSweptTimestampPartition(THOROUGH_TEN, 32L);
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(128L);
-        assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(32L);
+        progress.updateLastSweptTimestamp(THOROUGH_TEN, 32L);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(128L);
+        assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(32L);
     }
 
     @Test
     public void updatingTimestampsDoesNotAffectShardsAndViceVersa() {
         assertThat(progress.getNumberOfShards()).isEqualTo(INITIAL_SHARDS);
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
-        assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
 
         progress.updateNumberOfShards(64);
-        progress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 32L);
-        progress.updateLastSweptTimestampPartition(THOROUGH_TEN, 128L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 32L);
+        progress.updateLastSweptTimestamp(THOROUGH_TEN, 128L);
 
         assertThat(progress.getNumberOfShards()).isEqualTo(64);
-        assertThat(progress.getLastSweptTimestampPartition(CONSERVATIVE_TEN)).isEqualTo(32L);
-        assertThat(progress.getLastSweptTimestampPartition(THOROUGH_TEN)).isEqualTo(128L);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(32L);
+        assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(128L);
     }
 
     @Test
@@ -145,7 +145,7 @@ public class KvsSweepQueueProgressTest {
         doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
         KvsSweepQueueProgress instrumentedProgress = new KvsSweepQueueProgress(mockKvs);
 
-        assertThat(instrumentedProgress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 12L))
+        assertThat(instrumentedProgress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 12L))
                 .isEqualTo(15L);
     }
 
@@ -160,7 +160,7 @@ public class KvsSweepQueueProgressTest {
         doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
         KvsSweepQueueProgress instrumentedProgress = new KvsSweepQueueProgress(mockKvs);
 
-        assertThatThrownBy(() -> instrumentedProgress.updateLastSweptTimestampPartition(CONSERVATIVE_TEN, 12L))
+        assertThatThrownBy(() -> instrumentedProgress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 12L))
                 .isInstanceOf(CheckAndSetException.class);
     }
 

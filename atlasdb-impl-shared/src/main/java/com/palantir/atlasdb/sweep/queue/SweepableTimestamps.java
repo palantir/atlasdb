@@ -51,10 +51,10 @@ public class SweepableTimestamps extends KvsSweepQueueWriter {
         cellsToWrite.put(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
     }
 
-    Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptFine, long sweepTs) {
-        long minFineExclusive = lastSweptFine;
-        long maxFineExclusive = SweepQueueUtils.tsPartitionFine(sweepTs);
-        return nextSweepablePartition(shardStrategy, minFineExclusive + 1, maxFineExclusive);
+    Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+        long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs);
+        long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs);
+        return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive + 1);
     }
 
     void deleteRow(ShardAndStrategy shardStrategy, long partitionFine) {

@@ -78,7 +78,7 @@ public class KvsSweepQueueTest {
     }
 
     @Test
-    public void sweepStrategyNothingDoesNotPersistAntything() {
+    public void sweepStrategyNothingDoesNotPersistAnything() {
         enqueueWrite(TABLE_NOTHING, TS);
         enqueueWrite(TABLE_NOTHING, TS2);
         verify(kvs, times(2)).put(any(TableReference.class), anyMap(), anyLong());
@@ -324,31 +324,31 @@ public class KvsSweepQueueTest {
         assertSweepableCellsHasEntryForTimestamp(largestBeforeSweepTs);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSweepableCellsHasNoEntriesInFinePartitionOfTimestamp(TS + 1);
+        assertSweepableCellsHasNoEntriesBeforeTimestamp(TS + 1);
         assertSweepableCellsHasEntryForTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(largestBeforeSweepTs);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSweepableCellsHasNoEntriesInFinePartitionOfTimestamp(TS + 1);
-        assertSweepableCellsHasNoEntriesInFinePartitionOfTimestamp(tsSecondPartitionFine);
+        assertSweepableCellsHasNoEntriesBeforeTimestamp(TS + 1);
+        assertSweepableCellsHasNoEntriesBeforeTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(largestBeforeSweepTs);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSweepableCellsHasNoEntriesInFinePartitionOfTimestamp(TS + 1);
-        assertSweepableCellsHasNoEntriesInFinePartitionOfTimestamp(tsSecondPartitionFine);
-        assertSweepableCellsHasNoEntriesInFinePartitionOfTimestamp(largestBeforeSweepTs);
+        assertSweepableCellsHasNoEntriesBeforeTimestamp(TS + 1);
+        assertSweepableCellsHasNoEntriesBeforeTimestamp(tsSecondPartitionFine);
+        assertSweepableCellsHasNoEntriesBeforeTimestamp(largestBeforeSweepTs);
     }
 
     private void assertSweepableCellsHasEntryForTimestamp(long timestamp) {
-        assertThat(sweepQueue.tables.sweepableCells
-                .getWritesFromPartition(tsPartitionFine(timestamp), ShardAndStrategy.conservative(CONS_SHARD)))
-                .containsExactly(WriteInfo.write(TABLE_CONSERVATIVE, DEFAULT_CELL, timestamp));
+        SweepBatch batch = sweepQueue.tables.sweepableCells.getWritesFromPartition(
+                ShardAndStrategy.conservative(CONS_SHARD), tsPartitionFine(timestamp), -1L, timestamp + 1);
+        assertThat(batch.writes()).containsExactly(WriteInfo.write(TABLE_CONSERVATIVE, DEFAULT_CELL, timestamp));
     }
 
-    private void assertSweepableCellsHasNoEntriesInFinePartitionOfTimestamp(long timestamp) {
-        assertThat(sweepQueue.tables.sweepableCells
-                .getWritesFromPartition(tsPartitionFine(timestamp), ShardAndStrategy.conservative(CONS_SHARD)))
-                .isEmpty();
+    private void assertSweepableCellsHasNoEntriesBeforeTimestamp(long timestamp) {
+        SweepBatch batch = sweepQueue.tables.sweepableCells.getWritesFromPartition(
+                ShardAndStrategy.conservative(CONS_SHARD), tsPartitionFine(timestamp), -1L, timestamp + 1);
+                assertThat(batch.writes()).isEmpty();
     }
 
     private void enqueueWrite(TableReference tableRef, long ts) {
@@ -399,7 +399,7 @@ public class KvsSweepQueueTest {
     }
 
     private void assertProgressUpdatedToFineTimestampPartition(long partitionFine) {
-        assertThat(sweepQueue.tables.progress.getLastSweptTimestampPartition(ShardAndStrategy.conservative(CONS_SHARD)))
+        assertThat(sweepQueue.tables.progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD)))
                 .isEqualTo(partitionFine);
     }
 

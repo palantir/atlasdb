@@ -59,11 +59,11 @@ public class KvsSweepQueueProgress {
         return increaseValueToAtLeast(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), newNumber);
     }
 
-    public long getLastSweptTimestampPartition(ShardAndStrategy shardAndStrategy) {
+    public long getLastSweptTimestamp(ShardAndStrategy shardAndStrategy) {
         return getOrReturnInitial(shardAndStrategy, INITIAL_TIMESTAMP);
     }
 
-    public long updateLastSweptTimestampPartition(ShardAndStrategy shardAndStrategy, long timestamp) {
+    public long updateLastSweptTimestamp(ShardAndStrategy shardAndStrategy, long timestamp) {
         return increaseValueToAtLeast(shardAndStrategy, timestamp);
     }
 
@@ -94,7 +94,7 @@ public class KvsSweepQueueProgress {
     }
 
     private long increaseValueToAtLeast(ShardAndStrategy shardAndStrategy, long newVal) {
-        long oldVal = getLastSweptTimestampPartition(shardAndStrategy);
+        long oldVal = getLastSweptTimestamp(shardAndStrategy);
         byte[] colValNew = SweepShardProgressTable.Value.of(newVal).persistValue();
 
         while (oldVal < newVal) {

@@ -44,6 +44,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     @VisibleForTesting
     static final int MAX_CELLS_DEDICATED = 100_000;
     private static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
+    public static final long SWEEP_BATCH_SIZE = 1000L;
 
     public SweepableCells(KeyValueService kvs, WriteInfoPartitioner partitioner) {
         super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner);
@@ -64,14 +65,28 @@ public class SweepableCells extends KvsSweepQueueWriter {
         }
     }
 
-    List<WriteInfo> getWritesFromPartition(long partitionFine, ShardAndStrategy shardAndStrategy) {
+    SweepBatch getWritesFromPartition(ShardAndStrategy shardAndStrategy, long partitionFine, long minTsExclusive, long maxTsExclusive) {
+        if (minTsExclusive + 1 >= maxTsExclusive) {
+            return  SweepBatch.of(ImmutableList.of(), minTsExclusive);
+        }
+
         SweepableCellsTable.SweepableCellsRow row = computeRow(partitionFine, shardAndStrategy);
-        RowColumnRangeIterator resultIterator = getColumnRangeAllForRow(row);
+        RowColumnRangeIterator resultIterator = getColumnRangeForRow(row, minTsExclusive, maxTsExclusive);
 
         Map<CellReference, WriteInfo> writes = new HashMap<>();
-        resultIterator.forEachRemaining(entry -> populateWrites(row, entry, writes));
+        long lastSweptTs = 0L;
 
-        return new ArrayList<>(writes.values());
+        while (resultIterator.hasNext() && writes.size() <= SWEEP_BATCH_SIZE) {
+            Map.Entry<Cell, Value> entry = resultIterator.next();
+            populateWrites(row, entry, writes);
+            lastSweptTs = getTimestamp(row, computeColumn(entry));
+        }
+
+        if (!resultIterator.hasNext()) {
+            lastSweptTs = Math.min(maxForFinePartition(partitionFine), maxTsExclusive - 1);
+        }
+
+        return SweepBatch.of(writes.values(), lastSweptTs);
     }
 
     void deleteDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {
@@ -232,12 +247,31 @@ public class SweepableCells extends KvsSweepQueueWriter {
         return getRowsColumnRange(rows, ALL_COLUMNS, MAX_CELLS_DEDICATED);
     }
 
+    private RowColumnRangeIterator getColumnRangeForRow(SweepableCellsTable.SweepableCellsRow row, long minTsExclusive,
+            long maxTsExclusive) {
+        return getRowsColumnRange(ImmutableList.of(row.persistToBytes()), columnsBetween(minTsExclusive + 1, maxTsExclusive), MAX_CELLS_DEDICATED);
+    }
+
     private long getTimestamp(SweepableCellsTable.SweepableCellsRow row, SweepableCellsTable.SweepableCellsColumn col) {
         return row.getTimestampPartition() * SweepQueueUtils.TS_FINE_GRANULARITY + col.getTimestampModulus();
     }
 
+    private long maxForFinePartition(long finePartition) {
+        return finePartition * SweepQueueUtils.TS_FINE_GRANULARITY + SweepQueueUtils.TS_FINE_GRANULARITY - 1;
+    }
+
     private long getTimestampOrPartition(PartitionInfo info, boolean dedicate) {
         return dedicate ? info.timestamp() : SweepQueueUtils.tsPartitionFine(info.timestamp());
+    }
+
+    private ColumnRangeSelection columnsBetween(long startTsInclusive, long endTsExclusive) {
+        long startMod = tsMod(startTsInclusive);
+        byte[] startCol = SweepableCellsTable.SweepableCellsColumn.of(
+                startMod, -TargetedSweepMetadata.MAX_DEDICATED_ROWS).persistToBytes();
+        long end = Math.min(endTsExclusive - startTsInclusive + startMod, SweepQueueUtils.TS_FINE_GRANULARITY);
+        byte[] endCol = SweepableCellsTable.SweepableCellsColumn.of(
+                end, -TargetedSweepMetadata.MAX_DEDICATED_ROWS).persistToBytes();
+        return new ColumnRangeSelection(startCol, endCol);
     }
 
     private static ColumnRangeSelection allPossibleColumns() {

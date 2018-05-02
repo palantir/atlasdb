@@ -47,18 +47,22 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     }
 
     @Test
-    public void canReadSingleEntryInSingleShard() {
-        assertThat(sweepableCells.getWritesFromPartition(TS_REF, conservative(shardCons)))
-                .containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
-        assertThat(sweepableCells.getWritesFromPartition(TS2_REF, thorough(shardThor)))
-                .containsExactly(WriteInfo.write(TABLE_THOR, DEFAULT_CELL, TS2));
+    public void canReadSingleEntryInSingleShardForCorrectPartitionAndRange() {
+        SweepBatch conservativeBatch = readConservative(shardCons, TS_REF, TS - 1, TS + 1);
+        assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
+        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(TS);
+
+        SweepBatch thoroughBatch = readThorough(TS2_REF, TS2 - 1, TS2 + 1);
+        assertThat(thoroughBatch.writes()).containsExactly(WriteInfo.write(TABLE_THOR, DEFAULT_CELL, TS2));
+        assertThat(thoroughBatch.lastSweptTimestamp()).isEqualTo(TS2);
     }
 
     @Test
-    public void canReadSingleTombstoneInSameShard() {
+    public void readTombstoneOnlyWhenLatestInShardAndRange() {
         int tombstoneShard = putTombstone(sweepableCells, TS + 1, DEFAULT_CELL, TABLE_CONS);
-        List<WriteInfo> latestWrites = sweepableCells.getWritesFromPartition(TS_REF, conservative(tombstoneShard));
-        assertThat(latestWrites).containsExactly(WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, TS + 1));
+        SweepBatch batch = readConservative(tombstoneShard, TS_REF, TS - 1, TS + 2);
+        assertThat(batch.writes()).containsExactly(WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, TS + 1));
+        assertThat(batch.lastSweptTimestamp()).isEqualTo(TS + 1);
     }
 
     @Test
@@ -67,34 +71,37 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
         writeToDefault(sweepableCells, TS + 2, TABLE_CONS);
         writeToDefault(sweepableCells, TS - 2, TABLE_CONS);
         writeToDefault(sweepableCells, TS + 1, TABLE_CONS);
-        assertThat(sweepableCells.getWritesFromPartition(TS_REF, conservative(shardCons)))
-                .containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS + 2));
+        SweepBatch conservativeBatch = readConservative(shardCons, TS_REF, TS - 3, TS + 3);
+        assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS + 2));
+        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(TS + 2);
     }
 
     @Test
     public void canReadMultipleEntriesInSingleShardDifferentTransactions() {
         int fixedShard = writeToCell(sweepableCells, TS, getCellWithFixedHash(1), TABLE_CONS);
         assertThat(writeToCell(sweepableCells, TS + 1, getCellWithFixedHash(2), TABLE_CONS)).isEqualTo(fixedShard);
-        assertThat(sweepableCells.getWritesFromPartition(TS_REF, conservative(fixedShard))).containsExactlyInAnyOrder(
+        SweepBatch conservativeBatch = readConservative(fixedShard, TS_REF, TS - 1, TS + 2);
+        assertThat(conservativeBatch.writes()).containsExactlyInAnyOrder(
                 WriteInfo.write(TABLE_CONS, getCellWithFixedHash(1), TS),
                 WriteInfo.write(TABLE_CONS, getCellWithFixedHash(2), TS + 1));
     }
 
     @Test
     public void canReadMultipleEntriesInSingleShardSameTransactionNotDedicated() {
-
         List<WriteInfo> writes = writeToCellsInFixedShard(sweepableCells, TS, 10, TABLE_CONS);
-        ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
-        assertThat(writes.size()).isEqualTo(10);
-        assertThat(sweepableCells.getWritesFromPartition(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+        int fixedShard = writes.get(0).toShard(SHARDS);
+        SweepBatch conservativeBatch = readConservative(fixedShard, TS_REF, TS - 1, TS + 1);
+        assertThat(conservativeBatch.writes().size()).isEqualTo(10);
+        assertThat(conservativeBatch.writes()).hasSameElementsAs(writes);
     }
 
     @Test
     public void canReadMultipleEntriesInSingleShardSameTransactionOneDedicated() {
         List<WriteInfo> writes = writeToCellsInFixedShard(sweepableCells, TS, MAX_CELLS_GENERIC * 2 + 1, TABLE_CONS);
-        ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
-        assertThat(writes.size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
-        assertThat(sweepableCells.getWritesFromPartition(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+        int fixedShard = writes.get(0).toShard(SHARDS);
+        SweepBatch conservativeBatch = readConservative(fixedShard, TS_REF, TS - 1, TS + 1);
+        assertThat(conservativeBatch.writes().size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
+        assertThat(conservativeBatch.writes()).hasSameElementsAs(writes);
     }
 
     @Test
@@ -110,17 +117,26 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
         expectedResult.addAll(middle.subList(last.size(), middle.size()));
         expectedResult.addAll(first.subList(middle.size(), first.size()));
 
-        ShardAndStrategy fixedShardAndStrategy = conservative(first.get(0).toShard(SHARDS));
-        List<WriteInfo> result = sweepableCells.getWritesFromPartition(TS_REF, fixedShardAndStrategy);
-        assertThat(result).hasSameElementsAs(expectedResult);
+        int fixedShard = first.get(0).toShard(SHARDS);
+        SweepBatch conservativeBatch = readConservative(fixedShard, TS_REF, TS - 1, TS + 3);
+        assertThat(conservativeBatch.writes().size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
+        assertThat(conservativeBatch.writes()).hasSameElementsAs(expectedResult);
     }
 
     @Test
     @Ignore("This test takes 53 minutes to complete. Need to see how it performs with CassandraKVS")
     public void canReadMultipleEntriesInSingleShardSameTransactionMultipleDedicated() {
         List<WriteInfo> writes = writeToCellsInFixedShard(sweepableCells, TS, MAX_CELLS_DEDICATED + 1, TABLE_CONS);
-        ShardAndStrategy fixedShardAndStrategy = conservative(writes.get(0).toShard(SHARDS));
-        assertThat(writes.size()).isEqualTo(MAX_CELLS_DEDICATED + 1);
-        assertThat(sweepableCells.getWritesFromPartition(TS_REF, fixedShardAndStrategy)).hasSameElementsAs(writes);
+        int fixedShard = writes.get(0).toShard(SHARDS);
+        SweepBatch conservativeBatch = readConservative(fixedShard, TS_REF, TS - 1, TS + 1);
+        assertThat(conservativeBatch.writes()).hasSameElementsAs(writes);
+    }
+
+    private SweepBatch readConservative(int shard, long partition, long minExclusive, long maxExclusive) {
+        return sweepableCells.getWritesFromPartition(conservative(shard), partition, minExclusive, maxExclusive);
+    }
+
+    private SweepBatch readThorough(long partition, long minExclusive, long maxExclusive) {
+            return sweepableCells.getWritesFromPartition(thorough(shardThor), partition, minExclusive, maxExclusive);
     }
 }

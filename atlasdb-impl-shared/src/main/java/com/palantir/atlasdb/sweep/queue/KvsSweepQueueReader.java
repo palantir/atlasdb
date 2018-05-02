@@ -45,15 +45,15 @@ public final class KvsSweepQueueReader implements SweepQueueReader {
 
     @Override
     public void consumeNextBatch(Consumer<Collection<WriteInfo>> consumer, long maxTsExclusive) {
-        long lastSweptTs = progress.getLastSweptTimestampPartition(shardStrategy);
-        Pair<List<WriteInfo>, Long> batchAndPartitionFine = getNextBatchAndPartitionFine(lastSweptTs, maxTsExclusive);
-        consumer.accept(batchAndPartitionFine.getLhSide());
-        scrubber.scrub(shardStrategy, lastSweptTs, batchAndPartitionFine.getRhSide());
+        long previousLastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
+        SweepBatch sweepBatch = getNextBatchAndSweptTimestamp(previousLastSweptTs, maxTsExclusive);
+        consumer.accept(sweepBatch.writes());
+        scrubber.scrub(shardStrategy, previousLastSweptTs, sweepBatch.lastSweptTimestamp());
     }
 
-    private Pair<List<WriteInfo>, Long> getNextBatchAndPartitionFine(long previousFine, long sweepTs) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, previousFine, sweepTs)
-                .map(fine -> Pair.create(sweepableCells.getWritesFromPartition(fine, shardStrategy), fine))
-                .orElse(Pair.create(ImmutableList.of(), SweepQueueUtils.tsPartitionFine(sweepTs) - 1L));
+    private SweepBatch getNextBatchAndSweptTimestamp(long lastSweptTs, long sweepTs) {
+        return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
+                .map(fine -> sweepableCells.getWritesFromPartition(shardStrategy, fine, lastSweptTs, sweepTs))
+                .orElse(SweepBatch.of(ImmutableList.of(), sweepTs - 1L));
     }
 }
