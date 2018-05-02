@@ -69,7 +69,7 @@ public class ExceptionCountingRefreshingClient implements Client {
     private Client delegate() {
         long currentCount = counter.get();
         if (currentCount >= exceptionCountBeforeRefresh && counter.compareAndSet(currentCount, 0)) {
-            log.info("Creating a new Feign client, as {} exceptions have been thrown in a row by old client",
+            log.warn("Creating a new Feign client, as {} exceptions have been thrown in a row by old client",
                     SafeArg.of("count", currentCount));
             try {
                 currentClient = refreshingSupplier.get();
