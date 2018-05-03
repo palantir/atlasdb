@@ -83,7 +83,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         }
 
         if (!resultIterator.hasNext()) {
-            lastSweptTs = Math.min(maxForFinePartition(partitionFine), maxTsExclusive - 1);
+            lastSweptTs = Math.min(SweepQueueUtils.maxForFinePartition(partitionFine), maxTsExclusive - 1);
         }
 
         return SweepBatch.of(writes.values(), lastSweptTs);
@@ -254,10 +254,6 @@ public class SweepableCells extends KvsSweepQueueWriter {
 
     private long getTimestamp(SweepableCellsTable.SweepableCellsRow row, SweepableCellsTable.SweepableCellsColumn col) {
         return row.getTimestampPartition() * SweepQueueUtils.TS_FINE_GRANULARITY + col.getTimestampModulus();
-    }
-
-    private long maxForFinePartition(long finePartition) {
-        return finePartition * SweepQueueUtils.TS_FINE_GRANULARITY + SweepQueueUtils.TS_FINE_GRANULARITY - 1;
     }
 
     private long getTimestampOrPartition(PartitionInfo info, boolean dedicate) {

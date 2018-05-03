@@ -31,6 +31,7 @@ import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.Swe
 import static com.palantir.atlasdb.sweep.queue.SweepQueueTablesTest.metadataBytes;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_COARSE_GRANULARITY;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_FINE_GRANULARITY;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxForFinePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
 
@@ -237,22 +238,20 @@ public class KvsSweepQueueTest {
         long finePartitionForSweepTs = tsPartitionFine(provider.getSweepTimestamp(Sweeper.CONSERVATIVE));
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
-        assertProgressUpdatedToFineTimestampPartition(finePartitionForSweepTs - 1L);
+        assertProgressUpdatedToTimestamp(finePartitionForSweepTs - 1L);
     }
 
     @Test
     public void sweepProgressesToPartitionOfJustSwept() {
-        long finePartitionForSweepTs = tsPartitionFine(provider.getSweepTimestamp(Sweeper.CONSERVATIVE));
-        long writeTs = provider.getSweepTimestamp(Sweeper.CONSERVATIVE) - 3 * TS_FINE_GRANULARITY;
+        long sweepTs = provider.getSweepTimestamp(Sweeper.CONSERVATIVE);
+        long writeTs = sweepTs - 3 * TS_FINE_GRANULARITY;
         enqueueWrite(TABLE_CONSERVATIVE, writeTs);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertProgressUpdatedToFineTimestampPartition(tsPartitionFine(writeTs));
+        assertProgressUpdatedToTimestamp(maxForFinePartition(tsPartitionFine(writeTs)));
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertProgressUpdatedToFineTimestampPartition(finePartitionForSweepTs - 1L);
-
-        assertThat(tsPartitionFine(writeTs)).isLessThan(finePartitionForSweepTs);
+        assertProgressUpdatedToTimestamp(sweepTs - 1L);
     }
 
     @Test
@@ -398,7 +397,7 @@ public class KvsSweepQueueTest {
         return kvs.get(tableRef, singleRead);
     }
 
-    private void assertProgressUpdatedToFineTimestampPartition(long partitionFine) {
+    private void assertProgressUpdatedToTimestamp(long partitionFine) {
         assertThat(sweepQueue.tables.progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD)))
                 .isEqualTo(partitionFine);
     }

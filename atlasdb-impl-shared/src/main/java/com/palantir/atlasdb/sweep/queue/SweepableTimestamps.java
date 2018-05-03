@@ -52,7 +52,7 @@ public class SweepableTimestamps extends KvsSweepQueueWriter {
     }
 
     Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
-        long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs);
+        long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs + 1);
         long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs);
         return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive + 1);
     }

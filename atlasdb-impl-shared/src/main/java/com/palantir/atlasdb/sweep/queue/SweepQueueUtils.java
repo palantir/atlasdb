@@ -48,6 +48,10 @@ public final class SweepQueueUtils {
         return partitionFine / (TS_COARSE_GRANULARITY / TS_FINE_GRANULARITY);
     }
 
+    public static long maxForFinePartition(long finePartition) {
+        return finePartition * SweepQueueUtils.TS_FINE_GRANULARITY + SweepQueueUtils.TS_FINE_GRANULARITY - 1;
+    }
+
     public static Cell toCell(Persistable row, ColumnValue<?> col) {
         return Cell.create(row.persistToBytes(), col.persistColumnName());
     }
