@@ -126,7 +126,7 @@ public class SweepableTimestampsTest extends SweepQueueTablesTest {
 
     @Test
     public void noNextTimestampIfProgressedBeyondForConservative() {
-        progress.updateLastSweptTimestamp(conservative(shardCons), TS_REF);
+        progress.updateLastSweptTimestamp(conservative(shardCons), SweepQueueUtils.maxForFinePartition(TS_REF));
         assertThat(readConservative(shardCons)).isEmpty();
         assertThat(readThorough(shardThor)).contains(TS2_REF);
     }

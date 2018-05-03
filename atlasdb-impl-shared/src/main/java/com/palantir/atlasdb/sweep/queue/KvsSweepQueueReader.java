@@ -17,11 +17,9 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.function.Consumer;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.util.Pair;
 
 public final class KvsSweepQueueReader implements SweepQueueReader {
     private final SweepableCells sweepableCells;
@@ -53,7 +51,7 @@ public final class KvsSweepQueueReader implements SweepQueueReader {
 
     private SweepBatch getNextBatchAndSweptTimestamp(long lastSweptTs, long sweepTs) {
         return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
-                .map(fine -> sweepableCells.getWritesFromPartition(shardStrategy, fine, lastSweptTs, sweepTs))
+                .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
                 .orElse(SweepBatch.of(ImmutableList.of(), sweepTs - 1L));
     }
 }

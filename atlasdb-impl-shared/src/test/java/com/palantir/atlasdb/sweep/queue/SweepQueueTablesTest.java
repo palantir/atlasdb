@@ -48,6 +48,7 @@ public abstract class SweepQueueTablesTest {
     static final long TS2 = 2 * TS;
     static final long TS_REF = tsPartitionFine(TS);
     static final long TS2_REF = tsPartitionFine(TS2);
+    static final int FIXED_SHARD = WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(SHARDS);
 
     protected KeyValueService mockKvs = mock(KeyValueService.class);
     protected KeyValueService kvs = new InMemoryKeyValueService(true);
@@ -97,8 +98,13 @@ public abstract class SweepQueueTablesTest {
 
     public static List<WriteInfo> writeToCellsInFixedShard(KvsSweepQueueWriter writer, long timestamp, int number,
             TableReference tableRef) {
+        return writeToCellsInFixedShardStartWith(writer, timestamp, number, tableRef, 0L);
+    }
+
+    public static List<WriteInfo> writeToCellsInFixedShardStartWith(KvsSweepQueueWriter writer, long timestamp,
+            int number, TableReference tableRef, long startSeed) {
         List<WriteInfo> result = new ArrayList<>();
-        for (long i = 0; i < number; i++) {
+        for (long i = startSeed; i < startSeed + number; i++) {
             Cell cell = getCellWithFixedHash(i);
             result.add(WriteInfo.write(tableRef, cell, timestamp));
         }

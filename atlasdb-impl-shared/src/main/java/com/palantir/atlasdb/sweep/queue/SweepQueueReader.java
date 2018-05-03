@@ -28,7 +28,6 @@ public interface SweepQueueReader {
      * on the next invocation.
      * @param consumer
      * @param maxTimestampExclusive
-     * @return
      */
     void consumeNextBatch(Consumer<Collection<WriteInfo>> consumer, long maxTimestampExclusive);
 
