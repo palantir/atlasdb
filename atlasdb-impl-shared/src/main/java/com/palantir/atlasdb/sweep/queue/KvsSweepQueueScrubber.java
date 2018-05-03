@@ -41,11 +41,14 @@ public class KvsSweepQueueScrubber {
     }
 
     private void scrubSweepableCells(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
-        long oldPartitionFine = SweepQueueUtils.tsPartitionFine(oldProgress);
-        long newPartitionFine = SweepQueueUtils.tsPartitionFine(newProgress);
-        if (newPartitionFine > oldPartitionFine) {
-            scrubDedicatedRows(shardStrategy, oldPartitionFine);
-            scrubNonDedicatedRow(shardStrategy, oldPartitionFine);
+        if (oldProgress < 0) {
+            return;
+        }
+        long oldLastSweptPartition = SweepQueueUtils.tsPartitionFine(oldProgress);
+        long newMinSweepPartition = SweepQueueUtils.tsPartitionFine(newProgress + 1);
+        if (newMinSweepPartition > oldLastSweptPartition) {
+            scrubDedicatedRows(shardStrategy, oldLastSweptPartition);
+            scrubNonDedicatedRow(shardStrategy, oldLastSweptPartition);
         }
     }
 
@@ -58,10 +61,13 @@ public class KvsSweepQueueScrubber {
     }
 
     private void scrubSweepableTimestamps(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
-        long oldPartitionCoarse = SweepQueueUtils.tsPartitionCoarse(oldProgress);
-        long newPartitionCoarse = SweepQueueUtils.tsPartitionCoarse(newProgress);
-        if (newPartitionCoarse > oldPartitionCoarse) {
-            sweepableTimestamps.deleteRow(shardStrategy, oldProgress);
+        if (oldProgress < 0) {
+            return;
+        }
+        long oldLastSweptPartition = SweepQueueUtils.tsPartitionCoarse(oldProgress);
+        long newMinSweepPartition = SweepQueueUtils.tsPartitionCoarse(newProgress + 1);
+        if (newMinSweepPartition > oldLastSweptPartition) {
+            sweepableTimestamps.deleteRow(shardStrategy, oldLastSweptPartition);
         }
     }
 

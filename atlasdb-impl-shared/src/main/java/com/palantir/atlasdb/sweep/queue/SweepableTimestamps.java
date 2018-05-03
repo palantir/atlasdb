@@ -57,8 +57,8 @@ public class SweepableTimestamps extends KvsSweepQueueWriter {
         return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive + 1);
     }
 
-    void deleteRow(ShardAndStrategy shardStrategy, long partitionFine) {
-        byte[] row = computeRow(shardStrategy, SweepQueueUtils.partitionFineToCoarse(partitionFine)).persistToBytes();
+    void deleteRow(ShardAndStrategy shardStrategy, long partitionCoarse) {
+        byte[] row = computeRow(shardStrategy, partitionCoarse).persistToBytes();
 
         RangeRequest request = RangeRequest.builder()
                 .startRowInclusive(row)
