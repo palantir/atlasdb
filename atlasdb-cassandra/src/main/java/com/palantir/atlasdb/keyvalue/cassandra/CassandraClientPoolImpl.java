@@ -415,7 +415,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     public <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
             FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedHost);
-        return runWithPooledResourceRecordingMetrics(hostPool, fn);
+        V response = runWithPooledResourceRecordingMetrics(hostPool, fn);
+        blacklist.remove(specifiedHost);
+        return response;
     }
 
     private <V, K extends Exception> V runWithPooledResourceRecordingMetrics(
