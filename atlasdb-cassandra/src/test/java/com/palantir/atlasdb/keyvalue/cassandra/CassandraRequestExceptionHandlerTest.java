@@ -297,7 +297,22 @@ public class CassandraRequestExceptionHandlerTest {
 
     @Test
     public void exceptionAfterMaxRetriesPerHostAlwaysRetriesOnDifferentHostConservative() {
+        for (Exception ex : ALL_EXCEPTIONS) {
+            assertTrue(String.format("If the max retries per host has been exceeded, we should always retry on a"
+                            + " different host - but we didn't for exception %s", ex),
+                    handlerConservative.shouldRetryOnDifferentHost(
+                            ex, MAX_RETRIES_PER_HOST + 1, handlerConservative.getStrategy()));
+        }
+    }
 
+    @Test
+    public void exceptionAfterMaxRetriesPerHostAlwaysRetriesOnDifferentHostDefault() {
+        for (Exception ex : ALL_EXCEPTIONS) {
+            assertTrue(String.format("If the max retries per host has been exceeded, we should always retry on a"
+                            + " different host - but we didn't for exception %s", ex),
+                    handlerConservative.shouldRetryOnDifferentHost(
+                            ex, MAX_RETRIES_PER_HOST + 1, handlerDefault.getStrategy()));
+        }
     }
 
     private boolean mutableMode() {
