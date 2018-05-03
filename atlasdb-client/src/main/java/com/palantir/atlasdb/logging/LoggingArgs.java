@@ -64,6 +64,14 @@ public final class LoggingArgs {
         return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
+    public static Arg<String> safeInternalTableName(String internalTableReference) {
+        if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
+            return SafeArg.of("tableRef", internalTableReference);
+        } else {
+            return UnsafeArg.of("unsafeTableRef", internalTableReference);
+        }
+    }
+
     public static Arg<String> customTableName(TableReference tableReference, String tableName) {
         return getArg("tableName", tableName, logArbitrator.isTableReferenceSafe(tableReference));
     }

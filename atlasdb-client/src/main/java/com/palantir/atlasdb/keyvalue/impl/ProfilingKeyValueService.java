@@ -364,6 +364,20 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        maybeLog(() -> delegate.compactInternally(tableRef, inMaintenanceMode), (logger, stopwatch) -> {
+            if (inMaintenanceMode) {
+                // Log differently in maintenance mode - if a compactInternally is slow this might be bad in normal
+                // operational hours, but is probably okay in maintenance mode.
+                logger.log("Call to KVS.compactInternally (in maintenance mode) on table {} took {} ms.",
+                        LoggingArgs.tableRef(tableRef), LoggingArgs.durationMillis(stopwatch));
+            } else {
+                logTimeAndTable("compactInternally", tableRef);
+            }
+        });
+    }
+
+    @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows,
@@ -422,5 +436,10 @@ public final class ProfilingKeyValueService implements KeyValueService {
             sizeInBytes += Cells.getApproxSizeOfCell(cell) + values.get(cell).size();
         }
         return sizeInBytes;
+    }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate.shouldTriggerCompactions();
     }
 }

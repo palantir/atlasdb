@@ -418,6 +418,11 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        return delegate().getClusterAvailabilityStatus();
+    }
+
+    @Override
     public void compactInternally(TableReference tableRef) {
         try {
             delegate().compactInternally(tableMapper.getMappedTableName(tableRef));
@@ -427,8 +432,16 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
-        return delegate().getClusterAvailabilityStatus();
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        try {
+            delegate().compactInternally(tableMapper.getMappedTableName(tableRef), inMaintenanceMode);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate.shouldTriggerCompactions();
+    }
 }
