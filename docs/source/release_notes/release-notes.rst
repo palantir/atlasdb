@@ -50,8 +50,15 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - If we make a successful request to a Cassandra client, we now remove it from the Cassandra client pool's blacklist.
+           Previously, removal from the blacklist would only occur after a background thread successfully refreshed the pool, meaning that requests may become stuck if Cassandra was rolling restarted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/nnnn>`__)
+
+    *    - |fixed|
+         - The Cassandra client pool now respects the ``maxRetriesOnHost`` config option, and will not try a single operation beyond that many times on the same node.
+           Previously, under certain kinds of exceptions (such as ``TTransportException``s), we would repeatedly retry the operation on the same node up to ``maxTriesTotal`` times.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/nnnn>`__)
 
 =======
 v0.82.1
