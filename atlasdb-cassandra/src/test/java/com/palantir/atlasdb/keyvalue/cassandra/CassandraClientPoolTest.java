@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -31,6 +30,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -188,30 +189,36 @@ public class CassandraClientPoolTest {
 
     @SuppressWarnings("unchecked") // We know the types are correct within this test.
     @Test
-    public void successfulRequestCausesHostToBeUnblacklisted() {
+    public void successfulRequestCausesHostToBeRemovedFromBlacklist() {
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
         CassandraClientPoolingContainer container = cassandraClientPool.getCurrentPools().get(HOST_1);
         AtomicBoolean fail = new AtomicBoolean(true);
-        try {
-            when(container.runWithPooledResource(any(FunctionCheckedException.class)))
-                    .then(unused -> {
-                        if (fail.get()) {
-                            throw new SocketTimeoutException();
-                        }
-                        return 42;
-                    });
-        } catch (Exception e) {
-            throw Throwables.propagate(e);
-        }
+        setConditionalTimeoutFailureForHost(container, unused -> fail.get());
 
         assertThatThrownBy(() -> runNoopWithRetryOnHost(HOST_1, cassandraClientPool))
                 .isInstanceOf(SocketTimeoutException.class);
-        verifyBlacklistMetric(1);
+        assertThat(blacklist.contains(HOST_1), is(true));
 
         fail.set(false);
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        assertThat(blacklist.blacklistDetails(), empty());
+        assertThat(blacklist.contains(HOST_1), is(false));
+    }
+
+    @Test
+    public void resilientToRollingRestarts() {
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
+        AtomicReference<InetSocketAddress> downHost = new AtomicReference<>(HOST_1);
+        cassandraClientPool.getCurrentPools().values().forEach(pool -> setConditionalTimeoutFailureForHost(
+                pool, container -> container.getHost().equals(downHost.get())));
+
+        runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
+        assertThat(blacklist.contains(HOST_1), is(true));
+
+        downHost.set(HOST_2);
+
+        runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
+        assertThat(blacklist.contains(HOST_1), is(false));
     }
 
     private void verifyNumberOfAttemptsOnHost(InetSocketAddress host,
@@ -268,6 +275,22 @@ public class CassandraClientPoolTest {
             when(poolingContainer.runWithPooledResource(
                     Mockito.<FunctionCheckedException<CassandraClient, Object, Exception>>any()))
                     .thenThrow(failureMode);
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked") // We know the types are correct within this test.
+    private void setConditionalTimeoutFailureForHost(CassandraClientPoolingContainer container,
+            Function<CassandraClientPoolingContainer, Boolean> condition) {
+        try {
+            when(container.runWithPooledResource(any(FunctionCheckedException.class)))
+                    .then(invocation -> {
+                        if (condition.apply(container)) {
+                            throw new SocketTimeoutException();
+                        }
+                        return 42;
+                    });
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
