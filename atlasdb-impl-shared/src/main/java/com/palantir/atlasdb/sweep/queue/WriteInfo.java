@@ -36,12 +36,11 @@ public interface WriteInfo {
         if (sweeper.shouldSweepLastCommitted() && writeRef().isTombstone()) {
             return timestamp() + 1L;
         }
-
         return timestamp();
     }
 
     default int toShard(int numShards) {
-        return IntMath.mod(writeRef().hashCode(), numShards);
+        return IntMath.mod(writeRef().cellReference().hashCode(), numShards);
     }
 
     static WriteInfo of(WriteReference writeRef, long timestamp) {
@@ -51,7 +50,11 @@ public interface WriteInfo {
                 .build();
     }
 
-    static WriteInfo of(TableReference tableRef, Cell cell, boolean isTombstone, long timestamp) {
-        return WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
+    static WriteInfo tombstone(TableReference tableRef, Cell cell, long timestamp) {
+        return WriteInfo.of(WriteReference.of(tableRef, cell, true), timestamp);
+    }
+
+    static WriteInfo write(TableReference tableRef, Cell cell, long timestamp) {
+        return WriteInfo.of(WriteReference.of(tableRef, cell, false), timestamp);
     }
 }

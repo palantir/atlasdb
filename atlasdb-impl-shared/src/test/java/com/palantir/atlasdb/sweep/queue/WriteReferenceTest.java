@@ -16,29 +16,19 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
-import java.util.Map;
+import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.WriteReference;
 
-public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
-    private final KeyValueService kvs;
-    private final TableReference tableRef;
+public class WriteReferenceTest {
+//    public static final ObjectMapper =
 
-    public KvsSweepQueueWriter(KeyValueService kvs, TableReference tableRef) {
-        this.kvs = kvs;
-        this.tableRef = tableRef;
+    @Test
+    public void yay() throws JsonProcessingException {
+        System.out.println(new ObjectMapper().writeValueAsString(WriteReference.of(TableReference.createFromFullyQualifiedName("Bla.bla"), Cell.create(new byte[]{1}, new byte[]{2}), false)));
     }
-
-    @Override
-    public void enqueue(List<WriteInfo> writes) {
-        Map<Cell, byte[]> batchedWrites = batchWrites(writes);
-        if (!batchedWrites.isEmpty()) {
-            kvs.put(tableRef, batchWrites(writes), 0L);
-        }
-    }
-
-    protected abstract Map<Cell, byte[]> batchWrites(List<WriteInfo> writes);
 }

@@ -84,13 +84,17 @@ public class SweepableCellsWriter extends KvsSweepQueueWriter {
                 .dedicatedRowNumber(dedicatedRow)
                 .build();
 
-        return SweepableCellsTable.SweepableCellsRow.of(
-                SweepQueueUtils.tsPartitionFine(info.timestamp()), metadata.persistToBytes());
+        return SweepableCellsTable.SweepableCellsRow.of(getTimestampOrPartition(info, dedicate),
+                metadata.persistToBytes());
     }
 
     private SweepableCellsTable.SweepableCellsColumnValue createColVal(long ts, long index, WriteReference writeRef) {
         SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.of(tsMod(ts), index);
         return SweepableCellsTable.SweepableCellsColumnValue.of(col, writeRef);
+    }
+
+    private long getTimestampOrPartition(PartitionInfo info, boolean dedicate) {
+        return dedicate ? info.timestamp() : SweepQueueUtils.tsPartitionFine(info.timestamp());
     }
 
     private long requiredDedicatedRows(List<WriteInfo> writes) {

@@ -142,6 +142,6 @@ public class WriteInfoPartitionerTest {
 
     private WriteInfo getWriteInfo(TableReference tableRef, int rowIndex, int colIndex, long timestamp) {
         Cell cell = Cell.create(PtBytes.toBytes(rowIndex), PtBytes.toBytes(colIndex));
-        return WriteInfo.of(tableRef, cell, true, timestamp);
+        return WriteInfo.write(tableRef, cell, timestamp);
     }
 }

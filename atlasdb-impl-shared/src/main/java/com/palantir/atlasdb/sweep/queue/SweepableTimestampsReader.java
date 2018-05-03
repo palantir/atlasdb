@@ -29,26 +29,23 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
-import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.util.PersistableBoolean;
 
 public class SweepableTimestampsReader {
     private static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
             .getSweepableTimestampsTable(null).getTableRef();
     private final KeyValueService kvs;
-    private final SweepTimestampProvider timestampProvider;
     private final KvsSweepQueueProgress progress;
 
-    SweepableTimestampsReader(KeyValueService kvs, SweepTimestampProvider provider) {
+    SweepableTimestampsReader(KeyValueService kvs) {
         this.kvs = kvs;
-        this.timestampProvider = provider;
         this.progress = new KvsSweepQueueProgress(kvs);
     }
 
-    public Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardAndStrategy) {
+    public Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardAndStrategy, long sweepTimestamp) {
+        // todo(gmaretic): if we find no candidates and the sweep timestamp is far enough in the future, andvance progress
         long minFineExclusive = progress.getLastSweptTimestampPartition(shardAndStrategy);
-        long maxFineExclusive = SweepQueueUtils.tsPartitionFine(timestampProvider.getSweepTimestamp(
-                Sweeper.of(shardAndStrategy.strategy()).get()));
+        long maxFineExclusive = SweepQueueUtils.tsPartitionFine(sweepTimestamp);
         return nextSweepablePartition(shardAndStrategy, minFineExclusive + 1, maxFineExclusive);
     }
 
@@ -81,7 +78,7 @@ public class SweepableTimestampsReader {
         return Optional.of(BatchColumnRangeSelection.create(start, end, 1));
     }
 
-    Optional<Long> getCandidatesInCoarsePartition(ShardAndStrategy shardAndStrategy, long partitionCoarse,
+    private Optional<Long> getCandidatesInCoarsePartition(ShardAndStrategy shardAndStrategy, long partitionCoarse,
             BatchColumnRangeSelection colRange) {
         byte[] row = SweepableTimestampsTable.SweepableTimestampsRow.of(shardAndStrategy.shard(),
                     partitionCoarse,

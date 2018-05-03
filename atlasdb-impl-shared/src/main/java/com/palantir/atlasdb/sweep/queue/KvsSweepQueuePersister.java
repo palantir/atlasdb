@@ -39,9 +39,10 @@ public final class KvsSweepQueuePersister implements MultiTableSweepQueueWriter 
         SweepableTimestampsWriter timestampsWriter = new SweepableTimestampsWriter(kvs, partitioner);
         KvsSweepQueuePersister persister = new KvsSweepQueuePersister(kvs, cellsWriter, timestampsWriter);
         persister.initialize();
-        return  persister;
+        return persister;
     }
 
+    // todo(gmaretic): remove this
     public void initialize() {
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
