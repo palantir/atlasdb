@@ -29,7 +29,8 @@ import com.palantir.common.persist.Persistable;
 public final class SweepQueueUtils {
     public static final long TS_COARSE_GRANULARITY = 10_000_000L;
     public static final long TS_FINE_GRANULARITY = 50_000L;
-    public static final long CAS_TS = 1L;
+    public static final long READ_TS = 1L;
+    public static final long WRITE_TS = 0L;
 
     private SweepQueueUtils() {
         // utility

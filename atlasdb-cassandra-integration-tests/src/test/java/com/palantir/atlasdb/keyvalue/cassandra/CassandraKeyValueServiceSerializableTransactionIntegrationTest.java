@@ -21,6 +21,7 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.KvsSweepQueuePersister;
+import com.palantir.atlasdb.sweep.queue.KvsSweepQueueTables;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
@@ -40,7 +41,7 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriter() {
-        return KvsSweepQueuePersister.create(getKeyValueService());
+        return KvsSweepQueuePersister.create(KvsSweepQueueTables.create(getKeyValueService()));
     }
 
     @Override

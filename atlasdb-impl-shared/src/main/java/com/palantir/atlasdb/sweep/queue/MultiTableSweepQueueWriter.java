@@ -28,12 +28,12 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
  * Adds {@link WriteInfo}s to a global queue to be swept.
  */
 public interface MultiTableSweepQueueWriter {
-
     MultiTableSweepQueueWriter NO_OP = ignored -> { };
 
     default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
         enqueue(toWriteInfos(writes, timestamp));
     }
+
     void enqueue(List<WriteInfo> writes);
 
     default void callbackInit(SerializableTransactionManager txManager) {

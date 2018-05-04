@@ -31,8 +31,8 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.sweep.Sweeper;
 
-public class SweepableTimestampsReadWriteTest extends SweepQueueReadWriteTest{
-    private SweepableTimestampsReader reader;
+public class SweepableTimestampsTest extends SweepQueueTablesTest {
+    private SweepableTimestamps sweepableTimestamps;
     private SweepTimestampProvider provider;
     private KvsSweepQueueProgress progress;
 
@@ -46,12 +46,11 @@ public class SweepableTimestampsReadWriteTest extends SweepQueueReadWriteTest{
     public void setup() {
         super.setup();
         provider = new SweepTimestampProvider(() -> unreadableTs, () -> immutableTs);
-        writer = new SweepableTimestampsWriter(kvs, partitioner);
-        reader = new SweepableTimestampsReader(kvs);
         progress = new KvsSweepQueueProgress(kvs);
+        sweepableTimestamps = new SweepableTimestamps(kvs, partitioner);
 
-        shardCons = writeToDefault(writer, TS, TABLE_CONS);
-        shardThor = writeToDefault(writer, TS2, TABLE_THOR);
+        shardCons = writeToDefault(sweepableTimestamps, TS, TABLE_CONS);
+        shardThor = writeToDefault(sweepableTimestamps, TS2, TABLE_THOR);
 
         immutableTs = 10 * TS;
         unreadableTs = 10 * TS;
@@ -152,7 +151,7 @@ public class SweepableTimestampsReadWriteTest extends SweepQueueReadWriteTest{
     @Test
     public void getCorrectNextTimestampWhenMultipleCandidates() {
         for (long timestamp = 1000L; tsPartitionFine(timestamp) < 10L; timestamp += TS_FINE_GRANULARITY / 5) {
-            writeToDefault(writer, timestamp, TABLE_CONS);
+            writeToDefault(sweepableTimestamps, timestamp, TABLE_CONS);
         }
         assertThat(readConservative(shardCons)).contains(tsPartitionFine(1000L));
 
@@ -167,12 +166,16 @@ public class SweepableTimestampsReadWriteTest extends SweepQueueReadWriteTest{
     }
 
     private Optional<Long> readConservative(int shardNumber) {
-        return reader.nextSweepableTimestampPartition(conservative(shardNumber),
+        return sweepableTimestamps.nextSweepableTimestampPartition(
+                conservative(shardNumber),
+                progress.getLastSweptTimestampPartition(ShardAndStrategy.conservative(shardNumber)),
                 provider.getSweepTimestamp(Sweeper.CONSERVATIVE));
     }
 
     private Optional<Long> readThorough(int shardNumber) {
-        return reader.nextSweepableTimestampPartition(thorough(shardNumber),
+        return sweepableTimestamps.nextSweepableTimestampPartition(
+                thorough(shardNumber),
+                progress.getLastSweptTimestampPartition(ShardAndStrategy.thorough(shardNumber)),
                 provider.getSweepTimestamp(Sweeper.THOROUGH));
     }
 }

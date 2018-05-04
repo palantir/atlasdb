@@ -16,8 +16,50 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Collection;
+public class KvsSweepQueueScrubber {
+    private SweepableCells sweepableCells;
+    private SweepableTimestamps sweepableTimestamps;
+    private KvsSweepQueueProgress progress;
 
-public interface KvsSweepQueueScrubber {
-    void scrub(Collection<WriteInfo> writes);
+    public KvsSweepQueueScrubber(SweepableCells cells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress) {
+        this.sweepableCells = cells;
+        this.sweepableTimestamps = timestamps;
+        this.progress = progress;
+    }
+
+    /**
+     * Cleans up all the sweep queue data from the last update of progress up to and including the given sweep
+     * partition. Then, updates the sweep queue progress.
+     * @param shardStrategy shard and strategy to scrub for.
+     * @param previousProgress previous last partition sweep has processed.
+     * @param newProgress last partition sweep has processed.
+     */
+    public void scrub(ShardAndStrategy shardStrategy, long previousProgress, long newProgress) {
+        scrubSweepableCells(shardStrategy, newProgress);
+        scrubSweepableTimestamps(shardStrategy, previousProgress, newProgress);
+        progressTo(shardStrategy, newProgress);
+    }
+
+    private void scrubSweepableCells(ShardAndStrategy shardStrategy, long newProgress) {
+        scrubDedicatedRows(shardStrategy, newProgress);
+        scrubNonDedicatedRow(shardStrategy, newProgress);
+    }
+
+    private void scrubDedicatedRows(ShardAndStrategy shardStrategy, long partition) {
+        sweepableCells.deleteDedicatedRows(shardStrategy, partition);
+    }
+
+    private void scrubNonDedicatedRow(ShardAndStrategy shardStrategy, long partition) {
+        sweepableCells.deleteNonDedicatedRow(shardStrategy, partition);
+    }
+
+    private void scrubSweepableTimestamps(ShardAndStrategy shardStrategy, long oldPartition, long newPartition) {
+        if (SweepQueueUtils.partitionFineToCoarse(newPartition) > SweepQueueUtils.partitionFineToCoarse(oldPartition)) {
+            sweepableTimestamps.deleteRow(shardStrategy, oldPartition);
+        }
+    }
+
+    private void progressTo(ShardAndStrategy shardStrategy, long partition) {
+        progress.updateLastSweptTimestampPartition(shardStrategy, partition);
+    }
 }

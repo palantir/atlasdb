@@ -21,10 +21,15 @@ import java.util.function.Consumer;
 
 public interface SweepQueueReader {
 
-    // Passes the next batch of writes to the given consumer. If the consumer returns without throwing,
-    // the batch is considered consumed, and future invocations of this method will consume only newer writes.
-    // On the other hand, if the consumer fails by throwing an exception, the same batch will be consumed
-    // on the next invocation.
+    /**
+     * Passes the next batch of writes to the given consumer. If the consumer returns without throwing,
+     * the batch is considered consumed, and future invocations of this method will consume only newer writes.
+     * On the other hand, if the consumer fails by throwing an exception, the same batch will be consumed
+     * on the next invocation.
+     * @param consumer
+     * @param maxTimestampExclusive
+     * @return
+     */
     void consumeNextBatch(Consumer<Collection<WriteInfo>> consumer, long maxTimestampExclusive);
 
 }
