@@ -2,7 +2,7 @@ version: '2'
 
 services:
   cassandra:
-    image: palantirtechnologies/docker-cassandra-atlasdb:2.2.8 # todo replace with $CASSANDRA_VERSION
+    image: palantirtechnologies/docker-cassandra-atlasdb:2.2.9 # todo replace with $CASSANDRA_VERSION
     container_name: atlas_perf_cassandra
     ports:
       - "9160:9160"
