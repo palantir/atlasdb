@@ -51,43 +51,43 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
 
     @Test
     public void canReadSingleEntryInSingleShardForCorrectPartitionAndRange() {
-        SweepBatch conservativeBatch = readConservative(shardCons, TS_REF, TS - 1, SWEEP_TS);
+        SweepBatch conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 1, SWEEP_TS);
         assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
 
-        SweepBatch thoroughBatch = readThorough(TS2_REF, TS2 - 1, Long.MAX_VALUE);
+        SweepBatch thoroughBatch = readThorough(TS2_FINE_PARTITION, TS2 - 1, Long.MAX_VALUE);
         assertThat(thoroughBatch.writes()).containsExactly(WriteInfo.write(TABLE_THOR, DEFAULT_CELL, TS2));
     }
 
     @Test
     public void lastSweptTimestampIsMinimumOfSweepTsAndEndOfFinePartitionWhenThereAreMatches() {
-        SweepBatch conservativeBatch = readConservative(shardCons, TS_REF, TS - 1, SWEEP_TS);
+        SweepBatch conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 1, SWEEP_TS);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(SWEEP_TS - 1);
 
-        conservativeBatch = readConservative(shardCons, TS_REF, TS - 1, Long.MAX_VALUE);
+        conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 1, Long.MAX_VALUE);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(endOfFinePartitionForTs(TS));
     }
 
     @Test
     public void cannotReadEntryForWrongPartition() {
-        SweepBatch conservativeBatch = readConservative(shardCons + 1, TS_REF, TS - 1, SWEEP_TS);
+        SweepBatch conservativeBatch = readConservative(shardCons + 1, TS_FINE_PARTITION, TS - 1, SWEEP_TS);
         assertThat(conservativeBatch.writes()).isEmpty();
     }
 
     @Test
     public void lastSweptTimestampIsMinimumOfSweepTsAndEndOfFinePartitionWhenNoMatches() {
-        SweepBatch conservativeBatch = readConservative(shardCons + 1, TS_REF, TS - 1, SWEEP_TS);
+        SweepBatch conservativeBatch = readConservative(shardCons + 1, TS_FINE_PARTITION, TS - 1, SWEEP_TS);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(SWEEP_TS - 1);
 
-        conservativeBatch = readConservative(shardCons + 1, TS_REF, TS - 1, Long.MAX_VALUE);
+        conservativeBatch = readConservative(shardCons + 1, TS_FINE_PARTITION, TS - 1, Long.MAX_VALUE);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(endOfFinePartitionForTs(TS));
     }
 
     @Test
     public void cannotReadEntryOutOfRange() {
-        SweepBatch conservativeBatch = readConservative(shardCons, TS_REF, TS, SWEEP_TS);
+        SweepBatch conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS, SWEEP_TS);
         assertThat(conservativeBatch.writes()).isEmpty();
 
-        conservativeBatch = readConservative(shardCons, TS_REF, 0L, TS);
+        conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, 0L, TS);
         assertThat(conservativeBatch.writes()).isEmpty();
     }
 
@@ -102,7 +102,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     @Test
     public void readTombstoneOnlyWhenLatestInShardAndRange() {
         int tombstoneShard = putTombstone(sweepableCells, TS + 1, DEFAULT_CELL, TABLE_CONS);
-        SweepBatch batch = readConservative(tombstoneShard, TS_REF, TS - 1, SWEEP_TS);
+        SweepBatch batch = readConservative(tombstoneShard, TS_FINE_PARTITION, TS - 1, SWEEP_TS);
         assertThat(batch.writes()).containsExactly(WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, TS + 1));
     }
 
@@ -112,11 +112,11 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
         writeToDefault(sweepableCells, TS + 2, TABLE_CONS);
         writeToDefault(sweepableCells, TS - 2, TABLE_CONS);
         writeToDefault(sweepableCells, TS + 1, TABLE_CONS);
-        SweepBatch conservativeBatch = readConservative(shardCons, TS_REF, TS - 3, TS);
+        SweepBatch conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 3, TS);
         assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS - 1));
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(TS - 1);
 
-        conservativeBatch = readConservative(shardCons, TS_REF, TS - 3, SWEEP_TS);
+        conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 3, SWEEP_TS);
         assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS + 2));
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(SWEEP_TS - 1);
     }
@@ -125,7 +125,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     public void canReadMultipleEntriesInSingleShardDifferentTransactions() {
         int fixedShard = writeToCell(sweepableCells, TS, getCellWithFixedHash(1), TABLE_CONS);
         assertThat(writeToCell(sweepableCells, TS + 1, getCellWithFixedHash(2), TABLE_CONS)).isEqualTo(fixedShard);
-        SweepBatch conservativeBatch = readConservative(fixedShard, TS_REF, TS - 1, TS + 2);
+        SweepBatch conservativeBatch = readConservative(fixedShard, TS_FINE_PARTITION, TS - 1, TS + 2);
         assertThat(conservativeBatch.writes()).containsExactlyInAnyOrder(
                 WriteInfo.write(TABLE_CONS, getCellWithFixedHash(1), TS),
                 WriteInfo.write(TABLE_CONS, getCellWithFixedHash(2), TS + 1));
@@ -134,7 +134,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     @Test
     public void canReadMultipleEntriesInSingleShardSameTransactionNotDedicated() {
         List<WriteInfo> writes = writeToCellsInFixedShard(sweepableCells, TS, 10, TABLE_CONS);
-        SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_REF, TS - 1, TS + 1);
+        SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_FINE_PARTITION, TS - 1, TS + 1);
         assertThat(conservativeBatch.writes().size()).isEqualTo(10);
         assertThat(conservativeBatch.writes()).hasSameElementsAs(writes);
     }
@@ -142,7 +142,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     @Test
     public void canReadMultipleEntriesInSingleShardSameTransactionOneDedicated() {
         List<WriteInfo> writes = writeToCellsInFixedShard(sweepableCells, TS, MAX_CELLS_GENERIC * 2 + 1, TABLE_CONS);
-        SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_REF, TS - 1, TS + 1);
+        SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_FINE_PARTITION, TS - 1, TS + 1);
         assertThat(conservativeBatch.writes().size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
         assertThat(conservativeBatch.writes()).hasSameElementsAs(writes);
     }
@@ -160,7 +160,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
         expectedResult.addAll(middle.subList(last.size(), middle.size()));
         expectedResult.addAll(first.subList(middle.size(), first.size()));
 
-        SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_REF, TS - 1, TS + 3);
+        SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_FINE_PARTITION, TS - 1, TS + 3);
         assertThat(conservativeBatch.writes().size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
         assertThat(conservativeBatch.writes()).hasSameElementsAs(expectedResult);
     }
@@ -191,7 +191,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     public void canReadMultipleEntriesInSingleShardSameTransactionMultipleDedicated() {
         List<WriteInfo> writes = writeToCellsInFixedShard(sweepableCells, TS, MAX_CELLS_DEDICATED + 1, TABLE_CONS);
         int fixedShard = writes.get(0).toShard(SHARDS);
-        SweepBatch conservativeBatch = readConservative(fixedShard, TS_REF, TS - 1, TS + 1);
+        SweepBatch conservativeBatch = readConservative(fixedShard, TS_FINE_PARTITION, TS - 1, TS + 1);
         assertThat(conservativeBatch.writes()).hasSameElementsAs(writes);
     }
 

@@ -46,8 +46,8 @@ public abstract class SweepQueueTablesTest {
     static final Cell DEFAULT_CELL = Cell.create(new byte[] {'r'}, new byte[] {'c'});
     static final long TS = 1_000_000_100L;
     static final long TS2 = 2 * TS;
-    static final long TS_REF = tsPartitionFine(TS);
-    static final long TS2_REF = tsPartitionFine(TS2);
+    static final long TS_FINE_PARTITION = tsPartitionFine(TS);
+    static final long TS2_FINE_PARTITION = tsPartitionFine(TS2);
     static final int FIXED_SHARD = WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(SHARDS);
 
     protected KeyValueService mockKvs = mock(KeyValueService.class);

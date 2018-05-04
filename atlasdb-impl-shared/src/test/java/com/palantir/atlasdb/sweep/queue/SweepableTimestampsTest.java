@@ -21,7 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_FINE_GRANULARITY;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionCoarse;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxForFinePartition;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.minForFinePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 
 import java.util.Optional;
@@ -58,8 +59,8 @@ public class SweepableTimestampsTest extends SweepQueueTablesTest {
 
     @Test
     public void canReadNextTimestampWhenSweepTsIsLarge() {
-        assertThat(readConservative(shardCons)).contains(TS_REF);
-        assertThat(readThorough(shardThor)).contains(TS2_REF);
+        assertThat(readConservative(shardCons)).contains(TS_FINE_PARTITION);
+        assertThat(readThorough(shardThor)).contains(TS2_FINE_PARTITION);
     }
 
     @Test
@@ -78,10 +79,10 @@ public class SweepableTimestampsTest extends SweepQueueTablesTest {
     public void noNextTimestampWhenImmutableTsInSmallerPartitionForEitherSweepStrategy() {
         immutableTs = TS - TS_FINE_GRANULARITY;
 
-        assertThat(tsPartitionFine(immutableTs)).isLessThan(tsPartitionFine(TS));
+        assertThat(tsPartitionFine(immutableTs)).isLessThan(TS_FINE_PARTITION);
         assertThat(readConservative(shardCons)).isEmpty();
 
-        assertThat(tsPartitionFine(immutableTs)).isLessThan(tsPartitionFine(TS2));
+        assertThat(tsPartitionFine(immutableTs)).isLessThan(TS2_FINE_PARTITION);
         assertThat(readThorough(shardThor)).isEmpty();
     }
 
@@ -89,62 +90,72 @@ public class SweepableTimestampsTest extends SweepQueueTablesTest {
     public void noNextTimestampWhenUnreadableTsInSmallerPartitionForConservativeOnly() {
         unreadableTs = TS - TS_FINE_GRANULARITY;
 
-        assertThat(tsPartitionFine(unreadableTs)).isLessThan(tsPartitionFine(TS));
+        assertThat(tsPartitionFine(unreadableTs)).isLessThan(TS_FINE_PARTITION);
         assertThat(readConservative(shardCons)).isEmpty();
 
-        assertThat(tsPartitionFine(unreadableTs)).isLessThan(tsPartitionFine(TS2));
-        assertThat(readThorough(shardThor)).contains(TS2_REF);
+        assertThat(tsPartitionFine(unreadableTs)).isLessThan(TS2_FINE_PARTITION);
+        assertThat(readThorough(shardThor)).contains(TS2_FINE_PARTITION);
     }
 
     @Test
-    public void noNextTimestampWhenSweepTimestampInSamePartitionAndGreater() {
-        immutableTs = TS + TS_FINE_GRANULARITY - TS % TS_FINE_GRANULARITY - 1;
+    public void canReadNextTimestampWhenSweepTimestampInSamePartitionAndGreater() {
+        long sweepTs = setSweepTimestampAndGet(maxForFinePartition(TS_FINE_PARTITION));
 
-        assertThat(tsPartitionFine(immutableTs)).isEqualTo(tsPartitionFine(TS));
-        assertThat(immutableTs).isGreaterThan(TS);
-        assertThat(readThorough(shardCons)).isEmpty();
+        assertThat(tsPartitionFine(sweepTs)).isEqualTo(TS_FINE_PARTITION);
+        assertThat(sweepTs).isGreaterThan(TS);
+        assertThat(readConservative(shardCons)).contains(TS_FINE_PARTITION);
     }
 
     @Test
-    public void canReadNextTimestampWhenSweepTimestampInNextPartitionAndSameBucket() {
-        immutableTs = TS + TS_FINE_GRANULARITY - TS % TS_FINE_GRANULARITY;
+    public void noNextTimestampWhenWhenSweepTimestampInSamePartitionAndLower() {
+        long sweepTs = setSweepTimestampAndGet(minForFinePartition(TS_FINE_PARTITION));
 
-        assertThat(tsPartitionFine(immutableTs)).isGreaterThan(tsPartitionFine(TS));
-        assertThat(tsPartitionCoarse(immutableTs)).isEqualTo(tsPartitionCoarse(TS));
-        assertThat(readConservative(shardCons)).contains(TS_REF);
+        assertThat(tsPartitionFine(sweepTs)).isEqualTo(TS_FINE_PARTITION);
+        assertThat(sweepTs).isLessThan(TS);
+        assertThat(readConservative(shardCons)).isEmpty();
     }
 
     @Test
     public void canReadNextIfNotProgressedBeyondForConservative() {
-        progress.updateLastSweptTimestamp(thorough(shardCons), TS_REF);
-        assertThat(readConservative(shardCons)).contains(TS_REF);
+        progress.updateLastSweptTimestamp(thorough(shardCons), TS);
+        progress.updateLastSweptTimestamp(conservative(shardThor), TS);
+        progress.updateLastSweptTimestamp(thorough(shardThor), TS);
+        progress.updateLastSweptTimestamp(conservative(shardCons), TS - 1);
 
-        progress.updateLastSweptTimestamp(conservative(shardCons), TS_REF - 1);
-        assertThat(readConservative(shardCons)).contains(TS_REF);
-        assertThat(readThorough(shardThor)).contains(TS2_REF);
+        assertThat(readConservative(shardCons)).contains(TS_FINE_PARTITION);
     }
 
     @Test
-    public void noNextTimestampIfProgressedBeyondForConservative() {
-        progress.updateLastSweptTimestamp(conservative(shardCons), SweepQueueUtils.maxForFinePartition(TS_REF));
+    public void canReadNextTimestampIfProgressedBeyondButInSamePartitionForConservative() {
+        progress.updateLastSweptTimestamp(conservative(shardCons), maxForFinePartition(TS_FINE_PARTITION) - 1);
+        assertThat(readConservative(shardCons)).contains(TS_FINE_PARTITION);
+    }
+
+    @Test
+    public void noNextTimestampIfProgressedToEndOfPartitionForConservative() {
+        progress.updateLastSweptTimestamp(conservative(shardCons), maxForFinePartition(TS_FINE_PARTITION));
         assertThat(readConservative(shardCons)).isEmpty();
-        assertThat(readThorough(shardThor)).contains(TS2_REF);
     }
 
     @Test
     public void canReadNextIfNotProgressedBeyondForThorough() {
-        progress.updateLastSweptTimestamp(conservative(shardThor), TS2_REF);
-        assertThat(readThorough(shardThor)).contains(TS2_REF);
+        progress.updateLastSweptTimestamp(thorough(shardCons), TS2);
+        progress.updateLastSweptTimestamp(conservative(shardThor), TS2);
+        progress.updateLastSweptTimestamp(thorough(shardThor), TS2 - 1);
+        progress.updateLastSweptTimestamp(conservative(shardCons), TS2);
 
-        progress.updateLastSweptTimestamp(thorough(shardCons), TS2_REF - 1);
-        assertThat(readConservative(shardCons)).contains(TS_REF);
-        assertThat(readThorough(shardThor)).contains(TS2_REF);
+        assertThat(readThorough(shardThor)).contains(TS2_FINE_PARTITION);
     }
 
     @Test
-    public void noNextTimestampIfProgressedBeyondForThorough() {
-        progress.updateLastSweptTimestamp(thorough(shardThor), TS2_REF);
-        assertThat(readConservative(shardCons)).contains(TS_REF);
+    public void canReadNextTimestampIfProgressedBeyondButInSamePartitionForForThorough() {
+        progress.updateLastSweptTimestamp(thorough(shardThor), maxForFinePartition(TS2_FINE_PARTITION) - 1);
+        assertThat(readThorough(shardThor)).contains(TS2_FINE_PARTITION);
+    }
+
+    @Test
+    public void noNextTimestampIfProgressedToEndOfPartitionForThorough() {
+        progress.updateLastSweptTimestamp(thorough(shardThor), maxForFinePartition(TS2_FINE_PARTITION));
         assertThat(readThorough(shardThor)).isEmpty();
     }
 
@@ -155,14 +166,11 @@ public class SweepableTimestampsTest extends SweepQueueTablesTest {
         }
         assertThat(readConservative(shardCons)).contains(tsPartitionFine(1000L));
 
-        progress.updateLastSweptTimestamp(conservative(shardCons), 2L);
-        assertThat(readConservative(shardCons)).contains(3L);
+        progress.updateLastSweptTimestamp(conservative(shardCons), 2L * TS_FINE_GRANULARITY);
+        assertThat(readConservative(shardCons)).contains(tsPartitionFine(2L * TS_FINE_GRANULARITY + 1000L));
 
-        immutableTs = 4 * TS_FINE_GRANULARITY;
-        assertThat(readConservative(shardCons)).contains(3L);
-
-        immutableTs = 4 * TS_FINE_GRANULARITY - 1;
-        assertThat(readConservative(shardCons)).isEmpty();
+        setSweepTimestampAndGet(4 * TS_FINE_GRANULARITY);
+        assertThat(readConservative(shardCons)).contains(tsPartitionFine(2L * TS_FINE_GRANULARITY + 1000L));
     }
 
     private Optional<Long> readConservative(int shardNumber) {
@@ -177,5 +185,10 @@ public class SweepableTimestampsTest extends SweepQueueTablesTest {
                 thorough(shardNumber),
                 progress.getLastSweptTimestamp(ShardAndStrategy.thorough(shardNumber)),
                 provider.getSweepTimestamp(Sweeper.THOROUGH));
+    }
+
+    private long setSweepTimestampAndGet(long timestamp) {
+        immutableTs = timestamp;
+        return provider.getSweepTimestamp(Sweeper.CONSERVATIVE);
     }
 }
