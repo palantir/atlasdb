@@ -192,7 +192,7 @@ public abstract class TransactionManagers {
      */
     @Value.Default
     Callback<SerializableTransactionManager> asyncInitializationCallback() {
-        return new Callback.NoOp<>();
+        return Callback.noOp();
     }
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
@@ -588,7 +588,7 @@ public abstract class TransactionManagers {
                             .freshTimestampSource(unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
                             .build());
         }
-        return LambdaCallback.of(ignored -> { });
+        return Callback.noOp();
     }
 
     private static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {

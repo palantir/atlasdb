@@ -72,14 +72,11 @@ public abstract class Callback<R> {
         lock.unlock();
     }
 
-    public static class NoOp<R> extends Callback<R> {
-        @Override
-        public void init(R resource) {
-        }
-
-        @Override
-        public void cleanup(R resource, Throwable initException) {
-        }
+    /**
+     * Factory method for a callback that does nothing.
+     */
+    public static <R> Callback<R> noOp() {
+        return LambdaCallback.of(ignored -> { });
     }
 
     /**
@@ -119,6 +116,5 @@ public abstract class Callback<R> {
             // to be cleaned up for that task.
             throw Throwables.rewrapAndThrowUncheckedException(cleanupException);
         }
-
     }
 }
