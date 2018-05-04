@@ -627,7 +627,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                     if (rangesToRows.get(range) != null) {
                         rangesToRows.get(range).add(row);
                     } else {
-                        rangesToRows.put(range, ImmutableList.of(row));
+                        rangesToRows.put(range, Lists.newArrayList(row));
                     }
                 }
             }
