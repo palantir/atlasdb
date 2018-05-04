@@ -23,6 +23,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static com.palantir.atlasdb.sweep.queue.SweepQueueTablesTest.metadataBytes;
 import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
 
 import java.util.ArrayList;
@@ -47,10 +48,10 @@ public class WriteInfoPartitionerTest {
     private static final TableReference CONSERVATIVE2 = getTableRef("conservative2");
     private static final TableReference THOROUGH = getTableRef("thorough");
     private static final Map<TableReference, byte[]> METADATA_MAP = ImmutableMap.of(
-            NOTHING, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.NOTHING),
-            CONSERVATIVE, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
-            CONSERVATIVE2, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
-            THOROUGH, SweepQueueTestUtils.metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
+            NOTHING, metadataBytes(TableMetadataPersistence.SweepStrategy.NOTHING),
+            CONSERVATIVE, metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
+            CONSERVATIVE2, metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
+            THOROUGH, metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
 
     private KeyValueService mockKvs = mock(KeyValueService.class);
     private WriteInfoPartitioner partitioner;

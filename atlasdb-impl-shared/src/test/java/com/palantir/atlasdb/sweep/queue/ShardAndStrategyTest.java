@@ -23,6 +23,7 @@ import org.junit.Test;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
 public class ShardAndStrategyTest {
+
     @Test
     public void usingStrategyNothingThrows() {
         assertThatThrownBy(() -> ShardAndStrategy.of(5, TableMetadataPersistence.SweepStrategy.NOTHING))

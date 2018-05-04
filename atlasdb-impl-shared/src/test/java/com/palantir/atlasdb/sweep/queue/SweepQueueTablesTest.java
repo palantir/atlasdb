@@ -40,7 +40,7 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-public abstract class SweepQueueReadWriteTest {
+public abstract class SweepQueueTablesTest {
     static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");
     static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.thorough");
     static final Cell DEFAULT_CELL = Cell.create(new byte[] {'r'}, new byte[] {'c'});
@@ -52,14 +52,13 @@ public abstract class SweepQueueReadWriteTest {
     protected KeyValueService mockKvs = mock(KeyValueService.class);
     protected KeyValueService kvs = new InMemoryKeyValueService(true);
     protected WriteInfoPartitioner partitioner;
-    protected KvsSweepQueueWriter writer;
 
     @Before
     public void setup() {
         when(mockKvs.getMetadataForTable(TABLE_CONS))
-                .thenReturn(SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
+                .thenReturn(metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
         when(mockKvs.getMetadataForTable(TABLE_THOR))
-                .thenReturn(SweepQueueReadWriteTest.metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
+                .thenReturn(metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
         partitioner = new WriteInfoPartitioner(mockKvs);
     }
 
@@ -96,7 +95,7 @@ public abstract class SweepQueueReadWriteTest {
         return write.toShard(SHARDS);
     }
 
-    public static List<WriteInfo> writeToUniqueCellsInFixedShard(KvsSweepQueueWriter writer, long timestamp, int number,
+    public static List<WriteInfo> writeToCellsInFixedShard(KvsSweepQueueWriter writer, long timestamp, int number,
             TableReference tableRef) {
         List<WriteInfo> result = new ArrayList<>();
         for (long i = 0; i < number; i++) {

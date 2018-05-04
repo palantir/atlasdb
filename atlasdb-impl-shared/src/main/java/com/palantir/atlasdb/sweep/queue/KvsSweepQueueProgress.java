@@ -76,7 +76,7 @@ public class KvsSweepQueueProgress {
     }
 
     private Map<Cell, Value> getEntry(ShardAndStrategy shardAndStrategy) {
-        return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shardAndStrategy), SweepQueueUtils.CAS_TS));
+        return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shardAndStrategy), SweepQueueUtils.READ_TS));
     }
 
     private Cell cellForShard(ShardAndStrategy shardAndStrategy) {
