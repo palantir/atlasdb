@@ -624,11 +624,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                 RangeRequests.getNextStartRow(false, rangeEnd),
                                 range.getBatchHint());
                     }
-                    if (rangesToRows.get(range) != null) {
-                        rangesToRows.get(range).add(row);
-                    } else {
-                        rangesToRows.put(range, ImmutableList.of(row));
-                    }
+                    rangesToRows.computeIfAbsent(range, ignored -> Lists.newArrayList()).add(row);                    
                 }
             }
             for (Entry<BatchColumnRangeSelection, List<byte[]>> e : rangesToRows.entrySet()) {
