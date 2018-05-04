@@ -33,7 +33,7 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueTablesTest.getCellWithF
 import static com.palantir.atlasdb.sweep.queue.SweepQueueTablesTest.metadataBytes;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_COARSE_GRANULARITY;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_FINE_GRANULARITY;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxForFinePartition;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFinePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
 
@@ -262,7 +262,7 @@ public class KvsSweepQueueTest {
         enqueueWrite(TABLE_CONSERVATIVE, writeTs + 5);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertProgressUpdatedToTimestamp(maxForFinePartition(tsPartitionFine(writeTs)));
+        assertProgressUpdatedToTimestamp(maxTsForFinePartition(tsPartitionFine(writeTs)));
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertProgressUpdatedToTimestamp(sweepTsConservative - 1L);
@@ -281,7 +281,7 @@ public class KvsSweepQueueTest {
 
         // now we swept all in partition
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(shard));
-        assertProgressUpdatedToTimestamp(maxForFinePartition(tsPartitionFine(writeTs)), shard);
+        assertProgressUpdatedToTimestamp(maxTsForFinePartition(tsPartitionFine(writeTs)), shard);
     }
 
     @Test
@@ -372,7 +372,7 @@ public class KvsSweepQueueTest {
     private void assertSweepableCellsHasNoEntriesBeforeTimestamp(long timestamp) {
         SweepBatch batch = sweepableCells.getBatchForPartition(
                 ShardAndStrategy.conservative(CONS_SHARD), tsPartitionFine(timestamp), -1L, timestamp + 1);
-                assertThat(batch.writes()).isEmpty();
+        assertThat(batch.writes()).isEmpty();
     }
 
     private void enqueueWrite(TableReference tableRef, long ts) {

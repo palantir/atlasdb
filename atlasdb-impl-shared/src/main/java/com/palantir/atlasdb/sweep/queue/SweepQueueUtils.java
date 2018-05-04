@@ -48,12 +48,12 @@ public final class SweepQueueUtils {
         return partitionFine / (TS_COARSE_GRANULARITY / TS_FINE_GRANULARITY);
     }
 
-    public static long minForFinePartition(long finePartition) {
+    public static long minTsForFinePartition(long finePartition) {
         return finePartition * TS_FINE_GRANULARITY;
     }
 
-    public static long maxForFinePartition(long finePartition) {
-        return minForFinePartition(finePartition) + SweepQueueUtils.TS_FINE_GRANULARITY - 1;
+    public static long maxTsForFinePartition(long finePartition) {
+        return minTsForFinePartition(finePartition) + SweepQueueUtils.TS_FINE_GRANULARITY - 1;
     }
 
     public static Cell toCell(Persistable row, ColumnValue<?> col) {

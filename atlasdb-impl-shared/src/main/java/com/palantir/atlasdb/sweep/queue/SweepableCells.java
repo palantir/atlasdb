@@ -39,13 +39,14 @@ import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
 public class SweepableCells extends KvsSweepQueueWriter {
-    @VisibleForTesting
-    static final int MAX_CELLS_GENERIC = 50;
-    @VisibleForTesting
-    static final int MAX_CELLS_DEDICATED = 100_000;
     private static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
+    @VisibleForTesting
+    public static final int MAX_CELLS_GENERIC = 50;
+    @VisibleForTesting
+    public static final int MAX_CELLS_DEDICATED = 100_000;
+    @VisibleForTesting
     public static final long SWEEP_BATCH_SIZE = 1000L;
-    public static final int MINIMUM_WRITE_INDEX = -TargetedSweepMetadata.MAX_DEDICATED_ROWS;
+    private static final int MINIMUM_WRITE_INDEX = -TargetedSweepMetadata.MAX_DEDICATED_ROWS;
 
     public SweepableCells(KeyValueService kvs, WriteInfoPartitioner partitioner) {
         super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner);
@@ -155,7 +156,6 @@ public class SweepableCells extends KvsSweepQueueWriter {
                 columnsBetween(minTsExclusive + 1, maxTsExclusive, partitionFine), MAX_CELLS_DEDICATED);
     }
 
-
     private void populateWrites(SweepableCellsTable.SweepableCellsRow row, Map.Entry<Cell, Value> entry,
             Map<CellReference, WriteInfo> writes) {
         SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
@@ -186,7 +186,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         List<byte[]> dedicatedRows = new ArrayList<>();
 
         for (int i = 0; i < numberOfDedicatedRows; i++) {
-            byte[]  dedicatedMetadata = ImmutableTargetedSweepMetadata.builder()
+            byte[] dedicatedMetadata = ImmutableTargetedSweepMetadata.builder()
                     .from(metadata)
                     .dedicatedRow(true)
                     .dedicatedRowNumber(i)
@@ -219,7 +219,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private long lastGuaranteedSwept(long partitionFine, long maxTsExclusive) {
-        return Math.min(SweepQueueUtils.maxForFinePartition(partitionFine), maxTsExclusive - 1);
+        return Math.min(SweepQueueUtils.maxTsForFinePartition(partitionFine), maxTsExclusive - 1);
     }
 
     void deleteDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {
@@ -290,12 +290,12 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private long exactColumnOrElseOneBeyondEndOfRow(long endTsExclusive, long partitionFine) {
-        return Math.min(endTsExclusive - SweepQueueUtils.minForFinePartition(partitionFine),
+        return Math.min(endTsExclusive - SweepQueueUtils.minTsForFinePartition(partitionFine),
                 SweepQueueUtils.TS_FINE_GRANULARITY);
     }
 
     private long exactColumnOrElseBeginningOfRow(long startTsInclusive, long partitionFine) {
-        return Math.max(startTsInclusive - SweepQueueUtils.minForFinePartition(partitionFine), 0);
+        return Math.max(startTsInclusive - SweepQueueUtils.minTsForFinePartition(partitionFine), 0);
     }
 
     private static ColumnRangeSelection allPossibleColumns() {
