@@ -61,6 +61,7 @@ public class KvsSweepQueueTest {
 
     KeyValueService kvs;
     KvsSweepQueue sweepQueue = KvsSweepQueue.createUninitialized(() -> SHARDS);
+
     long unreadableTs;
     long immutableTs;
 
