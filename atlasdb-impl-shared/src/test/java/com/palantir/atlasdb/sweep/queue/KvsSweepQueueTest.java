@@ -58,7 +58,7 @@ public class KvsSweepQueueTest {
     private static final long TS2 = 2 * TS;
 
     KeyValueService kvs;
-    KvsSweepQueue sweepQueue = KvsSweepQueue.createUninitialized(() -> SHARDS);
+    KvsSweepQueue sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> SHARDS);
     KvsSweepQueueScrubber scrubber = mock(KvsSweepQueueScrubber.class);
     long unreadableTs;
     long immutableTs;

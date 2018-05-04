@@ -31,19 +31,21 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 public class KvsSweepQueue implements MultiTableSweepQueueWriter {
+    private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> numShards;
     private KvsSweepQueuePersister writer;
     private Map<ShardAndStrategy, KvsSweepQueueReader> shardSpecificReaders;
     private Map<TableMetadataPersistence.SweepStrategy, KvsSweepDeleter> strategySpecificDeleters;
     private SweepTimestampProvider timestampProvider;
 
-    private KvsSweepQueue(Supplier<Integer> numShards) {
+    private KvsSweepQueue(Supplier<Boolean> runSweep, Supplier<Integer> numShards) {
+        this.runSweep = runSweep;
         // todo(gmaretic): this needs to replace the constant
         this.numShards = numShards;
     }
 
-    public static KvsSweepQueue createUninitialized(Supplier<Integer> shards) {
-        return new KvsSweepQueue(shards);
+    public static KvsSweepQueue createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shards) {
+        return new KvsSweepQueue(enabled, shards);
     }
 
     public void initialize(SweepTimestampProvider provider, KeyValueService kvs) {
@@ -55,6 +57,7 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
         createAndStartBackgroundThreads();
     }
 
+    @Override
     public void callbackInit(SerializableTransactionManager txManager) {
         initialize(SweepTimestampProvider.create(txManager), txManager.getKeyValueService());
     }
@@ -89,6 +92,9 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
 
     @VisibleForTesting
     void sweepNextBatch(ShardAndStrategy shardAndStrategy) {
+        if (!runSweep.get()) {
+            return;
+        }
         KvsSweepDeleter deleter = strategySpecificDeleters.get(shardAndStrategy.strategy());
         shardSpecificReaders.get(shardAndStrategy)
                 .consumeNextBatch(deleter::sweep, timestampProvider.getSweepTimestamp(deleter.getSweeper()));
