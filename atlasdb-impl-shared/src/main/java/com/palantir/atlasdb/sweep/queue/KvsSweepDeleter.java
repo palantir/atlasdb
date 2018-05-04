@@ -47,8 +47,7 @@ public class KvsSweepDeleter implements SweepDeleter {
 
     private Map<TableReference, Map<Cell, Long>> partitionWrites(Collection<WriteInfo> writes) {
         Map<TableReference, Map<Cell, Long>> result = new HashMap<>();
-        writes.forEach(write ->
-                result.computeIfAbsent(write.writeRef().tableRef(), ignore -> new HashMap<>())
+        writes.forEach(write -> result.computeIfAbsent(write.writeRef().tableRef(), ignore -> new HashMap<>())
                         .put(write.writeRef().cell(), write.timestampToDeleteAtExclusive(sweeper)));
         return result;
     }

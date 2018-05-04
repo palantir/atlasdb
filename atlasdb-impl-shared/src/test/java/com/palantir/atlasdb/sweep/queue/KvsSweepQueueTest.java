@@ -67,6 +67,7 @@ public class KvsSweepQueueTest {
     KvsSweepQueueProgress progress;
     SweepableTimestamps sweepableTimestamps;
     SweepableCells sweepableCells;
+
     long unreadableTs;
     long immutableTs;
     long sweepTsConservative;
