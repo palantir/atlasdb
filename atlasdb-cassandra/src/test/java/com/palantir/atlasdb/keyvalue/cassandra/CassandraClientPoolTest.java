@@ -217,7 +217,7 @@ public class CassandraClientPoolTest {
 
         downHost.set(HOST_2);
 
-        runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
+        runNoopWithRetryOnHost(HOST_2, cassandraClientPool);
         assertThat(blacklist.contains(HOST_1), is(false));
     }
 

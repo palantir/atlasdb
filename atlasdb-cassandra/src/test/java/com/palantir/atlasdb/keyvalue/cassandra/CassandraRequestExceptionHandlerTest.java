@@ -22,7 +22,6 @@ import static org.mockito.Mockito.mock;
 
 import java.net.SocketTimeoutException;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,7 +36,6 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 
@@ -180,13 +178,7 @@ public class CassandraRequestExceptionHandlerTest {
 
     @Test
     public void retryableExceptionsAreRetryableConservative() {
-        Set<Exception> allExceptions = new HashSet<>();
-        allExceptions = Sets.union(allExceptions, CONNECTION_EXCEPTIONS);
-        allExceptions = Sets.union(allExceptions, TRANSIENT_EXCEPTIONS);
-        allExceptions = Sets.union(allExceptions, INDICATIVE_OF_CASSANDRA_LOAD_EXCEPTIONS);
-        allExceptions = Sets.union(allExceptions, FAST_FAILOVER_EXCEPTIONS);
-
-        for (Exception ex : allExceptions) {
+        for (Exception ex : ALL_EXCEPTIONS) {
             assertTrue(String.format("Exception %s should be retryable", ex), handlerConservative.isRetryable(ex));
         }
         assertFalse("RuntimeException is not retryable", handlerConservative.isRetryable(new RuntimeException()));
