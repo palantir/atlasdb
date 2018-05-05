@@ -19,6 +19,7 @@ package com.palantir.atlasdb.sweep.queue;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.util.LazyRecomputingSupplier;
 
 public final class KvsSweepQueueTables {
     final SweepableCells sweepableCells;
