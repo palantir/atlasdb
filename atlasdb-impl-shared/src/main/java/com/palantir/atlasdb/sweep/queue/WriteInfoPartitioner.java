@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -37,10 +39,9 @@ import com.palantir.logsafe.UnsafeArg;
 
 public class WriteInfoPartitioner {
     private static final Logger log = LoggerFactory.getLogger(WriteInfoPartitioner.class);
-    // todo(gmaretic): temporarily constant
-    static final int SHARDS = 128;
 
     private final KeyValueService kvs;
+    private final Supplier<Integer> numShards;
 
     private final LoadingCache<TableReference, TableMetadataPersistence.SweepStrategy> cache = CacheBuilder
             .newBuilder().build(
@@ -51,8 +52,9 @@ public class WriteInfoPartitioner {
                         }
                     });
 
-    public WriteInfoPartitioner(KeyValueService kvs) {
+    public WriteInfoPartitioner(KeyValueService kvs, Supplier<Integer> numShards) {
         this.kvs = kvs;
+        this.numShards = numShards;
     }
 
     public Map<PartitionInfo, List<WriteInfo>> filterAndPartition(List<WriteInfo> writes) {
@@ -68,13 +70,15 @@ public class WriteInfoPartitioner {
 
     @VisibleForTesting
     Map<PartitionInfo, List<WriteInfo>> partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
+        int shards = numShards.get();
         Map<PartitionInfo, List<WriteInfo>> result = new HashMap<>();
-        writes.forEach(write -> result.computeIfAbsent(getPartitionInfo(write), no -> new ArrayList<>()).add(write));
+        writes.forEach(write ->
+                result.computeIfAbsent(getPartitionInfo(write, shards), no -> new ArrayList<>()).add(write));
         return result;
     }
 
-    private PartitionInfo getPartitionInfo(WriteInfo write) {
-        return PartitionInfo.of(write.toShard(SHARDS), isConservative(write), write.timestamp());
+    private PartitionInfo getPartitionInfo(WriteInfo write, int shards) {
+        return PartitionInfo.of(write.toShard(shards), isConservative(write), write.timestamp());
     }
 
     @VisibleForTesting

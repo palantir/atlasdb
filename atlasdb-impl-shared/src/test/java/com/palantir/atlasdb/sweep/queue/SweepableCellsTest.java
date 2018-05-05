@@ -23,7 +23,6 @@ import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import static com.palantir.atlasdb.sweep.queue.SweepableCells.MAX_CELLS_DEDICATED;
 import static com.palantir.atlasdb.sweep.queue.SweepableCells.MAX_CELLS_GENERIC;
-import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -190,8 +189,7 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     @Ignore("This test takes 53 minutes to complete. Need to see how it performs with CassandraKVS")
     public void canReadMultipleEntriesInSingleShardSameTransactionMultipleDedicated() {
         List<WriteInfo> writes = writeToCellsInFixedShard(sweepableCells, TS, MAX_CELLS_DEDICATED + 1, TABLE_CONS);
-        int fixedShard = writes.get(0).toShard(SHARDS);
-        SweepBatch conservativeBatch = readConservative(fixedShard, TS_FINE_PARTITION, TS - 1, TS + 1);
+        SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_FINE_PARTITION, TS - 1, TS + 1);
         assertThat(conservativeBatch.writes()).hasSameElementsAs(writes);
     }
 
@@ -206,4 +204,5 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     private long endOfFinePartitionForTs(long timestamp) {
         return SweepQueueUtils.maxTsForFinePartition(tsPartitionFine(timestamp));
     }
+
 }

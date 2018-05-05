@@ -44,12 +44,13 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
         this.numShards = numShards;
     }
 
-    public static KvsSweepQueue createUninitialized(Supplier<Integer> shards) {
-        return new KvsSweepQueue(shards);
+    public static KvsSweepQueue createUninitialized(Supplier<Integer> shardsRuntimeConfig) {
+
+        return new KvsSweepQueue(shardsRuntimeConfig);
     }
 
     public void initialize(SweepTimestampProvider provider, KeyValueService kvs) {
-        tables = KvsSweepQueueTables.create(kvs);
+        tables = KvsSweepQueueTables.create(kvs, numShards);
         timestampProvider = provider;
         writer = KvsSweepQueuePersister.create(tables);
         shardSpecificReaders = createReaders();

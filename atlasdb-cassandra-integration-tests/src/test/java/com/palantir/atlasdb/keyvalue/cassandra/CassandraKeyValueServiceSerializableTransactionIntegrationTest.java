@@ -20,8 +20,7 @@ import org.junit.ClassRule;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.queue.KvsSweepQueuePersister;
-import com.palantir.atlasdb.sweep.queue.KvsSweepQueueTables;
+import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
@@ -41,7 +40,8 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriter() {
-        return KvsSweepQueuePersister.create(KvsSweepQueueTables.create(getKeyValueService()));
+        // todo(gmaretic): initialize once part 10 is merged in, also make sure tests make sense
+        return KvsSweepQueue.createUninitialized(() -> 128);
     }
 
     @Override

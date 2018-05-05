@@ -18,8 +18,6 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
-
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -31,6 +29,7 @@ public class WriteInfoTest {
     private static final Cell CELL = Cell.create(new byte[]{1}, new byte[]{2});
     private static final long ONE = 1L;
     private static final long TWO = 2L;
+    private static final int SHARDS = 128;
 
     @Test
     public void cellReferenceIgnoresTombstoneStatus() {
