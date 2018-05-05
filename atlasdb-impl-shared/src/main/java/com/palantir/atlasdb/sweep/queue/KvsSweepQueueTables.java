@@ -31,11 +31,13 @@ public final class KvsSweepQueueTables {
         this.progress = progress;
     }
 
-    public static KvsSweepQueueTables create(KeyValueService kvs, Supplier<Integer> numTables) {
-        WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, numTables);
+    public static KvsSweepQueueTables create(KeyValueService kvs, Supplier<Integer> shardsConfig) {
+        KvsSweepQueueProgress progress = new KvsSweepQueueProgress(kvs);
+        Supplier<Integer> shards = new LazyRecomputingSupplier<>(shardsConfig, progress::updateNumberOfShards);
+        WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
-        KvsSweepQueueProgress progress = new KvsSweepQueueProgress(kvs);
         return new KvsSweepQueueTables(cells, timestamps, progress);
     }
+
 }

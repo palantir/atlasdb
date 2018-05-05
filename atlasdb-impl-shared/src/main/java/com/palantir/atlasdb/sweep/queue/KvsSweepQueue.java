@@ -31,7 +31,7 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 public class KvsSweepQueue implements MultiTableSweepQueueWriter {
-    private final Supplier<Integer> numShards;
+    private final Supplier<Integer> shardsRuntimeConfig;
     @VisibleForTesting
     KvsSweepQueueTables tables;
     private KvsSweepQueuePersister writer;
@@ -41,7 +41,7 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
 
     private KvsSweepQueue(Supplier<Integer> numShards) {
         // todo(gmaretic): this needs to replace the constant
-        this.numShards = numShards;
+        this.shardsRuntimeConfig = numShards;
     }
 
     public static KvsSweepQueue createUninitialized(Supplier<Integer> shardsRuntimeConfig) {
@@ -50,7 +50,7 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
     }
 
     public void initialize(SweepTimestampProvider provider, KeyValueService kvs) {
-        tables = KvsSweepQueueTables.create(kvs, numShards);
+        tables = KvsSweepQueueTables.create(kvs, shardsRuntimeConfig);
         timestampProvider = provider;
         writer = KvsSweepQueuePersister.create(tables);
         shardSpecificReaders = createReaders();
@@ -64,7 +64,7 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
     }
 
     private Map<ShardAndStrategy, KvsSweepQueueReader> createReaders() {
-        long shards = numShards.get();
+        long shards = shardsRuntimeConfig.get();
         Map<ShardAndStrategy, KvsSweepQueueReader> readers = new HashMap<>();
         for (int i = 0; i < shards; i++) {
             ShardAndStrategy conservative = ShardAndStrategy.conservative(i);

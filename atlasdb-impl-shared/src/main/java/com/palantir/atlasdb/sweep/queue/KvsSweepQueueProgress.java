@@ -50,13 +50,13 @@ public class KvsSweepQueueProgress {
         this.kvs = kvs;
     }
 
-    public long getNumberOfShards() {
-        return getOrReturnInitial(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), INITIAL_SHARDS);
+    public int getNumberOfShards() {
+        return (int) getOrReturnInitial(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), INITIAL_SHARDS);
     }
 
-    public long updateNumberOfShards(int newNumber) {
+    public int updateNumberOfShards(int newNumber) {
         Preconditions.checkArgument(newNumber <= 128);
-        return increaseValueToAtLeast(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), newNumber);
+        return (int) increaseValueToAtLeast(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), newNumber);
     }
 
     public long getLastSweptTimestamp(ShardAndStrategy shardAndStrategy) {
