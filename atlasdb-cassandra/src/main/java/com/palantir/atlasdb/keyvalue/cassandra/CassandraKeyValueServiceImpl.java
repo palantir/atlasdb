@@ -891,7 +891,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp) {
         try {
-            cellValuePutter.put("put", tableRef,
+            cellValuePutter.putAndOverwriteTimestamps("put", tableRef,
                     KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
