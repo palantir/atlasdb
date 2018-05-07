@@ -63,9 +63,22 @@ public class CellValuePutter {
         this.writeConsistency = writeConsistency;
     }
 
+    void putAndOverwriteTimestamps(final String kvsMethodName,
+            final TableReference tableRef,
+            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+        put(kvsMethodName, tableRef, values, true);
+    }
+
     void put(final String kvsMethodName,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+        put(kvsMethodName, tableRef, values, false);
+    }
+
+    private void put(final String kvsMethodName,
+            final TableReference tableRef,
+            final Iterable<Map.Entry<Cell, Value>> values,
+            boolean overwriteTimestamps) throws Exception {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
@@ -73,7 +86,7 @@ public class CellValuePutter {
                     "Atlas put " + entry.getValue().size()
                             + " cell values to " + tableRef + " on " + entry.getKey(),
                     () -> {
-                        putForSingleHost(kvsMethodName, entry.getKey(), tableRef, entry.getValue().entrySet());
+                        putForSingleHost(kvsMethodName, entry.getKey(), tableRef, entry.getValue().entrySet(), overwriteTimestamps);
                         clientPool.markWritesForTable(entry.getValue(), tableRef);
                         return null;
                     }));
@@ -84,7 +97,8 @@ public class CellValuePutter {
     private void putForSingleHost(String kvsMethodName,
             final InetSocketAddress host,
             final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+            final Iterable<Map.Entry<Cell, Value>> values,
+            boolean overwriteTimestamps) throws Exception {
         clientPool.runWithRetryOnHost(host,
                 new FunctionCheckedException<CassandraClient, Void, Exception>() {
                     @Override
@@ -101,6 +115,9 @@ public class CellValuePutter {
                             for (Map.Entry<Cell, Value> e : partition) {
                                 Cell cell = e.getKey();
                                 Column col = CassandraKeyValueServices.createColumn(cell, e.getValue());
+                                if (overwriteTimestamps) {
+                                    col = CassandraKeyValueServices.createColumnAndOverwriteTimestamp(cell, e.getValue());
+                                }
 
                                 ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
                                 colOrSup.setColumn(col);
