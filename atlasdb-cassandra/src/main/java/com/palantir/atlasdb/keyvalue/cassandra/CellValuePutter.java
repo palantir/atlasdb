@@ -114,10 +114,9 @@ public class CellValuePutter {
                             MutationMap map = new MutationMap();
                             for (Map.Entry<Cell, Value> e : partition) {
                                 Cell cell = e.getKey();
-                                Column col = CassandraKeyValueServices.createColumn(cell, e.getValue());
-                                if (overwriteTimestamps) {
-                                    col = CassandraKeyValueServices.createColumnAndOverwriteTimestamp(cell, e.getValue());
-                                }
+                                Column col = overwriteTimestamps
+                                        ? CassandraKeyValueServices.createColumnAndOverwriteTimestamp(cell, e.getValue())
+                                        : CassandraKeyValueServices.createColumn(cell, e.getValue());
 
                                 ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
                                 colOrSup.setColumn(col);
