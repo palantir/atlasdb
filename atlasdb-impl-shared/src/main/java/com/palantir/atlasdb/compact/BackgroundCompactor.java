@@ -107,8 +107,10 @@ public final class BackgroundCompactor implements AutoCloseable {
     }
 
     public void run() {
-        log.info("Attempting to start the background compactor for the very first time.");
         try (SingleLockService compactorLock = createSimpleLocks()) {
+            // Wait a while before starting so short lived clis don't try to compact
+            Thread.sleep(getSleepTimeWhenCompactionHasNotRun());
+            log.info("Attempting to start the background compactor for the very first time.");
             waitUntilTransactionManagerIsReady();
             log.info("Starting background compactor");
             while (true) {
@@ -244,6 +246,10 @@ public final class BackgroundCompactor implements AutoCloseable {
             default:
                 throw new IllegalStateException("Unexpected outcome enum type: " + outcome);
         }
+    }
+
+    private long getSleepTimeWhenCompactionHasNotRun() {
+        return 20 * (1000 + compactorConfigSupplier.get().compactPauseMillis());
     }
 
     enum CompactionOutcome {
