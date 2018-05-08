@@ -29,6 +29,9 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -64,6 +67,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Futures;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -181,15 +185,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
+    private static final long SCHEMA_MUTATION_TASK_TIMEOUT_SECONDS = 120;
+
     private final Logger log;
 
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
 
     private SchemaMutationLock schemaMutationLock;
-    private final Optional<LeaderConfig> leaderConfig;
-
+    private final ExecutorService schemaMutationExecutor;
     private final UniqueSchemaMutationLockTable schemaMutationLockTable;
+
+    private final Optional<LeaderConfig> leaderConfig;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
@@ -314,6 +321,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
+        this.schemaMutationExecutor = createFixedThreadPool("schemaMutation", 1);
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
@@ -1311,7 +1319,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
-        schemaMutationLock.runWithLock(() -> cassandraTableDropper.dropTables(tablesToDrop));
+        runSchemaMutationTask(() ->
+                schemaMutationLock.runWithLock(() -> cassandraTableDropper.dropTables(tablesToDrop)));
     }
 
     /**
@@ -1369,7 +1378,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     tablesToActuallyCreate.keySet());
             log.info("Grabbing schema mutation lock to create tables {} and {}",
                     safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
-            schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate));
+
+            runSchemaMutationTask(() ->
+                    schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate)));
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
@@ -1436,6 +1447,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         return filteredTables;
+    }
+
+    private void runSchemaMutationTask(Runnable task) {
+        Futures.getUnchecked(schemaMutationExecutor.submit(task));
     }
 
     private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
@@ -1759,6 +1774,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void close() {
+        schemaMutationExecutor.shutdown();
+        try {
+            schemaMutationExecutor.awaitTermination(SCHEMA_MUTATION_TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            // Continue with further transaction manager clean-up
+            Thread.currentThread().interrupt();
+        }
         clientPool.shutdown();
         super.close();
     }
