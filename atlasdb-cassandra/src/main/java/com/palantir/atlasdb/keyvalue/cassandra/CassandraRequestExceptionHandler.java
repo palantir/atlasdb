@@ -202,6 +202,7 @@ class CassandraRequestExceptionHandler {
     }
 
     static boolean isIndicativeOfCassandraLoad(Throwable ex) {
+        // TODO (jkong): Make NoSuchElementException its own thing - that is NOT necessarily indicative of C* load.
         return ex != null
                 // pool for this node is fully in use
                 && (ex instanceof NoSuchElementException

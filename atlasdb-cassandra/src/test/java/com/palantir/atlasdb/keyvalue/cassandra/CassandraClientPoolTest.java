@@ -187,7 +187,6 @@ public class CassandraClientPoolTest {
         verifyBlacklistMetric(1);
     }
 
-    @SuppressWarnings("unchecked") // We know the types are correct within this test.
     @Test
     public void successfulRequestCausesHostToBeRemovedFromBlacklist() {
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
