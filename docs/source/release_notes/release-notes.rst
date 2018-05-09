@@ -87,6 +87,11 @@ v0.83.0
            Some exceptions thrown due to schema mutation failures now have type ``UncheckedExecutionException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3152>`__)
 
+    *    - |changed|
+         - Added validation that forces alphanumeric + underscore only table names,
+           in the name of forced cross-compat amongst backing stores.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3155>`__)
+
 =======
 v0.82.2
 =======
