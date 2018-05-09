@@ -52,7 +52,8 @@ develop
 
     *    - |fixed|
          - Any ongoing Cassandra schema mutations are now given two minutes to complete upon closing a
-           transaction manager, decreasing the chance that the schema mutation lock is lost. 
+           transaction manager, decreasing the chance that the schema mutation lock is lost. Some exceptions
+           thrown due to schema mutation failures are now UncheckedExecutionExceptions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3152>`__)
 
 =======
