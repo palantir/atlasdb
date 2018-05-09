@@ -59,6 +59,11 @@ develop
            Previously, they would throw an exception when we attempted to log information about the response.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3158>`__)
 
+    *    - |changed|
+         - Added validation that forces alphanumeric + underscore only table names
+           in the name of forced cross-compat amongst backing stores.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3159>`__)
+
 =======
 v0.83.0
 =======

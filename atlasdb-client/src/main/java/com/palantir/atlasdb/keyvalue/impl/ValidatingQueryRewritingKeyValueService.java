@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
@@ -55,6 +56,10 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(ValidatingQueryRewritingKeyValueService.class);
     private static final String TRANSACTION_ERROR = "shouldn't be putting into the transaction table at this level of KVS abstraction";
+
+    /* Insures users retain portability and create tables inside the intersection of characters
+       simultaneously allowed by postgres / oracle / cassandra. */
+    private static Pattern ALLOWED_TABLE_NAMES = Pattern.compile("^[a-zA-Z0-9\\.\\_]*$");
 
     public static ValidatingQueryRewritingKeyValueService create(KeyValueService delegate) {
         return new ValidatingQueryRewritingKeyValueService(delegate);
@@ -97,10 +102,11 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     protected void sanityCheckTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         Validate.isTrue(
-                (!tableName.startsWith("_") && tableName.contains("."))
+                ((!tableName.startsWith("_") && (tableName.contains(".")))
+                        && ALLOWED_TABLE_NAMES.matcher(tableName).matches())
                         || AtlasDbConstants.hiddenTables.contains(tableRef)
                         || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
-                "invalid tableName: %s", tableName);
+                "invalid tableName: ", tableName);
     }
 
     protected static void sanityCheckTableMetadata(TableReference tableRef, byte[] tableMetadata) {
