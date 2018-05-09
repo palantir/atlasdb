@@ -222,7 +222,6 @@ final class SchemaMutationLock {
                         throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
                     }
 
-
                     currentTimeBetweenLockAttemptsMillis = getCappedTimeBetweenLockAttemptsWithBackoff(
                             currentTimeBetweenLockAttemptsMillis);
                     Thread.sleep(currentTimeBetweenLockAttemptsMillis);
