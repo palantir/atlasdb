@@ -67,6 +67,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -121,6 +122,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -1449,7 +1451,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void runSchemaMutationTask(Runnable task) {
-        Futures.getUnchecked(schemaMutationExecutor.submit(task));
+        try {
+            Futures.getUnchecked(schemaMutationExecutor.submit(task));
+        } catch (UncheckedExecutionException e) {
+            // If this wraps an AtlasDbDependencyException, rewrap and throw
+            if (e.getCause() instanceof AtlasDbDependencyException) {
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            }
+            throw e;
+        }
     }
 
     private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
