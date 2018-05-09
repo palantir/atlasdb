@@ -1292,8 +1292,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to drop.
      *
-     * @throws IllegalStateException if not all hosts respond successfully, or if their schema versions do
+     * @throws AtlasDbDependencyException if not all hosts respond successfully, or if their schema versions do
      * not come to agreement in 1 minute.
+     * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
     public void dropTable(final TableReference tableRef) {
@@ -1315,8 +1316,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tablesToDrop the set of tables to drop.
      *
-     * @throws IllegalStateException if not all hosts respond successfully, or if their schema versions do
+     * @throws AtlasDbDependencyException if not all hosts respond successfully, or if their schema versions do
      * not come to agreement in 1 minute.
+     * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
@@ -1335,7 +1337,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @param tableRef the name of the table to create.
      * @param tableMetadata the metadata of the table to create.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws AtlasDbDependencyException if not all hosts respond successfully.
+     * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
     public void createTable(final TableReference tableRef, final byte[] tableMetadata) {
@@ -1363,7 +1366,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableNamesToTableMetadata a mapping of names of tables to create to their respective metadata.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws AtlasDbDependencyException if not all hosts respond successfully.
+     * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
