@@ -22,12 +22,12 @@ import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 /**
  * Adds {@link WriteInfo}s to a global queue to be swept.
  */
 public interface MultiTableSweepQueueWriter {
-
     MultiTableSweepQueueWriter NO_OP = ignored -> { };
 
     default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
@@ -35,6 +35,10 @@ public interface MultiTableSweepQueueWriter {
     }
 
     void enqueue(List<WriteInfo> writes);
+
+    default void callbackInit(SerializableTransactionManager txManager) {
+        // noop
+    }
 
     default List<WriteInfo> toWriteInfos(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
         return writes.entrySet().stream()

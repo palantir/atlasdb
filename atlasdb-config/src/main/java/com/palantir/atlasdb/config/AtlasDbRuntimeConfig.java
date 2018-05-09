@@ -39,6 +39,11 @@ public abstract class AtlasDbRuntimeConfig {
     }
 
     @Value.Default
+    public TargetedSweepConfig targetedSweep() {
+        return TargetedSweepConfig.defaultTargetedSweepConfig();
+    }
+
+    @Value.Default
     public CompactorConfig compact() {
         return CompactorConfig.defaultCompactorConfig();
     }
