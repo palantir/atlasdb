@@ -381,7 +381,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraClientPoolingContainer hostPool = getPreferredHostOrFallBack(req);
 
             try {
-                return runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
+                V response = runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
+                blacklist.remove(hostPool.getHost()); // successful request -> can un-blacklist
+                return response;
             } catch (Exception ex) {
                 exceptionHandler.handleExceptionFromRequest(req, hostPool.getHost(), ex);
             }
@@ -413,7 +415,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     public <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
             FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedHost);
-        return runWithPooledResourceRecordingMetrics(hostPool, fn);
+        V response = runWithPooledResourceRecordingMetrics(hostPool, fn);
+        blacklist.remove(specifiedHost);
+        return response;
     }
 
     private <V, K extends Exception> V runWithPooledResourceRecordingMetrics(
