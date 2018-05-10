@@ -210,7 +210,7 @@ To use the CLI, shut down your AtlasDB clients and run:</p>
 <p>Alternatively, one can also run the CLIs as a separate distribution. These distributions are published on
 <a class="reference external" href="https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/0.78.0/">Bintray</a> - please make
 sure to use the corresponding version of the CLIs with your service. The command can then be invoked as</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/atlasdb-cli clean-cass-locks-state var/conf/&lt;service&gt;.yml --offline
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/atlasdb-cli --offline -c var/conf/&lt;service&gt;.yml clean-cass-locks-state
 </pre></div>
 </div>
 </div>
