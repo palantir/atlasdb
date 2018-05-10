@@ -52,7 +52,7 @@ sure to use the corresponding version of the CLIs with your service. The command
 
 .. code-block:: bash
 
-   ./service/bin/atlasdb-cli clean-cass-locks-state var/conf/<service>.yml --offline
+   ./service/bin/atlasdb-cli --offline -c var/conf/<service>.yml clean-cass-locks-state
 
 Clear with CQL
 --------------
