@@ -76,9 +76,9 @@ v0.83.0
            Previously, under certain kinds of exceptions (such as ``TTransportException``), we would repeatedly retry the operation on the same node up to ``maxTriesTotal`` times.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3145>`__)
 
-    *    - |fixed|
+    *    - |fixed| |devbreak|
          - Any ongoing Cassandra schema mutations are now given two minutes to complete upon closing a transaction manager, decreasing the chance that the schema mutation lock is lost.
-           Some exceptions thrown due to schema mutation failures are now ``UncheckedExecutionException``s.
+           Some exceptions thrown due to schema mutation failures now have type ``UncheckedExecutionException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3152>`__)
 
 =======
