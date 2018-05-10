@@ -187,6 +187,16 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>If we make a successful request to a Cassandra client, we now remove it from the Cassandra client pool’s blacklist.
+Previously, removal from the blacklist would only occur after a background thread successfully refreshed the pool, meaning that requests may become stuck if Cassandra was rolling restarted.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3145">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The Cassandra client pool now respects the <code class="docutils literal notranslate"><span class="pre">maxRetriesOnHost</span></code> config option, and will not try a single operation beyond that many times on the same node.
+Previously, under certain kinds of exceptions (such as <code class="docutils literal notranslate"><span class="pre">TTransportException</span></code>), we would repeatedly retry the operation on the same node up to <code class="docutils literal notranslate"><span class="pre">maxTriesTotal</span></code> times.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3145">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Any ongoing Cassandra schema mutations are now given two minutes to complete upon closing a
 transaction manager, decreasing the chance that the schema mutation lock is lost. Some exceptions
