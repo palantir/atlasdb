@@ -51,6 +51,10 @@ develop
          - Change
 
     *    - |improved|
+         - Timelock will now have more debugging info if the paxos directories fail to be created on startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3156>`__)
+
+    *    - |improved|
          - If we make a successful request to a Cassandra client, we now remove it from the Cassandra client pool's blacklist.
            Previously, removal from the blacklist would only occur after a background thread successfully refreshed the pool, meaning that requests may become stuck if Cassandra was rolling restarted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3145>`__)

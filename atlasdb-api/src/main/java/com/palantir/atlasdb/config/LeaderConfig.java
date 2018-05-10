@@ -40,7 +40,7 @@ import com.palantir.remoting.api.config.ssl.SslConfiguration;
 @SuppressWarnings("DesignForExtension")
 public abstract class LeaderConfig {
 
-    private final Logger log = LoggerFactory.getLogger(LeaderConfig.class);
+    private static  final Logger log = LoggerFactory.getLogger(LeaderConfig.class);
 
     public abstract int quorumSize();
 
