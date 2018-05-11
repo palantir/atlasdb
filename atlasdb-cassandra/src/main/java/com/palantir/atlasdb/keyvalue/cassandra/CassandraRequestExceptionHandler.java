@@ -236,7 +236,7 @@ class CassandraRequestExceptionHandler {
     }
 
     private static class Default implements RequestExceptionHandlerStrategy {
-        private static final RequestExceptionHandlerStrategy  INSTANCE = new Default();
+        private static final RequestExceptionHandlerStrategy INSTANCE = new Default();
 
         private static final long BACKOFF_DURATION = Duration.ofSeconds(1).toMillis();
 
