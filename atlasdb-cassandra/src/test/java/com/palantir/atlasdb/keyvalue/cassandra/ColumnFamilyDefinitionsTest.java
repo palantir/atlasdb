@@ -122,8 +122,8 @@ public class ColumnFamilyDefinitionsTest {
         CfDef cf1 = getGenericCfDef();
         CfDef cf2 = getGenericCfDef();
 
-        cf1.putToCompaction_strategy_options("tombstone_threshold", "0.05");
-        cf2.putToCompaction_strategy_options("tombstone_threshold", "0.1");
+        cf1.putToCompaction_strategy_options(CassandraConstants.TOMBSTONE_THRESHOLD, "0.05");
+        cf2.putToCompaction_strategy_options(CassandraConstants.TOMBSTONE_THRESHOLD, "0.1");
 
         assertFalse("ColumnDefinitions with different tombstone_threshold should not match",
                 ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
@@ -134,10 +134,10 @@ public class ColumnFamilyDefinitionsTest {
         CfDef cf1 = getGenericCfDef();
         CfDef cf2 = getGenericCfDef();
 
-        cf1.putToCompaction_strategy_options("tombstone_threshold", "0.05");
+        cf1.putToCompaction_strategy_options(CassandraConstants.TOMBSTONE_THRESHOLD, "0.05");
 
         assertFalse("cf2 shouldn't have a tombstone_threshold set",
-                cf2.compaction_strategy_options.containsKey("tombstone_threshold"));
+                cf2.compaction_strategy_options.containsKey(CassandraConstants.TOMBSTONE_THRESHOLD));
         assertFalse("ColumnDefinitions with different tombstone_threshold should not match",
                 ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
     }
@@ -164,7 +164,9 @@ public class ColumnFamilyDefinitionsTest {
                 compactionConfigWithThreshold(0.01));
 
         assertTrue("Compaction configuration should be set for an append-heavy-read-light stream store value table",
-                valueTable.compaction_strategy_options.get("tombstone_threshold").equals(String.valueOf(0.01)));
+                valueTable.compaction_strategy_options
+                        .get(CassandraConstants.TOMBSTONE_THRESHOLD)
+                        .equals(String.valueOf(0.01)));
     }
 
     @Test
@@ -190,7 +192,7 @@ public class ColumnFamilyDefinitionsTest {
                 compactionConfigWithThreshold(0.01));
 
         assertFalse("Compaction configuration should not be set for a regular stream store value table",
-                valueTable.compaction_strategy_options.containsKey("tombstone_threshold"));
+                valueTable.compaction_strategy_options.containsKey(CassandraConstants.TOMBSTONE_THRESHOLD));
 
     }
 

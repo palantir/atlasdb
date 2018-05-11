@@ -75,6 +75,8 @@ public final class CassandraConstants {
     static final String SIZE_TIERED_COMPACTION_STRATEGY =
             "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
 
+    static final String TOMBSTONE_THRESHOLD = "tombstone_threshold";
+
     public static final String GLOBAL_DDL_LOCK_ROW_NAME = "Global DDL lock";
     public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
 

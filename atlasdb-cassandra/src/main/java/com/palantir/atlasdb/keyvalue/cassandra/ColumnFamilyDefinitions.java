@@ -155,7 +155,7 @@ final class ColumnFamilyDefinitions {
                         + " setting the tombstone threshold to {}",
                 LoggingArgs.tableRef(tableRef),
                 SafeArg.of("tombstoneThreshold", threshold));
-        cf.putToCompaction_strategy_options("tombstone_threshold", String.valueOf(threshold));
+        cf.putToCompaction_strategy_options(CassandraConstants.TOMBSTONE_THRESHOLD, String.valueOf(threshold));
     }
 
     /**
