@@ -50,12 +50,12 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
     }
 
     public void initialize(SweepTimestampProvider provider, KeyValueService kvs) {
+        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         tables = KvsSweepQueueTables.create(kvs, shardsConfig);
         timestampProvider = provider;
         writer = KvsSweepQueuePersister.create(tables);
         shardSpecificReaders = createReaders();
         strategySpecificDeleters = createDeleters(kvs);
-        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         createAndStartBackgroundThreads();
     }
 

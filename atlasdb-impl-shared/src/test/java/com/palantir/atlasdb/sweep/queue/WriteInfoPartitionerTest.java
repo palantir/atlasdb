@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -130,6 +131,20 @@ public class WriteInfoPartitionerTest {
                 .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), true, 1L));
         assertThat(partitions.values())
                 .containsExactly(writes);
+    }
+
+    @Test
+    public void changingNumberOfPartitionsIsReflectedInPartitionInfo() {
+        WriteInfo write = getWriteInfo(CONSERVATIVE, 1, 1, 100L);
+        PartitionInfo partition1 = Iterables.getOnlyElement(
+                partitioner.partitionWritesByShardStrategyTimestamp(ImmutableList.of(write)).keySet());
+        numShards = 199;
+        PartitionInfo partition2 = Iterables.getOnlyElement(
+                partitioner.partitionWritesByShardStrategyTimestamp(ImmutableList.of(write)).keySet());
+
+        assertThat(partition1.isConservative()).isEqualTo(partition2.isConservative());
+        assertThat(partition1.timestamp()).isEqualTo(partition2.timestamp());
+        assertThat(partition1.shard()).isNotEqualTo(partition2.shard());
     }
 
     private static TableReference getTableRef(String tableName) {

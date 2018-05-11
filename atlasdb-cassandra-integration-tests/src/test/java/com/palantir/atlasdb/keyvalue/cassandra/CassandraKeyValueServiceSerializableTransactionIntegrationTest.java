@@ -41,7 +41,7 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriter() {
         // todo(gmaretic): initialize once part 10 is merged in, also make sure tests make sense
-        return KvsSweepQueue.createUninitialized(() -> 128);
+        return KvsSweepQueue.createUninitialized(() -> true, () -> 128);
     }
 
     @Override

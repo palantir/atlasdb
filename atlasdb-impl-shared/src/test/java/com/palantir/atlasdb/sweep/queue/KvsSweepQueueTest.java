@@ -56,7 +56,7 @@ public class KvsSweepQueueTest {
     private static final TableReference TABLE_THOROUGH = TableReference.createFromFullyQualifiedName("test.thor");
     private static final TableReference TABLE_NOTHING = TableReference.createFromFullyQualifiedName("test.noth");
     private static final Cell DEFAULT_CELL = Cell.create(new byte[] {'r'}, new byte[] {'c'});
-    private static final int SHARDS = 128;
+    private static final int SHARDS = 117;
     private static final int CONS_SHARD = WriteInfo.tombstone(TABLE_CONSERVATIVE, DEFAULT_CELL, 0).toShard(SHARDS);
     private static final int THOR_SHARD = WriteInfo.tombstone(TABLE_THOROUGH, DEFAULT_CELL, 0).toShard(SHARDS);
     private static final long TS = 10L;

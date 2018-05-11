@@ -18,7 +18,9 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
@@ -29,7 +31,8 @@ public final class KvsSweepQueueTables {
 
     private final Supplier<Integer> numShards;
 
-    private KvsSweepQueueTables(SweepableCells cells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress,
+    @VisibleForTesting
+    KvsSweepQueueTables(SweepableCells cells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress,
             Supplier<Integer> numShards) {
         this.sweepableCells = cells;
         this.sweepableTimestamps = timestamps;
@@ -39,17 +42,21 @@ public final class KvsSweepQueueTables {
 
     public static KvsSweepQueueTables create(KeyValueService kvs, Supplier<Integer> shardsConfig) {
         KvsSweepQueueProgress progress = new KvsSweepQueueProgress(kvs);
-        Supplier<Integer> shards = Suppliers.memoizeWithExpiration(
-                () -> progress.updateNumberOfShards(shardsConfig.get()),
-                5, TimeUnit.MINUTES);
+        Supplier<Integer> shards = createUpdatingSupplier(shardsConfig, progress::updateNumberOfShards, 5000 * 60);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
         return new KvsSweepQueueTables(cells, timestamps, progress, shards);
     }
 
+    @VisibleForTesting
+    static Supplier<Integer> createUpdatingSupplier(Supplier<Integer> runtimeConfig,
+            UnaryOperator<Integer> updateOperator, long refreshTimeMillis) {
+        return Suppliers.memoizeWithExpiration(
+                () -> updateOperator.apply(runtimeConfig.get()), refreshTimeMillis, TimeUnit.MILLISECONDS);
+    }
+
     public int getNumShards() {
         return numShards.get();
     }
-
 }

@@ -112,7 +112,7 @@ public class AtlasDbTestCase {
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         // todo(gmaretic): initialize once part 10 is merged in, also make sure tests make sense
-        sweepQueue = KvsSweepQueue.createUninitialized(() -> 128);
+        sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> 128);
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,
