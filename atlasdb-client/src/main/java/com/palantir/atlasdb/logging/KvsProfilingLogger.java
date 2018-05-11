@@ -107,13 +107,19 @@ public class KvsProfilingLogger {
         return maybeLog(action, primaryLogger, ((loggingFunction, result) -> {}));
     }
 
+    /**
+     * Runs an action (which is a CallableCheckedException) through a {@link Monitor}, registering results on
+     * successful operations and exceptions on unsuccessful operations, as well as logging operations.
+     *
+     * Please see the documentation of {@link Monitor} for more information on how the logging functions are invoked.
+     */
     public static <T, E extends Exception> T maybeLog(CallableCheckedException<T, E> action,
             BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
-            BiConsumer<LoggingFunction, T> additonalLoggerWithAccessToResult) throws E {
+            BiConsumer<LoggingFunction, T> additionalLoggerWithAccessToResult) throws E {
         if (log.isTraceEnabled() || slowlogger.isWarnEnabled()) {
             Monitor<T> monitor = Monitor.createMonitor(
                     primaryLogger,
-                    additonalLoggerWithAccessToResult,
+                    additionalLoggerWithAccessToResult,
                     slowLogPredicate);
             try {
                 T res = action.call();
@@ -167,6 +173,16 @@ public class KvsProfilingLogger {
             this.exception = ex;
         }
 
+        /**
+         * Submits the outcome of an operation to log processors, accumulating their results into a single downstream
+         * logger call. Specifically:
+         *
+         * - the primary logger (which can use a stopwatch) is always invoked
+         * - if a non-null result has been registered, call the additionalLoggerWithAccessToResult on it
+         * - if an exception has been thrown, log it
+         *
+         * The additionalLoggerWithAccessToResult may assume that its argument is non-null.
+         */
         void log() {
             stopwatch.stop();
             Consumer<LoggingFunction> logger = (loggingMethod) -> {
