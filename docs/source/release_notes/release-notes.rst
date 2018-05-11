@@ -51,11 +51,24 @@ develop
          - Change
 
     *    - |improved|
-         - Timelock will now have more debugging info if the paxos directories fail to be created on startup.
+         - If we make a successful request to a Cassandra client, we now remove it from the overall Cassandra service's blacklist.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3156>`__)
 
+=======
+v0.83.0
+=======
+
+10 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
-         - If we make a successful request to a Cassandra client, we now remove it from the Cassandra client pool's blacklist.
+         - If we make a successful request to a Cassandra client, we now remove it from the overall Cassandra service's blacklist.
            Previously, removal from the blacklist would only occur after a background thread successfully refreshed the pool, meaning that requests may become stuck if Cassandra was rolling restarted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3145>`__)
 
@@ -64,11 +77,28 @@ develop
            Previously, under certain kinds of exceptions (such as ``TTransportException``), we would repeatedly retry the operation on the same node up to ``maxTriesTotal`` times.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3145>`__)
 
-    *    - |fixed|
-         - Any ongoing Cassandra schema mutations are now given two minutes to complete upon closing a
-           transaction manager, decreasing the chance that the schema mutation lock is lost. Some exceptions
-           thrown due to schema mutation failures are now UncheckedExecutionExceptions.
+    *    - |fixed| |devbreak|
+         - Any ongoing Cassandra schema mutations are now given two minutes to complete upon closing a transaction manager, decreasing the chance that the schema mutation lock is lost.
+           Some exceptions thrown due to schema mutation failures now have type ``UncheckedExecutionException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3152>`__)
+
+=======
+v0.82.2
+=======
+
+4 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - ``SerializableTransaction`` now initialises internal state correctly.
+           Previously, we would throw an exception if multiple equivalent column range selections for different rows needed to be checked in the same transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3147>`__)
 
 =======
 v0.82.1
