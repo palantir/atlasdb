@@ -188,8 +188,15 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
                 (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
                         () -> client.execute_cql3_query(cqlQuery, compression, consistency),
                 (logger, timer) -> cqlQuery.logSlowResult(logger, timer),
-                (logger, cqlResult) -> logger.log("and returned {} rows, at time {}",
-                        SafeArg.of("numRows", cqlResult.getRows().size()),
-                        LoggingArgs.startTimeMillis(startTime)));
+                (logger, cqlResult) -> {
+                    if (cqlResult == null || cqlResult.getRows() == null) {
+                        logger.log("and returned null or no rows. The query was started at time {}",
+                                LoggingArgs.startTimeMillis(startTime));
+                    } else {
+                        logger.log("and returned {} rows. The query was started at time {}",
+                                SafeArg.of("numRows", cqlResult.getRows().size()),
+                                LoggingArgs.startTimeMillis(startTime));
+                    }
+                });
     }
 }
