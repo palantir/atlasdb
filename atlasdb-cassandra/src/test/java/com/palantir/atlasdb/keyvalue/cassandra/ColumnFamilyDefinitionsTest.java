@@ -111,4 +111,37 @@ public class ColumnFamilyDefinitionsTest {
 
         assertTrue("identical CFs should equal each other", ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
     }
+
+    @Test
+    public void cfsWithDifferentCompactionStrategyParametersShouldNotMatch() {
+        CfDef cf1 = getGenericCfDef();
+        CfDef cf2 = getGenericCfDef();
+
+        cf1.putToCompaction_strategy_options("tombstone_threshold", "0.05");
+        cf2.putToCompaction_strategy_options("tombstone_threshold", "0.1");
+
+        assertFalse("ColumnDefinitions with different tombstone_threshold should not match",
+                ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
+    }
+
+    @Test
+    public void cfsWithDefinedAndUndefinedCompactionStrategyParametersShouldNotMatch() {
+        CfDef cf1 = getGenericCfDef();
+        CfDef cf2 = getGenericCfDef();
+
+        cf1.putToCompaction_strategy_options("tombstone_threshold", "0.05");
+
+        assertFalse("cf2 shouldn't have a tombstone_threshold set",
+                cf2.compaction_strategy_options.containsKey("tombstone_threshold"));
+        assertFalse("ColumnDefinitions with different tombstone_threshold should not match",
+                ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
+    }
+
+    private CfDef getGenericCfDef() {
+        return ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("test_table"),
+                FOUR_DAYS_IN_SECONDS,
+                AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
 }
