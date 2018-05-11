@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.compact;
 
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -48,6 +49,8 @@ public final class BackgroundCompactor implements AutoCloseable {
     private final CompactPriorityCalculator compactPriorityCalculator;
 
     private Thread daemon;
+
+    private final CountDownLatch shuttingDown = new CountDownLatch(1);
 
     public static Optional<BackgroundCompactor> createAndRun(TransactionManager transactionManager,
             KeyValueService keyValueService,
@@ -88,8 +91,14 @@ public final class BackgroundCompactor implements AutoCloseable {
     public void close() {
         log.info("Closing BackgroundCompactor");
         daemon.interrupt();
+        // Ensure we do not accidentally abort shutdown if any code incorrectly swallows InterruptedExceptions
+        // on the daemon thread.
+        shuttingDown.countDown();
         try {
             daemon.join();
+            if (daemon.isAlive()) {
+                log.error("Background compaction thread failed to shut down");
+            }
             daemon = null;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -109,7 +118,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     public void run() {
         try (SingleLockService compactorLock = createSimpleLocks()) {
             // Wait a while before starting so short lived clis don't try to compact
-            Thread.sleep(getSleepTimeWhenCompactionHasNotRun());
+            sleepForMillis(getSleepTimeWhenCompactionHasNotRun());
             log.info("Attempting to start the background compactor for the very first time.");
             waitUntilTransactionManagerIsReady();
             log.info("Starting background compactor");
@@ -126,6 +135,15 @@ public final class BackgroundCompactor implements AutoCloseable {
             log.warn("Shutting down background compactor due to InterruptedException. "
                     + "Please restart the service to resume compactions", e);
             Thread.currentThread().interrupt();
+        } catch (Throwable t) {
+            log.warn("The background compactor failed due to an uncaught exception. "
+                    + "Please restart the service to resume compactions", t);
+        }
+    }
+
+    private void sleepForMillis(long millis) throws InterruptedException {
+        if (shuttingDown.await(millis, TimeUnit.MILLISECONDS)) {
+            throw new InterruptedException();
         }
     }
 
@@ -133,7 +151,7 @@ public final class BackgroundCompactor implements AutoCloseable {
         while (!transactionManager.isInitialized()) {
             log.info("Waiting for transaction manager to be initialized; going to sleep for {} ms while waiting",
                     SafeArg.of("sleepTimeMillis", SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS));
-            Thread.sleep(SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS);
+            sleepForMillis(SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS);
         }
     }
 
@@ -146,7 +164,7 @@ public final class BackgroundCompactor implements AutoCloseable {
         } catch (Exception e) {
             log.warn("Unexpected exception occurred whilst performing background compaction!", e);
         }
-        Thread.sleep(getSleepTime(compactorConfigSupplier, outcome));
+        sleepForMillis(getSleepTime(compactorConfigSupplier, outcome));
     }
 
     @VisibleForTesting
