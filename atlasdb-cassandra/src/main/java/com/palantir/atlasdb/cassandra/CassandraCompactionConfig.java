@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.cassandra;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -54,14 +56,11 @@ public abstract class CassandraCompactionConfig {
      * Note that reducing this value may cause Cassandra to internally compact stream store SSTables more aggressively,
      * thus taking resources away from other compactions that may be going on.
      */
-    @Value.Default
-    public double streamStoreValueTableTombstoneThreshold() {
-        return 0.05;
-    }
+    public abstract Optional<Double> streamStoreValueTableTombstoneThreshold();
 
     @Value.Check
     public void check() {
-        Preconditions.checkState(streamStoreValueTableTombstoneThreshold() >= 0,
-                "Cannot have negative tombstone threshold.");
+        streamStoreValueTableTombstoneThreshold().ifPresent(threshold ->
+                Preconditions.checkState(threshold >= 0, "Cannot have negative tombstone threshold."));
     }
 }

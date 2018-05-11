@@ -29,10 +29,12 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraCompactionConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
@@ -44,6 +46,14 @@ final class ColumnFamilyDefinitions {
         // Utility class
     }
 
+    static CfDef getCfDef(
+            String keyspace,
+            TableReference tableRef,
+            int gcGraceSeconds,
+            byte[] rawMetadata) {
+        return getCfDef(keyspace, tableRef, gcGraceSeconds, rawMetadata, CassandraCompactionConfig.defaultConfig());
+    }
+
     /**
      *  Provides a default column family definition given raw metadata, which is generally obtained from the _metadata
      *  table.
@@ -51,7 +61,12 @@ final class ColumnFamilyDefinitions {
      *  Warning to developers: you must update CKVS.isMatchingCf if you update this method
      */
     @SuppressWarnings("CyclomaticComplexity")
-    static CfDef getCfDef(String keyspace, TableReference tableRef, int gcGraceSeconds, byte[] rawMetadata) {
+    static CfDef getCfDef(
+            String keyspace,
+            TableReference tableRef,
+            int gcGraceSeconds,
+            byte[] rawMetadata,
+            CassandraCompactionConfig compactionConfig) {
         Map<String, String> compressionOptions = Maps.newHashMap();
         CfDef cf = getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
 
@@ -92,9 +107,7 @@ final class ColumnFamilyDefinitions {
         }
 
         if (appendHeavyAndReadLight) {
-            cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
-            // clear out the now nonsensical "keep it at 80MB per sstable" option from LCS
-            cf.setCompaction_strategy_optionsIsSet(false);
+            setSizeTieredCompactionStrategy(tableRef, compactionConfig, cf);
             if (!negativeLookups) {
                 falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
             } else {
@@ -122,6 +135,27 @@ final class ColumnFamilyDefinitions {
         cf.setBloom_filter_fp_chance(falsePositiveChance);
         cf.setCompression_options(compressionOptions);
         return cf;
+    }
+
+    private static void setSizeTieredCompactionStrategy(
+            TableReference tableRef,
+            CassandraCompactionConfig compactionConfig,
+            CfDef cf) {
+        cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
+        // clear out the now nonsensical "keep it at 80MB per sstable" option from LCS
+        cf.unsetCompaction_strategy_options();
+        if (StreamTableType.isStreamStoreValueTable(tableRef)) {
+            compactionConfig.streamStoreValueTableTombstoneThreshold()
+                    .ifPresent(threshold -> setTombstoneThreshold(tableRef, cf, threshold));
+        }
+    }
+
+    private static void setTombstoneThreshold(TableReference tableRef, CfDef cf, Double threshold) {
+        log.info("We believe {} is a stream-store value table and config is present, so we're"
+                        + " setting the tombstone threshold to {}",
+                LoggingArgs.tableRef(tableRef),
+                SafeArg.of("tombstoneThreshold", threshold));
+        cf.putToCompaction_strategy_options("tombstone_threshold", String.valueOf(threshold));
     }
 
     /**

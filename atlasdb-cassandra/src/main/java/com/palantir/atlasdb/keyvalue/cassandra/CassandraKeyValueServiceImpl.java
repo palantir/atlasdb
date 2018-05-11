@@ -1136,7 +1136,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @VisibleForTesting
     CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata, int gcGraceSeconds) {
         return ColumnFamilyDefinitions
-                .getCfDef(config.getKeyspaceOrThrow(), tableRef, gcGraceSeconds, rawMetadata);
+                .getCfDef(config.getKeyspaceOrThrow(),
+                        tableRef,
+                        gcGraceSeconds,
+                        rawMetadata,
+                        config.compactionConfig());
     }
 
     // TODO(unknown): after cassandra change: handle multiRanges
@@ -1474,7 +1478,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             config.getKeyspaceOrThrow(),
                             tableEntry.getKey(),
                             config.gcGraceSeconds(),
-                            tableEntry.getValue()));
+                            tableEntry.getValue(),
+                            config.compactionConfig()));
                 } catch (UnavailableException e) {
                     throw new InsufficientConsistencyException(
                             "Creating tables requires all Cassandra nodes to be up and available.");
