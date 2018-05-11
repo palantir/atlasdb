@@ -22,6 +22,7 @@ import org.apache.cassandra.thrift.CfDef;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCompactionConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -42,6 +43,9 @@ public class ColumnFamilyDefinitionsTest {
                     true,
                     TableMetadataPersistence.SweepStrategy.THOROUGH,
                     true).persistToBytes();
+
+    // Tests may fail if the non-default-feature table metadata is changed to not be append heavy and read light.
+    private static final byte[] APPEND_HEAVY_READ_LIGHT_TABLE_METADATA = TABLE_METADATA_WITH_MANY_NON_DEFAULT_FEATURES;
 
     @Test
     public void compactionStrategiesShouldMatchWithOrWithoutPackageName() {
@@ -135,6 +139,58 @@ public class ColumnFamilyDefinitionsTest {
                 cf2.compaction_strategy_options.containsKey("tombstone_threshold"));
         assertFalse("ColumnDefinitions with different tombstone_threshold should not match",
                 ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
+    }
+
+    @Test
+    public void cfsWithAppendHeavyAndReadLightShouldHaveSizeTieredCompactionStrategy() {
+        CfDef appendHeavy = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("test_table"),
+                FOUR_DAYS_IN_SECONDS,
+                APPEND_HEAVY_READ_LIGHT_TABLE_METADATA);
+
+        assertTrue("ColumnDefinitions for an append-heavy-read-light table should have size tiered compaction",
+                appendHeavy.compaction_strategy.contains("SizeTiered"));
+    }
+
+    @Test
+    public void cfsForStreamStoreValueTablesShouldAcceptValueTableThreshold() {
+        CfDef valueTable = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("atlas.blob_stream_value"),
+                FOUR_DAYS_IN_SECONDS,
+                APPEND_HEAVY_READ_LIGHT_TABLE_METADATA,
+                ImmutableCassandraCompactionConfig.builder().streamStoreValueTableTombstoneThreshold(0.01).build());
+
+        assertTrue("Compaction configuration should be set for a stream store value table",
+                valueTable.compaction_strategy_options.get("tombstone_threshold").equals(String.valueOf(0.01)));
+    }
+
+    @Test
+    public void cfsForOtherStreamStoreTablesShouldNotFollowValueTableThreshold() {
+        CfDef hashAidxTable = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("atlas.blob_stream_hash_aidx"),
+                FOUR_DAYS_IN_SECONDS,
+                AtlasDbConstants.GENERIC_TABLE_METADATA,
+                ImmutableCassandraCompactionConfig.builder().streamStoreValueTableTombstoneThreshold(0.01).build());
+
+        assertFalse("Compaction configuration should not be set for stream tables that aren't the value table",
+                hashAidxTable.compaction_strategy_options.containsKey("tombstone_threshold"));
+    }
+
+    @Test
+    public void cfsForOtherAppendHeavyReadLightTablesShouldNotFollowValueTableThreshold() {
+        CfDef testCf = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("atlas.test_test_test"),
+                FOUR_DAYS_IN_SECONDS,
+                APPEND_HEAVY_READ_LIGHT_TABLE_METADATA,
+                ImmutableCassandraCompactionConfig.builder().streamStoreValueTableTombstoneThreshold(0.01).build());
+
+        assertFalse("Compaction configuration should not be set for append-heavy-read-light tables that aren't the"
+                        + " value table",
+                testCf.isSetCompaction_strategy_options());
     }
 
     private CfDef getGenericCfDef() {
