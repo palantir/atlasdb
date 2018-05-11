@@ -31,8 +31,8 @@ public class KvsSweepQueueScrubber {
      * Cleans up all the sweep queue data from the last update of progress up to and including the given sweep
      * partition. Then, updates the sweep queue progress.
      * @param shardStrategy shard and strategy to scrub for.
-     * @param oldProgress previous last partition sweep has processed.
-     * @param newProgress last partition sweep has processed.
+     * @param oldProgress last swept timestamp for the previous iteration of sweep.
+     * @param newProgress last swept timestamp for this iteration of sweep.
      */
     public void scrub(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
         scrubSweepableCells(shardStrategy, oldProgress, newProgress);
@@ -41,14 +41,14 @@ public class KvsSweepQueueScrubber {
     }
 
     private void scrubSweepableCells(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
-        if (oldProgress < 0) {
+        if (firstIterationOfSweep(oldProgress)) {
             return;
         }
-        long oldLastSweptPartition = SweepQueueUtils.tsPartitionFine(oldProgress);
-        long newMinSweepPartition = SweepQueueUtils.tsPartitionFine(newProgress + 1);
-        if (newMinSweepPartition > oldLastSweptPartition) {
-            scrubDedicatedRows(shardStrategy, oldLastSweptPartition);
-            scrubNonDedicatedRow(shardStrategy, oldLastSweptPartition);
+        long lastSweptPartitionPreviously = SweepQueueUtils.tsPartitionFine(oldProgress);
+        long minimumSweepPartitionNextIteration = SweepQueueUtils.tsPartitionFine(newProgress + 1);
+        if (minimumSweepPartitionNextIteration > lastSweptPartitionPreviously) {
+            scrubDedicatedRows(shardStrategy, lastSweptPartitionPreviously);
+            scrubNonDedicatedRow(shardStrategy, lastSweptPartitionPreviously);
         }
     }
 
@@ -61,17 +61,21 @@ public class KvsSweepQueueScrubber {
     }
 
     private void scrubSweepableTimestamps(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
-        if (oldProgress < 0) {
+        if (firstIterationOfSweep(oldProgress)) {
             return;
         }
-        long oldLastSweptPartition = SweepQueueUtils.tsPartitionCoarse(oldProgress);
-        long newMinSweepPartition = SweepQueueUtils.tsPartitionCoarse(newProgress + 1);
-        if (newMinSweepPartition > oldLastSweptPartition) {
-            sweepableTimestamps.deleteRow(shardStrategy, oldLastSweptPartition);
+        long lastSweptPartitionPreviously = SweepQueueUtils.tsPartitionCoarse(oldProgress);
+        long minimumSweepPartitionNextIteration = SweepQueueUtils.tsPartitionCoarse(newProgress + 1);
+        if (minimumSweepPartitionNextIteration > lastSweptPartitionPreviously) {
+            sweepableTimestamps.deleteRow(shardStrategy, lastSweptPartitionPreviously);
         }
     }
 
     private void progressTo(ShardAndStrategy shardStrategy, long lastSweptTs) {
         progress.updateLastSweptTimestamp(shardStrategy, lastSweptTs);
+    }
+
+    private boolean firstIterationOfSweep(long oldProgress) {
+        return oldProgress == KvsSweepQueueProgress.INITIAL_TIMESTAMP;
     }
 }

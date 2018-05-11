@@ -204,6 +204,6 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     }
 
     private long endOfFinePartitionForTs(long timestamp) {
-        return SweepQueueUtils.maxForFinePartition(tsPartitionFine(timestamp));
+        return SweepQueueUtils.maxTsForFinePartition(tsPartitionFine(timestamp));
     }
 }
