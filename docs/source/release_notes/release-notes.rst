@@ -54,6 +54,11 @@ develop
          - If we make a successful request to a Cassandra client, we now remove it from the overall Cassandra service's blacklist.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3156>`__)
 
+    *    - |fixed|
+         - The (Thrift-backed) ``CassandraKeyValueService`` now returns correctly for CQL queries that return null.
+           Previously, they would throw an exception when we attempted to log information about the response.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3158>`__)
+
 =======
 v0.83.0
 =======
