@@ -22,6 +22,7 @@ import org.apache.cassandra.thrift.CfDef;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraCompactionConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCompactionConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -154,39 +155,53 @@ public class ColumnFamilyDefinitionsTest {
     }
 
     @Test
-    public void cfsForStreamStoreValueTablesShouldAcceptValueTableThreshold() {
+    public void cfsForAppendHeavyReadLightStreamStoreValueTablesShouldAcceptCustomThreshold() {
         CfDef valueTable = ColumnFamilyDefinitions.getCfDef(
                 "test_keyspace",
                 TableReference.fromString("atlas.blob_stream_value"),
                 FOUR_DAYS_IN_SECONDS,
                 APPEND_HEAVY_READ_LIGHT_TABLE_METADATA,
-                ImmutableCassandraCompactionConfig.builder().streamStoreValueTableTombstoneThreshold(0.01).build());
+                compactionConfigWithThreshold(0.01));
 
-        assertTrue("Compaction configuration should be set for a stream store value table",
+        assertTrue("Compaction configuration should be set for an append-heavy-read-light stream store value table",
                 valueTable.compaction_strategy_options.get("tombstone_threshold").equals(String.valueOf(0.01)));
     }
 
     @Test
-    public void cfsForOtherStreamStoreTablesShouldNotFollowValueTableThreshold() {
+    public void cfsForOtherStreamStoreTablesShouldNotFollowCustomThreshold() {
         CfDef hashAidxTable = ColumnFamilyDefinitions.getCfDef(
                 "test_keyspace",
                 TableReference.fromString("atlas.blob_stream_hash_aidx"),
                 FOUR_DAYS_IN_SECONDS,
-                AtlasDbConstants.GENERIC_TABLE_METADATA,
-                ImmutableCassandraCompactionConfig.builder().streamStoreValueTableTombstoneThreshold(0.01).build());
+                APPEND_HEAVY_READ_LIGHT_TABLE_METADATA,
+                compactionConfigWithThreshold(0.01));
 
         assertFalse("Compaction configuration should not be set for stream tables that aren't the value table",
-                hashAidxTable.compaction_strategy_options.containsKey("tombstone_threshold"));
+                hashAidxTable.isSetCompaction_strategy_options());
     }
 
     @Test
-    public void cfsForOtherAppendHeavyReadLightTablesShouldNotFollowValueTableThreshold() {
+    public void cfsForRegularStreamStoreValueTablesShouldNotFollowCustomThreshold() {
+        CfDef valueTable = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("atlas.blob_stream_value"),
+                FOUR_DAYS_IN_SECONDS,
+                AtlasDbConstants.GENERIC_TABLE_METADATA,
+                compactionConfigWithThreshold(0.01));
+
+        assertFalse("Compaction configuration should not be set for a regular stream store value table",
+                valueTable.compaction_strategy_options.containsKey("tombstone_threshold"));
+
+    }
+
+    @Test
+    public void cfsForOtherAppendHeavyReadLightTablesShouldNotFollowCustomThreshold() {
         CfDef testCf = ColumnFamilyDefinitions.getCfDef(
                 "test_keyspace",
                 TableReference.fromString("atlas.test_test_test"),
                 FOUR_DAYS_IN_SECONDS,
                 APPEND_HEAVY_READ_LIGHT_TABLE_METADATA,
-                ImmutableCassandraCompactionConfig.builder().streamStoreValueTableTombstoneThreshold(0.01).build());
+                compactionConfigWithThreshold(0.01));
 
         assertFalse("Compaction configuration should not be set for append-heavy-read-light tables that aren't the"
                         + " value table",
@@ -199,5 +214,11 @@ public class ColumnFamilyDefinitionsTest {
                 TableReference.fromString("test_table"),
                 FOUR_DAYS_IN_SECONDS,
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
+
+    private CassandraCompactionConfig compactionConfigWithThreshold(double threshold) {
+        return ImmutableCassandraCompactionConfig.builder()
+                .appendHeavyReadLightStreamStoreTombstoneThreshold(threshold)
+                .build();
     }
 }

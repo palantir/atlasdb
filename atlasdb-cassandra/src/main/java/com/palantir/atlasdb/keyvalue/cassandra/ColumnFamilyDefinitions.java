@@ -145,7 +145,7 @@ final class ColumnFamilyDefinitions {
         // clear out the now nonsensical "keep it at 80MB per sstable" option from LCS
         cf.unsetCompaction_strategy_options();
         if (StreamTableType.isStreamStoreValueTable(tableRef)) {
-            compactionConfig.streamStoreValueTableTombstoneThreshold()
+            compactionConfig.appendHeavyReadLightStreamStoreTombstoneThreshold()
                     .ifPresent(threshold -> setTombstoneThreshold(tableRef, cf, threshold));
         }
     }

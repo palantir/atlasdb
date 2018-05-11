@@ -51,16 +51,17 @@ public abstract class CassandraCompactionConfig {
      *    than 'live' values, thus the ratio may significantly underestimate the space that may be recovered.
      *
      * If this value is changed, then the next time an Atlas client is started up it will change the column-family
-     * metadata in Cassandra for all stream store value tables to reflect the new tombstone threshold.
+     * metadata in Cassandra for all stream store value tables which are append heavy and read light to reflect the new
+     * tombstone threshold.
      *
      * Note that reducing this value may cause Cassandra to internally compact stream store SSTables more aggressively,
      * thus taking resources away from other compactions that may be going on.
      */
-    public abstract Optional<Double> streamStoreValueTableTombstoneThreshold();
+    public abstract Optional<Double> appendHeavyReadLightStreamStoreTombstoneThreshold();
 
     @Value.Check
     public void check() {
-        streamStoreValueTableTombstoneThreshold().ifPresent(threshold ->
+        appendHeavyReadLightStreamStoreTombstoneThreshold().ifPresent(threshold ->
                 Preconditions.checkState(threshold >= 0, "Cannot have negative tombstone threshold."));
     }
 }
