@@ -46,19 +46,28 @@ public class CassandraKeyValueServiceConfigsTest {
                     .keyspace(KEYSPACE)
                     .replicationFactor(1)
                     .build();
+
     @Test
-    public void canDeserialize() throws IOException, URISyntaxException {
+    public void canDeserializeWithAddressTranslation() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(SERVERS)
                 .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
                 .replicationFactor(1)
                 .build();
 
-        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader().getResource("testConfig.yml");
-        CassandraKeyValueServiceConfig deserializedTestConfig = AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), CassandraKeyValueServiceConfig.class);
+        CassandraKeyValueServiceConfig deserializedTestConfig = deserializeConfigFromResource("testConfig.yml");
 
         assertThat(deserializedTestConfig).isEqualTo(testConfig);
+    }
+
+    @Test
+    public void canDeserializeWithCompactionConfig() throws IOException, URISyntaxException {
+        CassandraKeyValueServiceConfig deserializedTestConfig
+                = deserializeConfigFromResource("testConfigWithCompactionConfig.yml");
+
+        assertThat(deserializedTestConfig.servers()).containsExactly(InetSocketAddress.createUnresolved("foo", 42));
+        assertThat(deserializedTestConfig.compactionConfig().appendHeavyReadLightStreamStoreTombstoneThreshold())
+                .contains(0.05);
     }
 
     @Test
@@ -81,5 +90,11 @@ public class CassandraKeyValueServiceConfigsTest {
         CassandraKeyValueServiceConfig newConfig = CassandraKeyValueServiceConfigs.copyWithKeyspace(
                 CONFIG_WITH_KEYSPACE, KEYSPACE_2);
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE_2);
+    }
+
+    private static CassandraKeyValueServiceConfig deserializeConfigFromResource(String filename) throws IOException {
+        URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader().getResource(filename);
+        return AtlasDbConfigs.OBJECT_MAPPER
+                .readValue(new File(configUrl.getPath()), CassandraKeyValueServiceConfig.class);
     }
 }

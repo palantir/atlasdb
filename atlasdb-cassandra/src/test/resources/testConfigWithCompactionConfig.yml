@@ -1,0 +1,6 @@
+  type: cassandra
+  replicationFactor: 3
+  servers:
+    - 'foo:42'
+  compactionConfig:
+    appendHeavyReadLightStreamStoreTombstoneThreshold: 0.05
