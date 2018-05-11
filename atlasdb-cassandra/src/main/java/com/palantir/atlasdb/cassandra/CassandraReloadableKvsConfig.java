@@ -46,7 +46,6 @@ public class CassandraReloadableKvsConfig extends AutoDelegate_CassandraKeyValue
                 config.unresponsiveHostBackoffTimeSeconds());
     }
 
-
     @Override
     public int mutationBatchCount() {
         return chooseConfig(CassandraKeyValueServiceRuntimeConfig::mutationBatchCount,

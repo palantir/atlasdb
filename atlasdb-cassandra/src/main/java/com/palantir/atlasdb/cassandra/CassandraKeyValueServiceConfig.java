@@ -303,6 +303,11 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return poolSize() * servers().size();
     }
 
+    @Value.Default
+    public CassandraCompactionConfig compactionConfig() {
+        return ImmutableCassandraCompactionConfig.defaultConfig();
+    }
+
     @JsonIgnore
     @Value.Derived
     public boolean usingSsl() {
