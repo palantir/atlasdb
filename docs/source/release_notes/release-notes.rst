@@ -51,13 +51,18 @@ develop
          - Change
 
     *    - |improved|
-         - If we make a successful request to a Cassandra client, we now remove it from the overall Cassandra service's blacklist.
+         - Timelock will now have more debugging info if the paxos directories fail to be created on startup.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3156>`__)
 
     *    - |fixed|
          - The (Thrift-backed) ``CassandraKeyValueService`` now returns correctly for CQL queries that return null.
            Previously, they would throw an exception when we attempted to log information about the response.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3158>`__)
+
+    *    - |new|
+         - Value tables for stream stores that are append heavy and read light now have a configurable tombstone compaction threshold.
+           This may be useful in freeing up disk space on clusters that use such stream stores with high churn, because the largest SSTables in these stream stores may have many tombstones yet not be compacted frequently.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3159>`__)
 
 =======
 v0.83.0
