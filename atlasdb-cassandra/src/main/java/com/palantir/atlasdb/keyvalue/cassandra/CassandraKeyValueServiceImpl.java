@@ -214,19 +214,24 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
+    private final Supplier<Long> freshTimestampSupplier;
+
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
-        return create(config, leaderConfig, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+            Optional<LeaderConfig> leaderConfig,
+            Supplier<Long> freshTimestampSupplier) {
+        return create(config, leaderConfig, freshTimestampSupplier, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
+            Supplier<Long> freshTimestampSupplier,
             CassandraClientPool clientPool) {
         return create(config,
                 clientPool,
                 leaderConfig,
+                freshTimestampSupplier,
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
@@ -234,10 +239,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
+            Supplier<Long> freshTimestampSupplier,
             boolean initializeAsync) {
         return create(config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 leaderConfig,
+                freshTimestampSupplier,
                 initializeAsync,
                 FakeQosClient.INSTANCE);
     }
@@ -246,11 +253,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             java.util.function.Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
+            Supplier<Long> freshTimestampSupplier,
             boolean initializeAsync,
             QosClient qosClient) {
         return create(config,
                 runtimeConfig,
                 leaderConfig,
+                freshTimestampSupplier,
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
                 initializeAsync,
                 qosClient);
@@ -260,10 +269,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     static CassandraKeyValueService create(
             CassandraKeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
+            Supplier<Long> freshTimestampSupplier,
             Logger log) {
         return create(config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 leaderConfig,
+                freshTimestampSupplier,
                 log,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.INSTANCE);
     }
@@ -272,6 +283,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             java.util.function.Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
+            Supplier<Long> freshTimestampSupplier,
             Logger log,
             boolean initializeAsync,
             QosClient qosClient) {
@@ -280,7 +292,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 initializeAsync,
                 qosClient);
         try {
-            return create(config, clientPool, leaderConfig, log, initializeAsync);
+            return create(config, clientPool, leaderConfig, freshTimestampSupplier, log, initializeAsync);
         } catch (Exception e) {
             log.warn("Error occurred in creating Cassandra KVS. Now attempting to shut down client pool...", e);
             try {
@@ -298,13 +310,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             Optional<LeaderConfig> leaderConfig,
+            Supplier<Long> freshTimestampSupplier,
             Logger log,
             boolean initializeAsync) {
         CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
                 log,
                 config,
                 clientPool,
-                leaderConfig);
+                leaderConfig,
+                freshTimestampSupplier);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
@@ -312,13 +326,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private CassandraKeyValueServiceImpl(Logger log,
             CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            Supplier<Long> freshTimestampSupplier) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 config.poolSize() * config.servers().size()));
         this.log = log;
         this.config = config;
         this.clientPool = clientPool;
         this.leaderConfig = leaderConfig;
+        this.freshTimestampSupplier = freshTimestampSupplier;
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
@@ -329,8 +345,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
-        this.cellValuePutter = new CellValuePutter(config, clientPool, taskRunner, wrappingQueryRunner,
-                writeConsistency);
+        this.cellValuePutter = new CellValuePutter(
+                config,
+                clientPool,
+                taskRunner,
+                wrappingQueryRunner,
+                writeConsistency,
+                freshTimestampSupplier);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellLoader, cellValuePutter,
                 wrappingQueryRunner, deleteConsistency);
     }
@@ -1017,7 +1038,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         MutationMap mutationMap = new MutationMap();
         for (TableCellAndValue tableCellAndValue : batch) {
             Cell cell = tableCellAndValue.cell;
-            Column col = CassandraKeyValueServices.createColumn(cell, Value.create(tableCellAndValue.value, timestamp));
+            Column col = CassandraKeyValueServices.createColumn(
+                    cell,
+                    Value.create(tableCellAndValue.value, timestamp),
+                    freshTimestampSupplier.get());
 
             ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
             colOrSup.setColumn(col);
