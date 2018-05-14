@@ -73,6 +73,14 @@ public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
             }
             jgen.writeEndArray();
         }
+        jgen.writeStringField("sweepStrategy", value.getSweepStrategy().name());
+        jgen.writeStringField("conflictHandler", value.getConflictHandler().name());
+        jgen.writeStringField("cachePriority", value.getCachePriority().name());
+        jgen.writeBooleanField("rangeScanAllowed", value.isRangeScanAllowed());
+        jgen.writeNumberField("explicitCompressionBlockSizeKB", value.getExplicitCompressionBlockSizeKB());
+        jgen.writeBooleanField("negativeLookups", value.hasNegativeLookups());
+        jgen.writeBooleanField("appendHeavyAndReadLight", value.isAppendHeavyAndReadLight());
+        jgen.writeStringField("nameLogSafety", value.getNameLogSafety().name());
         jgen.writeEndObject();
     }
 

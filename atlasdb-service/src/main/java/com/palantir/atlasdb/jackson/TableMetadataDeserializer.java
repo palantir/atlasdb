@@ -18,6 +18,7 @@ package com.palantir.atlasdb.jackson;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -25,6 +26,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -55,8 +60,35 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
         } else {
             col = deserializeNamedCols(node);
         }
+        // TODO: make defaults not duplicated with TableMetadata code.
+        ConflictHandler conflictHandler = Optional.ofNullable(node.get("conflictHandler"))
+                .map(JsonNode::textValue).map(ConflictHandler::valueOf).orElse(ConflictHandler.IGNORE_ALL);
+        CachePriority cachePriority = Optional.ofNullable(node.get("cachePriority"))
+                .map(JsonNode::textValue).map(CachePriority::valueOf).orElse(CachePriority.WARM);
+        boolean rangeScanAllowed = Optional.ofNullable(node.get("rangeScanAllowed"))
+                .map(JsonNode::booleanValue).orElse(false);
+        int compressionBlockSize = Optional.ofNullable(node.get("explicitCompressionBlockSizeKB"))
+                .map(JsonNode::numberValue).map(Number::intValue).orElse(0);
+        boolean negativeLookups = Optional.ofNullable(node.get("negativeLookups"))
+                .map(JsonNode::booleanValue).orElse(false);
+        SweepStrategy sweepStrategy = Optional.ofNullable(node.get("sweepStrategy"))
+                .map(JsonNode::textValue).map(SweepStrategy::valueOf).orElse(SweepStrategy.CONSERVATIVE);
+        boolean appendHeavyAndReadLight = Optional.ofNullable(node.get("appendHeavyAndReadLight"))
+                .map(JsonNode::booleanValue).orElse(false);
+        LogSafety logSafety = Optional.ofNullable(node.get("nameLogSafety"))
+                .map(JsonNode::textValue).map(LogSafety::valueOf).orElse(LogSafety.UNSAFE);
 
-        return new TableMetadata(row, col, ConflictHandler.IGNORE_ALL);
+        return new TableMetadata(
+                row,
+                col,
+                conflictHandler,
+                cachePriority,
+                rangeScanAllowed,
+                compressionBlockSize,
+                negativeLookups,
+                sweepStrategy,
+                appendHeavyAndReadLight,
+                logSafety);
     }
 
     private NameMetadataDescription deserializeRowish(JsonNode node) {
