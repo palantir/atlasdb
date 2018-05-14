@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -45,6 +46,8 @@ public class CellValuePutter {
     private static final Function<Map.Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
             input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
+    private final Supplier<Long> freshTimestampSupplier;
+
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
     private TaskRunner taskRunner;
@@ -55,12 +58,14 @@ public class CellValuePutter {
             CassandraClientPool clientPool,
             TaskRunner taskRunner,
             WrappingQueryRunner queryRunner,
-            ConsistencyLevel writeConsistency) {
+            ConsistencyLevel writeConsistency,
+            Supplier<Long> freshTimestampSupplier) {
         this.config = config;
         this.clientPool = clientPool;
         this.taskRunner = taskRunner;
         this.queryRunner = queryRunner;
         this.writeConsistency = writeConsistency;
+        this.freshTimestampSupplier = freshTimestampSupplier;
     }
 
     void putAndOverwriteTimestamps(final String kvsMethodName,
@@ -115,8 +120,11 @@ public class CellValuePutter {
                             for (Map.Entry<Cell, Value> e : partition) {
                                 Cell cell = e.getKey();
                                 Column col = overwriteTimestamps
-                                        ? CassandraKeyValueServices.createColumnAndOverwriteTimestamp(cell, e.getValue())
-                                        : CassandraKeyValueServices.createColumn(cell, e.getValue());
+                                        ? CassandraKeyValueServices.createColumn(cell, e.getValue())
+                                        : CassandraKeyValueServices.createColumn(
+                                                cell,
+                                                e.getValue(),
+                                                freshTimestampSupplier.get());
 
                                 ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
                                 colOrSup.setColumn(col);
