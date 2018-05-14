@@ -69,7 +69,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
