@@ -88,8 +88,8 @@ public abstract class SweepQueueTablesTest {
         return write(queueWriter, timestamp, cell, false, tableRef);
     }
 
-    public int putTombstone(KvsSweepQueueWriter wqueueWriterriter, long timestamp, Cell cell, TableReference tableRef) {
-        return write(writer, timestamp, cell, true, tableRef);
+    public int putTombstone(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
+        return write(queueWriter, timestamp, cell, true, tableRef);
     }
 
     private int write(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, boolean isTombstone,

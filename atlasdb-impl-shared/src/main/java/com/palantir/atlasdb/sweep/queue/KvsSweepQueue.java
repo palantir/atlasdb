@@ -16,28 +16,23 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class KvsSweepQueue implements MultiTableSweepQueueWriter {
+public final class KvsSweepQueue implements MultiTableSweepQueueWriter {
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
     @VisibleForTesting
     KvsSweepQueueTables tables;
-    private KvsSweepQueuePersister writer;
-    private Map<ShardAndStrategy, KvsSweepQueueReader> shardSpecificReaders;
-    private Map<TableMetadataPersistence.SweepStrategy, KvsSweepDeleter> strategySpecificDeleters;
+    private KvsSweepDeleter deleter;
+    private KvsSweepQueueScrubber scrubber;
     private SweepTimestampProvider timestampProvider;
 
     private KvsSweepQueue(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig) {
@@ -52,10 +47,9 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
     public void initialize(SweepTimestampProvider provider, KeyValueService kvs) {
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         tables = KvsSweepQueueTables.create(kvs, shardsConfig);
+        deleter = new KvsSweepDeleter(kvs);
+        scrubber = new KvsSweepQueueScrubber(tables);
         timestampProvider = provider;
-        writer = KvsSweepQueuePersister.create(tables);
-        shardSpecificReaders = createReaders();
-        strategySpecificDeleters = createDeleters(kvs);
         createAndStartBackgroundThreads();
     }
 
@@ -64,41 +58,26 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
         initialize(SweepTimestampProvider.create(txManager), txManager.getKeyValueService());
     }
 
-    private Map<ShardAndStrategy, KvsSweepQueueReader> createReaders() {
-        long shards = tables.getNumShards();
-        Map<ShardAndStrategy, KvsSweepQueueReader> readers = new HashMap<>();
-        for (int i = 0; i < shards; i++) {
-            ShardAndStrategy conservative = ShardAndStrategy.conservative(i);
-            ShardAndStrategy thorough = ShardAndStrategy.thorough(i);
-            readers.put(conservative, KvsSweepQueueReader.create(tables, conservative));
-            readers.put(thorough, KvsSweepQueueReader.create(tables, thorough));
-        }
-        return readers;
-    }
-
-    private Map<TableMetadataPersistence.SweepStrategy, KvsSweepDeleter> createDeleters(KeyValueService kvs) {
-        return ImmutableMap.of(TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
-                new KvsSweepDeleter(kvs, Sweeper.CONSERVATIVE),
-                TableMetadataPersistence.SweepStrategy.THOROUGH,
-                new KvsSweepDeleter(kvs, Sweeper.THOROUGH));
-    }
-
     private void createAndStartBackgroundThreads() {
         // todo(gmaretic): magic
     }
 
     @Override
     public void enqueue(List<WriteInfo> writes) {
-        writer.enqueue(writes);
+        tables.enqueue(writes);
     }
 
     @VisibleForTesting
-    void sweepNextBatch(ShardAndStrategy shardAndStrategy) {
+    void sweepNextBatch(ShardAndStrategy shardStrategy) {
         if (!runSweep.get()) {
             return;
         }
-        KvsSweepDeleter deleter = strategySpecificDeleters.get(shardAndStrategy.strategy());
-        shardSpecificReaders.get(shardAndStrategy)
-                .consumeNextBatch(deleter::sweep, timestampProvider.getSweepTimestamp(deleter.getSweeper()));
+        Sweeper sweeper = Sweeper.of(shardStrategy.strategy()).get();
+        long lastSweptTimestamp = tables.getLastSweptTimestamp(shardStrategy);
+        long maxTsExclusive = timestampProvider.getSweepTimestamp(sweeper);
+        SweepBatch sweepBatch = tables.getNextBatchAndSweptTimestamp(shardStrategy, lastSweptTimestamp, maxTsExclusive);
+
+        deleter.sweep(sweepBatch.writes(), sweeper);
+        scrubber.scrub(shardStrategy, lastSweptTimestamp, sweepBatch.lastSweptTimestamp());
     }
 }

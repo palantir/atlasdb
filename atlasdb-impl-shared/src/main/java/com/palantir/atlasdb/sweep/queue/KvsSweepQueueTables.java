@@ -16,12 +16,16 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public final class KvsSweepQueueTables {
@@ -56,7 +60,23 @@ public final class KvsSweepQueueTables {
                 () -> updateOperator.apply(runtimeConfig.get()), refreshTimeMillis, TimeUnit.MILLISECONDS);
     }
 
+    public long getLastSweptTimestamp(ShardAndStrategy shardStrategy) {
+        return progress.getLastSweptTimestamp(shardStrategy);
+    }
+
     public int getNumShards() {
         return numShards.get();
+    }
+
+    public SweepBatch getNextBatchAndSweptTimestamp(ShardAndStrategy shardStrategy,
+            long lastSweptTs, long sweepTs) {
+        return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
+                .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
+                .orElse(SweepBatch.of(ImmutableList.of(), sweepTs - 1L));
+    }
+
+    public void enqueue(List<WriteInfo> writes) {
+        sweepableTimestamps.enqueue(writes);
+        sweepableCells.enqueue(writes);
     }
 }
