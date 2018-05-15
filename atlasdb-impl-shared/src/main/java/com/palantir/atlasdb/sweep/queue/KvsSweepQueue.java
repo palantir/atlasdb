@@ -65,12 +65,8 @@ public final class KvsSweepQueue implements MultiTableSweepQueueWriter {
     @Deprecated
     public static KvsSweepQueue createInitializedForTest(KeyValueService kvs, int shards,
             LongSupplier unreadable, LongSupplier immutable) {
-        KvsSweepQueue queue = new KvsSweepQueue(() -> true, () -> shards, 0, 0);
-        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        queue.tables = KvsSweepQueueTables.create(kvs, () -> shards);
-        queue.deleter = new KvsSweepDeleter(kvs);
-        queue.scrubber = new KvsSweepQueueScrubber(queue.tables);
-        queue.timestampProvider = new SweepTimestampProvider(unreadable, immutable);
+        KvsSweepQueue queue = KvsSweepQueue.createUninitialized(() -> true, () -> shards, 0, 0);
+        queue.initialize(new SweepTimestampProvider(unreadable, immutable), kvs);
         return queue;
     }
 
@@ -118,7 +114,7 @@ public final class KvsSweepQueue implements MultiTableSweepQueueWriter {
     }
 
     @VisibleForTesting
-    void sweepNextBatch(ShardAndStrategy shardStrategy) {
+    public void sweepNextBatch(ShardAndStrategy shardStrategy) {
         if (!runSweep.get()) {
             return;
         }

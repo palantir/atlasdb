@@ -16,40 +16,36 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
 import org.junit.Before;
-import org.junit.Ignore;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.AbstractSweepTest;
-import com.palantir.atlasdb.sweep.queue.BackgroundSweepQueueProcessor;
+import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepTimestampProvider;
-import com.palantir.atlasdb.sweep.queue.test.InMemorySweepQueue;
-import com.palantir.atlasdb.sweep.queue.test.InMemorySweepQueueProcessorFactory;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 // todo(gmaretic): fix
-@Ignore
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     private SweepTimestampProvider timestamps = mock(SweepTimestampProvider.class);
-    private BackgroundSweepQueueProcessor processor;
+    private KvsSweepQueue sweepQueue;
 
     @Before
     public void setup() {
         super.setup();
 
-        InMemorySweepQueue.clear();
-        InMemorySweepQueueProcessorFactory factory = new InMemorySweepQueueProcessorFactory(kvs, ssm, timestamps);
-        processor = new BackgroundSweepQueueProcessor(kvs, factory::getProcessorForTable);
+        sweepQueue.createUninitialized(() -> true, () -> 1, 0, 0);
+        sweepQueue.callbackInit((SerializableTransactionManager) txManager);
     }
 
     @Override
@@ -61,9 +57,11 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
-        when(timestamps.getSweepTimestamp(any())).thenReturn(ts);
-        processor.sweepOneBatchForAllTables();
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
         return Optional.empty();
     }
 
+    @Override
+    protected void put(final TableReference tableRef, Cell cell, final String val, final long ts) {
+    }
 }
