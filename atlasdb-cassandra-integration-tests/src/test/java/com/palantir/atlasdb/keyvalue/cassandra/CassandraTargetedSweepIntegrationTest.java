@@ -16,14 +16,20 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
 import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.rules.RuleChain;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -32,7 +38,6 @@ import com.palantir.atlasdb.sweep.AbstractSweepTest;
 import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepTimestampProvider;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 // todo(gmaretic): fix
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
@@ -40,12 +45,21 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     private SweepTimestampProvider timestamps = mock(SweepTimestampProvider.class);
     private KvsSweepQueue sweepQueue;
 
+    @ClassRule
+    public static final Containers CONTAINERS = new Containers(
+            CassandraTargetedSweepIntegrationTest.class)
+            .with(new CassandraContainer());
+
+    @Rule
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
+            getKeyValueService(), CassandraContainer.KVS_CONFIG);
+
     @Before
     public void setup() {
         super.setup();
 
         sweepQueue.createUninitialized(() -> true, () -> 1, 0, 0);
-        sweepQueue.callbackInit((SerializableTransactionManager) txManager);
+        sweepQueue.initialize(timestamps, getKeyValueService());
     }
 
     @Override
@@ -57,7 +71,9 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
+        when(timestamps.getSweepTimestamp(any())).thenReturn(ts);
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
         return Optional.empty();
     }
 
