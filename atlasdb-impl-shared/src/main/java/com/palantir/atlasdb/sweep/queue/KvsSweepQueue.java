@@ -17,6 +17,10 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -25,23 +29,49 @@ import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 
 public final class KvsSweepQueue implements MultiTableSweepQueueWriter {
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
+    int conservativeThreads;
+    int thoroughThreads;
+
     @VisibleForTesting
     KvsSweepQueueTables tables;
     private KvsSweepDeleter deleter;
     private KvsSweepQueueScrubber scrubber;
     private SweepTimestampProvider timestampProvider;
+    private ScheduledExecutorService conservativeScheduler;
+    private ScheduledExecutorService thoroughScheduler;
+    private final AtomicLong conservativeCounter = new AtomicLong(0);
+    private final AtomicLong thoroughCounter = new AtomicLong(0);
 
-    private KvsSweepQueue(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig) {
+    private KvsSweepQueue(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
+            int conservativeThreads, int thoroughThreads) {
         this.runSweep = runSweep;
         this.shardsConfig = shardsConfig;
+        this.conservativeThreads = conservativeThreads;
+        this.thoroughThreads = thoroughThreads;
     }
 
-    public static KvsSweepQueue createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig) {
-        return new KvsSweepQueue(enabled, shardsConfig);
+    public static KvsSweepQueue createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
+            int conservativeThreads, int thoroughThreads) {
+        return new KvsSweepQueue(enabled, shardsConfig, conservativeThreads, thoroughThreads);
+    }
+
+    @VisibleForTesting
+    @Deprecated
+    public static KvsSweepQueue createInitializedForTest(KeyValueService kvs, int shards,
+            LongSupplier unreadable, LongSupplier immutable) {
+        KvsSweepQueue queue = new KvsSweepQueue(() -> true, () -> shards, 0, 0);
+        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+        queue.tables = KvsSweepQueueTables.create(kvs, () -> shards);
+        queue.deleter = new KvsSweepDeleter(kvs);
+        queue.scrubber = new KvsSweepQueueScrubber(queue.tables);
+        queue.timestampProvider = new SweepTimestampProvider(unreadable, immutable);
+        return queue;
     }
 
     public void initialize(SweepTimestampProvider provider, KeyValueService kvs) {
@@ -59,9 +89,29 @@ public final class KvsSweepQueue implements MultiTableSweepQueueWriter {
     }
 
     private void createAndStartBackgroundThreads() {
-        // todo(gmaretic): magic
+        if (conservativeThreads > 0) {
+            conservativeScheduler = PTExecutors.newScheduledThreadPoolExecutor(conservativeThreads,
+                    new NamedThreadFactory("Conservative Targeted Sweep", false));
+            for (int i = 0; i < conservativeThreads; i++) {
+                conservativeScheduler.scheduleWithFixedDelay(
+                        () -> sweepNextBatch(ShardAndStrategy.conservative(getNextShard(conservativeCounter))),
+                        1, 5, TimeUnit.SECONDS);
+            }
+        }
+        if (thoroughThreads > 0) {
+            thoroughScheduler = PTExecutors.newScheduledThreadPoolExecutor(thoroughThreads,
+                    new NamedThreadFactory("Thorough Targeted Sweep", false));
+            for (int i = 0; i < conservativeThreads; i++) {
+                thoroughScheduler.scheduleWithFixedDelay(
+                        () -> sweepNextBatch(ShardAndStrategy.thorough(getNextShard(thoroughCounter))),
+                        1, 5, TimeUnit.SECONDS);
+            }
+        }
     }
 
+    int getNextShard(AtomicLong counter) {
+        return tables.modShards(counter.getAndIncrement());
+    }
     @Override
     public void enqueue(List<WriteInfo> writes) {
         tables.enqueue(writes);
@@ -79,5 +129,15 @@ public final class KvsSweepQueue implements MultiTableSweepQueueWriter {
 
         deleter.sweep(sweepBatch.writes(), sweeper);
         scrubber.scrub(shardStrategy, lastSweptTimestamp, sweepBatch.lastSweptTimestamp());
+    }
+
+    @Override
+    public void close() {
+        if (conservativeScheduler != null) {
+            conservativeScheduler.shutdown();
+        }
+        if (thoroughScheduler != null) {
+            thoroughScheduler.shutdown();
+        }
     }
 }

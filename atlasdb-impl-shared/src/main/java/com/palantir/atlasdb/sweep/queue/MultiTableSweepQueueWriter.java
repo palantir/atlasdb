@@ -27,7 +27,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 /**
  * Adds {@link WriteInfo}s to a global queue to be swept.
  */
-public interface MultiTableSweepQueueWriter {
+public interface MultiTableSweepQueueWriter extends AutoCloseable {
     MultiTableSweepQueueWriter NO_OP = ignored -> { };
 
     default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
@@ -45,5 +45,10 @@ public interface MultiTableSweepQueueWriter {
                 .flatMap(entry -> entry.getValue().entrySet().stream()
                         .map(singleWrite -> SweepQueueUtils.toWriteInfo(entry.getKey(), singleWrite, timestamp)))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    default void close() {
+        // noop
     }
 }

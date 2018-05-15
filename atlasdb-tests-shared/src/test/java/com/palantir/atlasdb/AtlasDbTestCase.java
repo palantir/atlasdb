@@ -111,8 +111,7 @@ public class AtlasDbTestCase {
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
-        // todo(gmaretic): initialize once part 10 is merged in, also make sure tests make sense
-        sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> 128);
+        sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> 128, 0, 0);
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,
@@ -123,6 +122,8 @@ public class AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 sweepQueue);
+
+        sweepQueue.callbackInit(serializableTxManager);
         txManager = new CachingTestTransactionManager(serializableTxManager);
     }
 

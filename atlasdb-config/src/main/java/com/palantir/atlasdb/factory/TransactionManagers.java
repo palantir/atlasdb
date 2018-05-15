@@ -344,8 +344,10 @@ public abstract class TransactionManagers {
                         .buildCleaner(),
                 closeables);
 
-        MultiTableSweepQueueWriter targetedSweep = uninitializedSweepQueue(config,
-                JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier));
+        MultiTableSweepQueueWriter targetedSweep = initializeCloseable(
+                () -> uninitializedSweepQueue(config,
+                        JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier)),
+                closeables);
 
         Callback<SerializableTransactionManager> callbacks = new Callback.CallChain<>(ImmutableList.of(
                 timelockConsistencyCheckCallback(config, runtimeConfigSupplier.get(), lockAndTimestampServices),
@@ -873,7 +875,9 @@ public abstract class TransactionManagers {
         if (config.enableTargetedSweep()) {
             return KvsSweepQueue.createUninitialized(
                     JavaSuppliers.compose(TargetedSweepConfig::runSweep, runtime),
-                    JavaSuppliers.compose(TargetedSweepConfig::shards, runtime));
+                    JavaSuppliers.compose(TargetedSweepConfig::shards, runtime),
+                    runtime.get().conservativeThreads(),
+                    runtime.get().thoroughThreads());
         }
         return MultiTableSweepQueueWriter.NO_OP;
     }

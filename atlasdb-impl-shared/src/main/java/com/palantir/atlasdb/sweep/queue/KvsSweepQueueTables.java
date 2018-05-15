@@ -16,10 +16,8 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -29,11 +27,12 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public final class KvsSweepQueueTables {
+    private static final int FIVE_MINUTES = 5000 * 60;
+
     final SweepableCells sweepableCells;
     final SweepableTimestamps sweepableTimestamps;
     final KvsSweepQueueProgress progress;
-
-    private final Supplier<Integer> numShards;
+    final Supplier<Integer> numShards;
 
     @VisibleForTesting
     KvsSweepQueueTables(SweepableCells cells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress,
@@ -46,7 +45,7 @@ public final class KvsSweepQueueTables {
 
     public static KvsSweepQueueTables create(KeyValueService kvs, Supplier<Integer> shardsConfig) {
         KvsSweepQueueProgress progress = new KvsSweepQueueProgress(kvs);
-        Supplier<Integer> shards = createUpdatingSupplier(shardsConfig, progress::updateNumberOfShards, 5000 * 60);
+        Supplier<Integer> shards = createUpdatingSupplier(shardsConfig, progress::updateNumberOfShards, FIVE_MINUTES);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
@@ -64,12 +63,7 @@ public final class KvsSweepQueueTables {
         return progress.getLastSweptTimestamp(shardStrategy);
     }
 
-    public int getNumShards() {
-        return numShards.get();
-    }
-
-    public SweepBatch getNextBatchAndSweptTimestamp(ShardAndStrategy shardStrategy,
-            long lastSweptTs, long sweepTs) {
+    public SweepBatch getNextBatchAndSweptTimestamp(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
                 .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
                 .orElse(SweepBatch.of(ImmutableList.of(), sweepTs - 1L));
@@ -78,5 +72,9 @@ public final class KvsSweepQueueTables {
     public void enqueue(List<WriteInfo> writes) {
         sweepableTimestamps.enqueue(writes);
         sweepableCells.enqueue(writes);
+    }
+
+    public int modShards(long number) {
+        return (int) (number % numShards.get());
     }
 }

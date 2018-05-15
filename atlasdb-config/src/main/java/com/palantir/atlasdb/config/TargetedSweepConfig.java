@@ -53,6 +53,28 @@ public abstract class TargetedSweepConfig {
                 "Shard number must be between 1 and 256 inclusive, but it is %s.", shards());
     }
 
+    @Value.Default
+    public int conservativeThreads() {
+        return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_THREADS;
+    }
+
+    @Value.Check
+    void checkConservativeThreads() {
+        Preconditions.checkArgument(conservativeThreads() >= 0 && conservativeThreads() <= shards(),
+                "Number of conservative targeted sweep threads must be between 0 and the number of shards inclusive.");
+    }
+
+    @Value.Default
+    public int thoroughThreads() {
+        return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_THREADS;
+    }
+
+    @Value.Check
+    void checkThoroughThreads() {
+        Preconditions.checkArgument(thoroughThreads() >= 0 && thoroughThreads() <= shards(),
+                "Number of thorough targeted sweep threads must be between 0 and the number of shards inclusive.");
+    }
+
     public static TargetedSweepConfig defaultTargetedSweepConfig() {
         return ImmutableTargetedSweepConfig.builder().build();
     }
