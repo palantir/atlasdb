@@ -34,8 +34,7 @@ public final class KvsSweepQueueTables {
     final KvsSweepQueueProgress progress;
     final Supplier<Integer> numShards;
 
-    @VisibleForTesting
-    KvsSweepQueueTables(SweepableCells cells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress,
+    private KvsSweepQueueTables(SweepableCells cells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress,
             Supplier<Integer> numShards) {
         this.sweepableCells = cells;
         this.sweepableTimestamps = timestamps;

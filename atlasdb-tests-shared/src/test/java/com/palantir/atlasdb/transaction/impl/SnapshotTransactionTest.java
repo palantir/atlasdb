@@ -25,11 +25,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyMap;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
@@ -94,6 +95,7 @@ import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -906,36 +908,32 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(counter.intValue(), is(2));
     }
 
-    // todo(gmaretic): fix/rewrite
-//    @Test
-//    public void committedWritesAreAddedToSweepQueue() {
-//        List<WriteInfo> table1Writes = ImmutableList.of(
-//                WriteInfo.of(Cell.create("a".getBytes(), "b".getBytes()), false, 2L),
-//                WriteInfo.of(Cell.create("a".getBytes(), "c".getBytes()), false, 2L),
-//                WriteInfo.of(Cell.create("a".getBytes(), "d".getBytes()), true, 2L),
-//                WriteInfo.of(Cell.create("b".getBytes(), "d".getBytes()), false, 2L));
-//        List<WriteInfo> table2Writes = ImmutableList.of(
-//                WriteInfo.of(Cell.create("w".getBytes(), "x".getBytes()), false, 2L),
-//                WriteInfo.of(Cell.create("y".getBytes(), "z".getBytes()), false, 2L),
-//                WriteInfo.of(Cell.create("z".getBytes(), "z".getBytes()), true, 2L));
-//
-//        AtomicLong startTs = new AtomicLong(0);
-//        txManager.runTaskWithRetry(txn -> {
-//            table1Writes.forEach(write -> {
-//                put(txn, TABLE1, write);
-//            });
-//            table2Writes.forEach(write -> {
-//                put(txn, TABLE2, write);
-//            });
-//            return null;
-//        });
-//
-//        verify(sweepQueue).enqueue(eq(TABLE1), eq(table1Writes));
-//        verify(sweepQueue).enqueue(eq(TABLE2), eq(table2Writes));
-//    }
+    @Test
+    public void committedWritesAreAddedToSweepQueue() {
+        List<WriteInfo> table1Writes = ImmutableList.of(
+                WriteInfo.write(TABLE1, Cell.create("a".getBytes(), "b".getBytes()), 2L),
+                WriteInfo.write(TABLE1, Cell.create("a".getBytes(), "c".getBytes()), 2L),
+                WriteInfo.tombstone(TABLE1, Cell.create("a".getBytes(), "d".getBytes()), 2L),
+                WriteInfo.write(TABLE1, Cell.create("b".getBytes(), "d".getBytes()), 2L));
+        List<WriteInfo> table2Writes = ImmutableList.of(
+                WriteInfo.write(TABLE2, Cell.create("w".getBytes(), "x".getBytes()), 2L),
+                WriteInfo.write(TABLE2, Cell.create("y".getBytes(), "z".getBytes()), 2L),
+                WriteInfo.tombstone(TABLE2, Cell.create("z".getBytes(), "z".getBytes()), 2L));
+
+        txManager.runTaskWithRetry(txn -> {
+            table1Writes.forEach(write -> put(txn, TABLE1, write));
+            table2Writes.forEach(write -> put(txn, TABLE2, write));
+            return null;
+        });
+
+        List<WriteInfo> allWrites = Lists.newArrayList(table1Writes);
+        allWrites.addAll(table2Writes);
+
+        verify(sweepQueue).enqueue(eq(allWrites));
+    }
 
     @Test
-    public void noWritesAddedToSweepQueueOnConflict() {
+    public void writesAddedToSweepQueueOnConflict() {
         Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
         byte[] value = new byte[1];
 
@@ -946,7 +944,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t2.put(TABLE, ImmutableMap.of(cell, new byte[1]));
 
         t1.commit();
-        verify(sweepQueue).enqueue(any(), any());
+        verify(sweepQueue).enqueue(anyMap(), anyLong());
 
         try {
             t2.commit();
@@ -955,7 +953,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             // expected
         }
 
-        verifyNoMoreInteractions(sweepQueue);
+        verify(sweepQueue).enqueue(anyMap(), anyLong());
     }
 
     @Test
@@ -972,17 +970,17 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             // expected
         }
 
-        verifyZeroInteractions(sweepQueue);
+        verify(sweepQueue, times(0)).enqueue(anyMap(), anyLong());
     }
 
     // todo(gmaretic): remove eventually
-//    private void put(Transaction txn, TableReference table, WriteInfo write) {
-//        if (write.isTombstone()) {
-//            txn.delete(table, ImmutableSet.of(write.cell()));
-//        } else {
-//            txn.put(table, ImmutableMap.of(write.cell(), new byte[1]));
-//        }
-//    }
+    private void put(Transaction txn, TableReference table, WriteInfo write) {
+        if (write.writeRef().isTombstone()) {
+            txn.delete(table, ImmutableSet.of(write.writeRef().cell()));
+        } else {
+            txn.put(table, ImmutableMap.of(write.writeRef().cell(), new byte[1]));
+        }
+    }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {
         Transaction writeTransaction = txManager.createNewTransaction();

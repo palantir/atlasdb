@@ -32,7 +32,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
-public final class KvsSweepQueue implements MultiTableSweepQueueWriter {
+public class KvsSweepQueue implements MultiTableSweepQueueWriter {
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
     int conservativeThreads;

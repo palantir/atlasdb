@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb;
 
+import static org.mockito.Mockito.spy;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
@@ -27,6 +29,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
+import org.mockito.Mockito;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -111,7 +114,7 @@ public class AtlasDbTestCase {
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
-        sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> 128, 0, 0);
+        sweepQueue = spy(KvsSweepQueue.createUninitialized(() -> true, () -> 128, 0, 0));
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,
