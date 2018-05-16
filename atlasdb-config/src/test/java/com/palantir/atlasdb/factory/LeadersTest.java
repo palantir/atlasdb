@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.swing.text.html.Option;
+
 import org.hamcrest.MatcherAssert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,6 +58,7 @@ public class LeadersTest {
                 localLearner,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
+                Optional::empty,
                 PaxosLearner.class);
 
         MatcherAssert.assertThat(paxosLearners.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
@@ -74,6 +77,7 @@ public class LeadersTest {
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
+                Optional::empty,
                 PaxosAcceptor.class);
 
         MatcherAssert.assertThat(paxosAcceptors.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
@@ -93,6 +97,7 @@ public class LeadersTest {
                 localAcceptor,
                 ImmutableSet.of(),
                 Optional.empty(),
+                Optional::empty,
                 PaxosAcceptor.class);
 
         MatcherAssert.assertThat(paxosAcceptors.size(), is(1));
@@ -110,6 +115,7 @@ public class LeadersTest {
                 localBigInteger,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
+                Optional::empty,
                 BigInteger.class);
     }
 
@@ -121,6 +127,7 @@ public class LeadersTest {
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
+                Optional::empty,
                 null);
     }
 }

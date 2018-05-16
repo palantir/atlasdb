@@ -19,6 +19,7 @@ package com.palantir.timelock.clock;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -33,22 +34,28 @@ public class ClockSkewMonitorCreator {
     private final Set<String> remoteServers;
     private final Optional<SSLSocketFactory> optionalSecurity;
     private final Consumer<Object> registrar;
+    private final Supplier<Optional<String>> authTokenSupplier;
 
     @VisibleForTesting
     ClockSkewMonitorCreator(Set<String> remoteServers,
             Optional<SSLSocketFactory> optionalSecurity,
-            Consumer<Object> registrar) {
+            Consumer<Object> registrar,
+            Supplier<Optional<String>> authTokenSupplier) {
         this.remoteServers = remoteServers;
         this.optionalSecurity = optionalSecurity;
         this.registrar = registrar;
+        this.authTokenSupplier = authTokenSupplier;
     }
 
-    public static ClockSkewMonitorCreator create(TimeLockInstallConfiguration install, Consumer<Object> registrar) {
+    public static ClockSkewMonitorCreator create(
+            TimeLockInstallConfiguration install,
+            Consumer<Object> registrar,
+            Supplier<Optional<String>> authTokenSupplier) {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
         Optional<SSLSocketFactory> optionalSecurity =
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory);
 
-        return new ClockSkewMonitorCreator(remoteServers, optionalSecurity, registrar);
+        return new ClockSkewMonitorCreator(remoteServers, optionalSecurity, registrar, authTokenSupplier);
     }
 
     public void registerClockServices() {
@@ -57,6 +64,6 @@ public class ClockSkewMonitorCreator {
     }
 
     private void runClockSkewMonitorInBackground() {
-        ClockSkewMonitor.create(remoteServers, optionalSecurity).runInBackground();
+        ClockSkewMonitor.create(remoteServers, optionalSecurity, authTokenSupplier).runInBackground();
     }
 }

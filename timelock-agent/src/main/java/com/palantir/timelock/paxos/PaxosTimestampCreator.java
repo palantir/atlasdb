@@ -50,17 +50,20 @@ import com.palantir.timestamp.TimestampBoundStore;
 public class PaxosTimestampCreator implements TimestampCreator {
     private final PaxosResource paxosResource;
     private final Set<String> remoteServers;
+    private final Supplier<Optional<String>> authTokenSupplier;
     private final Optional<SSLSocketFactory> optionalSecurity;
     private final Supplier<PaxosRuntimeConfiguration> paxosRuntime;
 
     public PaxosTimestampCreator(PaxosResource paxosResource,
             Set<String> remoteServers,
             Optional<SSLSocketFactory> optionalSecurity,
-            Supplier<PaxosRuntimeConfiguration> paxosRuntime) {
+            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
+            Supplier<Optional<String>> authTokenSupplier) {
         this.paxosResource = paxosResource;
         this.remoteServers = remoteServers;
         this.optionalSecurity = optionalSecurity;
         this.paxosRuntime = paxosRuntime;
+        this.authTokenSupplier = authTokenSupplier;
     }
 
     @Override
@@ -75,6 +78,7 @@ public class PaxosTimestampCreator implements TimestampCreator {
                 paxosResource.getPaxosAcceptor(client),
                 namespacedUris,
                 optionalSecurity,
+                authTokenSupplier,
                 PaxosAcceptor.class,
                 "timestamp-bound-store." + client);
 
@@ -83,6 +87,7 @@ public class PaxosTimestampCreator implements TimestampCreator {
                 ourLearner,
                 namespacedUris,
                 optionalSecurity,
+                authTokenSupplier,
                 PaxosLearner.class,
                 "timestamp-bound-store." + client);
 

@@ -59,6 +59,7 @@ public class LeaderRemotingTest {
     public void testPing() {
         PingableLeader ping = AtlasDbFeignTargetFactory.createProxy(
                 Optional.empty(),
+                Optional::empty,
                 pingable.baseUri().toString(),
                 PingableLeader.class,
                 UserAgents.DEFAULT_USER_AGENT);
@@ -73,6 +74,7 @@ public class LeaderRemotingTest {
 
         PaxosLearner learn = AtlasDbFeignTargetFactory.createProxy(
                 Optional.empty(),
+                Optional::empty,
                 learner.baseUri().toString(),
                 PaxosLearner.class,
                 UserAgents.DEFAULT_USER_AGENT);
@@ -93,6 +95,7 @@ public class LeaderRemotingTest {
 
         PaxosAcceptor accept = AtlasDbFeignTargetFactory.createProxy(
                 Optional.empty(),
+                Optional::empty,
                 acceptor.baseUri().toString(),
                 PaxosAcceptor.class,
                 UserAgents.DEFAULT_USER_AGENT);

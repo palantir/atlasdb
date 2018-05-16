@@ -119,17 +119,24 @@ public final class Leaders {
         Optional<SSLSocketFactory> sslSocketFactory =
                 ServiceCreator.createSslSocketFactory(config.sslConfiguration());
 
+        Supplier<Optional<String>> authTokenSupplier = Optional::empty;
         List<PaxosLearner> learners = createProxyAndLocalList(
-                ourLearner, remotePaxosServerSpec.remoteLearnerUris(), sslSocketFactory, PaxosLearner.class, userAgent);
+                ourLearner,
+                remotePaxosServerSpec.remoteLearnerUris(),
+                sslSocketFactory,
+                authTokenSupplier,
+                PaxosLearner.class,
+                userAgent);
         List<PaxosAcceptor> acceptors = createProxyAndLocalList(
                 ourAcceptor,
                 remotePaxosServerSpec.remoteAcceptorUris(),
                 sslSocketFactory,
+                authTokenSupplier,
                 PaxosAcceptor.class,
                 userAgent);
 
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(
-                remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, userAgent);
+                remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, authTokenSupplier, userAgent);
 
         InstrumentedExecutorService proposerExecutorService = new InstrumentedExecutorService(
                 PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -183,32 +190,51 @@ public final class Leaders {
             T localObject,
             Set<String> remoteUris,
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             Class<T> clazz) {
-        return createProxyAndLocalList(localObject, remoteUris, sslSocketFactory, clazz, UserAgents.DEFAULT_USER_AGENT);
+        return createProxyAndLocalList(
+                localObject,
+                remoteUris,
+                sslSocketFactory,
+                authTokenSupplier,clazz,
+                UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static <T> List<T> createProxyAndLocalList(
             T localObject,
             Set<String> remoteUris,
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             Class<T> clazz,
             String userAgent) {
         return ImmutableList.copyOf(Iterables.concat(
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, true, clazz, userAgent),
+                AtlasDbHttpClients.createProxies(
+                        sslSocketFactory,
+                        authTokenSupplier,
+                        remoteUris,
+                        true,
+                        clazz,
+                        userAgent),
                 ImmutableList.of(localObject)));
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(
             Collection<String> remoteEndpoints,
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             String userAgent) {
         /* The interface used as a key here may be a proxy, which may have strange .equals() behavior.
          * This is circumvented by using an IdentityHashMap which will just use native == for equality.
          */
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
-            PingableLeader remoteInterface = AtlasDbHttpClients
-                    .createProxy(sslSocketFactory, endpoint, true, PingableLeader.class, userAgent);
+            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(
+                    sslSocketFactory,
+                    authTokenSupplier,
+                    endpoint,
+                    true,
+                    PingableLeader.class,
+                    userAgent);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }

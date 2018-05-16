@@ -104,7 +104,7 @@ public class AtlasDbHttpClientsTest {
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
         unavailableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(503)));
 
-        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
+        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, Optional::empty,
                 Optional.empty(), bothUris, TestResource.class);
         int response = client.getTestNumber();
 
@@ -115,7 +115,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void userAgentIsPresentOnClientRequests() {
         TestResource client =
-                AtlasDbHttpClients.createProxy(NO_SSL, getUriForPort(availablePort), TestResource.class);
+                AtlasDbHttpClients.createProxy(NO_SSL, Optional::empty, getUriForPort(availablePort), TestResource.class);
         client.getTestNumber();
 
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
@@ -174,7 +174,7 @@ public class AtlasDbHttpClientsTest {
     public void directProxyIsConfigurableOnClientRequests() {
         Optional<ProxySelector> directProxySelector = Optional.of(
                 ServiceCreator.createProxySelector(ProxyConfiguration.DIRECT));
-        TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
+        TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, Optional::empty,
                 directProxySelector, ImmutableSet.of(getUriForPort(availablePort)), TestResource.class);
         clientWithDirectCall.getTestNumber();
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
@@ -187,7 +187,7 @@ public class AtlasDbHttpClientsTest {
     public void httpProxyIsConfigurableOnClientRequests() {
         Optional<ProxySelector> httpProxySelector = Optional.of(
                 ServiceCreator.createProxySelector(ProxyConfiguration.of(getHostAndPort(proxyPort))));
-        TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
+        TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, Optional::empty,
                 httpProxySelector, ImmutableSet.of(getUriForPort(availablePort)), TestResource.class);
         clientWithHttpProxy.getTestNumber();
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);

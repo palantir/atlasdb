@@ -749,10 +749,12 @@ public abstract class TransactionManagers {
             // deadlock entirely; so use PingableLeader's getUUID() to detect this situation and eliminate the redundant
             // call.
 
+            Supplier<Optional<String>> authTokenSupplier = Optional::empty;
             PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
             String localServerId = localPingableLeader.getUUID();
             PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
                     ServiceCreator.createSslSocketFactory(leaderConfig.sslConfiguration()),
+                    authTokenSupplier,
                     Iterables.getOnlyElement(leaderConfig.leaders()),
                     PingableLeader.class,
                     userAgent);

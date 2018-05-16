@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -48,10 +49,17 @@ public final class ClockSkewMonitor {
     private final ScheduledExecutorService executorService;
     private final ReversalDetectingClockService localClockService;
 
-    public static ClockSkewMonitor create(Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity) {
+    public static ClockSkewMonitor create(
+            Set<String> remoteServers,
+            Optional<SSLSocketFactory> optionalSecurity,
+            Supplier<Optional<String>> authTokenSupplier) {
         Map<String, ClockService> clocksByServer = Maps.toMap(
                 remoteServers,
-                (remoteServer) -> AtlasDbHttpClients.createProxy(optionalSecurity, remoteServer, ClockService.class));
+                (remoteServer) -> AtlasDbHttpClients.createProxy(
+                        optionalSecurity,
+                        authTokenSupplier,
+                        remoteServer,
+                        ClockService.class));
 
         return new ClockSkewMonitor(
                 clocksByServer,

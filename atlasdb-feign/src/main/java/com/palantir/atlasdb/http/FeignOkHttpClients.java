@@ -104,13 +104,8 @@ public final class FeignOkHttpClients {
     public static Client newOkHttpClient(
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
-            String userAgent) {
-        Supplier<Optional<String>> authTokenSupplier = Optional::empty;
-        return newOkHttpClient(sslSocketFactory, proxySelector, userAgent, authTokenSupplier);
-    }
-
-    static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory, Optional<ProxySelector> proxySelector,
-            String userAgent, Supplier<Optional<String>> authTokenSupplier) {
+            String userAgent,
+            Supplier<Optional<String>> authTokenSupplier) {
         return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, proxySelector, userAgent, authTokenSupplier));
     }
 
@@ -121,23 +116,25 @@ public final class FeignOkHttpClients {
     public static Client newRefreshingOkHttpClient(
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
-            String userAgent) {
+            String userAgent,
+            Supplier<Optional<String>> authTokenSupplier) {
         return CounterBackedRefreshingClient.createRefreshingClient(
-                () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+                () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent, authTokenSupplier));
     }
 
     @VisibleForTesting
-    static okhttp3.OkHttpClient newRawOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory,
-            Optional<ProxySelector> proxySelector, String userAgent, Supplier<Optional<String>> authTokenSupplier) {
+    static okhttp3.OkHttpClient newRawOkHttpClient(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
+            String userAgent,
+            Supplier<Optional<String>> authTokenSupplier) {
         // Don't allow retrying on connection failures - see ticket #2194
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
                 .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
                 .proxySelector(proxySelector.orElse(ProxySelector.getDefault()))
                 .retryOnConnectionFailure(false);
-        if (sslSocketFactory.isPresent()) {
-            builder.sslSocketFactory(sslSocketFactory.get());
-        }
+        sslSocketFactory.ifPresent(builder::sslSocketFactory);
 
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
         builder.interceptors().add(new AuthTokenAddingInterceptor(authTokenSupplier));

@@ -195,11 +195,11 @@ public abstract class EteSetup {
                 .map(nodeName -> String.format("http://%s:%s", nodeName, port))
                 .collect(Collectors.toList());
 
-        return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, Optional.empty(), uris, clazz);
+        return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, Optional::empty, Optional.empty(), uris, clazz);
     }
 
     private static <T> T createClientFor(Class<T> clazz, String host, short port) {
         String uri = String.format("http://%s:%s", host, port);
-        return AtlasDbHttpClients.createProxy(NO_SSL, uri, clazz);
+        return AtlasDbHttpClients.createProxy(NO_SSL, Optional::empty, uri, clazz);
     }
 }

@@ -44,30 +44,42 @@ public final class AtlasDbHttpClients {
      * Constructs a dynamic proxy for the specified type, using the supplied SSL factory if is present, and the
      * default Feign HTTP client.
      */
-    public static <T> T createProxy(Optional<SSLSocketFactory> sslSocketFactory, String uri, Class<T> type) {
-        return createProxy(sslSocketFactory, uri, type, UserAgents.DEFAULT_USER_AGENT);
+    public static <T> T createProxy(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
+            String uri,
+            Class<T> type) {
+        return createProxy(sslSocketFactory, authTokenSupplier, uri, type, UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static <T> T createProxy(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             String uri,
             Class<T> type,
             String userAgent) {
         return AtlasDbMetrics.instrument(
                 type,
-                AtlasDbFeignTargetFactory.createProxy(sslSocketFactory, uri, type, userAgent),
+                AtlasDbFeignTargetFactory.createProxy(sslSocketFactory, authTokenSupplier, uri, type, userAgent),
                 MetricRegistry.name(type));
     }
 
     public static <T> T createProxy(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             String uri,
             boolean refreshingHttpClient,
             Class<T> type,
             String userAgent) {
         return AtlasDbMetrics.instrument(
                 type,
-                AtlasDbFeignTargetFactory.createProxy(sslSocketFactory, uri, refreshingHttpClient, type, userAgent),
+                AtlasDbFeignTargetFactory.createProxy(
+                        sslSocketFactory,
+                        authTokenSupplier,
+                        uri,
+                        refreshingHttpClient,
+                        type,
+                        userAgent),
                 MetricRegistry.name(type));
     }
 
@@ -76,37 +88,42 @@ public final class AtlasDbHttpClients {
      * specified type, using the supplied SSL factory if it is present.
      */
     public static <T> List<T> createProxies(
-            Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
-        return createProxies(sslSocketFactory, endpointUris, type, UserAgents.DEFAULT_USER_AGENT);
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
+            Collection<String> endpointUris,
+            Class<T> type) {
+        return createProxies(sslSocketFactory, authTokenSupplier, endpointUris, type, UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static <T> List<T> createProxies(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             Collection<String> endpointUris,
             Class<T> type,
             String userAgent) {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
-            ret.add(createProxy(sslSocketFactory, uri, type, userAgent));
+            ret.add(createProxy(sslSocketFactory, authTokenSupplier, uri, type, userAgent));
         }
         return ret;
     }
 
     public static <T> List<T> createProxies(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             Collection<String> endpointUris,
             boolean refreshingHttpClient,
             Class<T> type,
             String userAgent) {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
-            ret.add(createProxy(sslSocketFactory, uri, refreshingHttpClient, type, userAgent));
+            ret.add(createProxy(sslSocketFactory, authTokenSupplier, uri, refreshingHttpClient, type, userAgent));
         }
         return ret;
     }
 
     /**
-     * @deprecated please use {@link #createProxyWithFailover(Optional, Optional, Collection, Class)}, which requires
+     * @deprecated please use {@link #createProxyWithFailover(Optional, Supplier, Optional, Collection, Class)}, which requires
      * you to specify the ProxySelector parameter.
      */
     @Deprecated
@@ -116,6 +133,7 @@ public final class AtlasDbHttpClients {
             Class<T> type) {
         return createProxyWithFailover(
                 sslSocketFactory,
+                Optional::empty,
                 Optional.empty(),
                 endpointUris,
                 type,
@@ -123,7 +141,7 @@ public final class AtlasDbHttpClients {
     }
 
     /**
-     * @deprecated please use {@link #createProxyWithFailover(Optional, Optional, Collection, Class, String)}, which
+     * @deprecated please use {@link #createProxyWithFailover(Optional, Supplier, Optional, Collection, Class, String)}, which
      * requires you to specify the ProxySelector parameter.
      */
     @Deprecated
@@ -134,6 +152,7 @@ public final class AtlasDbHttpClients {
             String userAgent) {
         return createProxyWithFailover(
                 sslSocketFactory,
+                Optional::empty,
                 Optional.empty(),
                 endpointUris,
                 type,
@@ -149,11 +168,13 @@ public final class AtlasDbHttpClients {
      */
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type) {
         return createProxyWithFailover(
                 sslSocketFactory,
+                authTokenSupplier,
                 proxySelector,
                 endpointUris,
                 type,
@@ -162,6 +183,7 @@ public final class AtlasDbHttpClients {
 
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type,
@@ -169,7 +191,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
-                        sslSocketFactory, proxySelector, endpointUris, type, userAgent),
+                        sslSocketFactory, authTokenSupplier, proxySelector, endpointUris, type, userAgent),
                 MetricRegistry.name(type));
     }
 

@@ -64,14 +64,16 @@ public final class AtlasDbFeignTargetFactory {
 
     public static <T> T createProxy(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             String uri,
             Class<T> type,
             String userAgent) {
-        return createProxy(sslSocketFactory, uri, false, type, userAgent);
+        return createProxy(sslSocketFactory, authTokenSupplier, uri, false, type, userAgent);
     }
 
     public static <T> T createProxy(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             String uri,
             boolean refreshingHttpClient,
             Class<T> type,
@@ -83,13 +85,14 @@ public final class AtlasDbFeignTargetFactory {
                 .errorDecoder(errorDecoder)
                 .retryer(new InterruptHonoringRetryer())
                 .client(refreshingHttpClient
-                        ? FeignOkHttpClients.newRefreshingOkHttpClient(sslSocketFactory, Optional.empty(), userAgent)
-                        : FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
+                        ? FeignOkHttpClients.newRefreshingOkHttpClient(sslSocketFactory, Optional.empty(), userAgent, authTokenSupplier)
+                        : FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent, authTokenSupplier))
                 .target(type, uri);
     }
 
     public static <T> T createRsProxy(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             String uri,
             Class<T> type,
             String userAgent) {
@@ -98,19 +101,20 @@ public final class AtlasDbFeignTargetFactory {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(new RsErrorDecoder())
-                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(),  userAgent))
+                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent, authTokenSupplier))
                 .target(type, uri);
     }
 
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Supplier<Optional<String>> authTokenSupplier,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type,
             String userAgent) {
         return createProxyWithFailover(
                 sslSocketFactory,
-                Optional::empty,
+                authTokenSupplier,
                 proxySelector,
                 endpointUris,
                 DEFAULT_FEIGN_OPTIONS,
