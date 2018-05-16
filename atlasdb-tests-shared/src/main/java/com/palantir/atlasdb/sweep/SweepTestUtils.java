@@ -28,6 +28,7 @@ import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
@@ -69,15 +70,15 @@ public final class SweepTestUtils {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        KvsSweepQueue sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> 1, 0, 0);
+        MultiTableSweepQueueWriter writer = KvsSweepQueue.createUninitialized(() -> true, () -> 1, 0, 0);
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                sweepQueue);
+                writer);
         setupTables(kvs);
-        sweepQueue.callbackInit(txManager);
+        writer.callbackInit(txManager);
         return txManager;
     }
 

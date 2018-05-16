@@ -20,14 +20,15 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.rules.RuleChain;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -40,11 +41,8 @@ import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepTimestampProvider;
 
-// todo(gmaretic): fix
-@Ignore
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
-
-    private SweepTimestampProvider timestamps = mock(SweepTimestampProvider.class);
+    private SweepTimestampProvider timestampProvider = mock(SweepTimestampProvider.class);
     private KvsSweepQueue sweepQueue;
 
     @ClassRule
@@ -60,8 +58,8 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     public void setup() {
         super.setup();
 
-        sweepQueue.createUninitialized(() -> true, () -> 1, 0, 0);
-        sweepQueue.initialize(timestamps, getKeyValueService());
+        sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> 1, 0, 0);
+        sweepQueue.initialize(timestampProvider, kvs);
     }
 
     @Override
@@ -73,7 +71,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
-        when(timestamps.getSweepTimestamp(any())).thenReturn(ts);
+        when(timestampProvider.getSweepTimestamp(any())).thenReturn(ts);
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
         return Optional.empty();
@@ -81,5 +79,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected void put(final TableReference tableRef, Cell cell, final String val, final long ts) {
+        super.put(tableRef, cell, val, ts);
+        sweepQueue.enqueue(ImmutableMap.of(tableRef, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8))), ts);
     }
 }
