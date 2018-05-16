@@ -24,6 +24,7 @@ import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.rules.RuleChain;
 
@@ -40,6 +41,7 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepTimestampProvider;
 
 // todo(gmaretic): fix
+@Ignore
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     private SweepTimestampProvider timestamps = mock(SweepTimestampProvider.class);
