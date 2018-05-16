@@ -80,6 +80,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:lock-api",
@@ -96,7 +97,7 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.1",
             "transitive": [
                 "com.google.guava:guava"
             ]
@@ -161,6 +162,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:lock-api"
+            ]
+        },
+        "com.palantir.atlasdb:commons-annotations": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.palantir.atlasdb:commons-executors": {
@@ -489,6 +496,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:lock-api",
@@ -505,7 +513,7 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.1",
             "transitive": [
                 "com.google.guava:guava"
             ]
@@ -570,6 +578,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:lock-api"
+            ]
+        },
+        "com.palantir.atlasdb:commons-annotations": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.palantir.atlasdb:commons-executors": {

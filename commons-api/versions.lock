@@ -81,7 +81,7 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.1",
             "transitive": [
                 "com.google.guava:guava"
             ]
@@ -104,7 +104,10 @@
             "project": true
         },
         "com.palantir.atlasdb:commons-annotations": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,
@@ -275,7 +278,7 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.1",
             "transitive": [
                 "com.google.guava:guava"
             ]
@@ -298,7 +301,10 @@
             "project": true
         },
         "com.palantir.atlasdb:commons-annotations": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,12 @@ package com.palantir.atlasdb.todo;
 
 import java.io.File;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.AtlasSchema;
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -28,8 +30,10 @@ import com.palantir.atlasdb.table.description.ValueType;
 
 public class TodoSchema implements AtlasSchema {
     private static final Schema INDEX_TEST_SCHEMA = generateSchema();
-    public static final String TODO_TABLE = "todo";
-    public static final String TEXT_COLUMN = "text";
+    private static final String TODO_TABLE = "todo";
+    private static final String TEXT_COLUMN = "text";
+    private static final String LATEST_STREAM_TABLE = "latest_snapshot";
+    private static final String STREAM_TABLE = "snapshots";
 
     private static Schema generateSchema() {
         Schema schema = new Schema(
@@ -46,6 +50,20 @@ public class TodoSchema implements AtlasSchema {
             }
         });
 
+        schema.addTableDefinition(LATEST_STREAM_TABLE, new TableDefinition() {{
+                rowName();
+                rowComponent("key", ValueType.FIXED_LONG);
+                columns();
+                column("stream_id", "i", ValueType.FIXED_LONG);
+            }
+        });
+
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder(STREAM_TABLE, "Snapshots", ValueType.FIXED_LONG)
+                        .inMemoryThreshold(AtlasDbConstants.DEFAULT_STREAM_IN_MEMORY_THRESHOLD)
+                        .build()
+        );
+
         return schema;
     }
 
@@ -58,7 +76,7 @@ public class TodoSchema implements AtlasSchema {
     }
 
     public static void main(String[] args) throws Exception {
-        INDEX_TEST_SCHEMA.renderTables(new File("src/test/java"));
+        INDEX_TEST_SCHEMA.renderTables(new File("src/main/java"));
     }
 
     @Override

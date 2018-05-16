@@ -613,7 +613,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             for (Entry<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
                     columnRangeEnds.entrySet()) {
                 byte[] row = rowAndRangeEnds.getKey();
-                Map<BatchColumnRangeSelection, byte[]> rangeEnds = columnRangeEnds.get(row);
+                Map<BatchColumnRangeSelection, byte[]> rangeEnds = rowAndRangeEnds.getValue();
 
                 for (Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
                     BatchColumnRangeSelection range = e.getKey();
@@ -624,11 +624,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                 RangeRequests.getNextStartRow(false, rangeEnd),
                                 range.getBatchHint());
                     }
-                    if (rangesToRows.get(range) != null) {
-                        rangesToRows.get(range).add(row);
-                    } else {
-                        rangesToRows.put(range, ImmutableList.of(row));
-                    }
+                    rangesToRows.computeIfAbsent(range, ignored -> Lists.newArrayList()).add(row);                    
                 }
             }
             for (Entry<BatchColumnRangeSelection, List<byte[]>> e : rangesToRows.entrySet()) {

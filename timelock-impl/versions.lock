@@ -149,6 +149,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
+                "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:leader-election-api",
@@ -180,9 +181,10 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.1",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "com.palantir.config.crypto:encrypted-config-value"
             ]
         },
         "com.google.guava:guava": {
@@ -335,6 +337,12 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
+        "com.palantir.atlasdb:commons-annotations": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,
             "transitive": [
@@ -423,13 +431,13 @@
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
-            "locked": "1.0.0",
+            "locked": "2.0.1",
             "transitive": [
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value-module": {
-            "locked": "1.0.0",
+            "locked": "2.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]
@@ -972,6 +980,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
+                "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
                 "com.palantir.atlasdb:leader-election-api",
@@ -1003,9 +1012,10 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.1",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "com.palantir.config.crypto:encrypted-config-value"
             ]
         },
         "com.google.guava:guava": {
@@ -1158,6 +1168,12 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
+        "com.palantir.atlasdb:commons-annotations": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "com.palantir.atlasdb:commons-executors": {
             "project": true,
             "transitive": [
@@ -1246,13 +1262,13 @@
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
-            "locked": "1.0.0",
+            "locked": "2.0.1",
             "transitive": [
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value-module": {
-            "locked": "1.0.0",
+            "locked": "2.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]

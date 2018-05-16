@@ -118,8 +118,11 @@ public final class FeignOkHttpClients {
             Optional<ProxySelector> proxySelector,
             String userAgent,
             Supplier<Optional<String>> authTokenSupplier) {
-        return CounterBackedRefreshingClient.createRefreshingClient(
+
+        Supplier<Client> clientSupplier = () -> CounterBackedRefreshingClient.createRefreshingClient(
                 () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent, authTokenSupplier));
+
+        return ExceptionCountingRefreshingClient.createRefreshingClient(clientSupplier);
     }
 
     @VisibleForTesting

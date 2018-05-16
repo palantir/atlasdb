@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -280,8 +281,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 ckvs.getClientPool(),
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
 
-        grabLock(lockTestTools);
-        createExtraLocksTable(lockTables);
+        createExtraLocksTable(lockTables, ckvs);
 
         TracingQueryRunner queryRunner = new TracingQueryRunner(
                 LoggerFactory.getLogger(CassandraKeyValueServiceIntegrationTest.class), new TracingPrefsConfig());
@@ -311,8 +311,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 ckvs.getClientPool(),
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
 
-        grabLock(lockTestTools);
-        createExtraLocksTable(lockTables);
+        createExtraLocksTable(lockTables, ckvs);
 
         new CleanCassLocksStateCommand().runWithConfig(CassandraContainer.KVS_CONFIG);
 
@@ -327,13 +326,17 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         }
     }
 
-    private void grabLock(SchemaMutationLockTestTools lockTestTools) throws TException {
-        lockTestTools.setLocksTableValue(LOCK_ID, 0);
-    }
-
-    private void createExtraLocksTable(SchemaMutationLockTables lockTables) throws TException {
+    private void createExtraLocksTable(SchemaMutationLockTables lockTables,
+            CassandraKeyValueServiceImpl kvs) throws TException {
         TableReference originalTable = Iterables.getOnlyElement(lockTables.getAllLockTables());
-        lockTables.createLockTable();
+
+        try {
+            kvs.createTable(TableReference.create(originalTable.getNamespace(),
+                    "_locks_other"), AtlasDbConstants.EMPTY_TABLE_METADATA);
+        } catch (UncheckedExecutionException ex) {
+            // expected - we just created another locks table
+        }
+
         assertThat(lockTables.getAllLockTables(), hasItem(not(originalTable)));
     }
 

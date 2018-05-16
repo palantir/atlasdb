@@ -24,8 +24,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -39,12 +41,17 @@ public class NextTableToSweepProviderTest {
 
     private StreamStoreRemappingSweepPriorityCalculator calculator;
     private Map<TableReference, Double> priorities;
+    private Set<String> priorityTables;
+    private Set<String> blacklistTables;
+
     private Optional<TableReference> tableToSweep;
 
     @Before
     public void setup() {
         calculator = mock(StreamStoreRemappingSweepPriorityCalculator.class);
         priorities = new HashMap<>();
+        priorityTables = new HashSet<>();
+        blacklistTables = new HashSet<>();
 
         provider = new NextTableToSweepProvider(calculator);
     }
@@ -96,6 +103,51 @@ public class NextTableToSweepProviderTest {
         Assert.assertThat(tableToSweep.get(), anyOf(is(table("table2")), is(table("table3")), is(table("table4"))));
     }
 
+    @Test
+    public void calculatorReturnsNonMaximumForPriorityTable_thenProviderStillSelectsIt() {
+        givenPriority(table("table1"), 1.0);
+        givenPriority(table("table2"), 10_000.0);
+        givenPriorityOverride(table("table1"));
+
+        whenGettingNextTableToSweep();
+
+        thenTableChosenIs(table("table1"));
+    }
+
+    @Test
+    public void calculatorReturnsZeroForPriorityTable_thenProviderStillSelectsIt() {
+        givenPriority(table("table1"), 0.0);
+        givenPriority(table("table2"), 1.0);
+        givenPriorityOverride(table("table1"));
+
+        whenGettingNextTableToSweep();
+
+        thenTableChosenIs(table("table1"));
+    }
+
+    @Test
+    public void calculatorReturnsLargeValueForBlacklistedTable_thenProviderStillDoesNotSelectIt() {
+        givenPriority(table("table1"), 10_000.0);
+        givenPriority(table("table2"), 1.0);
+        givenBlacklisted(table("table1"));
+
+        whenGettingNextTableToSweep();
+
+        thenTableChosenIs(table("table2"));
+    }
+
+    @Test
+    public void allTablesBlacklisted_thenProviderReturnsEmpty() {
+        givenPriority(table("table1"), 1.0);
+        givenPriority(table("table2"), 1.0);
+        givenBlacklisted(table("table1"));
+        givenBlacklisted(table("table2"));
+
+        whenGettingNextTableToSweep();
+
+        thenProviderReturnsEmpty();
+    }
+
     private void givenNoPrioritiesReturned() {
         //Nothing to do
     }
@@ -104,10 +156,25 @@ public class NextTableToSweepProviderTest {
         priorities.put(table, priority);
     }
 
+    private void givenPriorityOverride(TableReference table) {
+        priorityTables.add(table.getQualifiedName());
+    }
+
+    private void givenBlacklisted(TableReference table) {
+        blacklistTables.add(table.getQualifiedName());
+    }
+
     private void whenGettingNextTableToSweep() {
         when(calculator.calculateSweepPriorityScores(any(), anyLong())).thenReturn(priorities);
 
-        tableToSweep = provider.getNextTableToSweep(null, 0L);
+        tableToSweep = provider.getNextTableToSweep(null, 0L, createOverrideConfig());
+    }
+
+    private SweepPriorityOverrideConfig createOverrideConfig() {
+        return ImmutableSweepPriorityOverrideConfig.builder()
+                .addAllPriorityTables(priorityTables)
+                .addAllBlacklistTables(blacklistTables)
+                .build();
     }
 
     private void thenProviderReturnsEmpty() {

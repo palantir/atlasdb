@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
@@ -103,8 +104,10 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         return instrument(serviceClass, leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
     }
 
-    private static <T> T instrument(Class<T> serviceClass, T service, String client) {
-        // TODO(nziebart): tag with the client name, when tritium supports it
-        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass));
+    private <T> T instrument(Class<T> serviceClass, T service, String client) {
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(serviceClass, service, MetricRegistry.name(serviceClass),
+                context -> ImmutableMap.of(
+                        "client", client,
+                        "isCurrentSuspectedLeader", String.valueOf(leadershipCreator.isCurrentSuspectedLeader())));
     }
 }
