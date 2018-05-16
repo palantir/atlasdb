@@ -30,7 +30,7 @@ import com.palantir.atlasdb.sweep.Sweeper;
 @Value.Immutable
 public interface WriteInfo {
     long timestamp();
-    public WriteReference writeRef();
+    WriteReference writeRef();
 
     default long timestampToDeleteAtExclusive(Sweeper sweeper) {
         if (sweeper.shouldSweepLastCommitted() && writeRef().isTombstone()) {

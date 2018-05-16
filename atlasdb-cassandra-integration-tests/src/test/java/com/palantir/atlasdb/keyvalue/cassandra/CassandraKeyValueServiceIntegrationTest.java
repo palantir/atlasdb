@@ -127,21 +127,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         //
     }
 
-    // todo(gmaretic): this is for debugging purposes only
-//    @Test
-//    public void cassandraSweepQueueTest() {
-//        KvsSweepQueuePersister queue = new KvsSweepQueuePersister(keyValueService, TargetedSweepTableFactory.of());
-//        queue.initialize();
-//        Cell cell1 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col1"));
-//        Cell cell2 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col2"));
-//        Cell cell3 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col3"));
-//        queue.enqueue(TableReference.createFromFullyQualifiedName("abc.def"), ImmutableList.of(WriteInfo.of(cell1, false, 1000L),
-//                WriteInfo.of(cell2, false, 2000001L)));
-//        queue.enqueue(TableReference.createFromFullyQualifiedName("abc.abc"), ImmutableList.of(WriteInfo.of(cell3, false, 100000L),
-//                WriteInfo.of(cell3, false, 100001L)));
-//        System.out.println();
-//    }
-
     @Test
     public void testCreateTableCaseInsensitive() throws TException {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
