@@ -26,7 +26,6 @@ import com.palantir.lock.v2.TimelockService;
 
 @Value.Immutable
 public abstract class AsyncOrLegacyTimelockService {
-
     @Value.Parameter
     public abstract Optional<AsyncTimelockResource> getAsyncTimelockResource();
 
@@ -34,17 +33,17 @@ public abstract class AsyncOrLegacyTimelockService {
     public abstract Optional<TimelockService> getLegacyTimelockService();
 
     public static AsyncOrLegacyTimelockService createFromAsyncTimelock(AsyncTimelockResource asyncTimelockResource) {
-        return ImmutableAsyncOrLegacyTimelockService.of(Optional.of(asyncTimelockResource),
-                Optional.empty());
+        return ImmutableAsyncOrLegacyTimelockService.of(Optional.of(asyncTimelockResource), Optional.empty());
     }
 
     public static AsyncOrLegacyTimelockService createFromLegacyTimelock(TimelockService legacyTimelockService) {
-        return ImmutableAsyncOrLegacyTimelockService.of(Optional.empty(),
-                Optional.of(legacyTimelockService));
+        return ImmutableAsyncOrLegacyTimelockService.of(Optional.empty(), Optional.of(legacyTimelockService));
     }
 
     @Value.Check
     protected void check() {
+        Preconditions.checkState(getAsyncTimelockResource().isPresent() || getLegacyTimelockService().isPresent(),
+                "Either the async timelock resource or legacy timelock service should be present!");
         Preconditions.checkState(!(getAsyncTimelockResource().isPresent() && getLegacyTimelockService().isPresent()),
                 "It shouldn't be that both the async and legacy timelock services are available.");
     }
@@ -53,7 +52,6 @@ public abstract class AsyncOrLegacyTimelockService {
         if (getAsyncTimelockResource().isPresent()) {
             return getAsyncTimelockResource().get();
         }
-
         // safe because when creating we know there must be 1
         return getLegacyTimelockService().get();
     }
