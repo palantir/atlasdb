@@ -76,8 +76,8 @@ public final class SweepTestUtils {
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 sweepQueue);
-        sweepQueue.callbackInit(txManager);
         setupTables(kvs);
+        sweepQueue.callbackInit(txManager);
         return txManager;
     }
 

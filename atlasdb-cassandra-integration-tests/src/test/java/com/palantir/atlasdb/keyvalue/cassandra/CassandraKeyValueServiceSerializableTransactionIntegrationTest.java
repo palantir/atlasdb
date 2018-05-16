@@ -25,7 +25,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
         extends AbstractSerializableTransactionTest {
