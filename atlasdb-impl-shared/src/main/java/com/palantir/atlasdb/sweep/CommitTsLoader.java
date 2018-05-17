@@ -15,6 +15,12 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +61,29 @@ public final class CommitTsLoader {
             commitTsByStartTs.put(startTs, commitTs);
         }
         return commitTsByStartTs.get(startTs);
+    }
+
+    public Map<Long, Long> loadBatch(Collection<Long> timestamps) {
+        List<Long> missingKeys = new ArrayList<>();
+        Map<Long, Long> result = new HashMap<>();
+
+        for (long startTs: timestamps) {
+            if (!commitTsByStartTs.containsKey(startTs)) {
+                missingKeys.add(startTs);
+            } else {
+                result.put(startTs, commitTsByStartTs.get(startTs));
+            }
+        }
+
+        Map<Long, Long> nonCachedCommittedTransactions = transactionService.get(missingKeys);
+        result.putAll(nonCachedCommittedTransactions);
+        commitTsByStartTs.putAll(nonCachedCommittedTransactions);
+
+        missingKeys.stream()
+                .filter(startTs -> !nonCachedCommittedTransactions.containsKey(startTs))
+                .forEach(startTs -> result.put(startTs, load(startTs)));
+
+        return result;
     }
 
     public long loadCacheMissAndPossiblyRollBack(long startTs) {

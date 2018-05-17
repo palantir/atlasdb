@@ -32,7 +32,7 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.sweep.Sweeper;
 
-public class SweepableTimestampsTest extends SweepQueueTablesTest {
+public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
     private SweepableTimestamps sweepableTimestamps;
     private SweepTimestampProvider provider;
     private KvsSweepQueueProgress progress;

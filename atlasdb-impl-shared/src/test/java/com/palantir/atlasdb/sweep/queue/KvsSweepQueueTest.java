@@ -29,8 +29,8 @@ import static org.mockito.Mockito.verify;
 import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
 import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.NOTHING;
 import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.THOROUGH;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueTablesTest.getCellWithFixedHash;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueTablesTest.metadataBytes;
+import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTablesTest.getCellWithFixedHash;
+import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTablesTest.metadataBytes;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_COARSE_GRANULARITY;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_FINE_GRANULARITY;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFinePartition;
@@ -43,13 +43,18 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
 
 public class KvsSweepQueueTest {
     private static final TableReference TABLE_CONSERVATIVE = TableReference.createFromFullyQualifiedName("test.cons");
@@ -62,15 +67,16 @@ public class KvsSweepQueueTest {
     private static final long TS = 10L;
     private static final long TS2 = 2 * TS;
 
-    KeyValueService kvs;
-    KvsSweepQueue sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> SHARDS, 0, 0);
-    KvsSweepQueueProgress progress;
-    SweepableTimestamps sweepableTimestamps;
-    SweepableCells sweepableCells;
+    private KeyValueService kvs;
+    private KvsSweepQueue sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> SHARDS, 0, 0);
+    private KvsSweepQueueProgress progress;
+    private SweepableTimestamps sweepableTimestamps;
+    private SweepableCells sweepableCells;
+    private TransactionService txnService;
 
-    long unreadableTs;
-    long immutableTs;
-    long sweepTsConservative;
+    private long unreadableTs;
+    private long immutableTs;
+    private long sweepTsConservative;
 
     SweepTimestampProvider provider = new SweepTimestampProvider(() -> unreadableTs, () -> immutableTs);
 
@@ -83,11 +89,13 @@ public class KvsSweepQueueTest {
         kvs.createTable(TABLE_CONSERVATIVE, metadataBytes(CONSERVATIVE));
         kvs.createTable(TABLE_THOROUGH, metadataBytes(THOROUGH));
         kvs.createTable(TABLE_NOTHING, metadataBytes(NOTHING));
+        kvs.createTable(TransactionConstants.TRANSACTION_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
 
         progress = new KvsSweepQueueProgress(kvs);
         sweepableTimestamps = new SweepableTimestamps(kvs, null);
         sweepableCells = new SweepableCells(kvs, null);
         sweepTsConservative = provider.getSweepTimestamp(Sweeper.CONSERVATIVE);
+        txnService = TransactionServices.createTransactionService(kvs);
     }
 
     @Test
@@ -144,7 +152,7 @@ public class KvsSweepQueueTest {
 
     @Test
     public void sweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
-        long numWrites = 2 * SweepableCells.SWEEP_BATCH_SIZE;
+        long numWrites = SweepableCells.SWEEP_BATCH_SIZE;
         for (long i = 1; i <= numWrites; i++) {
             enqueueWrite(TABLE_CONSERVATIVE, i);
         }
@@ -376,10 +384,12 @@ public class KvsSweepQueueTest {
     }
 
     private void enqueueWrite(TableReference tableRef, long ts) {
+        putTimestampIntoTransactionTable(ts, ts);
         sweepQueue.enqueue(writeToDefaultCell(tableRef, ts), ts);
     }
 
     private void enqueueTombstone(TableReference tableRef, long ts) {
+        putTimestampIntoTransactionTable(ts, ts);
         sweepQueue.enqueue(tombstoneToDefaultCell(tableRef, ts), ts);
     }
 
@@ -387,6 +397,7 @@ public class KvsSweepQueueTest {
         for (int i = 0; i < numWrites; i++) {
             sweepQueue.enqueue(writeToCell(tableRef, startTs + i, getCellWithFixedHash(i)), startTs + i);
         }
+        putTimestampIntoTransactionTable(startTs, startTs);
         return WriteInfo.write(tableRef, getCellWithFixedHash(0L), 0L).toShard(SHARDS);
     }
 
@@ -454,5 +465,13 @@ public class KvsSweepQueueTest {
         assertThat(sweepableTimestamps
                 .nextSweepableTimestampPartition(ShardAndStrategy.conservative(CONS_SHARD), -1L, sweepTs))
                 .isEmpty();
+    }
+
+    protected void putTimestampIntoTransactionTable(long ts, long commitTs) {
+        try {
+            txnService.putUnlessExists(ts, commitTs);
+        } catch (KeyAlreadyExistsException e) {
+            // this is fine
+        }
     }
 }
