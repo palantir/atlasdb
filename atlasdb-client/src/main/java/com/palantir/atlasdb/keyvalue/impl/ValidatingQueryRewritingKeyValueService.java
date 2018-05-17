@@ -102,7 +102,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     protected void sanityCheckTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         Validate.isTrue(
-                ((!tableName.startsWith("_") && (tableName.contains(".")))
+                (!tableName.startsWith("_") && tableName.contains(".")
                         && ALLOWED_TABLE_NAMES.matcher(tableName).matches())
                         || AtlasDbConstants.hiddenTables.contains(tableRef)
                         || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
