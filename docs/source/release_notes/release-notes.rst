@@ -42,6 +42,18 @@ develop
 =======
 
 .. replace this with the release date and the above with v<tag> (the v makes the permalinks nice)
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed|
+         - Added validation that forces alphanumeric + underscore only table names
+           in the name of forced cross-compat amongst backing stores.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3159>`__)
     
 =======
 v0.84.0
@@ -64,11 +76,6 @@ v0.84.0
          - The (Thrift-backed) ``CassandraKeyValueService`` now returns correctly for CQL queries that return null.
            Previously, they would throw an exception when we attempted to log information about the response.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3158>`__)
-
-    *    - |changed|
-         - Added validation that forces alphanumeric + underscore only table names
-           in the name of forced cross-compat amongst backing stores.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3159>`__)
 
 =======
 v0.83.0
