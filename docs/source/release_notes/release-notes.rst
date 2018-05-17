@@ -42,10 +42,6 @@ develop
 =======
 
 .. replace this with the release date and the above with v<tag> (the v makes the permalinks nice)
-
-.. list-table::
-    :widths: 5 40
-    :header-rows: 1
     
 =======
 v0.84.0
