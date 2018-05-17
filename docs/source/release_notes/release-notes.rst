@@ -42,6 +42,12 @@ develop
 =======
 
 .. replace this with the release date and the above with v<tag> (the v makes the permalinks nice)
+    
+=======
+v0.84.0
+=======
+
+16 May 2018
 
 .. list-table::
     :widths: 5 40
@@ -51,7 +57,7 @@ develop
          - Change
 
     *    - |improved|
-         - If we make a successful request to a Cassandra client, we now remove it from the overall Cassandra service's blacklist.
+         - Timelock will now have more debugging info if the paxos directories fail to be created on startup.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3156>`__)
 
     *    - |fixed|
