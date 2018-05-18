@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.function.LongSupplier;
-
 import org.junit.ClassRule;
 
 import com.palantir.atlasdb.containers.CassandraContainer;
@@ -24,6 +22,7 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.SweepTimestampProvider;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
 public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
@@ -46,8 +45,10 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
     }
 
     @Override
-    protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized(LongSupplier unreadable, LongSupplier immutable) {
-        return KvsSweepQueue.createInitializedForTest(keyValueService, 128, unreadable, immutable);
+    protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
+        KvsSweepQueue queue = KvsSweepQueue.createUninitialized(() -> true, () -> 128, 0, 0);
+        queue.initialize(new SweepTimestampProvider(() -> 0, () -> 0), keyValueService);
+        return queue;
     }
 
     @Override

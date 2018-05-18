@@ -27,7 +27,6 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.LongSupplier;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -61,7 +60,6 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.impl.LegacyTimelockService;
-
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
@@ -112,7 +110,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                getSweepQueueWriterInitialized(NoOpCleaner.INSTANCE::getUnreadableTimestamp, () -> 0L)) {
+                getSweepQueueWriterInitialized()) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());
@@ -124,7 +122,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         return MultiTableSweepQueueWriter.NO_OP;
     }
 
-    protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized(LongSupplier unreadable, LongSupplier immutable) {
+    protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
         return MultiTableSweepQueueWriter.NO_OP;
     }
 

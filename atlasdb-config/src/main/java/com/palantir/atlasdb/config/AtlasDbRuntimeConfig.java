@@ -38,9 +38,13 @@ public abstract class AtlasDbRuntimeConfig {
         return SweepConfig.defaultSweepConfig();
     }
 
+    /**
+     * Live reloadable configurations for targeted sweep. If the enableSweepQueue parameter of
+     * {@link AtlasDbConfig#targetedSweep()} is not set to true, this configuration will be ignored.
+     */
     @Value.Default
-    public TargetedSweepConfig targetedSweep() {
-        return TargetedSweepConfig.defaultTargetedSweepConfig();
+    public TargetedSweepRuntimeConfig targetedSweep() {
+        return TargetedSweepRuntimeConfig.defaultTargetedSweepRuntimeConfig();
     }
 
     @Value.Default

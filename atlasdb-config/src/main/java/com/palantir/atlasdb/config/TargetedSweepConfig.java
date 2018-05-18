@@ -20,59 +20,40 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 
 @JsonDeserialize(as = ImmutableTargetedSweepConfig.class)
 @JsonSerialize(as = ImmutableTargetedSweepConfig.class)
 @Value.Immutable
-public abstract class TargetedSweepConfig {
+public class TargetedSweepConfig {
     /**
-     * If targeted sweep is enabled, this parameter controls whether we run targeted sweeps or only persist the
-     * necessary information to the targeted sweep queue. If runSweep is false, the necessary information is persisted
-     * but no targeted sweeps will be run.
+     * If true, information for targeted sweep will be persisted to the sweep queue. This is necessary to be able to
+     * run targeted sweep.
+     *
+     * Once you decide to use targeted sweep, DO NOT set this to false without consulting with the AtlasDB team. Doing
+     * so will cause targeted sweep to not be aware of any writes occurring while this is false, and you will have to
+     * use legacy sweep to sweep those writes. If you wish to pause targeted sweep, that can be done by setting the live
+     * reloadable {@link TargetedSweepRuntimeConfig#enabled()} parameter to false.
      */
     @Value.Default
-    public boolean runSweep() {
-        return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_RUN;
+    public boolean enableSweepQueue() {
+        return AtlasDbConstants.DEFAULT_ENABLE_SWEEP_QUEUE;
     }
 
     /**
-     * The number of shards to be used for persisting targeted sweep information. Once the number of shards is increased
-     * it cannot be reduced again, and setting the configuration to a lower value will have no effect. The maximum
-     * allowed value is 256.
+     * The number of background threads dedicated to running targeted sweep of tables with SweepStrategy CONSERVATIVE.
      */
-    @Value.Default
-    public int shards() {
-        return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_SHARDS;
-    }
-
-    @Value.Check
-    void checkShardSize() {
-        Preconditions.checkArgument(shards() >= 1 && shards() <= 256,
-                "Shard number must be between 1 and 256 inclusive, but it is %s.", shards());
-    }
-
     @Value.Default
     public int conservativeThreads() {
         return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_THREADS;
     }
 
-    @Value.Check
-    void checkConservativeThreads() {
-        Preconditions.checkArgument(conservativeThreads() >= 0 && conservativeThreads() <= shards(),
-                "Number of conservative targeted sweep threads must be between 0 and the number of shards inclusive.");
-    }
-
+    /**
+     * The number of background threads dedicated to running targeted sweep of tables with SweepStrategy THOROUGH.
+     */
     @Value.Default
     public int thoroughThreads() {
         return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_THREADS;
-    }
-
-    @Value.Check
-    void checkThoroughThreads() {
-        Preconditions.checkArgument(thoroughThreads() >= 0 && thoroughThreads() <= shards(),
-                "Number of thorough targeted sweep threads must be between 0 and the number of shards inclusive.");
     }
 
     public static TargetedSweepConfig defaultTargetedSweepConfig() {

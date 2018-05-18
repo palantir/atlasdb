@@ -167,12 +167,11 @@ public abstract class AtlasDbConfig {
     }
 
     /**
-     * If true, information for targeted sweep will be persisted to the sweep queue. Depending on the targeted sweep
-     * configurations, a background sweep will read this information to run sweep in a targeted way.
+     * Install time configurations for targeted sweep.
      */
     @Value.Default
-    public boolean enableTargetedSweep() {
-        return AtlasDbConstants.DEFAULT_ENABLE_TARGETED_SWEEP;
+    public TargetedSweepConfig targetedSweep() {
+        return TargetedSweepConfig.defaultTargetedSweepConfig();
     }
 
     /**

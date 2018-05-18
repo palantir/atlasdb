@@ -61,6 +61,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TargetedSweepConfig;
+import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
@@ -345,7 +346,7 @@ public abstract class TransactionManagers {
                 closeables);
 
         MultiTableSweepQueueWriter targetedSweep = initializeCloseable(
-                () -> uninitializedSweepQueue(config,
+                () -> uninitializedSweepQueue(config.targetedSweep(),
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier)),
                 closeables);
 
@@ -870,14 +871,14 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    private MultiTableSweepQueueWriter uninitializedSweepQueue(AtlasDbConfig config,
-            Supplier<TargetedSweepConfig> runtime) {
-        if (config.enableTargetedSweep()) {
+    private MultiTableSweepQueueWriter uninitializedSweepQueue(TargetedSweepConfig config,
+            Supplier<TargetedSweepRuntimeConfig> runtime) {
+        if (config.enableSweepQueue()) {
             return KvsSweepQueue.createUninitialized(
-                    JavaSuppliers.compose(TargetedSweepConfig::runSweep, runtime),
-                    JavaSuppliers.compose(TargetedSweepConfig::shards, runtime),
-                    runtime.get().conservativeThreads(),
-                    runtime.get().thoroughThreads());
+                    JavaSuppliers.compose(TargetedSweepRuntimeConfig::enabled, runtime),
+                    JavaSuppliers.compose(TargetedSweepRuntimeConfig::shards, runtime),
+                    config.conservativeThreads(),
+                    config.thoroughThreads());
         }
         return MultiTableSweepQueueWriter.NO_OP;
     }
