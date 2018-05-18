@@ -39,7 +39,7 @@ public abstract class AtlasDbRuntimeConfig {
     }
 
     /**
-     * Live reloadable configurations for targeted sweep. If the enableSweepQueue parameter of
+     * Live reloadable configurations for targeted sweep. If the enableSweepQueueWrites parameter of
      * {@link AtlasDbConfig#targetedSweep()} is not set to true, this configuration will be ignored.
      */
     @Value.Default
