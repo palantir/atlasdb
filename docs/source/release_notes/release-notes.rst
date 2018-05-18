@@ -42,6 +42,18 @@ develop
 =======
 
 .. replace this with the release date and the above with v<tag> (the v makes the permalinks nice)
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed|
+         - Added validation that forces alphanumeric + underscore only table names
+           in the name of forced cross-compat amongst backing stores.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3159>`__)
     
 =======
 v0.84.0
