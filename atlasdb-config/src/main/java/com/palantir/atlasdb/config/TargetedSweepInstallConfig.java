@@ -20,12 +20,13 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 
-@JsonDeserialize(as = ImmutableTargetedSweepConfig.class)
-@JsonSerialize(as = ImmutableTargetedSweepConfig.class)
+@JsonDeserialize(as = ImmutableTargetedSweepInstallConfig.class)
+@JsonSerialize(as = ImmutableTargetedSweepInstallConfig.class)
 @Value.Immutable
-public class TargetedSweepConfig {
+public class TargetedSweepInstallConfig {
     /**
      * If true, information for targeted sweep will be persisted to the sweep queue. This is necessary to be able to
      * run targeted sweep.
@@ -36,8 +37,8 @@ public class TargetedSweepConfig {
      * reloadable {@link TargetedSweepRuntimeConfig#enabled()} parameter to false.
      */
     @Value.Default
-    public boolean enableSweepQueue() {
-        return AtlasDbConstants.DEFAULT_ENABLE_SWEEP_QUEUE;
+    public boolean enableSweepQueueWrites() {
+        return AtlasDbConstants.DEFAULT_ENABLE_SWEEP_QUEUE_WRITES;
     }
 
     /**
@@ -48,6 +49,15 @@ public class TargetedSweepConfig {
         return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_THREADS;
     }
 
+    @Value.Check
+    void checkConservativeThreads() {
+        Preconditions.checkArgument(
+                conservativeThreads() >= 0 && conservativeThreads() <= AtlasDbConstants.SWEEP_QUEUE_MAX_SHARDS,
+                "Number of conservative targeted sweep threads must be between 0 and %s inclusive, but is %s instead.",
+                AtlasDbConstants.SWEEP_QUEUE_MAX_SHARDS,
+                conservativeThreads());
+    }
+
     /**
      * The number of background threads dedicated to running targeted sweep of tables with SweepStrategy THOROUGH.
      */
@@ -56,7 +66,16 @@ public class TargetedSweepConfig {
         return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_THREADS;
     }
 
-    public static TargetedSweepConfig defaultTargetedSweepConfig() {
-        return ImmutableTargetedSweepConfig.builder().build();
+    @Value.Check
+    void checkThoroughThreads() {
+        Preconditions.checkArgument(
+                thoroughThreads() >= 0 && thoroughThreads() <= AtlasDbConstants.SWEEP_QUEUE_MAX_SHARDS,
+                "Number of thorough targeted sweep threads must be between 0 and %s inclusive, but is %s instead.",
+                AtlasDbConstants.SWEEP_QUEUE_MAX_SHARDS,
+                thoroughThreads());
+    }
+
+    public static TargetedSweepInstallConfig defaultTargetedSweepConfig() {
+        return ImmutableTargetedSweepInstallConfig.builder().build();
     }
 }

@@ -28,6 +28,7 @@ public abstract class TargetedSweepMetadata implements Persistable {
     public abstract int shard();
     public abstract long dedicatedRowNumber();
 
+    public static final int MAX_SHARDS = 256;
     public static final int MAX_DEDICATED_ROWS = 64;
     private static final int SWEEP_STRATEGY_MASK = 0x80;
     private static final int USE_DEDICATED_ROWS_MASK = 0x40;
@@ -36,14 +37,14 @@ public abstract class TargetedSweepMetadata implements Persistable {
 
     @Value.Check
     void checkShardSize() {
-        Preconditions.checkArgument(shard() >= 0 && shard() <= 255,
-                "Shard number must be between 0 and 255 inclusive, but it is %s.", shard());
+        Preconditions.checkArgument(shard() >= 0 && shard() < MAX_SHARDS,
+                "Shard number must non-negative and strictly less than %s, but it is %s.", MAX_SHARDS, shard());
     }
 
     @Value.Check
     void checkRowNumber() {
         Preconditions.checkArgument(dedicatedRowNumber() >= 0 && dedicatedRowNumber() < MAX_DEDICATED_ROWS,
-                "Dedicated row number must be at least 0 and less than %s, but it is %s.",
+                "Dedicated row number must non-negative and strictly less than %s, but it is %s.",
                 MAX_DEDICATED_ROWS, dedicatedRowNumber());
     }
     public static final Hydrator<TargetedSweepMetadata> BYTES_HYDRATOR = input ->
