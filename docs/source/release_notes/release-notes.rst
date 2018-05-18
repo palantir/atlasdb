@@ -55,7 +55,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3156>`__)
 
     *    - |improved|
-         - Move a complicated and elsewhere overridden method from AbstractKeyValueService into DbKvsKeyValueService
+         - Move a complicated and elsewhere overridden method from AbstractKeyValueService into DbKvs
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3159>`__)
 
     *    - |fixed|
