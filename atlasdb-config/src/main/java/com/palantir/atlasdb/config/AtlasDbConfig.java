@@ -170,8 +170,8 @@ public abstract class AtlasDbConfig {
      * Install time configurations for targeted sweep.
      */
     @Value.Default
-    public TargetedSweepConfig targetedSweep() {
-        return TargetedSweepConfig.defaultTargetedSweepConfig();
+    public TargetedSweepInstallConfig targetedSweep() {
+        return TargetedSweepInstallConfig.defaultTargetedSweepConfig();
     }
 
     /**

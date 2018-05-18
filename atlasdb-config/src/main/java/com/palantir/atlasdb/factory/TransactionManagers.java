@@ -60,7 +60,7 @@ import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
-import com.palantir.atlasdb.config.TargetedSweepConfig;
+import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
@@ -871,9 +871,9 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    private MultiTableSweepQueueWriter uninitializedSweepQueue(TargetedSweepConfig config,
+    private MultiTableSweepQueueWriter uninitializedSweepQueue(TargetedSweepInstallConfig config,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
-        if (config.enableSweepQueue()) {
+        if (config.enableSweepQueueWrites()) {
             return KvsSweepQueue.createUninitialized(
                     JavaSuppliers.compose(TargetedSweepRuntimeConfig::enabled, runtime),
                     JavaSuppliers.compose(TargetedSweepRuntimeConfig::shards, runtime),
