@@ -61,12 +61,12 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.impl.LegacyTimelockService;
 
-
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
     @Override
     protected TransactionManager getManager() {
-        return SerializableTransactionManager.createForTest(
+        MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterUninitialized();
+        SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 keyValueService,
                 timestampService,
                 lockClient,
@@ -79,7 +79,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                getSweepQueueWriter());
+                sweepQueue);
+        sweepQueue.callbackInit(txManager);
+        return txManager;
     }
 
     @Override
@@ -108,7 +110,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                getSweepQueueWriter()) {
+                getSweepQueueWriterInitialized()) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());
@@ -116,7 +118,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         };
     }
 
-    protected MultiTableSweepQueueWriter getSweepQueueWriter() {
+    protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
+        return MultiTableSweepQueueWriter.NO_OP;
+    }
+
+    protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
         return MultiTableSweepQueueWriter.NO_OP;
     }
 

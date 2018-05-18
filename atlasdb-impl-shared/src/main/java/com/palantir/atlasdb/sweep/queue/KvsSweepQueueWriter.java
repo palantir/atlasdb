@@ -42,13 +42,13 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
     public void enqueue(List<WriteInfo> allWrites) {
         Map<Cell, byte[]> cellsToWrite = new HashMap<>();
         Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(allWrites);
-        partitionedWrites.forEach((partitionInfo, writes) -> populateCells(partitionInfo, writes, cellsToWrite));
+        partitionedWrites.forEach((partitionInfo, writes) -> cellsToWrite.putAll(populateCells(partitionInfo, writes)));
         if (!cellsToWrite.isEmpty()) {
             kvs.put(tableRef, cellsToWrite, SweepQueueUtils.WRITE_TS);
         }
     }
 
-    abstract void populateCells(PartitionInfo info, List<WriteInfo> writes, Map<Cell, byte[]> cellsToWrite);
+    abstract Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes);
 
     RowColumnRangeIterator getRowsColumnRange(Iterable<byte[]> rows, ColumnRangeSelection columnRange, int batchSize) {
         return kvs.getRowsColumnRange(tableRef, rows, columnRange, batchSize, SweepQueueUtils.READ_TS);

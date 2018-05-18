@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -41,14 +42,14 @@ public class SweepableTimestamps extends KvsSweepQueueWriter {
     }
 
     @Override
-    void populateCells(PartitionInfo info, List<WriteInfo> writes, Map<Cell, byte[]> cellsToWrite) {
+    Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes) {
         SweepableTimestampsTable.SweepableTimestampsRow row = computeRow(info);
         SweepableTimestampsTable.SweepableTimestampsColumn col = computeColumn(info);
 
         SweepableTimestampsTable.SweepableTimestampsColumnValue colVal =
                 SweepableTimestampsTable.SweepableTimestampsColumnValue.of(col, DUMMY);
 
-        cellsToWrite.put(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
+        return ImmutableMap.of(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
     }
 
     private SweepableTimestampsTable.SweepableTimestampsRow computeRow(PartitionInfo partitionInfo) {

@@ -25,18 +25,15 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 
-public class KvsSweepDeleter implements SweepDeleter {
+public class KvsSweepDeleter {
     private final KeyValueService kvs;
-    private final Sweeper sweeper;
 
-    public KvsSweepDeleter(KeyValueService kvs, Sweeper sweeper) {
+    public KvsSweepDeleter(KeyValueService kvs) {
         this.kvs = kvs;
-        this.sweeper = sweeper;
     }
 
-    @Override
-    public void sweep(Collection<WriteInfo> writes) {
-        Map<TableReference, Map<Cell, Long>> maxTimestampByCell = partitionWrites(writes);
+    public void sweep(Collection<WriteInfo> writes, Sweeper sweeper) {
+        Map<TableReference, Map<Cell, Long>> maxTimestampByCell = writesPerTable(writes, sweeper);
         for (Map.Entry<TableReference, Map<Cell, Long>> entry: maxTimestampByCell.entrySet()) {
             if (sweeper.shouldAddSentinels()) {
                 kvs.addGarbageCollectionSentinelValues(entry.getKey(), entry.getValue().keySet());
@@ -45,14 +42,11 @@ public class KvsSweepDeleter implements SweepDeleter {
         }
     }
 
-    private Map<TableReference, Map<Cell, Long>> partitionWrites(Collection<WriteInfo> writes) {
+    private Map<TableReference, Map<Cell, Long>> writesPerTable(Collection<WriteInfo> writes, Sweeper sweeper) {
         Map<TableReference, Map<Cell, Long>> result = new HashMap<>();
-        writes.forEach(write -> result.computeIfAbsent(write.writeRef().tableRef(), ignore -> new HashMap<>())
-                        .put(write.writeRef().cell(), write.timestampToDeleteAtExclusive(sweeper)));
+        writes.forEach(write -> result
+                .computeIfAbsent(write.writeRef().tableRef(), ignore -> new HashMap<>())
+                .put(write.writeRef().cell(), write.timestampToDeleteAtExclusive(sweeper)));
         return result;
-    }
-
-    Sweeper getSweeper() {
-        return sweeper;
     }
 }

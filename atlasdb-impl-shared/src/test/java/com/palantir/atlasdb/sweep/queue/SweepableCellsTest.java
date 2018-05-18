@@ -23,14 +23,15 @@ import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import static com.palantir.atlasdb.sweep.queue.SweepableCells.MAX_CELLS_DEDICATED;
 import static com.palantir.atlasdb.sweep.queue.SweepableCells.MAX_CELLS_GENERIC;
-import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 
 public class SweepableCellsTest extends SweepQueueTablesTest {
     private static final long SWEEP_TS = TS + 200L;
@@ -187,12 +188,19 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     }
 
     @Test
-    @Ignore("This test takes 53 minutes to complete. Need to see how it performs with CassandraKVS")
     public void canReadMultipleEntriesInSingleShardSameTransactionMultipleDedicated() {
-        List<WriteInfo> writes = writeToCellsInFixedShard(sweepableCells, TS, MAX_CELLS_DEDICATED + 1, TABLE_CONS);
-        int fixedShard = writes.get(0).toShard(SHARDS);
-        SweepBatch conservativeBatch = readConservative(fixedShard, TS_FINE_PARTITION, TS - 1, TS + 1);
-        assertThat(conservativeBatch.writes()).hasSameElementsAs(writes);
+        numShards = 1;
+
+        List<WriteInfo> writes = new ArrayList<>();
+        for (long i = 0; i <= MAX_CELLS_DEDICATED; i++) {
+            Cell cell = Cell.create(PtBytes.toBytes("fixed_row"), PtBytes.toBytes(i));
+            writes.add(WriteInfo.write(TABLE_CONS, cell, TS));
+        }
+        sweepableCells.enqueue(writes);
+
+        SweepBatch conservativeBatch = readConservative(0, TS_FINE_PARTITION, TS - 1, TS + 1);
+        assertThat(conservativeBatch.writes().size()).isEqualTo(writes.size());
+        assertThat(conservativeBatch.writes()).contains(writes.get(0), writes.get(writes.size() - 1));
     }
 
     private SweepBatch readConservative(int shard, long partition, long minExclusive, long maxExclusive) {
@@ -206,4 +214,5 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
     private long endOfFinePartitionForTs(long timestamp) {
         return SweepQueueUtils.maxTsForFinePartition(tsPartitionFine(timestamp));
     }
+
 }

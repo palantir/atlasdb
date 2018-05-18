@@ -21,10 +21,10 @@ public class KvsSweepQueueScrubber {
     private SweepableTimestamps sweepableTimestamps;
     private KvsSweepQueueProgress progress;
 
-    public KvsSweepQueueScrubber(SweepableCells cells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress) {
-        this.sweepableCells = cells;
-        this.sweepableTimestamps = timestamps;
-        this.progress = progress;
+    public KvsSweepQueueScrubber(KvsSweepQueueTables tables) {
+        this.sweepableCells = tables.sweepableCells;
+        this.sweepableTimestamps = tables.sweepableTimestamps;
+        this.progress = tables.progress;
     }
 
     /**

@@ -24,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import static com.palantir.atlasdb.sweep.queue.SweepQueueTablesTest.metadataBytes;
-import static com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner.SHARDS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +34,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -55,10 +55,11 @@ public class WriteInfoPartitionerTest {
 
     private KeyValueService mockKvs = mock(KeyValueService.class);
     private WriteInfoPartitioner partitioner;
+    private int numShards = 128;
 
     @Before
     public void setup() {
-        partitioner = new WriteInfoPartitioner(mockKvs);
+        partitioner = new WriteInfoPartitioner(mockKvs, () -> numShards);
         when(mockKvs.getMetadataForTable(any(TableReference.class))).thenAnswer(args ->
                 METADATA_MAP.getOrDefault(args.getArguments()[0], AtlasDbConstants.EMPTY_TABLE_METADATA));
     }
@@ -122,14 +123,28 @@ public class WriteInfoPartitionerTest {
     @Test
     public void partitionWritesByShardStrategyTimestampGroupsOnShardClash() {
         List<WriteInfo> writes = new ArrayList<>();
-        for (int i = 0; i <= SHARDS; i++) {
+        for (int i = 0; i <= numShards; i++) {
             writes.add(getWriteInfoWithFixedCellHash(CONSERVATIVE, i));
         }
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
         assertThat(partitions.keySet())
-                .containsExactly(PartitionInfo.of(writes.get(0).toShard(SHARDS), true, 1L));
+                .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), true, 1L));
         assertThat(partitions.values())
                 .containsExactly(writes);
+    }
+
+    @Test
+    public void changingNumberOfPartitionsIsReflectedInPartitionInfo() {
+        WriteInfo write = getWriteInfo(CONSERVATIVE, 1, 1, 100L);
+        PartitionInfo partition1 = Iterables.getOnlyElement(
+                partitioner.partitionWritesByShardStrategyTimestamp(ImmutableList.of(write)).keySet());
+        numShards = 199;
+        PartitionInfo partition2 = Iterables.getOnlyElement(
+                partitioner.partitionWritesByShardStrategyTimestamp(ImmutableList.of(write)).keySet());
+
+        assertThat(partition1.isConservative()).isEqualTo(partition2.isConservative());
+        assertThat(partition1.timestamp()).isEqualTo(partition2.timestamp());
+        assertThat(partition1.shard()).isNotEqualTo(partition2.shard());
     }
 
     private static TableReference getTableRef(String tableName) {

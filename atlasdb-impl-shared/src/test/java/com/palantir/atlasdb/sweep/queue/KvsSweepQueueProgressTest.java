@@ -24,7 +24,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.sweep.queue.KvsSweepQueueProgress.INITIAL_SHARDS;
+import static com.palantir.atlasdb.AtlasDbConstants.DEFAULT_TARGETED_SWEEP_SHARDS;
 import static com.palantir.atlasdb.sweep.queue.KvsSweepQueueProgress.INITIAL_TIMESTAMP;
 
 import org.junit.Before;
@@ -56,7 +56,7 @@ public class KvsSweepQueueProgressTest {
 
     @Test
     public void canReadInitialNumberOfShards() {
-        assertThat(progress.getNumberOfShards()).isEqualTo(INITIAL_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_TARGETED_SWEEP_SHARDS);
     }
 
     @Test
@@ -73,8 +73,8 @@ public class KvsSweepQueueProgressTest {
     }
 
     @Test
-    public void increasingNumberOfShardsAbove128Throws() {
-        assertThatThrownBy(() -> progress.updateNumberOfShards(256)).isInstanceOf(IllegalArgumentException.class);
+    public void increasingNumberOfShardsAbove256Throws() {
+        assertThatThrownBy(() -> progress.updateNumberOfShards(700)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -121,7 +121,7 @@ public class KvsSweepQueueProgressTest {
 
     @Test
     public void updatingTimestampsDoesNotAffectShardsAndViceVersa() {
-        assertThat(progress.getNumberOfShards()).isEqualTo(INITIAL_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_TARGETED_SWEEP_SHARDS);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
         assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
 

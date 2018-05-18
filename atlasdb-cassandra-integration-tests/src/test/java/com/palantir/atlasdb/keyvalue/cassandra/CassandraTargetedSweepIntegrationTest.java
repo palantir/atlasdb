@@ -20,36 +20,46 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.rules.RuleChain;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.AbstractSweepTest;
-import com.palantir.atlasdb.sweep.queue.BackgroundSweepQueueProcessor;
+import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepTimestampProvider;
-import com.palantir.atlasdb.sweep.queue.test.InMemorySweepQueue;
-import com.palantir.atlasdb.sweep.queue.test.InMemorySweepQueueProcessorFactory;
 
-// todo(gmaretic): fix
-@Ignore
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
+    private SweepTimestampProvider timestampProvider = mock(SweepTimestampProvider.class);
+    private KvsSweepQueue sweepQueue;
 
-    private SweepTimestampProvider timestamps = mock(SweepTimestampProvider.class);
-    private BackgroundSweepQueueProcessor processor;
+    @ClassRule
+    public static final Containers CONTAINERS = new Containers(
+            CassandraTargetedSweepIntegrationTest.class)
+            .with(new CassandraContainer());
+
+    @Rule
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
+            getKeyValueService(), CassandraContainer.KVS_CONFIG);
 
     @Before
     public void setup() {
         super.setup();
 
-        InMemorySweepQueue.clear();
-        InMemorySweepQueueProcessorFactory factory = new InMemorySweepQueueProcessorFactory(kvs, ssm, timestamps);
-        processor = new BackgroundSweepQueueProcessor(kvs, factory::getProcessorForTable);
+        sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> 1, 0, 0);
+        sweepQueue.initialize(timestampProvider, kvs);
     }
 
     @Override
@@ -61,9 +71,15 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
-        when(timestamps.getSweepTimestamp(any())).thenReturn(ts);
-        processor.sweepOneBatchForAllTables();
+        when(timestampProvider.getSweepTimestamp(any())).thenReturn(ts);
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
         return Optional.empty();
     }
 
+    @Override
+    protected void put(final TableReference tableRef, Cell cell, final String val, final long ts) {
+        super.put(tableRef, cell, val, ts);
+        sweepQueue.enqueue(ImmutableMap.of(tableRef, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8))), ts);
+    }
 }

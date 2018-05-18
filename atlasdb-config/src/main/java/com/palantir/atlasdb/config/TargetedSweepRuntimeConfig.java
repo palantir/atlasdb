@@ -23,18 +23,17 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 
-@JsonDeserialize(as = ImmutableTargetedSweepConfig.class)
-@JsonSerialize(as = ImmutableTargetedSweepConfig.class)
+@JsonDeserialize(as = ImmutableTargetedSweepRuntimeConfig.class)
+@JsonSerialize(as = ImmutableTargetedSweepRuntimeConfig.class)
 @Value.Immutable
-public abstract class TargetedSweepConfig {
+public abstract class TargetedSweepRuntimeConfig {
     /**
-     * If targeted sweep is enabled, this parameter controls whether we run targeted sweeps or only persist the
-     * necessary information to the targeted sweep queue. If runSweep is false, the necessary information is persisted
-     * but no targeted sweeps will be run.
+     * If true, targeted sweep will be performed in the background. Setting this to false will cause the background
+     * threads to skip running sweeps, effectively pausing targeted sweep.
      */
     @Value.Default
-    public boolean runSweep() {
-        return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_RUN;
+    public boolean enabled() {
+        return AtlasDbConstants.DEFAULT_ENABLE_TARGETED_SWEEP;
     }
 
     /**
@@ -53,7 +52,7 @@ public abstract class TargetedSweepConfig {
                 "Shard number must be between 1 and 256 inclusive, but it is %s.", shards());
     }
 
-    public static TargetedSweepConfig defaultTargetedSweepConfig() {
-        return ImmutableTargetedSweepConfig.builder().build();
+    public static TargetedSweepRuntimeConfig defaultTargetedSweepRuntimeConfig() {
+        return ImmutableTargetedSweepRuntimeConfig.builder().build();
     }
 }

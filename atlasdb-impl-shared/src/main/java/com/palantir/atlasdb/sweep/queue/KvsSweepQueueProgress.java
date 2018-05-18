@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -41,7 +42,6 @@ public class KvsSweepQueueProgress {
             .getSweepShardProgressTable(null).getTableRef();
 
     private static final int SHARD_COUNT_INDEX = -1;
-    public static final long INITIAL_SHARDS = 1L;
     public static final long INITIAL_TIMESTAMP = -1L;
 
     private final KeyValueService kvs;
@@ -50,13 +50,14 @@ public class KvsSweepQueueProgress {
         this.kvs = kvs;
     }
 
-    public long getNumberOfShards() {
-        return getOrReturnInitial(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), INITIAL_SHARDS);
+    public int getNumberOfShards() {
+        return (int) getOrReturnInitial(ShardAndStrategy.conservative(SHARD_COUNT_INDEX),
+                AtlasDbConstants.DEFAULT_TARGETED_SWEEP_SHARDS);
     }
 
-    public long updateNumberOfShards(int newNumber) {
-        Preconditions.checkArgument(newNumber <= 128);
-        return increaseValueToAtLeast(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), newNumber);
+    public int updateNumberOfShards(int newNumber) {
+        Preconditions.checkArgument(newNumber <= 256);
+        return (int) increaseValueToAtLeast(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), newNumber);
     }
 
     public long getLastSweptTimestamp(ShardAndStrategy shardAndStrategy) {

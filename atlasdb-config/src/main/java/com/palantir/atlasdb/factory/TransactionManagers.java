@@ -60,7 +60,8 @@ import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
-import com.palantir.atlasdb.config.TargetedSweepConfig;
+import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
+import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
@@ -344,8 +345,10 @@ public abstract class TransactionManagers {
                         .buildCleaner(),
                 closeables);
 
-        MultiTableSweepQueueWriter targetedSweep = uninitializedSweepQueue(config,
-                JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier));
+        MultiTableSweepQueueWriter targetedSweep = initializeCloseable(
+                () -> uninitializedSweepQueue(config.targetedSweep(),
+                        JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier)),
+                closeables);
 
         Callback<SerializableTransactionManager> callbacks = new Callback.CallChain<>(ImmutableList.of(
                 timelockConsistencyCheckCallback(config, runtimeConfigSupplier.get(), lockAndTimestampServices),
@@ -868,12 +871,14 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    private MultiTableSweepQueueWriter uninitializedSweepQueue(AtlasDbConfig config,
-            Supplier<TargetedSweepConfig> runtime) {
-        if (config.enableTargetedSweep()) {
+    private MultiTableSweepQueueWriter uninitializedSweepQueue(TargetedSweepInstallConfig config,
+            Supplier<TargetedSweepRuntimeConfig> runtime) {
+        if (config.enableSweepQueueWrites()) {
             return KvsSweepQueue.createUninitialized(
-                    JavaSuppliers.compose(TargetedSweepConfig::runSweep, runtime),
-                    JavaSuppliers.compose(TargetedSweepConfig::shards, runtime));
+                    JavaSuppliers.compose(TargetedSweepRuntimeConfig::enabled, runtime),
+                    JavaSuppliers.compose(TargetedSweepRuntimeConfig::shards, runtime),
+                    config.conservativeThreads(),
+                    config.thoroughThreads());
         }
         return MultiTableSweepQueueWriter.NO_OP;
     }

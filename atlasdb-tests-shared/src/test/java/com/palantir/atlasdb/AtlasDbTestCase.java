@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb;
 
+import static org.mockito.Mockito.spy;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
@@ -34,8 +36,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
-import com.palantir.atlasdb.sweep.queue.KvsSweepQueuePersister;
-import com.palantir.atlasdb.sweep.queue.KvsSweepQueueTables;
+import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -111,7 +112,8 @@ public class AtlasDbTestCase {
         transactionService = TransactionServices.createTransactionService(kvs);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        sweepQueue = KvsSweepQueuePersister.create(KvsSweepQueueTables.create(keyValueService));
+
+        sweepQueue = spy(KvsSweepQueue.createUninitialized(() -> true, () -> 128, 0, 0));
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,
@@ -122,6 +124,8 @@ public class AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 sweepQueue);
+
+        sweepQueue.callbackInit(serializableTxManager);
         txManager = new CachingTestTransactionManager(serializableTxManager);
     }
 
