@@ -176,6 +176,28 @@
 </div>
 <div class="section" id="develop">
 <h2>develop<a class="headerlink" href="#develop" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Snapshot transaction is now guaranteed to return getRowsColumnRange results in the correct order.
+Previously while paging over row dynamic columns, if uncommitted or aborted transaction data was
+seen, it would be placed at the end of the list, instead of at the start, meaning that the results
+are mostly (but not entirely) in sorted order. In practice, this leads to duplicate results in paging,
+and on serializable tables, transactions that paradoxically conflict with themselves.
+Now, they are guaranteed to be returned in order, which removes this issue.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3174">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="v0-84-0">
 <h2>v0.84.0<a class="headerlink" href="#v0-84-0" title="Permalink to this headline">¶</a></h2>
