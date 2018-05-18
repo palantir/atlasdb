@@ -48,7 +48,7 @@ public interface MultiTableSweepQueueWriter extends AutoCloseable {
     }
 
     @Override
-    default void close() {
+    default void close() throws Exception {
         // noop
     }
 }

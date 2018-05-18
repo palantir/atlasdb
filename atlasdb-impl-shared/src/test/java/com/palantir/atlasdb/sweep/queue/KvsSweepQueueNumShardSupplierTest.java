@@ -103,7 +103,7 @@ public class KvsSweepQueueNumShardSupplierTest {
     }
 
     @Test
-    public void getBeforeRefreshTimeDoesNotCHeckConfigOrUpdateProgress() throws InterruptedException {
+    public void getBeforeRefreshTimeDoesNotCheckConfigOrUpdateProgress() throws InterruptedException {
         numShardSupplier = KvsSweepQueueTables
                 .createUpdatingSupplier(runtimeConfigSupplier, progress::updateNumberOfShards, 100_000);
         assertThat(setRuntimeAndGetNumShards(50)).isEqualTo(50);

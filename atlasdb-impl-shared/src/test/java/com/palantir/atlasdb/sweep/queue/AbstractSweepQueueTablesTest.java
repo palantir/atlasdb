@@ -53,7 +53,8 @@ public abstract class AbstractSweepQueueTablesTest {
     static final long TS2 = 2 * TS;
     static final long TS_FINE_PARTITION = tsPartitionFine(TS);
     static final long TS2_FINE_PARTITION = tsPartitionFine(TS2);
-    static final int FIXED_SHARD = WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(128);
+    static final int DEFAULT_SHARDS = 128;
+    static final int FIXED_SHARD = WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(DEFAULT_SHARDS);
 
     protected KeyValueService mockKvs = mock(KeyValueService.class);
     protected KeyValueService kvs;
@@ -64,7 +65,7 @@ public abstract class AbstractSweepQueueTablesTest {
 
     @Before
     public void setup() {
-        numShards = 128;
+        numShards = DEFAULT_SHARDS;
         when(mockKvs.getMetadataForTable(TABLE_CONS))
                 .thenReturn(metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
         when(mockKvs.getMetadataForTable(TABLE_THOR))
