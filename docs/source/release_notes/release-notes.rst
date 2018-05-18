@@ -57,7 +57,7 @@ develop
            are mostly (but not entirely) in sorted order. In practice, this leads to duplicate results in paging,
            and on serializable tables, transactions that paradoxically conflict with themselves.
            Now, they are guaranteed to be returned in order, which removes this issue.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3173>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3174>`__)
     
 =======
 v0.84.0
