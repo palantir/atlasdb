@@ -78,14 +78,14 @@ public class KvsSweepQueueTest {
     private long immutableTs;
     private long sweepTsConservative;
 
-    SweepTimestampProvider provider = new SweepTimestampProvider(() -> unreadableTs, () -> immutableTs);
+    SpecialTimestampsSupplier timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
 
     @Before
     public void setup() {
         kvs = spy(new InMemoryKeyValueService(false));
         unreadableTs = TS_COARSE_GRANULARITY * 5;
         immutableTs = TS_COARSE_GRANULARITY * 5;
-        sweepQueue.initialize(provider, kvs);
+        sweepQueue.initialize(timestampsSupplier, kvs);
         kvs.createTable(TABLE_CONSERVATIVE, metadataBytes(CONSERVATIVE));
         kvs.createTable(TABLE_THOROUGH, metadataBytes(THOROUGH));
         kvs.createTable(TABLE_NOTHING, metadataBytes(NOTHING));
@@ -94,7 +94,7 @@ public class KvsSweepQueueTest {
         progress = new KvsSweepQueueProgress(kvs);
         sweepableTimestamps = new SweepableTimestamps(kvs, null);
         sweepableCells = new SweepableCells(kvs, null);
-        sweepTsConservative = provider.getSweepTimestamp(Sweeper.CONSERVATIVE);
+        sweepTsConservative = Sweeper.CONSERVATIVE.getSweepTimestamp(timestampsSupplier);
         txnService = TransactionServices.createTransactionService(kvs);
     }
 
@@ -346,29 +346,28 @@ public class KvsSweepQueueTest {
     @Test
     public void sweepableCellsGetsScrubbedWheneverLastSweptInNewPartition() {
         long tsSecondPartitionFine = TS + TS_FINE_GRANULARITY;
-        long largestBeforeSweepTs = provider.getSweepTimestamp(Sweeper.CONSERVATIVE) - 1L;
         enqueueWrite(TABLE_CONSERVATIVE, TS);
         enqueueWrite(TABLE_CONSERVATIVE, TS + 1L);
         enqueueWrite(TABLE_CONSERVATIVE, tsSecondPartitionFine);
-        enqueueWrite(TABLE_CONSERVATIVE, largestBeforeSweepTs);
+        enqueueWrite(TABLE_CONSERVATIVE, sweepTsConservative);
 
         // last swept timestamp: TS_FINE_GRANULARITY - 1
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertSweepableCellsHasEntryForTimestamp(TS + 1);
         assertSweepableCellsHasEntryForTimestamp(tsSecondPartitionFine);
-        assertSweepableCellsHasEntryForTimestamp(largestBeforeSweepTs);
+        assertSweepableCellsHasEntryForTimestamp(sweepTsConservative);
 
         // last swept timestamp: 2 * TS_FINE_GRANULARITY - 1
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertSweepableCellsHasNoEntriesBeforeTimestamp(TS + 1);
         assertSweepableCellsHasEntryForTimestamp(tsSecondPartitionFine);
-        assertSweepableCellsHasEntryForTimestamp(largestBeforeSweepTs);
+        assertSweepableCellsHasEntryForTimestamp(sweepTsConservative);
 
         // last swept timestamp: largestBeforeSweepTs
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertSweepableCellsHasNoEntriesBeforeTimestamp(TS + 1);
         assertSweepableCellsHasNoEntriesBeforeTimestamp(tsSecondPartitionFine);
-        assertSweepableCellsHasEntryForTimestamp(largestBeforeSweepTs);
+        assertSweepableCellsHasEntryForTimestamp(sweepTsConservative);
     }
 
     private void assertSweepableCellsHasEntryForTimestamp(long timestamp) {
@@ -454,16 +453,14 @@ public class KvsSweepQueueTest {
 
 
     private void assertLowestFinePartitionInSweepableTimestampsEquals(long partitionFine) {
-        long sweepTs = provider.getSweepTimestamp(Sweeper.CONSERVATIVE);
         assertThat(sweepableTimestamps
-                .nextSweepableTimestampPartition(ShardAndStrategy.conservative(CONS_SHARD), -1L, sweepTs))
+                .nextSweepableTimestampPartition(ShardAndStrategy.conservative(CONS_SHARD), -1L, sweepTsConservative))
                 .contains(partitionFine);
     }
 
     private void assertNoEntriesInSweepableTimestampsBeforeSweepTimestamp() {
-        long sweepTs = provider.getSweepTimestamp(Sweeper.CONSERVATIVE);
         assertThat(sweepableTimestamps
-                .nextSweepableTimestampPartition(ShardAndStrategy.conservative(CONS_SHARD), -1L, sweepTs))
+                .nextSweepableTimestampPartition(ShardAndStrategy.conservative(CONS_SHARD), -1L, sweepTsConservative))
                 .isEmpty();
     }
 

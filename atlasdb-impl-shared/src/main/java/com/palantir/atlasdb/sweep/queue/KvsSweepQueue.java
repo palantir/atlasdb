@@ -39,7 +39,7 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
     private KvsSweepQueueTables tables;
     private KvsSweepDeleter deleter;
     private KvsSweepQueueScrubber scrubber;
-    private SweepTimestampProvider timestampProvider;
+    private SpecialTimestampsSupplier timestampsSupplier;
     private BackgroundSweepScheduler conservativeScheduler;
     private BackgroundSweepScheduler thoroughScheduler;
 
@@ -58,19 +58,19 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
         return new KvsSweepQueue(enabled, shardsConfig, conservativeThreads, thoroughThreads);
     }
 
-    public void initialize(SweepTimestampProvider provider, KeyValueService kvs) {
+    public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs) {
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         tables = KvsSweepQueueTables.create(kvs, shardsConfig);
         deleter = new KvsSweepDeleter(kvs);
         scrubber = new KvsSweepQueueScrubber(tables);
-        timestampProvider = provider;
+        timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
     }
 
     @Override
     public void callbackInit(SerializableTransactionManager txManager) {
-        initialize(SweepTimestampProvider.create(txManager), txManager.getKeyValueService());
+        initialize(SpecialTimestampsSupplier.create(txManager), txManager.getKeyValueService());
     }
 
     @Override
@@ -83,9 +83,9 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
         if (!runSweep.get()) {
             return;
         }
-        Sweeper sweeper = Sweeper.of(shardStrategy.strategy()).get();
+        Sweeper sweeper = Sweeper.of(shardStrategy);
         long lastSweptTimestamp = tables.getLastSweptTimestamp(shardStrategy);
-        long maxTsExclusive = timestampProvider.getSweepTimestamp(sweeper);
+        long maxTsExclusive = sweeper.getSweepTimestamp(timestampsSupplier);
         SweepBatch sweepBatch = tables.getNextBatchAndSweptTimestamp(shardStrategy, lastSweptTimestamp, maxTsExclusive);
 
         deleter.sweep(sweepBatch.writes(), sweeper);

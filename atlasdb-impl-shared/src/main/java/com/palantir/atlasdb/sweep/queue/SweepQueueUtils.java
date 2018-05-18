@@ -53,7 +53,7 @@ public final class SweepQueueUtils {
     }
 
     public static long maxTsForFinePartition(long finePartition) {
-        return minTsForFinePartition(finePartition) + SweepQueueUtils.TS_FINE_GRANULARITY - 1;
+        return minTsForFinePartition(finePartition) + TS_FINE_GRANULARITY - 1;
     }
 
     public static Cell toCell(Persistable row, ColumnValue<?> col) {

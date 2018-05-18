@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,10 +38,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.AbstractSweepTest;
 import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
-import com.palantir.atlasdb.sweep.queue.SweepTimestampProvider;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
-    private SweepTimestampProvider timestampProvider = mock(SweepTimestampProvider.class);
+    private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     private KvsSweepQueue sweepQueue;
 
     @ClassRule
@@ -59,7 +58,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
         super.setup();
 
         sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> 1, 0, 0);
-        sweepQueue.initialize(timestampProvider, kvs);
+        sweepQueue.initialize(timestampsSupplier, kvs);
     }
 
     @Override
@@ -71,7 +70,8 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
-        when(timestampProvider.getSweepTimestamp(any())).thenReturn(ts);
+        when(timestampsSupplier.unreadableTimestamp()).thenReturn(ts);
+        when(timestampsSupplier.immutableTimestamp()).thenReturn(ts);
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
         return Optional.empty();

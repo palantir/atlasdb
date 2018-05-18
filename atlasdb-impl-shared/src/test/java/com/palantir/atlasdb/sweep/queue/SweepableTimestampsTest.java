@@ -34,7 +34,7 @@ import com.palantir.atlasdb.sweep.Sweeper;
 
 public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
     private SweepableTimestamps sweepableTimestamps;
-    private SweepTimestampProvider provider;
+    private SpecialTimestampsSupplier timestampsSupplier;
     private KvsSweepQueueProgress progress;
 
     private int shardCons;
@@ -46,7 +46,7 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
     @Override
     public void setup() {
         super.setup();
-        provider = new SweepTimestampProvider(() -> unreadableTs, () -> immutableTs);
+        timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
         progress = new KvsSweepQueueProgress(kvs);
         sweepableTimestamps = new SweepableTimestamps(kvs, partitioner);
 
@@ -185,18 +185,18 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
         return sweepableTimestamps.nextSweepableTimestampPartition(
                 conservative(shardNumber),
                 progress.getLastSweptTimestamp(ShardAndStrategy.conservative(shardNumber)),
-                provider.getSweepTimestamp(Sweeper.CONSERVATIVE));
+                Sweeper.CONSERVATIVE.getSweepTimestamp(timestampsSupplier));
     }
 
     private Optional<Long> readThorough(int shardNumber) {
         return sweepableTimestamps.nextSweepableTimestampPartition(
                 thorough(shardNumber),
                 progress.getLastSweptTimestamp(ShardAndStrategy.thorough(shardNumber)),
-                provider.getSweepTimestamp(Sweeper.THOROUGH));
+                Sweeper.THOROUGH.getSweepTimestamp(timestampsSupplier));
     }
 
     private long setSweepTimestampAndGet(long timestamp) {
         immutableTs = timestamp;
-        return provider.getSweepTimestamp(Sweeper.CONSERVATIVE);
+        return Sweeper.CONSERVATIVE.getSweepTimestamp(timestampsSupplier);
     }
 }
