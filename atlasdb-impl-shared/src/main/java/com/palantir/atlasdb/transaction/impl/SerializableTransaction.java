@@ -79,7 +79,6 @@ import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.Pair;
 
 /**
@@ -639,20 +638,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                     NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(
                             getReadsInColumnRange(table, row, range),
                             input -> ByteBuffer.wrap(input));
-                    List<Entry<Cell, ByteBuffer>> realValuesAsList =
-                            bv.transformBatch(input -> filterWritesFromCells(input, writes)).immutableCopy();
-                    List<Entry<Cell, ByteBuffer>> readValuesAsList = ImmutableList.copyOf(readsInRange.entrySet());
-                    boolean isEqual = realValuesAsList.equals(readValuesAsList);
+                    boolean isEqual = bv.transformBatch(input -> filterWritesFromCells(input, writes))
+                            .isEqual(readsInRange.entrySet());
                     if (!isEqual) {
-                        log.info("Failing a serializable transaction because column ranges not equal",
-                                UnsafeArg.of("table", table),
-                                UnsafeArg.of("rowBase64", PtBytes.encodeBase64String(row)),
-                                UnsafeArg.of("rowBase16", PtBytes.encodeHexString(row)),
-                                UnsafeArg.of("range", range),
-                                UnsafeArg.of("keysReadDuringTxn",
-                                        Lists.transform(readValuesAsList, Entry::getKey)),
-                                UnsafeArg.of("keysReadDuringConflictChecking",
-                                        Lists.transform(realValuesAsList, Entry::getKey)));
                         handleTransactionConflict(table);
                     }
                 }
