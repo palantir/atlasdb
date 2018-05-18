@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -97,7 +99,7 @@ public final class LoggingArgs {
     /**
      * Returns a safe or unsafe arg corresponding to the supplied table reference, with name "tableRef".
      */
-    public static Arg<String> tableRef(TableReference tableReference) {
+    public static Arg<String> tableRef(@Nullable TableReference tableReference) {
         return tableRef("tableRef", tableReference);
     }
 
@@ -135,7 +137,10 @@ public final class LoggingArgs {
         }
     }
 
-    public static Arg<String> tableRef(String argName, TableReference tableReference) {
+    public static Arg<String> tableRef(String argName, @Nullable TableReference tableReference) {
+        if (tableReference == null) {
+            return SafeArg.of(argName, "null TableReference");
+        }
         return getArg(argName, tableReference.toString(), logArbitrator.isTableReferenceSafe(tableReference));
     }
 

@@ -51,6 +51,11 @@ develop
          - Change
 
     *    - |fixed|
+         - Fixed an issue occurring after a failure to putUnlessExists a commit timestamp that was causing an NPE leading to a confusing error message.
+           Previously, the method determining whether the transaction was aborted or whether in fact it had committed successfully would hit a code path that would always result in an NPE.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3176>`__)
+
+    *    - |fixed|
          - Snapshot transaction is now guaranteed to return getRowsColumnRange results in the correct order.
            Previously while paging over row dynamic columns, if uncommitted or aborted transaction data was
            seen, it would be placed at the end of the list, instead of at the start, meaning that the results

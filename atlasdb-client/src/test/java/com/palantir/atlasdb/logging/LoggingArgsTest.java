@@ -263,4 +263,9 @@ public class LoggingArgsTest {
         LoggingArgs.hydrate(ImmutableMap.of(SAFE_TABLE_REFERENCE, AtlasDbConstants.EMPTY_TABLE_METADATA));
         LoggingArgs.setLogArbitrator(arbitrator);
     }
+
+    @Test
+    public void nullTableReferenceDoesNotThrow() {
+        assertThat(LoggingArgs.tableRef(null)).isInstanceOf(SafeArg.class);
+    }
 }
