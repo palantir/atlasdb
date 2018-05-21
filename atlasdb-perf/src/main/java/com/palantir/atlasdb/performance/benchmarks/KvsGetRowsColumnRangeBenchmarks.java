@@ -17,7 +17,6 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -36,16 +35,14 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 import com.palantir.atlasdb.performance.benchmarks.table.VeryWideRowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.WideRowsTable;
-import com.palantir.common.base.BatchingVisitables;
 
 @State(Scope.Benchmark)
 public class KvsGetRowsColumnRangeBenchmarks {
@@ -59,12 +56,13 @@ public class KvsGetRowsColumnRangeBenchmarks {
                 IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
                         .mapToObj(WideRowsTable::getRow)
                         .collect(Collectors.toList());
-        List<Map.Entry<Cell, Value>> loadedCells = ImmutableList.copyOf(Iterators.concat(
-                table.getKvs().getRowsColumnRange(
+        List<Map.Entry<Cell, Value>> loadedCells = ImmutableList.copyOf(Iterators.concat(rows.stream()
+                .map(row -> Iterables.getOnlyElement(table.getKvs().getRowsColumnRange(
                         table.getTableRef(),
-                        rows,
+                        Collections.singleton(row),
                         BatchColumnRangeSelection.create(null, null, 10000),
-                        Long.MAX_VALUE).values().iterator()));
+                        Long.MAX_VALUE).values()))
+                .iterator()));
         int expectedNumCells = WideRowsTable.NUM_ROWS * WideRowsTable.NUM_COLS_PER_ROW;
         Preconditions.checkState(loadedCells.size() == expectedNumCells,
                 "Should be %s cells, but were: %s", expectedNumCells, loadedCells.size());
@@ -80,12 +78,13 @@ public class KvsGetRowsColumnRangeBenchmarks {
                 IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
                         .mapToObj(WideRowsTable::getRow)
                         .collect(Collectors.toList());
-        List<Map.Entry<Cell, Value>> loadedCells = ImmutableList.copyOf(Iterators.concat(
-                table.getKvs().getRowsColumnRange(
+        List<Map.Entry<Cell, Value>> loadedCells = ImmutableList.copyOf(Iterators.concat(rows.stream()
+                .map(row -> Iterables.getOnlyElement(table.getKvs().getRowsColumnRange(
                         table.getTableRef(),
-                        rows,
+                        Collections.singleton(row),
                         BatchColumnRangeSelection.create(null, null, 10017),
-                        Long.MAX_VALUE).values().iterator()));
+                        Long.MAX_VALUE).values()))
+                .iterator()));
         int expectedNumCells = WideRowsTable.NUM_ROWS * WideRowsTable.NUM_COLS_PER_ROW;
         Preconditions.checkState(loadedCells.size() == expectedNumCells,
                 "Should be %s cells, but were: %s", expectedNumCells, loadedCells.size());
