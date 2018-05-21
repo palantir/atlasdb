@@ -23,7 +23,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTablesTest.metadataBytes;
+import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTest.metadataBytes;
 
 import java.util.ArrayList;
 import java.util.List;

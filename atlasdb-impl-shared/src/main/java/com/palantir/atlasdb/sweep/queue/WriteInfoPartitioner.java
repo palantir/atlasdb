@@ -56,6 +56,10 @@ public class WriteInfoPartitioner {
         this.numShards = numShards;
     }
 
+    /**
+     * Filters out all writes made into tables with SweepStrategy NOTHING, then partitions the writes according to
+     * shard, strategy, and start timestamp of the transaction that performed the write.
+     */
     public Map<PartitionInfo, List<WriteInfo>> filterAndPartition(List<WriteInfo> writes) {
         return partitionWritesByShardStrategyTimestamp(filterOutUnsweepableTables(writes));
     }

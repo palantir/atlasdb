@@ -35,11 +35,11 @@ public class SpecialTimestampsSupplier {
         return new SpecialTimestampsSupplier(txnManager::getUnreadableTimestamp, txnManager::getImmutableTimestamp);
     }
 
-    public long unreadableTimestamp() {
+    public long getUnreadableTimestamp() {
         return unreadableTsSupplier.getAsLong();
     }
 
-    public long immutableTimestamp() {
+    public long getImmutableTimestamp() {
         return immutableTsSupplier.getAsLong();
     }
 }

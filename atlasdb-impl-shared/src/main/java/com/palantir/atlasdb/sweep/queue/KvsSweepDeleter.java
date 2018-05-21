@@ -28,10 +28,19 @@ import com.palantir.atlasdb.sweep.Sweeper;
 public class KvsSweepDeleter {
     private final KeyValueService kvs;
 
-    public KvsSweepDeleter(KeyValueService kvs) {
+    KvsSweepDeleter(KeyValueService kvs) {
         this.kvs = kvs;
     }
 
+    /**
+     * Executes targeted sweep, by inserting ranged tombstones corresponding to the given writes, using the sweep
+     * strategy determined by the sweeper.
+     *
+     * @param writes individual writes to sweep for. Depending on the strategy, we will insert a ranged tombstone for
+     * each write at either the write's timestamp - 1, or at its timestamp.
+     * @param sweeper supplies the strategy-specific behaviour: the timestamp for the tombstone and whether we must use
+     * sentinels or not.
+     */
     public void sweep(Collection<WriteInfo> writes, Sweeper sweeper) {
         Map<TableReference, Map<Cell, Long>> maxTimestampByCell = writesPerTable(writes, sweeper);
         for (Map.Entry<TableReference, Map<Cell, Long>> entry: maxTimestampByCell.entrySet()) {

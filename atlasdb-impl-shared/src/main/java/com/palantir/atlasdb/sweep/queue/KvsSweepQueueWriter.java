@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
-    KeyValueService kvs;
+    final KeyValueService kvs;
     private final TableReference tableRef;
     private final WriteInfoPartitioner partitioner;
 
@@ -48,6 +48,16 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
         }
     }
 
+    /**
+     * Converts a list of write infos into the required format to be persisted into the kvs. This method assumes all
+     * the writes correspond to the same partition and have the same start timestamp (they are all part of the same
+     * transaction), as given by info.
+     *
+     * @param info information about the partition the writes fall into, and the start timestamp of the transaction the
+     * writes correspond to.
+     * @param writes list detailing the information for each of the writes
+     * @return map of cell to byte array persisting the write infomations into the kvs
+     */
     abstract Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes);
 
     RowColumnRangeIterator getRowsColumnRange(Iterable<byte[]> rows, ColumnRangeSelection columnRange, int batchSize) {

@@ -32,10 +32,10 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.sweep.Sweeper;
 
-public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
+public class SweepableTimestampsTest extends AbstractSweepQueueTest {
     private SweepableTimestamps sweepableTimestamps;
     private SpecialTimestampsSupplier timestampsSupplier;
-    private KvsSweepQueueProgress progress;
+    private ShardProgress progress;
 
     private int shardCons;
     private int shardThor;
@@ -47,8 +47,8 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
     public void setup() {
         super.setup();
         timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
-        progress = new KvsSweepQueueProgress(kvs);
-        sweepableTimestamps = new SweepableTimestamps(kvs, partitioner);
+        progress = new ShardProgress(spiedKvs);
+        sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
 
         shardCons = writeToDefault(sweepableTimestamps, TS, TABLE_CONS);
         shardThor = writeToDefault(sweepableTimestamps, TS2, TABLE_THOR);

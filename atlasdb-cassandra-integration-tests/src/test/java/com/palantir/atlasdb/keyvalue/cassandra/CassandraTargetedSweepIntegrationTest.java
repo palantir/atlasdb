@@ -70,8 +70,8 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
-        when(timestampsSupplier.unreadableTimestamp()).thenReturn(ts);
-        when(timestampsSupplier.immutableTimestamp()).thenReturn(ts);
+        when(timestampsSupplier.getUnreadableTimestamp()).thenReturn(ts);
+        when(timestampsSupplier.getImmutableTimestamp()).thenReturn(ts);
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
         return Optional.empty();

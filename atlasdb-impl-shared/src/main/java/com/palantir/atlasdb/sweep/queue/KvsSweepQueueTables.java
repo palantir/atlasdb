@@ -19,60 +19,94 @@ package com.palantir.atlasdb.sweep.queue;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.sweep.Sweeper;
 
-public final class KvsSweepQueueTables {
+public final class KvsSweepQueueTables implements SweepQueueWriter {
     private static final int FIVE_MINUTES = 5000 * 60;
 
-    final SweepableCells sweepableCells;
-    final SweepableTimestamps sweepableTimestamps;
-    final KvsSweepQueueProgress progress;
-    final Supplier<Integer> numShards;
+    private final SweepableCells sweepableCells;
+    private final SweepableTimestamps sweepableTimestamps;
+    private final ShardProgress progress;
+    private final KvsSweepDeleter deleter;
+    private final KvsSweepQueueCleaner cleaner;
+    private final Supplier<Integer> numShards;
 
-    private KvsSweepQueueTables(SweepableCells cells, SweepableTimestamps timestamps, KvsSweepQueueProgress progress,
-            Supplier<Integer> numShards) {
+    private KvsSweepQueueTables(SweepableCells cells, SweepableTimestamps timestamps, ShardProgress progress,
+            KvsSweepDeleter deleter, KvsSweepQueueCleaner cleaner, Supplier<Integer> numShards) {
         this.sweepableCells = cells;
         this.sweepableTimestamps = timestamps;
         this.progress = progress;
+        this.deleter = deleter;
+        this.cleaner = cleaner;
         this.numShards = numShards;
     }
 
     public static KvsSweepQueueTables create(KeyValueService kvs, Supplier<Integer> shardsConfig) {
-        KvsSweepQueueProgress progress = new KvsSweepQueueProgress(kvs);
-        Supplier<Integer> shards = createUpdatingSupplier(shardsConfig, progress::updateNumberOfShards, FIVE_MINUTES);
+        ShardProgress progress = new ShardProgress(kvs);
+        Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, FIVE_MINUTES);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
-        return new KvsSweepQueueTables(cells, timestamps, progress, shards);
+        KvsSweepDeleter deleter = new KvsSweepDeleter(kvs);
+        KvsSweepQueueCleaner cleaner = new KvsSweepQueueCleaner(cells, timestamps, progress);
+        return new KvsSweepQueueTables(cells, timestamps, progress, deleter, cleaner, shards);
     }
 
+    /**
+     * Creates a supplier such that the first call to {@link Supplier#get()} on it will take the maximum of the runtime
+     * configuration and the persisted number of shards, and persist and memoize the result. Subsequent calls will
+     * return the cached value until refreshTimeMillis has passed, at which point the next call will again perform the
+     * check nad set.
+     *
+     * @param runtimeConfig live reloadable runtime configuration for the number of shards
+     * @param progress progress table persisting the number of shards
+     * @param refreshTimeMillis timeout for caching the number of shards
+     * @return supplier calculating and persisting the number of shards to use
+     */
     @VisibleForTesting
-    static Supplier<Integer> createUpdatingSupplier(Supplier<Integer> runtimeConfig,
-            UnaryOperator<Integer> updateOperator, long refreshTimeMillis) {
+    static Supplier<Integer> createProgressUpdatingSupplier(Supplier<Integer> runtimeConfig,
+            ShardProgress progress, long refreshTimeMillis) {
         return Suppliers.memoizeWithExpiration(
-                () -> updateOperator.apply(runtimeConfig.get()), refreshTimeMillis, TimeUnit.MILLISECONDS);
+                () -> progress.updateNumberOfShards(runtimeConfig.get()), refreshTimeMillis, TimeUnit.MILLISECONDS);
     }
 
-    public long getLastSweptTimestamp(ShardAndStrategy shardStrategy) {
-        return progress.getLastSweptTimestamp(shardStrategy);
-    }
-
-    public SweepBatch getNextBatchAndSweptTimestamp(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
-                .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
-                .orElse(SweepBatch.of(ImmutableList.of(), sweepTs - 1L));
-    }
-
+    @Override
     public void enqueue(List<WriteInfo> writes) {
         sweepableTimestamps.enqueue(writes);
         sweepableCells.enqueue(writes);
     }
 
+    /**
+     * Sweep the next batch for the shard and strategy specified by shardStrategy, with the sweep timestamp sweepTs.
+     * After successful deletes, the persisted information about the writes is removed, and progress is updated
+     * accordingly.
+     *
+     * @param shardStrategy shard and strategy to use
+     * @param sweepTs sweep timestamp, the upper limit to the start timestamp of writes to sweep
+     */
+    public void sweepNextBatch(ShardAndStrategy shardStrategy, long sweepTs) {
+        long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
+
+        SweepBatch sweepBatch = getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
+
+        deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
+        cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp());
+    }
+
+    private SweepBatch getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+        return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
+                .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
+                .orElse(SweepBatch.of(ImmutableList.of(), sweepTs - 1L));
+    }
+
+    /**
+     * Returns number modulo the most recently known number of shards.
+     */
     public int modShards(long number) {
         return (int) (number % numShards.get());
     }

@@ -19,18 +19,28 @@ package com.palantir.atlasdb.sweep.queue;
 import java.util.Arrays;
 import java.util.Map;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.persist.Persistable;
 
 public final class SweepQueueUtils {
     public static final long TS_COARSE_GRANULARITY = 10_000_000L;
     public static final long TS_FINE_GRANULARITY = 50_000L;
+    public static final int MAX_CELLS_GENERIC = 50;
+    public static final int MAX_CELLS_DEDICATED = 100_000;
+    public static final long SWEEP_BATCH_SIZE = 1000L;
     public static final long READ_TS = 1L;
     public static final long WRITE_TS = 0L;
+    public static final long INITIAL_TIMESTAMP = -1L;
+    public static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
+    public static final int MINIMUM_WRITE_INDEX = -TargetedSweepMetadata.MAX_DEDICATED_ROWS;
 
     private SweepQueueUtils() {
         // utility
@@ -65,5 +75,13 @@ public final class SweepQueueUtils {
         // todo(gmaretic): verify this is indeed how a tombstone is encoded
         boolean isTombstone = Arrays.equals(write.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
         return WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
+    }
+
+    private static ColumnRangeSelection allPossibleColumns() {
+        byte[] startCol = SweepableCellsTable.SweepableCellsColumn.of(0L, MINIMUM_WRITE_INDEX)
+                .persistToBytes();
+        byte[] endCol = SweepableCellsTable.SweepableCellsColumn.of(TS_FINE_GRANULARITY, 0L)
+                .persistToBytes();
+        return new ColumnRangeSelection(startCol, endCol);
     }
 }

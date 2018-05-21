@@ -22,9 +22,10 @@ import static org.mockito.Mockito.verify;
 
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_DEDICATED;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_GENERIC;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
-import static com.palantir.atlasdb.sweep.queue.SweepableCells.MAX_CELLS_DEDICATED;
-import static com.palantir.atlasdb.sweep.queue.SweepableCells.MAX_CELLS_GENERIC;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public class SweepableCellsTest extends AbstractSweepQueueTablesTest {
+public class SweepableCellsTest extends AbstractSweepQueueTest {
     private static final long SWEEP_TS = TS + 200L;
 
     private SweepableCells sweepableCells;
@@ -50,7 +51,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTablesTest {
     @Before
     public void setup() {
         super.setup();
-        sweepableCells = new SweepableCells(kvs, partitioner);
+        sweepableCells = new SweepableCells(spiedKvs, partitioner);
 
         shardCons = writeToDefault(sweepableCells, TS, TABLE_CONS);
         shardThor = writeToDefault(sweepableCells, TS2, TABLE_THOR);
@@ -211,12 +212,12 @@ public class SweepableCellsTest extends AbstractSweepQueueTablesTest {
 
     @Test
     public void returnWhenMoreThanBatchSizeNonDedicated() {
-        for (int i = 0; i < 2 * SweepableCells.SWEEP_BATCH_SIZE; i++) {
+        for (int i = 0; i < 2 * SWEEP_BATCH_SIZE; i++) {
             writeToCell(sweepableCells, i, getCellWithFixedHash(i), TABLE_CONS);
         }
         SweepBatch conservativeBatch = readConservative(FIXED_SHARD, 0L, -1L, SWEEP_TS);
-        assertThat(conservativeBatch.writes().size()).isEqualTo((int) SweepableCells.SWEEP_BATCH_SIZE);
-        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(SweepableCells.SWEEP_BATCH_SIZE - 1);
+        assertThat(conservativeBatch.writes().size()).isEqualTo((int) SWEEP_BATCH_SIZE);
+        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(SWEEP_BATCH_SIZE - 1);
     }
 
     // We read 5 dedicated entries until we pass 1K, for a total of 1005 writes
@@ -256,7 +257,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTablesTest {
 
     private void assertDeleted(TableReference tableRef, Multimap<Cell, Long> expectedDeletes) {
         ArgumentCaptor<Multimap> argumentCaptor = ArgumentCaptor.forClass(Multimap.class);
-        verify(kvs).delete(eq(tableRef), argumentCaptor.capture());
+        verify(spiedKvs).delete(eq(tableRef), argumentCaptor.capture());
 
         Multimap<Cell, Long> actual = argumentCaptor.getValue();
         assertThat(actual.keySet()).containsExactlyElementsOf(expectedDeletes.keySet());

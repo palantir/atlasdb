@@ -65,6 +65,7 @@ public class SweepableTimestamps extends KvsSweepQueueWriter {
 
     /**
      * Returns fine partition that should have unprocessed entries in the Sweepable Cells table.
+     *
      * @param shardStrategy desired shard and strategy
      * @param lastSweptTs exclusive minimum timestamp to check for
      * @param sweepTs exclusive maximum timestamp to check for

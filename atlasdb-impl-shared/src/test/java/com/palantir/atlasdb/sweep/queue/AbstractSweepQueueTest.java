@@ -16,10 +16,11 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
+import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
+import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.NOTHING;
+import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.THOROUGH;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 
 import java.util.ArrayList;
@@ -45,9 +46,10 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 
-public abstract class AbstractSweepQueueTablesTest {
+public abstract class AbstractSweepQueueTest {
     static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");
     static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.thorough");
+    static final TableReference TABLE_NOTH = TableReference.createFromFullyQualifiedName("test.nothing");
     static final Cell DEFAULT_CELL = Cell.create(new byte[] {'r'}, new byte[] {'c'});
     static final long TS = 1_000_000_100L;
     static final long TS2 = 2 * TS;
@@ -55,24 +57,24 @@ public abstract class AbstractSweepQueueTablesTest {
     static final long TS2_FINE_PARTITION = tsPartitionFine(TS2);
     static final int DEFAULT_SHARDS = 128;
     static final int FIXED_SHARD = WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(DEFAULT_SHARDS);
+    static final int CONS_SHARD = WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
+    static final int THOR_SHARD = WriteInfo.tombstone(TABLE_THOR, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
 
-    protected KeyValueService mockKvs = mock(KeyValueService.class);
-    protected KeyValueService kvs;
-    protected WriteInfoPartitioner partitioner;
-    private TransactionService txnService;
+    KeyValueService spiedKvs;
+    WriteInfoPartitioner partitioner;
+    TransactionService txnService;
 
-    protected int numShards;
+    int numShards;
 
     @Before
     public void setup() {
         numShards = DEFAULT_SHARDS;
-        when(mockKvs.getMetadataForTable(TABLE_CONS))
-                .thenReturn(metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
-        when(mockKvs.getMetadataForTable(TABLE_THOR))
-                .thenReturn(metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
-        partitioner = new WriteInfoPartitioner(mockKvs, () -> numShards);
-        kvs = spy(new InMemoryKeyValueService(true));
-        txnService = TransactionServices.createTransactionService(kvs);
+        spiedKvs = spy(new InMemoryKeyValueService(true));
+        spiedKvs.createTable(TABLE_CONS, metadataBytes(CONSERVATIVE));
+        spiedKvs.createTable(TABLE_THOR, metadataBytes(THOROUGH));
+        spiedKvs.createTable(TABLE_NOTH, metadataBytes(NOTHING));
+        partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
+        txnService = TransactionServices.createTransactionService(spiedKvs);
     }
 
     public static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {

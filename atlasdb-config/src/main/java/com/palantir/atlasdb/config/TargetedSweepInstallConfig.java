@@ -52,9 +52,9 @@ public class TargetedSweepInstallConfig {
     @Value.Check
     void checkConservativeThreads() {
         Preconditions.checkArgument(
-                conservativeThreads() >= 0 && conservativeThreads() <= AtlasDbConstants.SWEEP_QUEUE_MAX_SHARDS,
+                conservativeThreads() >= 0 && conservativeThreads() <= AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS,
                 "Number of conservative targeted sweep threads must be between 0 and %s inclusive, but is %s instead.",
-                AtlasDbConstants.SWEEP_QUEUE_MAX_SHARDS,
+                AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS,
                 conservativeThreads());
     }
 
@@ -69,9 +69,9 @@ public class TargetedSweepInstallConfig {
     @Value.Check
     void checkThoroughThreads() {
         Preconditions.checkArgument(
-                thoroughThreads() >= 0 && thoroughThreads() <= AtlasDbConstants.SWEEP_QUEUE_MAX_SHARDS,
+                thoroughThreads() >= 0 && thoroughThreads() <= AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS,
                 "Number of thorough targeted sweep threads must be between 0 and %s inclusive, but is %s instead.",
-                AtlasDbConstants.SWEEP_QUEUE_MAX_SHARDS,
+                AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS,
                 thoroughThreads());
     }
 

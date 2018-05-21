@@ -23,10 +23,10 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 
 public enum Sweeper {
-    CONSERVATIVE(provider -> Math.min(provider.unreadableTimestamp(), provider.immutableTimestamp()),
+    CONSERVATIVE(provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()),
                  false,
                  true),
-    THOROUGH(provider -> provider.immutableTimestamp(),
+    THOROUGH(provider -> provider.getImmutableTimestamp(),
              true,
              false);
 
@@ -68,6 +68,6 @@ public enum Sweeper {
 
     public static Sweeper of(ShardAndStrategy shardStrategy) {
         return of(shardStrategy.strategy())
-                .orElseThrow(() -> new IllegalArgumentException("Unknown sweep strategy."));
+                .orElseThrow(() -> new IllegalArgumentException("Unknown sweep strategy: " + shardStrategy.strategy()));
     }
 }
