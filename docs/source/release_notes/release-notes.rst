@@ -59,6 +59,12 @@ develop
            Now, they are guaranteed to be returned in order, which removes this issue.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3174>`__)
     
+    *    - |fixed| |devbreak|
+         - The 6-argument constructor for StreamTableDefinitionBuilder was removed.
+           This constructor is no longer used to the best of our knowledge, and had parameters that were actively misleading (for example, the value you set ``hashFirstRowComponent`` to was ignored).
+           Please use the builder's methods to set the values you require.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/nnnn>`__)
+
 =======
 v0.84.0
 =======

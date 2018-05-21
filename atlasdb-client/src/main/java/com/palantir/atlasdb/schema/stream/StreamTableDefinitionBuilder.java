@@ -34,7 +34,6 @@ public class StreamTableDefinitionBuilder {
     private final ValueType idType;
 
     private TableMetadataPersistence.LogSafety tableNameLogSafety = TableMetadataPersistence.LogSafety.UNSAFE;
-    private boolean hashFirstRowComponent = false;
     private boolean appendHeavyAndReadLight = false;
     private boolean dbSideCompressionForBlocks = false;
     private int numberOfComponentsHashed = 0;
@@ -43,17 +42,6 @@ public class StreamTableDefinitionBuilder {
         this.streamTableType = type;
         this.prefix = prefix;
         this.idType = idType;
-    }
-
-    public StreamTableDefinitionBuilder(StreamTableType type, String prefix, ValueType idType,
-            boolean hashFirstRowComponent, boolean appendHeavyAndReadLight, boolean dbSideCompressionForBlocks) {
-        this.streamTableType = type;
-        this.prefix = prefix;
-        this.idType = idType;
-
-        this.hashFirstRowComponent = hashFirstRowComponent;
-        this.appendHeavyAndReadLight = appendHeavyAndReadLight;
-        this.dbSideCompressionForBlocks = dbSideCompressionForBlocks;
     }
 
     public StreamTableDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
