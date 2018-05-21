@@ -44,8 +44,7 @@ public class KvsSweepQueueNumShardSupplierTest {
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
         progress = spy(new ShardProgress(kvs));
-        numShardSupplier = KvsSweepQueueTables
-                .createProgressUpdatingSupplier(runtimeConfigSupplier, progress, 1);
+        numShardSupplier = KvsSweepQueueTables.createProgressUpdatingSupplier(runtimeConfigSupplier, progress, 1);
     }
 
     @Test

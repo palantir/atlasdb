@@ -87,6 +87,8 @@ public class WriteInfoPartitionerTest {
             partitioner.getStrategy(getWriteInfoWithFixedCellHash(NOTHING, i));
             partitioner.getStrategy(getWriteInfoWithFixedCellHash(CONSERVATIVE, i));
         }
+        verify(mockKvs, times(1)).getMetadataForTable(NOTHING);
+        verify(mockKvs, times(1)).getMetadataForTable(CONSERVATIVE);
         verify(mockKvs, times(2)).getMetadataForTable(any());
     }
 
@@ -129,8 +131,7 @@ public class WriteInfoPartitionerTest {
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
         assertThat(partitions.keySet())
                 .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), true, 1L));
-        assertThat(partitions.values())
-                .containsExactly(writes);
+        assertThat(partitions.values()).containsExactly(writes);
     }
 
     @Test
@@ -138,7 +139,7 @@ public class WriteInfoPartitionerTest {
         WriteInfo write = getWriteInfo(CONSERVATIVE, 1, 1, 100L);
         PartitionInfo partition1 = Iterables.getOnlyElement(
                 partitioner.partitionWritesByShardStrategyTimestamp(ImmutableList.of(write)).keySet());
-        numShards = 199;
+        numShards += 1;
         PartitionInfo partition2 = Iterables.getOnlyElement(
                 partitioner.partitionWritesByShardStrategyTimestamp(ImmutableList.of(write)).keySet());
 
