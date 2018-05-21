@@ -1012,42 +1012,6 @@ public final class DbKvs extends AbstractKeyValueService {
         }
     }
 
-    private Map<Sha256Hash, Integer> getColumnCounts(TableReference tableRef,
-                                                     List<byte[]> rowList,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     long timestamp) {
-        Map<Sha256Hash, Integer> countsByRow = batchingQueryRunner.runTask(
-                rowList,
-                BatchingStrategies.forList(),
-                AccumulatorStrategies.forMap(),
-                partition -> getColumnCountsUnordered(tableRef, partition, columnRangeSelection, timestamp));
-        // Make iteration order of the returned map match the provided list.
-        Map<Sha256Hash, Integer> ordered = new LinkedHashMap<>(countsByRow.size());
-        for (byte[] row : rowList) {
-            Sha256Hash rowHash = Sha256Hash.computeHash(row);
-            ordered.put(rowHash, countsByRow.getOrDefault(rowHash, 0));
-        }
-        return ordered;
-    }
-
-    private Map<Sha256Hash, Integer> getColumnCountsUnordered(TableReference tableRef,
-                                                              List<byte[]> rowList,
-                                                              ColumnRangeSelection columnRangeSelection,
-                                                              long timestamp) {
-        return runRead(tableRef, dbReadTable -> {
-            Map<Sha256Hash, Integer> counts = new HashMap<>(rowList.size());
-            try (ClosableIterator<AgnosticLightResultRow> iter =
-                    dbReadTable.getRowsColumnRangeCounts(rowList, timestamp, columnRangeSelection)) {
-                while (iter.hasNext()) {
-                    AgnosticLightResultRow row = iter.next();
-                    Sha256Hash rowHash = Sha256Hash.computeHash(row.getBytes(ROW));
-                    counts.put(rowHash, row.getInteger("column_count"));
-                }
-            }
-            return counts;
-        });
-    }
-
     @Override
     public void truncateTable(TableReference tableRef) {
         runDdl(tableRef, (Function<DbDdlTable, Void>) table -> {
