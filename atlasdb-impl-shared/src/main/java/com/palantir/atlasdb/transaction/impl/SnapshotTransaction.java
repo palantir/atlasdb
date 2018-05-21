@@ -419,38 +419,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilteredResults;
     }
 
-    @Override
-    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
-                                                                Iterable<byte[]> rows,
-                                                                ColumnRangeSelection columnRangeSelection,
-                                                                int batchHint) {
-        checkGetPreconditions(tableRef);
-        if (Iterables.isEmpty(rows)) {
-            return Collections.emptyIterator();
-        }
-        hasReads = true;
-        RowColumnRangeIterator rawResults =
-                keyValueService.getRowsColumnRange(tableRef,
-                                                   rows,
-                                                   columnRangeSelection,
-                                                   batchHint,
-                                                   getStartTimestamp());
-        if (!rawResults.hasNext()) {
-            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
-        } // else the postFiltered iterator will check for each batch.
-
-        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
-        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFiltered = Iterators.transform(rawResultsByRow, e -> {
-            byte[] row = e.getKey();
-            RowColumnRangeIterator rawIterator = e.getValue();
-            BatchColumnRangeSelection batchColumnRangeSelection =
-                    BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
-            return getPostFilteredColumns(tableRef, batchColumnRangeSelection, row, rawIterator);
-        });
-
-        return Iterators.concat(postFiltered);
-    }
-
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,

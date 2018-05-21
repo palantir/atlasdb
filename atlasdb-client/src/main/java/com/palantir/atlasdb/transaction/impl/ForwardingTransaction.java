@@ -63,14 +63,6 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
-    public Iterator<Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
-                                                            Iterable<byte[]> rows,
-                                                            ColumnRangeSelection columnRangeSelection,
-                                                            int batchHint) {
-        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
-    }
-
-    @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         return delegate().get(tableRef, cells);
     }

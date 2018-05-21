@@ -756,30 +756,6 @@ public final class DbKvs extends AbstractKeyValueService {
         return ret;
     }
 
-    @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
-        List<byte[]> rowList = ImmutableList.copyOf(rows);
-        Map<Sha256Hash, byte[]> rowHashesToBytes = Maps.uniqueIndex(rowList, Sha256Hash::computeHash);
-
-        Map<Sha256Hash, Integer> columnCountByRowHash =
-                getColumnCounts(tableRef, rowList, columnRangeSelection, timestamp);
-
-        Iterator<Map<Sha256Hash, Integer>> batches =
-                DbKvsPartitioners.partitionByTotalCount(columnCountByRowHash, cellBatchHint).iterator();
-        Iterator<Iterator<Map.Entry<Cell, Value>>> results =
-                loadColumnsForBatches(tableRef,
-                                      columnRangeSelection,
-                                      timestamp,
-                                      rowHashesToBytes,
-                                      batches,
-                                      columnCountByRowHash);
-        return new LocalRowColumnRangeIterator(Iterators.concat(results));
-    }
-
     private Iterator<Iterator<Map.Entry<Cell, Value>>> loadColumnsForBatches(
             TableReference tableRef,
             ColumnRangeSelection columnRangeSelection,

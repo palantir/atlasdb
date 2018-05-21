@@ -19,6 +19,7 @@ package com.palantir.atlasdb.performance.benchmarks;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +35,9 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -41,6 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 import com.palantir.atlasdb.performance.benchmarks.table.VeryWideRowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.WideRowsTable;
+import com.palantir.common.base.BatchingVisitables;
 
 @State(Scope.Benchmark)
 public class KvsGetRowsColumnRangeBenchmarks {
@@ -54,18 +59,13 @@ public class KvsGetRowsColumnRangeBenchmarks {
                 IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
                         .mapToObj(WideRowsTable::getRow)
                         .collect(Collectors.toList());
-        RowColumnRangeIterator rowsColumnRange =
+        List<Map.Entry<Cell, Value>> loadedCells = ImmutableList.copyOf(Iterators.concat(
                 table.getKvs().getRowsColumnRange(
                         table.getTableRef(),
                         rows,
-                        new ColumnRangeSelection(null, null),
-                        10000,
-                        Long.MAX_VALUE);
+                        BatchColumnRangeSelection.create(null, null, 10000),
+                        Long.MAX_VALUE).values().iterator()));
         int expectedNumCells = WideRowsTable.NUM_ROWS * WideRowsTable.NUM_COLS_PER_ROW;
-        List<Map.Entry<Cell, Value>> loadedCells = new ArrayList<>(expectedNumCells);
-        while (rowsColumnRange.hasNext()) {
-            loadedCells.add(rowsColumnRange.next());
-        }
         Preconditions.checkState(loadedCells.size() == expectedNumCells,
                 "Should be %s cells, but were: %s", expectedNumCells, loadedCells.size());
         return loadedCells;
@@ -80,18 +80,13 @@ public class KvsGetRowsColumnRangeBenchmarks {
                 IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
                         .mapToObj(WideRowsTable::getRow)
                         .collect(Collectors.toList());
-        RowColumnRangeIterator rowsColumnRange =
+        List<Map.Entry<Cell, Value>> loadedCells = ImmutableList.copyOf(Iterators.concat(
                 table.getKvs().getRowsColumnRange(
                         table.getTableRef(),
                         rows,
-                        new ColumnRangeSelection(null, null),
-                        10017,
-                        Long.MAX_VALUE);
+                        BatchColumnRangeSelection.create(null, null, 10017),
+                        Long.MAX_VALUE).values().iterator()));
         int expectedNumCells = WideRowsTable.NUM_ROWS * WideRowsTable.NUM_COLS_PER_ROW;
-        List<Map.Entry<Cell, Value>> loadedCells = new ArrayList<>(expectedNumCells);
-        while (rowsColumnRange.hasNext()) {
-            loadedCells.add(rowsColumnRange.next());
-        }
         Preconditions.checkState(loadedCells.size() == expectedNumCells,
                 "Should be %s cells, but were: %s", expectedNumCells, loadedCells.size());
         return loadedCells;
@@ -103,12 +98,12 @@ public class KvsGetRowsColumnRangeBenchmarks {
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsSingleBigRow(VeryWideRowTable table,
                                             Blackhole blackhole) {
-        RowColumnRangeIterator iter = table.getKvs().getRowsColumnRange(
-                table.getTableRef(),
-                Collections.singleton(Tables.ROW_BYTES.array()),
-                new ColumnRangeSelection(null, null),
-                10000,
-                Long.MAX_VALUE);
+        Iterator<Map.Entry<Cell, Value>> iter = Iterators.concat(
+                table.getKvs().getRowsColumnRange(
+                        table.getTableRef(),
+                        Collections.singleton(Tables.ROW_BYTES.array()),
+                        BatchColumnRangeSelection.create(null, null, 10000),
+                        Long.MAX_VALUE).values().iterator());
         int count = 0;
         while (iter.hasNext()) {
             blackhole.consume(iter.next());

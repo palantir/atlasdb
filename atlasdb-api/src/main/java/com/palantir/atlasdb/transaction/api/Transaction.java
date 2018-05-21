@@ -53,13 +53,6 @@ public interface Transaction {
             BatchColumnRangeSelection columnRangeSelection);
 
     @Idempotent
-    Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
-            TableReference tableRef,
-            Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
-            int batchHint);
-
-    @Idempotent
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
 
     /**

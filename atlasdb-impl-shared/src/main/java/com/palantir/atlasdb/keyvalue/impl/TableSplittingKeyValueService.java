@@ -278,15 +278,6 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
-        return getDelegate(tableRef).getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
-    }
-
-    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         Map<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> mapByDelegate = Maps.newHashMap();
         for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {

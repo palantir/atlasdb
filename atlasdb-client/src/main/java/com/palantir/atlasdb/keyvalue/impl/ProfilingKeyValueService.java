@@ -422,26 +422,6 @@ public final class ProfilingKeyValueService implements KeyValueService {
                                 LoggingArgs.durationMillis(stopwatch)));
     }
 
-    @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-            Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
-            int cellBatchHint,
-            long timestamp) {
-        long startTime = System.currentTimeMillis();
-        return maybeLog(() ->
-                        delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp),
-                (logger, stopwatch) -> logger.log(
-                        "Call to KVS.getRowsColumnRange - CellBatch at time {}, on table {} for {} rows with range {} "
-                                + "and batch hint {} took {} ms.",
-                        LoggingArgs.startTimeMillis(startTime),
-                        LoggingArgs.tableRef(tableRef),
-                        LoggingArgs.rowCount(Iterables.size(rows)),
-                        LoggingArgs.columnRangeSelection(tableRef, columnRangeSelection),
-                        LoggingArgs.batchHint(cellBatchHint),
-                        LoggingArgs.durationMillis(stopwatch)));
-    }
-
     private  <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
         return KvsProfilingLogger.maybeLog(action, logger);
     }

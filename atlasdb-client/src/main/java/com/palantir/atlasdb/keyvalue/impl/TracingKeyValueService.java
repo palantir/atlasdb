@@ -312,16 +312,6 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-            Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
-            int cellBatchHint,
-            long timestamp) {
-        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
-        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
-    }
-
-    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace

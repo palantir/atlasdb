@@ -271,15 +271,6 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
-        return delegate1.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
-    }
-
-    @Override
     public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         delegate1.compactInternally(tableRef, inMaintenanceMode);
         delegate2.compactInternally(tableRef, inMaintenanceMode);

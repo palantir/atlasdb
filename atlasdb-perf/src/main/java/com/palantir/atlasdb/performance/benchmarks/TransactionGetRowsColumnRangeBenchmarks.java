@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
@@ -29,10 +30,13 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 import com.palantir.atlasdb.performance.benchmarks.table.VeryWideRowTable;
+import com.palantir.common.base.BatchingVisitableView;
+import com.palantir.common.base.BatchingVisitables;
 
 @State(Scope.Benchmark)
 public class TransactionGetRowsColumnRangeBenchmarks {
@@ -43,19 +47,18 @@ public class TransactionGetRowsColumnRangeBenchmarks {
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsSingleBigRow(VeryWideRowTable table, Blackhole blackhole) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Iterator<Map.Entry<Cell, byte[]>> iter = txn.getRowsColumnRange(
+            BatchingVisitableView<Map.Entry<Cell, byte[]>> view = BatchingVisitables.concat(txn.getRowsColumnRange(
                     table.getTableRef(),
                     Collections.singleton(Tables.ROW_BYTES.array()),
-                    new ColumnRangeSelection(null, null),
-                    10000);
-            int count = 0;
-            while (iter.hasNext()) {
-                blackhole.consume(iter.next());
-                ++count;
-            }
-            Preconditions.checkState(count == table.getNumCols(),
-                    "Should be %s columns, but were: %s", table.getNumCols(), count);
-            return count;
+                    BatchColumnRangeSelection.create(null, null, 10000)).values());
+            MutableInt mutable = new MutableInt(0);
+            view.forEach(element -> {
+                blackhole.consume(element);
+                mutable.increment();
+            });
+            Preconditions.checkState(mutable.intValue() == table.getNumCols(),
+                    "Should be %s columns, but were: %s", table.getNumCols(), mutable.intValue());
+            return mutable.intValue();
         });
     }
 

@@ -311,19 +311,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         return result;
     }
 
-    @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
-        ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
-        Iterator<RowColumnRangeIterator> rowColumnRanges =
-                Iterators.transform(rows.iterator(),
-                        row -> getColumnRangeForSingleRow(table, row, columnRangeSelection, timestamp));
-        return new LocalRowColumnRangeIterator(Iterators.concat(rowColumnRanges));
-    }
-
     private RowColumnRangeIterator getColumnRangeForSingleRow(ConcurrentSkipListMap<Key, byte[]> table,
                                                               byte[] row,
                                                               ColumnRangeSelection columnRangeSelection,
