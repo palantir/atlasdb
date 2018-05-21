@@ -562,16 +562,6 @@ public final class AuditedDataTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<AuditedDataRow, AuditedDataNamedColumnValue<?>>> getRowsColumnRange(Iterable<AuditedDataRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            AuditedDataRow row = AuditedDataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            AuditedDataNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<AuditedDataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -683,5 +673,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "DiDUi25lSvagf9Ql856UPw==";
+    static String __CLASS_HASH = "xiYgVhzyV04ju8foeZzg+g==";
 }

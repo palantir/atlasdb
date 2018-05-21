@@ -574,16 +574,6 @@ public final class UserPhotosStreamValueTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamValueRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            UserPhotosStreamValueRow row = UserPhotosStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            UserPhotosStreamValueNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<UserPhotosStreamValueRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -695,5 +685,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "irQPf+iC8Kagft1QMRC2Cw==";
+    static String __CLASS_HASH = "tRLMuUx//W8vUxmKfvgGXA==";
 }

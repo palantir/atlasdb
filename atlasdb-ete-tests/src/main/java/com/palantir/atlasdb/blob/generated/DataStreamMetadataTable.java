@@ -600,16 +600,6 @@ public final class DataStreamMetadataTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<DataStreamMetadataRow, DataStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<DataStreamMetadataRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            DataStreamMetadataRow row = DataStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            DataStreamMetadataNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<DataStreamMetadataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -721,5 +711,5 @@ public final class DataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "0QWEydqAzFf3kFEogcduuw==";
+    static String __CLASS_HASH = "l5xh8M6uO+DHhE8dh3h1Iw==";
 }

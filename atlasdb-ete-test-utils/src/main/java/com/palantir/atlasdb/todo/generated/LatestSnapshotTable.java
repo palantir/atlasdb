@@ -562,16 +562,6 @@ public final class LatestSnapshotTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>>> getRowsColumnRange(Iterable<LatestSnapshotRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            LatestSnapshotRow row = LatestSnapshotRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            LatestSnapshotNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<LatestSnapshotRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -683,5 +673,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Z4JOlMtJnr6Ul0c6qTd/dQ==";
+    static String __CLASS_HASH = "UgVrpDtK6EStQl0/WbtsAA==";
 }

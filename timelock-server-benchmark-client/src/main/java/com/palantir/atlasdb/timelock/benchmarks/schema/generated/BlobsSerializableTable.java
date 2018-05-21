@@ -561,16 +561,6 @@ public final class BlobsSerializableTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<BlobsSerializableRow, BlobsSerializableNamedColumnValue<?>>> getRowsColumnRange(Iterable<BlobsSerializableRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            BlobsSerializableRow row = BlobsSerializableRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            BlobsSerializableNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<BlobsSerializableRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }

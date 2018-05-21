@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable;
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumn
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsRow;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.common.base.BatchingVisitables;
 
 public final class RangeScanDynamicColumnsBenchmark extends AbstractRangeScanBenchmark {
 
@@ -61,16 +63,13 @@ public final class RangeScanDynamicColumnsBenchmark extends AbstractRangeScanBen
         KvDynamicColumnsTable table = BenchmarksTableFactory.of().getKvDynamicColumnsTable(txn);
 
         List<byte[]> data = Lists.newArrayList();
-        table.getRowsColumnRange(
+        BatchingVisitables.concat(table.getRowsColumnRange(
                 ImmutableSet.of(KvDynamicColumnsRow.of(bucket)),
-                new ColumnRangeSelection(
+                BatchColumnRangeSelection.create(
                         KvDynamicColumnsColumn.of(startInclusive).persistToBytes(),
-                        KvDynamicColumnsColumn.of(endExclusive).persistToBytes()),
-                batchSize)
-                .forEachRemaining(entry -> data.add(entry.getValue().getValue()));
-
+                        KvDynamicColumnsColumn.of(endExclusive).persistToBytes(),
+                        batchSize)).values())
+                .forEach(entry -> data.add(entry.getValue()));
         return data;
     }
-
-
 }

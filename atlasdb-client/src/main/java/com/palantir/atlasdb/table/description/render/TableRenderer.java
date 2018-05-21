@@ -1141,22 +1141,6 @@ public class TableRenderer {
                 } line("}");
                 line("return transformed;");
             } line("}");
-            line();
-            line("@Override");
-            line("public Iterator<Map.Entry<", Row, ", ", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {"); {
-                line("Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);");
-                line("return Iterators.transform(results, e -> {"); {
-                    line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());");
-                    if (isDynamic) {
-                        line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
-                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
-                        line(ColumnValue, " colValue = ", ColumnValue, ".of(col, val);");
-                    } else {
-                        line(ColumnValue, " colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());");
-                    }
-                    line("return Maps.immutableEntry(row, colValue);");
-                } line("});");
-            } line("}");
         }
 
         private void renderFindConstraintFailures() {

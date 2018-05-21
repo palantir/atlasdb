@@ -605,16 +605,6 @@ public final class HashComponentsTestTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<HashComponentsTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            HashComponentsTestRow row = HashComponentsTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            HashComponentsTestNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<HashComponentsTestRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
@@ -775,5 +765,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "N0r8rTta9qcxehzWbQu7MQ==";
+    static String __CLASS_HASH = "ubnepiZt1DloM/fFY8SUcw==";
 }
