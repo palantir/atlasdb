@@ -21,10 +21,10 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonSerialize(as = ImmutableTimelockAuthClient.class)
-@JsonDeserialize(as = ImmutableTimelockAuthClient.class)
+@JsonSerialize(as = ImmutableTimelockServiceAuthClient.class)
+@JsonDeserialize(as = ImmutableTimelockServiceAuthClient.class)
 @Value.Immutable
-public interface TimelockAuthClient {
+public interface TimelockServiceAuthClient {
 
     String namespace();
 

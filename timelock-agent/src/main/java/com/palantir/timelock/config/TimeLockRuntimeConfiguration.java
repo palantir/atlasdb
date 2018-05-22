@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.auth.TimelockAuthClient;
+import com.palantir.atlasdb.timelock.auth.TimelockServiceAuthClient;
 
 /**
  * Dynamic (live-reloaded) portions of TimeLock's configuration.
@@ -49,15 +49,21 @@ public abstract class TimeLockRuntimeConfiguration {
         return 10000;
     }
 
-    @JsonProperty("auth-clients")
+    @JsonProperty("service-auth-clients")
     @Value.Default
-    public List<TimelockAuthClient> authClients() {
+    public List<TimelockServiceAuthClient> serviceAuthClients() {
         return ImmutableList.of();
     }
 
-    @JsonProperty("admin-token")
+    @JsonProperty("admin-auth-clients")
     @Value.Default
-    public Optional<String> adminToken() {
+    public List<String> adminAuthSecrets() {
+        return ImmutableList.of();
+    }
+
+    @JsonProperty("internal-auth-secret")
+    @Value.Default
+    public Optional<String> internalAuthSecret() {
         return Optional.empty();
     }
 
