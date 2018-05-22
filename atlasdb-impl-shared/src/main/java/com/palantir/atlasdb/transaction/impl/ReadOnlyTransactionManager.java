@@ -112,7 +112,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskReadOnlyWithCondition(NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
+        return runTaskWithConditionReadOnly(NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
     }
 
     @Override
@@ -199,7 +199,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(C condition,
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(C condition,
             ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(

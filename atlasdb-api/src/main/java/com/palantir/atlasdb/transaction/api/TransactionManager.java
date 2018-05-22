@@ -163,6 +163,57 @@ public interface TransactionManager extends AutoCloseable {
             LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
 
     /**
+     * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)}, but it will
+     * acquire a {@link PreCommitCondition} right before the transaction is created and check it
+     * immediately before the transaction commits.
+     * <p>
+     * The created transaction will not commit successfully if the check fails.
+     *
+     * @param conditionSupplier supplier for the condition
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+            Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
+
+    /**
+     * This method is basically the same as {@link #runTaskThrowOnConflict(TransactionTask)}, but it takes
+     * a {@link PreCommitCondition} and checks it immediately before the transaction commits.
+     * <p>
+     * The created transaction will not commit successfully if the check fails.
+     *
+     * @param condition condition associated with the transaction
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
+            C condition, ConditionAwareTransactionTask<T, C, E> task)
+            throws E, TransactionFailedRetriableException;
+
+    /**
+     * This method is basically the same as {@link #runTaskReadOnly(TransactionTask)}, but it takes
+     * a {@link PreCommitCondition} and checks it for validity before executing reads.
+     * <p>
+     * The created transaction will fail if the check is no longer valid after fetching the read
+     * timestamp.
+     *
+     * @param condition condition associated with the transaction
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E;
+
+    /**
      * Most AtlasDB TransactionManagers will provide {@link Transaction} objects that have less than full
      * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp
      * and an open transaction can only read values that were committed before its start timestamp.

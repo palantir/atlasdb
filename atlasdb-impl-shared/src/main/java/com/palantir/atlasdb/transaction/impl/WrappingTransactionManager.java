@@ -22,6 +22,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
@@ -95,5 +96,29 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
             LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
         return delegate().runTaskWithLocksWithRetry(lockTokens, lockSupplier, wrapTask(task));
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+            Supplier<C> conditionSupplier,
+            ConditionAwareTransactionTask<T, C, E> task)
+            throws E {
+        return delegate().runTaskWithConditionWithRetry(conditionSupplier, wrapTask(task));
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
+            C condition,
+            ConditionAwareTransactionTask<T, C, E> task)
+            throws E, TransactionFailedRetriableException {
+        return delegate().runTaskWithConditionThrowOnConflict(condition, wrapTask(task));
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+            C condition,
+            ConditionAwareTransactionTask<T, C, E> task)
+            throws E {
+        return delegate().runTaskWithConditionReadOnly(condition, wrapTask(task));
     }
 }
