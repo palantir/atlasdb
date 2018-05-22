@@ -58,7 +58,12 @@ develop
            and on serializable tables, transactions that paradoxically conflict with themselves.
            Now, they are guaranteed to be returned in order, which removes this issue.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3174>`__)
-    
+
+    *    - |fixed|
+         - Fixed a race condition where requests to a node can fail with NotCurrentLeaderException,
+           even though that node just gained leadership.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3183>`__)
+
 =======
 v0.84.0
 =======
