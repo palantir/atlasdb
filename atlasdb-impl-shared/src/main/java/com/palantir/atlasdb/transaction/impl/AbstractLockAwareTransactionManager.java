@@ -18,15 +18,12 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 
-public abstract class AbstractLockAwareTransactionManager
-        extends AbstractConditionAwareTransactionManager
-        implements LockAwareTransactionManager {
+public abstract class AbstractLockAwareTransactionManager extends AbstractConditionAwareTransactionManager {
 
     AbstractLockAwareTransactionManager(Supplier<Long> timestampCacheSize) {
         super(timestampCacheSize);

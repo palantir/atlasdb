@@ -15,7 +15,12 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.google.common.base.Supplier;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockService;
+import com.palantir.lock.v2.TimelockService;
 
 public interface TransactionManager extends AutoCloseable {
     /**
@@ -108,6 +113,56 @@ public interface TransactionManager extends AutoCloseable {
     <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E;
 
     /**
+     * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)} but it will
+     * acquire locks right before the transaction is created and release them after the task is complete.
+     * <p>
+     * The created transaction will not commit successfully if these locks are invalid by the time commit is run.
+     *
+     * @param lockSupplier supplier for the lock request
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+
+    /**
+     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}
+     * but it will also ensure that the existing lock tokens passed are still valid before committing.
+     *
+     * @param lockTokens lock tokens to acquire while transaction executes
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Iterable<HeldLocksToken> lockTokens,
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+
+    /**
+     * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
+     * will not commit successfully if these locks are invalid by the time commit is run.
+     *
+     * @param lockTokens lock tokens to refresh while transaction executes
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
+            Iterable<HeldLocksToken> lockTokens,
+            LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
+
+    /**
      * Most AtlasDB TransactionManagers will provide {@link Transaction} objects that have less than full
      * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp
      * and an open transaction can only read values that were committed before its start timestamp.
@@ -124,6 +179,15 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     long getImmutableTimestamp();
+
+    /**
+     * Returns the lock service used by this transaction manager.
+     *
+     * @return the lock service for this transaction manager
+     */
+    LockService getLockService();
+
+    TimelockService getTimelockService();
 
     /**
      * Provides a {@link KeyValueServiceStatus}, indicating the current availability of the key value store.

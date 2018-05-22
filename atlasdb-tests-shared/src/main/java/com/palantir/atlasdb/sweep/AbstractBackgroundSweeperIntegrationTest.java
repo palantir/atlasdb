@@ -44,7 +44,7 @@ import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -61,7 +61,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
 
     protected KeyValueService kvs;
-    protected LockAwareTransactionManager txManager;
+    protected TransactionManager txManager;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
     private BackgroundSweeperImpl backgroundSweeper;
     private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()

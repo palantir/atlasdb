@@ -17,26 +17,26 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 
-public abstract class WrappingTransactionManager extends ForwardingLockAwareTransactionManager {
-    private final LockAwareTransactionManager delegate;
+public abstract class WrappingTransactionManager extends ForwardingTransactionManager {
+    private final TransactionManager delegate;
 
-    public WrappingTransactionManager(LockAwareTransactionManager delegate) {
+    public WrappingTransactionManager(TransactionManager delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    protected LockAwareTransactionManager delegate() {
+    protected TransactionManager delegate() {
         return delegate;
     }
 

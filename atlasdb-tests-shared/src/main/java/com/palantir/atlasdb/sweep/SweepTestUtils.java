@@ -30,7 +30,7 @@ import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.sweep.queue.test.InMemorySweepQueue;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -50,7 +50,7 @@ import com.palantir.timestamp.TimestampService;
 public final class SweepTestUtils {
     private SweepTestUtils() {}
 
-    public static LockAwareTransactionManager setupTxManager(KeyValueService kvs) {
+    public static TransactionManager setupTxManager(KeyValueService kvs) {
         return setupTxManager(
                 kvs,
                 new InMemoryTimestampService(),

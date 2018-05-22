@@ -17,10 +17,10 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public interface TestTransactionManager extends LockAwareTransactionManager {
+public interface TestTransactionManager extends TransactionManager {
     Transaction commitAndStartNewTransaction(Transaction txn);
     Transaction createNewTransaction();
     void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler);

@@ -42,7 +42,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.common.TableTasks;
 import com.palantir.atlasdb.table.common.TableTasks.DiffStats;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -60,7 +60,7 @@ import com.palantir.timestamp.TimestampService;
 public class TableTasksTest {
     private KeyValueService kvs;
     private LockServiceImpl lockService;
-    private LockAwareTransactionManager txManager;
+    private TransactionManager txManager;
 
     @Before
     public void setup() {

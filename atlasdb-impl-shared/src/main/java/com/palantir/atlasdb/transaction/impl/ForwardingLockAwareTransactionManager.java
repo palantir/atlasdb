@@ -16,17 +16,17 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.base.Supplier;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 
 public abstract class ForwardingLockAwareTransactionManager extends
-        ForwardingTransactionManager implements LockAwareTransactionManager {
+        ForwardingTransactionManager implements TransactionManager {
     @Override
-    protected abstract LockAwareTransactionManager delegate();
+    protected abstract TransactionManager delegate();
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
