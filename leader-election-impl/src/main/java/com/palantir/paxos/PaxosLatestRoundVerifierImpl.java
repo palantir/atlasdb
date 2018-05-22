@@ -65,7 +65,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
             return round >= acceptor.getLatestSequencePreparedOrAccepted();
         } catch (Exception e) {
             if (isPicked()) {
-                log.warn("failed to get latest sequence", e);
+                log.debug("failed to get latest sequence", e);
             }
             throw e;
         }
