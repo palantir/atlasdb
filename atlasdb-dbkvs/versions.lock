@@ -126,7 +126,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
@@ -260,8 +259,7 @@
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-lock-api"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client": {
@@ -295,12 +293,6 @@
         },
         "com.palantir.atlasdb:atlasdb-impl-shared": {
             "project": true
-        },
-        "com.palantir.atlasdb:atlasdb-lock-api": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
-            ]
         },
         "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
             "project": true,
@@ -348,7 +340,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-lock-api",
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
@@ -905,7 +897,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
@@ -1039,8 +1030,7 @@
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-lock-api"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client": {
@@ -1074,12 +1064,6 @@
         },
         "com.palantir.atlasdb:atlasdb-impl-shared": {
             "project": true
-        },
-        "com.palantir.atlasdb:atlasdb-lock-api": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
-            ]
         },
         "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
             "project": true,
@@ -1127,7 +1111,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-lock-api",
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
