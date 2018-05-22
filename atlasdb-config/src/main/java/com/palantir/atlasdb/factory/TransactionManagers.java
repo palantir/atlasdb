@@ -102,8 +102,8 @@ import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
-import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -346,7 +346,7 @@ public abstract class TransactionManagers {
                 closeables);
 
         MultiTableSweepQueueWriter targetedSweep = initializeCloseable(
-                () -> uninitializedSweepQueue(config.targetedSweep(),
+                () -> uninitializedTargetedSweeper(config.targetedSweep(),
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier)),
                 closeables);
 
@@ -871,10 +871,10 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    private MultiTableSweepQueueWriter uninitializedSweepQueue(TargetedSweepInstallConfig config,
+    private MultiTableSweepQueueWriter uninitializedTargetedSweeper(TargetedSweepInstallConfig config,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
         if (config.enableSweepQueueWrites()) {
-            return KvsSweepQueue.createUninitialized(
+            return TargetedSweeper.createUninitialized(
                     JavaSuppliers.compose(TargetedSweepRuntimeConfig::enabled, runtime),
                     JavaSuppliers.compose(TargetedSweepRuntimeConfig::shards, runtime),
                     config.conservativeThreads(),

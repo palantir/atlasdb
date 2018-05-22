@@ -40,7 +40,6 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 
 public class ShardProgressTest {
-    private KeyValueService kvs;
     private ShardProgress progress;
 
     private static final ShardAndStrategy CONSERVATIVE_TEN = ShardAndStrategy.conservative(10);
@@ -51,8 +50,7 @@ public class ShardProgressTest {
 
     @Before
     public void setup() {
-        kvs = new InMemoryKeyValueService(true);
-        progress = new ShardProgress(kvs);
+        progress = new ShardProgress(new InMemoryKeyValueService(true));
     }
 
     @Test

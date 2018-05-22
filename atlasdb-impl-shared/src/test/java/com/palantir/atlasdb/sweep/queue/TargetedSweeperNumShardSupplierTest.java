@@ -34,7 +34,7 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
-public class KvsSweepQueueNumShardSupplierTest {
+public class TargetedSweeperNumShardSupplierTest {
     private KeyValueService kvs;
     private ShardProgress progress;
     private Supplier<Integer> runtimeConfigSupplier = mock(Supplier.class);
@@ -44,7 +44,7 @@ public class KvsSweepQueueNumShardSupplierTest {
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
         progress = spy(new ShardProgress(kvs));
-        numShardSupplier = KvsSweepQueueTables.createProgressUpdatingSupplier(runtimeConfigSupplier, progress, 1);
+        numShardSupplier = SweepQueue.createProgressUpdatingSupplier(runtimeConfigSupplier, progress, 1);
     }
 
     @Test
@@ -103,7 +103,7 @@ public class KvsSweepQueueNumShardSupplierTest {
 
     @Test
     public void getBeforeRefreshTimeDoesNotCheckConfigOrUpdateProgress() throws InterruptedException {
-        numShardSupplier = KvsSweepQueueTables
+        numShardSupplier = SweepQueue
                 .createProgressUpdatingSupplier(runtimeConfigSupplier, progress, 100_000);
         assertThat(setRuntimeAndGetNumShards(50)).isEqualTo(50);
 

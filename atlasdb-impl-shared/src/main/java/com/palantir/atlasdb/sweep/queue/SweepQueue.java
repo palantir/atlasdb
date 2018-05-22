@@ -26,18 +26,18 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.Sweeper;
 
-public final class KvsSweepQueueTables implements SweepQueueWriter {
+public final class SweepQueue implements SweepQueueWriter {
     private static final int FIVE_MINUTES = 5000 * 60;
 
     private final SweepableCells sweepableCells;
     private final SweepableTimestamps sweepableTimestamps;
     private final ShardProgress progress;
-    private final KvsSweepDeleter deleter;
-    private final KvsSweepQueueCleaner cleaner;
+    private final SweepQueueDeleter deleter;
+    private final SweepQueueCleaner cleaner;
     private final Supplier<Integer> numShards;
 
-    private KvsSweepQueueTables(SweepableCells cells, SweepableTimestamps timestamps, ShardProgress progress,
-            KvsSweepDeleter deleter, KvsSweepQueueCleaner cleaner, Supplier<Integer> numShards) {
+    private SweepQueue(SweepableCells cells, SweepableTimestamps timestamps, ShardProgress progress,
+            SweepQueueDeleter deleter, SweepQueueCleaner cleaner, Supplier<Integer> numShards) {
         this.sweepableCells = cells;
         this.sweepableTimestamps = timestamps;
         this.progress = progress;
@@ -46,15 +46,15 @@ public final class KvsSweepQueueTables implements SweepQueueWriter {
         this.numShards = numShards;
     }
 
-    public static KvsSweepQueueTables create(KeyValueService kvs, Supplier<Integer> shardsConfig) {
+    public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig) {
         ShardProgress progress = new ShardProgress(kvs);
         Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, FIVE_MINUTES);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
-        KvsSweepDeleter deleter = new KvsSweepDeleter(kvs);
-        KvsSweepQueueCleaner cleaner = new KvsSweepQueueCleaner(cells, timestamps, progress);
-        return new KvsSweepQueueTables(cells, timestamps, progress, deleter, cleaner, shards);
+        SweepQueueDeleter deleter = new SweepQueueDeleter(kvs);
+        SweepQueueCleaner cleaner = new SweepQueueCleaner(cells, timestamps, progress);
+        return new SweepQueue(cells, timestamps, progress, deleter, cleaner, shards);
     }
 
     /**

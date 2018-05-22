@@ -19,7 +19,6 @@ package com.palantir.atlasdb.sweep.queue;
 import java.util.Arrays;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;

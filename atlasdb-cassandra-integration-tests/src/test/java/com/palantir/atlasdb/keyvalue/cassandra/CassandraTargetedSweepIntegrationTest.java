@@ -36,13 +36,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.AbstractSweepTest;
-import com.palantir.atlasdb.sweep.queue.KvsSweepQueue;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
-    private KvsSweepQueue sweepQueue;
+    private TargetedSweeper sweepQueue;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(
@@ -57,7 +57,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     public void setup() {
         super.setup();
 
-        sweepQueue = KvsSweepQueue.createUninitialized(() -> true, () -> 1, 0, 0);
+        sweepQueue = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0);
         sweepQueue.initialize(timestampsSupplier, kvs);
     }
 

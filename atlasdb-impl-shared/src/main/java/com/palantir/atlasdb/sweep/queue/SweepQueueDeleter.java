@@ -25,10 +25,10 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 
-public class KvsSweepDeleter {
+public class SweepQueueDeleter {
     private final KeyValueService kvs;
 
-    KvsSweepDeleter(KeyValueService kvs) {
+    SweepQueueDeleter(KeyValueService kvs) {
         this.kvs = kvs;
     }
 

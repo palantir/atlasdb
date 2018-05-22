@@ -16,12 +16,12 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-public class KvsSweepQueueCleaner {
+public class SweepQueueCleaner {
     private SweepableCells sweepableCells;
     private SweepableTimestamps sweepableTimestamps;
     private ShardProgress progress;
 
-    public KvsSweepQueueCleaner(SweepableCells cells, SweepableTimestamps timestamps, ShardProgress progress) {
+    public SweepQueueCleaner(SweepableCells cells, SweepableTimestamps timestamps, ShardProgress progress) {
         this.sweepableCells = cells;
         this.sweepableTimestamps = timestamps;
         this.progress = progress;

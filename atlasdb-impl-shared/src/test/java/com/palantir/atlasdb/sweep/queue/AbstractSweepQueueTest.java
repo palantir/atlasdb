@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 
 import com.google.common.collect.ImmutableList;
@@ -102,42 +103,32 @@ public abstract class AbstractSweepQueueTest {
                 .persistToBytes();
     }
 
-    int writeToDefault(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
-        return writeToCell(queueWriter, timestamp, DEFAULT_CELL, tableRef);
+    int writeToDefaultCellCommitted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
+        return writeToCellCommitted(queueWriter, timestamp, DEFAULT_CELL, tableRef);
     }
 
-    int writeToCell(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
+    int writeToCellCommitted(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
         putTimestampIntoTransactionTable(timestamp, timestamp);
         return write(queueWriter, timestamp, cell, false, tableRef);
     }
 
-    int writeToCellUncommitted(KvsSweepQueueWriter queueWriter, long ts, Cell cell, TableReference tableRef) {
-        return write(queueWriter, ts, cell, false, tableRef);
+    int writeToDefaultCellUncommitted(KvsSweepQueueWriter queueWriter, long ts, TableReference tableRef) {
+        return write(queueWriter, ts, DEFAULT_CELL, false, tableRef);
     }
 
-    int writeToCellAborted(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
+    int writeToDefaultCellAborted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
         putTimestampIntoTransactionTable(timestamp, TransactionConstants.FAILED_COMMIT_TS);
-        return write(queueWriter, timestamp, cell, false, tableRef);
+        return write(queueWriter, timestamp, DEFAULT_CELL, false, tableRef);
     }
 
-    int putTombstone(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
+    int putTombstoneToDefaultCommitted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
         putTimestampIntoTransactionTable(timestamp, timestamp);
-        return write(queueWriter, timestamp, cell, true, tableRef);
+        return write(queueWriter, timestamp, DEFAULT_CELL, true, tableRef);
     }
 
-    int putTombstoneUncommitted(KvsSweepQueueWriter queueWriter, long ts, Cell cell, TableReference tableRef) {
-        return write(queueWriter, ts, cell, true, tableRef);
-    }
-
-    int putTombstoneAborted(KvsSweepQueueWriter queueWriter, long ts, Cell cell, TableReference tableRef) {
-        putTimestampIntoTransactionTable(ts, TransactionConstants.FAILED_COMMIT_TS);
-        return write(queueWriter, ts, cell, true, tableRef);
-    }
-
-    private int write(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, boolean isTombstone,
-            TableReference tableRef) {
-        WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
-        queueWriter.enqueue(ImmutableList.of(write));
+    private int write(KvsSweepQueueWriter writer, long ts, Cell cell, boolean isTombstone, TableReference tableRef) {
+        WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), ts);
+        writer.enqueue(ImmutableList.of(write));
         return write.toShard(numShards);
     }
 
@@ -145,23 +136,18 @@ public abstract class AbstractSweepQueueTest {
         try {
             txnService.putUnlessExists(ts, commitTs);
         } catch (KeyAlreadyExistsException e) {
-            // this is fine
+            // this is fine if the existing key is what we wanted
+            Assertions.assertThat(txnService.get(ts)).isEqualTo(commitTs);
         }
     }
 
-    List<WriteInfo> writeToCellsInFixedShard(KvsSweepQueueWriter writer, long timestamp, int number,
-            TableReference tableRef) {
-        return writeToCellsInFixedShardStartWith(writer, timestamp, number, tableRef, 0L);
-    }
-
-    List<WriteInfo> writeToCellsInFixedShardStartWith(KvsSweepQueueWriter writer, long timestamp,
-            int number, TableReference tableRef, long startSeed) {
+    List<WriteInfo> writeToCellsInFixedShard(KvsSweepQueueWriter writer, long ts, int number, TableReference tableRef) {
         List<WriteInfo> result = new ArrayList<>();
-        for (long i = startSeed; i < startSeed + number; i++) {
+        for (long i = 0; i < number; i++) {
             Cell cell = getCellWithFixedHash(i);
-            result.add(WriteInfo.write(tableRef, cell, timestamp));
+            result.add(WriteInfo.write(tableRef, cell, ts));
         }
-        putTimestampIntoTransactionTable(timestamp, timestamp);
+        putTimestampIntoTransactionTable(ts, ts);
         writer.enqueue(result);
         return result;
     }

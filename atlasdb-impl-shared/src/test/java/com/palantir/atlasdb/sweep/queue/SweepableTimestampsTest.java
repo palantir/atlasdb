@@ -42,8 +42,8 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
         super.setup();
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
-        shardCons = writeToDefault(sweepableTimestamps, TS, TABLE_CONS);
-        shardThor = writeToDefault(sweepableTimestamps, TS2, TABLE_THOR);
+        shardCons = writeToDefaultCellCommitted(sweepableTimestamps, TS, TABLE_CONS);
+        shardThor = writeToDefaultCellCommitted(sweepableTimestamps, TS2, TABLE_THOR);
     }
 
     @Test
@@ -67,17 +67,24 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
     @Test
     public void canReadForAbortedTransactionMultipleTimes() {
         long timestamp = 2 * TS_FINE_GRANULARITY + 1L;
-        int shard = writeToCellAborted(sweepableTimestamps, timestamp, getCellWithFixedHash(0L), TABLE_CONS);
-        assertThat(readConservative(shard)).contains(tsPartitionFine(timestamp));
-        assertThat(readConservative(shard)).contains(tsPartitionFine(timestamp));
+        writeToDefaultCellAborted(sweepableTimestamps, timestamp, TABLE_CONS);
+        assertThat(readConservative(CONS_SHARD)).contains(tsPartitionFine(timestamp));
+        assertThat(readConservative(CONS_SHARD)).contains(tsPartitionFine(timestamp));
     }
 
     @Test
     public void canReadForUncommittedTransactionMultipleTimes() {
         long timestamp = 3 * TS_FINE_GRANULARITY + 1L;
-        int shard = writeToCellUncommitted(sweepableTimestamps, timestamp, getCellWithFixedHash(0L), TABLE_CONS);
-        assertThat(readConservative(shard)).contains(tsPartitionFine(timestamp));
-        assertThat(readConservative(shard)).contains(tsPartitionFine(timestamp));
+        writeToDefaultCellUncommitted(sweepableTimestamps, timestamp, TABLE_CONS);
+        assertThat(readConservative(CONS_SHARD)).contains(tsPartitionFine(timestamp));
+        assertThat(readConservative(CONS_SHARD)).contains(tsPartitionFine(timestamp));
+    }
+
+    @Test
+    public void canReadNextTsForTombstone() {
+        long timestamp = 10L;
+        putTombstoneToDefaultCommitted(sweepableTimestamps, timestamp, TABLE_CONS);
+        assertThat(readConservative(CONS_SHARD)).contains(tsPartitionFine(timestamp));
     }
 
     @Test
@@ -175,7 +182,7 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
     @Test
     public void getCorrectNextTimestampWhenMultipleCandidates() {
         for (long timestamp = 1000L; tsPartitionFine(timestamp) < 10L; timestamp += TS_FINE_GRANULARITY / 5) {
-            writeToDefault(sweepableTimestamps, timestamp, TABLE_CONS);
+            writeToDefaultCellCommitted(sweepableTimestamps, timestamp, TABLE_CONS);
         }
         assertThat(readConservative(shardCons)).contains(tsPartitionFine(1000L));
 

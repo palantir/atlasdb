@@ -33,16 +33,16 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
-public class KvsSweepQueue implements MultiTableSweepQueueWriter {
+public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
 
-    private KvsSweepQueueTables tables;
+    private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
     private BackgroundSweepScheduler conservativeScheduler;
     private BackgroundSweepScheduler thoroughScheduler;
 
-    private KvsSweepQueue(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
+    private TargetedSweeper(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
             int conservativeThreads, int thoroughThreads) {
         this.runSweep = runSweep;
         this.shardsConfig = shardsConfig;
@@ -53,8 +53,9 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
     }
 
     /**
-     * Creates the sweep queue, without initializing any of the necessary resources. You must call the
-     * {@link #initialize(SpecialTimestampsSupplier, KeyValueService)} method before the sweep queue can be used.
+     * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
+     * {@link #initialize(SpecialTimestampsSupplier, KeyValueService)} method before any writes can be made to the
+     * sweep queue, or before sweeping.
      *
      * @param enabled live reloadable config controlling whether background threads should perform targeted sweep.
      * @param shardsConfig live reloadable config specifying the desired number of shards. Since the number of shards
@@ -63,21 +64,21 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
      * @param thoroughThreads number of thorough threads to use for background targeted sweep.
      * @return
      */
-    public static KvsSweepQueue createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
+    public static TargetedSweeper createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
             int conservativeThreads, int thoroughThreads) {
-        return new KvsSweepQueue(enabled, shardsConfig, conservativeThreads, thoroughThreads);
+        return new TargetedSweeper(enabled, shardsConfig, conservativeThreads, thoroughThreads);
     }
 
     /**
-     * This method initializes all the resources necessary for the sweep queue. This method should only be called once
-     * the kvs is ready.
+     * This method initializes all the resources necessary for the targeted sweeper. This method should only be called
+     * once the kvs is ready.
      *
      * @param timestamps supplier of unreadable and immutable timestamps.
      * @param kvs key value service that must be already initialized.
      */
     public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs) {
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        tables = KvsSweepQueueTables.create(kvs, shardsConfig);
+        queue = SweepQueue.create(kvs, shardsConfig);
         timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
@@ -90,7 +91,7 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
 
     @Override
     public void enqueue(List<WriteInfo> writes) {
-        tables.enqueue(writes);
+        queue.enqueue(writes);
     }
 
     /**
@@ -105,7 +106,7 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
             return;
         }
         long maxTsExclusive = Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier);
-        tables.sweepNextBatch(shardStrategy, maxTsExclusive);
+        queue.sweepNextBatch(shardStrategy, maxTsExclusive);
     }
 
     @Override
@@ -138,7 +139,7 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
         }
 
         private int getShardAndIncrement() {
-            return tables.modShards(counter.getAndIncrement());
+            return queue.modShards(counter.getAndIncrement());
         }
 
         @Override
