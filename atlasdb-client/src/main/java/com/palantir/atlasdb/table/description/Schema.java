@@ -284,7 +284,8 @@ public class Schema {
             for (IndexComponent c : Iterables.concat(indexMetadata.getRowComponents(),
                     indexMetadata.getColumnComponents())) {
                 if (c.rowComponentName != null) {
-                    Validate.isTrue(rowNames.contains(c.rowComponentName));
+                    Validate.isTrue(rowNames.contains(c.rowComponentName),
+                            "In index, a componentFromRow must reference an existing row component");
                 }
             }
 
@@ -293,7 +294,8 @@ public class Schema {
                         "Indexes accessing columns not supported for tables with dynamic columns.");
                 Collection<String> columnNames = Collections2.transform(tableMetadata.getColumns().getNamedColumns(),
                         input -> input.getLongName());
-                Validate.isTrue(columnNames.contains(indexMetadata.getColumnNameToAccessData()));
+                Validate.isTrue(columnNames.contains(indexMetadata.getColumnNameToAccessData()),
+                        "In index, a component derived from column must reference an existing column");
             }
 
             if (indexMetadata.getIndexType().equals(IndexType.CELL_REFERENCING)) {

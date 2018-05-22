@@ -39,6 +39,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.sweep.priority.SweepPriority;
+import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -104,6 +105,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 sweepBatchConfigSource,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis
+                SweepPriorityOverrideConfig::defaultConfig,
                 persistentLockManager,
                 specificTableSweeper);
     }

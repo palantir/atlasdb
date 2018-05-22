@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -53,10 +54,13 @@ public class ExternalLocksCondition implements AdvisoryLocksCondition {
         Set<LockRefreshToken> refreshedLocks = lockService.refreshLockRefreshTokens(refreshTokens);
         Set<LockRefreshToken> expiredLocks = Sets.difference(refreshTokens, refreshedLocks);
         if (!expiredLocks.isEmpty()) {
-            log.warn("External lock service locks were no longer valid", UnsafeArg.of("invalidTokens", expiredLocks));
+            List<HeldLocksToken> expiredHeldLocks = lockTokens.stream()
+                    .filter(token -> expiredLocks.contains(token.getLockRefreshToken()))
+                    .collect(Collectors.toList());
+            log.warn("External lock service locks were no longer valid", UnsafeArg.of("invalidLocks", expiredHeldLocks));
             throw new TransactionLockTimeoutNonRetriableException("Provided external lock tokens expired. "
-                    + "Retry is not possible. Tokens: "
-                    + expiredLocks);
+                    + "Retry is not possible. Locks: "
+                    + expiredHeldLocks);
         }
     }
 
