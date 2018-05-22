@@ -384,12 +384,12 @@ public class KvsSweepQueueTest {
     }
 
     private void enqueueWrite(TableReference tableRef, long ts) {
-        putTimestampIntoTransactionTable(ts, ts);
+        putTimestampIntoTransactionTable(ts, Long.MAX_VALUE);
         sweepQueue.enqueue(writeToDefaultCell(tableRef, ts), ts);
     }
 
     private void enqueueTombstone(TableReference tableRef, long ts) {
-        putTimestampIntoTransactionTable(ts, ts);
+        putTimestampIntoTransactionTable(ts, Long.MAX_VALUE);
         sweepQueue.enqueue(tombstoneToDefaultCell(tableRef, ts), ts);
     }
 
@@ -397,7 +397,7 @@ public class KvsSweepQueueTest {
         for (int i = 0; i < numWrites; i++) {
             sweepQueue.enqueue(writeToCell(tableRef, startTs + i, getCellWithFixedHash(i)), startTs + i);
         }
-        putTimestampIntoTransactionTable(startTs, startTs);
+        putTimestampIntoTransactionTable(startTs, Long.MAX_VALUE);
         return WriteInfo.write(tableRef, getCellWithFixedHash(0L), 0L).toShard(SHARDS);
     }
 

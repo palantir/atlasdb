@@ -63,7 +63,8 @@ public class SweepableCells extends KvsSweepQueueWriter {
 
     public SweepableCells(KeyValueService kvs, WriteInfoPartitioner partitioner) {
         super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner);
-        commitTsLoader = CommitTsLoader.create(TransactionServices.createTransactionService(kvs), new TLongHashSet());
+        this.commitTsLoader = CommitTsLoader
+                .create(TransactionServices.createTransactionService(kvs), new TLongHashSet());
     }
 
     @Override
@@ -143,34 +144,40 @@ public class SweepableCells extends KvsSweepQueueWriter {
 
         SweepableCellsTable.SweepableCellsRow row = computeRow(partitionFine, shardStrategy);
         RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, maxTsExclusive);
+        Multimap<Long, WriteInfo> writesByStartTs = getBatchOfWrites(row, resultIterator);
 
-        Multimap<Long, WriteInfo> startTsWrites = HashMultimap.create();
-        long lastSweptTs = 0L;
+        List<Long> startTimestampsForCommitted = getCommittedTimestampsDescendingAndCleanupAborted(writesByStartTs);
+        Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, startTimestampsForCommitted);
+        long lastSweptTs = getLastSweptTs(writesByStartTs, resultIterator, partitionFine, maxTsExclusive);
+        return SweepBatch.of(writes, lastSweptTs);
+    }
 
-        while (resultIterator.hasNext() && startTsWrites.size() < SWEEP_BATCH_SIZE) {
+    private Multimap<Long, WriteInfo> getBatchOfWrites(SweepableCellsTable.SweepableCellsRow row, RowColumnRangeIterator resultIterator) {
+        Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
+        while (resultIterator.hasNext() && writesByStartTs.size() < SWEEP_BATCH_SIZE) {
             Map.Entry<Cell, Value> entry = resultIterator.next();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
-
-            lastSweptTs = getTimestamp(row, col);
-            startTsWrites.putAll(lastSweptTs, getWrites(row, col, entry.getValue()));
+            writesByStartTs.putAll(getTimestamp(row, col), getWrites(row, col, entry.getValue()));
         }
+        return writesByStartTs;
+    }
 
-        List<Long> committedTs = getCommittedTimestampsAndCleanupAborted(startTsWrites);
-        committedTs.sort(Comparator.reverseOrder());
-
-        if (exhaustedAllColumns(resultIterator)) {
-            lastSweptTs = lastGuaranteedSwept(partitionFine, maxTsExclusive);
-        }
-
+    private Collection<WriteInfo> getWritesToSweep(Multimap<Long, WriteInfo> writesByStartTs, List<Long> startTimestamps) {
         Map<CellReference, WriteInfo> writesToSweepFor = new HashMap<>();
-
-        committedTs.stream()
-                .map(startTsWrites::get)
+        startTimestamps.stream()
+                .map(writesByStartTs::get)
                 .flatMap(Collection::stream)
                 .forEach(write -> writesToSweepFor
                         .putIfAbsent(write.writeRef().cellReference(), write));
+        return writesToSweepFor.values();
+    }
 
-        return SweepBatch.of(writesToSweepFor.values(), lastSweptTs);
+    private long getLastSweptTs(Multimap<Long, WriteInfo> writesByStartTs, RowColumnRangeIterator resultIterator,
+            long partitionFine, long maxTsExclusive) {
+        if (exhaustedAllColumns(resultIterator)) {
+            return lastGuaranteedSwept(partitionFine, maxTsExclusive);
+        }
+        return writesByStartTs.keySet().stream().max(Comparator.naturalOrder()).orElse(-1L);
     }
 
     private boolean inconsistentBounds(long minTsExclusive, long maxTsExclusive) {
@@ -183,7 +190,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
                 columnsBetween(minTsExclusive + 1, maxTsExclusive, partitionFine), MAX_CELLS_DEDICATED);
     }
 
-    private List<Long> getCommittedTimestampsAndCleanupAborted(Multimap<Long, WriteInfo> startTsWrites) {
+    private List<Long> getCommittedTimestampsDescendingAndCleanupAborted(Multimap<Long, WriteInfo> startTsWrites) {
         Map<Long, Long> startToCommitTs = commitTsLoader.loadBatch(startTsWrites.keySet());
         Map<TableReference, Multimap<Cell, Long>> cellsToDelete = new HashMap<>();
         List<Long> committedTimestamps = new ArrayList<>();
@@ -200,6 +207,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         }
         cellsToDelete.forEach(kvs::delete);
 
+        committedTimestamps.sort(Comparator.reverseOrder());
         return committedTimestamps;
     }
 

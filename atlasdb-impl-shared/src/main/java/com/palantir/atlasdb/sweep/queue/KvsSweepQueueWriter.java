@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
-    KeyValueService kvs;
+    final KeyValueService kvs;
     private final TableReference tableRef;
     private final WriteInfoPartitioner partitioner;
 
