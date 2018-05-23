@@ -16,7 +16,6 @@ buildscript {
         classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.4.12'
         classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.13.0'
         classpath 'com.palantir.baseline:gradle-baseline-java:0.18.0'
-        classpath 'com.palantir:jacoco-coverage:0.4.0'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:2.7.0'
         classpath "com.netflix.nebula:gradle-dependency-lock-plugin:5.0.2"
         classpath 'com.netflix.nebula:nebula-dependency-recommender:5.0.0'
@@ -60,12 +59,6 @@ task printLastVersion {
         def details = versionDetails()
         println details.lastTag
     }
-}
-
-apply plugin: 'com.palantir.jacoco-full-report'
-
-jacoco {
-    toolVersion = libVersions.jacoco
 }
 
 allprojects {

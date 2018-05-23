@@ -22,7 +22,6 @@ ext.libVersions =
     dagger: '2.0.2',
     immutables: '2.2.8',
     jackson: '2.9.5',
-    jacoco: '0.7.7.201606060606',
     snakeyaml: '1.12',
     cassandra: '3.11.2',
     cassandra_driver_core: '3.4.0',
