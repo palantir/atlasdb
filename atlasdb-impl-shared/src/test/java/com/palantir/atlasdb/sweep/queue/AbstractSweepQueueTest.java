@@ -163,4 +163,10 @@ public abstract class AbstractSweepQueueTest {
     long getSweepTsCons() {
         return Sweeper.CONSERVATIVE.getSweepTimestamp(timestampsSupplier);
     }
+
+    void runWithConservativeSweepTimestamp(Runnable runnable, long desiredSweepTimestamp) {
+        immutableTs = desiredSweepTimestamp;
+        unreadableTs = desiredSweepTimestamp;
+        runnable.run();
+    }
 }

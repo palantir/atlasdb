@@ -31,6 +31,7 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFineParti
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -171,6 +172,22 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS + 1);
         assertReadAtTimestampReturnsValue(TABLE_CONS, LOW_TS2 + 1, LOW_TS2);
+    }
+
+    @Test
+    public void sweepHandlesSequencesOfDeletesAndReadditionsInOneShot() {
+        enqueueWrite(TABLE_CONS, LOW_TS);
+        enqueueTombstone(TABLE_CONS, LOW_TS + 2);
+        enqueueWrite(TABLE_CONS, LOW_TS + 4);
+        enqueueTombstone(TABLE_CONS, LOW_TS + 6);
+        enqueueWrite(TABLE_CONS, LOW_TS + 8);
+
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        for (int i = 0; i < 10; i = i + 2) {
+            assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS + i);
+        }
+        assertReadAtTimestampReturnsValue(TABLE_CONS, LOW_TS + 8 + 1, LOW_TS + 8);
+        verify(spiedKvs, times(1)).deleteAllTimestamps(any(), any());
     }
 
     @Test
@@ -315,6 +332,59 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertSweepableCellsHasNoEntriesBeforeTimestamp(LOW_TS + 1);
         assertSweepableCellsHasNoEntriesBeforeTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
+    }
+
+    @Test
+    public void doesNotSweepBeyondSweepTimestamp() {
+        writeValuesAroundSweepTimestampAndSweepAndCheck(getSweepTsCons(), 1);
+    }
+
+    @Test
+    public void doesNotTransitivelyRetainWritesFromBeforeSweepTimestamp() {
+        long sweepTimestamp = getSweepTsCons();
+        enqueueWrite(TABLE_CONS, sweepTimestamp - 10);
+        enqueueTombstone(TABLE_CONS, sweepTimestamp - 5);
+        enqueueWrite(TABLE_CONS, sweepTimestamp + 5);
+
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertReadAtTimestampReturnsSentinel(TABLE_CONS, sweepTimestamp - 5);
+        assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONS, sweepTimestamp - 5 + 1, sweepTimestamp - 5);
+        assertReadAtTimestampReturnsValue(TABLE_CONS, sweepTimestamp + 5 + 1, sweepTimestamp + 5);
+    }
+
+    @Test
+    public void sweepsOnlySweepableSegmentOfFinePartitions() {
+        long sweepTs = TS_FINE_GRANULARITY + 1337;
+        runWithConservativeSweepTimestamp(() -> writeValuesAroundSweepTimestampAndSweepAndCheck(sweepTs, 1), sweepTs);
+    }
+
+    @Test
+    public void sweepsOnlySweepableSegmentAcrossFinePartitionBoundary() {
+        long sweepTs = TS_FINE_GRANULARITY + 7;
+
+        // Need 2 because need to cross a partition boundary
+        runWithConservativeSweepTimestamp(() -> writeValuesAroundSweepTimestampAndSweepAndCheck(sweepTs, 2), sweepTs);
+    }
+
+    @Test
+    public void sweepsOnlySweepableSegmentAcrossCoarsePartitionBoundary() {
+        long sweepTs = TS_COARSE_GRANULARITY + 7;
+
+        // Need 2 because need to cross a partition boundary
+        runWithConservativeSweepTimestamp(() -> writeValuesAroundSweepTimestampAndSweepAndCheck(sweepTs, 2), sweepTs);
+    }
+
+    private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int batches) {
+        enqueueWrite(TABLE_CONS, sweepTimestamp - 10);
+        enqueueWrite(TABLE_CONS, sweepTimestamp - 5);
+        enqueueWrite(TABLE_CONS, sweepTimestamp + 5);
+
+        IntStream.range(0, batches)
+                .forEach(unused -> sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD)));
+
+        assertReadAtTimestampReturnsSentinel(TABLE_CONS, sweepTimestamp - 5);
+        assertReadAtTimestampReturnsValue(TABLE_CONS, sweepTimestamp - 5 + 1, sweepTimestamp - 5);
+        assertReadAtTimestampReturnsValue(TABLE_CONS, sweepTimestamp + 5 + 1, sweepTimestamp + 5);
     }
 
     private void enqueueWrite(TableReference tableRef, long ts) {
