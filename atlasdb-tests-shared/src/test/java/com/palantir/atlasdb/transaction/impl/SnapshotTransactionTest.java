@@ -15,17 +15,26 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyMap;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
@@ -58,6 +67,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Supplier;
@@ -84,11 +94,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -105,6 +117,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.MultiDelegateProxy;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -898,6 +911,51 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             // expected
         }
         assertThat(counter.intValue(), is(2));
+    }
+
+    @Test
+    public void getRowsColumnRangesReturnsInOrderInCaseOfAbortedTxns() {
+        byte[] row = "foo".getBytes();
+        Cell firstCell = Cell.create(row, "a".getBytes());
+        Cell secondCell = Cell.create(row, "b".getBytes());
+        byte[] value = new byte[1];
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value, secondCell, value));
+            return null;
+        });
+
+        // this will write into the DB, because the protocol demands we write before we get a commit timestamp
+        RuntimeException conditionFailure = new RuntimeException();
+        assertThatThrownBy(() ->  serializableTxManager.runTaskWithConditionWithRetry(() -> new PreCommitCondition() {
+            @Override
+            public void throwIfConditionInvalid(long timestamp) {
+                throw conditionFailure;
+            }
+
+            @Override
+            public void cleanup() {}
+        }, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value));
+            return null;
+        })).isSameAs(conditionFailure);
+
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx ->
+                BatchingVisitableView.of(tx.getRowsColumnRange(
+                        TABLE,
+                        ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(null, null, 10)).get(row))
+                        .transform(Map.Entry::getKey)
+                        .immutableCopy());
+        assertEquals(ImmutableList.of(firstCell, secondCell), cells);
+    }
+
+    private void put(Transaction txn, TableReference table, WriteInfo write) {
+        if (write.writeRef().isTombstone()) {
+            txn.delete(table, ImmutableSet.of(write.writeRef().cell()));
+        } else {
+            txn.put(table, ImmutableMap.of(write.writeRef().cell(), new byte[1]));
+        }
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {
