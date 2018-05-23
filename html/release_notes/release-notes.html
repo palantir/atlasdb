@@ -196,6 +196,11 @@ and on serializable tables, transactions that paradoxically conflict with themse
 Now, they are guaranteed to be returned in order, which removes this issue.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3174">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a race condition where requests to a node can fail with NotCurrentLeaderException,
+even though that node just gained leadership.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3183">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
