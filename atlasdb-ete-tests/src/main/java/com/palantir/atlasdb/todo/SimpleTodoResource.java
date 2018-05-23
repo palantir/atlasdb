@@ -15,9 +15,12 @@
  */
 package com.palantir.atlasdb.todo;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.List;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
 
 public class SimpleTodoResource implements TodoResource {
     private TodoClient atlas;
@@ -39,6 +42,22 @@ public class SimpleTodoResource implements TodoResource {
     @Override
     public void isHealthy() {
         Preconditions.checkState(atlas.getTodoList() != null);
+    }
+
+    @Override
+    public void storeSnapshot(String snapshot) {
+        InputStream snapshotStream = new ByteArrayInputStream(snapshot.getBytes());
+        atlas.storeSnapshot(snapshotStream);
+    }
+
+    @Override
+    public SweepResults sweepSnapshotIndices() {
+        return atlas.sweepSnapshotIndices();
+    }
+
+    @Override
+    public SweepResults sweepSnapshotValues() {
+        return atlas.sweepSnapshotValues();
     }
 }
 

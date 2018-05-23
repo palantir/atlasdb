@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
@@ -40,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -112,6 +112,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.MultiDelegateProxy;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -120,7 +121,6 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollections;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
@@ -770,8 +770,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             });
             fail();
         } catch (TransactionLockTimeoutNonRetriableException e) {
-            Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
-            assertThat(e.getMessage(), containsString(expectedTokens.toString()));
+            LockDescriptor descriptor = Iterables.getFirst(expiredLockToken.getLockDescriptors(), null);
+            assertThat(e.getMessage(), containsString(descriptor.toString()));
             assertThat(e.getMessage(), containsString("Retry is not possible."));
         }
     }
@@ -973,7 +973,43 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         verify(sweepQueue, times(0)).enqueue(anyMap(), anyLong());
     }
 
-    // todo(gmaretic): remove eventually
+    @Test
+    public void getRowsColumnRangesReturnsInOrderInCaseOfAbortedTxns() {
+        byte[] row = "foo".getBytes();
+        Cell firstCell = Cell.create(row, "a".getBytes());
+        Cell secondCell = Cell.create(row, "b".getBytes());
+        byte[] value = new byte[1];
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value, secondCell, value));
+            return null;
+        });
+
+        // this will write into the DB, because the protocol demands we write before we get a commit timestamp
+        RuntimeException conditionFailure = new RuntimeException();
+        assertThatThrownBy(() ->  serializableTxManager.runTaskWithConditionWithRetry(() -> new PreCommitCondition() {
+            @Override
+            public void throwIfConditionInvalid(long timestamp) {
+                throw conditionFailure;
+            }
+
+            @Override
+            public void cleanup() {}
+        }, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value));
+            return null;
+        })).isSameAs(conditionFailure);
+
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx ->
+                BatchingVisitableView.of(tx.getRowsColumnRange(
+                        TABLE,
+                        ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(null, null, 10)).get(row))
+                        .transform(Map.Entry::getKey)
+                        .immutableCopy());
+        assertEquals(ImmutableList.of(firstCell, secondCell), cells);
+    }
+
     private void put(Transaction txn, TableReference table, WriteInfo write) {
         if (write.writeRef().isTombstone()) {
             txn.delete(table, ImmutableSet.of(write.writeRef().cell()));

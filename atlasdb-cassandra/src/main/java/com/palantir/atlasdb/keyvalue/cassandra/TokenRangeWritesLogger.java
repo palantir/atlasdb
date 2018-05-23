@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -69,11 +70,15 @@ public final class TokenRangeWritesLogger {
     }
 
     public void markWritesForTable(Set<Cell> entries, TableReference tableRef) {
+        if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
+            return;
+        }
+
         if (!statsPerTable.containsKey(tableRef)) {
             statsPerTable.put(tableRef, new TokenRangeWrites(tableRef, ranges));
         }
         TokenRangeWrites tokenRangeWrites = statsPerTable.get(tableRef);
-        entries.forEach(entry -> tokenRangeWrites.markWrite(entry));
+        entries.forEach(tokenRangeWrites::markWrite);
         tokenRangeWrites.maybeEmitTelemetry();
     }
 

@@ -24,6 +24,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
+
 @Path("/todos")
 public interface TodoResource {
     @POST
@@ -39,4 +41,19 @@ public interface TodoResource {
     @GET
     @Path("/healthcheck")
     void isHealthy();
+
+    @POST
+    @Path("/snapshot")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void storeSnapshot(String snapshot);
+
+    @POST
+    @Path("/sweep-snapshot-indices")
+    @Produces(MediaType.APPLICATION_JSON)
+    SweepResults sweepSnapshotIndices();
+
+    @POST
+    @Path("/sweep-snapshot-values")
+    @Produces(MediaType.APPLICATION_JSON)
+    SweepResults sweepSnapshotValues();
 }

@@ -378,6 +378,9 @@ public abstract class TransactionManagers {
                         callbacks),
                 closeables);
 
+        transactionManager.registerClosingCallback(qosClient::close);
+        transactionManager.registerClosingCallback(lockAndTimestampServices::close);
+
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(
                         persistentLockService, config.getSweepPersistentLockWaitMillis()),
@@ -522,6 +525,7 @@ public abstract class TransactionManagers {
                 sweepBatchConfigSource,
                 () -> runtimeConfigSupplier.get().sweep().enabled(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
+                () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
                 persistentLockManager,
                 specificTableSweeper);
 
@@ -642,10 +646,12 @@ public abstract class TransactionManagers {
 
     private static LockAndTimestampServices withRefreshingLockService(
             LockAndTimestampServices lockAndTimestampServices) {
+        TimeLockClient timeLockClient = TimeLockClient.createDefault(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .timelock(TimeLockClient.createDefault(lockAndTimestampServices.timelock()))
+                .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
+                .close(timeLockClient::close)
                 .build();
     }
 
@@ -890,5 +896,10 @@ public abstract class TransactionManagers {
         TimestampService timestamp();
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
+
+        @Value.Default
+        default Runnable close() {
+            return () -> {};
+        }
     }
 }

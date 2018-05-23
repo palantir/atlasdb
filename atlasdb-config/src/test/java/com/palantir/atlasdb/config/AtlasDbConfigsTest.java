@@ -24,23 +24,23 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.palantir.config.crypto.KeyPair;
+import com.palantir.config.crypto.KeyFileUtils;
 
 public class AtlasDbConfigsTest {
     private static String previousKeyPathProperty;
 
     @BeforeClass
     public static void setUpClass() throws URISyntaxException {
-        previousKeyPathProperty = System.getProperty(KeyPair.KEY_PATH_PROPERTY);
+        previousKeyPathProperty = System.getProperty(KeyFileUtils.KEY_PATH_PROPERTY);
         System.setProperty(
-                KeyPair.KEY_PATH_PROPERTY,
+                KeyFileUtils.KEY_PATH_PROPERTY,
                 Paths.get(AtlasDbConfigsTest.class.getResource("/test.key").toURI()).toString());
     }
 
     @AfterClass
     public static void tearDownClass() {
         if (previousKeyPathProperty != null) {
-            System.setProperty(KeyPair.KEY_PATH_PROPERTY, previousKeyPathProperty);
+            System.setProperty(KeyFileUtils.KEY_PATH_PROPERTY, previousKeyPathProperty);
         }
     }
 

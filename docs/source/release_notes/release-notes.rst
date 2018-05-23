@@ -50,20 +50,216 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Snapshot transaction is now guaranteed to return getRowsColumnRange results in the correct order.
+           Previously while paging over row dynamic columns, if uncommitted or aborted transaction data was
+           seen, it would be placed at the end of the list, instead of at the start, meaning that the results
+           are mostly (but not entirely) in sorted order. In practice, this leads to duplicate results in paging,
+           and on serializable tables, transactions that paradoxically conflict with themselves.
+           Now, they are guaranteed to be returned in order, which removes this issue.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3174>`__)
+    
+=======
+v0.84.0
+=======
+
+16 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Timelock will now have more debugging info if the paxos directories fail to be created on startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3156>`__)
+
+    *    - |fixed|
+         - The (Thrift-backed) ``CassandraKeyValueService`` now returns correctly for CQL queries that return null.
+           Previously, they would throw an exception when we attempted to log information about the response.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3158>`__)
+
+=======
+v0.83.0
+=======
+
+10 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - If we make a successful request to a Cassandra client, we now remove it from the overall Cassandra service's blacklist.
+           Previously, removal from the blacklist would only occur after a background thread successfully refreshed the pool, meaning that requests may become stuck if Cassandra was rolling restarted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3145>`__)
+
+    *    - |fixed|
+         - The Cassandra client pool now respects the ``maxRetriesOnHost`` config option, and will not try a single operation beyond that many times on the same node.
+           Previously, under certain kinds of exceptions (such as ``TTransportException``), we would repeatedly retry the operation on the same node up to ``maxTriesTotal`` times.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3145>`__)
+
+    *    - |fixed| |devbreak|
+         - Any ongoing Cassandra schema mutations are now given two minutes to complete upon closing a transaction manager, decreasing the chance that the schema mutation lock is lost.
+           Some exceptions thrown due to schema mutation failures now have type ``UncheckedExecutionException``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3152>`__)
+
+=======
+v0.82.2
+=======
+
+4 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - ``SerializableTransaction`` now initialises internal state correctly.
+           Previously, we would throw an exception if multiple equivalent column range selections for different rows needed to be checked in the same transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3147>`__)
+
+=======
+v0.82.1
+=======
+
+1 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Specifying tables in configuration for sweep priority overrides now works properly.
+           Previously, attempting to deserialize configurations with these overrides would cause errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3136>`__)
+
+=======
+v0.82.0
+=======
+
+1 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - AtlasDB now partitions versions of cells to be swept into batches more robustly and more efficiently.
+           Previously, this could cause stack overflows when sweeping a very wide row, because the partitioning algorithm attempted to traverse a recursive hierarchy of sublists.
+           Also, previously, partitioning would require time quadratic in the number of versions present in the row; it now takes linear time.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3095>`__)
+
+    *    - |new|
+         - Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) blacklist.
+           This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a blacklisted table, as appropriate.
+           Please see :ref:`Sweep Priority Overrides <sweep-priority-overrides>` for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3090>`__)
+
+    *    - |fixed|
+         - Transaction managers now shut down threads associated with the QoS client and TimeLock lock refresher when they are closed.
+           Previously, these threads would continue running and needlessly using resources.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3096>`__)
+
+    *    - |fixed|
+         - The ``_locks`` table is now created with a deterministic column family ID.
+           This means that multi-node installations will no longer create multiple locks tables on first start-up.
+           Note that new installations using versions of Cassandra prior to 2.1.13, 2.2.5, 3.0.3 or 3.2 will fail to create this table, as we rely on syntax introduced by the fix to `CASSANDRA-9179 <https://issues.apache.org/jira/browse/CASSANDRA-9179>`__.
+           Existing installations will be unaffected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3088>`__)
+
+    *    - |fixed|
+         - OkHttp is not handling ``Thread.interrupt()`` well, and calling interrupts repeatedly may cause corrupted http clients.
+           This would cause TimeLock clients to appear silent (requests would not be accepted or logged), but would not have affected data integrity.
+           To avoid this issue, our Feign client is now wrapped with an ``ExceptionCountingRefreshingClient``, which will detect and refresh corrupted clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3121>`__)
+
+    *    - |fixed| |devbreak|
+         - ``LoggingArgs::isSafeForLogging(TableReference, Cell)`` was removed, as it behaved unexpectedly and could leak information.
+           Previously, it returned true only if the cell's row matched the name of a row component which was declared as safe.
+           However, knowledge of the existence of such a cell may not actually be safe.
+           There currently isn't an API for declaring specific row or dynamic column components as safe; please contact the AtlasDB team if you have such a use case.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3093>`__)
+
+    *    - |improved| |logs|
+         - Expired lock refreshes now tell you which locks expired, instead of just their refreshing token id.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3125>`__)
+
+    *    - |improved|
+         - The strategy for choosing the table to compact was adjusted to avoid the case when the same table is chosen multiple times in a row, even if it was not swept between compactions.
+           Previously, the strategy to choose the table to compact was:
+
+             1. if possible choose a table that was swept but not compacted
+             2. otherwise choose a table for which the time passed between last compact and last swept was longer
+
+           When all tables are swept and afterward compacted, the last point above could choose to compact the same table because ``lastSweptTime - lastCompactTime`` is negative and largest among all tables.
+
+           The new strategy is:
+
+             1. if possible choose a table that was swept but not compacted
+             2. if there is no uncompacted table then choose a table swept further after it was compacted
+             3. otherwise, randomly choose a table after filtering out the ones compacted in the past hour
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3100>`__)
+
+    *    - |improved| |logs|
+         - ``kvs-slow-log`` messages now also include start time of the operation for easier debugging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3117>`__)
+
+    *    - |improved| |logs|
+         - AtlasDB internal tables will no longer produce warning messages about hotspotting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3126>`__)
+
+=======
+v0.81.0
+=======
+
+19 April 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved| |metrics|
          - Async TimeLock Service metric timers are now tagged with (1) the relevant clients, and (2) whether the current node is the leader or not.
            This allows for easier analysis and consumption of these metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3075>`__)
 
     *    - |improved|
-         - Common annotations can now be imported via the commons-annotations library,
-           instead of needing to pull in atlasdb-commons. Existing code that uses atlasdb-commons
-           for the annotations will still be able to resolve them.
+         - Common annotations can now be imported via the commons-annotations library, instead of needing to pull in atlasdb-commons.
+           Existing code that uses atlasdb-commons for the annotations will still be able to resolve them.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3089>`__)
 
     *    - |fixed|
          - Logs in ``CassandraRequestExceptionHandler`` are logged using a logger named after that class instead of ``CassandraClientPool``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3092>`__)
+
+    *    - |improved| |devbreak|
+         - Bumped several libraries to get past known security vulns:
+
+           - Cassandra Thrift and CQL libs
+           - Jackson
+           - Logback
+           - Netty (indirectly via cassandra lib bump)
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
 
 =======
 v0.80.0
@@ -124,15 +320,6 @@ v0.80.0
          - Applications can now easily determine whether their Timelock cluster is healthy by querying ``TransactionManager.getTimelockServiceStatus().isHealthy()``.
            This returns true only if a healthy connection to timelock service is established.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3030>`__)
-
-    *    - |improved| |devbreak|
-         - Bumped several libraries to get past known security vulns:
-           cassandra thrift and CQL libs
-           jackson
-           logback
-           netty (indirectly via cassandra lib bump)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3084>`__)
-
 
 =======
 v0.79.0
