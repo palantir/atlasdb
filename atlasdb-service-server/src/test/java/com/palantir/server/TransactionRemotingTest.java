@@ -56,7 +56,7 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable.CellsExamined;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 import feign.Feign;
 import feign.jackson.JacksonDecoder;
@@ -68,7 +68,7 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class TransactionRemotingTest {
     public final static AtlasSchema schema = SweepSchema.INSTANCE;
-    public final SerializableTransactionManager txMgr = TransactionManagers.createInMemory(schema.getLatestSchema());
+    public final TransactionManager txMgr = TransactionManagers.createInMemory(schema.getLatestSchema());
     public final KeyValueService kvs = txMgr.getKeyValueService();
     public final TableMetadataCache cache = new TableMetadataCache(kvs);
     public final ObjectMapper mapper = new ObjectMapper(); { mapper.registerModule(new AtlasJacksonModule(cache).createModule()); }

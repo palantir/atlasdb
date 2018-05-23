@@ -20,7 +20,7 @@ import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
@@ -44,7 +44,7 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
     public void run(AtlasDbServiceServerConfiguration config, final Environment environment) throws Exception {
         AtlasDbMetrics.setMetricRegistries(environment.metrics(), DefaultTaggedMetricRegistry.getDefault());
 
-        SerializableTransactionManager tm = TransactionManagers.builder()
+        TransactionManager tm = TransactionManagers.builder()
                 .config(config.getConfig())
                 .userAgent("AtlasDbServiceServer")
                 .globalMetricsRegistry(environment.metrics())

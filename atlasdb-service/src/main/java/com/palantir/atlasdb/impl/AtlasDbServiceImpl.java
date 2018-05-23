@@ -55,8 +55,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -73,14 +73,14 @@ public class AtlasDbServiceImpl implements AtlasDbService {
             TableMetadataPersistence.LogSafety.SAFE);
 
     private final KeyValueService kvs;
-    private final SerializableTransactionManager txManager;
+    private final TransactionManager txManager;
     private final Cache<TransactionToken, TransactionAndImmutableTsLock> transactions =
             CacheBuilder.newBuilder().expireAfterAccess(12, TimeUnit.HOURS).build();
     private final TableMetadataCache metadataCache;
 
     @Inject
     public AtlasDbServiceImpl(KeyValueService kvs,
-            SerializableTransactionManager txManager,
+            TransactionManager txManager,
             TableMetadataCache metadataCache) {
         this.kvs = kvs;
         this.txManager = txManager;

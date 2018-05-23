@@ -188,7 +188,7 @@ public abstract class TransactionManagers {
      * the TransactionManager will not become initialized and it will be closed.
      */
     @Value.Default
-    Callback<SerializableTransactionManager> asyncInitializationCallback() {
+    Callback<TransactionManager> asyncInitializationCallback() {
         return new Callback.NoOp<>();
     }
 
@@ -208,16 +208,16 @@ public abstract class TransactionManagers {
      *
      * @see TransactionManagers#createInMemory(Set)
      */
-    public static SerializableTransactionManager createInMemory(Schema schema) {
+    public static TransactionManager createInMemory(Schema schema) {
         return createInMemory(ImmutableSet.of(schema));
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} backed by an
+     * Create a {@link TransactionManager} backed by an
      * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
      * purposes only.
      */
-    public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
+    public static TransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
         return builder()
                 .config(config)
@@ -231,7 +231,7 @@ public abstract class TransactionManagers {
 
     @JsonIgnore
     @Value.Derived
-    public SerializableTransactionManager serializable() {
+    public TransactionManager serializable() {
         List<AutoCloseable> closeables = Lists.newArrayList();
 
         try {
@@ -256,7 +256,7 @@ public abstract class TransactionManagers {
         }
     }
 
-    private SerializableTransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
+    private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         AtlasDbMetrics.setMetricRegistries(globalMetricsRegistry(), globalTaggedMetricRegistry());
         final AtlasDbConfig config = config();
         checkInstallConfig(config);
@@ -401,7 +401,7 @@ public abstract class TransactionManagers {
     private Optional<BackgroundCompactor> initializeCompactBackgroundProcess(
             LockAndTimestampServices lockAndTimestampServices,
             KeyValueService keyValueService,
-            SerializableTransactionManager transactionManager,
+            TransactionManager transactionManager,
             Supplier<CompactorConfig> compactorConfigSupplier) {
         Optional<BackgroundCompactor> backgroundCompactorOptional = BackgroundCompactor.createAndRun(
                 transactionManager,
@@ -478,7 +478,7 @@ public abstract class TransactionManagers {
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CleanupFollower follower,
-            SerializableTransactionManager transactionManager,
+            TransactionManager transactionManager,
             PersistentLockManager persistentLockManager) {
         CellsSweeper cellsSweeper = new CellsSweeper(
                 transactionManager,
@@ -528,7 +528,7 @@ public abstract class TransactionManagers {
     private static SpecificTableSweeper initializeSweepEndpoint(
             Consumer<Object> env,
             KeyValueService kvs,
-            SerializableTransactionManager transactionManager,
+            TransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             SweepMetricsManager sweepMetrics,
@@ -569,18 +569,18 @@ public abstract class TransactionManagers {
         return pls;
     }
 
-    private static Callback<SerializableTransactionManager> wrapInitializationCallbackAndAddConsistencyChecks(
+    private static Callback<TransactionManager> wrapInitializationCallbackAndAddConsistencyChecks(
             AtlasDbConfig atlasDbConfig,
             AtlasDbRuntimeConfig initialRuntimeConfig,
             LockAndTimestampServices lockAndTimestampServices,
-            Callback<SerializableTransactionManager> asyncInitializationCallback) {
+            Callback<TransactionManager> asyncInitializationCallback) {
         if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
             // Only do the consistency check if we're using TimeLock.
             // This avoids a bootstrapping problem with leader-block services without async initialisation,
             // where you need a working timestamp service to check consistency, you need to check consistency
             // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
             // ports in order to get a working timestamp service.
-            List<Callback<SerializableTransactionManager>> callbacks = Lists.newArrayList();
+            List<Callback<TransactionManager>> callbacks = Lists.newArrayList();
             callbacks.add(ConsistencyCheckRunner.create(
                     ImmutableTimestampCorroborationConsistencyCheck.builder()
                             .conservativeBound(TransactionManager::getUnreadableTimestamp)
