@@ -367,9 +367,11 @@ public abstract class TransactionManagers {
                                 lockAndTimestampServices,
                                 asyncInitializationCallback())),
                 closeables);
+        TransactionManager instrumentedTransactionManager =
+                AtlasDbMetrics.instrument(TransactionManager.class, transactionManager);
 
-        transactionManager.registerClosingCallback(qosClient::close);
-        transactionManager.registerClosingCallback(lockAndTimestampServices::close);
+        instrumentedTransactionManager.registerClosingCallback(qosClient::close);
+        instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(
@@ -384,18 +386,18 @@ public abstract class TransactionManagers {
                         transactionService,
                         sweepStrategyManager,
                         follower,
-                        transactionManager,
+                        instrumentedTransactionManager,
                         persistentLockManager),
                 closeables);
         initializeCloseable(
                 initializeCompactBackgroundProcess(
                         lockAndTimestampServices,
                         keyValueService,
-                        transactionManager,
+                        instrumentedTransactionManager,
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::compact, runtimeConfigSupplier)),
                 closeables);
 
-        return transactionManager;
+        return instrumentedTransactionManager;
     }
 
     private Optional<BackgroundCompactor> initializeCompactBackgroundProcess(
