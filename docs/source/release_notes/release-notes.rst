@@ -60,6 +60,13 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3174>`__)
 
     *    - |fixed|
+         - The Cassandra key value service is now guaranteed to return getRowsColumnRange results in the correct order.
+           Previously while paging over row dynamic columns, the first batchHint results are ordered lexicographically,
+           whilst the remainder are hashmap ordered in chunks of batchHint. In practice, when paging this can lead to
+           entirely incorrect, duplicate results being returned. Now, they are returned in order.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3184>`__)
+ 
+    *    - |fixed|
          - Fixed a race condition where requests to a node can fail with NotCurrentLeaderException,
            even though that node just gained leadership.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3183>`__)
