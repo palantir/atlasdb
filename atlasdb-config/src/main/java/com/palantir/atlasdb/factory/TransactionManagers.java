@@ -341,7 +341,7 @@ public abstract class TransactionManagers {
                         .buildCleaner(),
                 closeables);
 
-        SerializableTransactionManager transactionManager = initializeCloseable(
+        TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
                         keyValueService,
                         lockAndTimestampServices.timelock(),

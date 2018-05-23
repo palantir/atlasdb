@@ -58,7 +58,7 @@ public final class SweepTestUtils {
                 TransactionServices.createTransactionService(kvs));
     }
 
-    public static SerializableTransactionManager setupTxManager(KeyValueService kvs,
+    public static TransactionManager setupTxManager(KeyValueService kvs,
             TimestampService tsService,
             SweepStrategyManager ssm,
             TransactionService txService) {
@@ -69,7 +69,7 @@ public final class SweepTestUtils {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
+        TransactionManager txManager = SerializableTransactionManager.createForTest(
                 kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,

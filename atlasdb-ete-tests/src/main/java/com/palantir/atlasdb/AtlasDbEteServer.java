@@ -50,7 +50,7 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -87,7 +87,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
-        SerializableTransactionManager transactionManager = tryToCreateTransactionManager(config, environment);
+        TransactionManager transactionManager = tryToCreateTransactionManager(config, environment);
         Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(transactionManager));
 
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager, sweepTaskRunner)));
@@ -99,7 +99,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 config.getAtlasDbConfig().initializeAsync()));
     }
 
-    private SerializableTransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)
+    private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)
             throws InterruptedException {
         if (config.getAtlasDbConfig().initializeAsync()) {
             return createTransactionManager(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), environment);
@@ -110,7 +110,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         }
     }
 
-    private SweepTaskRunner getSweepTaskRunner(SerializableTransactionManager transactionManager) {
+    private SweepTaskRunner getSweepTaskRunner(TransactionManager transactionManager) {
         KeyValueService kvs = transactionManager.getKeyValueService();
         LongSupplier ts = transactionManager.getTimestampService()::getFreshTimestamp;
         TransactionService txnService = TransactionServices.createTransactionService(kvs);
@@ -124,7 +124,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private SerializableTransactionManager createTransactionManagerWithRetry(AtlasDbConfig config,
+    private TransactionManager createTransactionManagerWithRetry(AtlasDbConfig config,
             Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig,
             Environment environment)
             throws InterruptedException {
@@ -141,7 +141,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private SerializableTransactionManager createTransactionManager(AtlasDbConfig config,
+    private TransactionManager createTransactionManager(AtlasDbConfig config,
             Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfigOptional, Environment environment) {
         return TransactionManagers.builder()
                 .config(config)

@@ -45,6 +45,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -146,7 +147,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
      * future versions.
      */
     @Deprecated
-    public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema,
+    public static TransactionManager createInMemoryTransactionManager(AtlasSchema schema,
             AtlasSchema... otherSchemas) {
 
         Set<Schema> schemas = Lists.asList(schema, otherSchemas).stream()
@@ -156,7 +157,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         return createInMemoryTransactionManagerInternal(schemas);
     }
 
-    private static SerializableTransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
+    private static TransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
         TimestampService ts = new InMemoryTimestampService();
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
 
@@ -178,7 +179,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 client,
                 ImmutableList.of(follower),
                 transactionService).buildCleaner();
-        SerializableTransactionManager ret = SerializableTransactionManager.createForTest(
+        TransactionManager ret = SerializableTransactionManager.createForTest(
                 keyValueService,
                 ts,
                 client,
