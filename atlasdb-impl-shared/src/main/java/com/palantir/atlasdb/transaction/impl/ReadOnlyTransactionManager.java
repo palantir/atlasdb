@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -27,6 +28,7 @@ import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -36,6 +38,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampService;
 
 /**
  * This {@link TransactionManager} will provide transactions that will read the most recently
@@ -183,12 +186,43 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
     public void clearTimestampCache() {}
 
     @Override
+    public void registerClosingCallback(Runnable closingCallback) {
+        throw new UnsupportedOperationException("Not supported on this transaction manager");
+    }
+
+    @Override
+    public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
+        throw new UnsupportedOperationException("Not supported on this transaction manager");
+    }
+
+    @Override
+    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
+            TransactionTask<T, E> task) throws E, TransactionFailedRetriableException {
+        throw new UnsupportedOperationException("Not supported on this transaction manager");
+    }
+
+    @Override
     public LockService getLockService() {
         return null;
     }
 
     @Override
     public TimelockService getTimelockService() {
+        return null;
+    }
+
+    @Override
+    public TimestampService getTimestampService() {
+        return null;
+    }
+
+    @Override
+    public Cleaner getCleaner() {
+        return null;
+    }
+
+    @Override
+    public KeyValueService getKeyValueService() {
         return null;
     }
 

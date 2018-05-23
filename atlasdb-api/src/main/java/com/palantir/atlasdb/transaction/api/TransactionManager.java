@@ -16,11 +16,14 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampService;
 
 public interface TransactionManager extends AutoCloseable {
     /**
@@ -240,6 +243,12 @@ public interface TransactionManager extends AutoCloseable {
 
     TimelockService getTimelockService();
 
+    TimestampService getTimestampService();
+
+    Cleaner getCleaner();
+
+    KeyValueService getKeyValueService();
+
     /**
      * Provides a {@link KeyValueServiceStatus}, indicating the current availability of the key value store.
      * This can be used to infer product health - in the usual, conservative case, products can call
@@ -284,6 +293,22 @@ public interface TransactionManager extends AutoCloseable {
      * the cache, although this can also be used to free up some memory.
      */
     void clearTimestampCache();
+
+    /**
+     * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
+     * submitted throws an exception.
+     *
+     * Concurrency: If this method races with close(), then closingCallback may not be called.
+     */
+    void registerClosingCallback(Runnable closingCallback);
+
+    @Deprecated
+    TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
+
+    @Deprecated
+    <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
+            TransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException;
 
     @Override
     void close();
