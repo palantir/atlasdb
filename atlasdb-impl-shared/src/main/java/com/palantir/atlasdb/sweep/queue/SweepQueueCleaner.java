@@ -72,6 +72,9 @@ public class SweepQueueCleaner {
     }
 
     private void progressTo(ShardAndStrategy shardStrategy, long lastSweptTs) {
+        if (lastSweptTs < 0) {
+            return;
+        }
         progress.updateLastSweptTimestamp(shardStrategy, lastSweptTs);
     }
 
