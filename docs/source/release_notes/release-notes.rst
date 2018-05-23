@@ -58,7 +58,14 @@ develop
            and on serializable tables, transactions that paradoxically conflict with themselves.
            Now, they are guaranteed to be returned in order, which removes this issue.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3174>`__)
-    
+
+    *    - |fixed|
+         - The Cassandra key value service is now guaranteed to return getRowsColumnRange results in the correct order.
+           Previously while paging over row dynamic columns, the first batchHint results are ordered lexicographically,
+           whilst the remainder are hashmap ordered in chunks of batchHint. In practice, when paging this can lead to
+           entirely incorrect, duplicate results being returned. Now, they are returned in order.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3184>`__)
+ 
 =======
 v0.84.0
 =======
