@@ -66,6 +66,11 @@ develop
            entirely incorrect, duplicate results being returned. Now, they are returned in order.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3184>`__)
  
+    *    - |fixed|
+         - Fixed a race condition where requests to a node can fail with NotCurrentLeaderException,
+           even though that node just gained leadership.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3183>`__)
+
 =======
 v0.84.0
 =======
