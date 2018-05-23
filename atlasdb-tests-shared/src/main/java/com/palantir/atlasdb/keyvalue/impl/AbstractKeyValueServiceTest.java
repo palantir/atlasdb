@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.After;
@@ -59,6 +60,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -99,6 +101,10 @@ public abstract class AbstractKeyValueServiceTest {
     protected static final byte[] column0 = PtBytes.toBytes("column0");
     protected static final byte[] column1 = PtBytes.toBytes("column1");
     protected static final byte[] column2 = PtBytes.toBytes("column2");
+    protected static final byte[] column3 = PtBytes.toBytes("column3");
+    protected static final byte[] column4 = PtBytes.toBytes("column4");
+    protected static final byte[] column5 = PtBytes.toBytes("column5");
+    protected static final byte[] column6 = PtBytes.toBytes("column6");
     protected static final byte[] value00 = PtBytes.toBytes("value00");
     protected static final byte[] value01 = PtBytes.toBytes("value01");
     protected static final byte[] value10 = PtBytes.toBytes("value10");
@@ -261,6 +267,30 @@ public abstract class AbstractKeyValueServiceTest {
         assertEquals(2, batchValues.size());
         assertArrayEquals(batchValues.get(Cell.create(row1, column0)).getContents(), value10);
         assertArrayEquals(batchValues.get(Cell.create(row1, column2)).getContents(), value12);
+    }
+
+    @Test
+    public void testGetRowColumnRange_pagesInOrder() {
+        // reg test for bug where HashMap led to reorder, batch 3 to increase chance of that happening if HashMap change
+        Map<Cell, byte[]> values = new HashMap<>();
+        values.put(Cell.create(row1, column0), value10);
+        values.put(Cell.create(row1, column1), value10);
+        values.put(Cell.create(row1, column2), value10);
+        values.put(Cell.create(row1, column3), value10);
+        values.put(Cell.create(row1, column4), value10);
+        values.put(Cell.create(row1, column5), value10);
+        values.put(Cell.create(row1, column6), value10);
+        keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP);
+
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(row1),
+                BatchColumnRangeSelection.create(null, null, 3),
+                TEST_TIMESTAMP + 1).get(row1);
+        List<byte[]> columns = Streams.stream(iterator)
+                .map(entry -> entry.getKey().getColumnName())
+                .collect(Collectors.toList());
+        assertEquals(ImmutableList.of(column0, column1, column2, column3, column4, column5, column6), columns);
     }
 
     @Test
