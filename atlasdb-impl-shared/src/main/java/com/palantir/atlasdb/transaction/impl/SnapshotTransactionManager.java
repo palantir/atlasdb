@@ -128,6 +128,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
+    @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
                 LockImmutableTimestampRequest.create());
@@ -146,6 +147,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
+    @Override
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock txAndLock,
                                                                            TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
@@ -226,12 +228,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    /**
-     * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
-     * submitted throws an exception.
-     *
-     * Concurrency: If this method races with close(), then closingCallback may not be called.
-     */
+    @Override
     public void registerClosingCallback(Runnable closingCallback) {
         Preconditions.checkNotNull(closingCallback, "Cannot register a null callback.");
         closingCallbacks.add(closingCallback);
@@ -323,14 +320,17 @@ import com.palantir.timestamp.TimestampService;
         return cleaner.getUnreadableTimestamp();
     }
 
+    @Override
     public Cleaner getCleaner() {
         return cleaner;
     }
 
+    @Override
     public KeyValueService getKeyValueService() {
         return keyValueService;
     }
 
+    @Override
     public TimestampService getTimestampService() {
         return new TimelockTimestampServiceAdapter(timelockService);
     }
