@@ -1,5 +1,5 @@
 cassandra2:
-  image: palantirtechnologies/docker-cassandra-atlasdb:2.2.8
+  image: palantirtechnologies/docker-cassandra-atlasdb:2.2.9
 
 #cassandra3: //Uncomment when Cassandra 3.7 testing is enabled.
 #  image: palantirtechnologies/docker-cassandra-atlasdb:3.7

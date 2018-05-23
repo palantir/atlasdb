@@ -52,7 +52,7 @@ sure to use the corresponding version of the CLIs with your service. The command
 
 .. code-block:: bash
 
-   ./service/bin/atlasdb-cli clean-cass-locks-state var/conf/<service>.yml --offline
+   ./service/bin/atlasdb-cli --offline -c var/conf/<service>.yml clean-cass-locks-state
 
 Clear with CQL
 --------------
@@ -177,6 +177,7 @@ compare-and-set operation here.
 
 .. code-block:: none
 
+   cqlsh:keyspace> CONSISTENCY QUROUM;
    cqlsh:keyspace> UPDATE "_persisted_locks" SET value=0x7b226c6f636b4e616d65223a224261636b75704c6f636b222c22696e7374616e63654964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303030222c22726561736f6e223a22417661696c61626c65227d WHERE key=0x4261636b75704c6f636b AND column1=0x6c6f636b AND column2=-1 IF value=0x7b226c6f636b4e616d65223a224261636b75704c6f636b222c22696e7374616e63654964223a2234323765623032612d663031372d343063642d386430382d306131363333313530323961222c22726561736f6e223a22666f6f227d;
 
     [applied]
