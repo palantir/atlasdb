@@ -27,6 +27,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -287,10 +288,18 @@ public abstract class AbstractKeyValueServiceTest {
                 ImmutableList.of(row1),
                 BatchColumnRangeSelection.create(null, null, 3),
                 TEST_TIMESTAMP + 1).get(row1);
-        List<byte[]> columns = Streams.stream(iterator)
+        List<ByteBuffer> columns = Streams.stream(iterator)
                 .map(entry -> entry.getKey().getColumnName())
+                .map(ByteBuffer::wrap)
                 .collect(Collectors.toList());
-        assertEquals(ImmutableList.of(column0, column1, column2, column3, column4, column5, column6), columns);
+        assertEquals(ImmutableList.of(
+                ByteBuffer.wrap(column0),
+                ByteBuffer.wrap(column1),
+                ByteBuffer.wrap(column2),
+                ByteBuffer.wrap(column3),
+                ByteBuffer.wrap(column4),
+                ByteBuffer.wrap(column5),
+                ByteBuffer.wrap(column6)), columns);
     }
 
     @Test
