@@ -174,15 +174,10 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     @Test
     public void sweepRetainsLatestVersion() {
         useOneSweepQueueShard();
-        txManager.runTaskWithRetry(txn -> {
-            put(txn, SINGLE_WRITE);
-            return null;
-        });
+
+        writeInTransactionAndGetStartTimestamp(SINGLE_WRITE);
         putWriteAndFailOnPreCommitConditionReturningStartTimestamp(SINGLE_WRITE);
-        long freshCommittedTs = txManager.runTaskWithRetry(txn -> {
-            put(txn, SINGLE_WRITE);
-            return txn.getTimestamp();
-        });
+        long freshCommittedTs = writeInTransactionAndGetStartTimestamp(SINGLE_WRITE);
         putWriteAndFailOnPreCommitConditionReturningStartTimestamp(SINGLE_DELETE);
         long freshFailedTs = putWriteAndFailOnPreCommitConditionReturningStartTimestamp(SINGLE_WRITE);
 
@@ -197,14 +192,9 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         useOneSweepQueueShard();
         WriteReference writeToThorough = WriteReference.write(TABLE_THOR, TEST_CELL);
         WriteReference tombstoneToThorough = WriteReference.tombstone(TABLE_THOR, TEST_CELL);
-        long firstStart = txManager.runTaskWithRetry(txn -> {
-            put(txn, writeToThorough);
-            return txn.getTimestamp();
-        });
-        long secondStart = txManager.runTaskWithRetry(txn -> {
-            put(txn, tombstoneToThorough);
-            return txn.getTimestamp();
-        });
+        long firstStart = writeInTransactionAndGetStartTimestamp(writeToThorough);
+        long secondStart = writeInTransactionAndGetStartTimestamp(tombstoneToThorough);
+
         assertLatestEntryBeforeTsIs(Long.MAX_VALUE, TABLE_THOR, TEST_CELL, PtBytes.EMPTY_BYTE_ARRAY, secondStart);
         assertLatestEntryBeforeTsIs(secondStart, TABLE_THOR, TEST_CELL, TEST_DATA, firstStart);
 
@@ -260,6 +250,13 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     private void assertOnlySentinelBeforeTs(TableReference tableRef, Cell cell, long ts) {
         Value sentinel = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
         assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, ts)).get(cell)).isEqualTo(sentinel);
+    }
+
+    private Long writeInTransactionAndGetStartTimestamp(WriteReference writeRef) {
+        return txManager.runTaskWithRetry(txn -> {
+            put(txn, writeRef);
+            return txn.getTimestamp();
+        });
     }
 
     private static class FailingPreCommitCondition implements PreCommitCondition {
