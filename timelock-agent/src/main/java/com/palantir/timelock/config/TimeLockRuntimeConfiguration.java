@@ -24,6 +24,8 @@ import com.palantir.atlasdb.timelock.auth.TimelockServiceAuthClient;
 @Value.Immutable
 public abstract class TimeLockRuntimeConfiguration {
 
+    private static final int MIN_SECRET_LENGTH = 16;
+
     @Value.Default
     public PaxosRuntimeConfiguration paxos() {
         return ImmutablePaxosRuntimeConfiguration.builder().build();
@@ -49,18 +51,27 @@ public abstract class TimeLockRuntimeConfiguration {
         return 10000;
     }
 
+    /**
+     * The namespace and token credentials the server should use to authenticate basic service clients
+     */
     @JsonProperty("service-auth-clients")
     @Value.Default
     public List<TimelockServiceAuthClient> serviceAuthClients() {
         return ImmutableList.of();
     }
 
+    /**
+     * The tokens the server should use to authenticate admin clients
+     */
     @JsonProperty("admin-auth-clients")
     @Value.Default
     public List<String> adminAuthSecrets() {
         return ImmutableList.of();
     }
 
+    /**
+     * The token used to authenticate requests between internal nodes of the cluster if it's the case
+     */
     @JsonProperty("internal-auth-secret")
     @Value.Default
     public Optional<String> internalAuthSecret() {
@@ -71,5 +82,9 @@ public abstract class TimeLockRuntimeConfiguration {
     public void check() {
         Preconditions.checkState(slowLockLogTriggerMillis() >= 0,
                 "Slow lock log trigger threshold must be nonnegative, but found %s", slowLockLogTriggerMillis());
+
+        Preconditions.checkState(
+                !internalAuthSecret().isPresent() || internalAuthSecret().get().length() >= MIN_SECRET_LENGTH,
+                "Internal auth secret must have at least %s characters.", MIN_SECRET_LENGTH);
     }
 }
