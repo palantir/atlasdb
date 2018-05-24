@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -74,10 +72,8 @@ public class WriteInfoPartitioner {
     @VisibleForTesting
     Map<PartitionInfo, List<WriteInfo>> partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
         int shards = numShards.get();
-        Map<PartitionInfo, List<WriteInfo>> result = new HashMap<>();
-        writes.forEach(write ->
-                result.computeIfAbsent(getPartitionInfo(write, shards), no -> new ArrayList<>()).add(write));
-        return result;
+        return writes.stream()
+                .collect(Collectors.groupingBy(write -> getPartitionInfo(write, shards), Collectors.toList()));
     }
 
     private PartitionInfo getPartitionInfo(WriteInfo write, int shards) {
@@ -86,7 +82,7 @@ public class WriteInfoPartitioner {
 
     @VisibleForTesting
     TableMetadataPersistence.SweepStrategy getStrategy(WriteInfo writeInfo) {
-        return cache.getUnchecked(writeInfo.writeRef().tableRef());
+        return cache.getUnchecked(writeInfo.tableRef());
     }
 
     private TableMetadataPersistence.SweepStrategy getStrategyFromKvs(TableReference tableRef) {

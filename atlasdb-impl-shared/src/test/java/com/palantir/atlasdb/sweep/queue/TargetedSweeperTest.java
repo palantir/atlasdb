@@ -17,13 +17,16 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_COARSE_GRANULARITY;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_FINE_GRANULARITY;
@@ -36,12 +39,15 @@ import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.exception.NotInitializedException;
 
 public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private static final long LOW_TS = 10L;
@@ -61,6 +67,26 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
         sweepableCells = new SweepableCells(spiedKvs, partitioner);
+    }
+
+    @Test
+    public void callingEnqueueAndSweepOnUnitializedSweeperThrows() {
+        TargetedSweeper uninitializedSweeper = TargetedSweeper.createUninitialized(null, null, 0, 0);
+        assertThatThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
+                .isInstanceOf(NotInitializedException.class)
+                .hasMessageContaining("Targeted Sweeper");
+        assertThatThrownBy(() -> uninitializedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0)))
+                .isInstanceOf(NotInitializedException.class)
+                .hasMessageContaining("Targeted Sweeper");
+    }
+
+    @Test
+    public void initializingWithUninitializedKvsThrows() {
+        KeyValueService uninitializedKvs = mock(KeyValueService.class);
+        when(uninitializedKvs.isInitialized()).thenReturn(false);
+        TargetedSweeper sweeper = TargetedSweeper.createUninitialized(null, null, 0, 0);
+        assertThatThrownBy(() -> sweeper.initialize(null, uninitializedKvs))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

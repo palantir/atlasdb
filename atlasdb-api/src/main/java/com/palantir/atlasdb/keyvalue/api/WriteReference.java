@@ -70,6 +70,14 @@ public abstract class WriteReference implements Persistable {
         }
     }
 
+    public static WriteReference tombstone(TableReference tableRef, Cell cell) {
+        return WriteReference.of(tableRef, cell, true);
+    }
+
+    public static WriteReference write(TableReference tableRef, Cell cell) {
+        return WriteReference.of(tableRef, cell, false);
+    }
+
     public static WriteReference of(TableReference tableRef, Cell cell, boolean isTombstone) {
         return ImmutableWriteReference.builder().tableRef(tableRef).cell(cell).isTombstone(isTombstone).build();
     }
