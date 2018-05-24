@@ -43,10 +43,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -64,17 +60,12 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     public void setUp() throws Exception {
         super.setUp();
         keyValueService.createTable(TABLE_CONS, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        keyValueService.createTable(TABLE_THOR, new TableMetadata(new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_WRITE_WRITE,
-                TableMetadataPersistence.CachePriority.WARM,
-                false,
-                0,
-                false,
-                TableMetadataPersistence.SweepStrategy.THOROUGH,
-                false,
-                TableMetadataPersistence.LogSafety.UNSAFE)
-                .persistToBytes());
+        keyValueService.createTable(TABLE_THOR,
+                TableMetadataPersistence.TableMetadata.newBuilder(
+                TableMetadataPersistence.TableMetadata.parseFrom(AtlasDbConstants.GENERIC_TABLE_METADATA))
+                .setSweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH)
+                .build()
+                .toByteArray());
     }
 
     @Test
