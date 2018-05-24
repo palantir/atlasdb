@@ -400,17 +400,17 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    public void doesNotGoBackwardsEvenIfSweepTimestampRegressesSimple() {
+    public void doesNotGoBackwardsEvenIfSweepTimestampRegressesWithinBucket() {
         enqueueWrite(TABLE_CONS, LOW_TS);
         enqueueWrite(TABLE_CONS, LOW_TS2);
         enqueueWrite(TABLE_CONS, LOW_TS3);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS3);
-        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS3);
+        runConservativeSweepAtTimestamp(LOW_TS2 + 5);
+        assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS2);
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS2);
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
 
-        runConservativeSweepAtTimestamp(LOW_TS3 - 5);
+        runConservativeSweepAtTimestamp(LOW_TS2 - 5);
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
     }
 
