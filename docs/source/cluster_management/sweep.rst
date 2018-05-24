@@ -40,5 +40,6 @@ Ways to Sweep
     :maxdepth: 1
     :hidden:
 
-    standard-sweep
-    targeted-sweep
+    sweep/freeing-space
+    sweep/standard-sweep
+    sweep/targeted-sweep

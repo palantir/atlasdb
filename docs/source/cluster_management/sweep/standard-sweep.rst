@@ -113,8 +113,7 @@ than if we accounted for the partial sweep.
     :maxdepth: 1
     :hidden:
 
-    sweep/background-sweep
-    sweep/sweep-endpoints
-    sweep/sweep-cli
-    sweep/sweep-logs
-    sweep/freeing-space
+    standard/background-sweep
+    standard/sweep-endpoints
+    standard/sweep-cli
+    standard/sweep-logs

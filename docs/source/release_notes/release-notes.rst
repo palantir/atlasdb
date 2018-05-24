@@ -57,6 +57,8 @@ develop
            For more details on targeted sweep, please refer to the :ref:`targeted sweep docs<targeted-sweep>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3094>`__)
 
+           Note that targeted sweep is considered a beta feature as it is not fully functional yet.
+           Consult with the AtlasDB team if you wish to use targeted sweep in addition to, or instead of, standard sweep.
 
     *    - |fixed|
          - Snapshot transaction is now guaranteed to return getRowsColumnRange results in the correct order.

@@ -25,7 +25,7 @@ As long as targeted sweep is enabled, background threads will read the informati
 
    While sweep queue writes are disabled, nothing will be persisted to the sweep queue.
    This can result in targeted sweep being unable to delete older versions of cells written to while sweep queue writes are disabled even if they are later enabled again.
-   In this case, running standard sweep may be necessary, to delete any stale versions that targeted sweep may have missed.
+   In this case, running standard sweep may be necessary, to delete any stale versions that targeted sweep has missed.
 
 Configuration Options
 ---------------------
