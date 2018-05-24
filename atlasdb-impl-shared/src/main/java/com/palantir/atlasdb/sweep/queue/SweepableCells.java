@@ -190,8 +190,8 @@ public class SweepableCells extends KvsSweepQueueWriter {
             if (entry.getValue() == TransactionConstants.FAILED_COMMIT_TS) {
                 startTsWrites.get(entry.getKey())
                         .forEach(write -> cellsToDelete
-                                .computeIfAbsent(write.writeRef().tableRef(), ignore -> HashMultimap.create())
-                                .put(write.writeRef().cell(), write.timestamp()));
+                                .computeIfAbsent(write.tableRef(), ignore -> HashMultimap.create())
+                                .put(write.cell(), write.timestamp()));
             } else {
                 committedTimestamps.add(entry.getKey());
             }
@@ -277,7 +277,8 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private Map<Cell, byte[]> addWrite(PartitionInfo info, WriteInfo write, boolean dedicate, long index) {
-        return addCell(info, write.writeRef(), dedicate, index / SweepQueueUtils.MAX_CELLS_DEDICATED, index % SweepQueueUtils.MAX_CELLS_DEDICATED);
+        return addCell(info, write.writeRef(), dedicate, index / SweepQueueUtils.MAX_CELLS_DEDICATED,
+                index % SweepQueueUtils.MAX_CELLS_DEDICATED);
     }
 
     private List<RangeRequest> rangeRequestsDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {

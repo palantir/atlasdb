@@ -110,7 +110,7 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    public void noNextTimestampWhenWhenSweepTimestampInSamePartitionAndLower() {
+    public void noNextTimestampWhenSweepTimestampInSamePartitionAndLower() {
         immutableTs = minTsForFinePartition(TS_FINE_PARTITION);
 
         assertThat(tsPartitionFine(getSweepTsCons())).isEqualTo(TS_FINE_PARTITION);

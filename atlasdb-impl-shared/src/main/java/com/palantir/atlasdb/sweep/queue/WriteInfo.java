@@ -32,6 +32,14 @@ public interface WriteInfo {
     long timestamp();
     WriteReference writeRef();
 
+    default TableReference tableRef() {
+        return writeRef().tableRef();
+    }
+
+    default Cell cell() {
+        return writeRef().cell();
+    }
+
     default long timestampToDeleteAtExclusive(Sweeper sweeper) {
         if (sweeper.shouldSweepLastCommitted() && writeRef().isTombstone()) {
             return timestamp() + 1L;

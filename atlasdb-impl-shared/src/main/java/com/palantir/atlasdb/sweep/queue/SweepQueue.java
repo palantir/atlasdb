@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.Sweeper;
 
 public final class SweepQueue implements SweepQueueWriter {
-    private static final int FIVE_MINUTES = 5000 * 60;
+    private static final long FIVE_MINUTES = TimeUnit.MINUTES.toMillis(5L);
 
     private final SweepableCells sweepableCells;
     private final SweepableTimestamps sweepableTimestamps;
@@ -61,7 +61,7 @@ public final class SweepQueue implements SweepQueueWriter {
      * Creates a supplier such that the first call to {@link Supplier#get()} on it will take the maximum of the runtime
      * configuration and the persisted number of shards, and persist and memoize the result. Subsequent calls will
      * return the cached value until refreshTimeMillis has passed, at which point the next call will again perform the
-     * check nad set.
+     * check and set.
      *
      * @param runtimeConfig live reloadable runtime configuration for the number of shards
      * @param progress progress table persisting the number of shards
