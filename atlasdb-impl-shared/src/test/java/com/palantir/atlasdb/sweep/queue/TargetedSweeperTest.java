@@ -409,9 +409,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS2);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS2);
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
+        assertProgressUpdatedToTimestamp(LOW_TS2 + 5 - 1);
 
         runConservativeSweepAtTimestamp(LOW_TS2 - 5);
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
+        assertProgressUpdatedToTimestamp(LOW_TS2 + 5 - 1);
     }
 
     @Test
@@ -422,6 +424,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         runConservativeSweepAtTimestamp(Long.MIN_VALUE);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS);
+        assertProgressUpdatedToTimestamp(SweepQueueUtils.INITIAL_TIMESTAMP);
     }
 
     @Test
