@@ -36,34 +36,54 @@ import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.PersistableBoolean;
 
-public class KvsSweepQueueProgress {
-    private static final Logger log = LoggerFactory.getLogger(KvsSweepQueueProgress.class);
+public class ShardProgress {
+    private static final Logger log = LoggerFactory.getLogger(ShardProgress.class);
     private static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
             .getSweepShardProgressTable(null).getTableRef();
 
     private static final int SHARD_COUNT_INDEX = -1;
-    public static final long INITIAL_TIMESTAMP = -1L;
 
     private final KeyValueService kvs;
 
-    public KvsSweepQueueProgress(KeyValueService kvs) {
+    public ShardProgress(KeyValueService kvs) {
         this.kvs = kvs;
     }
 
+    /**
+     * Returns the persisted number of shards for the sweep queue.
+     */
     public int getNumberOfShards() {
         return (int) getOrReturnInitial(ShardAndStrategy.conservative(SHARD_COUNT_INDEX),
-                AtlasDbConstants.DEFAULT_TARGETED_SWEEP_SHARDS);
+                AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
     }
 
+    /**
+     * Updates the persisted number of shards to newNumber, if newNumber is greater than the currently persisted number
+     * of shards.
+     *
+     * @param newNumber the desired new number of shards
+     * @return the latest known persisted number of shards, which may be greater than newNumber
+     */
     public int updateNumberOfShards(int newNumber) {
-        Preconditions.checkArgument(newNumber <= 256);
+        Preconditions.checkArgument(newNumber <= AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS);
         return (int) increaseValueToAtLeast(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), newNumber);
     }
 
+    /**
+     * Returns the last swept timestamp for the given shard and strategy.
+     */
     public long getLastSweptTimestamp(ShardAndStrategy shardAndStrategy) {
-        return getOrReturnInitial(shardAndStrategy, INITIAL_TIMESTAMP);
+        return getOrReturnInitial(shardAndStrategy, SweepQueueUtils.INITIAL_TIMESTAMP);
     }
 
+    /**
+     * Updates the persisted last swept timestamp for the given shard and strategy to timestamp if it is greater than
+     * the currently persisted last swept timestamp.
+     *
+     * @param shardAndStrategy shard and strategy to update for
+     * @param timestamp timestamp to update to
+     * @return the latest known persisted sweep timestamp for the shard and strategy
+     */
     public long updateLastSweptTimestamp(ShardAndStrategy shardAndStrategy, long timestamp) {
         return increaseValueToAtLeast(shardAndStrategy, timestamp);
     }
@@ -123,7 +143,7 @@ public class KvsSweepQueueProgress {
     }
 
     private CheckAndSetRequest createRequest(ShardAndStrategy shardAndStrategy, long oldVal, byte[] colValNew) {
-        if (oldVal == INITIAL_TIMESTAMP) {
+        if (oldVal == SweepQueueUtils.INITIAL_TIMESTAMP) {
             return CheckAndSetRequest.newCell(TABLE_REF, cellForShard(shardAndStrategy), colValNew);
         }
         byte[] colValOld = SweepShardProgressTable.Value.of(oldVal).persistValue();

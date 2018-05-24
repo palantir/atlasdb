@@ -1012,9 +1012,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private void put(Transaction txn, TableReference table, WriteInfo write) {
         if (write.writeRef().isTombstone()) {
-            txn.delete(table, ImmutableSet.of(write.writeRef().cell()));
+            txn.delete(table, ImmutableSet.of(write.cell()));
         } else {
-            txn.put(table, ImmutableMap.of(write.writeRef().cell(), new byte[1]));
+            txn.put(table, ImmutableMap.of(write.cell(), new byte[1]));
         }
     }
 

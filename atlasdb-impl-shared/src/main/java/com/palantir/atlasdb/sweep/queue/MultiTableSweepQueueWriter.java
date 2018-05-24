@@ -34,8 +34,20 @@ public interface MultiTableSweepQueueWriter extends AutoCloseable {
         enqueue(toWriteInfos(writes, timestamp));
     }
 
+    /**
+     * Persists the information about the writes into the sweep queue.
+     *
+     * @param writes list of writes to persist the information for
+     */
     void enqueue(List<WriteInfo> writes);
 
+    /**
+     * This method must be implemented if asynchronous initialization is necessary for the implementation. This is
+     * generally the case if the transaction manager allows asynchronous initialization since there is no guarantee
+     * the underlying kvs is ready at object creation time.
+     *
+     * @param txManager the transaction manager performing the callback
+     */
     default void callbackInit(SerializableTransactionManager txManager) {
         // noop
     }

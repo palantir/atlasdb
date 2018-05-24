@@ -21,9 +21,10 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTablesTest.metadataBytes;
+import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTest.metadataBytes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,7 +88,9 @@ public class WriteInfoPartitionerTest {
             partitioner.getStrategy(getWriteInfoWithFixedCellHash(NOTHING, i));
             partitioner.getStrategy(getWriteInfoWithFixedCellHash(CONSERVATIVE, i));
         }
-        verify(mockKvs, times(2)).getMetadataForTable(any());
+        verify(mockKvs, times(1)).getMetadataForTable(NOTHING);
+        verify(mockKvs, times(1)).getMetadataForTable(CONSERVATIVE);
+        verifyNoMoreInteractions(mockKvs);
     }
 
     @Test
@@ -129,8 +132,7 @@ public class WriteInfoPartitionerTest {
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
         assertThat(partitions.keySet())
                 .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), true, 1L));
-        assertThat(partitions.values())
-                .containsExactly(writes);
+        assertThat(partitions.values()).containsExactly(writes);
     }
 
     @Test
@@ -138,7 +140,7 @@ public class WriteInfoPartitionerTest {
         WriteInfo write = getWriteInfo(CONSERVATIVE, 1, 1, 100L);
         PartitionInfo partition1 = Iterables.getOnlyElement(
                 partitioner.partitionWritesByShardStrategyTimestamp(ImmutableList.of(write)).keySet());
-        numShards = 199;
+        numShards += 1;
         PartitionInfo partition2 = Iterables.getOnlyElement(
                 partitioner.partitionWritesByShardStrategyTimestamp(ImmutableList.of(write)).keySet());
 

@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -50,15 +49,6 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import gnu.trove.set.hash.TLongHashSet;
 
 public class SweepableCells extends KvsSweepQueueWriter {
-    private static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
-    @VisibleForTesting
-    public static final int MAX_CELLS_GENERIC = 50;
-    @VisibleForTesting
-    public static final int MAX_CELLS_DEDICATED = 100_000;
-    @VisibleForTesting
-    public static final long SWEEP_BATCH_SIZE = 1000L;
-    private static final int MINIMUM_WRITE_INDEX = -TargetedSweepMetadata.MAX_DEDICATED_ROWS;
-
     private final CommitTsLoader commitTsLoader;
 
     public SweepableCells(KeyValueService kvs, WriteInfoPartitioner partitioner) {
@@ -70,7 +60,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     @Override
     Map<Cell, byte[]> populateCells(PartitionInfo partitionInfo, List<WriteInfo> writes) {
         Map<Cell, byte[]> cells = new HashMap<>();
-        boolean dedicate = writes.size() > MAX_CELLS_GENERIC;
+        boolean dedicate = writes.size() > SweepQueueUtils.MAX_CELLS_GENERIC;
 
         if (dedicate) {
             cells.putAll(addReferenceToDedicatedRows(partitionInfo, writes));
@@ -89,7 +79,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private long entryIndicatingNumberOfRequiredRows(List<WriteInfo> writes) {
-        return -(1 + (writes.size() - 1) / MAX_CELLS_DEDICATED);
+        return -(1 + (writes.size() - 1) / SweepQueueUtils.MAX_CELLS_DEDICATED);
     }
 
     private Map<Cell, byte[]> addCell(PartitionInfo info, WriteReference writeRef, boolean isDedicatedRow,
@@ -152,9 +142,10 @@ public class SweepableCells extends KvsSweepQueueWriter {
         return SweepBatch.of(writes, lastSweptTs);
     }
 
-    private Multimap<Long, WriteInfo> getBatchOfWrites(SweepableCellsTable.SweepableCellsRow row, RowColumnRangeIterator resultIterator) {
+    private Multimap<Long, WriteInfo> getBatchOfWrites(SweepableCellsTable.SweepableCellsRow row,
+            RowColumnRangeIterator resultIterator) {
         Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
-        while (resultIterator.hasNext() && writesByStartTs.size() < SWEEP_BATCH_SIZE) {
+        while (resultIterator.hasNext() && writesByStartTs.size() < SweepQueueUtils.SWEEP_BATCH_SIZE) {
             Map.Entry<Cell, Value> entry = resultIterator.next();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
             writesByStartTs.putAll(getTimestamp(row, col), getWrites(row, col, entry.getValue()));
@@ -187,7 +178,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     private RowColumnRangeIterator getRowColumnRange(SweepableCellsTable.SweepableCellsRow row, long partitionFine,
             long minTsExclusive, long maxTsExclusive) {
         return getRowsColumnRange(ImmutableList.of(row.persistToBytes()),
-                columnsBetween(minTsExclusive + 1, maxTsExclusive, partitionFine), MAX_CELLS_DEDICATED);
+                columnsBetween(minTsExclusive + 1, maxTsExclusive, partitionFine), SweepQueueUtils.MAX_CELLS_DEDICATED);
     }
 
     private List<Long> getCommittedTimestampsDescendingAndCleanupAborted(Multimap<Long, WriteInfo> startTsWrites) {
@@ -199,8 +190,8 @@ public class SweepableCells extends KvsSweepQueueWriter {
             if (entry.getValue() == TransactionConstants.FAILED_COMMIT_TS) {
                 startTsWrites.get(entry.getKey())
                         .forEach(write -> cellsToDelete
-                                .computeIfAbsent(write.writeRef().tableRef(), ignore -> HashMultimap.create())
-                                .put(write.writeRef().cell(), write.timestamp()));
+                                .computeIfAbsent(write.tableRef(), ignore -> HashMultimap.create())
+                                .put(write.cell(), write.timestamp()));
             } else {
                 committedTimestamps.add(entry.getKey());
             }
@@ -262,7 +253,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private RowColumnRangeIterator getWithColumnRangeAll(Iterable<byte[]> rows) {
-        return getRowsColumnRange(rows, ALL_COLUMNS, MAX_CELLS_DEDICATED);
+        return getRowsColumnRange(rows, SweepQueueUtils.ALL_COLUMNS, SweepQueueUtils.MAX_CELLS_DEDICATED);
     }
 
     private WriteInfo getWriteInfo(long timestamp, Value value) {
@@ -286,7 +277,8 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private Map<Cell, byte[]> addWrite(PartitionInfo info, WriteInfo write, boolean dedicate, long index) {
-        return addCell(info, write.writeRef(), dedicate, index / MAX_CELLS_DEDICATED, index % MAX_CELLS_DEDICATED);
+        return addCell(info, write.writeRef(), dedicate, index / SweepQueueUtils.MAX_CELLS_DEDICATED,
+                index % SweepQueueUtils.MAX_CELLS_DEDICATED);
     }
 
     private List<RangeRequest> rangeRequestsDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {
@@ -332,9 +324,11 @@ public class SweepableCells extends KvsSweepQueueWriter {
 
     private ColumnRangeSelection columnsBetween(long startTsInclusive, long endTsExclusive, long partitionFine) {
         long startIncl = exactColumnOrElseBeginningOfRow(startTsInclusive, partitionFine);
-        byte[] startCol = SweepableCellsTable.SweepableCellsColumn.of(startIncl, MINIMUM_WRITE_INDEX).persistToBytes();
+        byte[] startCol = SweepableCellsTable.SweepableCellsColumn.of(startIncl, SweepQueueUtils.MINIMUM_WRITE_INDEX)
+                .persistToBytes();
         long endExcl = exactColumnOrElseOneBeyondEndOfRow(endTsExclusive, partitionFine);
-        byte[] endCol = SweepableCellsTable.SweepableCellsColumn.of(endExcl, MINIMUM_WRITE_INDEX).persistToBytes();
+        byte[] endCol = SweepableCellsTable.SweepableCellsColumn.of(endExcl, SweepQueueUtils.MINIMUM_WRITE_INDEX)
+                .persistToBytes();
         return new ColumnRangeSelection(startCol, endCol);
     }
 
@@ -345,14 +339,6 @@ public class SweepableCells extends KvsSweepQueueWriter {
 
     private long exactColumnOrElseBeginningOfRow(long startTsInclusive, long partitionFine) {
         return Math.max(startTsInclusive - SweepQueueUtils.minTsForFinePartition(partitionFine), 0);
-    }
-
-    private static ColumnRangeSelection allPossibleColumns() {
-        byte[] startCol = SweepableCellsTable.SweepableCellsColumn.of(0L, MINIMUM_WRITE_INDEX)
-                .persistToBytes();
-        byte[] endCol = SweepableCellsTable.SweepableCellsColumn.of(SweepQueueUtils.TS_FINE_GRANULARITY, 0L)
-                .persistToBytes();
-        return new ColumnRangeSelection(startCol, endCol);
     }
 }
 

@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
@@ -31,19 +32,21 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.exception.NotInitializedException;
 
-public class KvsSweepQueue implements MultiTableSweepQueueWriter {
+@SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
+public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
 
-    private KvsSweepQueueTables tables;
-    private KvsSweepDeleter deleter;
-    private KvsSweepQueueScrubber scrubber;
-    private SweepTimestampProvider timestampProvider;
+    private SweepQueue queue;
+    private SpecialTimestampsSupplier timestampsSupplier;
     private BackgroundSweepScheduler conservativeScheduler;
     private BackgroundSweepScheduler thoroughScheduler;
 
-    private KvsSweepQueue(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
+    private volatile boolean isInitialized = false;
+
+    private TargetedSweeper(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
             int conservativeThreads, int thoroughThreads) {
         this.runSweep = runSweep;
         this.shardsConfig = shardsConfig;
@@ -53,49 +56,81 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
                 TableMetadataPersistence.SweepStrategy.THOROUGH);
     }
 
-    public static KvsSweepQueue createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
+    /**
+     * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
+     * {@link #initialize(SpecialTimestampsSupplier, KeyValueService)} method before any writes can be made to the
+     * sweep queue, or before sweeping.
+     *
+     * @param enabled live reloadable config controlling whether background threads should perform targeted sweep.
+     * @param shardsConfig live reloadable config specifying the desired number of shards. Since the number of shards
+     * must never be reduced, this will be ignored if the persisted number of shards is greater.
+     * @param conservativeThreads number of conservative threads to use for background targeted sweep.
+     * @param thoroughThreads number of thorough threads to use for background targeted sweep.
+     * @return returns an uninitialized targeted sweeper.
+     */
+    public static TargetedSweeper createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
             int conservativeThreads, int thoroughThreads) {
-        return new KvsSweepQueue(enabled, shardsConfig, conservativeThreads, thoroughThreads);
+        return new TargetedSweeper(enabled, shardsConfig, conservativeThreads, thoroughThreads);
     }
 
-    public void initialize(SweepTimestampProvider provider, KeyValueService kvs) {
+    /**
+     * This method initializes all the resources necessary for the targeted sweeper. This method should only be called
+     * once the kvs is ready.
+     *
+     * @param timestamps supplier of unreadable and immutable timestamps.
+     * @param kvs key value service that must be already initialized.
+     */
+    public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs) {
+        if (isInitialized) {
+            return;
+        }
+        Preconditions.checkState(kvs.isInitialized(),
+                "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        tables = KvsSweepQueueTables.create(kvs, shardsConfig);
-        deleter = new KvsSweepDeleter(kvs);
-        scrubber = new KvsSweepQueueScrubber(tables);
-        timestampProvider = provider;
+        queue = SweepQueue.create(kvs, shardsConfig);
+        timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
+        isInitialized = true;
     }
 
     @Override
     public void callbackInit(SerializableTransactionManager txManager) {
-        initialize(SweepTimestampProvider.create(txManager), txManager.getKeyValueService());
+        initialize(SpecialTimestampsSupplier.create(txManager), txManager.getKeyValueService());
     }
 
     @Override
     public void enqueue(List<WriteInfo> writes) {
-        tables.enqueue(writes);
+        assertInitialized();
+        queue.enqueue(writes);
     }
 
+    /**
+     * Sweeps the next batch for the given shard and strategy. If the sweep is successful, we delete the processed
+     * writes from the sweep queue and then update the sweep queue progress accordingly.
+     *
+     * @param shardStrategy shard and strategy to use
+     */
     @VisibleForTesting
     public void sweepNextBatch(ShardAndStrategy shardStrategy) {
+        assertInitialized();
         if (!runSweep.get()) {
             return;
         }
-        Sweeper sweeper = Sweeper.of(shardStrategy.strategy()).get();
-        long lastSweptTimestamp = tables.getLastSweptTimestamp(shardStrategy);
-        long maxTsExclusive = timestampProvider.getSweepTimestamp(sweeper);
-        SweepBatch sweepBatch = tables.getNextBatchAndSweptTimestamp(shardStrategy, lastSweptTimestamp, maxTsExclusive);
-
-        deleter.sweep(sweepBatch.writes(), sweeper);
-        scrubber.scrub(shardStrategy, lastSweptTimestamp, sweepBatch.lastSweptTimestamp());
+        long maxTsExclusive = Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier);
+        queue.sweepNextBatch(shardStrategy, maxTsExclusive);
     }
 
     @Override
     public void close() throws Exception {
         conservativeScheduler.close();
         thoroughScheduler.close();
+    }
+
+    private void assertInitialized() {
+        if (!isInitialized) {
+            throw new NotInitializedException("Targeted Sweeper");
+        }
     }
 
     private class BackgroundSweepScheduler implements AutoCloseable {
@@ -112,7 +147,7 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
         private void scheduleBackgroundThreads() {
             if (numThreads > 0) {
                 executorService = PTExecutors
-                        .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", false));
+                        .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", true));
                 for (int i = 0; i < numThreads; i++) {
                     executorService.scheduleWithFixedDelay(
                             () -> sweepNextBatch(ShardAndStrategy.of(getShardAndIncrement(), sweepStrategy)),
@@ -122,7 +157,7 @@ public class KvsSweepQueue implements MultiTableSweepQueueWriter {
         }
 
         private int getShardAndIncrement() {
-            return tables.modShards(counter.getAndIncrement());
+            return queue.modShards(counter.getAndIncrement());
         }
 
         @Override

@@ -21,6 +21,10 @@ import java.util.List;
 
 import org.immutables.value.Value;
 
+/**
+ * Contains information on a batch to sweep: a possibly empty list of WriteInfos to sweep for and the maximum timestamp
+ * guaranteed to have been swept once the batch is processed.
+ */
 @Value.Immutable
 public interface SweepBatch {
     List<WriteInfo> writes();

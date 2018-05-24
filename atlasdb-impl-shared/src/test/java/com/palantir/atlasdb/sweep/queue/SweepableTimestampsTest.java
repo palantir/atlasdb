@@ -32,29 +32,18 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.sweep.Sweeper;
 
-public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
+public class SweepableTimestampsTest extends AbstractSweepQueueTest {
+    private ShardProgress progress;
     private SweepableTimestamps sweepableTimestamps;
-    private SweepTimestampProvider provider;
-    private KvsSweepQueueProgress progress;
-
-    private int shardCons;
-    private int shardThor;
-    private long immutableTs;
-    private long unreadableTs;
 
     @Before
     @Override
     public void setup() {
         super.setup();
-        provider = new SweepTimestampProvider(() -> unreadableTs, () -> immutableTs);
-        progress = new KvsSweepQueueProgress(kvs);
-        sweepableTimestamps = new SweepableTimestamps(kvs, partitioner);
-
-        shardCons = writeToDefault(sweepableTimestamps, TS, TABLE_CONS);
-        shardThor = writeToDefault(sweepableTimestamps, TS2, TABLE_THOR);
-
-        immutableTs = 10 * TS;
-        unreadableTs = 10 * TS;
+        progress = new ShardProgress(spiedKvs);
+        sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
+        shardCons = writeToDefaultCellCommitted(sweepableTimestamps, TS, TABLE_CONS);
+        shardThor = writeToDefaultCellCommitted(sweepableTimestamps, TS2, TABLE_THOR);
     }
 
     @Test
@@ -73,6 +62,29 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
     public void cannotReadForWrongShard() {
         assertThat(readConservative(shardCons + 1)).isEmpty();
         assertThat(readThorough(shardThor + 1)).isEmpty();
+    }
+
+    @Test
+    public void canReadForAbortedTransactionMultipleTimes() {
+        long timestamp = 2 * TS_FINE_GRANULARITY + 1L;
+        writeToDefaultCellAborted(sweepableTimestamps, timestamp, TABLE_CONS);
+        assertThat(readConservative(CONS_SHARD)).contains(tsPartitionFine(timestamp));
+        assertThat(readConservative(CONS_SHARD)).contains(tsPartitionFine(timestamp));
+    }
+
+    @Test
+    public void canReadForUncommittedTransactionMultipleTimes() {
+        long timestamp = 3 * TS_FINE_GRANULARITY + 1L;
+        writeToDefaultCellUncommitted(sweepableTimestamps, timestamp, TABLE_CONS);
+        assertThat(readConservative(CONS_SHARD)).contains(tsPartitionFine(timestamp));
+        assertThat(readConservative(CONS_SHARD)).contains(tsPartitionFine(timestamp));
+    }
+
+    @Test
+    public void canReadNextTsForTombstone() {
+        long timestamp = 10L;
+        putTombstoneToDefaultCommitted(sweepableTimestamps, timestamp, TABLE_CONS);
+        assertThat(readConservative(CONS_SHARD)).contains(tsPartitionFine(timestamp));
     }
 
     @Test
@@ -98,21 +110,21 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
     }
 
     @Test
-    public void canReadNextTimestampWhenSweepTimestampInSamePartitionAndGreater() {
-        long sweepTs = setSweepTimestampAndGet(maxTsForFinePartition(TS_FINE_PARTITION));
+    public void noNextTimestampWhenSweepTimestampInSamePartitionAndLower() {
+        immutableTs = minTsForFinePartition(TS_FINE_PARTITION);
 
-        assertThat(tsPartitionFine(sweepTs)).isEqualTo(TS_FINE_PARTITION);
-        assertThat(sweepTs).isGreaterThan(TS);
-        assertThat(readConservative(shardCons)).contains(TS_FINE_PARTITION);
+        assertThat(tsPartitionFine(getSweepTsCons())).isEqualTo(TS_FINE_PARTITION);
+        assertThat(getSweepTsCons()).isLessThan(TS);
+        assertThat(readConservative(shardCons)).isEmpty();
     }
 
     @Test
-    public void noNextTimestampWhenWhenSweepTimestampInSamePartitionAndLower() {
-        long sweepTs = setSweepTimestampAndGet(minTsForFinePartition(TS_FINE_PARTITION));
+    public void canReadNextTimestampWhenSweepTimestampInSamePartitionAndGreater() {
+        immutableTs = maxTsForFinePartition(TS_FINE_PARTITION);
 
-        assertThat(tsPartitionFine(sweepTs)).isEqualTo(TS_FINE_PARTITION);
-        assertThat(sweepTs).isLessThan(TS);
-        assertThat(readConservative(shardCons)).isEmpty();
+        assertThat(tsPartitionFine(getSweepTsCons())).isEqualTo(TS_FINE_PARTITION);
+        assertThat(getSweepTsCons()).isGreaterThan(TS);
+        assertThat(readConservative(shardCons)).contains(TS_FINE_PARTITION);
     }
 
     @Test
@@ -170,7 +182,7 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
     @Test
     public void getCorrectNextTimestampWhenMultipleCandidates() {
         for (long timestamp = 1000L; tsPartitionFine(timestamp) < 10L; timestamp += TS_FINE_GRANULARITY / 5) {
-            writeToDefault(sweepableTimestamps, timestamp, TABLE_CONS);
+            writeToDefaultCellCommitted(sweepableTimestamps, timestamp, TABLE_CONS);
         }
         assertThat(readConservative(shardCons)).contains(tsPartitionFine(1000L));
 
@@ -185,18 +197,18 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTablesTest {
         return sweepableTimestamps.nextSweepableTimestampPartition(
                 conservative(shardNumber),
                 progress.getLastSweptTimestamp(ShardAndStrategy.conservative(shardNumber)),
-                provider.getSweepTimestamp(Sweeper.CONSERVATIVE));
+                Sweeper.CONSERVATIVE.getSweepTimestamp(timestampsSupplier));
     }
 
     private Optional<Long> readThorough(int shardNumber) {
         return sweepableTimestamps.nextSweepableTimestampPartition(
                 thorough(shardNumber),
                 progress.getLastSweptTimestamp(ShardAndStrategy.thorough(shardNumber)),
-                provider.getSweepTimestamp(Sweeper.THOROUGH));
+                Sweeper.THOROUGH.getSweepTimestamp(timestampsSupplier));
     }
 
     private long setSweepTimestampAndGet(long timestamp) {
         immutableTs = timestamp;
-        return provider.getSweepTimestamp(Sweeper.CONSERVATIVE);
+        return Sweeper.CONSERVATIVE.getSweepTimestamp(timestampsSupplier);
     }
 }

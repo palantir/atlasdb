@@ -130,9 +130,9 @@ public final class AtlasDbConstants {
 
     public static final boolean DEFAULT_ENABLE_SWEEP_QUEUE_WRITES = false;
     public static final boolean DEFAULT_ENABLE_TARGETED_SWEEP = false;
-    public static final int DEFAULT_TARGETED_SWEEP_SHARDS = 1;
+    public static final int DEFAULT_SWEEP_QUEUE_SHARDS = 1;
     public static final int DEFAULT_TARGETED_SWEEP_THREADS = 1;
-    public static final int SWEEP_QUEUE_MAX_SHARDS = TargetedSweepMetadata.MAX_SHARDS;
+    public static final int MAX_SWEEP_QUEUE_SHARDS = TargetedSweepMetadata.MAX_SHARDS;
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 

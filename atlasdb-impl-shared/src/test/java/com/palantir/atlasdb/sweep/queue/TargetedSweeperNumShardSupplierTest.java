@@ -24,7 +24,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.AtlasDbConstants.DEFAULT_TARGETED_SWEEP_SHARDS;
+import static com.palantir.atlasdb.AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS;
 
 import java.util.function.Supplier;
 
@@ -34,23 +34,22 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
-public class KvsSweepQueueNumShardSupplierTest {
+public class TargetedSweeperNumShardSupplierTest {
     private KeyValueService kvs;
-    private KvsSweepQueueProgress progress;
+    private ShardProgress progress;
     private Supplier<Integer> runtimeConfigSupplier = mock(Supplier.class);
     private Supplier<Integer> numShardSupplier;
 
     @Before
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
-        progress = spy(new KvsSweepQueueProgress(kvs));
-        numShardSupplier = KvsSweepQueueTables
-                .createUpdatingSupplier(runtimeConfigSupplier, progress::updateNumberOfShards, 1);
+        progress = spy(new ShardProgress(kvs));
+        numShardSupplier = SweepQueue.createProgressUpdatingSupplier(runtimeConfigSupplier, progress, 1);
     }
 
     @Test
     public void testDefaultValue() {
-        assertThat(setRuntimeAndGetNumShards(DEFAULT_TARGETED_SWEEP_SHARDS)).isEqualTo(DEFAULT_TARGETED_SWEEP_SHARDS);
+        assertThat(setRuntimeAndGetNumShards(DEFAULT_SWEEP_QUEUE_SHARDS)).isEqualTo(DEFAULT_SWEEP_QUEUE_SHARDS);
     }
 
     @Test
@@ -61,7 +60,7 @@ public class KvsSweepQueueNumShardSupplierTest {
 
     @Test
     public void testProgressHigherValue() {
-        when(runtimeConfigSupplier.get()).thenReturn(DEFAULT_TARGETED_SWEEP_SHARDS);
+        when(runtimeConfigSupplier.get()).thenReturn(DEFAULT_SWEEP_QUEUE_SHARDS);
         progress.updateNumberOfShards(25);
         assertThat(numShardSupplier.get()).isEqualTo(25);
     }
@@ -104,8 +103,8 @@ public class KvsSweepQueueNumShardSupplierTest {
 
     @Test
     public void getBeforeRefreshTimeDoesNotCheckConfigOrUpdateProgress() throws InterruptedException {
-        numShardSupplier = KvsSweepQueueTables
-                .createUpdatingSupplier(runtimeConfigSupplier, progress::updateNumberOfShards, 100_000);
+        numShardSupplier = SweepQueue
+                .createProgressUpdatingSupplier(runtimeConfigSupplier, progress, 100_000);
         assertThat(setRuntimeAndGetNumShards(50)).isEqualTo(50);
 
         assertThat(setRuntimeAndGetNumShards(100)).isEqualTo(50);

@@ -16,16 +16,19 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
+import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
+import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.NOTHING;
+import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.THOROUGH;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_COARSE_GRANULARITY;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 
 import com.google.common.collect.ImmutableList;
@@ -37,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -45,37 +49,47 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 
-public abstract class AbstractSweepQueueTablesTest {
+public abstract class AbstractSweepQueueTest {
     static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");
     static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.thorough");
+    static final TableReference TABLE_NOTH = TableReference.createFromFullyQualifiedName("test.nothing");
     static final Cell DEFAULT_CELL = Cell.create(new byte[] {'r'}, new byte[] {'c'});
-    static final long TS = 1_000_000_100L;
+    static final long TS = TS_COARSE_GRANULARITY + 100L;
     static final long TS2 = 2 * TS;
     static final long TS_FINE_PARTITION = tsPartitionFine(TS);
     static final long TS2_FINE_PARTITION = tsPartitionFine(TS2);
     static final int DEFAULT_SHARDS = 128;
     static final int FIXED_SHARD = WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(DEFAULT_SHARDS);
+    static final int CONS_SHARD = WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
+    static final int THOR_SHARD = WriteInfo.tombstone(TABLE_THOR, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
 
-    protected KeyValueService mockKvs = mock(KeyValueService.class);
-    protected KeyValueService kvs;
-    protected WriteInfoPartitioner partitioner;
-    private TransactionService txnService;
+    int numShards;
+    long immutableTs;
+    long unreadableTs;
+    int shardCons;
+    int shardThor;
 
-    protected int numShards;
+    KeyValueService spiedKvs;
+    SpecialTimestampsSupplier timestampsSupplier;
+    WriteInfoPartitioner partitioner;
+    TransactionService txnService;
 
     @Before
     public void setup() {
         numShards = DEFAULT_SHARDS;
-        when(mockKvs.getMetadataForTable(TABLE_CONS))
-                .thenReturn(metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
-        when(mockKvs.getMetadataForTable(TABLE_THOR))
-                .thenReturn(metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
-        partitioner = new WriteInfoPartitioner(mockKvs, () -> numShards);
-        kvs = spy(new InMemoryKeyValueService(true));
-        txnService = TransactionServices.createTransactionService(kvs);
+        unreadableTs = TS_COARSE_GRANULARITY * 5;
+        immutableTs = TS_COARSE_GRANULARITY * 5;
+
+        spiedKvs = spy(new InMemoryKeyValueService(true));
+        spiedKvs.createTable(TABLE_CONS, metadataBytes(CONSERVATIVE));
+        spiedKvs.createTable(TABLE_THOR, metadataBytes(THOROUGH));
+        spiedKvs.createTable(TABLE_NOTH, metadataBytes(NOTHING));
+        timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
+        partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
+        txnService = TransactionServices.createTransactionService(spiedKvs);
     }
 
-    public static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {
+    static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {
         return new TableMetadata(new NameMetadataDescription(),
                 new ColumnMetadataDescription(),
                 ConflictHandler.RETRY_ON_WRITE_WRITE,
@@ -89,75 +103,64 @@ public abstract class AbstractSweepQueueTablesTest {
                 .persistToBytes();
     }
 
-    public int writeToDefault(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
-        return writeToCell(queueWriter, timestamp, DEFAULT_CELL, tableRef);
+    int writeToDefaultCellCommitted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
+        return writeToCellCommitted(queueWriter, timestamp, DEFAULT_CELL, tableRef);
     }
 
-    public int writeToCell(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
+    int writeToCellCommitted(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
         putTimestampIntoTransactionTable(timestamp, Long.MAX_VALUE);
         return write(queueWriter, timestamp, cell, false, tableRef);
     }
 
-    public int writeToCellUncommitted(KvsSweepQueueWriter queueWriter, long ts, Cell cell, TableReference tableRef) {
-        return write(queueWriter, ts, cell, false, tableRef);
+    int writeToDefaultCellUncommitted(KvsSweepQueueWriter queueWriter, long ts, TableReference tableRef) {
+        return write(queueWriter, ts, DEFAULT_CELL, false, tableRef);
     }
 
-    public int writeToCellAborted(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
+    int writeToDefaultCellAborted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
         putTimestampIntoTransactionTable(timestamp, TransactionConstants.FAILED_COMMIT_TS);
-        return write(queueWriter, timestamp, cell, false, tableRef);
+        return write(queueWriter, timestamp, DEFAULT_CELL, false, tableRef);
     }
 
-    public int putTombstone(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
+    int putTombstoneToDefaultCommitted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
         putTimestampIntoTransactionTable(timestamp, Long.MAX_VALUE);
-        return write(queueWriter, timestamp, cell, true, tableRef);
+        return write(queueWriter, timestamp, DEFAULT_CELL, true, tableRef);
     }
 
-    public int putTombstoneUncommitted(KvsSweepQueueWriter queueWriter, long ts, Cell cell, TableReference tableRef) {
-        return write(queueWriter, ts, cell, true, tableRef);
-    }
-
-    public int putTombstoneAborted(KvsSweepQueueWriter queueWriter, long ts, Cell cell, TableReference tableRef) {
-        putTimestampIntoTransactionTable(ts, TransactionConstants.FAILED_COMMIT_TS);
-        return write(queueWriter, ts, cell, true, tableRef);
-    }
-
-    private int write(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, boolean isTombstone,
-            TableReference tableRef) {
-        WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
-        queueWriter.enqueue(ImmutableList.of(write));
+    private int write(KvsSweepQueueWriter writer, long ts, Cell cell, boolean isTombstone, TableReference tableRef) {
+        WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), ts);
+        writer.enqueue(ImmutableList.of(write));
         return write.toShard(numShards);
     }
 
-    protected void putTimestampIntoTransactionTable(long ts, long commitTs) {
+    void putTimestampIntoTransactionTable(long ts, long commitTs) {
         try {
             txnService.putUnlessExists(ts, commitTs);
         } catch (KeyAlreadyExistsException e) {
-            // this is fine
+            // this is fine if the existing key is what we wanted
+            Assertions.assertThat(txnService.get(ts)).isEqualTo(commitTs);
         }
     }
 
-    public List<WriteInfo> writeToCellsInFixedShard(KvsSweepQueueWriter writer, long timestamp, int number,
-            TableReference tableRef) {
-        return writeToCellsInFixedShardStartWith(writer, timestamp, number, tableRef, 0L);
-    }
-
-    public List<WriteInfo> writeToCellsInFixedShardStartWith(KvsSweepQueueWriter writer, long timestamp,
-            int number, TableReference tableRef, long startSeed) {
+    List<WriteInfo> writeToCellsInFixedShard(KvsSweepQueueWriter writer, long ts, int number, TableReference tableRef) {
         List<WriteInfo> result = new ArrayList<>();
-        for (long i = startSeed; i < startSeed + number; i++) {
+        for (long i = 0; i < number; i++) {
             Cell cell = getCellWithFixedHash(i);
-            result.add(WriteInfo.write(tableRef, cell, timestamp));
+            result.add(WriteInfo.write(tableRef, cell, ts));
         }
-        putTimestampIntoTransactionTable(timestamp, Long.MAX_VALUE);
+        putTimestampIntoTransactionTable(ts, Long.MAX_VALUE);
         writer.enqueue(result);
         return result;
     }
 
-    public static Cell getCellWithFixedHash(long seed) {
+    static Cell getCellWithFixedHash(long seed) {
         return Cell.create(PtBytes.toBytes(seed), PtBytes.toBytes(seed));
     }
 
-    public boolean isTransactionAborted(long txnTimestamp) {
+    boolean isTransactionAborted(long txnTimestamp) {
         return Objects.equals(TransactionConstants.FAILED_COMMIT_TS, txnService.get(txnTimestamp));
+    }
+
+    long getSweepTsCons() {
+        return Sweeper.CONSERVATIVE.getSweepTimestamp(timestampsSupplier);
     }
 }

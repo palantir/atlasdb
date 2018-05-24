@@ -16,51 +16,51 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-public class KvsSweepQueueScrubber {
+public class SweepQueueCleaner {
     private SweepableCells sweepableCells;
     private SweepableTimestamps sweepableTimestamps;
-    private KvsSweepQueueProgress progress;
+    private ShardProgress progress;
 
-    public KvsSweepQueueScrubber(KvsSweepQueueTables tables) {
-        this.sweepableCells = tables.sweepableCells;
-        this.sweepableTimestamps = tables.sweepableTimestamps;
-        this.progress = tables.progress;
+    public SweepQueueCleaner(SweepableCells cells, SweepableTimestamps timestamps, ShardProgress progress) {
+        this.sweepableCells = cells;
+        this.sweepableTimestamps = timestamps;
+        this.progress = progress;
     }
 
     /**
      * Cleans up all the sweep queue data from the last update of progress up to and including the given sweep
      * partition. Then, updates the sweep queue progress.
-     * @param shardStrategy shard and strategy to scrub for.
+     * @param shardStrategy shard and strategy to clean for.
      * @param oldProgress last swept timestamp for the previous iteration of sweep.
      * @param newProgress last swept timestamp for this iteration of sweep.
      */
-    public void scrub(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
-        scrubSweepableCells(shardStrategy, oldProgress, newProgress);
-        scrubSweepableTimestamps(shardStrategy, oldProgress, newProgress);
+    public void clean(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
+        cleanSweepableCells(shardStrategy, oldProgress, newProgress);
+        cleanSweepableTimestamps(shardStrategy, oldProgress, newProgress);
         progressTo(shardStrategy, newProgress);
     }
 
-    private void scrubSweepableCells(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
+    private void cleanSweepableCells(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
         if (firstIterationOfSweep(oldProgress)) {
             return;
         }
         long lastSweptPartitionPreviously = SweepQueueUtils.tsPartitionFine(oldProgress);
         long minimumSweepPartitionNextIteration = SweepQueueUtils.tsPartitionFine(newProgress + 1);
         if (minimumSweepPartitionNextIteration > lastSweptPartitionPreviously) {
-            scrubDedicatedRows(shardStrategy, lastSweptPartitionPreviously);
-            scrubNonDedicatedRow(shardStrategy, lastSweptPartitionPreviously);
+            cleanDedicatedRows(shardStrategy, lastSweptPartitionPreviously);
+            cleanNonDedicatedRow(shardStrategy, lastSweptPartitionPreviously);
         }
     }
 
-    private void scrubDedicatedRows(ShardAndStrategy shardStrategy, long partitionToDelete) {
+    private void cleanDedicatedRows(ShardAndStrategy shardStrategy, long partitionToDelete) {
         sweepableCells.deleteDedicatedRows(shardStrategy, partitionToDelete);
     }
 
-    private void scrubNonDedicatedRow(ShardAndStrategy shardStrategy, long partitionToDelete) {
+    private void cleanNonDedicatedRow(ShardAndStrategy shardStrategy, long partitionToDelete) {
         sweepableCells.deleteNonDedicatedRow(shardStrategy, partitionToDelete);
     }
 
-    private void scrubSweepableTimestamps(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
+    private void cleanSweepableTimestamps(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
         if (firstIterationOfSweep(oldProgress)) {
             return;
         }
@@ -76,6 +76,6 @@ public class KvsSweepQueueScrubber {
     }
 
     private boolean firstIterationOfSweep(long oldProgress) {
-        return oldProgress == KvsSweepQueueProgress.INITIAL_TIMESTAMP;
+        return oldProgress == SweepQueueUtils.INITIAL_TIMESTAMP;
     }
 }

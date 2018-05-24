@@ -24,8 +24,9 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.AtlasDbConstants.DEFAULT_TARGETED_SWEEP_SHARDS;
-import static com.palantir.atlasdb.sweep.queue.KvsSweepQueueProgress.INITIAL_TIMESTAMP;
+import static com.palantir.atlasdb.AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS;
+import static com.palantir.atlasdb.AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.INITIAL_TIMESTAMP;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,9 +39,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 
-public class KvsSweepQueueProgressTest {
-    private KeyValueService kvs;
-    private KvsSweepQueueProgress progress;
+public class ShardProgressTest {
+    private ShardProgress progress;
 
     private static final ShardAndStrategy CONSERVATIVE_TEN = ShardAndStrategy.conservative(10);
     private static final ShardAndStrategy THOROUGH_TEN = ShardAndStrategy.thorough(10);
@@ -50,13 +50,12 @@ public class KvsSweepQueueProgressTest {
 
     @Before
     public void setup() {
-        kvs = new InMemoryKeyValueService(true);
-        progress = new KvsSweepQueueProgress(kvs);
+        progress = new ShardProgress(new InMemoryKeyValueService(true));
     }
 
     @Test
     public void canReadInitialNumberOfShards() {
-        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_TARGETED_SWEEP_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SWEEP_QUEUE_SHARDS);
     }
 
     @Test
@@ -73,8 +72,15 @@ public class KvsSweepQueueProgressTest {
     }
 
     @Test
-    public void increasingNumberOfShardsAbove256Throws() {
-        assertThatThrownBy(() -> progress.updateNumberOfShards(700)).isInstanceOf(IllegalArgumentException.class);
+    public void canIncreaseNumberOfShardsToMax() {
+        progress.updateNumberOfShards(MAX_SWEEP_QUEUE_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(MAX_SWEEP_QUEUE_SHARDS);
+    }
+
+    @Test
+    public void increasingNumberOfShardsAboveMaxThrows() {
+        assertThatThrownBy(() -> progress.updateNumberOfShards(MAX_SWEEP_QUEUE_SHARDS + 1))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -121,7 +127,7 @@ public class KvsSweepQueueProgressTest {
 
     @Test
     public void updatingTimestampsDoesNotAffectShardsAndViceVersa() {
-        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_TARGETED_SWEEP_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SWEEP_QUEUE_SHARDS);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
         assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
 
@@ -135,7 +141,7 @@ public class KvsSweepQueueProgressTest {
     }
 
     @Test
-    public void progressivelyFailingCasSucceeds() {
+    public void progressivelyFailingCasEventuallySucceeds() {
         KeyValueService mockKvs = mock(KeyValueService.class);
         when(mockKvs.get(any(), anyMap()))
                 .thenReturn(ImmutableMap.of())
@@ -143,7 +149,7 @@ public class KvsSweepQueueProgressTest {
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)))
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(15L)));
         doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
-        KvsSweepQueueProgress instrumentedProgress = new KvsSweepQueueProgress(mockKvs);
+        ShardProgress instrumentedProgress = new ShardProgress(mockKvs);
 
         assertThat(instrumentedProgress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 12L))
                 .isEqualTo(15L);
@@ -158,7 +164,7 @@ public class KvsSweepQueueProgressTest {
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)))
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)));
         doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
-        KvsSweepQueueProgress instrumentedProgress = new KvsSweepQueueProgress(mockKvs);
+        ShardProgress instrumentedProgress = new ShardProgress(mockKvs);
 
         assertThatThrownBy(() -> instrumentedProgress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 12L))
                 .isInstanceOf(CheckAndSetException.class);
