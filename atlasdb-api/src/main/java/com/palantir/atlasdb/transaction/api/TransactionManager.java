@@ -241,12 +241,33 @@ public interface TransactionManager extends AutoCloseable {
      */
     LockService getLockService();
 
+    /**
+     * Returns the timelock service used by this transaction manager.
+     *
+     * @return the timelock service for this transaction manager
+     */
     TimelockService getTimelockService();
 
+    /**
+     * Returns the timestamp service used by this transaction manager.
+     *
+     * @return the timestamp service for this transaction manager
+     */
     TimestampService getTimestampService();
 
+    /**
+     * Returns the cleaner used by this transaction manager.
+     *
+     * @return the cleaner for this transaction manager
+     */
     Cleaner getCleaner();
 
+    /**
+     * Returns the KVS used by this transaction manager. In general, this should not be used by clients, as
+     * direct reads and writes to the KVS will bypass the Atlas transaction protocol.
+     *
+     * @return the key value service for this transaction manager
+     */
     KeyValueService getKeyValueService();
 
     /**
@@ -302,9 +323,30 @@ public interface TransactionManager extends AutoCloseable {
      */
     void registerClosingCallback(Runnable closingCallback);
 
+    /**
+     * This method can be used for direct control of a transaction's life cycle. For example, if the work done in
+     * the transaction is interactive and cannot be expressed as a {@link TransactionTask} ahead of time, this method
+     * allows for a long lived transaction object. For the any data read or written to the transaction to be valid,
+     * the transaction must be committed, preferably by calling
+     * {@link #finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock, TransactionTask)} to also perform
+     * additional cleanup.
+     *
+     * @deprecated Similar functionality will exist, but this method is likely to change in the future
+     *
+     * @return the transaction and associated immutable timestamp lock for the task
+     */
     @Deprecated
     TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
 
+    /**
+     * Runs a provided task, commits the transaction, and performs cleanup associated with a transaction created by
+     * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitCondition)}. If no further work needs to be done with
+     * the transaction, a no-op task can be passed in.
+     *
+     * @deprecated Similar functionality will exist, but this method is likely to change in the future
+     *
+     * @return value returned by the task
+     */
     @Deprecated
     <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
             TransactionTask<T, E> task)
