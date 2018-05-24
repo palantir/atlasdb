@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.verify;
 
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.thorough;
@@ -29,11 +31,15 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public class SweepableCellsTest extends SweepQueueTablesTest {
+public class SweepableCellsTest extends AbstractSweepQueueTablesTest {
     private static final long SWEEP_TS = TS + 200L;
 
     private SweepableCells sweepableCells;
@@ -57,6 +63,43 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
 
         SweepBatch thoroughBatch = readThorough(TS2_FINE_PARTITION, TS2 - 1, Long.MAX_VALUE);
         assertThat(thoroughBatch.writes()).containsExactly(WriteInfo.write(TABLE_THOR, DEFAULT_CELL, TS2));
+    }
+
+    @Test
+    public void readDoesNotReturnValuesFromAbortedTransactions() {
+        writeToCellAborted(sweepableCells, TS + 1, DEFAULT_CELL, TABLE_CONS);
+        SweepBatch conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 1, SWEEP_TS);
+        assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
+    }
+
+    @Test
+    public void readDeletesValuesFromAbortedTransactions() {
+        writeToCellAborted(sweepableCells, TS + 1, DEFAULT_CELL, TABLE_CONS);
+        readConservative(shardCons, TS_FINE_PARTITION, TS - 1, SWEEP_TS);
+
+        Multimap<Cell, Long> expectedDeletes = HashMultimap.create();
+        expectedDeletes.put(DEFAULT_CELL, TS + 1);
+        assertDeleted(TABLE_CONS, expectedDeletes);
+    }
+
+    @Test
+    public void readDoesNotReturnValuesFromUncommittedTransactionsAndAbortsThem() {
+        writeToCellUncommitted(sweepableCells, TS + 1, DEFAULT_CELL, TABLE_CONS);
+        assertThat(!isTransactionAborted(TS + 1));
+
+        SweepBatch conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 1, SWEEP_TS);
+        assertThat(isTransactionAborted(TS + 1));
+        assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
+    }
+
+    @Test
+    public void readDeletesValuesFromUncommittedTransactions() {
+        writeToCellUncommitted(sweepableCells, TS + 1, DEFAULT_CELL, TABLE_CONS);
+        readConservative(shardCons, TS_FINE_PARTITION, TS - 1, SWEEP_TS);
+
+        Multimap<Cell, Long> expectedDeletes = HashMultimap.create();
+        expectedDeletes.put(DEFAULT_CELL, TS + 1);
+        assertDeleted(TABLE_CONS, expectedDeletes);
     }
 
     @Test
@@ -211,8 +254,16 @@ public class SweepableCellsTest extends SweepQueueTablesTest {
         return sweepableCells.getBatchForPartition(thorough(shardThor), partition, minExclusive, maxExclusive);
     }
 
+    private void assertDeleted(TableReference tableRef, Multimap<Cell, Long> expectedDeletes) {
+        ArgumentCaptor<Multimap> argumentCaptor = ArgumentCaptor.forClass(Multimap.class);
+        verify(kvs).delete(eq(tableRef), argumentCaptor.capture());
+
+        Multimap<Cell, Long> actual = argumentCaptor.getValue();
+        assertThat(actual.keySet()).containsExactlyElementsOf(expectedDeletes.keySet());
+        actual.keySet().forEach(key -> assertThat(actual.get(key)).containsExactlyElementsOf(expectedDeletes.get(key)));
+    }
+
     private long endOfFinePartitionForTs(long timestamp) {
         return SweepQueueUtils.maxTsForFinePartition(tsPartitionFine(timestamp));
     }
-
 }
