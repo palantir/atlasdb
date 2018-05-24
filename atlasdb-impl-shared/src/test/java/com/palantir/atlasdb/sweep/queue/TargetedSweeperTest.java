@@ -415,6 +415,27 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
+    public void canSweepAtMinimumTime() {
+        enqueueWrite(TABLE_CONS, LOW_TS);
+        enqueueWrite(TABLE_CONS, LOW_TS2);
+        enqueueWrite(TABLE_CONS, LOW_TS3);
+
+        runConservativeSweepAtTimestamp(Long.MIN_VALUE);
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS);
+    }
+
+    @Test
+    public void canSweepAtMaximumTime() {
+        enqueueWrite(TABLE_CONS, LOW_TS);
+        enqueueWrite(TABLE_CONS, LOW_TS2);
+        enqueueWrite(TABLE_CONS, LOW_TS3);
+
+        runConservativeSweepAtTimestamp(Long.MAX_VALUE);
+        assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS3);
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS3);
+    }
+
+    @Test
     public void doesNotGoBackwardsEvenIfSweepTimestampRegressesAcrossBoundary() {
         long coarseBoundary = TS_COARSE_GRANULARITY;
         enqueueWrite(TABLE_CONS, coarseBoundary - 5);
