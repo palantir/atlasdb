@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.exception.NotInitializedException;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements MultiTableSweepQueueWriter {
@@ -41,6 +43,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private SpecialTimestampsSupplier timestampsSupplier;
     private BackgroundSweepScheduler conservativeScheduler;
     private BackgroundSweepScheduler thoroughScheduler;
+
+    private volatile boolean isInitialized = false;
 
     private TargetedSweeper(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
             int conservativeThreads, int thoroughThreads) {
@@ -62,7 +66,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * must never be reduced, this will be ignored if the persisted number of shards is greater.
      * @param conservativeThreads number of conservative threads to use for background targeted sweep.
      * @param thoroughThreads number of thorough threads to use for background targeted sweep.
-     * @return
+     * @return returns an uninitialized targeted sweeper.
      */
     public static TargetedSweeper createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
             int conservativeThreads, int thoroughThreads) {
@@ -77,11 +81,17 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * @param kvs key value service that must be already initialized.
      */
     public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs) {
+        if (isInitialized) {
+            return;
+        }
+        Preconditions.checkState(kvs.isInitialized(),
+                "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         queue = SweepQueue.create(kvs, shardsConfig);
         timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
+        isInitialized = true;
     }
 
     @Override
@@ -91,6 +101,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     @Override
     public void enqueue(List<WriteInfo> writes) {
+        assertInitialized();
         queue.enqueue(writes);
     }
 
@@ -102,6 +113,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      */
     @VisibleForTesting
     public void sweepNextBatch(ShardAndStrategy shardStrategy) {
+        assertInitialized();
         if (!runSweep.get()) {
             return;
         }
@@ -113,6 +125,12 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     public void close() throws Exception {
         conservativeScheduler.close();
         thoroughScheduler.close();
+    }
+
+    private void assertInitialized() {
+        if (!isInitialized) {
+            throw new NotInitializedException("Targeted Sweeper");
+        }
     }
 
     private class BackgroundSweepScheduler implements AutoCloseable {
@@ -129,7 +147,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         private void scheduleBackgroundThreads() {
             if (numThreads > 0) {
                 executorService = PTExecutors
-                        .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", false));
+                        .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", true));
                 for (int i = 0; i < numThreads; i++) {
                     executorService.scheduleWithFixedDelay(
                             () -> sweepNextBatch(ShardAndStrategy.of(getShardAndIncrement(), sweepStrategy)),

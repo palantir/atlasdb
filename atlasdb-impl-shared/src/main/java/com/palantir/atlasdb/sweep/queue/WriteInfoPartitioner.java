@@ -86,7 +86,7 @@ public class WriteInfoPartitioner {
 
     @VisibleForTesting
     TableMetadataPersistence.SweepStrategy getStrategy(WriteInfo writeInfo) {
-        return cache.getUnchecked(writeInfo.writeRef().tableRef());
+        return cache.getUnchecked(writeInfo.tableRef());
     }
 
     private TableMetadataPersistence.SweepStrategy getStrategyFromKvs(TableReference tableRef) {

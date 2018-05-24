@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -52,10 +52,8 @@ public class SweepQueueDeleter {
     }
 
     private Map<TableReference, Map<Cell, Long>> writesPerTable(Collection<WriteInfo> writes, Sweeper sweeper) {
-        Map<TableReference, Map<Cell, Long>> result = new HashMap<>();
-        writes.forEach(write -> result
-                .computeIfAbsent(write.writeRef().tableRef(), ignore -> new HashMap<>())
-                .put(write.writeRef().cell(), write.timestampToDeleteAtExclusive(sweeper)));
-        return result;
+        return writes.stream().collect(Collectors.groupingBy(
+                WriteInfo::tableRef,
+                Collectors.toMap(WriteInfo::cell, write -> write.timestampToDeleteAtExclusive(sweeper))));
     }
 }

@@ -21,6 +21,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTest.metadataBytes;
@@ -89,7 +90,7 @@ public class WriteInfoPartitionerTest {
         }
         verify(mockKvs, times(1)).getMetadataForTable(NOTHING);
         verify(mockKvs, times(1)).getMetadataForTable(CONSERVATIVE);
-        verify(mockKvs, times(2)).getMetadataForTable(any());
+        verifyNoMoreInteractions(mockKvs);
     }
 
     @Test
