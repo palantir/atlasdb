@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
-import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -76,7 +75,8 @@ public class AtlasDbTestCase {
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
     protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
-    protected MultiTableSweepQueueWriter sweepQueue;
+    protected TargetedSweeper sweepQueue;
+    protected int sweepQueueShards = 128;
 
     @BeforeClass
     public static void setupLockClient() {
@@ -113,7 +113,7 @@ public class AtlasDbTestCase {
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
-        sweepQueue = spy(TargetedSweeper.createUninitialized(() -> true, () -> 128, 0, 0));
+        sweepQueue = spy(TargetedSweeper.createUninitialized(() -> true, () -> sweepQueueShards, 0, 0));
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,

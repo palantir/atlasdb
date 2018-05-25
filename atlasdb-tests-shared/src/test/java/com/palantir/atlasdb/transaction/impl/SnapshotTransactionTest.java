@@ -26,12 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
@@ -906,71 +901,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             // expected
         }
         assertThat(counter.intValue(), is(2));
-    }
-
-    @Test
-    public void committedWritesAreAddedToSweepQueue() {
-        List<WriteInfo> table1Writes = ImmutableList.of(
-                WriteInfo.write(TABLE1, Cell.create("a".getBytes(), "b".getBytes()), 2L),
-                WriteInfo.write(TABLE1, Cell.create("a".getBytes(), "c".getBytes()), 2L),
-                WriteInfo.tombstone(TABLE1, Cell.create("a".getBytes(), "d".getBytes()), 2L),
-                WriteInfo.write(TABLE1, Cell.create("b".getBytes(), "d".getBytes()), 2L));
-        List<WriteInfo> table2Writes = ImmutableList.of(
-                WriteInfo.write(TABLE2, Cell.create("w".getBytes(), "x".getBytes()), 2L),
-                WriteInfo.write(TABLE2, Cell.create("y".getBytes(), "z".getBytes()), 2L),
-                WriteInfo.tombstone(TABLE2, Cell.create("z".getBytes(), "z".getBytes()), 2L));
-
-        txManager.runTaskWithRetry(txn -> {
-            table1Writes.forEach(write -> put(txn, TABLE1, write));
-            table2Writes.forEach(write -> put(txn, TABLE2, write));
-            return null;
-        });
-
-        List<WriteInfo> allWrites = Lists.newArrayList(table1Writes);
-        allWrites.addAll(table2Writes);
-
-        verify(sweepQueue).enqueue(eq(allWrites));
-    }
-
-    @Test
-    public void writesAddedToSweepQueueOnConflict() {
-        Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
-        byte[] value = new byte[1];
-
-        Transaction t1 = txManager.createNewTransaction();
-        Transaction t2 = txManager.createNewTransaction();
-
-        t1.put(TABLE, ImmutableMap.of(cell, value));
-        t2.put(TABLE, ImmutableMap.of(cell, new byte[1]));
-
-        t1.commit();
-        verify(sweepQueue).enqueue(anyMap(), anyLong());
-
-        try {
-            t2.commit();
-            fail();
-        } catch (TransactionConflictException e) {
-            // expected
-        }
-
-        verify(sweepQueue).enqueue(anyMap(), anyLong());
-    }
-
-    @Test
-    public void noWritesAddedToSweepQueueOnException() {
-        Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
-        byte[] value = new byte[1];
-
-        try {
-            txManager.runTaskWithRetry(txn -> {
-                txn.put(TABLE, ImmutableMap.of(cell, value));
-                throw new RuntimeException("test");
-            });
-        } catch (RuntimeException e) {
-            // expected
-        }
-
-        verify(sweepQueue, times(0)).enqueue(anyMap(), anyLong());
     }
 
     @Test
