@@ -15,23 +15,14 @@
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.6.7"
         },
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1"
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.1",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
-            ]
+            "locked": "3.0.1"
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1"
-        },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
-            ]
         }
     },
     "runtime": {
@@ -50,23 +41,14 @@
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.6.7"
         },
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1"
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.1",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
-            ]
+            "locked": "3.0.1"
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1"
-        },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
-            ]
         }
     }
 }

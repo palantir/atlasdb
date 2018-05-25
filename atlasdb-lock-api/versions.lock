@@ -75,7 +75,7 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
@@ -91,9 +91,15 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.google.code.findbugs:annotations",
                 "com.google.guava:guava",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:qos-service-api",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -306,7 +312,7 @@
             ]
         },
         "com.palantir.tritium:tritium-registry": {
-            "locked": "0.9.0",
+            "locked": "0.9.1",
             "transitive": [
                 "com.palantir.remoting3:okhttp-clients"
             ]
@@ -357,12 +363,6 @@
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:jaxrs-clients"
-            ]
-        },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
             ]
         },
         "net.jpountz.lz4:lz4": {
@@ -491,7 +491,7 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
@@ -507,9 +507,15 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.google.code.findbugs:annotations",
                 "com.google.guava:guava",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:qos-service-api",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -722,7 +728,7 @@
             ]
         },
         "com.palantir.tritium:tritium-registry": {
-            "locked": "0.9.0",
+            "locked": "0.9.1",
             "transitive": [
                 "com.palantir.remoting3:okhttp-clients"
             ]
@@ -773,12 +779,6 @@
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:jaxrs-clients"
-            ]
-        },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
             ]
         },
         "net.jpountz.lz4:lz4": {

@@ -64,7 +64,7 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -78,9 +78,13 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.google.code.findbugs:annotations",
                 "com.google.guava:guava",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:leader-election-api-protobufs"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -190,7 +194,7 @@
         "net.jcip:jcip-annotations": {
             "locked": "1.0",
             "transitive": [
-                "com.google.code.findbugs:annotations"
+                "com.palantir.atlasdb:leader-election-api"
             ]
         },
         "net.jpountz.lz4:lz4": {
@@ -296,7 +300,7 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -310,9 +314,13 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.google.code.findbugs:annotations",
                 "com.google.guava:guava",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:leader-election-api-protobufs"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -422,7 +430,7 @@
         "net.jcip:jcip-annotations": {
             "locked": "1.0",
             "transitive": [
-                "com.google.code.findbugs:annotations"
+                "com.palantir.atlasdb:leader-election-api"
             ]
         },
         "net.jpountz.lz4:lz4": {
