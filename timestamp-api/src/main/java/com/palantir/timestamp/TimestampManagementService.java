@@ -17,6 +17,7 @@ package com.palantir.timestamp;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.meta.When;
+import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -27,6 +28,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 
+@RolesAllowed("EXTERNAL")
 @Path("/timestamp-management")
 public interface TimestampManagementService {
     long SENTINEL_TIMESTAMP = Long.MIN_VALUE;
@@ -47,12 +49,14 @@ public interface TimestampManagementService {
      * @param currentTimestamp the largest timestamp issued until the fast-forward call
      */
     @POST
+    @RolesAllowed("EXTERNAL")
     @Path("fast-forward")
     @Produces(MediaType.APPLICATION_JSON)
     void fastForwardTimestamp(
             @Safe @QueryParam("currentTimestamp") @DefaultValue(SENTINEL_TIMESTAMP_STRING) long currentTimestamp);
 
     @GET
+    @RolesAllowed("EXTERNAL")
     @Path("ping")
     @Produces(MediaType.TEXT_PLAIN)
     @CheckReturnValue(when = When.NEVER)
