@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -55,6 +56,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -181,6 +183,17 @@ public class SerializableTransaction extends SnapshotTransaction {
                 return hitEnd;
             }
         });
+    }
+
+    @Override
+    public Iterator<Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            int batchHint) {
+        if (isSerializableTable(tableRef)) {
+            throw new UnsupportedOperationException("This method does not support serializable conflict handling");
+        }
+        return super.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
     }
 
     @Override

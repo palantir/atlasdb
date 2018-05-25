@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
@@ -44,6 +45,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -520,6 +522,18 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     private BatchingVisitable<RowResult<byte[]>> getRangeRetainingCol(Transaction txn, String col) {
         return txn.getRange(TEST_TABLE,
                 RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes(col))).build());
+    }
+
+    @Test
+    public void testColumnRangeReadUnsupported() {
+        byte[] row = PtBytes.toBytes("row1");
+        Transaction t1 = startTransaction();
+        try {
+            Iterator<Map.Entry<Cell, byte[]>> iterator = t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+                    new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY), 1);
+        } catch (UnsupportedOperationException e) {
+            // expected
+        }
     }
 
     @Test
