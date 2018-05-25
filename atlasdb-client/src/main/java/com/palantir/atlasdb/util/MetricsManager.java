@@ -200,6 +200,16 @@ public class MetricsManager {
         return meter;
     }
 
+    public Gauge registerOrGetGauge(Class clazz, String metricPrefix, String metricName, MetricRegistry.MetricSupplier<Gauge> supplier) {
+        return registerOrGetGauge(MetricRegistry.name(clazz, metricPrefix, metricName), supplier);
+    }
+
+    private synchronized Gauge registerOrGetGauge(String name, MetricRegistry.MetricSupplier<Gauge> supplier) {
+        Gauge gauge = metricRegistry.gauge(name, supplier);
+        registeredMetrics.add(name);
+        return gauge;
+    }
+
     public synchronized void deregisterMetrics() {
         registeredMetrics.forEach(metricRegistry::remove);
         registeredMetrics.clear();

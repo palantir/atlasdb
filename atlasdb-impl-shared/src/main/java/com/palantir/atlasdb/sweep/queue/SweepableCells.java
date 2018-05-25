@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.CommitTsLoader;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 
@@ -51,8 +52,8 @@ import gnu.trove.set.hash.TLongHashSet;
 public class SweepableCells extends KvsSweepQueueWriter {
     private final CommitTsLoader commitTsLoader;
 
-    public SweepableCells(KeyValueService kvs, WriteInfoPartitioner partitioner) {
-        super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner);
+    public SweepableCells(KeyValueService kvs, WriteInfoPartitioner partitioner, TargetedSweepMetrics metrics) {
+        super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner, metrics);
         this.commitTsLoader = CommitTsLoader
                 .create(TransactionServices.createTransactionService(kvs), new TLongHashSet());
     }
@@ -136,8 +137,8 @@ public class SweepableCells extends KvsSweepQueueWriter {
         RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, maxTsExclusive);
         Multimap<Long, WriteInfo> writesByStartTs = getBatchOfWrites(row, resultIterator);
 
-        List<Long> startTimestampsForCommitted = getCommittedTimestampsDescendingAndCleanupAborted(writesByStartTs);
-        Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, startTimestampsForCommitted);
+        List<Long> startTsCommitted = getCommittedTimestampsDescendingAndCleanupAborted(shardStrategy, writesByStartTs);
+        Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, startTsCommitted);
         long lastSweptTs = getLastSweptTs(writesByStartTs, resultIterator, partitionFine, maxTsExclusive);
         return SweepBatch.of(writes, lastSweptTs);
     }
@@ -181,7 +182,8 @@ public class SweepableCells extends KvsSweepQueueWriter {
                 columnsBetween(minTsExclusive + 1, maxTsExclusive, partitionFine), SweepQueueUtils.MAX_CELLS_DEDICATED);
     }
 
-    private List<Long> getCommittedTimestampsDescendingAndCleanupAborted(Multimap<Long, WriteInfo> startTsWrites) {
+    private List<Long> getCommittedTimestampsDescendingAndCleanupAborted(
+            ShardAndStrategy shardStrategy, Multimap<Long, WriteInfo> startTsWrites) {
         Map<Long, Long> startToCommitTs = commitTsLoader.loadBatch(startTsWrites.keySet());
         Map<TableReference, Multimap<Cell, Long>> cellsToDelete = new HashMap<>();
         List<Long> committedTimestamps = new ArrayList<>();
@@ -196,7 +198,10 @@ public class SweepableCells extends KvsSweepQueueWriter {
                 committedTimestamps.add(entry.getKey());
             }
         }
-        cellsToDelete.forEach(kvs::delete);
+        cellsToDelete.forEach((tableRef, multimap) -> {
+            kvs.delete(tableRef, multimap);
+            maybeMetrics.get().updateAbortedWritesDeleted(shardStrategy, multimap.size());
+        });
 
         committedTimestamps.sort(Comparator.reverseOrder());
         return committedTimestamps;

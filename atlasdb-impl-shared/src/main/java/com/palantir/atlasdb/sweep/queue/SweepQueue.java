@@ -25,6 +25,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 
 public final class SweepQueue implements SweepQueueWriter {
     private static final long FIVE_MINUTES = TimeUnit.MINUTES.toMillis(5L);
@@ -35,26 +36,30 @@ public final class SweepQueue implements SweepQueueWriter {
     private final SweepQueueDeleter deleter;
     private final SweepQueueCleaner cleaner;
     private final Supplier<Integer> numShards;
+    private final TargetedSweepMetrics metrics;
 
     private SweepQueue(SweepableCells cells, SweepableTimestamps timestamps, ShardProgress progress,
-            SweepQueueDeleter deleter, SweepQueueCleaner cleaner, Supplier<Integer> numShards) {
+            SweepQueueDeleter deleter, SweepQueueCleaner cleaner, Supplier<Integer> numShards,
+            TargetedSweepMetrics metrics) {
         this.sweepableCells = cells;
         this.sweepableTimestamps = timestamps;
         this.progress = progress;
         this.deleter = deleter;
         this.cleaner = cleaner;
         this.numShards = numShards;
+        this.metrics = metrics;
     }
 
     public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig) {
+        TargetedSweepMetrics metrics = TargetedSweepMetrics.withRecomputingInterval(FIVE_MINUTES);
         ShardProgress progress = new ShardProgress(kvs);
         Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, FIVE_MINUTES);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
-        SweepableCells cells = new SweepableCells(kvs, partitioner);
+        SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
         SweepQueueDeleter deleter = new SweepQueueDeleter(kvs);
         SweepQueueCleaner cleaner = new SweepQueueCleaner(cells, timestamps, progress);
-        return new SweepQueue(cells, timestamps, progress, deleter, cleaner, shards);
+        return new SweepQueue(cells, timestamps, progress, deleter, cleaner, shards, metrics);
     }
 
     /**
@@ -90,12 +95,15 @@ public final class SweepQueue implements SweepQueueWriter {
      * @param sweepTs sweep timestamp, the upper limit to the start timestamp of writes to sweep
      */
     public void sweepNextBatch(ShardAndStrategy shardStrategy, long sweepTs) {
+        metrics.updateSweepTimestamp(shardStrategy, sweepTs);
         long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
 
         SweepBatch sweepBatch = getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
         cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp());
+        metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
+        metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());
     }
 
     private SweepBatch getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {

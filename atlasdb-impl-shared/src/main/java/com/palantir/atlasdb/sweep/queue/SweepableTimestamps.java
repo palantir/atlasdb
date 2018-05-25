@@ -38,7 +38,7 @@ public class SweepableTimestamps extends KvsSweepQueueWriter {
     private static final byte[] DUMMY = new byte[0];
 
     public SweepableTimestamps(KeyValueService kvs, WriteInfoPartitioner partitioner) {
-        super(kvs, TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef(), partitioner);
+        super(kvs, TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef(), partitioner, null);
     }
 
     @Override

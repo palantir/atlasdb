@@ -54,4 +54,11 @@ public abstract class ShardAndStrategy {
     public static ShardAndStrategy thorough(int shard) {
         return ShardAndStrategy.of(shard, TableMetadataPersistence.SweepStrategy.THOROUGH);
     }
+
+    public static ShardAndStrategy fromInfo(PartitionInfo info) {
+        if (info.isConservative().isTrue()) {
+            return ShardAndStrategy.conservative(info.shard());
+        }
+        return ShardAndStrategy.thorough(info.shard());
+    }
 }

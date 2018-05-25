@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.assertj.core.api.Assertions;
+import org.junit.After;
 import org.junit.Before;
 
 import com.google.common.collect.ImmutableList;
@@ -41,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -73,6 +75,7 @@ public abstract class AbstractSweepQueueTest {
     SpecialTimestampsSupplier timestampsSupplier;
     WriteInfoPartitioner partitioner;
     TransactionService txnService;
+    TargetedSweepMetrics metrics;
 
     @Before
     public void setup() {
@@ -87,6 +90,12 @@ public abstract class AbstractSweepQueueTest {
         timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createTransactionService(spiedKvs);
+        metrics = TargetedSweepMetrics.withRecomputingInterval(1);
+    }
+
+    @After
+    public void cleanup() {
+        metrics.clear();
     }
 
     static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {
