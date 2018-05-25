@@ -738,6 +738,13 @@
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.2",
+            "transitive": [
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-api"
+            ]
+        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
@@ -1609,6 +1616,13 @@
             "locked": "0.9.3",
             "transitive": [
                 "io.dropwizard:dropwizard-jackson"
+            ]
+        },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.2",
+            "transitive": [
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "javax.validation:validation-api": {

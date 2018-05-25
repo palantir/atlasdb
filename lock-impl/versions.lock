@@ -175,6 +175,13 @@
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.2",
+            "transitive": [
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-api"
+            ]
+        },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
             "transitive": [
@@ -401,6 +408,13 @@
             "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.2",
+            "transitive": [
+                "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "javax.ws.rs:javax.ws.rs-api": {
