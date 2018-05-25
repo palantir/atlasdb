@@ -187,8 +187,11 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">SnapshotTransaction</span></code> will no longer attempt to delete values for transactions that get rolled back.
+The deletes were (necessarily) run at consistency <code class="docutils literal notranslate"><span class="pre">ALL</span></code>, meaning that if aborted data was present, read
+transactions had significantly impaired performance if a database node was down.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3199">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
