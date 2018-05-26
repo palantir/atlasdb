@@ -79,6 +79,8 @@ develop
               - ``thorough.sweepTimestamp``
               - ``thorough.lastSweptTimestamp``
 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3202>`__)
+
     *    - |fixed|
          - Snapshot transaction is now guaranteed to return getRowsColumnRange results in the correct order.
            Previously while paging over row dynamic columns, if uncommitted or aborted transaction data was
