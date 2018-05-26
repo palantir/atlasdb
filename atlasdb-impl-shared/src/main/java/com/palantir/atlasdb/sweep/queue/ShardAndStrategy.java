@@ -32,6 +32,10 @@ public abstract class ShardAndStrategy {
                 + "THOROUGH, but it is %s instead.", strategy());
     }
 
+    public String toText() {
+        return "shard " + shard() + " and strategy " + strategy();
+    }
+
     public boolean isConservative() {
         return strategy() == TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
     }

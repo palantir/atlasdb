@@ -123,6 +123,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(1);
         TargetedSweepMetricsTest.assertLastSweptConservativeEquals(maxTsForFinePartition(0));
+        TargetedSweepMetricsTest.assertSweepTimestampConservativeEquals(getSweepTsCons());
     }
 
     @Test
@@ -264,6 +265,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, tsFineFour + 1);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, tsFineFour + 1);
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(3);
+        TargetedSweepMetricsTest.assertEntriesReadConservativeEquals(4);
         TargetedSweepMetricsTest.assertLastSweptConservativeEquals(maxTsForFinePartition(3));
     }
 
@@ -500,6 +502,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // Need 2 sweeps to get through the first coarse bucket
         runConservativeSweepAtTimestamp(coarseBoundary + 8);
+        TargetedSweepMetricsTest.assertSweepTimestampConservativeEquals(coarseBoundary + 8);
         runConservativeSweepAtTimestamp(coarseBoundary + 8);
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, coarseBoundary - 5 + 1);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, coarseBoundary + 5);
@@ -507,12 +510,32 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // Now regresses (e.g. clock drift on unreadable)
         runConservativeSweepAtTimestamp(coarseBoundary - 3);
+        TargetedSweepMetricsTest.assertSweepTimestampConservativeEquals(coarseBoundary - 3);
 
         // And advances again
         runConservativeSweepAtTimestamp(coarseBoundary + 18);
+        TargetedSweepMetricsTest.assertSweepTimestampConservativeEquals(coarseBoundary + 18);
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, coarseBoundary - 5 + 1);
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, coarseBoundary + 5 + 1);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, coarseBoundary + 15);
+    }
+
+    @Test
+    public void testSweepTimestampMetric() {
+        unreadableTs = 17;
+        immutableTs = 40;
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
+
+        TargetedSweepMetricsTest.assertSweepTimestampConservativeEquals(17);
+        TargetedSweepMetricsTest.assertSweepTimestampThoroughEquals(40);
+
+        immutableTs = 5;
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
+
+        TargetedSweepMetricsTest.assertSweepTimestampConservativeEquals(5);
+        TargetedSweepMetricsTest.assertSweepTimestampThoroughEquals(5);
     }
 
     private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int sweepIterations) {

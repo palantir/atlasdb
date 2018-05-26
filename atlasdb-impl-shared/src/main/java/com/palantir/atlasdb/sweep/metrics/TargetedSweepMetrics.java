@@ -32,7 +32,7 @@ import com.palantir.atlasdb.util.AggregateRecomputingMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 
-public class TargetedSweepMetrics {
+public final class TargetedSweepMetrics {
     private final MetricsManager metricsManager;
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
 
@@ -51,6 +51,10 @@ public class TargetedSweepMetrics {
 
     public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes) {
         getMetrics(shardStrategy).updateEnqueuedWrites(writes);
+    }
+
+    public void updateEntriesRead(ShardAndStrategy shardStrategy, long writes) {
+        getMetrics(shardStrategy).updateEntriesRead(writes);
     }
 
     public void updateNumberOfTombstones(ShardAndStrategy shardStrategy, long tombstones) {
@@ -89,6 +93,7 @@ public class TargetedSweepMetrics {
 
     private static class MetricsForStrategy {
         private final AccumulatingValueMetric enqueuedWrites;
+        private final AccumulatingValueMetric entriesRead;
         private final AccumulatingValueMetric tombstonesPut;
         private final AccumulatingValueMetric abortedWritesDeleted;
         private final CurrentValueMetric<Long> sweepTimestamp;
@@ -97,6 +102,8 @@ public class TargetedSweepMetrics {
         private MetricsForStrategy(MetricsManager manager, String prefix, long recomputeMillis) {
             enqueuedWrites = (AccumulatingValueMetric) getOrCreate(manager, prefix,
                     AtlasDbMetricNames.ENQUEUED_WRITES, AccumulatingValueMetric::new);
+            entriesRead = (AccumulatingValueMetric) getOrCreate(manager, prefix,
+                    AtlasDbMetricNames.ENTRIES_READ, AccumulatingValueMetric::new);
             tombstonesPut = (AccumulatingValueMetric) getOrCreate(manager, prefix,
                     AtlasDbMetricNames.TOMBSTONES_PUT, AccumulatingValueMetric::new);
             abortedWritesDeleted = (AccumulatingValueMetric) getOrCreate(manager, prefix,
@@ -110,6 +117,10 @@ public class TargetedSweepMetrics {
 
         public void updateEnqueuedWrites(long writes) {
             enqueuedWrites.accumulateValue(writes);
+        }
+
+        public void updateEntriesRead(long writes) {
+            entriesRead.accumulateValue(writes);
         }
 
         private void updateNumberOfTombstones(long tombstones) {

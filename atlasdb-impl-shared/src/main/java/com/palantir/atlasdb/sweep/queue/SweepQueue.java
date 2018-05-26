@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -28,6 +31,7 @@ import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 
 public final class SweepQueue implements SweepQueueWriter {
+    private static final Logger log = LoggerFactory.getLogger(SweepQueue.class);
     private static final long FIVE_MINUTES = TimeUnit.MINUTES.toMillis(5L);
 
     private final SweepableCells sweepableCells;
@@ -84,6 +88,7 @@ public final class SweepQueue implements SweepQueueWriter {
     public void enqueue(List<WriteInfo> writes) {
         sweepableTimestamps.enqueue(writes);
         sweepableCells.enqueue(writes);
+        log.info("Enqueued {} writes into the sweep queue.", writes.size());
     }
 
     /**
@@ -98,10 +103,17 @@ public final class SweepQueue implements SweepQueueWriter {
         metrics.updateSweepTimestamp(shardStrategy, sweepTs);
         long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
 
+        log.info("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept timestamp"
+                + " for this shard and strategy was {}.", shardStrategy.toText(), sweepTs, lastSweptTs);
+
         SweepBatch sweepBatch = getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
+        log.info("Put {} ranged tombstones and swept up to timestamp {} for {}.",
+                sweepBatch.writes().size(), sweepBatch.lastSweptTimestamp(), shardStrategy.toText());
+
         cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp());
+
         metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
         metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());
     }

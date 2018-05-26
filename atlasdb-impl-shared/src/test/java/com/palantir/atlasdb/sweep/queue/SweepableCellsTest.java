@@ -255,6 +255,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         assertThat(conservativeBatch.writes().size()).isEqualTo((int)  SWEEP_BATCH_SIZE + 5);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(4);
         TargetedSweepMetricsTest.assertEnqueuedWritesConservativeEquals(10 * iterationWrites + 1);
+        TargetedSweepMetricsTest.assertEntriesReadConservativeEquals(5 * iterationWrites);
         TargetedSweepMetricsTest.assertAbortedWritesDeletedConservativeEquals(0);
     }
 
@@ -269,6 +270,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         assertThat(conservativeBatch.writes().size()).isEqualTo((int)  iterationWrites);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(4);
         TargetedSweepMetricsTest.assertEnqueuedWritesConservativeEquals(10 * iterationWrites + 1);
+        TargetedSweepMetricsTest.assertEntriesReadConservativeEquals(5 * iterationWrites);
         TargetedSweepMetricsTest.assertAbortedWritesDeletedConservativeEquals(0);
     }
 
@@ -284,7 +286,8 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         assertThat(conservativeBatch.writes()).isEmpty();
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(4);
         TargetedSweepMetricsTest.assertEnqueuedWritesConservativeEquals(11 * iterationWrites + 1);
-        TargetedSweepMetricsTest.assertAbortedWritesDeletedConservativeEquals(SWEEP_BATCH_SIZE + 5);
+        TargetedSweepMetricsTest.assertEntriesReadConservativeEquals(5 * iterationWrites);
+        TargetedSweepMetricsTest.assertAbortedWritesDeletedConservativeEquals(5 * iterationWrites);
     }
 
     @Test

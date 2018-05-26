@@ -60,6 +60,25 @@ develop
            Note that targeted sweep is considered a beta feature as it is not fully functional yet.
            Consult with the AtlasDB team if you wish to use targeted sweep in addition to, or instead of, standard sweep.
 
+    *    - |new| |metrics|
+         - Added targeted sweep metrics for conservative and thorough sweep.
+           The metrics show the cumulative number of enqueued writes, entries read, tombstones put, and aborted cells deleted.
+           Additionally, there are metrics for the sweep timestamp of the last sweep iteration and for the lowest last swept timestamp across all shards.
+           Targeted Sweep now exposes the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.``:
+
+              - ``conservative.enqueuedWrites``
+              - ``conservative.entriesRead``
+              - ``conservative.tombstonesPut``
+              - ``conservative.abortedWritesDeleted``
+              - ``conservative.sweepTimestamp``
+              - ``conservative.lastSweptTimestamp``
+              - ``thorough.enqueuedWrites``
+              - ``thorough.entriesRead``
+              - ``thorough.tombstonesPut``
+              - ``thorough.abortedWritesDeleted``
+              - ``thorough.sweepTimestamp``
+              - ``thorough.lastSweptTimestamp``
+
     *    - |fixed|
          - Snapshot transaction is now guaranteed to return getRowsColumnRange results in the correct order.
            Previously while paging over row dynamic columns, if uncommitted or aborted transaction data was

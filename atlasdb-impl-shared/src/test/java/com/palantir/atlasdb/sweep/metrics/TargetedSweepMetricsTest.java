@@ -48,6 +48,7 @@ public class TargetedSweepMetricsTest {
     @Test
     public void canUpdateConservativeMetrics() {
         metrics.updateEnqueuedWrites(CONS_ZERO, 10);
+        metrics.updateEntriesRead(CONS_ZERO, 21);
         metrics.updateNumberOfTombstones(CONS_ZERO, 1);
         metrics.updateAbortedWritesDeleted(CONS_ZERO, 2);
         metrics.updateSweepTimestamp(CONS_ZERO, 7);
@@ -55,6 +56,7 @@ public class TargetedSweepMetricsTest {
         waitForProgressToRecompute();
 
         assertEnqueuedWritesConservativeEquals(10);
+        assertEntriesReadConservativeEquals(21);
         assertTombstonesPutConservativeEquals(1);
         assertAbortedWritesDeletedConservativeEquals(2);
         assertSweepTimestampConservativeEquals(7);
@@ -64,6 +66,7 @@ public class TargetedSweepMetricsTest {
     @Test
     public void canUpdateThoroughMetrics() {
         metrics.updateEnqueuedWrites(THOR_ZERO, 11);
+        metrics.updateEntriesRead(THOR_ZERO, 30);
         metrics.updateNumberOfTombstones(THOR_ZERO, 2);
         metrics.updateAbortedWritesDeleted(THOR_ZERO, 3);
         metrics.updateSweepTimestamp(THOR_ZERO, 9);
@@ -71,6 +74,7 @@ public class TargetedSweepMetricsTest {
         waitForProgressToRecompute();
 
         assertEnqueuedWritesThoroughEquals(11);
+        assertEntriesReadThoroughEquals(30);
         assertTombstonesPutThoroughEquals(2);
         assertAbortedWritesDeletedThoroughEquals(3);
         assertSweepTimestampThoroughEquals(9);
@@ -86,6 +90,14 @@ public class TargetedSweepMetricsTest {
         assertEnqueuedWritesConservativeEquals(5);
     }
 
+    @Test
+    public void entriesReadAccumulatesOverShards() {
+        metrics.updateEntriesRead(CONS_ZERO, 1);
+        metrics.updateEntriesRead(CONS_ONE, 4);
+        metrics.updateEntriesRead(CONS_ZERO, 1);
+
+        assertEntriesReadConservativeEquals(6);
+    }
 
     @Test
     public void numberOfTombstonesAccumulatesOverShards() {
@@ -234,6 +246,10 @@ public class TargetedSweepMetricsTest {
         assertThat(getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES).getValue()).isEqualTo(value);
     }
 
+    public static void assertEntriesReadConservativeEquals(long value) {
+        assertThat(getGaugeConservative(AtlasDbMetricNames.ENTRIES_READ).getValue()).isEqualTo(value);
+    }
+
     public static void assertTombstonesPutConservativeEquals(long value) {
         assertThat(getGaugeConservative(AtlasDbMetricNames.TOMBSTONES_PUT).getValue()).isEqualTo(value);
     }
@@ -256,6 +272,10 @@ public class TargetedSweepMetricsTest {
 
     public static void assertEnqueuedWritesThoroughEquals(long value) {
         assertThat(getGaugeThorough(AtlasDbMetricNames.ENQUEUED_WRITES).getValue()).isEqualTo(value);
+    }
+
+    public static void assertEntriesReadThoroughEquals(long value) {
+        assertThat(getGaugeThorough(AtlasDbMetricNames.ENTRIES_READ).getValue()).isEqualTo(value);
     }
 
     public static void assertTombstonesPutThoroughEquals(long value) {
