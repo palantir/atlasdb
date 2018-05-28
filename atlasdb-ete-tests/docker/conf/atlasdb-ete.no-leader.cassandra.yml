@@ -25,3 +25,5 @@ atlasdb:
     mutationBatchSizeBytes: 10000000
     fetchBatchCount: 1000
     autoRefreshNodes: false
+  targetedSweep:
+    enableSweepQueueWrites: true

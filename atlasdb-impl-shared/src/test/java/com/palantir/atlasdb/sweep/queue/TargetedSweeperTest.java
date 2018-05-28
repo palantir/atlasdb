@@ -472,6 +472,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
+    public void canSweepAtMinimumTimeWithNoWrites() {
+        runConservativeSweepAtTimestamp(Long.MIN_VALUE);
+        assertProgressUpdatedToTimestamp(SweepQueueUtils.INITIAL_TIMESTAMP);
+    }
+
+    @Test
     public void canSweepAtMinimumTime() {
         enqueueWrite(TABLE_CONS, LOW_TS);
         enqueueWrite(TABLE_CONS, LOW_TS2);
