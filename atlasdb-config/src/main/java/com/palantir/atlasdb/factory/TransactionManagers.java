@@ -681,7 +681,8 @@ public abstract class TransactionManagers {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
-            return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
+            return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent,
+                    () -> runtimeConfigSupplier.get().timelockRuntime().flatMap(TimeLockRuntimeConfig::authToken));
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
@@ -759,14 +760,16 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
-            String userAgent) {
+            String userAgent,
+            Supplier<Optional<String>> authTokenSupplier) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LeaderRuntimeConfig defaultRuntime = ImmutableLeaderRuntimeConfig.builder().build();
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
                 env,
                 leaderConfig,
                 () -> defaultRuntime,
-                userAgent);
+                userAgent,
+                authTokenSupplier);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.createInstrumentedService(
                 AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leader),
@@ -794,7 +797,6 @@ public abstract class TransactionManagers {
             // deadlock entirely; so use PingableLeader's getUUID() to detect this situation and eliminate the redundant
             // call.
 
-            Supplier<Optional<String>> authTokenSupplier = Optional::empty;
             PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
             String localServerId = localPingableLeader.getUUID();
             PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(

@@ -17,6 +17,7 @@
 package com.palantir.timelock.paxos;
 
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -43,6 +44,7 @@ public class PaxosLeadershipCreator {
     private final TimeLockInstallConfiguration install;
     private final Supplier<PaxosRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
+    private final Supplier<Optional<String>> authTokenSupplier;
 
     private PingableLeader localPingableLeader;
     private LeaderElectionService leaderElectionService;
@@ -54,6 +56,7 @@ public class PaxosLeadershipCreator {
         this.install = install;
         this.runtime = JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime);
         this.registrar = registrar;
+        this.authTokenSupplier = () -> runtime.get().internalAuthSecret();
     }
 
     public void registerLeaderElectionService() {
@@ -71,7 +74,8 @@ public class PaxosLeadershipCreator {
                         .remoteAcceptorUris(paxosSubresourceUris)
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
-                "leader-election-service");
+                "leader-election-service",
+                authTokenSupplier);
         localPingableLeader = localPaxosServices.pingableLeader();
         leaderElectionService = localPaxosServices.leaderElectionService();
 

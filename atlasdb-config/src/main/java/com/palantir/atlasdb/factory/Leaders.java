@@ -66,18 +66,29 @@ public final class Leaders {
      * registers appropriate endpoints for that service.
      */
     public static LeaderElectionService create(
-            Consumer<Object> env, LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime) {
-        return create(env, config, runtime, UserAgents.DEFAULT_USER_AGENT);
+            Consumer<Object> env,
+            LeaderConfig config,
+            Supplier<LeaderRuntimeConfig> runtime,
+            Supplier<Optional<String>> authTokenSupplier) {
+        return create(env, config, runtime, UserAgents.DEFAULT_USER_AGENT, authTokenSupplier);
     }
 
     public static LeaderElectionService create(
-            Consumer<Object> env, LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime, String userAgent) {
-        return createAndRegisterLocalServices(env, config, runtime, userAgent).leaderElectionService();
+            Consumer<Object> env,
+            LeaderConfig config,
+            Supplier<LeaderRuntimeConfig> runtime,
+            String userAgent,
+            Supplier<Optional<String>> authTokenSupplier) {
+        return createAndRegisterLocalServices(env, config, runtime, userAgent, authTokenSupplier).leaderElectionService();
     }
 
     public static LocalPaxosServices createAndRegisterLocalServices(
-            Consumer<Object> env, LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime, String userAgent) {
-        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(config, runtime, userAgent);
+            Consumer<Object> env,
+            LeaderConfig config,
+            Supplier<LeaderRuntimeConfig> runtime,
+            String userAgent,
+            Supplier<Optional<String>> authTokenSupplier) {
+        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(config, runtime, userAgent, authTokenSupplier);
 
         env.accept(localPaxosServices.ourAcceptor());
         env.accept(localPaxosServices.ourLearner());
@@ -87,7 +98,10 @@ public final class Leaders {
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(
-            LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime, String userAgent) {
+            LeaderConfig config,
+            Supplier<LeaderRuntimeConfig> runtime,
+            String userAgent,
+            Supplier<Optional<String>> authTokenSupplier) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
@@ -96,14 +110,15 @@ public final class Leaders {
                 .remoteAcceptorUris(remoteLeaderUris)
                 .remoteLearnerUris(remoteLeaderUris)
                 .build();
-        return createInstrumentedLocalServices(config, runtime, remotePaxosServerSpec, userAgent);
+        return createInstrumentedLocalServices(config, runtime, remotePaxosServerSpec, userAgent, authTokenSupplier);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(
             LeaderConfig config,
             Supplier<LeaderRuntimeConfig> runtime,
             RemotePaxosServerSpec remotePaxosServerSpec,
-            String userAgent) {
+            String userAgent,
+            Supplier<Optional<String>> authTokenSupplier) {
         UUID leaderUuid = UUID.randomUUID();
 
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
@@ -119,7 +134,6 @@ public final class Leaders {
         Optional<SSLSocketFactory> sslSocketFactory =
                 ServiceCreator.createSslSocketFactory(config.sslConfiguration());
 
-        Supplier<Optional<String>> authTokenSupplier = Optional::empty;
         List<PaxosLearner> learners = createProxyAndLocalList(
                 ourLearner,
                 remotePaxosServerSpec.remoteLearnerUris(),

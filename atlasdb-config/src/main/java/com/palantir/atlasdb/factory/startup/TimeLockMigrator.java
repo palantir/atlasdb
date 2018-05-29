@@ -44,9 +44,10 @@ public class TimeLockMigrator extends AsyncInitializer {
 
     public static TimeLockMigrator create(
             ServerListConfig serverListConfig,
+            Supplier<Optional<String>> authTokenSupplier,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
-        return create(() -> serverListConfig, Optional::empty, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(() -> serverListConfig, authTokenSupplier, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimeLockMigrator create(

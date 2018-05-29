@@ -96,7 +96,7 @@ public class TimeLockMigratorTest {
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), Optional::empty, invalidator, USER_AGENT);
         migrator.migrate();
 
         wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
@@ -109,7 +109,7 @@ public class TimeLockMigratorTest {
         wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withStatus(500)));
 
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), Optional::empty, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(AtlasDbDependencyException.class);
         verify(invalidator, never()).backupAndInvalidate();
     }
@@ -119,7 +119,7 @@ public class TimeLockMigratorTest {
         when(invalidator.backupAndInvalidate()).thenThrow(new IllegalStateException());
 
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), Optional::empty, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
         wireMockRule.verify(0, postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
     }

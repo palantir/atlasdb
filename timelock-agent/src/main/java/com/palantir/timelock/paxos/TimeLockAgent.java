@@ -103,7 +103,7 @@ public class TimeLockAgent {
                 PaxosRemotingUtils.getRemoteServerPaths(install),
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
                 JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime),
-                Optional::empty);
+                () -> runtime.get().internalAuthSecret());
     }
 
     private void createAndRegisterResources() {
@@ -116,7 +116,7 @@ public class TimeLockAgent {
         resource = new TimeLockResource(this::createInvalidatingTimeLockServices,
                 JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime));
         registrar.accept(resource);
-        Supplier<Optional<String>> authTokenSupplier = Optional::empty;
+        Supplier<Optional<String>> authTokenSupplier = () -> runtime.get().internalAuthSecret();
 
         ClockSkewMonitorCreator.create(install, registrar, authTokenSupplier).registerClockServices();
     }
