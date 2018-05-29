@@ -80,17 +80,13 @@ public class SweepableTimestamps extends KvsSweepQueueWriter {
 
     private Optional<Long> nextSweepablePartition(ShardAndStrategy shardAndStrategy, long minFineInclusive,
             long maxFineInclusive) {
-        Optional<ColumnRangeSelection> range = getColRangeSelection(minFineInclusive, maxFineInclusive + 1);
-
-        if (!range.isPresent()) {
-            return Optional.empty();
-        }
+        ColumnRangeSelection range = getColRangeSelection(minFineInclusive, maxFineInclusive + 1);
 
         long current = SweepQueueUtils.partitionFineToCoarse(minFineInclusive);
         long maxCoarseInclusive = SweepQueueUtils.partitionFineToCoarse(maxFineInclusive);
 
         while (current <= maxCoarseInclusive) {
-            Optional<Long> candidateFine = getCandidatesInCoarsePartition(shardAndStrategy, current, range.get());
+            Optional<Long> candidateFine = getCandidatesInCoarsePartition(shardAndStrategy, current, range);
             if (candidateFine.isPresent()) {
                 return candidateFine;
             }
@@ -112,13 +108,10 @@ public class SweepableTimestamps extends KvsSweepQueueWriter {
         return Optional.of(getFinePartitionFromEntry(firstColumnEntry));
     }
 
-    private Optional<ColumnRangeSelection> getColRangeSelection(long minFineInclusive, long maxFineExclusive) {
-        if (minFineInclusive >= maxFineExclusive) {
-            return Optional.empty();
-        }
+    private ColumnRangeSelection getColRangeSelection(long minFineInclusive, long maxFineExclusive) {
         byte[] start = SweepableTimestampsTable.SweepableTimestampsColumn.of(minFineInclusive).persistToBytes();
         byte[] end = SweepableTimestampsTable.SweepableTimestampsColumn.of(maxFineExclusive).persistToBytes();
-        return Optional.of(new ColumnRangeSelection(start, end));
+        return new ColumnRangeSelection(start, end);
     }
 
     private byte[] computeRowBytes(ShardAndStrategy shardStrategy, long coarsePartition) {

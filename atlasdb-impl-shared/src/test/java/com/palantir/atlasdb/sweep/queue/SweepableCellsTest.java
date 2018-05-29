@@ -159,14 +159,6 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    public void inconsistentRangeReturnsNoWritesAndSameLastSweptTimestamp() {
-        long lastSweptTs = 2 * TS;
-        SweepBatch conservativeBatch = readConservative(shardCons, tsPartitionFine(lastSweptTs), lastSweptTs, TS);
-        assertThat(conservativeBatch.writes()).isEmpty();
-        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(lastSweptTs);
-    }
-
-    @Test
     public void readOnlyTombstoneWhenLatestInShardAndRange() {
         putTombstoneToDefaultCommitted(sweepableCells, TS + 1, TABLE_CONS);
         SweepBatch batch = readConservative(CONS_SHARD, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS);
