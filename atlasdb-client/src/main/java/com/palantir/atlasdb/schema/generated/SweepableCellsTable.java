@@ -55,7 +55,6 @@ import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
@@ -147,7 +146,7 @@ public final class SweepableCellsTable implements
         private final byte[] metadata;
 
         public static SweepableCellsRow of(long timestampPartition, byte[] metadata) {
-            long hashOfRowComponents = computeHashFirstComponents(timestampPartition);
+            long hashOfRowComponents = computeHashFirstComponents(timestampPartition, metadata);
             return new SweepableCellsRow(hashOfRowComponents, timestampPartition, metadata);
         }
 
@@ -205,9 +204,10 @@ public final class SweepableCellsTable implements
             }
         };
 
-        public static long computeHashFirstComponents(long timestampPartition) {
+        public static long computeHashFirstComponents(long timestampPartition, byte[] metadata) {
             byte[] timestampPartitionBytes = EncodingUtils.encodeUnsignedVarLong(timestampPartition);
-            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(timestampPartitionBytes)).asLong();
+            byte[] metadataBytes = metadata;
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(timestampPartitionBytes, metadataBytes)).asLong();
         }
 
         @Override
@@ -375,19 +375,19 @@ public final class SweepableCellsTable implements
      *   {@literal Long writeIndex};
      * }
      * Column value description {
-     *   type: com.palantir.atlasdb.keyvalue.api.TableReferenceAndCell;
+     *   type: com.palantir.atlasdb.keyvalue.api.WriteReference;
      * }
      * </pre>
      */
-    public static final class SweepableCellsColumnValue implements ColumnValue<WriteReference> {
+    public static final class SweepableCellsColumnValue implements ColumnValue<com.palantir.atlasdb.keyvalue.api.WriteReference> {
         private final SweepableCellsColumn columnName;
-        private final WriteReference value;
+        private final com.palantir.atlasdb.keyvalue.api.WriteReference value;
 
-        public static SweepableCellsColumnValue of(SweepableCellsColumn columnName, WriteReference value) {
+        public static SweepableCellsColumnValue of(SweepableCellsColumn columnName, com.palantir.atlasdb.keyvalue.api.WriteReference value) {
             return new SweepableCellsColumnValue(columnName, value);
         }
 
-        private SweepableCellsColumnValue(SweepableCellsColumn columnName, WriteReference value) {
+        private SweepableCellsColumnValue(SweepableCellsColumn columnName, com.palantir.atlasdb.keyvalue.api.WriteReference value) {
             this.columnName = columnName;
             this.value = value;
         }
@@ -397,7 +397,7 @@ public final class SweepableCellsTable implements
         }
 
         @Override
-        public WriteReference getValue() {
+        public com.palantir.atlasdb.keyvalue.api.WriteReference getValue() {
             return value;
         }
 
@@ -412,9 +412,9 @@ public final class SweepableCellsTable implements
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
-        public static WriteReference hydrateValue(byte[] bytes) {
+        public static com.palantir.atlasdb.keyvalue.api.WriteReference hydrateValue(byte[] bytes) {
             bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-            return WriteReference.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            return com.palantir.atlasdb.keyvalue.api.WriteReference.BYTES_HYDRATOR.hydrateFromBytes(bytes);
         }
 
         public static Function<SweepableCellsColumnValue, SweepableCellsColumn> getColumnNameFun() {
@@ -426,10 +426,10 @@ public final class SweepableCellsTable implements
             };
         }
 
-        public static Function<SweepableCellsColumnValue, WriteReference> getValueFun() {
-            return new Function<SweepableCellsColumnValue, WriteReference>() {
+        public static Function<SweepableCellsColumnValue, com.palantir.atlasdb.keyvalue.api.WriteReference> getValueFun() {
+            return new Function<SweepableCellsColumnValue, com.palantir.atlasdb.keyvalue.api.WriteReference>() {
                 @Override
-                public WriteReference apply(SweepableCellsColumnValue columnValue) {
+                public com.palantir.atlasdb.keyvalue.api.WriteReference apply(SweepableCellsColumnValue columnValue) {
                     return columnValue.getValue();
                 }
             };
@@ -453,7 +453,7 @@ public final class SweepableCellsTable implements
             Set<SweepableCellsColumnValue> columnValues = Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 SweepableCellsColumn col = SweepableCellsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                WriteReference value = SweepableCellsColumnValue.hydrateValue(e.getValue());
+                com.palantir.atlasdb.keyvalue.api.WriteReference value = SweepableCellsColumnValue.hydrateValue(e.getValue());
                 columnValues.add(SweepableCellsColumnValue.of(col, value));
             }
             return new SweepableCellsRowResult(rowName, ImmutableSet.copyOf(columnValues));
@@ -596,7 +596,7 @@ public final class SweepableCellsTable implements
             if (e.getValue().length > 0) {
                 SweepableCellsRow row = SweepableCellsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
                 SweepableCellsColumn col = SweepableCellsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-                WriteReference val = SweepableCellsColumnValue.hydrateValue(e.getValue());
+                com.palantir.atlasdb.keyvalue.api.WriteReference val = SweepableCellsColumnValue.hydrateValue(e.getValue());
                 rowMap.put(row, SweepableCellsColumnValue.of(col, val));
             }
         }
@@ -618,7 +618,7 @@ public final class SweepableCellsTable implements
             List<SweepableCellsColumnValue> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 SweepableCellsColumn col = SweepableCellsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                WriteReference val = SweepableCellsColumnValue.hydrateValue(e.getValue());
+                com.palantir.atlasdb.keyvalue.api.WriteReference val = SweepableCellsColumnValue.hydrateValue(e.getValue());
                 ret.add(SweepableCellsColumnValue.of(col, val));
             }
             return ret;
@@ -646,7 +646,7 @@ public final class SweepableCellsTable implements
             SweepableCellsRow row = SweepableCellsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 SweepableCellsColumn col = SweepableCellsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                WriteReference val = SweepableCellsColumnValue.hydrateValue(e.getValue());
+                com.palantir.atlasdb.keyvalue.api.WriteReference val = SweepableCellsColumnValue.hydrateValue(e.getValue());
                 rowMap.put(row, SweepableCellsColumnValue.of(col, val));
             }
         }
@@ -661,7 +661,7 @@ public final class SweepableCellsTable implements
             SweepableCellsRow row = SweepableCellsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
             BatchingVisitable<SweepableCellsColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
                 SweepableCellsColumn col = SweepableCellsColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
-                WriteReference val = SweepableCellsColumnValue.hydrateValue(result.getValue());
+                com.palantir.atlasdb.keyvalue.api.WriteReference val = SweepableCellsColumnValue.hydrateValue(result.getValue());
                 return SweepableCellsColumnValue.of(col, val);
             });
             transformed.put(row, bv);
@@ -675,7 +675,7 @@ public final class SweepableCellsTable implements
         return Iterators.transform(results, e -> {
             SweepableCellsRow row = SweepableCellsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
             SweepableCellsColumn col = SweepableCellsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-            WriteReference val = SweepableCellsColumnValue.hydrateValue(e.getValue());
+            com.palantir.atlasdb.keyvalue.api.WriteReference val = SweepableCellsColumnValue.hydrateValue(e.getValue());
             SweepableCellsColumnValue colValue = SweepableCellsColumnValue.of(col, val);
             return Maps.immutableEntry(row, colValue);
         });
@@ -792,5 +792,5 @@ public final class SweepableCellsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "oqRNpjMhqfnJNar4CJBjKg==";
+    static String __CLASS_HASH = "FRzatgmfV4F4++k+S8syLQ==";
 }
