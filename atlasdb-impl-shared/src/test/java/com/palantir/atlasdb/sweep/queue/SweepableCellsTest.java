@@ -19,6 +19,7 @@ package com.palantir.atlasdb.sweep.queue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
 
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
@@ -30,20 +31,31 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetricsTest;
 
 public class SweepableCellsTest extends AbstractSweepQueueTest {
     private static final long SMALL_SWEEP_TS = TS + 200L;
+    private static final TableReference SWEEP_QUEUE_TABLE = TargetedSweepTableFactory.of()
+            .getSweepableCellsTable(null)
+            .getTableRef();
 
     private SweepableCells sweepableCells;
 
@@ -302,6 +314,59 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
 
         assertDeletedNumber(TABLE_CONS, MAX_CELLS_DEDICATED + 1);
         TargetedSweepMetricsTest.assertAbortedWritesDeletedConservativeEquals(MAX_CELLS_DEDICATED + 1);
+    }
+
+    @Test
+    public void cleanupNonDedicatedRow() {
+        useSingleShard();
+        writeCommittedConservativeRowForTimestamp(TS + 1, MAX_CELLS_GENERIC);
+        writeCommittedConservativeRowForTimestamp(TS + 3, MAX_CELLS_GENERIC);
+        writeCommittedConservativeRowForTimestamp(TS + 5, MAX_CELLS_GENERIC);
+
+        sweepableCells.deleteNonDedicatedRow(ShardAndStrategy.conservative(0), TS_FINE_PARTITION);
+        SweepableCellsTable.SweepableCellsRow row = SweepableCellsTable.SweepableCellsRow.of(TS_FINE_PARTITION,
+                ImmutableTargetedSweepMetadata.builder()
+                        .conservative(true)
+                        .dedicatedRow(false)
+                        .shard(0)
+                        .dedicatedRowNumber(0)
+                        .build()
+                        .persistToBytes());
+
+        verifyRowsDeletedFromSweepQueue(ImmutableList.of(row));
+    }
+
+    @Test
+    public void cleanupMultipleDedicatedRows() {
+        useSingleShard();
+        writeCommittedConservativeRowForTimestamp(TS + 1, MAX_CELLS_DEDICATED * 2 + 1);
+
+        sweepableCells.deleteDedicatedRows(ShardAndStrategy.conservative(0), TS_FINE_PARTITION);
+
+        List<SweepableCellsTable.SweepableCellsRow> expectedRangesToDelete = LongStream.range(0, 3)
+                .mapToObj(rowNumber -> ImmutableTargetedSweepMetadata.builder()
+                        .conservative(true)
+                        .dedicatedRow(true)
+                        .dedicatedRowNumber(rowNumber)
+                        .shard(0)
+                        .build()
+                        .persistToBytes())
+                .map(metadata -> SweepableCellsTable.SweepableCellsRow.of(TS + 1, metadata))
+                .collect(Collectors.toList());
+        verifyRowsDeletedFromSweepQueue(expectedRangesToDelete);
+    }
+
+    private void verifyRowsDeletedFromSweepQueue(List<SweepableCellsTable.SweepableCellsRow> rows) {
+        ArgumentCaptor<RangeRequest> captor = ArgumentCaptor.forClass(RangeRequest.class);
+        verify(spiedKvs, atLeast(0)).deleteRange(eq(SWEEP_QUEUE_TABLE), captor.capture());
+
+        List<RangeRequest> expectedRangesToDelete = rows.stream()
+                .map(row -> RangeRequest.builder()
+                        .startRowInclusive(row)
+                        .endRowExclusive(RangeRequests.nextLexicographicName(row.persistToBytes()))
+                        .build())
+                .collect(Collectors.toList());
+        assertThat(captor.getAllValues()).hasSameElementsAs(expectedRangesToDelete);
     }
 
     private SweepBatch readConservative(int shard, long partition, long minExclusive, long maxExclusive) {
