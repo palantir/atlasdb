@@ -47,7 +47,9 @@ public final class InterruptibleProxy implements DelegatingInvocationHandler {
 
     private final Object delegate;
     private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory("Interruptible Proxy", true /* isDaemon */ ));
+            new NamedThreadFactory("Interruptible Proxy", true /* isDaemon */ ),
+            // Timeout idle threads after 5 seconds, up from the default of 100ms
+            5000);
 
     private InterruptibleProxy(Object delegate, CancelDelegate cancel) {
         this.delegate = delegate;
