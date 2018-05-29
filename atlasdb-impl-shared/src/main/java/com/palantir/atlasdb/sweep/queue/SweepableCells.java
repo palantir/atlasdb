@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -292,19 +293,19 @@ public class SweepableCells extends KvsSweepQueueWriter {
         SweepableCellsTable.SweepableCellsRow startingRow = computeRow(partitionFine, shardAndStrategy);
         RowColumnRangeIterator rowIterator = getWithColumnRangeAllForRow(startingRow);
         List<RangeRequest> requests = new ArrayList<>();
-        rowIterator.forEachRemaining(entry -> addRangeRequestIfDedicated(startingRow, computeColumn(entry), requests));
+        rowIterator.forEachRemaining(entry -> addRangeRequestsIfDedicated(startingRow, computeColumn(entry), requests));
         return requests;
     }
 
-    private void addRangeRequestIfDedicated(SweepableCellsTable.SweepableCellsRow row,
+    private void addRangeRequestsIfDedicated(SweepableCellsTable.SweepableCellsRow row,
             SweepableCellsTable.SweepableCellsColumn col, List<RangeRequest> requests) {
         if (!isReferenceToDedicatedRows(col)) {
             return;
         }
         List<byte[]> dedicatedRows = computeDedicatedRows(row, col);
-        byte[] startRowInclusive = dedicatedRows.get(0);
-        byte[] endRowInclusive = dedicatedRows.get(dedicatedRows.size() - 1);
-        requests.add(computeRangeRequestForRows(startRowInclusive, endRowInclusive));
+        requests.addAll(dedicatedRows.stream()
+                .map(bytes -> computeRangeRequestForRows(bytes, bytes))
+                .collect(Collectors.toSet()));
     }
 
     private RangeRequest rangeRequestNonDedicatedRow(ShardAndStrategy shardAndStrategy, long partitionFine) {
