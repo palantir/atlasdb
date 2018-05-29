@@ -56,6 +56,12 @@ develop
            Note that this change does not affect communication between timelock nodes, or between an Atlas client and timelock, as these do not currently use remoting.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3196>`__)
 
+    *    - |fixed|
+         - ``SnapshotTransaction`` will no longer attempt to delete values for transactions that get rolled back.
+           The deletes were (necessarily) run at consistency ``ALL``, meaning that if aborted data was present, read
+           transactions had significantly impaired performance if a database node was down.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3199>`__)
+
 =======
 v0.86.0
 =======
