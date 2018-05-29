@@ -88,7 +88,7 @@ public final class SweepQueue implements SweepQueueWriter {
     public void enqueue(List<WriteInfo> writes) {
         sweepableTimestamps.enqueue(writes);
         sweepableCells.enqueue(writes);
-        log.info("Enqueued {} writes into the sweep queue. {}", writes.size(), writes);
+        log.info("Enqueued {} writes into the sweep queue.", writes.size());
     }
 
     /**
