@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - http-remoting has been upgraded to 3.22.0 (was 3.14.0).
+           This release fixes several issues with communication between Atlas servers and a QoS service, if configured (especially in HA configurations).
+           Note that this change does not affect communication between timelock nodes, or between an Atlas client and timelock, as these do not currently use remoting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3196>`__)
+
     *    - |fixed|
          - ``SnapshotTransaction`` will no longer attempt to delete values for transactions that get rolled back.
            The deletes were (necessarily) run at consistency ``ALL``, meaning that if aborted data was present, read
