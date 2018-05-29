@@ -127,6 +127,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.timestamp.TimestampService;
 
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
@@ -1012,6 +1013,35 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         .transform(Map.Entry::getKey)
                         .immutableCopy());
         assertEquals(ImmutableList.of(firstCell, secondCell), cells);
+    }
+
+    @Test
+    public void commitDoesNotThrowIfAlreadySuccessfullyCommitted() {
+        final TimestampService timestampMock = mock(TimestampService.class);
+        final long transactionTs = 1L;
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+
+        SnapshotTransaction snapshot = new SnapshotTransaction(
+                keyValueService,
+                new LegacyTimelockService(timestampMock, lockService, lockClient),
+                transactionService,
+                NoOpCleaner.INSTANCE,
+                transactionTs,
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
+                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueue);
+
+        //forcing to try to commit a transaction that is already committed
+        when(timestampMock.getFreshTimestamp()).thenReturn(2L);
+        transactionService.putUnlessExists(transactionTs, timestampMock.getFreshTimestamp());
+
+        snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+        snapshot.commit();
     }
 
     private void put(Transaction txn, TableReference table, WriteInfo write) {
