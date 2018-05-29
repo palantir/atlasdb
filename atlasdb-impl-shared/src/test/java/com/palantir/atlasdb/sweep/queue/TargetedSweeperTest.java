@@ -342,7 +342,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    public void sweepableTimestampsGetsScrubbedWhenLastSweptProgressesInNewCoarsePartition2() {
+    public void sweepableTimestampsGetsScrubbedWhenLastSweptProgressesInNewCoarsePartition() {
         long tsSecondPartitionFine = LOW_TS + TS_FINE_GRANULARITY;
         long largestFirstPartitionCoarse = TS_COARSE_GRANULARITY - 1L;
         long thirdPartitionCoarse = 2 * TS_COARSE_GRANULARITY;

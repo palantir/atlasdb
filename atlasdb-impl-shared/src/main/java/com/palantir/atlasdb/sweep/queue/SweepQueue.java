@@ -103,6 +103,12 @@ public final class SweepQueue implements SweepQueueWriter {
         metrics.updateSweepTimestamp(shardStrategy, sweepTs);
         long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
 
+        if (sweepTs <= lastSweptTs + 1) {
+            log.warn("Last swept timestamp {} for {} is greater than or equal to the sweep timestamp {}.",
+                    lastSweptTs, shardStrategy.toText(), sweepTs);
+            return;
+        }
+
         log.info("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept timestamp"
                 + " for this shard and strategy was {}.", shardStrategy.toText(), sweepTs, lastSweptTs);
 

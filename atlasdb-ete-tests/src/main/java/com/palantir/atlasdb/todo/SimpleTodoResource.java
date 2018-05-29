@@ -35,8 +35,18 @@ public class SimpleTodoResource implements TodoResource {
     }
 
     @Override
+    public long addTodoWithIdAndReturnTimestamp(long id, Todo todo) {
+        return atlas.addTodoWithIdAndReturnTimestamp(id, todo);
+    }
+
+    @Override
     public List<Todo> getTodoList() {
         return atlas.getTodoList();
+    }
+
+    @Override
+    public boolean doesNotExistBeforeTimestamp(long id, long timestamp) {
+        return atlas.doesNotExistBeforeTimestamp(id, timestamp);
     }
 
     @Override

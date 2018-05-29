@@ -133,10 +133,6 @@ public class SweepableCells extends KvsSweepQueueWriter {
 
     SweepBatch getBatchForPartition(ShardAndStrategy shardStrategy, long partitionFine, long minTsExclusive,
             long maxTsExclusive) {
-        if (inconsistentBounds(minTsExclusive, maxTsExclusive)) {
-            return  SweepBatch.of(ImmutableList.of(), minTsExclusive);
-        }
-
         SweepableCellsTable.SweepableCellsRow row = computeRow(partitionFine, shardStrategy);
         RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, maxTsExclusive);
         Multimap<Long, WriteInfo> writesByStartTs = getBatchOfWrites(row, resultIterator);

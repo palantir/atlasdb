@@ -27,8 +27,8 @@ import com.palantir.atlasdb.containers.CassandraEnvironment;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-//        TodoEteTest.class,
-//        CommandLineEteTest.class
+        TodoEteTest.class,
+        CommandLineEteTest.class,
         TargetedSweepTest.class
         })
 public class CassandraTimeLockTestSuite extends EteSetup {
