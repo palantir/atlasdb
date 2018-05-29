@@ -35,23 +35,28 @@ import com.palantir.exception.PalantirInterruptedException;
  *
  */
 public final class InterruptibleProxy implements DelegatingInvocationHandler {
+    private static final ExecutorService defaultExecutor = PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory("Interruptible Proxy", true /* isDaemon */ ));
 
-    private final CancelDelegate cancel;
+    public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, CancelDelegate cancel) {
+        return newProxyInstance(interfaceClass, delegate, cancel, defaultExecutor);
+    }
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate,
-            CancelDelegate cancel) {
+            CancelDelegate cancel, ExecutorService executor) {
         return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-                new Class<?>[] {interfaceClass}, new InterruptibleProxy(delegate, cancel));
+                new Class<?>[] {interfaceClass}, new InterruptibleProxy(delegate, cancel, executor));
     }
 
     private final Object delegate;
-    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory("Interruptible Proxy", true /* isDaemon */ ));
+    private final CancelDelegate cancel;
+    private final ExecutorService executor;
 
-    private InterruptibleProxy(Object delegate, CancelDelegate cancel) {
+    private InterruptibleProxy(Object delegate, CancelDelegate cancel, ExecutorService executor) {
         this.delegate = delegate;
         this.cancel = cancel;
+        this.executor = executor;
     }
 
     @Override
