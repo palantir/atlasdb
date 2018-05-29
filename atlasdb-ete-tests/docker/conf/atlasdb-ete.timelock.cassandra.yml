@@ -29,6 +29,8 @@ atlasdb:
   namespace: atlasete
 
 atlasDbRuntime:
+  sweep:
+    enabled: false
   targetedSweep:
     enabled: true
   timelockRuntime:
