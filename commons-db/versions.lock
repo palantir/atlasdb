@@ -211,7 +211,7 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.7"
+            "locked": "2.9"
         },
         "net.jcip:jcip-annotations": {
             "locked": "1.0",
@@ -473,7 +473,7 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.7"
+            "locked": "2.9"
         },
         "net.jcip:jcip-annotations": {
             "locked": "1.0",
