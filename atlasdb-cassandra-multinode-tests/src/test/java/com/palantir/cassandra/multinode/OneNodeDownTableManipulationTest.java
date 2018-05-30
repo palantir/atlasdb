@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -63,7 +64,7 @@ public class OneNodeDownTableManipulationTest {
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.dropTable(OneNodeDownTestSuite.TEST_TABLE_TO_DROP))
                 .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(IllegalStateException.class);
+                .hasCauseInstanceOf(UncheckedExecutionException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
         // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
@@ -75,7 +76,7 @@ public class OneNodeDownTableManipulationTest {
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.dropTables(
                 ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2)))
                 .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(IllegalStateException.class);
+                .hasCauseInstanceOf(UncheckedExecutionException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
         // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames())

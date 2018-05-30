@@ -79,6 +79,7 @@ import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.Pair;
 
 /**
@@ -613,7 +614,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             for (Entry<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
                     columnRangeEnds.entrySet()) {
                 byte[] row = rowAndRangeEnds.getKey();
-                Map<BatchColumnRangeSelection, byte[]> rangeEnds = columnRangeEnds.get(row);
+                Map<BatchColumnRangeSelection, byte[]> rangeEnds = rowAndRangeEnds.getValue();
 
                 for (Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
                     BatchColumnRangeSelection range = e.getKey();
@@ -624,11 +625,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                 RangeRequests.getNextStartRow(false, rangeEnd),
                                 range.getBatchHint());
                     }
-                    if (rangesToRows.get(range) != null) {
-                        rangesToRows.get(range).add(row);
-                    } else {
-                        rangesToRows.put(range, ImmutableList.of(row));
-                    }
+                    rangesToRows.computeIfAbsent(range, ignored -> Lists.newArrayList()).add(row);                    
                 }
             }
             for (Entry<BatchColumnRangeSelection, List<byte[]>> e : rangesToRows.entrySet()) {
@@ -642,9 +639,20 @@ public class SerializableTransaction extends SnapshotTransaction {
                     NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(
                             getReadsInColumnRange(table, row, range),
                             input -> ByteBuffer.wrap(input));
-                    boolean isEqual = bv.transformBatch(input -> filterWritesFromCells(input, writes))
-                            .isEqual(readsInRange.entrySet());
+                    List<Entry<Cell, ByteBuffer>> realValuesAsList =
+                            bv.transformBatch(input -> filterWritesFromCells(input, writes)).immutableCopy();
+                    List<Entry<Cell, ByteBuffer>> readValuesAsList = ImmutableList.copyOf(readsInRange.entrySet());
+                    boolean isEqual = realValuesAsList.equals(readValuesAsList);
                     if (!isEqual) {
+                        log.info("Failing a serializable transaction because column ranges not equal",
+                                UnsafeArg.of("table", table),
+                                UnsafeArg.of("rowBase64", PtBytes.encodeBase64String(row)),
+                                UnsafeArg.of("rowBase16", PtBytes.encodeHexString(row)),
+                                UnsafeArg.of("range", range),
+                                UnsafeArg.of("keysReadDuringTxn",
+                                        Lists.transform(readValuesAsList, Entry::getKey)),
+                                UnsafeArg.of("keysReadDuringConflictChecking",
+                                        Lists.transform(realValuesAsList, Entry::getKey)));
                         handleTransactionConflict(table);
                     }
                 }

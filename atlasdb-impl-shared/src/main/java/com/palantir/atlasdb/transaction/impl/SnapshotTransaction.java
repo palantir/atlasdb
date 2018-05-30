@@ -20,13 +20,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -71,7 +71,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
@@ -493,7 +492,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
-                Map<Cell, byte[]> post = new LinkedHashMap<>();
+                SortedMap<Cell, byte[]> post = new TreeMap<>();
                 getWithPostFiltering(tableRef, raw, post, Value.GET_VALUE);
                 batchIterator.markNumResultsNotDeleted(post.keySet().size());
                 return post.entrySet().iterator();
@@ -1696,26 +1695,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
-        try {
-            log.debug("For table: {} we are deleting values of an uncommitted transaction: {}",
-                    LoggingArgs.tableRef(tableRef),
-                    UnsafeArg.of("keysToDelete", keysToDelete));
-            keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
-        } catch (RuntimeException e) {
-            final String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are"
-                    + " running. Delete has stronger consistency semantics than read/write and must talk to all nodes"
-                    + " instead of just talking to a quorum of nodes. "
-                    + "Failed to delete keys for table: {} from an uncommitted transaction; "
-                    + " sweep should eventually clean this when it processes this table.";
-            if (log.isDebugEnabled()) {
-                log.warn(msg + " The keys that failed to be deleted during rollback were {}",
-                        LoggingArgs.tableRef(tableRef),
-                        UnsafeArg.of("keysToDelete", keysToDelete));
-            } else {
-                log.warn(msg, LoggingArgs.tableRef(tableRef), e);
-            }
-        }
-
+        log.debug("For table: {} we are *NOT* deleting values of an uncommitted transaction: {}."
+                        + "These values will eventually be cleaned up by sweep.",
+                LoggingArgs.tableRef(tableRef),
+                UnsafeArg.of("keysToDelete", keysToDelete));
         return true;
     }
 

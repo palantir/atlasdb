@@ -23,7 +23,7 @@ import org.junit.Test;
 public class CassandraCliParserTest {
     private static final String CORRUPT_STRING = "sodu89sydihusd:KSDNLSA";
 
-    private final CassandraCliParser parser = new CassandraCliParser(CassandraVersion.from("2.2.8"));
+    private final CassandraCliParser parser = new CassandraCliParser(CassandraVersion.from("2.2.9"));
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotCreateUnsupportedParser() {
