@@ -18,10 +18,6 @@ task runUnitTestsForPrintLogsInChronologicalOrderScript(type: Exec) {
    commandLine 'python', 'scripts/print_logs_in_chronological_order.py', '--tests-only'
 }
 
-jacocoTestReport {
-    executionData test
-}
-
 check.dependsOn runUnitTestsForPrintLogsInChronologicalOrderScript
 
 dependencies {

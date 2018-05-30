@@ -101,7 +101,7 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.1",
             "transitive": [
                 "com.google.guava:guava"
             ]
@@ -197,22 +197,22 @@
             ]
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.14.0",
+            "locked": "3.22.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:refresh-utils": {
-            "locked": "3.14.0"
+            "locked": "3.22.0"
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.14.0",
+            "locked": "3.22.0",
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.3",
+            "locked": "1.3.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:lock-api",
@@ -404,7 +404,7 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.1",
             "transitive": [
                 "com.google.guava:guava"
             ]
@@ -500,22 +500,22 @@
             ]
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.14.0",
+            "locked": "3.22.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:refresh-utils": {
-            "locked": "3.14.0"
+            "locked": "3.22.0"
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.14.0",
+            "locked": "3.22.0",
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.3",
+            "locked": "1.3.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:lock-api",

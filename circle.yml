@@ -37,10 +37,6 @@ test:
         timeout: 600
   post:
     - ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
-    - ./scripts/time-cmd.sh ./gradlew --profile jacocoFullReport -x classes:
-        parallel: true
-    - bash <(curl -s https://codecov.io/bash):
-        parallel: true
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/:
         parallel: true
     - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;:

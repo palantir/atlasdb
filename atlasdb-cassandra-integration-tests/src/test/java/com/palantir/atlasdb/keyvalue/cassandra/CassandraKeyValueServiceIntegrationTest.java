@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -332,7 +333,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         try {
             kvs.createTable(TableReference.create(originalTable.getNamespace(),
                     "_locks_other"), AtlasDbConstants.EMPTY_TABLE_METADATA);
-        } catch (IllegalStateException ex) {
+        } catch (UncheckedExecutionException ex) {
             // expected - we just created another locks table
         }
 

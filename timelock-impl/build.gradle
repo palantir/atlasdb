@@ -5,10 +5,6 @@ apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/timelock.gradle"
 
-jacocoTestReport {
-    executionData test
-}
-
 dependencies {
     compile project(":timestamp-impl")
     compile project(":lock-impl")

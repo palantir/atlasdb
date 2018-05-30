@@ -29,6 +29,8 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -64,6 +66,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -118,6 +122,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -181,15 +186,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
+    private static final long SCHEMA_MUTATION_TASK_TIMEOUT_SECONDS = 120;
+
     private final Logger log;
 
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
 
     private SchemaMutationLock schemaMutationLock;
-    private final Optional<LeaderConfig> leaderConfig;
-
+    private final ExecutorService schemaMutationExecutor;
     private final UniqueSchemaMutationLockTable schemaMutationLockTable;
+
+    private final Optional<LeaderConfig> leaderConfig;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
@@ -314,6 +322,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
+        this.schemaMutationExecutor = createFixedThreadPool("schemaMutation", 1);
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
@@ -798,12 +807,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         if (results.isEmpty()) {
                             return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(), false);
                         }
-                        Map<Cell, Value> ret = Maps.newHashMap();
-                        new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
                         List<ColumnOrSuperColumn> values = Iterables.getOnlyElement(results.values());
                         if (values.isEmpty()) {
                             return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(), false);
                         }
+                        RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
+                        extractor.extractResults(ImmutableList.of(row), results, startTs);
+                        RowColumnRangeExtractor.RowColumnRangeResult decoded = extractor.getRowColumnRangeResult();
+                        Map<Cell, Value> ret = decoded.getResults().get(row);
+
                         ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
                         byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn()).getLhSide();
                         // Same idea as the getRows case to handle seeing only newer entries of a column
@@ -1283,8 +1295,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to drop.
      *
-     * @throws IllegalStateException if not all hosts respond successfully, or if their schema versions do
+     * @throws AtlasDbDependencyException if not all hosts respond successfully, or if their schema versions do
      * not come to agreement in 1 minute.
+     * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
     public void dropTable(final TableReference tableRef) {
@@ -1306,12 +1319,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tablesToDrop the set of tables to drop.
      *
-     * @throws IllegalStateException if not all hosts respond successfully, or if their schema versions do
+     * @throws AtlasDbDependencyException if not all hosts respond successfully, or if their schema versions do
      * not come to agreement in 1 minute.
+     * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
-        schemaMutationLock.runWithLock(() -> cassandraTableDropper.dropTables(tablesToDrop));
+        runSchemaMutationTask(() ->
+                schemaMutationLock.runWithLock(() -> cassandraTableDropper.dropTables(tablesToDrop)));
     }
 
     /**
@@ -1325,7 +1340,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @param tableRef the name of the table to create.
      * @param tableMetadata the metadata of the table to create.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws AtlasDbDependencyException if not all hosts respond successfully.
+     * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
     public void createTable(final TableReference tableRef, final byte[] tableMetadata) {
@@ -1353,7 +1369,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableNamesToTableMetadata a mapping of names of tables to create to their respective metadata.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws AtlasDbDependencyException if not all hosts respond successfully.
+     * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
@@ -1369,7 +1386,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     tablesToActuallyCreate.keySet());
             log.info("Grabbing schema mutation lock to create tables {} and {}",
                     safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
-            schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate));
+
+            runSchemaMutationTask(() ->
+                    schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate)));
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
@@ -1436,6 +1455,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         return filteredTables;
+    }
+
+    private void runSchemaMutationTask(Runnable task) {
+        try {
+            Futures.getUnchecked(schemaMutationExecutor.submit(task));
+        } catch (UncheckedExecutionException e) {
+            // If this wraps an AtlasDbDependencyException, rewrap and throw
+            if (e.getCause() instanceof AtlasDbDependencyException) {
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            }
+            throw e;
+        }
     }
 
     private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
@@ -1759,6 +1790,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void close() {
+        schemaMutationExecutor.shutdown();
+        try {
+            schemaMutationExecutor.awaitTermination(SCHEMA_MUTATION_TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            // Continue with further transaction manager clean-up
+            Thread.currentThread().interrupt();
+        }
         clientPool.shutdown();
         super.close();
     }

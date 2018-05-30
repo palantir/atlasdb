@@ -202,6 +202,7 @@ class CassandraRequestExceptionHandler {
     }
 
     static boolean isIndicativeOfCassandraLoad(Throwable ex) {
+        // TODO (jkong): Make NoSuchElementException its own thing - that is NOT necessarily indicative of C* load.
         return ex != null
                 // pool for this node is fully in use
                 && (ex instanceof NoSuchElementException
@@ -253,9 +254,7 @@ class CassandraRequestExceptionHandler {
 
         @Override
         public boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts) {
-            return isFastFailoverException(ex)
-                    || (numberOfAttempts >= maxTriesSameHost
-                    && (isConnectionException(ex) || isIndicativeOfCassandraLoad(ex)));
+            return isFastFailoverException(ex) || numberOfAttempts >= maxTriesSameHost;
         }
     }
 
@@ -276,7 +275,7 @@ class CassandraRequestExceptionHandler {
         @Override
         public boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts) {
             return isFastFailoverException(ex) || isIndicativeOfCassandraLoad(ex)
-                    || (numberOfAttempts >= maxTriesSameHost && isConnectionException(ex));
+                    || numberOfAttempts >= maxTriesSameHost;
         }
     }
 }
