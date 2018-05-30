@@ -397,6 +397,9 @@ v0.79.0
            This unblocks users using libraries which have dependencies on more recent versions of Guava, owing to API changes in ``SimpleTimeLimiter``, among other classes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3038>`__)
 
+    *    - |improved|
+         - In line with internal services, we now try to not use AES-GCM (which is slow on Java 8). (`Pull Request <https://github.com/palantir/atlasdb/pull/3065>`__)
+
     *    - |improved| |metrics|
          - Sweep metrics are now updated to the result value of the last run iteration of sweep instead of the cumulative values for the run of sweep on the table.
            This has been done in order to improve the granularity of the metrics, since cumulative results can be several orders of magnitude larger, thus obfuscating the delta.

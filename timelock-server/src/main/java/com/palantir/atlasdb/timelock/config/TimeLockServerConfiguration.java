@@ -147,8 +147,10 @@ public class TimeLockServerConfiguration extends Configuration {
         Preconditions.checkState(serverFactory.getApplicationConnectors().get(0) instanceof HttpConnectorFactory,
                 "applicationConnectors of TimeLockServerConfiguration must have a HttpConnectorFactory instance.");
         HttpConnectorFactory connectorFactory = (HttpConnectorFactory) serverFactory.getApplicationConnectors().get(0);
-        int selectorThreads = connectorFactory.getSelectorThreads();
-        int acceptorThreads = connectorFactory.getAcceptorThreads();
+
+        // In both of these cases, Runtime.getRuntime().availableProcessors() will be a small overestimate.
+        int selectorThreads = connectorFactory.getSelectorThreads().orElse(Runtime.getRuntime().availableProcessors());
+        int acceptorThreads = connectorFactory.getAcceptorThreads().orElse(Runtime.getRuntime().availableProcessors());
 
         // TODO(gmaretic): consider reserving numClients more threads or something similar for unlocks
         return maxServerThreads - selectorThreads - acceptorThreads - 1;

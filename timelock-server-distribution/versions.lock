@@ -79,6 +79,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -95,6 +96,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
+                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.feign:feign-jackson",
@@ -1086,19 +1088,19 @@
             ]
         },
         "io.dropwizard:dropwizard-configuration": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-core": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "com.palantir.atlasdb:timelock-server"
             ]
         },
         "io.dropwizard:dropwizard-http2": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "com.palantir.atlasdb:timelock-server"
             ]
@@ -1114,13 +1116,13 @@
             ]
         },
         "io.dropwizard:dropwizard-jersey": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-jetty": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-http2",
@@ -1128,14 +1130,14 @@
             ]
         },
         "io.dropwizard:dropwizard-lifecycle": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-metrics"
             ]
         },
         "io.dropwizard:dropwizard-logging": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-jersey",
@@ -1144,26 +1146,26 @@
             ]
         },
         "io.dropwizard:dropwizard-metrics": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-request-logging": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "com.palantir.atlasdb:timelock-server",
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-servlets": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard:dropwizard-util": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-jackson",
@@ -1173,7 +1175,7 @@
             ]
         },
         "io.dropwizard:dropwizard-validation": {
-            "locked": "1.0.6",
+            "locked": "1.2.4",
             "transitive": [
                 "io.dropwizard:dropwizard-configuration",
                 "io.dropwizard:dropwizard-core",
@@ -1380,21 +1382,27 @@
                 "io.dropwizard:dropwizard-core"
             ]
         },
-        "org.eclipse.jetty:jetty-alpn-server": {
-            "locked": "9.3.9.v20160517",
+        "org.eclipse.jetty:jetty-alpn-openjdk8-server": {
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "io.dropwizard:dropwizard-http2"
             ]
         },
+        "org.eclipse.jetty:jetty-alpn-server": {
+            "locked": "9.4.8.v20171121",
+            "transitive": [
+                "org.eclipse.jetty:jetty-alpn-openjdk8-server"
+            ]
+        },
         "org.eclipse.jetty:jetty-continuation": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey",
                 "org.eclipse.jetty:jetty-servlets"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty.http2:http2-hpack",
@@ -1403,21 +1411,23 @@
             ]
         },
         "org.eclipse.jetty:jetty-io": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "org.eclipse.jetty.http2:http2-hpack",
+                "org.eclipse.jetty:jetty-alpn-openjdk8-server",
+                "org.eclipse.jetty:jetty-http",
                 "org.eclipse.jetty:jetty-server",
                 "org.eclipse.jetty:jetty-servlets"
             ]
         },
         "org.eclipse.jetty:jetty-security": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "org.eclipse.jetty:jetty-servlet"
             ]
         },
         "org.eclipse.jetty:jetty-server": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey",
                 "io.dropwizard:dropwizard-jetty",
@@ -1428,20 +1438,20 @@
             ]
         },
         "org.eclipse.jetty:jetty-servlet": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty",
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
         "org.eclipse.jetty:jetty-servlets": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty"
             ]
         },
         "org.eclipse.jetty:jetty-util": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "io.dropwizard:dropwizard-logging",
                 "org.eclipse.jetty.http2:http2-hpack",
@@ -1452,13 +1462,13 @@
             ]
         },
         "org.eclipse.jetty:jetty-webapp": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "org.eclipse.jetty:jetty-xml": {
-            "locked": "9.3.9.v20160517",
+            "locked": "9.4.8.v20171121",
             "transitive": [
                 "org.eclipse.jetty:jetty-webapp"
             ]
@@ -1522,7 +1532,7 @@
             ]
         },
         "org.glassfish.jersey.containers:jersey-container-servlet": {
-            "locked": "2.23.2",
+            "locked": "2.25.1",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
@@ -1562,13 +1572,13 @@
             ]
         },
         "org.glassfish.jersey.ext:jersey-bean-validation": {
-            "locked": "2.23.2",
+            "locked": "2.25.1",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "org.glassfish.jersey.ext:jersey-metainf-services": {
-            "locked": "2.23.2",
+            "locked": "2.25.1",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
@@ -1596,7 +1606,8 @@
         "org.hibernate:hibernate-validator": {
             "locked": "5.1.3.Final",
             "transitive": [
-                "io.dropwizard:dropwizard-validation"
+                "io.dropwizard:dropwizard-validation",
+                "org.glassfish.jersey.ext:jersey-bean-validation"
             ]
         },
         "org.javassist:javassist": {

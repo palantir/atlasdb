@@ -465,7 +465,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static Response makeEmptyPostToUri(String uri) throws IOException {
         OkHttpClient client = new OkHttpClient.Builder()
                 .sslSocketFactory(TestProxies.SSL_SOCKET_FACTORY)
-                .connectionSpecs(FeignOkHttpClients.CONNECTION_SPEC_WITH_CYPHER_SUITES)
+                .connectionSpecs(FeignOkHttpClients.CONNECTION_SPEC_WITH_CIPHER_SUITES)
                 .build();
         return client.newCall(new Request.Builder()
                 .url(uri)
