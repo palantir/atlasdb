@@ -187,6 +187,16 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>Added logging of the values used to determine which table to sweep, provides more insight into why tables are being swept and others aren’t.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2829">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>http-remoting has been upgraded to 3.22.0 (was 3.14.0).
+This release fixes several issues with communication between Atlas servers and a QoS service, if configured (especially in HA configurations).
+Note that this change does not affect communication between timelock nodes, or between an Atlas client and timelock, as these do not currently use remoting.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3196">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">SnapshotTransaction</span></code> will no longer attempt to delete values for transactions that get rolled back.
 The deletes were (necessarily) run at consistency <code class="docutils literal notranslate"><span class="pre">ALL</span></code>, meaning that if aborted data was present, read
