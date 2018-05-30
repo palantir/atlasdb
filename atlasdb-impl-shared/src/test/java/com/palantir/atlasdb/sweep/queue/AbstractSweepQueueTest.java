@@ -41,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -73,6 +74,7 @@ public abstract class AbstractSweepQueueTest {
     SpecialTimestampsSupplier timestampsSupplier;
     WriteInfoPartitioner partitioner;
     TransactionService txnService;
+    TargetedSweepMetrics metrics;
 
     @Before
     public void setup() {
@@ -87,6 +89,7 @@ public abstract class AbstractSweepQueueTest {
         timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createTransactionService(spiedKvs);
+        metrics = TargetedSweepMetrics.withRecomputingInterval(1);
     }
 
     static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {

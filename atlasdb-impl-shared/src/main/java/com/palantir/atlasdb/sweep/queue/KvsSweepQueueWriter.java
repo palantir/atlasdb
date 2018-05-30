@@ -19,6 +19,9 @@ package com.palantir.atlasdb.sweep.queue;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -26,16 +29,20 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 
 public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
     final KeyValueService kvs;
     private final TableReference tableRef;
     private final WriteInfoPartitioner partitioner;
+    final Optional<TargetedSweepMetrics> maybeMetrics;
 
-    public KvsSweepQueueWriter(KeyValueService kvs, TableReference tableRef, WriteInfoPartitioner partitioner) {
+    public KvsSweepQueueWriter(KeyValueService kvs, TableReference tableRef, WriteInfoPartitioner partitioner,
+            @Nullable TargetedSweepMetrics metrics) {
         this.kvs = kvs;
         this.tableRef = tableRef;
         this.partitioner = partitioner;
+        this.maybeMetrics = Optional.ofNullable(metrics);
     }
 
     @Override
@@ -46,6 +53,9 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
         if (!cellsToWrite.isEmpty()) {
             kvs.put(tableRef, cellsToWrite, SweepQueueUtils.WRITE_TS);
         }
+        maybeMetrics.ifPresent(metrics ->
+                partitionedWrites.forEach((info, writes) ->
+                        metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size())));
     }
 
     /**

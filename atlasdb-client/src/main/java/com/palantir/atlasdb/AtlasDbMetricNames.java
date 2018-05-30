@@ -47,4 +47,14 @@ public final class AtlasDbMetricNames {
 
     public static final String TIMELOCK_SUCCESSFUL_REQUEST = "timelockSuccessfulRequest";
     public static final String TIMELOCK_FAILED_REQUEST = "timelockFailedRequest";
+
+    public static final String TAG_STRATEGY = "strategy";
+    public static final String TAG_CONSERVATIVE = "conservative";
+    public static final String TAG_THOROUGH = "thorough";
+    public static final String ENQUEUED_WRITES = "enqueuedWrites";
+    public static final String ENTRIES_READ = "entriesRead";
+    public static final String TOMBSTONES_PUT = "tombstonesPut";
+    public static final String ABORTED_WRITES_DELETED = "abortedWritesDeleted";
+    public static final String SWEEP_TS = "sweepTimestamp";
+    public static final String SWEPT_TS = "lastSweptTimestamp";
 }

@@ -20,13 +20,19 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.logsafe.SafeArg;
 
 public final class SweepQueue implements SweepQueueWriter {
+    private static final Logger log = LoggerFactory.getLogger(SweepQueue.class);
     private static final long FIVE_MINUTES = TimeUnit.MINUTES.toMillis(5L);
 
     private final SweepableCells sweepableCells;
@@ -35,26 +41,30 @@ public final class SweepQueue implements SweepQueueWriter {
     private final SweepQueueDeleter deleter;
     private final SweepQueueCleaner cleaner;
     private final Supplier<Integer> numShards;
+    private final TargetedSweepMetrics metrics;
 
     private SweepQueue(SweepableCells cells, SweepableTimestamps timestamps, ShardProgress progress,
-            SweepQueueDeleter deleter, SweepQueueCleaner cleaner, Supplier<Integer> numShards) {
+            SweepQueueDeleter deleter, SweepQueueCleaner cleaner, Supplier<Integer> numShards,
+            TargetedSweepMetrics metrics) {
         this.sweepableCells = cells;
         this.sweepableTimestamps = timestamps;
         this.progress = progress;
         this.deleter = deleter;
         this.cleaner = cleaner;
         this.numShards = numShards;
+        this.metrics = metrics;
     }
 
     public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig) {
+        TargetedSweepMetrics metrics = TargetedSweepMetrics.withRecomputingInterval(FIVE_MINUTES);
         ShardProgress progress = new ShardProgress(kvs);
         Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, FIVE_MINUTES);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
-        SweepableCells cells = new SweepableCells(kvs, partitioner);
+        SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
         SweepQueueDeleter deleter = new SweepQueueDeleter(kvs);
         SweepQueueCleaner cleaner = new SweepQueueCleaner(cells, timestamps, progress);
-        return new SweepQueue(cells, timestamps, progress, deleter, cleaner, shards);
+        return new SweepQueue(cells, timestamps, progress, deleter, cleaner, shards, metrics);
     }
 
     /**
@@ -79,6 +89,7 @@ public final class SweepQueue implements SweepQueueWriter {
     public void enqueue(List<WriteInfo> writes) {
         sweepableTimestamps.enqueue(writes);
         sweepableCells.enqueue(writes);
+        log.info("Enqueued {} writes into the sweep queue.", writes.size());
     }
 
     /**
@@ -90,12 +101,32 @@ public final class SweepQueue implements SweepQueueWriter {
      * @param sweepTs sweep timestamp, the upper limit to the start timestamp of writes to sweep
      */
     public void sweepNextBatch(ShardAndStrategy shardStrategy, long sweepTs) {
+        metrics.updateSweepTimestamp(shardStrategy, sweepTs);
         long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
+
+        if (lastSweptTs + 1 >= sweepTs) {
+            log.warn("Last swept timestamp {} for {} is inconsistent with the sweep timestamp {}, since there can be "
+                            + "no timestamps between the two values.", SafeArg.of("lastSweptTs", lastSweptTs),
+                    SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("sweepTs", sweepTs));
+            return;
+        }
+
+        log.info("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept timestamp"
+                + " for this shard and strategy was {}.", SafeArg.of("shardStrategy", shardStrategy.toText()),
+                SafeArg.of("sweepTs", sweepTs), SafeArg.of("lastSweptTs", lastSweptTs));
 
         SweepBatch sweepBatch = getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
+        log.info("Put {} ranged tombstones and swept up to timestamp {} for {}.",
+                SafeArg.of("tombstones", sweepBatch.writes().size()),
+                SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
+                SafeArg.of("shardStrategy", shardStrategy.toText()));
+
         cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp());
+
+        metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
+        metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());
     }
 
     private SweepBatch getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {

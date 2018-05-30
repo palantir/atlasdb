@@ -32,6 +32,10 @@ public abstract class ShardAndStrategy {
                 + "THOROUGH, but it is %s instead.", strategy());
     }
 
+    public String toText() {
+        return "shard " + shard() + " and strategy " + strategy();
+    }
+
     public boolean isConservative() {
         return strategy() == TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
     }
@@ -53,5 +57,12 @@ public abstract class ShardAndStrategy {
 
     public static ShardAndStrategy thorough(int shard) {
         return ShardAndStrategy.of(shard, TableMetadataPersistence.SweepStrategy.THOROUGH);
+    }
+
+    public static ShardAndStrategy fromInfo(PartitionInfo info) {
+        if (info.isConservative().isTrue()) {
+            return ShardAndStrategy.conservative(info.shard());
+        }
+        return ShardAndStrategy.thorough(info.shard());
     }
 }

@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -44,6 +45,7 @@ import com.palantir.atlasdb.todo.generated.LatestSnapshotTable;
 import com.palantir.atlasdb.todo.generated.SnapshotsStreamStore;
 import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
@@ -61,14 +63,25 @@ public class TodoClient {
     }
 
     public void addTodo(Todo todo) {
-        transactionManager.runTaskWithRetry((transaction) -> {
-            Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()),
+        addTodoWithIdAndReturnTimestamp(random.nextLong(), todo);
+    }
+
+    public long addTodoWithIdAndReturnTimestamp(long id, Todo todo) {
+        return transactionManager.runTaskWithRetry((transaction) -> {
+            Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(id),
                     TodoSchema.todoTextColumn());
             Map<Cell, byte[]> write = ImmutableMap.of(thisCell, ValueType.STRING.convertFromJava(todo.text()));
 
             transaction.put(TodoSchema.todoTable(), write);
-            return null;
+            return transaction.getTimestamp();
         });
+    }
+
+    public boolean doesNotExistBeforeTimestamp(long id, long ts) {
+        KeyValueService kvs = ((SerializableTransactionManager) transactionManager).getKeyValueService();
+        TableReference tableRef = TodoSchemaTableFactory.of().getTodoTable(null).getTableRef();
+        Cell cell = Cell.create(ValueType.FIXED_LONG.convertFromJava(id), TodoSchema.todoTextColumn());
+        return kvs.get(tableRef, ImmutableMap.of(cell, ts + 1)).isEmpty();
     }
 
     public List<Todo> getTodoList() {
