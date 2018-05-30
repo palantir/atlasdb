@@ -30,9 +30,9 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.logsafe.UnsafeArg;
 
 public class WriteInfoPartitioner {
     private static final Logger log = LoggerFactory.getLogger(WriteInfoPartitioner.class);
@@ -90,7 +90,7 @@ public class WriteInfoPartitioner {
             return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(kvs.getMetadataForTable(tableRef)).getSweepStrategy();
         } catch (Throwable th) {
             log.warn("Failed to obtain sweep strategy for table {}. Assuming sweep strategy is CONSERVATIVE.",
-                    UnsafeArg.of("tableRef", tableRef), th);
+                    LoggingArgs.tableRef(tableRef), th);
             return TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
         }
     }
