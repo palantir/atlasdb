@@ -29,6 +29,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -50,16 +53,18 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.UnsafeArg;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
+    private static final Logger log = LoggerFactory.getLogger(AbstractKeyValueService.class);
+
     protected ExecutorService executor;
 
     protected final TracingPrefsConfig tracingPrefs;
@@ -215,11 +220,12 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     @Override
     public void deleteAllTimestamps(TableReference tableRef,
             Map<Cell, Long> maxTimestampExclusiveByCell) {
-        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell);
+        boolean deleteSentinels = getSweepStrategy(tableRef).equals(TableMetadataPersistence.SweepStrategy.THOROUGH);
+        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell, deleteSentinels);
     }
 
     public static void deleteAllTimestampsDefaultImpl(KeyValueService kvs, TableReference tableRef,
-            Map<Cell, Long> maxTimestampByCell) {
+            Map<Cell, Long> maxTimestampByCell, boolean deleteSentinels) {
         if (maxTimestampByCell.isEmpty()) {
             return;
         }
@@ -233,10 +239,21 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             long maxTimestampForCell = maxTimestampByCell.get(entry.getKey());
 
             long timestamp = entry.getValue();
-            return timestamp < maxTimestampForCell && timestamp != Value.INVALID_VALUE_TIMESTAMP;
+            return timestamp < maxTimestampForCell && (deleteSentinels || timestamp != Value.INVALID_VALUE_TIMESTAMP);
         });
 
         kvs.delete(tableRef, timestampsByCellExcludingSentinels);
+    }
+
+    // TODO this was copied from WriteInfoPartitioner. Where should it live?
+    protected TableMetadataPersistence.SweepStrategy getSweepStrategy(TableReference tableRef) {
+        try {
+            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(getMetadataForTable(tableRef)).getSweepStrategy();
+        } catch (Throwable th) {
+            log.warn("Failed to obtain sweep strategy for table {}. Assuming sweep strategy is CONSERVATIVE.",
+                    UnsafeArg.of("tableRef", tableRef), th);
+            return TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
+        }
     }
 
     @Override

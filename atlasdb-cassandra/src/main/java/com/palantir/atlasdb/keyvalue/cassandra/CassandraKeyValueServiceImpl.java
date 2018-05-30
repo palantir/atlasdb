@@ -110,6 +110,7 @@ import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
@@ -1730,15 +1731,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
         Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
                 clientPool, maxTimestampExclusiveByCell.entrySet());
+        TableMetadataPersistence.SweepStrategy sweepStrategy = getSweepStrategy(tableRef);
+        boolean isThorough = sweepStrategy.equals(TableMetadataPersistence.SweepStrategy.THOROUGH);
         for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
-            deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue());
+            deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue(), isThorough);
         }
     }
 
-    public void deleteAllTimestampsOnSingleHost(
+    private void deleteAllTimestampsOnSingleHost(
             TableReference tableRef,
             InetSocketAddress host,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
+            Map<Cell, Long> maxTimestampExclusiveByCell,
+            boolean deleteSentinel) {
         if (maxTimestampExclusiveByCell.isEmpty()) {
             return;
         }
@@ -1748,7 +1752,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 @Override
                 public Void apply(CassandraClient client) throws Exception {
-                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef);
+                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef, deleteSentinel);
                     return null;
                 }
 
@@ -1767,19 +1771,29 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void insertRangeTombstones(CassandraClient client, Map<Cell, Long> maxTimestampExclusiveByCell,
-            TableReference tableRef) throws TException {
+            TableReference tableRef, boolean deleteSentinel) throws TException {
         MutationMap mutationMap = new MutationMap();
 
         maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
-            Mutation mutation = Mutations.rangeTombstoneForColumn(
-                    cell.getColumnName(),
-                    maxTimestampExclusive);
+            Mutation mutation = getMutation(cell, maxTimestampExclusive, deleteSentinel);
 
             mutationMap.addMutationForCell(cell, tableRef, mutation);
         });
 
         wrappingQueryRunner.batchMutate("deleteAllTimestamps", client, ImmutableSet.of(tableRef), mutationMap,
                 deleteConsistency);
+    }
+
+    private Mutation getMutation(Cell cell, long maxTimestampExclusive, boolean deleteSentinel) {
+        if (deleteSentinel) {
+            return Mutations.rangeTombstoneIncludingSentinelForColumn(
+                    cell.getColumnName(),
+                    maxTimestampExclusive);
+        } else {
+            return Mutations.rangeTombstoneForColumn(
+                    cell.getColumnName(),
+                    maxTimestampExclusive);
+        }
     }
 
     /**

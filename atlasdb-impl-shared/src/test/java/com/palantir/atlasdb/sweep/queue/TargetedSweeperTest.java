@@ -137,6 +137,15 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
+    public void thoroughSweepDeletesExistingSentinel() {
+        spiedKvs.addGarbageCollectionSentinelValues(TABLE_THOR, ImmutableList.of(DEFAULT_CELL));
+        assertReadAtTimestampReturnsSentinel(TABLE_THOR, 0L);
+        enqueueWrite(TABLE_THOR, 10L);
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
+        assertReadAtTimestampReturnsNothing(TABLE_THOR, 0L);
+    }
+
+    @Test
     public void conservativeSweepDeletesLowerValue() {
         enqueueWrite(TABLE_CONS, LOW_TS);
         enqueueWrite(TABLE_CONS, LOW_TS2);
@@ -161,7 +170,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    public void sweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
+    public void conservativeSweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
         long lastWriteTs = TS_FINE_GRANULARITY - 1;
         for (long i = 0; i <= lastWriteTs; i++) {
             enqueueWrite(TABLE_CONS, i);
@@ -169,6 +178,18 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, lastWriteTs);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, lastWriteTs);
+        verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
+    }
+
+    @Test
+    public void thoroughSweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
+        long lastWriteTs = TS_FINE_GRANULARITY - 1;
+        for (long i = 0; i <= lastWriteTs; i++) {
+            enqueueWrite(TABLE_THOR, i);
+        }
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
+        assertReadAtTimestampReturnsNothing(TABLE_THOR, lastWriteTs);
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, lastWriteTs);
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
     }
 

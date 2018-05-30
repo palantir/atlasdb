@@ -31,4 +31,12 @@ public final class Mutations {
         return new Mutation().setDeletion(deletion);
     }
 
+    public static Mutation rangeTombstoneIncludingSentinelForColumn(byte[] columnName, long maxTimestampExclusive) {
+        Deletion deletion = new Deletion()
+                .setTimestamp(maxTimestampExclusive)
+                .setPredicate(
+                        SlicePredicates.rangeTombstoneIncludingSentinelForColumn(columnName, maxTimestampExclusive));
+
+        return new Mutation().setDeletion(deletion);
+    }
 }

@@ -43,6 +43,15 @@ public final class SlicePredicates {
                 Limit.NO_LIMIT);
     }
 
+    public static SlicePredicate rangeTombstoneIncludingSentinelForColumn(byte[] columnName,
+            long maxTimestampExclusive) {
+        return create(
+                Range.of(
+                        Range.startOfColumn(columnName, maxTimestampExclusive),
+                        Range.endOfColumnIncludingSentinels(columnName)),
+                Limit.NO_LIMIT);
+    }
+
     public static SlicePredicate create(Range range, Limit limit) {
         SliceRange slice = new SliceRange(
                 range.start(),
