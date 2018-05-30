@@ -105,6 +105,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -1042,6 +1043,18 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
         snapshot.commit();
+    }
+
+    @Test
+    public void commitDoesThrowIfAlreadySuccessfullyCommitted() {
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        Transaction tx = txManager.createNewTransaction();
+
+        //simulate roll back at commit time
+        transactionService.putUnlessExists(tx.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
+
+        tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+        assertThatThrownBy(() -> tx.commit()).isInstanceOf(TransactionCommitFailedException.class);
     }
 
     private void put(Transaction txn, TableReference table, WriteInfo write) {
