@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
+import com.palantir.atlasdb.simulated.config.LoadSimulatorConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
 
@@ -77,6 +78,11 @@ public abstract class AtlasDbRuntimeConfig {
     @Value.Default
     public Optional<KeyValueServiceRuntimeConfig> keyValueService() {
         return Optional.empty();
+    }
+
+    @Value.Default
+    public LoadSimulatorConfig loadSimulatorConfig() {
+        return LoadSimulatorConfig.DEFAULT;
     }
 
     /**

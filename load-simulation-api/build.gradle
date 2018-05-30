@@ -1,0 +1,26 @@
+apply from: "../gradle/publish-jars.gradle"
+apply plugin: 'org.inferred.processors'
+
+apply from: "../gradle/shared.gradle"
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+libsDirName = file('build/artifacts')
+
+dependencies {
+  compile project(":atlasdb-impl-shared")
+
+  processor group: 'org.immutables', name: 'value'
+  processor project(":atlasdb-processors")
+
+  testCompile group: 'org.assertj', name: 'assertj-core'
+  testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+
+  testRuntime group: 'ch.qos.logback', name: 'logback-classic'
+}

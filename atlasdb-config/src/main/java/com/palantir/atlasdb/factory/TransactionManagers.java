@@ -86,6 +86,8 @@ import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
+import com.palantir.atlasdb.simulated.LoadSimulator;
+import com.palantir.atlasdb.simulated.config.LoadSimulatorConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
@@ -325,7 +327,6 @@ public abstract class TransactionManagers {
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         CleanupFollower follower = CleanupFollower.create(schemas());
-
         Cleaner cleaner = initializeCloseable(() -> new DefaultCleanerBuilder(
                         keyValueService,
                         lockAndTimestampServices.timelock(),
@@ -395,6 +396,14 @@ public abstract class TransactionManagers {
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::compact, runtimeConfigSupplier)),
                 closeables);
 
+        LoadSimulatorConfig loadSimulationConfig = JavaSuppliers.compose(
+                AtlasDbRuntimeConfig::loadSimulatorConfig, runtimeConfigSupplier).get();
+        if (loadSimulationConfig.enabled()) {
+            log.warn("Enabling load simulation.");
+            LoadSimulator simulator = initializeCloseable(() -> new LoadSimulator(loadSimulationConfig), closeables);
+            registrar().accept(simulator);
+            return simulator.wrap(transactionManager);
+        }
         return transactionManager;
     }
 

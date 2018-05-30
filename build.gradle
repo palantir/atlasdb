@@ -35,6 +35,7 @@ plugins {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven {
         url 'https://dl.bintray.com/palantir/releases/'

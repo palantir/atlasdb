@@ -288,6 +288,8 @@
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
                 "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:load-simulation-api",
+                "com.palantir.atlasdb:load-simulation-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:qos-service-api",
@@ -521,7 +523,8 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-dbkvs"
+                "com.palantir.atlasdb:atlasdb-dbkvs",
+                "com.palantir.atlasdb:load-simulation-api"
             ]
         },
         "com.palantir.atlasdb:atlasdb-jdbc": {
@@ -574,7 +577,8 @@
         "com.palantir.atlasdb:commons-executors": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:load-simulation-impl"
             ]
         },
         "com.palantir.atlasdb:commons-executors-api": {
@@ -606,6 +610,18 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:timelock-impl"
+            ]
+        },
+        "com.palantir.atlasdb:load-simulation-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:load-simulation-impl"
+            ]
+        },
+        "com.palantir.atlasdb:load-simulation-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.atlasdb:lock-api": {
