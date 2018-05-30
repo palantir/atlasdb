@@ -1046,7 +1046,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void commitDoesThrowIfAlreadySuccessfullyCommitted() {
+    public void commitThrowsIfRolledBackAtCommitTime() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction tx = txManager.createNewTransaction();
 
