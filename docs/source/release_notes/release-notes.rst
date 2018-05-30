@@ -61,23 +61,17 @@ develop
            Consult with the AtlasDB team if you wish to use targeted sweep in addition to, or instead of, standard sweep.
 
     *    - |new| |metrics|
-         - Added targeted sweep metrics for conservative and thorough sweep.
+         - Added tagged targeted sweep metrics for conservative and thorough sweep.
            The metrics show the cumulative number of enqueued writes, entries read, tombstones put, and aborted cells deleted.
            Additionally, there are metrics for the sweep timestamp of the last sweep iteration and for the lowest last swept timestamp across all shards.
-           Targeted Sweep now exposes the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.``:
+           The metrics, tagged with the sweep strategy used, are as follws (with the common prefix ``com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.``):
 
-              - ``conservative.enqueuedWrites``
-              - ``conservative.entriesRead``
-              - ``conservative.tombstonesPut``
-              - ``conservative.abortedWritesDeleted``
-              - ``conservative.sweepTimestamp``
-              - ``conservative.lastSweptTimestamp``
-              - ``thorough.enqueuedWrites``
-              - ``thorough.entriesRead``
-              - ``thorough.tombstonesPut``
-              - ``thorough.abortedWritesDeleted``
-              - ``thorough.sweepTimestamp``
-              - ``thorough.lastSweptTimestamp``
+              - ``enqueuedWrites``
+              - ``entriesRead``
+              - ``tombstonesPut``
+              - ``abortedWritesDeleted``
+              - ``sweepTimestamp``
+              - ``lastSweptTimestamp``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3202>`__)
 

@@ -50,6 +50,7 @@ import com.palantir.atlasdb.sweep.CommitTsLoader;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.logsafe.SafeArg;
 
 import gnu.trove.set.hash.TLongHashSet;
 
@@ -138,7 +139,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, maxTsExclusive);
         Multimap<Long, WriteInfo> writesByStartTs = getBatchOfWrites(row, resultIterator);
         maybeMetrics.ifPresent(metrics -> metrics.updateEntriesRead(shardStrategy, writesByStartTs.size()));
-        log.info("Read {} entries from the sweep queue.", writesByStartTs.size());
+        log.info("Read {} entries from the sweep queue.", SafeArg.of("number", writesByStartTs.size()));
         List<Long> startTsCommitted = getCommittedTimestampsDescendingAndCleanupAborted(shardStrategy, writesByStartTs);
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, startTsCommitted);
         long lastSweptTs = getLastSweptTs(writesByStartTs, resultIterator, partitionFine, maxTsExclusive);
@@ -203,7 +204,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         cellsToDelete.forEach((tableRef, multimap) -> {
             kvs.delete(tableRef, multimap);
             maybeMetrics.ifPresent(metrics -> metrics.updateAbortedWritesDeleted(shardStrategy, multimap.size()));
-            log.info("Deleted {} aborted writes from the KVS.", multimap.size());
+            log.info("Deleted {} aborted writes from the KVS.", SafeArg.of("number", multimap.size()));
         });
 
         committedTimestamps.sort(Comparator.reverseOrder());

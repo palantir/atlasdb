@@ -27,7 +27,7 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 
-public class TargetedSweepTest {
+public class TargetedSweepEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
     @Test
