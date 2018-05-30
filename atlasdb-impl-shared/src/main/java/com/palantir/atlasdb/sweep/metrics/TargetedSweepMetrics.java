@@ -21,8 +21,6 @@ import java.util.Comparator;
 import java.util.Map;
 
 import com.codahale.metrics.Gauge;
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -33,16 +31,15 @@ import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public final class TargetedSweepMetrics {
-    private final MetricsManager metricsManager;
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
 
     private TargetedSweepMetrics(long millis) {
-        metricsManager = new MetricsManager();
+        MetricsManager metricsManager = new MetricsManager();
         metricsForStrategyMap = ImmutableMap.of(
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
-                new MetricsForStrategy(metricsManager, AtlasDbMetricNames.PREFIX_CONSERVATIVE, millis),
+                new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, millis),
                 TableMetadataPersistence.SweepStrategy.THOROUGH,
-                new MetricsForStrategy(metricsManager, AtlasDbMetricNames.PREFIX_THOROUGH, millis));
+                new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, millis));
     }
 
     public static TargetedSweepMetrics withRecomputingInterval(long millis) {
@@ -81,38 +78,27 @@ public final class TargetedSweepMetrics {
         return currentValues.stream().min(Comparator.naturalOrder()).orElse(-1L);
     }
 
-    private static Gauge getOrCreate(MetricsManager manager, String prefix, String name,
-            MetricRegistry.MetricSupplier<Gauge> supplier) {
-        return manager.registerOrGetGauge(TargetedSweepMetrics.class, prefix, name, supplier);
-    }
-
-    @VisibleForTesting
-    public void clear() {
-        metricsManager.deregisterMetrics();
-    }
-
     private static class MetricsForStrategy {
-        private final AccumulatingValueMetric enqueuedWrites;
-        private final AccumulatingValueMetric entriesRead;
-        private final AccumulatingValueMetric tombstonesPut;
-        private final AccumulatingValueMetric abortedWritesDeleted;
-        private final CurrentValueMetric<Long> sweepTimestamp;
-        private final AggregateRecomputingMetric sweptTs;
+        private final AccumulatingValueMetric enqueuedWrites = new AccumulatingValueMetric();
+        private final AccumulatingValueMetric entriesRead = new AccumulatingValueMetric();
+        private final AccumulatingValueMetric tombstonesPut = new AccumulatingValueMetric();
+        private final AccumulatingValueMetric abortedWritesDeleted = new AccumulatingValueMetric();
+        private final CurrentValueMetric<Long> sweepTimestamp = new CurrentValueMetric<>();
+        private final AggregateRecomputingMetric sweptTimestamp;
 
-        private MetricsForStrategy(MetricsManager manager, String prefix, long recomputeMillis) {
-            enqueuedWrites = (AccumulatingValueMetric) getOrCreate(manager, prefix,
-                    AtlasDbMetricNames.ENQUEUED_WRITES, AccumulatingValueMetric::new);
-            entriesRead = (AccumulatingValueMetric) getOrCreate(manager, prefix,
-                    AtlasDbMetricNames.ENTRIES_READ, AccumulatingValueMetric::new);
-            tombstonesPut = (AccumulatingValueMetric) getOrCreate(manager, prefix,
-                    AtlasDbMetricNames.TOMBSTONES_PUT, AccumulatingValueMetric::new);
-            abortedWritesDeleted = (AccumulatingValueMetric) getOrCreate(manager, prefix,
-                    AtlasDbMetricNames.ABORTED_WRITES_DELETED, AccumulatingValueMetric::new);
-            sweepTimestamp = (CurrentValueMetric<Long>) getOrCreate(manager, prefix,
-                    AtlasDbMetricNames.SWEEP_TS, CurrentValueMetric::new);
-            sweptTs = (AggregateRecomputingMetric) getOrCreate(manager, prefix,
-                    AtlasDbMetricNames.SWEPT_TS,
-                    () -> new AggregateRecomputingMetric(TargetedSweepMetrics::minimum, recomputeMillis));
+        private MetricsForStrategy(MetricsManager manager, String strategy, long recomputeMillis) {
+            sweptTimestamp = new AggregateRecomputingMetric(TargetedSweepMetrics::minimum, recomputeMillis);
+            Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
+            register(manager, AtlasDbMetricNames.ENQUEUED_WRITES, enqueuedWrites, tag);
+            register(manager, AtlasDbMetricNames.ENTRIES_READ, entriesRead, tag);
+            register(manager, AtlasDbMetricNames.TOMBSTONES_PUT, tombstonesPut, tag);
+            register(manager, AtlasDbMetricNames.ABORTED_WRITES_DELETED, abortedWritesDeleted, tag);
+            register(manager, AtlasDbMetricNames.SWEEP_TS, sweepTimestamp, tag);
+            register(manager, AtlasDbMetricNames.SWEPT_TS, sweptTimestamp, tag);
+        }
+
+        private static void register(MetricsManager manager, String name, Gauge<Long> metric, Map<String, String> tag) {
+            manager.registerMetric(TargetedSweepMetrics.class, name, metric, tag);
         }
 
         public void updateEnqueuedWrites(long writes) {
@@ -136,7 +122,7 @@ public final class TargetedSweepMetrics {
         }
 
         private void updateProgressForShard(int shard, long lastSweptTs) {
-            sweptTs.update(shard, lastSweptTs);
+            sweptTimestamp.update(shard, lastSweptTs);
         }
     }
 }

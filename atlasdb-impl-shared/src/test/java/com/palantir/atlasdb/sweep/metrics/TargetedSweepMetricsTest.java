@@ -18,15 +18,18 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.After;
+import java.util.Map;
+
 import org.junit.Before;
 import org.junit.Test;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.tritium.metrics.registry.MetricName;
 
 public class TargetedSweepMetricsTest {
     private static final ShardAndStrategy CONS_ZERO = ShardAndStrategy.conservative(0);
@@ -38,11 +41,6 @@ public class TargetedSweepMetricsTest {
     @Before
     public void setup() {
         metrics = TargetedSweepMetrics.withRecomputingInterval(1);
-    }
-
-    @After
-    public void cleanup() {
-        metrics.clear();
     }
 
     @Test
@@ -130,13 +128,24 @@ public class TargetedSweepMetricsTest {
     }
 
     @Test
-    public void lastSweptGetsMaxAcrossShards() {
+    public void lastSweptGetsMinAcrossShards() {
         metrics.updateProgressForShard(CONS_ZERO, 100);
         metrics.updateProgressForShard(CONS_ONE, 1);
         metrics.updateProgressForShard(CONS_TWO, 1000);
         waitForProgressToRecompute();
 
         assertLastSweptConservativeEquals(1);
+    }
+
+    @Test
+    public void lastSweptGoesDownIfNewInformationBecomesAvailable() {
+        metrics.updateProgressForShard(CONS_ZERO, 999);
+        waitForProgressToRecompute();
+        assertLastSweptConservativeEquals(999);
+
+        metrics.updateProgressForShard(CONS_ONE, 200);
+        waitForProgressToRecompute();
+        assertLastSweptConservativeEquals(200);
     }
 
     @Test
@@ -238,7 +247,7 @@ public class TargetedSweepMetricsTest {
         try {
             Thread.sleep(2);
         } catch (InterruptedException e) {
-            // this should not happen
+            throw new RuntimeException("Sad times");
         }
     }
 
@@ -267,7 +276,7 @@ public class TargetedSweepMetricsTest {
     }
 
     public static Gauge<Long> getGaugeConservative(String name) {
-        return getGauge(AtlasDbMetricNames.PREFIX_CONSERVATIVE, name);
+        return getGauge(AtlasDbMetricNames.TAG_CONSERVATIVE, name);
     }
 
     public static void assertEnqueuedWritesThoroughEquals(long value) {
@@ -295,11 +304,16 @@ public class TargetedSweepMetricsTest {
     }
 
     public static Gauge<Long> getGaugeThorough(String name) {
-        return getGauge(AtlasDbMetricNames.PREFIX_THOROUGH, name);
+        return getGauge(AtlasDbMetricNames.TAG_THOROUGH, name);
     }
 
-    public static Gauge<Long> getGauge(String prefix, String name) {
-        return AtlasDbMetrics.getMetricRegistry()
-                .gauge(MetricRegistry.name(TargetedSweepMetrics.class, prefix, name), null);
+    public static Gauge<Long> getGauge(String strategy, String name) {
+        Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
+        MetricName metricName = MetricName.builder()
+                .safeName(MetricRegistry.name(TargetedSweepMetrics.class, name))
+                .safeTags(tag)
+                .build();
+
+        return (Gauge<Long>) AtlasDbMetrics.getTaggedMetricRegistry().getMetrics().get(metricName);
     }
 }
