@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -105,10 +106,10 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.common.base.AbortingVisitor;
@@ -128,6 +129,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.timestamp.TimestampService;
 
 @SuppressWarnings("checkstyle:all")
@@ -1048,14 +1050,49 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void commitThrowsIfRolledBackAtCommitTime() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-        Transaction tx = txManager.createNewTransaction();
+
+        //this timelock service simulates the case where commitLocks are expired between pre-commit check and commit
+        class LockExpiringTimelockService extends LegacyTimelockService {
+            LockExpiringTimelockService(TimestampService timestampService, LockService lockService,
+                    LockClient immutableTsLockClient) {
+                super(timestampService, lockService, immutableTsLockClient);
+            }
+
+            private volatile boolean preCommitConditionChecked = false;
+
+            @Override
+            public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+                if (!preCommitConditionChecked) {
+                    preCommitConditionChecked = true;
+                    return tokens;
+                }
+                return ImmutableSet.of();
+            }
+        }
+
+        SnapshotTransaction snapshot = new SnapshotTransaction(
+                keyValueService,
+                new LockExpiringTimelockService(timestampService, lockService, lockClient),
+                transactionService,
+                NoOpCleaner.INSTANCE,
+                timestampService.getFreshTimestamp(),
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
+                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueue);
 
         //simulate roll back at commit time
-        transactionService.putUnlessExists(tx.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
+        transactionService.putUnlessExists(snapshot.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
 
-        tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
-        assertThatThrownBy(() -> tx.commit()).isInstanceOf(TransactionCommitFailedException.class);
+        snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+        assertThatThrownBy(() -> snapshot.commit()).isInstanceOf(TransactionLockTimeoutException.class);
     }
+
+
 
     private void put(Transaction txn, TableReference table, WriteInfo write) {
         if (write.isTombstone()) {
