@@ -46,9 +46,9 @@ public class SweepQueueDeleter {
         for (Map.Entry<TableReference, Map<Cell, Long>> entry: maxTimestampByCell.entrySet()) {
             if (sweeper.shouldAddSentinels()) {
                 kvs.addGarbageCollectionSentinelValues(entry.getKey(), entry.getValue().keySet());
-                kvs.deleteAllTimestamps(entry.getKey(), entry.getValue());
+                kvs.deleteAllTimestamps(entry.getKey(), entry.getValue(), false);
             } else {
-                kvs.deleteAllTimestampsAndSentinels(entry.getKey(), entry.getValue());
+                kvs.deleteAllTimestamps(entry.getKey(), entry.getValue(), true);
             }
         }
     }

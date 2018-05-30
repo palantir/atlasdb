@@ -1727,20 +1727,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
+            boolean deleteSentinels) {
         Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
                 clientPool, maxTimestampExclusiveByCell.entrySet());
         for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
-            deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue(), false);
-        }
-    }
-
-    @Override
-    public void deleteAllTimestampsAndSentinels(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
-        Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
-                clientPool, maxTimestampExclusiveByCell.entrySet());
-        for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
-            deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue(), true);
+            deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue(), deleteSentinels);
         }
     }
 

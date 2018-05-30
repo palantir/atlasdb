@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak| |new|
+         - KVS method ``deleteAllTimestamps`` now also takes a boolean argument specifying if garbage deletion sentinels should also be deleted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3212>`__)
+
+
     *    - |new|
          - AtlasDB now implements targeted sweep using a sweep queue.
            As long as the ``enableSweepQueueWrites`` property of the ``targetedSweep`` configuration is set to true, information about each transactional write and delete will be persisted into the sweep queue.

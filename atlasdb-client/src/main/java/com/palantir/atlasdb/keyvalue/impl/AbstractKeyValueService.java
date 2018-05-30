@@ -214,13 +214,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void deleteAllTimestamps(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
-        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell, false);
-    }
-
-    @Override
-    public void deleteAllTimestampsAndSentinels(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
-        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell, true);
+            Map<Cell, Long> maxTimestampExclusiveByCell, boolean deleteSentinels) {
+        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell, deleteSentinels);
     }
 
     public static void deleteAllTimestampsDefaultImpl(KeyValueService kvs, TableReference tableRef,
