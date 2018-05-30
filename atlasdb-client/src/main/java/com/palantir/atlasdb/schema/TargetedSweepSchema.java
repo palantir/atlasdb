@@ -47,7 +47,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
             javaTableName("SweepableCells");
             allSafeForLoggingByDefault();
             rowName();
-                hashFirstRowComponent();
+                hashFirstNRowComponents(2);
                 rowComponent("timestamp_partition", ValueType.VAR_LONG);
                 rowComponent("metadata", ValueType.BLOB);
             dynamicColumns();
