@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
@@ -175,10 +177,6 @@ public class SweepableCells extends KvsSweepQueueWriter {
         return writesByStartTs.keySet().stream().max(Comparator.naturalOrder()).orElse(-1L);
     }
 
-    private boolean inconsistentBounds(long minTsExclusive, long maxTsExclusive) {
-        return minTsExclusive + 1 >= maxTsExclusive;
-    }
-
     private RowColumnRangeIterator getRowColumnRange(SweepableCellsTable.SweepableCellsRow row, long partitionFine,
             long minTsExclusive, long maxTsExclusive) {
         return getRowsColumnRange(ImmutableList.of(row.persistToBytes()),
@@ -291,22 +289,21 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private List<RangeRequest> rangeRequestsDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {
-        SweepableCellsTable.SweepableCellsRow startingRow = computeRow(partitionFine, shardAndStrategy);
-        RowColumnRangeIterator rowIterator = getWithColumnRangeAllForRow(startingRow);
+        SweepableCellsTable.SweepableCellsRow row = computeRow(partitionFine, shardAndStrategy);
+        RowColumnRangeIterator rowIterator = getWithColumnRangeAllForRow(row);
         List<RangeRequest> requests = new ArrayList<>();
-        rowIterator.forEachRemaining(entry -> addRangeRequestsIfDedicated(startingRow, computeColumn(entry), requests));
+        rowIterator.forEachRemaining(entry -> requests.addAll(rangeRequestsIfDedicated(row, computeColumn(entry))));
         return requests;
     }
 
-    private void addRangeRequestsIfDedicated(SweepableCellsTable.SweepableCellsRow row,
-            SweepableCellsTable.SweepableCellsColumn col, List<RangeRequest> requests) {
+    private Set<RangeRequest> rangeRequestsIfDedicated(SweepableCellsTable.SweepableCellsRow row,
+            SweepableCellsTable.SweepableCellsColumn col) {
         if (!isReferenceToDedicatedRows(col)) {
-            return;
+            return ImmutableSet.of();
         }
-        List<byte[]> dedicatedRows = computeDedicatedRows(row, col);
-        requests.addAll(dedicatedRows.stream()
+        return computeDedicatedRows(row, col).stream()
                 .map(bytes -> computeRangeRequestForRows(bytes, bytes))
-                .collect(Collectors.toSet()));
+                .collect(Collectors.toSet());
     }
 
     private RangeRequest rangeRequestNonDedicatedRow(ShardAndStrategy shardAndStrategy, long partitionFine) {
