@@ -49,6 +49,10 @@ develop
 
     *    - Type
          - Change
+    
+    *    - |improved| |logs|
+         - Added logging of the values used to determine which table to sweep, provides more insight into why tables are being swept and others aren't.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2829>`__)
 
     *    - |improved|
          - http-remoting has been upgraded to 3.22.0 (was 3.14.0).
@@ -865,7 +869,6 @@ v0.73.0-rc1
     *    - |improved|
          - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
-
 
 =======
 v0.72.0

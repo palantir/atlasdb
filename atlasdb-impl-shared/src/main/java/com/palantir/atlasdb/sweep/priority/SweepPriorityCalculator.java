@@ -31,19 +31,25 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.logsafe.SafeArg;
 
-public class SweepPriorityCalculator {
+class SweepPriorityCalculator {
     private static final Logger log = LoggerFactory.getLogger(SweepPriorityCalculator.class);
+
+    // log once every 10 minutes
+    private static final RateLimiter loggingRateLimiter = RateLimiter.create(1.0 / (10 * 60));
 
     private static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
     private static final Duration WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE = Duration.ofDays(3);
-    @VisibleForTesting static final int STREAM_STORE_VALUES_TO_SWEEP = 1_000;
+    @VisibleForTesting
+    static final int STREAM_STORE_VALUES_TO_SWEEP = 1_000;
 
     // weights one month of no sweeping with the same priority as about 100000 expected cells to sweep.
     private static final double MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT =
@@ -52,7 +58,7 @@ public class SweepPriorityCalculator {
     private final KeyValueService kvs;
     private final SweepPriorityStore sweepPriorityStore;
 
-    public SweepPriorityCalculator(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
+    SweepPriorityCalculator(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
         this.kvs = kvs;
         this.sweepPriorityStore = sweepPriorityStore;
     }
@@ -86,6 +92,8 @@ public class SweepPriorityCalculator {
         Map<TableReference, SweepPriority> newPrioritiesByTableName = newPriorities.stream().collect(
                 Collectors.toMap(SweepPriority::tableRef, Function.identity()));
 
+        boolean shouldLog = decideWhetherToLogAllPriorities();
+
         // Compute priority for tables that do have a priority table.
         Map<TableReference, Double> scores = new HashMap<>(oldPriorities.size());
         Collection<TableReference> toDelete = Lists.newArrayList();
@@ -94,7 +102,11 @@ public class SweepPriorityCalculator {
 
             if (allTables.contains(tableReference)) {
                 SweepPriority newPriority = newPrioritiesByTableName.get(tableReference);
-                scores.put(tableReference, getSweepPriorityScore(oldPriority, newPriority));
+                double priorityScore = getSweepPriorityScore(oldPriority, newPriority);
+
+                logSweepPriority(shouldLog, tableReference, oldPriority, newPriority, priorityScore);
+
+                scores.put(tableReference, priorityScore);
             } else {
                 toDelete.add(tableReference);
             }
@@ -104,6 +116,47 @@ public class SweepPriorityCalculator {
         sweepPriorityStore.delete(tx, toDelete);
 
         return scores;
+    }
+
+    private boolean decideWhetherToLogAllPriorities() {
+        return loggingRateLimiter.tryAcquire();
+    }
+
+    private void logSweepPriority(boolean shouldLog, TableReference tableRef,
+            SweepPriority oldPriority, SweepPriority newPriority, double priorityScore) {
+        if (shouldLog) {
+            log.debug("Calculated sweep priority score "
+                            + "[tableRef={},"
+                            + "priorityScore={},"
+
+                            + "oldPriority_lastSweepTimeMillis={},"
+                            + "oldPriority_minimumSweptTimestamp={},"
+                            + "oldPriority_cellTsPairsExamined={},"
+                            + "oldPriority_staleValuesDeleted={},"
+                            + "oldPriority_writeCount={},"
+
+                            + "newPriority_lastSweepTimeMillis={},"
+                            + "newPriority_minimumSweptTimestamp={},"
+                            + "newPriority_cellTsPairsExamined={},"
+                            + "newPriority_staleValuesDeleted={},"
+                            + "newPriority_writeCount={}]",
+
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("priorityScore", priorityScore),
+
+                    SafeArg.of("oldPriority_lastSweepTimeMillis", oldPriority.lastSweepTimeMillis()),
+                    SafeArg.of("oldPriority_minimumSweptTimestamp", oldPriority.minimumSweptTimestamp()),
+                    SafeArg.of("oldPriority_cellTsPairsExamined", oldPriority.cellTsPairsExamined()),
+                    SafeArg.of("oldPriority_staleValuesDeleted", oldPriority.staleValuesDeleted()),
+                    SafeArg.of("oldPriority_writeCount", oldPriority.writeCount()),
+
+                    SafeArg.of("newPriority_lastSweepTimeMillis", newPriority.lastSweepTimeMillis()),
+                    SafeArg.of("newPriority_minimumSweptTimestamp", newPriority.minimumSweptTimestamp()),
+                    SafeArg.of("newPriority_cellTsPairsExamined", newPriority.cellTsPairsExamined()),
+                    SafeArg.of("newPriority_staleValuesDeleted", newPriority.staleValuesDeleted()),
+                    SafeArg.of("newPriority_writeCount", newPriority.writeCount())
+            );
+        }
     }
 
     private void logUnsweptTables(Set<TableReference> unsweptTables) {
