@@ -641,18 +641,6 @@ public final class KvDynamicColumnsTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<KvDynamicColumnsRow, KvDynamicColumnsColumnValue>> getRowsColumnRange(Iterable<KvDynamicColumnsRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            KvDynamicColumnsRow row = KvDynamicColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            KvDynamicColumnsColumn col = KvDynamicColumnsColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-            byte[] val = KvDynamicColumnsColumnValue.hydrateValue(e.getValue());
-            KvDynamicColumnsColumnValue colValue = KvDynamicColumnsColumnValue.of(col, val);
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<KvDynamicColumnsRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();

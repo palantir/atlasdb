@@ -133,17 +133,6 @@ public class ReadTransactionShould {
                 "Cannot read");
     }
 
-    @Test
-    public void notAllowColumnRangeGets() {
-        checkThrowsAndNoInteraction(() -> readTransaction.getRowsColumnRange(
-                DUMMY_THOROUGH_TABLE,
-                ImmutableList.of(EMPTY_BYTES),
-                new ColumnRangeSelection(EMPTY_BYTES, EMPTY_BYTES),
-                1),
-                IllegalStateException.class,
-                "Cannot read");
-    }
-
     private void checkThrowsAndNoInteraction(Runnable thrower,
             Class<? extends Exception> exception,
             String errorMessage) {

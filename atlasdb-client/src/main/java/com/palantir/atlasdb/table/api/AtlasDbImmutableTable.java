@@ -43,15 +43,4 @@ public interface AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends Co
      */ 
     Map<ROW, BatchingVisitable<COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
                                                                  BatchColumnRangeSelection columnRangeSelection);
-
-    /*
-     * This returns an iterator that visits the result columns row by row.
-     * 
-     * @param rows rows to get
-     * @param columnRangeSelection column range selection for each row
-     * @param batchHint batch size for reading from the database
-     */ 
-    Iterator<Map.Entry<ROW, COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
-                                                              ColumnRangeSelection columnRangeSelection,
-                                                              int batchHint);
 }

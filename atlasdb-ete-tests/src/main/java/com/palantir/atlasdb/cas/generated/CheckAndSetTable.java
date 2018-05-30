@@ -562,16 +562,6 @@ public final class CheckAndSetTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<CheckAndSetRow, CheckAndSetNamedColumnValue<?>>> getRowsColumnRange(Iterable<CheckAndSetRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            CheckAndSetRow row = CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            CheckAndSetNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<CheckAndSetRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -683,5 +673,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "DzljiQET0fm0b2LYV3eYnA==";
+    static String __CLASS_HASH = "pwTXtHhg21BhbdpmnwCIvQ==";
 }

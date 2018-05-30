@@ -217,18 +217,4 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                                                   long timestamp) {
         return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, batchColumnRangeSelection, timestamp);
     }
-
-    @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
-        return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(this,
-                                                                          tableRef,
-                                                                          rows,
-                                                                          columnRangeSelection,
-                                                                          cellBatchHint,
-                                                                          timestamp);
-    }
 }

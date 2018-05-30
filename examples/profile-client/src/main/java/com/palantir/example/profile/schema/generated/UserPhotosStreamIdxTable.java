@@ -619,18 +619,6 @@ public final class UserPhotosStreamIdxTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>> getRowsColumnRange(Iterable<UserPhotosStreamIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            UserPhotosStreamIdxRow row = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-            Long val = UserPhotosStreamIdxColumnValue.hydrateValue(e.getValue());
-            UserPhotosStreamIdxColumnValue colValue = UserPhotosStreamIdxColumnValue.of(col, val);
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<UserPhotosStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -742,5 +730,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6uR8DHOxSQr5Iv2DcBzIdQ==";
+    static String __CLASS_HASH = "tnTHz3Du8q0gsknNcEEq+g==";
 }

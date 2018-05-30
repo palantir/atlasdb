@@ -108,13 +108,6 @@ public class ReadTransaction extends ForwardingTransaction {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection);
     }
 
-    @Override
-    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection, int batchHint) {
-        checkTableName(tableRef);
-        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
-    }
-
     private void checkTableName(TableReference tableRef) {
         SweepStrategy sweepStrategy = sweepStrategies.get().get(tableRef);
         if (sweepStrategy == SweepStrategy.THOROUGH) {

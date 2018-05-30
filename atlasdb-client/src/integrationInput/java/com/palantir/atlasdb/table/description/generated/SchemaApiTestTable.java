@@ -701,16 +701,6 @@ public final class SchemaApiTestTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<SchemaApiTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            SchemaApiTestRow row = SchemaApiTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            SchemaApiTestNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<SchemaApiTestRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
@@ -871,5 +861,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5qdVJNmNbPw5F+15Dz/tGw==";
+    static String __CLASS_HASH = "VtSXc0Vk/T+mSUGtdEltBw==";
 }

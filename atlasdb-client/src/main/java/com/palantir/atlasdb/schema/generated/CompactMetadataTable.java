@@ -562,16 +562,6 @@ public final class CompactMetadataTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<CompactMetadataRow, CompactMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<CompactMetadataRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            CompactMetadataRow row = CompactMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            CompactMetadataNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<CompactMetadataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -683,5 +673,5 @@ public final class CompactMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "acEZxDWIkwYVNh5XdgAAJQ==";
+    static String __CLASS_HASH = "uakRVBvM/N4PF+tPox6ksA==";
 }

@@ -418,38 +418,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilteredResults;
     }
 
-    @Override
-    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
-                                                                Iterable<byte[]> rows,
-                                                                ColumnRangeSelection columnRangeSelection,
-                                                                int batchHint) {
-        checkGetPreconditions(tableRef);
-        if (Iterables.isEmpty(rows)) {
-            return Collections.emptyIterator();
-        }
-        hasReads = true;
-        RowColumnRangeIterator rawResults =
-                keyValueService.getRowsColumnRange(tableRef,
-                                                   rows,
-                                                   columnRangeSelection,
-                                                   batchHint,
-                                                   getStartTimestamp());
-        if (!rawResults.hasNext()) {
-            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
-        } // else the postFiltered iterator will check for each batch.
-
-        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
-        Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFiltered = Iterators.transform(rawResultsByRow, e -> {
-            byte[] row = e.getKey();
-            RowColumnRangeIterator rawIterator = e.getValue();
-            BatchColumnRangeSelection batchColumnRangeSelection =
-                    BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
-            return getPostFilteredColumns(tableRef, batchColumnRangeSelection, row, rawIterator);
-        });
-
-        return Iterators.concat(postFiltered);
-    }
-
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,
@@ -499,54 +467,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         };
         return Iterators.concat(postFilteredBatches);
-    }
-
-    /**
-     * Partitions a {@link RowColumnRangeIterator} into contiguous blocks that share the same row name.
-     * {@link KeyValueService#getRowsColumnRange(TableReference, Iterable, ColumnRangeSelection, int, long)} guarantees
-     * that all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one
-     * entry per non-empty row.
-     */
-    private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(RowColumnRangeIterator rawResults) {
-        PeekingIterator<Map.Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
-        return new AbstractIterator<Map.Entry<byte[], RowColumnRangeIterator>>() {
-            byte[] prevRowName;
-
-            @Override
-            protected Map.Entry<byte[], RowColumnRangeIterator> computeNext() {
-                finishConsumingPreviousRow(peekableRawResults);
-                if (!peekableRawResults.hasNext()) {
-                    return endOfData();
-                }
-                byte[] nextRowName = peekableRawResults.peek().getKey().getRowName();
-                Iterator<Map.Entry<Cell, Value>> columnsIterator =
-                        new AbstractIterator<Map.Entry<Cell, Value>>() {
-                    @Override
-                    protected Map.Entry<Cell, Value> computeNext() {
-                        if (!peekableRawResults.hasNext()
-                                || !Arrays.equals(peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
-                            return endOfData();
-                        }
-                        return peekableRawResults.next();
-                    }
-                };
-                prevRowName = nextRowName;
-                return Maps.immutableEntry(nextRowName, new LocalRowColumnRangeIterator(columnsIterator));
-            }
-
-            private void finishConsumingPreviousRow(PeekingIterator<Map.Entry<Cell, Value>> iter) {
-                int numConsumed = 0;
-                while (iter.hasNext() && Arrays.equals(iter.peek().getKey().getRowName(), prevRowName)) {
-                    iter.next();
-                    numConsumed++;
-                }
-                if (numConsumed > 0) {
-                    log.warn("Not all columns for row {} were read. {} columns were discarded.",
-                             UnsafeArg.of("row", Arrays.toString(prevRowName)),
-                             SafeArg.of("numColumnsDiscarded", numConsumed));
-                }
-            }
-        };
     }
 
     @Override

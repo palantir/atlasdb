@@ -580,16 +580,6 @@ public final class ValueStreamMetadataTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<ValueStreamMetadataRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            ValueStreamMetadataRow row = ValueStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            ValueStreamMetadataNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<ValueStreamMetadataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }

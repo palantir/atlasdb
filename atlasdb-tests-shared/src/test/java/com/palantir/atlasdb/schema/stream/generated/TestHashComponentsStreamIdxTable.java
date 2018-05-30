@@ -633,18 +633,6 @@ public final class TestHashComponentsStreamIdxTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<TestHashComponentsStreamIdxRow, TestHashComponentsStreamIdxColumnValue>> getRowsColumnRange(Iterable<TestHashComponentsStreamIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            TestHashComponentsStreamIdxRow row = TestHashComponentsStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            TestHashComponentsStreamIdxColumn col = TestHashComponentsStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-            Long val = TestHashComponentsStreamIdxColumnValue.hydrateValue(e.getValue());
-            TestHashComponentsStreamIdxColumnValue colValue = TestHashComponentsStreamIdxColumnValue.of(col, val);
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<TestHashComponentsStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -756,5 +744,5 @@ public final class TestHashComponentsStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8j9kVIm6NGSvRIEXxFUTQw==";
+    static String __CLASS_HASH = "pX+hTvpuwGJFAHqeTFDTtg==";
 }

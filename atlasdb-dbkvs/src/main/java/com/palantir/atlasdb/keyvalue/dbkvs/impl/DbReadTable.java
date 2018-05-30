@@ -111,21 +111,6 @@ public class DbReadTable {
         return ClosableIterators.wrap(results.iterator(), results);
     }
 
-    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRangeCounts(
-            List<byte[]> rows,
-            long ts,
-            ColumnRangeSelection columnRangeSelection) {
-        if (rows.isEmpty()) {
-            return ClosableIterators.emptyImmutableClosableIterator();
-        } else {
-            FullQuery query = queryFactory.getRowsColumnRangeCountsQuery(rows, ts, columnRangeSelection);
-            AgnosticLightResultSet results = conns.get()
-                    .selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
-            results.setFetchSize(Math.min(rows.size(), MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
-            return ClosableIterators.wrap(results.iterator(), results);
-        }
-    }
-
     public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
             Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow,
             long ts) {
@@ -155,31 +140,6 @@ public class DbReadTable {
 
     public boolean hasOverflowValues() {
         return queryFactory.hasOverflowValues();
-    }
-
-    private static <T> Future<T> getSupplierFuture(Supplier<T> supplier) {
-        return new Future<T>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return false;
-            }
-            @Override
-            public boolean isCancelled() {
-                return false;
-            }
-            @Override
-            public boolean isDone() {
-                return true;
-            }
-            @Override
-            public T get() {
-                return supplier.get();
-            }
-            @Override
-            public T get(long timeout, TimeUnit unit) {
-                return get();
-            }
-        };
     }
 
     private boolean isSingleton(Iterable<?> iterable) {

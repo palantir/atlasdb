@@ -632,13 +632,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     return null;
                 }));
 
-        tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, ColumnRangeSelection, int)",
-                (t, heldLocks) -> {
-                    t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
-                            new ColumnRangeSelection(null, null), batchHint);
-                    return null;
-                }));
-
         tasks.add(Pair.of("getRowsIgnoringLocalWrites",
                 (t, heldLocks) -> {
                     SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);

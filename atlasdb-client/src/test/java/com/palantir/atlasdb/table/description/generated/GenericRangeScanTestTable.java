@@ -619,18 +619,6 @@ public final class GenericRangeScanTestTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>> getRowsColumnRange(Iterable<GenericRangeScanTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            GenericRangeScanTestRow row = GenericRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            GenericRangeScanTestColumn col = GenericRangeScanTestColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-            String val = GenericRangeScanTestColumnValue.hydrateValue(e.getValue());
-            GenericRangeScanTestColumnValue colValue = GenericRangeScanTestColumnValue.of(col, val);
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<GenericRangeScanTestRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
@@ -795,5 +783,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "4fCBdR4I71aAK8klRZ7Hqw==";
+    static String __CLASS_HASH = "L/Qyo8hB6CyvadPo31nogA==";
 }

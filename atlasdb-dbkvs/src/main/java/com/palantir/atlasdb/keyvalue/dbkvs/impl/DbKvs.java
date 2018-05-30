@@ -811,30 +811,6 @@ public final class DbKvs extends AbstractKeyValueService {
         return ret;
     }
 
-    @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
-        List<byte[]> rowList = ImmutableList.copyOf(rows);
-        Map<Sha256Hash, byte[]> rowHashesToBytes = Maps.uniqueIndex(rowList, Sha256Hash::computeHash);
-
-        Map<Sha256Hash, Integer> columnCountByRowHash =
-                getColumnCounts(tableRef, rowList, columnRangeSelection, timestamp);
-
-        Iterator<Map<Sha256Hash, Integer>> batches =
-                DbKvsPartitioners.partitionByTotalCount(columnCountByRowHash, cellBatchHint).iterator();
-        Iterator<Iterator<Map.Entry<Cell, Value>>> results =
-                loadColumnsForBatches(tableRef,
-                                      columnRangeSelection,
-                                      timestamp,
-                                      rowHashesToBytes,
-                                      batches,
-                                      columnCountByRowHash);
-        return new LocalRowColumnRangeIterator(Iterators.concat(results));
-    }
-
     private Iterator<Iterator<Map.Entry<Cell, Value>>> loadColumnsForBatches(
             TableReference tableRef,
             ColumnRangeSelection columnRangeSelection,
@@ -1089,42 +1065,6 @@ public final class DbKvs extends AbstractKeyValueService {
             Preconditions.checkNotNull(val, "Failed to load overflow data: cell=%s, overflowId=%s", cell, ov.id());
             values.put(cell, Value.create(val, ov.ts()));
         }
-    }
-
-    private Map<Sha256Hash, Integer> getColumnCounts(TableReference tableRef,
-                                                     List<byte[]> rowList,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     long timestamp) {
-        Map<Sha256Hash, Integer> countsByRow = batchingQueryRunner.runTask(
-                rowList,
-                BatchingStrategies.forList(),
-                AccumulatorStrategies.forMap(),
-                partition -> getColumnCountsUnordered(tableRef, partition, columnRangeSelection, timestamp));
-        // Make iteration order of the returned map match the provided list.
-        Map<Sha256Hash, Integer> ordered = new LinkedHashMap<>(countsByRow.size());
-        for (byte[] row : rowList) {
-            Sha256Hash rowHash = Sha256Hash.computeHash(row);
-            ordered.put(rowHash, countsByRow.getOrDefault(rowHash, 0));
-        }
-        return ordered;
-    }
-
-    private Map<Sha256Hash, Integer> getColumnCountsUnordered(TableReference tableRef,
-                                                              List<byte[]> rowList,
-                                                              ColumnRangeSelection columnRangeSelection,
-                                                              long timestamp) {
-        return runRead(tableRef, dbReadTable -> {
-            Map<Sha256Hash, Integer> counts = new HashMap<>(rowList.size());
-            try (ClosableIterator<AgnosticLightResultRow> iter =
-                    dbReadTable.getRowsColumnRangeCounts(rowList, timestamp, columnRangeSelection)) {
-                while (iter.hasNext()) {
-                    AgnosticLightResultRow row = iter.next();
-                    Sha256Hash rowHash = Sha256Hash.computeHash(row.getBytes(ROW));
-                    counts.put(rowHash, row.getInteger("column_count"));
-                }
-            }
-            return counts;
-        });
     }
 
     @Override

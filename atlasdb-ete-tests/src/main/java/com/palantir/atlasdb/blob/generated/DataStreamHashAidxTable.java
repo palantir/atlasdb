@@ -619,18 +619,6 @@ public final class DataStreamHashAidxTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<DataStreamHashAidxRow, DataStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<DataStreamHashAidxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            DataStreamHashAidxRow row = DataStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            DataStreamHashAidxColumn col = DataStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-            Long val = DataStreamHashAidxColumnValue.hydrateValue(e.getValue());
-            DataStreamHashAidxColumnValue colValue = DataStreamHashAidxColumnValue.of(col, val);
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<DataStreamHashAidxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -742,5 +730,5 @@ public final class DataStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ucMDeXaO3xHImMNYqW8X4A==";
+    static String __CLASS_HASH = "OvvMZy8Ju7SGfNZF6c3HAg==";
 }

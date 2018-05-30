@@ -619,18 +619,6 @@ public final class StreamTestMaxMemStreamIdxTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue>> getRowsColumnRange(Iterable<StreamTestMaxMemStreamIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            StreamTestMaxMemStreamIdxRow row = StreamTestMaxMemStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            StreamTestMaxMemStreamIdxColumn col = StreamTestMaxMemStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-            Long val = StreamTestMaxMemStreamIdxColumnValue.hydrateValue(e.getValue());
-            StreamTestMaxMemStreamIdxColumnValue colValue = StreamTestMaxMemStreamIdxColumnValue.of(col, val);
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<StreamTestMaxMemStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -742,5 +730,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2P9w/8T7vYym1uXqoKwZfQ==";
+    static String __CLASS_HASH = "aI6X1uYvizqDcuXJMeQxpQ==";
 }

@@ -574,16 +574,6 @@ public final class HotspottyDataStreamValueTable implements
         return transformed;
     }
 
-    @Override
-    public Iterator<Map.Entry<HotspottyDataStreamValueRow, HotspottyDataStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<HotspottyDataStreamValueRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            HotspottyDataStreamValueRow row = HotspottyDataStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            HotspottyDataStreamValueNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
-    }
-
     public BatchingVisitableView<HotspottyDataStreamValueRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -695,5 +685,5 @@ public final class HotspottyDataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "mxCX7FY2WnrjY4hMnfTxaw==";
+    static String __CLASS_HASH = "2N0gtKGB2rWPuixsU1jpEw==";
 }

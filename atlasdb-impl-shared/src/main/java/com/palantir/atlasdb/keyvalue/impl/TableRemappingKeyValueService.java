@@ -302,23 +302,6 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
-        try {
-            return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
-                                                 rows,
-                                                 columnRangeSelection,
-                                                 cellBatchHint,
-                                                 timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
                          long timestamp) {
         try {
