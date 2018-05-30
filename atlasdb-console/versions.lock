@@ -793,7 +793,7 @@
             "requested": "2.12"
         },
         "joda-time:joda-time": {
-            "locked": "2.7",
+            "locked": "2.9",
             "transitive": [
                 "com.palantir.atlasdb:lock-impl",
                 "io.dropwizard:dropwizard-util"
@@ -1697,7 +1697,7 @@
             "requested": "2.12"
         },
         "joda-time:joda-time": {
-            "locked": "2.7",
+            "locked": "2.9",
             "transitive": [
                 "com.palantir.atlasdb:lock-impl",
                 "io.dropwizard:dropwizard-util"
