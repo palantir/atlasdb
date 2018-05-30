@@ -16,10 +16,10 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Collection;
+import java.util.List;
 
 public interface SweepQueueWriter {
 
-    void enqueue(Collection<WriteInfo> writes);
+    void enqueue(List<WriteInfo> writes);
 
 }

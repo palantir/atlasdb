@@ -167,6 +167,14 @@ public abstract class AtlasDbConfig {
     }
 
     /**
+     * Install time configurations for targeted sweep.
+     */
+    @Value.Default
+    public TargetedSweepInstallConfig targetedSweep() {
+        return TargetedSweepInstallConfig.defaultTargetedSweepConfig();
+    }
+
+    /**
      * If true, a background thread will periodically delete cells that
      * have been overwritten or deleted. This differs from scrubbing
      * because it is an untargeted cleaning process that scans all data

@@ -106,6 +106,14 @@ public class MetricsManager {
         taggedMetricRegistry.gauge(metricToAdd, gauge);
     }
 
+    public static void main(String[] args) {
+        MetricName metricToAdd = MetricName.builder()
+                .safeName(MetricRegistry.name(MetricsManager.class, "test"))
+                .safeTags(ImmutableMap.of("strategy", "bsL"))
+                .build();
+        System.out.println(metricToAdd);
+    }
+
     public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
         Map<String, String> tag = getTableNameTagFor(tableRef);
         registerMetric(clazz, metricName, gauge, tag);
@@ -198,6 +206,16 @@ public class MetricsManager {
         Meter meter = metricRegistry.meter(fullyQualifiedMeterName);
         registeredMetrics.add(fullyQualifiedMeterName);
         return meter;
+    }
+
+    public Gauge registerOrGetGauge(Class clazz, String metricPrefix, String metricName, MetricRegistry.MetricSupplier<Gauge> supplier) {
+        return registerOrGetGauge(MetricRegistry.name(clazz, metricPrefix, metricName), supplier);
+    }
+
+    private synchronized Gauge registerOrGetGauge(String name, MetricRegistry.MetricSupplier<Gauge> supplier) {
+        Gauge gauge = metricRegistry.gauge(name, supplier);
+        registeredMetrics.add(name);
+        return gauge;
     }
 
     public synchronized void deregisterMetrics() {

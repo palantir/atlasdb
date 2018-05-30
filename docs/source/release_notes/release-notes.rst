@@ -50,8 +50,51 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |devbreak| |new|
+         - KVS method ``deleteAllTimestamps`` now also takes a boolean argument specifying if garbage deletion sentinels should also be deleted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3212>`__)
+
+
+    *    - |new|
+         - AtlasDB now implements targeted sweep using a sweep queue.
+           As long as the ``enableSweepQueueWrites`` property of the ``targetedSweep`` configuration is set to true, information about each transactional write and delete will be persisted into the sweep queue.
+           If ``targetedSweep`` is enabled in AtlasDB runtime configurations, background threads will read the persisted information from the sweep queue and delete stale data from the kvs.
+           For more details on targeted sweep, please refer to the :ref:`targeted sweep docs<targeted-sweep>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3094>`__)
+
+           Note that targeted sweep is considered a beta feature as it is not fully functional yet.
+           Consult with the AtlasDB team if you wish to use targeted sweep in addition to, or instead of, standard sweep.
+
+    *    - |new| |metrics|
+         - Added tagged targeted sweep metrics for conservative and thorough sweep.
+           The metrics show the cumulative number of enqueued writes, entries read, tombstones put, and aborted cells deleted.
+           Additionally, there are metrics for the sweep timestamp of the last sweep iteration and for the lowest last swept timestamp across all shards.
+           The metrics, tagged with the sweep strategy used, are as follws (with the common prefix ``com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.``):
+
+              - ``enqueuedWrites``
+              - ``entriesRead``
+              - ``tombstonesPut``
+              - ``abortedWritesDeleted``
+              - ``sweepTimestamp``
+              - ``lastSweptTimestamp``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3202>`__)
+    
+    *    - |improved| |logs|
+         - Added logging of the values used to determine which table to sweep, provides more insight into why tables are being swept and others aren't.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2829>`__)
+
+    *    - |improved|
+         - http-remoting has been upgraded to 3.22.0 (was 3.14.0).
+           This release fixes several issues with communication between Atlas servers and a QoS service, if configured (especially in HA configurations).
+           Note that this change does not affect communication between timelock nodes, or between an Atlas client and timelock, as these do not currently use remoting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3196>`__)
+
+    *    - |fixed|
+         - ``SnapshotTransaction`` will no longer attempt to delete values for transactions that get rolled back.
+           The deletes were (necessarily) run at consistency ``ALL``, meaning that if aborted data was present, read
+           transactions had significantly impaired performance if a database node was down.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3199>`__)
 
 =======
 v0.86.0
@@ -116,6 +159,10 @@ v0.84.0
     *    - |improved|
          - Timelock will now have more debugging info if the paxos directories fail to be created on startup.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3156>`__)
+
+    *    - |improved|
+         - Move a complicated and elsewhere overridden method from AbstractKeyValueService into DbKvs
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3159>`__)
 
     *    - |fixed|
          - The (Thrift-backed) ``CassandraKeyValueService`` now returns correctly for CQL queries that return null.
@@ -856,7 +903,6 @@ v0.73.0-rc1
     *    - |improved|
          - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
-
 
 =======
 v0.72.0

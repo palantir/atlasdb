@@ -42,6 +42,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
+import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -59,6 +60,8 @@ import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
+import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
+import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
@@ -100,6 +103,7 @@ import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -189,7 +193,7 @@ public abstract class TransactionManagers {
      */
     @Value.Default
     Callback<SerializableTransactionManager> asyncInitializationCallback() {
-        return new Callback.NoOp<>();
+        return Callback.noOp();
     }
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
@@ -341,6 +345,16 @@ public abstract class TransactionManagers {
                         .buildCleaner(),
                 closeables);
 
+        MultiTableSweepQueueWriter targetedSweep = initializeCloseable(
+                () -> uninitializedTargetedSweeper(config.targetedSweep(),
+                        JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier)),
+                closeables);
+
+        Callback<SerializableTransactionManager> callbacks = new Callback.CallChain<>(ImmutableList.of(
+                timelockConsistencyCheckCallback(config, runtimeConfigSupplier.get(), lockAndTimestampServices),
+                LambdaCallback.of(targetedSweep::callbackInit),
+                asyncInitializationCallback()));
+
         SerializableTransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
                         keyValueService,
@@ -360,12 +374,8 @@ public abstract class TransactionManagers {
                         config.keyValueService().defaultGetRangesConcurrency(),
                         config.initializeAsync(),
                         () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
-                        MultiTableSweepQueueWriter.NO_OP,
-                        wrapInitializationCallbackAndAddConsistencyChecks(
-                                config,
-                                runtimeConfigSupplier.get(),
-                                lockAndTimestampServices,
-                                asyncInitializationCallback())),
+                        targetedSweep,
+                        callbacks),
                 closeables);
 
         transactionManager.registerClosingCallback(qosClient::close);
@@ -569,27 +579,23 @@ public abstract class TransactionManagers {
         return pls;
     }
 
-    private static Callback<SerializableTransactionManager> wrapInitializationCallbackAndAddConsistencyChecks(
+    private static Callback<SerializableTransactionManager> timelockConsistencyCheckCallback(
             AtlasDbConfig atlasDbConfig,
             AtlasDbRuntimeConfig initialRuntimeConfig,
-            LockAndTimestampServices lockAndTimestampServices,
-            Callback<SerializableTransactionManager> asyncInitializationCallback) {
+            LockAndTimestampServices lockAndTimestampServices) {
         if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
             // Only do the consistency check if we're using TimeLock.
             // This avoids a bootstrapping problem with leader-block services without async initialisation,
             // where you need a working timestamp service to check consistency, you need to check consistency
             // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
             // ports in order to get a working timestamp service.
-            List<Callback<SerializableTransactionManager>> callbacks = Lists.newArrayList();
-            callbacks.add(ConsistencyCheckRunner.create(
+            return ConsistencyCheckRunner.create(
                     ImmutableTimestampCorroborationConsistencyCheck.builder()
                             .conservativeBound(TransactionManager::getUnreadableTimestamp)
                             .freshTimestampSource(unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
-                            .build()));
-            callbacks.add(asyncInitializationCallback);
-            return new Callback.CallChain<>(callbacks);
+                            .build());
         }
-        return asyncInitializationCallback;
+        return Callback.noOp();
     }
 
     private static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
@@ -869,6 +875,18 @@ public abstract class TransactionManagers {
                 .timestamp(timeService)
                 .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
+    }
+
+    private MultiTableSweepQueueWriter uninitializedTargetedSweeper(TargetedSweepInstallConfig config,
+            Supplier<TargetedSweepRuntimeConfig> runtime) {
+        if (config.enableSweepQueueWrites()) {
+            return TargetedSweeper.createUninitialized(
+                    JavaSuppliers.compose(TargetedSweepRuntimeConfig::enabled, runtime),
+                    JavaSuppliers.compose(TargetedSweepRuntimeConfig::shards, runtime),
+                    config.conservativeThreads(),
+                    config.thoroughThreads());
+        }
+        return MultiTableSweepQueueWriter.NO_OP;
     }
 
     @Value.Immutable

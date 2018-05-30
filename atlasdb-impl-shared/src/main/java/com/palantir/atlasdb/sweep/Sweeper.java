@@ -16,31 +16,29 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Optional;
-import java.util.function.LongSupplier;
+import java.util.function.Function;
 
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 
 public enum Sweeper {
-    CONSERVATIVE((unreadableTs, immutableTs) -> Math.min(unreadableTs.getAsLong(), immutableTs.getAsLong()),
+    CONSERVATIVE(provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()),
                  false,
                  true),
-    THOROUGH((unreadableTs, immutableTs) -> immutableTs.getAsLong(),
+    THOROUGH(provider -> provider.getImmutableTimestamp(),
              true,
              false);
 
-    private final SweepTimestampSupplier sweepTimestampSupplier;
+    private final Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier;
     private final boolean shouldSweepLastCommitted;
     private final boolean shouldAddSentinels;
 
-    Sweeper(SweepTimestampSupplier sweepTimestampSupplier,
+    Sweeper(Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier,
             boolean shouldSweepLastCommitted, boolean shouldAddSentinels) {
         this.sweepTimestampSupplier = sweepTimestampSupplier;
         this.shouldSweepLastCommitted = shouldSweepLastCommitted;
         this.shouldAddSentinels = shouldAddSentinels;
-    }
-
-    public SweepTimestampSupplier getSweepTimestampSupplier() {
-        return sweepTimestampSupplier;
     }
 
     public boolean shouldSweepLastCommitted() {
@@ -51,8 +49,8 @@ public enum Sweeper {
         return shouldAddSentinels;
     }
 
-    public interface SweepTimestampSupplier {
-        long getSweepTimestamp(LongSupplier unreadableTimestampSupplier, LongSupplier immutableTimestampSupplier);
+    public long getSweepTimestamp(SpecialTimestampsSupplier specialTimestampsSupplier) {
+        return sweepTimestampSupplier.apply(specialTimestampsSupplier);
     }
 
     public static Optional<Sweeper> of(TableMetadataPersistence.SweepStrategy sweepStrategy) {
@@ -68,4 +66,8 @@ public enum Sweeper {
         }
     }
 
+    public static Sweeper of(ShardAndStrategy shardStrategy) {
+        return of(shardStrategy.strategy())
+                .orElseThrow(() -> new IllegalArgumentException("Unknown sweep strategy: " + shardStrategy.strategy()));
+    }
 }

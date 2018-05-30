@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,21 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Collection;
+import org.immutables.value.Value;
 
-public interface SweepDeleter {
+import com.palantir.util.PersistableBoolean;
 
-    SweepDeleter NO_OP = writes -> { };
+@Value.Immutable
+public interface PartitionInfo {
+    int shard();
+    PersistableBoolean isConservative();
+    long timestamp();
 
-    void sweep(Collection<WriteInfo> writes);
-
+    static PartitionInfo of(int shard, boolean isConservative, long timestamp) {
+        return ImmutablePartitionInfo.builder()
+                .shard(shard)
+                .isConservative(PersistableBoolean.of(isConservative))
+                .timestamp(timestamp)
+                .build();
+    }
 }
