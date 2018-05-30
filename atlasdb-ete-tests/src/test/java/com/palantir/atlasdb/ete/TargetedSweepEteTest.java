@@ -16,24 +16,29 @@
 
 package com.palantir.atlasdb.ete;
 
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.concurrent.TimeUnit;
+
+import org.awaitility.Awaitility;
 import org.junit.Test;
 
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 
-public class TargetedSweepTest {
+public class TargetedSweepEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
     @Test
-    public void shouldBeAbleToWriteAndListTodos() throws InterruptedException {
+    public void backgroundThoroughSweepDeletesOldVersion() throws InterruptedException {
         TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
-        todoClient.addTodo(TODO);
-        assertThat(todoClient.getTodoList(), hasItem(TODO));
-        Thread.sleep(10000000);
+        long ts = todoClient.addTodoWithIdAndReturnTimestamp(100L, TODO);
+        assertThat(todoClient.doesNotExistBeforeTimestamp(100L, ts)).isFalse();
+
+        todoClient.addTodoWithIdAndReturnTimestamp(100L, TODO);
+        Awaitility.waitAtMost(2, TimeUnit.MINUTES).pollInterval(2, TimeUnit.SECONDS)
+                .until(() -> todoClient.doesNotExistBeforeTimestamp(100L, ts));
     }
 }
