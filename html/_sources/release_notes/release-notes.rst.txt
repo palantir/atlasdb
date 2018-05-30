@@ -130,6 +130,10 @@ v0.84.0
          - Timelock will now have more debugging info if the paxos directories fail to be created on startup.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3156>`__)
 
+    *    - |improved|
+         - Move a complicated and elsewhere overridden method from AbstractKeyValueService into DbKvs
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3159>`__)
+
     *    - |fixed|
          - The (Thrift-backed) ``CassandraKeyValueService`` now returns correctly for CQL queries that return null.
            Previously, they would throw an exception when we attempted to log information about the response.

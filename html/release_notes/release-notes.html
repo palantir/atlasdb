@@ -279,7 +279,11 @@ Now, they are guaranteed to be returned in order, which removes this issue.
 <td>Timelock will now have more debugging info if the paxos directories fail to be created on startup.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3156">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Move a complicated and elsewhere overridden method from AbstractKeyValueService into DbKvs
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3159">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The (Thrift-backed) <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueService</span></code> now returns correctly for CQL queries that return null.
 Previously, they would throw an exception when we attempted to log information about the response.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3158">Pull Request</a>)</td>
