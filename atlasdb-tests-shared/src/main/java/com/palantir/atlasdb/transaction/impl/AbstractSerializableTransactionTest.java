@@ -19,7 +19,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
@@ -50,6 +49,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -526,14 +526,23 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Test
     public void testColumnRangeReadUnsupported() {
-        byte[] row = PtBytes.toBytes("row1");
         Transaction t1 = startTransaction();
         try {
-            Iterator<Map.Entry<Cell, byte[]>> iterator = t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+            t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(PtBytes.toBytes("row1")),
                     new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY), 1);
         } catch (UnsupportedOperationException e) {
             // expected
         }
+    }
+
+    @Test
+    public void testColumnRangeReadSupported() {
+        Transaction t1 = startTransaction();
+        // The transactions table is registered as IGNORE_ALL, so the request is supported
+        // Reading at a negative timestamp to avoid any repercussions for in-flight transactions
+        t1.getRowsColumnRange(TransactionConstants.TRANSACTION_TABLE,
+                ImmutableList.of(ValueType.VAR_LONG.convertFromJava(-1L)),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY), 1);
     }
 
     @Test
