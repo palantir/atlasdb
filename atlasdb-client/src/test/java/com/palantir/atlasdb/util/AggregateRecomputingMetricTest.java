@@ -24,7 +24,7 @@ import org.junit.Test;
 
 public class AggregateRecomputingMetricTest {
     @Test
-    public void canDoStuff() throws InterruptedException {
+    public void canUpdate() throws InterruptedException {
         AggregateRecomputingMetric test = new AggregateRecomputingMetric(
                 col -> col.stream().max(Comparator.naturalOrder()).orElse(0L), 1);
 
@@ -43,7 +43,6 @@ public class AggregateRecomputingMetricTest {
         test.update(2, 0L);
         Thread.sleep(2);
         assertThat(test.getValue()).isEqualTo(1L);
-
     }
 
 }
