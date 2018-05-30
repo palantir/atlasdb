@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Objects;
 
 import org.assertj.core.api.Assertions;
-import org.junit.After;
 import org.junit.Before;
 
 import com.google.common.collect.ImmutableList;
@@ -91,11 +90,6 @@ public abstract class AbstractSweepQueueTest {
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createTransactionService(spiedKvs);
         metrics = TargetedSweepMetrics.withRecomputingInterval(1);
-    }
-
-    @After
-    public void cleanup() {
-        metrics.clear();
     }
 
     static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {

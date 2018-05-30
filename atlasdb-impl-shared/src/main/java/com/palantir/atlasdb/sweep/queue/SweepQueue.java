@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.logsafe.SafeArg;
 
 public final class SweepQueue implements SweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(SweepQueue.class);
@@ -103,20 +104,24 @@ public final class SweepQueue implements SweepQueueWriter {
         metrics.updateSweepTimestamp(shardStrategy, sweepTs);
         long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
 
-        if (sweepTs <= lastSweptTs + 1) {
-            log.warn("Last swept timestamp {} for {} is greater than or equal to the sweep timestamp {}.",
-                    lastSweptTs, shardStrategy.toText(), sweepTs);
+        if (lastSweptTs + 1 >= sweepTs) {
+            log.warn("Last swept timestamp {} for {} is inconsistent with the sweep timestamp {}, since there can be "
+                            + "no timestamps between the two values.", SafeArg.of("lastSweptTs", lastSweptTs),
+                    SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("sweepTs", sweepTs));
             return;
         }
 
         log.info("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept timestamp"
-                + " for this shard and strategy was {}.", shardStrategy.toText(), sweepTs, lastSweptTs);
+                + " for this shard and strategy was {}.", SafeArg.of("shardStrategy", shardStrategy.toText()),
+                SafeArg.of("sweepTs", sweepTs), SafeArg.of("lastSweptTs", lastSweptTs));
 
         SweepBatch sweepBatch = getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
         log.info("Put {} ranged tombstones and swept up to timestamp {} for {}.",
-                sweepBatch.writes().size(), sweepBatch.lastSweptTimestamp(), shardStrategy.toText());
+                SafeArg.of("tombstones", sweepBatch.writes().size()),
+                SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
+                SafeArg.of("shardStrategy", shardStrategy.toText()));
 
         cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp());
 
