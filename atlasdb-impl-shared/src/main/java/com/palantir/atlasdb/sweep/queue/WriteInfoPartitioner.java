@@ -33,7 +33,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.logsafe.UnsafeArg;
 
 public class WriteInfoPartitioner {
     private static final Logger log = LoggerFactory.getLogger(WriteInfoPartitioner.class);

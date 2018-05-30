@@ -1105,22 +1105,6 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
-    public void deleteTimestampRangesLeavesSentinels() {
-        Cell row0col0 = Cell.create(row0, column0);
-        long latestTs = 15L;
-
-        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(row0col0));
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
-
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(row0col0, latestTs), false);
-
-        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col0), Long.MAX_VALUE).asMap()
-                .get(row0col0), contains(Value.INVALID_VALUE_TIMESTAMP, latestTs));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col0, Value.INVALID_VALUE_TIMESTAMP + 1L))
-                        .get(row0col0), equalTo(Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP)));
-    }
-
-    @Test
     public void deleteTimestampRangesIncludingSentinelsIgnoresEmptyMap() {
         keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(), true);
     }
@@ -1188,6 +1172,22 @@ public abstract class AbstractKeyValueServiceTest {
                 equalTo(Value.create(value10, latestTsCol1)));
         assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row1col0, Long.MAX_VALUE)).get(row1col0),
                 equalTo(Value.create(value10, latestTsCol0)));
+    }
+
+    @Test
+    public void deleteTimestampRangesLeavesSentinels() {
+        Cell row0col0 = Cell.create(row0, column0);
+        long latestTs = 15L;
+
+        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(row0col0));
+        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
+
+        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(row0col0, latestTs), false);
+
+        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col0), Long.MAX_VALUE).asMap()
+                .get(row0col0), contains(Value.INVALID_VALUE_TIMESTAMP, latestTs));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col0, Value.INVALID_VALUE_TIMESTAMP + 1L))
+                .get(row0col0), equalTo(Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP)));
     }
 
     @Test

@@ -1740,7 +1740,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             TableReference tableRef,
             InetSocketAddress host,
             Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinel) {
+            boolean deleteSentinels) {
         if (maxTimestampExclusiveByCell.isEmpty()) {
             return;
         }
@@ -1750,7 +1750,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 @Override
                 public Void apply(CassandraClient client) throws Exception {
-                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef, deleteSentinel);
+                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef, deleteSentinels);
                     return null;
                 }
 

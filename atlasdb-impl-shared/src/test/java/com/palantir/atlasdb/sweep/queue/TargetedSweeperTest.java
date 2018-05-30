@@ -38,7 +38,6 @@ import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

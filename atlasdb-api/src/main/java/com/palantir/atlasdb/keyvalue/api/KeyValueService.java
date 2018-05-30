@@ -375,7 +375,7 @@ public interface KeyValueService extends AutoCloseable {
     void deleteRange(@QueryParam("tableRef") TableReference tableRef, RangeRequest range);
 
     /**
-     * For each cell, deletes all timestamps prior to the associated maximum timestamp, excluding. Depending on the
+     * For each cell, deletes all timestamps prior to the associated maximum timestamp. Depending on the
      * implementation, this may result in a range tombstone in the underlying KVS.
      *
      * @param tableRef the name of the table to delete the timestamps in.
