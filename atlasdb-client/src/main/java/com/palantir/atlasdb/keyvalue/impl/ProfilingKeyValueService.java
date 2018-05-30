@@ -185,10 +185,9 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestampsIncludingSentinels(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
-        maybeLog(() -> delegate.deleteAllTimestampsIncludingSentinels(tableRef, maxTimestampExclusiveByCell),
-                logTimeAndTable("deleteAllTimestampsIncludingSentinels", tableRef));
+    public void deleteAllTimestampsAndSentinels(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        maybeLog(() -> delegate.deleteAllTimestampsAndSentinels(tableRef, maxTimestampExclusiveByCell),
+                logTimeAndTable("deleteAllTimestampsAndSentinels", tableRef));
     }
 
     @Override

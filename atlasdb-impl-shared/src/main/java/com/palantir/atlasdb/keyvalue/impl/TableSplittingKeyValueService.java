@@ -140,9 +140,8 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestampsIncludingSentinels(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
-        getDelegate(tableRef).deleteAllTimestampsIncludingSentinels(tableRef, maxTimestampExclusiveByCell);
+    public void deleteAllTimestampsAndSentinels(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        getDelegate(tableRef).deleteAllTimestampsAndSentinels(tableRef, maxTimestampExclusiveByCell);
     }
 
     @Override

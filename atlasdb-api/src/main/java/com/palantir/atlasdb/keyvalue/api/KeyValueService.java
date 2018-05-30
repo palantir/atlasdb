@@ -389,10 +389,10 @@ public interface KeyValueService extends AutoCloseable {
      * sentinels. Depending on the implementation, this may result in a range tombstone in the underlying KVS.
      */
     @POST
-    @Path("delete-all-timestamps-including-sentinels")
+    @Path("delete-all-timestamps-and-sentinels")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void deleteAllTimestampsIncludingSentinels(@QueryParam("tableRef") TableReference tableRef,
+    void deleteAllTimestampsAndSentinels(@QueryParam("tableRef") TableReference tableRef,
             Map<Cell, Long> maxTimestampExclusiveByCell);
 
     /**

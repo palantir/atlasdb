@@ -1736,8 +1736,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     @Override
-    public void deleteAllTimestampsIncludingSentinels(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
+    public void deleteAllTimestampsAndSentinels(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
         Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
                 clientPool, maxTimestampExclusiveByCell.entrySet());
         for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
@@ -1749,7 +1748,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             TableReference tableRef,
             InetSocketAddress host,
             Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean includeSentinel) {
+            boolean deleteSentinel) {
         if (maxTimestampExclusiveByCell.isEmpty()) {
             return;
         }
@@ -1759,7 +1758,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 @Override
                 public Void apply(CassandraClient client) throws Exception {
-                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef, includeSentinel);
+                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef, deleteSentinel);
                     return null;
                 }
 
@@ -1778,11 +1777,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void insertRangeTombstones(CassandraClient client, Map<Cell, Long> maxTimestampExclusiveByCell,
-            TableReference tableRef, boolean includeSentinel) throws TException {
+            TableReference tableRef, boolean deleteSentinel) throws TException {
         MutationMap mutationMap = new MutationMap();
 
         maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
-            Mutation mutation = getMutation(cell, maxTimestampExclusive, includeSentinel);
+            Mutation mutation = getMutation(cell, maxTimestampExclusive, deleteSentinel);
 
             mutationMap.addMutationForCell(cell, tableRef, mutation);
         });
@@ -1791,8 +1790,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 deleteConsistency);
     }
 
-    private Mutation getMutation(Cell cell, long maxTimestampExclusive, boolean includeSentinel) {
-        if (includeSentinel) {
+    private Mutation getMutation(Cell cell, long maxTimestampExclusive, boolean deleteSentinel) {
+        if (deleteSentinel) {
             return Mutations.rangeTombstoneIncludingSentinelForColumn(cell.getColumnName(), maxTimestampExclusive);
         }
         return Mutations.rangeTombstoneForColumn(cell.getColumnName(), maxTimestampExclusive);

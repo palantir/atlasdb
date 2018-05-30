@@ -190,7 +190,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertReadAtTimestampReturnsNothing(TABLE_THOR, lastWriteTs);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, lastWriteTs);
-        verify(spiedKvs, times(1)).deleteAllTimestampsIncludingSentinels(any(TableReference.class), anyMap());
+        verify(spiedKvs, times(1)).deleteAllTimestampsAndSentinels(any(TableReference.class), anyMap());
     }
 
     @Test

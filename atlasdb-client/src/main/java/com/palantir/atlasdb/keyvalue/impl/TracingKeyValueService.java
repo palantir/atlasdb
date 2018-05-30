@@ -174,12 +174,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void deleteAllTimestampsIncludingSentinels(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
+    public void deleteAllTimestampsAndSentinels(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("deleteAllTimestampsIncludingSentinels({})",
+        try (CloseableTrace trace = startLocalTrace("deleteAllTimestampsAndSentinels({})",
                 LoggingArgs.safeTableOrPlaceholder(tableRef))) {
-            delegate().deleteAllTimestampsIncludingSentinels(tableRef, maxTimestampExclusiveByCell);
+            delegate().deleteAllTimestampsAndSentinels(tableRef, maxTimestampExclusiveByCell);
         }
     }
 

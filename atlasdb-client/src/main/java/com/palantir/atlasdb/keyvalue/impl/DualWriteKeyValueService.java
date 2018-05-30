@@ -137,10 +137,9 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestampsIncludingSentinels(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
-        delegate1.deleteAllTimestampsIncludingSentinels(tableRef, maxTimestampExclusiveByCell);
-        delegate2.deleteAllTimestampsIncludingSentinels(tableRef, maxTimestampExclusiveByCell);
+    public void deleteAllTimestampsAndSentinels(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        delegate1.deleteAllTimestampsAndSentinels(tableRef, maxTimestampExclusiveByCell);
+        delegate2.deleteAllTimestampsAndSentinels(tableRef, maxTimestampExclusiveByCell);
     }
 
     @Override

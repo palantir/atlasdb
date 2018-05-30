@@ -219,13 +219,12 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestampsIncludingSentinels(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
+    public void deleteAllTimestampsAndSentinels(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
         deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell, true);
     }
 
     public static void deleteAllTimestampsDefaultImpl(KeyValueService kvs, TableReference tableRef,
-            Map<Cell, Long> maxTimestampByCell, boolean includingSentinel) {
+            Map<Cell, Long> maxTimestampByCell, boolean deleteSentinel) {
         if (maxTimestampByCell.isEmpty()) {
             return;
         }
@@ -239,7 +238,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             long maxTimestampForCell = maxTimestampByCell.get(entry.getKey());
 
             long timestamp = entry.getValue();
-            return timestamp < maxTimestampForCell && (includingSentinel || timestamp != Value.INVALID_VALUE_TIMESTAMP);
+            return timestamp < maxTimestampForCell && (deleteSentinel || timestamp != Value.INVALID_VALUE_TIMESTAMP);
         });
 
         kvs.delete(tableRef, timestampsByCellExcludingSentinels);

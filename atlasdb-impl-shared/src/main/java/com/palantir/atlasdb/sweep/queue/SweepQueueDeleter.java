@@ -48,7 +48,7 @@ public class SweepQueueDeleter {
                 kvs.addGarbageCollectionSentinelValues(entry.getKey(), entry.getValue().keySet());
                 kvs.deleteAllTimestamps(entry.getKey(), entry.getValue());
             } else {
-                kvs.deleteAllTimestampsIncludingSentinels(entry.getKey(), entry.getValue());
+                kvs.deleteAllTimestampsAndSentinels(entry.getKey(), entry.getValue());
             }
         }
     }

@@ -81,9 +81,8 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public void deleteAllTimestampsIncludingSentinels(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
-        delegate().deleteAllTimestampsIncludingSentinels(tableRef, maxTimestampExclusiveByCell);
+    public void deleteAllTimestampsAndSentinels(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+        delegate().deleteAllTimestampsAndSentinels(tableRef, maxTimestampExclusiveByCell);
     }
 
     @Override

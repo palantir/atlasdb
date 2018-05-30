@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
@@ -1123,7 +1122,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void deleteTimestampRangesIncludingSentinelsIgnoresEmptyMap() {
-        keyValueService.deleteAllTimestampsIncludingSentinels(TEST_TABLE, ImmutableMap.of());
+        keyValueService.deleteAllTimestampsAndSentinels(TEST_TABLE, ImmutableMap.of());
     }
 
     @Test
@@ -1137,7 +1136,7 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value01), ts2);
         keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
 
-        keyValueService.deleteAllTimestampsIncludingSentinels(TEST_TABLE, ImmutableMap.of(row0col0, latestTs));
+        keyValueService.deleteAllTimestampsAndSentinels(TEST_TABLE, ImmutableMap.of(row0col0, latestTs));
 
         assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col0), Long.MAX_VALUE).asMap().get(
                 row0col0), contains(latestTs));
@@ -1171,7 +1170,7 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, value01), ts2Col1);
         keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, value10), latestTsCol1);
 
-        keyValueService.deleteAllTimestampsIncludingSentinels(TEST_TABLE, ImmutableMap.of(
+        keyValueService.deleteAllTimestampsAndSentinels(TEST_TABLE, ImmutableMap.of(
                 row0col0, latestTsCol0,
                 row0col1, latestTsCol1,
                 row1col0, latestTsCol0));
@@ -1199,7 +1198,7 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(row0col0));
         keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
 
-        keyValueService.deleteAllTimestampsIncludingSentinels(TEST_TABLE, ImmutableMap.of(row0col0, latestTs));
+        keyValueService.deleteAllTimestampsAndSentinels(TEST_TABLE, ImmutableMap.of(row0col0, latestTs));
 
         assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col0), Long.MAX_VALUE).asMap()
                 .get(row0col0), contains(latestTs));
