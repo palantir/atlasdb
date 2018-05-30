@@ -182,7 +182,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    public void thoroughSweepDeletesAllButLatestWithSingleDeleteAllTimestampsIncludingSentinels() {
+    public void thoroughSweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
         long lastWriteTs = TS_FINE_GRANULARITY - 1;
         for (long i = 0; i <= lastWriteTs; i++) {
             enqueueWrite(TABLE_THOR, i);
@@ -190,7 +190,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertReadAtTimestampReturnsNothing(TABLE_THOR, lastWriteTs);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, lastWriteTs);
-//        verify(spiedKvs, times(1)).deleteAllTimestampsAndSentinels(any(TableReference.class), anyMap());
+        verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
     }
 
     @Test
