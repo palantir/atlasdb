@@ -1,0 +1,407 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Standard Sweep &mdash; OSS AtlasDB develop documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Background Sweep" href="standard/background-sweep.html" />
+    <link rel="prev" title="Freeing space after sweep" href="freeing-space.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> OSS AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Cluster Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../backup-restore.html">Backup and Restore</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../console.html">Console</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dropwizard-bundle.html">Dropwizard bundle</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../sweep.html">AtlasDB Sweep</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="freeing-space.html">Freeing space after sweep</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Standard Sweep</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="standard/background-sweep.html">Background Sweep</a></li>
+<li class="toctree-l4"><a class="reference internal" href="standard/sweep-endpoints.html">AtlasDB Sweep Endpoints</a></li>
+<li class="toctree-l4"><a class="reference internal" href="standard/sweep-cli.html">AtlasDB Sweep CLI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="standard/sweep-logs.html">Background Sweep Inner Workings and Logs</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="targeted-sweep.html">Targeted Sweep</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../services/index.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../performance/index.html">Performance Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../troubleshooting/index.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">OSS AtlasDB</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Cluster Management</a> &raquo;</li>
+        
+          <li><a href="../sweep.html">AtlasDB Sweep</a> &raquo;</li>
+        
+      <li>Standard Sweep</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/sweep/standard-sweep.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="standard-sweep">
+<span id="id1"></span><h1>Standard Sweep<a class="headerlink" href="#standard-sweep" title="Permalink to this headline">¶</a></h1>
+<p>Standard sweep scans a table to find rows with multiple versions, then deletes the older versions from the database.</p>
+<div class="section" id="ways-to-use-standard-sweep">
+<h2>Ways to use Standard Sweep<a class="headerlink" href="#ways-to-use-standard-sweep" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference internal" href="standard/background-sweep.html#background-sweep"><span class="std std-ref">Background sweep process</span></a> scheduled periodically:
+Under normal use, the sweep job is intended to run at a constant interval as a background sweep process that does not consume significant system resources.
+Background sweep is enabled by default. If needed, background sweep can be disabled without bouncing the host service.</li>
+<li><a class="reference internal" href="standard/sweep-endpoints.html#atlasdb-sweep-endpoints"><span class="std std-ref">Sweep Endpoint</span></a> triggered manually:
+You may trigger the sweep job on demand via an HTTP request. This could be useful in order to address any one-off performance issues.
+Long-running AtlasDB instances with large data scale may want to manually sweep specific tables before enabling the background sweeper.
+Given that the background sweep job chooses which tables it sweeps, you can ensure that a one-off large sweep job occurs during non-peak usage hours.</li>
+</ul>
+</div>
+<div class="section" id="tracking-sweep-progress">
+<h2>Tracking Sweep Progress<a class="headerlink" href="#tracking-sweep-progress" title="Permalink to this headline">¶</a></h2>
+<p>In order to track sweep’s general workflow, and which log lines you should expect, see <a class="reference internal" href="standard/sweep-logs.html#sweep-logs"><span class="std std-ref">Sweep Logs</span></a>.</p>
+</div>
+<div class="section" id="tunable-configuration-options">
+<span id="sweep-tunable-parameters"></span><h2>Tunable Configuration Options<a class="headerlink" href="#tunable-configuration-options" title="Permalink to this headline">¶</a></h2>
+<p>The following optional parameters can be tuned to optimize Sweep performance for a specific AtlasDB instance.
+You may set them as part of your <a class="reference internal" href="../../configuration/index.html#atlas-config"><span class="std std-ref">AtlasDB runtime configuration</span></a>, or as a CLI option if you are running sweep using the CLI.
+Note that some of these parameters are just used as a hint. Sweep dynamically modifies these parameters according to successful or failed runs.</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="7%" />
+<col width="7%" />
+<col width="14%" />
+<col width="71%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">AtlasDB Runtime Config</th>
+<th class="head">Endpoint Option</th>
+<th class="head">Default</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">enabled</span></code></td>
+<td>Only specified in config</td>
+<td>true</td>
+<td>Whether the background sweeper should run.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">readLimit</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">maxCellTsPairsToExamine</span></code></td>
+<td>128</td>
+<td>Target number of (cell, timestamp) pairs to examine in a batch of sweep.</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">candidateBatchSize</span></code></td>
+<td>128</td>
+<td>Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">deleteBatchHint</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">deleteBatchSize</span></code></td>
+<td>128</td>
+<td>Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance.</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">pauseMillis</span></code></td>
+<td>Only specified in config</td>
+<td>5000 ms</td>
+<td>Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">sweepPriorityOverrides</span></code></td>
+<td>Only specified in config</td>
+<td>No overrides</td>
+<td>Fully-qualified names of tables that Sweep should prioritise particularly highly, or ignore completely. Please see <a class="reference internal" href="#priority-overrides">Priority Overrides</a> for more details.</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="batch-parameters">
+<h3>Batch Parameters<a class="headerlink" href="#batch-parameters" title="Permalink to this headline">¶</a></h3>
+<p>Following is more information about when each of the batching parameters is useful.
+In short, the recommendation is:</p>
+<ul class="simple">
+<li>Decrease <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> and <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> if there is memory pressure on the client.</li>
+<li>Decrease <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> if there is memory pressure on the KVS.</li>
+</ul>
+<div class="section" id="memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit">
+<h4>Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit<a class="headerlink" href="#memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit" title="Permalink to this headline">¶</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> specifies the number of values to load from the KVS on each round-trip. <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> specifies the number of values that should be swept in a batch, potentially fetching them through multiple KVS round-trips.
+If each batch takes little time, it’s advisable to increase the <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> and <code class="docutils literal notranslate"><span class="pre">deleteBatchHint</span></code>, to make sweep’s batches bigger.
+If the client is OOMing, it’s advisable to decrease the <code class="docutils literal notranslate"><span class="pre">readLimit</span></code>, to have a lower number of values per batches.
+Since each batch contains at least <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> values, if <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> reaches the same value as <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> you should reduce the <code class="docutils literal notranslate"><span class="pre">candidateBatchSize</span></code> config.
+Note that since sweep still needs to sweep at least a full row on every batch, it might be the case that the client is OOMing because the row it’s trying to sweep is very large. Please contact the AtlasDB team if you think you’re hitting this issue.</p>
+</div>
+<div class="section" id="memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint">
+<h4>Memory pressure in the backing KVS: decrease candidateBatchHint<a class="headerlink" href="#memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint" title="Permalink to this headline">¶</a></h4>
+<p>The sweep job works by requesting <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> values from the KVS in each round-trip.
+In some rare cases, the Cassandra KVS will not be able to fetch <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> values, likely due to specific cells being overwritten many times and/or containing very large values.
+If that happens, KVS requests from AtlasDB will fail and sweep will reduce <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> automatically, trying to fetch fewer values in the following round-trips to the KVS.
+If subsequent KVS round-trips are successful, the value of <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> is slowly increased back to the configured value, which is also the maximum it reaches. Therefore, if the configured value is too high, failures will happen again.</p>
+<p>You can check the sweep logs to verify if this is happening frequently — and if this is the case — reduce this config to a value that the load on the KVS doesn’t trigger failures and sweep is able to run.</p>
+</div>
+</div>
+<div class="section" id="priority-overrides">
+<span id="sweep-priority-overrides"></span><h3>Priority Overrides<a class="headerlink" href="#priority-overrides" title="Permalink to this headline">¶</a></h3>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Specifying priority tables can be useful for influencing sweep’s behaviour in the short run.
+However, while configured, no table that is not marked as a priority table will ever be swept, meaning that old versions of cells will not be cleaned up.
+It is not intended for priority tables to be specified in a steady state, generally speaking.</p>
+</div>
+<p>There may be situations in which the background sweeper’s heuristics for selecting tables to sweep may not satisfy one’s requirements.
+One can influence the selection process by configuring the <code class="docutils literal notranslate"><span class="pre">sweepPriorityOverrides</span></code> parameter in runtime configuration.</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="8%" />
+<col width="15%" />
+<col width="77%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">AtlasDB Runtime Config</th>
+<th class="head">Default</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">blacklistTables</span></code></td>
+<td>[]</td>
+<td>List of fully qualified table names (e.g. <code class="docutils literal notranslate"><span class="pre">namespace.tablename</span></code>) which the background sweeper should not sweep.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">priorityTables</span></code></td>
+<td>[]</td>
+<td>List of fully qualified table names which the background sweeper should prioritise for sweep.</td>
+</tr>
+</tbody>
+</table>
+<p>Note that the conditions for table selection are only checked between iterations of sweep. The algorithm for deciding
+whether a table that is currently being swept should continue to be swept is as follows:</p>
+<ol class="arabic simple">
+<li>If the table being swept is a priority table, continue sweeping it.</li>
+<li>If there are any priority tables and the table currently being swept is not a priority table, stop sweeping it and
+switch to a random priority table.</li>
+<li>If the table being swept is not blacklisted, continue sweeping it.</li>
+<li>There are no priority tables, and the table being swept is blacklisted; select another table using standard sweep
+heuristics.</li>
+</ol>
+<p>Note that if blacklist/priority settings are subsequently removed, sweep will continue sweeping the table that those
+settings have made it select (in particular, it will not immediately return to the original table it was sweeping).</p>
+<p>Also, as we don’t know the data distribution of the original table we were sweeping, we don’t know how much of the
+table we have swept; we thus don’t have enough information to update the sweep priority table with our results while
+registering that we have only done a partial sweep. In practice, this would tend to mean that the probability the
+original table being swept will be picked again for sweeping after overrides have been removed may be a little higher
+than if we accounted for the partial sweep.</p>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="standard/background-sweep.html" class="btn btn-neutral float-right" title="Background Sweep" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="freeing-space.html" class="btn btn-neutral" title="Freeing space after sweep" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Palantir Technologies.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'develop',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

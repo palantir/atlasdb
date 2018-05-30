@@ -249,7 +249,39 @@ even though that node just gained leadership.
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-new">NEW</span></td>
+<td>KVS method <code class="docutils literal notranslate"><span class="pre">deleteAllTimestamps</span></code> now also takes a boolean argument specifying if garbage deletion sentinels should also be deleted.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3212">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td><p class="first">AtlasDB now implements targeted sweep using a sweep queue.
+As long as the <code class="docutils literal notranslate"><span class="pre">enableSweepQueueWrites</span></code> property of the <code class="docutils literal notranslate"><span class="pre">targetedSweep</span></code> configuration is set to true, information about each transactional write and delete will be persisted into the sweep queue.
+If <code class="docutils literal notranslate"><span class="pre">targetedSweep</span></code> is enabled in AtlasDB runtime configurations, background threads will read the persisted information from the sweep queue and delete stale data from the kvs.
+For more details on targeted sweep, please refer to the <a class="reference internal" href="../cluster_management/sweep/targeted-sweep.html#targeted-sweep"><span class="std std-ref">targeted sweep docs</span></a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3094">Pull Request</a>)</p>
+<p class="last">Note that targeted sweep is considered a beta feature as it is not fully functional yet.
+Consult with the AtlasDB team if you wish to use targeted sweep in addition to, or instead of, standard sweep.</p>
+</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td><p class="first">Added tagged targeted sweep metrics for conservative and thorough sweep.
+The metrics show the cumulative number of enqueued writes, entries read, tombstones put, and aborted cells deleted.
+Additionally, there are metrics for the sweep timestamp of the last sweep iteration and for the lowest last swept timestamp across all shards.
+The metrics, tagged with the sweep strategy used, are as follws (with the common prefix <code class="docutils literal notranslate"><span class="pre">com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.</span></code>):</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">enqueuedWrites</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">entriesRead</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">tombstonesPut</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">abortedWritesDeleted</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">sweepTimestamp</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">lastSweptTimestamp</span></code></li>
+</ul>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3202">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Snapshot transaction is now guaranteed to return getRowsColumnRange results in the correct order.
 Previously while paging over row dynamic columns, if uncommitted or aborted transaction data was
 seen, it would be placed at the end of the list, instead of at the start, meaning that the results
@@ -390,7 +422,7 @@ Also, previously, partitioning would require time quadratic in the number of ver
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) blacklist.
 This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a blacklisted table, as appropriate.
-Please see <a class="reference internal" href="../cluster_management/sweep.html#sweep-priority-overrides"><span class="std std-ref">Sweep Priority Overrides</span></a> for more details.
+Please see <a class="reference internal" href="../cluster_management/sweep/standard-sweep.html#sweep-priority-overrides"><span class="std std-ref">Sweep Priority Overrides</span></a> for more details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3090">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
@@ -2816,7 +2848,7 @@ users should instead move to a more specific config for their situation, which a
 <td>If sweep configs are specified in the AtlasDbConfig block, they will be ignored, but AtlasDB will no longer fail to start.
 This effectively fixes the Sweep-related user break change of version <code class="docutils literal notranslate"><span class="pre">0.47.0</span></code>.
 Note that users of products that upgraded from <code class="docutils literal notranslate"><span class="pre">0.45.0</span></code> to <code class="docutils literal notranslate"><span class="pre">0.48.0</span></code> will need to move configuration overrides from the regular <code class="docutils literal notranslate"><span class="pre">atlasdb</span></code> config to the <code class="docutils literal notranslate"><span class="pre">atlasdb-runtime</span></code> config for them to continue taking effect.
-Please reference the Sweep <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">configuration docs</span></a> for more details.
+Please reference the Sweep <a class="reference internal" href="../cluster_management/sweep/standard-sweep.html#sweep-tunable-parameters"><span class="std std-ref">configuration docs</span></a> for more details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2134">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
@@ -2872,7 +2904,7 @@ Previously, calling the referred method more than once could fail an assertion a
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2055">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweep docs</span></a>, in particular, the <a class="reference internal" href="../cluster_management/sweep/background-sweep.html#background-sweep"><span class="std std-ref">background sweep docs</span></a>.
+<td>Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweep docs</span></a>, in particular, the <a class="reference internal" href="../cluster_management/sweep/standard/background-sweep.html#background-sweep"><span class="std std-ref">background sweep docs</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2104">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
@@ -3217,7 +3249,7 @@ Please use the <code class="docutils literal notranslate"><span class="pre">time
 <td>Sweep now batches delete calls before executing them.
 This should improve performance on relatively clean tables by deleting more cells at a time, leading to fewer DB operations and taking out the backup lock less frequently.
 The new configuration parameter <code class="docutils literal notranslate"><span class="pre">sweepDeleteBatchHint</span></code> determines the approximate number of (cell, timestamp) pairs deleted in a single batch.
-Please refer to the <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">documentation</span></a> for details of how to configure this.
+Please refer to the <a class="reference internal" href="../cluster_management/sweep/standard-sweep.html#sweep-tunable-parameters"><span class="std std-ref">documentation</span></a> for details of how to configure this.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1911">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
@@ -3226,12 +3258,12 @@ Please refer to the <a class="reference internal" href="../cluster_management/sw
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td>The Sweep CLI configuration parameters <code class="docutils literal notranslate"><span class="pre">--batch-size</span></code> and <code class="docutils literal notranslate"><span class="pre">--cell-batch-size</span></code> have been deprecated, as we now batch on cell-timestamp pairs rather than by rows and cells.
-Please use the <code class="docutils literal notranslate"><span class="pre">--candidate-batch-hint</span></code> (batching on cells) instead of <code class="docutils literal notranslate"><span class="pre">--batch-hint</span></code> (batching on rows), and <code class="docutils literal notranslate"><span class="pre">--read-limit</span></code> instead of <code class="docutils literal notranslate"><span class="pre">--cell-batch-size</span></code> (<a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>).
+Please use the <code class="docutils literal notranslate"><span class="pre">--candidate-batch-hint</span></code> (batching on cells) instead of <code class="docutils literal notranslate"><span class="pre">--batch-hint</span></code> (batching on rows), and <code class="docutils literal notranslate"><span class="pre">--read-limit</span></code> instead of <code class="docutils literal notranslate"><span class="pre">--cell-batch-size</span></code> (<a class="reference internal" href="../cluster_management/sweep/standard-sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1962">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td>The background sweep configuration parameters <code class="docutils literal notranslate"><span class="pre">sweepBatchSize</span></code> (which used to batch on rows) and <code class="docutils literal notranslate"><span class="pre">sweepCellBatchSize</span></code> have been deprecated in favour of <code class="docutils literal notranslate"><span class="pre">sweepCandidateBatchHint</span></code> (which now batches on cells) and <code class="docutils literal notranslate"><span class="pre">sweepReadLimit</span></code> respectively.
-If your application configures either of these values, please look at more details in the <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>.
+If your application configures either of these values, please look at more details in the <a class="reference internal" href="../cluster_management/sweep/standard-sweep.html#sweep-tunable-parameters"><span class="std std-ref">docs</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1945">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
@@ -3586,7 +3618,7 @@ This will be used to handle exceptions in a future release, and was done in this
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The default <code class="docutils literal notranslate"><span class="pre">sweepBatchSize</span></code> has been changed from 1000 to 100.
 This has empirically shown to be a better batch size because it puts less stress on the underlying KVS.
-For a full list of tunable sweep parameters and default settings, see <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">sweep tunable options</span></a>.
+For a full list of tunable sweep parameters and default settings, see <a class="reference internal" href="../cluster_management/sweep/standard-sweep.html#sweep-tunable-parameters"><span class="std std-ref">sweep tunable options</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1763">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
@@ -3872,7 +3904,7 @@ This is important for backwards compatibility with an internal product.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1603">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td><p class="first">Added the option to perform a dry run of sweep via the <a class="reference internal" href="../cluster_management/sweep/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">Sweep CLI</span></a>.
+<td><p class="first">Added the option to perform a dry run of sweep via the <a class="reference internal" href="../cluster_management/sweep/standard/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">Sweep CLI</span></a>.
 When <code class="docutils literal notranslate"><span class="pre">--dry-run</span></code> is set, sweep will tell you how many cells would have been deleted, but will not actually delete any cells.</p>
 <p class="last">This feature was introduced to avoid accidentally generating more tombstones than the Cassandra tombstone threshold (default 100k) introduced in <a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-6117">CASSANDRA-6117</a>.
 If you delete more than 100k cells and thus cross the Cassandra threshold, then Cassandra may reject read requests until the tombstones have been compacted away.
@@ -3954,7 +3986,7 @@ This should make distinguishing AtlasDB request logs from application request lo
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td><p class="first">Sweep now takes out a lock to ensure data is not corrupted during online backups.</p>
 <p class="last">Users performing <a class="reference internal" href="../cluster_management/backup-restore.html#backup-restore"><span class="std std-ref">live backups</span></a> should grab this lock before performing a backup of the underlying KVS, and then release the lock once the backup is complete.
-This enables the backup to safely run alongside either the <a class="reference internal" href="../cluster_management/sweep/background-sweep.html#background-sweep"><span class="std std-ref">background sweeper</span></a> or the <a class="reference internal" href="../cluster_management/sweep/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">sweep CLI</span></a>.
+This enables the backup to safely run alongside either the <a class="reference internal" href="../cluster_management/sweep/standard/background-sweep.html#background-sweep"><span class="std std-ref">background sweeper</span></a> or the <a class="reference internal" href="../cluster_management/sweep/standard/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">sweep CLI</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1509">Pull Request</a>)</p>
 </td>
 </tr>
@@ -4639,7 +4671,7 @@ This resulted in locks that appeared to be refreshed properly, but then would my
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Sweep no longer immediately falls back to a <code class="docutils literal notranslate"><span class="pre">sweepBatchSize</span></code> of 1 after receiving an error.</p>
-<p class="last">See <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">sweep tuning</span></a> documentation for more information on sweep tuning parameters.
+<p class="last">See <a class="reference internal" href="../cluster_management/sweep/standard-sweep.html#sweep-tunable-parameters"><span class="std std-ref">sweep tuning</span></a> documentation for more information on sweep tuning parameters.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1093">Pull Request</a>)</p>
 </td>
 </tr>
@@ -4690,7 +4722,7 @@ This is relevant if you use multiple namespaces when performing schema migration
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Sweep now supports batching on a per-cell level via the <code class="docutils literal notranslate"><span class="pre">sweepCellBatchSize</span></code> parameter in your AtlasDB config.
 This can decrease Sweep memory consumption on the client side if your tables have large cells or many columns (i.e. wide rows).
-For information on how to configure Sweep batching, see the <a class="reference internal" href="../cluster_management/sweep/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">sweep documentation</span></a>.
+For information on how to configure Sweep batching, see the <a class="reference internal" href="../cluster_management/sweep/standard/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">sweep documentation</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1068">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>

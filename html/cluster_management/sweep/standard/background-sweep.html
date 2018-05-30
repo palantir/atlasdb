@@ -1,0 +1,329 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Background Sweep &mdash; OSS AtlasDB develop documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="AtlasDB Sweep Endpoints" href="sweep-endpoints.html" />
+    <link rel="prev" title="Standard Sweep" href="../standard-sweep.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> OSS AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Cluster Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../backup-restore.html">Backup and Restore</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../console.html">Console</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dropwizard-bundle.html">Dropwizard bundle</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../sweep.html">AtlasDB Sweep</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../freeing-space.html">Freeing space after sweep</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../standard-sweep.html">Standard Sweep</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Background Sweep</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sweep-endpoints.html">AtlasDB Sweep Endpoints</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sweep-cli.html">AtlasDB Sweep CLI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sweep-logs.html">Background Sweep Inner Workings and Logs</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../targeted-sweep.html">Targeted Sweep</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../performance/index.html">Performance Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting/index.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">OSS AtlasDB</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Cluster Management</a> &raquo;</li>
+        
+          <li><a href="../../sweep.html">AtlasDB Sweep</a> &raquo;</li>
+        
+          <li><a href="../standard-sweep.html">Standard Sweep</a> &raquo;</li>
+        
+      <li>Background Sweep</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/sweep/standard/background-sweep.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="background-sweep">
+<span id="id1"></span><h1>Background Sweep<a class="headerlink" href="#background-sweep" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="how-background-sweep-works">
+<h2>How Background Sweep Works<a class="headerlink" href="#how-background-sweep-works" title="Permalink to this headline">¶</a></h2>
+<p>The Background Sweep Job works by sweeping one table at a time.
+The Background Sweep Job determines which table to sweep by estimating which would be most beneficial based on I/O activity and frequency, considering the following criteria:</p>
+<ul class="simple">
+<li>The number of cells written to a table since it was last swept.</li>
+<li>The number of cells that were deleted the last time a table was swept.</li>
+<li>The number of cells that were not deleted the last time a table was swept.</li>
+<li>The amount of time that has passed since the it was last swept.</li>
+</ul>
+</div>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
+<p>The background sweeper can be disabled by setting the <code class="docutils literal notranslate"><span class="pre">enabled</span></code> property in the <cite>Sweep Config</cite> block in the <a class="reference internal" href="../../../configuration/index.html#atlas-config"><span class="std std-ref">AtlasDB Runtime Config</span></a> block to false.</p>
+</div>
+<div class="section" id="metrics">
+<h2>Metrics<a class="headerlink" href="#metrics" title="Permalink to this headline">¶</a></h2>
+<p>We now expose Dropwizard metrics to allow easier tracking of the background sweeper’s actions.
+For more information, see <a class="reference internal" href="../../../miscellaneous/dropwizard-metrics.html#dropwizard-metrics"><span class="std std-ref">Dropwizard Metrics</span></a>.</p>
+</div>
+<div class="section" id="additional-logging-for-background-sweep">
+<h2>Additional logging for Background Sweep<a class="headerlink" href="#additional-logging-for-background-sweep" title="Permalink to this headline">¶</a></h2>
+<p>By default, the background sweeper only logs errors. If you’d like to watch the background sweeper’s progress, add the following in <code class="docutils literal notranslate"><span class="pre">atlasdb.log.properties</span></code>:</p>
+<blockquote>
+<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#--------------------------------------------------------------------------------</span>
+<span class="c1"># Sweep Logging</span>
+<span class="c1">#--------------------------------------------------------------------------------</span>
+
+<span class="c1"># enable background sweep logging by setting this to &#39;debug&#39;; for less verbose logging, use &#39;error&#39;.</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">com</span><span class="o">.</span><span class="n">palantir</span><span class="o">.</span><span class="n">atlasdb</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">BackgroundSweeperImpl</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span> <span class="n">sweepAppend</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">com</span><span class="o">.</span><span class="n">palantir</span><span class="o">.</span><span class="n">atlasdb</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">SpecificTableSweeper</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span> <span class="n">sweepAppend</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">com</span><span class="o">.</span><span class="n">palantir</span><span class="o">.</span><span class="n">atlasdb</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">SweepTaskRunner</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span> <span class="n">sweepAppend</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">com</span><span class="o">.</span><span class="n">palantir</span><span class="o">.</span><span class="n">atlasdb</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">CellSweeper</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span> <span class="n">sweepAppend</span>
+
+<span class="c1"># set additivity to false to make these logs only show up in background-sweeper.log</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">additivity</span><span class="o">.</span><span class="n">com</span><span class="o">.</span><span class="n">palantir</span><span class="o">.</span><span class="n">atlasdb</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">BackgroundSweeperImpl</span><span class="o">=</span><span class="n">false</span>
+
+<span class="c1"># configure a basic file appender</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">appender</span><span class="o">.</span><span class="n">sweepAppend</span><span class="o">.</span><span class="n">layout</span><span class="o">=</span><span class="n">com</span><span class="o">.</span><span class="n">palantir</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">log4j</span><span class="o">.</span><span class="n">PalantirPatternLayout</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">appender</span><span class="o">.</span><span class="n">sweepAppend</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">ConversionPattern</span><span class="o">=%</span><span class="n">m</span><span class="o">%</span><span class="n">n</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">appender</span><span class="o">.</span><span class="n">sweepAppend</span><span class="o">=</span><span class="n">com</span><span class="o">.</span><span class="n">palantir</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">ArchivedDailyRollingFileAppender</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">appender</span><span class="o">.</span><span class="n">sweepAppend</span><span class="o">.</span><span class="n">threshold</span><span class="o">=</span><span class="n">debug</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">appender</span><span class="o">.</span><span class="n">sweepAppend</span><span class="o">.</span><span class="n">file</span><span class="o">=</span><span class="n">log</span><span class="o">/</span><span class="n">background</span><span class="o">-</span><span class="n">sweeper</span><span class="o">.</span><span class="n">log</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">appender</span><span class="o">.</span><span class="n">sweepAppend</span><span class="o">.</span><span class="n">datePattern</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="n">yyyy</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">dd</span>
+<span class="n">log4j</span><span class="o">.</span><span class="n">appender</span><span class="o">.</span><span class="n">sweepAppend</span><span class="o">.</span><span class="n">MaxRollFileCount</span><span class="o">=</span><span class="mi">90</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>This will create a log file <code class="docutils literal notranslate"><span class="pre">log/background-sweeper.log</span></code> where sweep information will be logged.</p>
+</div>
+<div class="section" id="querying-the-sweep-metadata-tables">
+<h2>Querying the Sweep Metadata Tables<a class="headerlink" href="#querying-the-sweep-metadata-tables" title="Permalink to this headline">¶</a></h2>
+<p>You can also query the Atlas table <code class="docutils literal notranslate"><span class="pre">sweep.progress</span></code> using Atlas Console.
+<code class="docutils literal notranslate"><span class="pre">sweep.progress</span></code> contains at most a single row detailing information for the current table the background sweeper is sweeping.
+You can also query <code class="docutils literal notranslate"><span class="pre">sweep.priority</span></code> to get a breakdown per table of:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">write_count</span></code> - Approximate number of writes to this table since the last time it was swept.</li>
+<li><code class="docutils literal notranslate"><span class="pre">last_sweep_time</span></code> - Wall clock time the last time this table was swept.</li>
+<li><code class="docutils literal notranslate"><span class="pre">cells_deleted</span></code> - The numbers of stale values deleted last time this table was swept.</li>
+<li><code class="docutils literal notranslate"><span class="pre">cells_examined</span></code> - The number of cell-timestamp pairs in the table total the last time this table was swept.</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If one investigates the <code class="docutils literal notranslate"><span class="pre">sweep.priority</span></code> table, one <em>may</em> find information regarding the number of cell-timestamp
+pairs examined or deleted on earlier runs as well. However, the <code class="docutils literal notranslate"><span class="pre">sweep.priority</span></code> table itself can be swept, thus
+the table <em>may</em> not contain information concerning all historical runs of sweep.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="sweep-endpoints.html" class="btn btn-neutral float-right" title="AtlasDB Sweep Endpoints" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../standard-sweep.html" class="btn btn-neutral" title="Standard Sweep" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Palantir Technologies.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'develop',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
