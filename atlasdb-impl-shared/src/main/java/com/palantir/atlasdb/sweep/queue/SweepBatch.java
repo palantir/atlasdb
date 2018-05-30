@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,20 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Collection;
-import java.util.function.Consumer;
+import java.util.List;
 
-public interface SweepQueueReader {
+import org.immutables.value.Value;
 
-    // Passes the next batch of writes to the given consumer. If the consumer returns without throwing,
-    // the batch is considered consumed, and future invocations of this method will consume only newer writes.
-    // On the other hand, if the consumer fails by throwing an exception, the same batch will be consumed
-    // on the next invocation.
-    void consumeNextBatch(Consumer<Collection<WriteInfo>> consumer, long maxTimestampExclusive);
+/**
+ * Contains information on a batch to sweep: a possibly empty list of WriteInfos to sweep for and the maximum timestamp
+ * guaranteed to have been swept once the batch is processed.
+ */
+@Value.Immutable
+public interface SweepBatch {
+    List<WriteInfo> writes();
+    long lastSweptTimestamp();
 
+    static SweepBatch of(Collection<WriteInfo> writes, long timestamp) {
+        return ImmutableSweepBatch.builder().writes(writes).lastSweptTimestamp(timestamp).build();
+    }
 }

@@ -1376,6 +1376,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Timer.Context conflictsTimer = getTimer("commitCheckingForConflicts").time();
             throwIfConflictOnCommit(commitLocksToken, transactionService);
             long millisCheckingForConflicts = TimeUnit.NANOSECONDS.toMillis(conflictsTimer.stop());
+
+            sweepQueue.enqueue(writesByTable, getStartTimestamp());
+
             Timer.Context writesTimer = getTimer("commitWrite").time();
             keyValueService.multiPut(writesByTable, getStartTimestamp());
             long millisForWrites = TimeUnit.NANOSECONDS.toMillis(writesTimer.stop());
@@ -1425,8 +1428,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         tableRefs.safeTableRefs(),
                         tableRefs.unsafeTableRefs());
             }
-
-            sweepQueue.enqueue(writesByTable, getStartTimestamp());
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }

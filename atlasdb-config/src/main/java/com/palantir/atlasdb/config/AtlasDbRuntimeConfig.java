@@ -38,6 +38,15 @@ public abstract class AtlasDbRuntimeConfig {
         return SweepConfig.defaultSweepConfig();
     }
 
+    /**
+     * Live reloadable configurations for targeted sweep. If the enableSweepQueueWrites parameter of
+     * {@link AtlasDbConfig#targetedSweep()} is not set to true, this configuration will be ignored.
+     */
+    @Value.Default
+    public TargetedSweepRuntimeConfig targetedSweep() {
+        return TargetedSweepRuntimeConfig.defaultTargetedSweepRuntimeConfig();
+    }
+
     @Value.Default
     public CompactorConfig compact() {
         return CompactorConfig.defaultCompactorConfig();

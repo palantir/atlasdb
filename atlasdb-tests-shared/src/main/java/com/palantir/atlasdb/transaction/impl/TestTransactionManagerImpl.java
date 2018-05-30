@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -39,6 +40,7 @@ import com.palantir.timestamp.TimestampService;
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
+    private Optional<Long> unreadableTs = Optional.empty();
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(KeyValueService keyValueService,
@@ -132,6 +134,15 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     @Override
     public void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
         conflictHandlerOverrides.put(table, conflictHandler);
+    }
+
+    @Override
+    public long getUnreadableTimestamp() {
+        return unreadableTs.orElse(super.getUnreadableTimestamp());
+    }
+
+    public void setUnreadableTimestamp(long timestamp) {
+        unreadableTs = Optional.of(timestamp);
     }
 
     private Map<TableReference, ConflictHandler> getConflictHandlerWithOverrides() {
