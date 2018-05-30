@@ -66,6 +66,11 @@ develop
            transactions had significantly impaired performance if a database node was down.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3199>`__)
 
+    *    - |fixed|
+         - Fixed an issue occurring after a failure to putUnlessExists a commit timestamp that was causing an NPE leading to a confusing error message.
+           Previously, the method determining whether the transaction was aborted or whether in fact it had committed successfully would hit a code path that would always result in an NPE.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3205>`__)
+
 =======
 v0.86.0
 =======
