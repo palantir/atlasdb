@@ -550,9 +550,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testColumnRangeReadSupported() {
         Transaction t1 = startTransaction();
         // The transactions table is registered as IGNORE_ALL, so the request is supported
-        // Reading at a negative timestamp to avoid any repercussions for in-flight transactions
+        // Reading at timestamp 0 to avoid any repercussions for in-flight transactions
         t1.getRowsColumnRange(TransactionConstants.TRANSACTION_TABLE,
-                ImmutableList.of(ValueType.VAR_LONG.convertFromJava(-1L)),
+                ImmutableList.of(ValueType.VAR_LONG.convertFromJava(0L)),
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY), 1);
     }
 
