@@ -1902,7 +1902,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void checkAndSet(final CheckAndSetRequest request) throws CheckAndSetException {
         try {
-            CASResult casResult = clientPool.runWithRetry(client -> executeCheckAndSet(client, request);
+            CASResult casResult = clientPool.runWithRetry(client -> executeCheckAndSet(client, request));
             if (!casResult.isSuccess()) {
                 List<byte[]> currentValues = casResult.current_values.stream()
                         .map(Column::getValue)
