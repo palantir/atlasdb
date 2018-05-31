@@ -72,7 +72,7 @@ public class TargetedSweepMetricsTest {
         puncherStore.put(3, 2);
         puncherStore.put(4, 4);
         puncherStore.put(5, 40);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 4);
+        assertMillisSinceLastSweptConservativeEquals(4);
     }
 
     @Test
@@ -95,7 +95,7 @@ public class TargetedSweepMetricsTest {
         puncherStore.put(5, 1);
         puncherStore.put(6, 6);
         puncherStore.put(7, 16);
-        assertMillisSinceLastSweptThoroughForClockTimeEquals(clockTime, 6);
+        assertMillisSinceLastSweptThoroughEquals(6);
     }
 
     @Test
@@ -157,7 +157,7 @@ public class TargetedSweepMetricsTest {
 
         puncherStore.put(0, 5);
         puncherStore.put(2, 500);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 5);
+        assertMillisSinceLastSweptConservativeEquals(5);
     }
 
     @Test
@@ -166,11 +166,11 @@ public class TargetedSweepMetricsTest {
         waitForProgressToRecompute();
 
         puncherStore.put(0, 50);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 50);
+        assertMillisSinceLastSweptConservativeEquals(50);
 
         for (int i = 0; i < 10; i++) {
             clockTime = i;
-            assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 50);
+            assertMillisSinceLastSweptConservativeEquals(50);
         }
     }
 
@@ -180,13 +180,13 @@ public class TargetedSweepMetricsTest {
         waitForProgressToRecompute();
 
         puncherStore.put(0, 50);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 50);
+        assertMillisSinceLastSweptConservativeEquals(50);
         puncherStore.put(1, 100);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 50);
+        assertMillisSinceLastSweptConservativeEquals(50);
 
         metrics.updateProgressForShard(CONS_ZERO, 101);
         waitForProgressToRecompute();
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 100);
+        assertMillisSinceLastSweptConservativeEquals(100);
     }
 
     @Test
@@ -195,13 +195,13 @@ public class TargetedSweepMetricsTest {
         waitForProgressToRecompute();
         assertLastSweptTimestampConservativeEquals(999);
         puncherStore.put(999, 999);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 999);
+        assertMillisSinceLastSweptConservativeEquals(999);
 
         metrics.updateProgressForShard(CONS_ONE, 200);
         waitForProgressToRecompute();
         assertLastSweptTimestampConservativeEquals(200);
         puncherStore.put(200, 200);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 200);
+        assertMillisSinceLastSweptConservativeEquals(200);
     }
 
     @Test
@@ -217,7 +217,7 @@ public class TargetedSweepMetricsTest {
         assertLastSweptTimestampConservativeEquals(100);
         puncherStore.put(1, 1);
         puncherStore.put(100, 100);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 100);
+        assertMillisSinceLastSweptConservativeEquals(100);
     }
 
     @Test
@@ -233,14 +233,14 @@ public class TargetedSweepMetricsTest {
 
         assertLastSweptTimestampConservativeEquals(10);
         puncherStore.put(10, 10);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 10);
+        assertMillisSinceLastSweptConservativeEquals(10);
 
         metrics.updateProgressForShard(CONS_ONE, 40);
         waitForProgressToRecompute();
 
         assertLastSweptTimestampConservativeEquals(30);
         puncherStore.put(30, 30);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 30);
+        assertMillisSinceLastSweptConservativeEquals(30);
     }
 
 
@@ -298,8 +298,8 @@ public class TargetedSweepMetricsTest {
         assertLastSweptTimestampThoroughEquals(50);
         puncherStore.put(1, 1);
         puncherStore.put(50, 50);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 1);
-        assertMillisSinceLastSweptThoroughForClockTimeEquals(clockTime, 50);
+        assertMillisSinceLastSweptConservativeEquals(1);
+        assertMillisSinceLastSweptThoroughEquals(50);
 
         metrics.updateProgressForShard(CONS_ZERO, 10);
         metrics.updateProgressForShard(CONS_ONE, 5);
@@ -309,11 +309,11 @@ public class TargetedSweepMetricsTest {
         puncherStore.put(5, 5);
         assertLastSweptTimestampConservativeEquals(5);
         assertLastSweptTimestampThoroughEquals(5);
-        assertMillisSinceLastSweptConservativeForClockTimeEquals(clockTime, 5);
-        assertMillisSinceLastSweptThoroughForClockTimeEquals(clockTime, 5);
+        assertMillisSinceLastSweptConservativeEquals(5);
+        assertMillisSinceLastSweptThoroughEquals(5);
     }
 
-    public static void waitForProgressToRecompute() {
+    private static void waitForProgressToRecompute() {
         try {
             Thread.sleep(2);
         } catch (InterruptedException e) {
@@ -345,15 +345,15 @@ public class TargetedSweepMetricsTest {
         assertThat(getGaugeConservative(AtlasDbMetricNames.LAST_SWEPT_TS).getValue()).isEqualTo(value);
     }
 
-    private static void assertMillisSinceLastSweptConservativeForClockTimeEquals(long currentTime, long lastSwept) {
-        assertThat(getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue()).isEqualTo(currentTime - lastSwept);
+    private void assertMillisSinceLastSweptConservativeEquals(long lastSwept) {
+        assertThat(getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue()).isEqualTo(clockTime - lastSwept);
     }
 
     public static void assertMillisSinceLastSweptConservativeLessThanOneSecond() {
         assertThat(getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue()).isBetween(0L, 1000L);
     }
 
-    public static Gauge<Long> getGaugeConservative(String name) {
+    private static Gauge<Long> getGaugeConservative(String name) {
         return getGauge(AtlasDbMetricNames.TAG_CONSERVATIVE, name);
     }
 
@@ -361,15 +361,15 @@ public class TargetedSweepMetricsTest {
         assertThat(getGaugeThorough(AtlasDbMetricNames.ENQUEUED_WRITES).getValue()).isEqualTo(value);
     }
 
-    public static void assertEntriesReadThoroughEquals(long value) {
+    private static void assertEntriesReadThoroughEquals(long value) {
         assertThat(getGaugeThorough(AtlasDbMetricNames.ENTRIES_READ).getValue()).isEqualTo(value);
     }
 
-    public static void assertTombstonesPutThoroughEquals(long value) {
+    private static void assertTombstonesPutThoroughEquals(long value) {
         assertThat(getGaugeThorough(AtlasDbMetricNames.TOMBSTONES_PUT).getValue()).isEqualTo(value);
     }
 
-    public static void assertAbortedWritesDeletedThoroughEquals(long value) {
+    private static void assertAbortedWritesDeletedThoroughEquals(long value) {
         assertThat(getGaugeThorough(AtlasDbMetricNames.ABORTED_WRITES_DELETED).getValue()).isEqualTo(value);
     }
 
@@ -377,19 +377,19 @@ public class TargetedSweepMetricsTest {
         assertThat(getGaugeThorough(AtlasDbMetricNames.SWEEP_TS).getValue()).isEqualTo(value);
     }
 
-    public static void assertLastSweptTimestampThoroughEquals(long value) {
+    private static void assertLastSweptTimestampThoroughEquals(long value) {
         assertThat(getGaugeThorough(AtlasDbMetricNames.LAST_SWEPT_TS).getValue()).isEqualTo(value);
     }
 
-    public static void assertMillisSinceLastSweptThoroughForClockTimeEquals(long currentTime, long lastSwept) {
-        assertThat(getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue()).isEqualTo(currentTime - lastSwept);
+    private void assertMillisSinceLastSweptThoroughEquals(long lastSwept) {
+        assertThat(getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue()).isEqualTo(clockTime - lastSwept);
     }
 
-    public static Gauge<Long> getGaugeThorough(String name) {
+    private static Gauge<Long> getGaugeThorough(String name) {
         return getGauge(AtlasDbMetricNames.TAG_THOROUGH, name);
     }
 
-    public static Gauge<Long> getGauge(String strategy, String name) {
+    private static Gauge<Long> getGauge(String strategy, String name) {
         Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
         MetricName metricName = MetricName.builder()
                 .safeName(MetricRegistry.name(TargetedSweepMetrics.class, name))

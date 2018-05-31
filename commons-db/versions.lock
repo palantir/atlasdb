@@ -169,19 +169,19 @@
             "locked": "2.3.0"
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.14.0",
+            "locked": "3.22.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.14.0",
+            "locked": "3.22.0",
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.3",
+            "locked": "1.3.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting3:tracing"
@@ -211,7 +211,7 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.7"
+            "locked": "2.9"
         },
         "net.jcip:jcip-annotations": {
             "locked": "1.0",
@@ -431,19 +431,19 @@
             "locked": "2.3.0"
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.14.0",
+            "locked": "3.22.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.14.0",
+            "locked": "3.22.0",
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.3",
+            "locked": "1.3.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting3:tracing"
@@ -473,7 +473,7 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.7"
+            "locked": "2.9"
         },
         "net.jcip:jcip-annotations": {
             "locked": "1.0",

@@ -55,6 +55,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 columnComponent("write_index", ValueType.VAR_SIGNED_LONG);
                 value(WriteReference.class);
 
+            // we do our own cleanup
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
@@ -71,6 +72,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 columnComponent("timestamp_modulus", ValueType.VAR_LONG);
                 value(ValueType.BLOB);
 
+            // we do our own cleanup
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
@@ -84,6 +86,8 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 rowComponent("sweep_conservative", ValueType.BLOB);
             columns();
                 column("value", "v", ValueType.VAR_LONG);
+
+            // we do our own cleanup
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});

@@ -60,7 +60,7 @@ public final class PTExecutors {
      * run into a number of issues (e.g., QA-44927) where thread pool mismanagement has lead to
      * OutOfMemoryExceptions.
      */
-    private static final int DEFAULT_THREAD_POOL_TIMEOUT_MILLIS = 100;
+    private static final int DEFAULT_THREAD_POOL_TIMEOUT_MILLIS = 5000;
 
     private static final RejectedExecutionHandler defaultHandler = new AbortPolicy();
 

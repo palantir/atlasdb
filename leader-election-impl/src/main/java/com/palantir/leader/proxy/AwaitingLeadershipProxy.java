@@ -158,11 +158,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        final LeadershipToken leadershipToken = leadershipTokenRef.get();
-
-        if (leadershipToken == null) {
-            throw notCurrentLeaderException("method invoked on a non-leader");
-        }
+        final LeadershipToken leadershipToken = getLeadershipToken();
 
         if (method.getName().equals("close") && args.length == 0) {
             isClosed = true;
@@ -206,6 +202,28 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             }
             throw e.getTargetException();
         }
+    }
+
+    private LeadershipToken getLeadershipToken() {
+        LeadershipToken leadershipToken = leadershipTokenRef.get();
+
+        if (leadershipToken == null) {
+            NotCurrentLeaderException notCurrentLeaderException = notCurrentLeaderException(
+                    "method invoked on a non-leader");
+
+            if (notCurrentLeaderException.getServiceHint().isPresent()) {
+                // There's a chance that we can gain leadership while generating this exception.
+                // In this case, we should be able to get a leadership token after all
+                leadershipToken = leadershipTokenRef.get();
+                // If leadershipToken is still null, then someone's the leader, but it isn't us.
+            }
+
+            if (leadershipToken == null) {
+                throw notCurrentLeaderException;
+            }
+        }
+
+        return leadershipToken;
     }
 
     private boolean isStillCurrentToken(LeadershipToken leadershipToken) {

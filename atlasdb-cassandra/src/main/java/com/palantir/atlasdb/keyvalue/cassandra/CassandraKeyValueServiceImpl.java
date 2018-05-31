@@ -807,12 +807,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         if (results.isEmpty()) {
                             return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(), false);
                         }
-                        Map<Cell, Value> ret = Maps.newHashMap();
-                        new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
                         List<ColumnOrSuperColumn> values = Iterables.getOnlyElement(results.values());
                         if (values.isEmpty()) {
                             return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(), false);
                         }
+                        RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
+                        extractor.extractResults(ImmutableList.of(row), results, startTs);
+                        RowColumnRangeExtractor.RowColumnRangeResult decoded = extractor.getRowColumnRangeResult();
+                        Map<Cell, Value> ret = decoded.getResults().get(row);
+
                         ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
                         byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn()).getLhSide();
                         // Same idea as the getRows case to handle seeing only newer entries of a column

@@ -121,11 +121,11 @@ public final class TargetedSweepMetrics {
             manager.registerMetric(TargetedSweepMetrics.class, name, metric, tag);
         }
 
-        private void updateEnqueuedWrites(long writes) {
+        public void updateEnqueuedWrites(long writes) {
             enqueuedWrites.accumulateValue(writes);
         }
 
-        private void updateEntriesRead(long writes) {
+        public void updateEntriesRead(long writes) {
             entriesRead.accumulateValue(writes);
         }
 
