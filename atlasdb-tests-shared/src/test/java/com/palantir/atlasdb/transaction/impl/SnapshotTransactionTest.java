@@ -26,7 +26,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
@@ -128,6 +132,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     protected final int defaultGetRangesConcurrency = 2;
+    protected final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
@@ -194,12 +199,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void setUp() throws Exception {
         super.setUp();
         // Some KV stores need more nodes to be up to accomplish a delete, so we model that here as throwing
-        keyValueService = new TrackingKeyValueService(keyValueService) {
+        keyValueService = spy(new TrackingKeyValueService(keyValueService) {
             @Override
             public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
                 throw new RuntimeException("cannot delete");
             }
-        };
+        });
         keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -271,7 +276,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 timestampCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueue);
+                sweepQueue,
+                deleteExecutor);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -329,7 +335,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 timestampCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueue);
+                sweepQueue,
+                deleteExecutor);
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
         snapshot.commit();
 
@@ -797,10 +804,28 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
                 .thenReturn(PreCommitConditions.NO_OP);
+
         serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
             return null;
         });
+
+        verify(keyValueService, times(0)).delete(any(), any());
+    }
+
+    @Test
+    public void transactionDeletesAsyncOnRollback() throws InterruptedException {
+        Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
+        when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
+                .thenReturn(PreCommitConditions.NO_OP);
+
+        serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+            return null;
+        });
+
+        deleteExecutor.awaitTermination(1, TimeUnit.SECONDS);
+        verify(keyValueService, times(1)).delete(any(), any());
     }
 
     @Test
@@ -930,6 +955,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return null;
         })).isSameAs(conditionFailure);
 
+        // read is rolling back
         List<Cell> cells = serializableTxManager.runTaskReadOnly(tx ->
                 BatchingVisitableView.of(tx.getRowsColumnRange(
                         TABLE,

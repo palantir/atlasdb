@@ -123,7 +123,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 timestampValidationReadCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter);
+                sweepQueueWriter,
+                deleteExecutor);
     }
 
     @Override

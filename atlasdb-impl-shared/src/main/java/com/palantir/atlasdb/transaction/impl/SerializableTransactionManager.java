@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -333,7 +334,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 timestampCacheSize,
-                sweepQueueWriter);
+                sweepQueueWriter,
+                Executors.newSingleThreadExecutor()
+        );
     }
 
     @Override
@@ -360,7 +363,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter);
+                sweepQueueWriter,
+                deleteExecutor);
     }
 
     @VisibleForTesting

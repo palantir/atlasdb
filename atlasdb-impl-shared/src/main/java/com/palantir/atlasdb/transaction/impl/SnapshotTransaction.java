@@ -213,6 +213,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
     private final Set<TableReference> involvedTables = Sets.newConcurrentHashSet();
+    protected final ExecutorService deleteExecutor;
 
     protected volatile boolean hasReads;
 
@@ -241,7 +242,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                long lockAcquireTimeoutMs,
                                ExecutorService getRangesExecutor,
                                int defaultGetRangesConcurrency,
-                               MultiTableSweepQueueWriter sweepQueue) {
+                               MultiTableSweepQueueWriter sweepQueue,
+                               ExecutorService deleteExecutor) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -261,6 +263,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = sweepQueue;
+        this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
     }
 
@@ -277,7 +280,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         TimestampCache timestampValidationReadCache,
                         ExecutorService getRangesExecutor,
                         int defaultGetRangesConcurrency,
-                        MultiTableSweepQueueWriter sweepQueue) {
+                        MultiTableSweepQueueWriter sweepQueue,
+                        ExecutorService deleteExecutor) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -297,6 +301,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = sweepQueue;
+        this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
     }
 
@@ -310,7 +315,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   TimestampCache timestampValidationReadCache,
                                   long lockAcquireTimeoutMs,
                                   ExecutorService getRangesExecutor,
-                                  int defaultGetRangesConcurrency) {
+                                  int defaultGetRangesConcurrency,
+                                  ExecutorService deleteExecutor) {
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
@@ -330,6 +336,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = MultiTableSweepQueueWriter.NO_OP;
+        this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
     }
 
@@ -1696,6 +1703,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
+        // TODO deleteExecutor.submit(deletions)
         log.debug("For table: {} we are *NOT* deleting values of an uncommitted transaction: {}."
                         + "These values will eventually be cleaned up by sweep.",
                 LoggingArgs.tableRef(tableRef),
