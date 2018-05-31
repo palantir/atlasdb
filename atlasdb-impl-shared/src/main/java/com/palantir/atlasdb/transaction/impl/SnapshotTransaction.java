@@ -1885,14 +1885,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Timer.Context timer = getTimer("waitForCommitTsMillis").time();
             waitForCommitToComplete(startTimestamps);
             long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
-            perfLogger.debug("Waited {} ms to get commit timestamps for table {}.",
-                    SafeArg.of("commitTsMillis", waitForCommitTsMillis),
-                    LoggingArgs.tableRef(tableRef));
+
+            if (tableRef != null) {
+                perfLogger.debug("Waited {} ms to get commit timestamps for table {}.",
+                        SafeArg.of("commitTsMillis", waitForCommitTsMillis),
+                        LoggingArgs.tableRef(tableRef));
+            } else {
+                perfLogger.debug("Waited {} ms to get commit timestamps",
+                        SafeArg.of("commitTsMillis", waitForCommitTsMillis));
+            }
         }
 
-        log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
-                SafeArg.of("numTimestamps", gets.size()),
-                LoggingArgs.tableRef(tableRef));
+        if (tableRef != null) {
+            log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
+                    SafeArg.of("numTimestamps", gets.size()),
+                    LoggingArgs.tableRef(tableRef));
+        } else {
+            log.trace("Getting commit timestamps for {} start timestamps",
+                    SafeArg.of("numTimestamps", gets.size()));
+        }
+
         Map<Long, Long> rawResults = loadCommitTimestamps(gets);
 
         for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
