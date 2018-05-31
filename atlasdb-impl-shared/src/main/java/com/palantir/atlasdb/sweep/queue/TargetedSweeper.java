@@ -160,7 +160,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         }
 
         private void runOneIteration() {
-            ShardAndStrategy shardStrategy = ShardAndStrategy.of(getNextShard(), sweepStrategy);
+            ShardAndStrategy shardStrategy = ShardAndStrategy.of(getShardAndIncrement(), sweepStrategy);
             try {
                 sweepNextBatch(shardStrategy);
             } catch (Throwable th) {
@@ -169,7 +169,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
             }
         }
         
-        private int getNextShard() {
+        private int getShardAndIncrement() {
             return queue.modShards(counter.getAndIncrement());
         }
 
