@@ -20,7 +20,7 @@ import java.util.Collection;
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.exception.AtlasDbDependencyException;
 
-public class KeyAlreadyExistsException extends AtlasDbDependencyException {
+public class KeyAlreadyExistsException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     private final ImmutableList<Cell> existingKeys;

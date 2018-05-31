@@ -1882,6 +1882,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             failure.ifPresent(exception -> {
                 throw exception;
             });
+        } catch (KeyAlreadyExistsException e) {
+            throw e;
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
