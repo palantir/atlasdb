@@ -87,6 +87,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 preprocessedConfig,
                 cassandraRuntimeConfig,
                 leaderConfig,
+                freshTimestampSource::getAsLong,
                 initializeAsync,
                 qosClient);
     }
