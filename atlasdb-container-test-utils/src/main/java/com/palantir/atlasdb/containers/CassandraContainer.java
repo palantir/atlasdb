@@ -78,7 +78,8 @@ public class CassandraContainer extends Container {
     public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> CassandraKeyValueServiceImpl.create(
                 KVS_CONFIG,
-                LEADER_CONFIG)
+                LEADER_CONFIG,
+                () -> 0L)
                 .isInitialized());
     }
 }

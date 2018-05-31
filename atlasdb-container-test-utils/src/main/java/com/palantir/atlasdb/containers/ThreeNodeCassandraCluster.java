@@ -103,7 +103,8 @@ public class ThreeNodeCassandraCluster extends Container {
     private static boolean canCreateCassandraKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
                 KVS_CONFIG,
-                LEADER_CONFIG)
+                LEADER_CONFIG,
+                () -> 0L)
                 .isInitialized();
     }
 }
