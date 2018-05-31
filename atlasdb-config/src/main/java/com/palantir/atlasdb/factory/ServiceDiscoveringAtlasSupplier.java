@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
@@ -103,7 +104,7 @@ public class ServiceDiscoveringAtlasSupplier {
         // TODO (jkong): There is probably a cleaner way to handle the default value here, though something that
         //               always throws is exactly what we want, which is what FTSA does.
         this(config, runtimeConfig, leaderConfig, namespace, timestampTable, initializeAsync, qosClient,
-                new FreshTimestampSupplierAdapter());
+                FreshTimestampSupplierAdapter.NO_TIMESTAMP_SERVICE);
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -114,7 +115,7 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
             QosClient qosClient,
-            FreshTimestampSupplierAdapter timestampSupplierAdapter) {
+            LongSupplier timestampSupplier) {
         this.config = config;
         this.leaderConfig = leaderConfig;
 
@@ -133,7 +134,7 @@ public class ServiceDiscoveringAtlasSupplier {
                         namespace,
                         initializeAsync,
                         qosClient,
-                        timestampSupplierAdapter));
+                        timestampSupplier));
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
