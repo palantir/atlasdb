@@ -22,6 +22,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -33,9 +36,11 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements MultiTableSweepQueueWriter {
+    private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
 
@@ -149,14 +154,22 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
                 executorService = PTExecutors
                         .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", true));
                 for (int i = 0; i < numThreads; i++) {
-                    executorService.scheduleWithFixedDelay(
-                            () -> sweepNextBatch(ShardAndStrategy.of(getShardAndIncrement(), sweepStrategy)),
-                            1, 5, TimeUnit.SECONDS);
+                    executorService.scheduleWithFixedDelay(this::runOneIteration, 1, 5, TimeUnit.SECONDS);
                 }
             }
         }
 
-        private int getShardAndIncrement() {
+        private void runOneIteration() {
+            ShardAndStrategy shardStrategy = ShardAndStrategy.of(getNextShard(), sweepStrategy);
+            try {
+                sweepNextBatch(shardStrategy);
+            } catch (Throwable th) {
+                log.error("Targeted sweep for {} failed and will be retried later.",
+                        SafeArg.of("shardStrategy", shardStrategy.toText()), th);
+            }
+        }
+        
+        private int getNextShard() {
             return queue.modShards(counter.getAndIncrement());
         }
 
