@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Dropwizard transitive dependencies have been removed from the ``atlasdb-config`` subproject.
+           Configuration deserialization no longer utilizes Dropwizard's `DiscoverableSubtypeResolver <https://github.com/dropwizard/dropwizard/blob/master/dropwizard-jackson/src/main/java/io/dropwizard/jackson/DiscoverableSubtypeResolver.java>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3218>`__)
+
     *    - |devbreak| |new|
          - KVS method ``deleteAllTimestamps`` now also takes a boolean argument specifying if garbage deletion sentinels should also be deleted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3212>`__)
