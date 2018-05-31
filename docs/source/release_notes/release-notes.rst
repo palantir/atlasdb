@@ -67,8 +67,8 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3199>`__)
 
     *    - |fixed|
-         - Fixed an issue occurring after a failure to putUnlessExists a commit timestamp that was causing an NPE leading to a confusing error message.
-           Previously, the method determining whether the transaction was aborted or whether in fact it had committed successfully would hit a code path that would always result in an NPE.
+         - Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
+           Previously, the method determining whether the transaction had committed successfully or been aborted would hit a code path that would always result in an NPE.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3205>`__)
 
 =======
