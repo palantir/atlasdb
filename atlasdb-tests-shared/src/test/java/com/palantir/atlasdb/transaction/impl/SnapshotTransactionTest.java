@@ -1018,8 +1018,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatThrownBy(() -> snapshot.commit()).isInstanceOf(TransactionLockTimeoutException.class);
     }
 
-
-
     private void put(Transaction txn, TableReference table, WriteInfo write) {
         if (write.writeRef().isTombstone()) {
             txn.delete(table, ImmutableSet.of(write.cell()));
