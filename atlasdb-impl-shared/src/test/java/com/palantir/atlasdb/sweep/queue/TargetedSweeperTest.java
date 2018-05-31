@@ -42,6 +42,8 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
+import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -59,6 +61,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private ShardProgress progress;
     private SweepableTimestamps sweepableTimestamps;
     private SweepableCells sweepableCells;
+    private PuncherStore puncherStore;
 
     @Before
     public void setup() {
@@ -68,6 +71,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
         sweepableCells = new SweepableCells(spiedKvs, partitioner, null);
+        puncherStore = KeyValueServicePuncherStore.create(spiedKvs, false);
     }
 
     @Test
@@ -122,8 +126,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(1);
-        TargetedSweepMetricsTest.assertLastSweptConservativeEquals(maxTsForFinePartition(0));
         TargetedSweepMetricsTest.assertSweepTimestampConservativeEquals(getSweepTsCons());
+        TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(0));
+
+        punchCurrentTimeAtTimestamp(LOW_TS);
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeLessThanOneSecond();
     }
 
     @Test
@@ -257,7 +264,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(), any(), eq(false));
 
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(1);
-        TargetedSweepMetricsTest.assertLastSweptConservativeEquals(maxTsForFinePartition(0));
+        TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(0));
+
+        punchCurrentTimeAtTimestamp(LOW_TS + 8);
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeLessThanOneSecond();
     }
 
     @Test
@@ -287,7 +297,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, tsFineFour + 1);
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(3);
         TargetedSweepMetricsTest.assertEntriesReadConservativeEquals(4);
-        TargetedSweepMetricsTest.assertLastSweptConservativeEquals(maxTsForFinePartition(3));
+        TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(3));
+
+        punchCurrentTimeAtTimestamp(tsFineFour + 1L);
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeLessThanOneSecond();
     }
 
     @Test
@@ -426,7 +439,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONS, sweepTimestamp - 5 + 1, sweepTimestamp - 5);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, sweepTimestamp + 5);
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(1);
-        TargetedSweepMetricsTest.assertLastSweptConservativeEquals(sweepTimestamp - 1);
+        TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(sweepTimestamp - 1);
     }
 
     @Test
@@ -673,5 +686,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(sweepableTimestamps
                 .nextSweepableTimestampPartition(ShardAndStrategy.conservative(CONS_SHARD), -1L, getSweepTsCons()))
                 .isEmpty();
+    }
+
+    private void punchCurrentTimeAtTimestamp(long timestamp) {
+        puncherStore.put(timestamp, System.currentTimeMillis());
     }
 }

@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |new| |metrics|
+         - Added a new tagged metric for targeted sweep showing approximate time in milliseconds since the last swept timestamp has been issued.
+           This metric can be used to estimate how far targeted sweep is lagging behind the current moment in time.
+           The metrics, tagged with the sweep strategy used, and with the prefix ``com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.`` is ``millisSinceLastSweptTs``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3206>`__)
+
     *    - |devbreak| |new|
          - KVS method ``deleteAllTimestamps`` now also takes a boolean argument specifying if garbage deletion sentinels should also be deleted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3212>`__)
