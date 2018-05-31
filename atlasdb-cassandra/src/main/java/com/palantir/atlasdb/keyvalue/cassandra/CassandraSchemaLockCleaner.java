@@ -44,7 +44,8 @@ public final class CassandraSchemaLockCleaner {
             CassandraClientPool clientPool,
             SchemaMutationLockTables lockTables,
             TracingQueryRunner queryRunner) {
-        CassandraTableDropper cassandraTableDropper = getCassandraTableDropper(config, clientPool, queryRunner);
+        CassandraTableDropper cassandraTableDropper =
+                getCassandraTableDropper(config, clientPool, queryRunner);
 
         return new CassandraSchemaLockCleaner(config, clientPool, lockTables, queryRunner,
                 cassandraTableDropper);
@@ -78,7 +79,7 @@ public final class CassandraSchemaLockCleaner {
                 taskRunner,
                 wrappingQueryRunner,
                 ConsistencyLevel.QUORUM,
-                () -> System.currentTimeMillis()); // CassandraTableDropper also uses wall clock time
+                System::currentTimeMillis); // CassandraTableDropper also uses wall clock time
 
         return new CassandraTableDropper(config,
                 clientPool,

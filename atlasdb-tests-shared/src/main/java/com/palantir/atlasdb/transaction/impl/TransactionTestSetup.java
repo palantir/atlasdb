@@ -187,7 +187,7 @@ public abstract class TransactionTestSetup {
             String value, long timestamp) {
         Cell cell = Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
         byte[] valueBytes = PtBytes.toBytes(value);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(cell, valueBytes), timestamp);
+        keyValueService.multiPut(ImmutableMap.of(TEST_TABLE, ImmutableMap.of(cell, valueBytes)), timestamp);
     }
 
     protected Pair<String, Long> getDirect(String rowName, String columnName, long timestamp) {

@@ -1157,7 +1157,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        new CellDeleter(clientPool, wrappingQueryRunner, deleteConsistency).delete(tableRef, keys);
+        new CellDeleter(clientPool, wrappingQueryRunner, deleteConsistency, freshTimestampSupplier)
+                .delete(tableRef, keys);
     }
 
     @VisibleForTesting
