@@ -64,16 +64,14 @@ public final class AtlasDbFeignTargetFactory {
 
     public static <T> T createProxy(
             Optional<SSLSocketFactory> sslSocketFactory,
-            Supplier<Optional<String>> authTokenSupplier,
             String uri,
             Class<T> type,
             String userAgent) {
-        return createProxy(sslSocketFactory, authTokenSupplier, uri, false, type, userAgent);
+        return createProxy(sslSocketFactory, uri, false, type, userAgent);
     }
 
     public static <T> T createProxy(
             Optional<SSLSocketFactory> sslSocketFactory,
-            Supplier<Optional<String>> authTokenSupplier,
             String uri,
             boolean refreshingHttpClient,
             Class<T> type,
@@ -85,14 +83,13 @@ public final class AtlasDbFeignTargetFactory {
                 .errorDecoder(errorDecoder)
                 .retryer(new InterruptHonoringRetryer())
                 .client(refreshingHttpClient
-                        ? FeignOkHttpClients.newRefreshingOkHttpClient(sslSocketFactory, Optional.empty(), userAgent, authTokenSupplier)
-                        : FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent, authTokenSupplier))
+                        ? FeignOkHttpClients.newRefreshingOkHttpClient(sslSocketFactory, Optional.empty(), userAgent)
+                        : FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
                 .target(type, uri);
     }
 
     public static <T> T createRsProxy(
             Optional<SSLSocketFactory> sslSocketFactory,
-            Supplier<Optional<String>> authTokenSupplier,
             String uri,
             Class<T> type,
             String userAgent) {
@@ -101,20 +98,18 @@ public final class AtlasDbFeignTargetFactory {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(new RsErrorDecoder())
-                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent, authTokenSupplier))
+                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
                 .target(type, uri);
     }
 
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
-            Supplier<Optional<String>> authTokenSupplier,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type,
             String userAgent) {
         return createProxyWithFailover(
                 sslSocketFactory,
-                authTokenSupplier,
                 proxySelector,
                 endpointUris,
                 DEFAULT_FEIGN_OPTIONS,
@@ -125,7 +120,6 @@ public final class AtlasDbFeignTargetFactory {
 
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
-            Supplier<Optional<String>> authTokenSupplier,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             int feignConnectTimeout,
@@ -135,7 +129,6 @@ public final class AtlasDbFeignTargetFactory {
             String userAgent) {
         return createProxyWithFailover(
                 sslSocketFactory,
-                authTokenSupplier,
                 proxySelector,
                 endpointUris,
                 new Request.Options(feignConnectTimeout, feignReadTimeout),
@@ -146,7 +139,6 @@ public final class AtlasDbFeignTargetFactory {
 
     private static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
-            Supplier<Optional<String>> authTokenSupplier,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Request.Options feignOptions,
@@ -155,7 +147,7 @@ public final class AtlasDbFeignTargetFactory {
             String userAgent) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
         Client client = failoverFeignTarget.wrapClient(
-                FeignOkHttpClients.newOkHttpClient(sslSocketFactory, proxySelector, userAgent, authTokenSupplier));
+                FeignOkHttpClients.newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
@@ -169,14 +161,12 @@ public final class AtlasDbFeignTargetFactory {
 
     public static <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Supplier<Optional<String>> authTokenSupplier,
             Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
         return createLiveReloadingProxyWithFailover(
                 serverListConfigSupplier,
-                authTokenSupplier,
                 sslSocketFactoryCreator,
                 proxySelectorCreator,
                 DEFAULT_FEIGN_OPTIONS.connectTimeoutMillis(),
@@ -188,7 +178,6 @@ public final class AtlasDbFeignTargetFactory {
 
     public static <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Supplier<Optional<String>> authTokenSupplier,
             Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             int feignConnectTimeout,
@@ -206,7 +195,6 @@ public final class AtlasDbFeignTargetFactory {
                             if (serverListConfig.hasAtLeastOneServer()) {
                                 return createProxyWithFailover(
                                         serverListConfig.sslConfiguration().map(sslSocketFactoryCreator),
-                                        authTokenSupplier,
                                         serverListConfig.proxyConfiguration().map(proxySelectorCreator),
                                         serverListConfig.servers(),
                                         feignConnectTimeout,

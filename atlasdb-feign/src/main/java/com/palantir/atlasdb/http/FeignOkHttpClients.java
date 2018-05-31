@@ -41,8 +41,6 @@ import okhttp3.TlsVersion;
 public final class FeignOkHttpClients {
     @VisibleForTesting
     static final String USER_AGENT_HEADER = HttpHeaders.USER_AGENT;
-    @VisibleForTesting
-    static final String AUTHORIZATION_HEADER = HttpHeaders.AUTHORIZATION;
 
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
@@ -104,9 +102,8 @@ public final class FeignOkHttpClients {
     public static Client newOkHttpClient(
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
-            String userAgent,
-            Supplier<Optional<String>> authTokenSupplier) {
-        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, proxySelector, userAgent, authTokenSupplier));
+            String userAgent) {
+        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, proxySelector, userAgent));
     }
 
     /**
@@ -116,11 +113,10 @@ public final class FeignOkHttpClients {
     public static Client newRefreshingOkHttpClient(
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
-            String userAgent,
-            Supplier<Optional<String>> authTokenSupplier) {
+            String userAgent) {
 
         Supplier<Client> clientSupplier = () -> CounterBackedRefreshingClient.createRefreshingClient(
-                () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent, authTokenSupplier));
+                () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
 
         return ExceptionCountingRefreshingClient.createRefreshingClient(clientSupplier);
     }
@@ -129,8 +125,7 @@ public final class FeignOkHttpClients {
     static okhttp3.OkHttpClient newRawOkHttpClient(
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
-            String userAgent,
-            Supplier<Optional<String>> authTokenSupplier) {
+            String userAgent) {
         // Don't allow retrying on connection failures - see ticket #2194
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
                 .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
@@ -140,7 +135,6 @@ public final class FeignOkHttpClients {
         sslSocketFactory.ifPresent(builder::sslSocketFactory);
 
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
-        builder.interceptors().add(new AuthTokenAddingInterceptor(authTokenSupplier));
 
         globalClientSettings.accept(builder);
         return builder.build();
@@ -159,28 +153,6 @@ public final class FeignOkHttpClients {
             okhttp3.Request requestWithUserAgent = chain.request()
                     .newBuilder()
                     .addHeader(USER_AGENT_HEADER, userAgent)
-                    .build();
-            return chain.proceed(requestWithUserAgent);
-        }
-    }
-
-    private static class AuthTokenAddingInterceptor implements Interceptor {
-        private final Supplier<Optional<String>> authTokenSupplier;
-
-        private AuthTokenAddingInterceptor(Supplier<Optional<String>> authTokenSupplier) {
-            this.authTokenSupplier = authTokenSupplier;
-        }
-
-        @Override
-        public Response intercept(Chain chain) throws IOException {
-            Optional<String> authToken = authTokenSupplier.get();
-            if (!authToken.isPresent()) {
-                return chain.proceed(chain.request());
-            }
-
-            okhttp3.Request requestWithUserAgent = chain.request()
-                    .newBuilder()
-                    .addHeader(AUTHORIZATION_HEADER, authToken.get())
                     .build();
             return chain.proceed(requestWithUserAgent);
         }

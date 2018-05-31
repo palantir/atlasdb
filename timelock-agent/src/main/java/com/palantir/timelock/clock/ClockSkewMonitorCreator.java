@@ -34,28 +34,24 @@ public class ClockSkewMonitorCreator {
     private final Set<String> remoteServers;
     private final Optional<SSLSocketFactory> optionalSecurity;
     private final Consumer<Object> registrar;
-    private final Supplier<Optional<String>> authTokenSupplier;
 
     @VisibleForTesting
     ClockSkewMonitorCreator(Set<String> remoteServers,
             Optional<SSLSocketFactory> optionalSecurity,
-            Consumer<Object> registrar,
-            Supplier<Optional<String>> authTokenSupplier) {
+            Consumer<Object> registrar) {
         this.remoteServers = remoteServers;
         this.optionalSecurity = optionalSecurity;
         this.registrar = registrar;
-        this.authTokenSupplier = authTokenSupplier;
     }
 
     public static ClockSkewMonitorCreator create(
             TimeLockInstallConfiguration install,
-            Consumer<Object> registrar,
-            Supplier<Optional<String>> authTokenSupplier) {
+            Consumer<Object> registrar) {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
         Optional<SSLSocketFactory> optionalSecurity =
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory);
 
-        return new ClockSkewMonitorCreator(remoteServers, optionalSecurity, registrar, authTokenSupplier);
+        return new ClockSkewMonitorCreator(remoteServers, optionalSecurity, registrar);
     }
 
     public void registerClockServices() {
@@ -64,6 +60,6 @@ public class ClockSkewMonitorCreator {
     }
 
     private void runClockSkewMonitorInBackground() {
-        ClockSkewMonitor.create(remoteServers, optionalSecurity, authTokenSupplier).runInBackground();
+        ClockSkewMonitor.create(remoteServers, optionalSecurity).runInBackground();
     }
 }

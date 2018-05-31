@@ -68,27 +68,24 @@ public final class Leaders {
     public static LeaderElectionService create(
             Consumer<Object> env,
             LeaderConfig config,
-            Supplier<LeaderRuntimeConfig> runtime,
-            Supplier<Optional<String>> authTokenSupplier) {
-        return create(env, config, runtime, UserAgents.DEFAULT_USER_AGENT, authTokenSupplier);
+            Supplier<LeaderRuntimeConfig> runtime) {
+        return create(env, config, runtime, UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static LeaderElectionService create(
             Consumer<Object> env,
             LeaderConfig config,
             Supplier<LeaderRuntimeConfig> runtime,
-            String userAgent,
-            Supplier<Optional<String>> authTokenSupplier) {
-        return createAndRegisterLocalServices(env, config, runtime, userAgent, authTokenSupplier).leaderElectionService();
+            String userAgent) {
+        return createAndRegisterLocalServices(env, config, runtime, userAgent).leaderElectionService();
     }
 
     public static LocalPaxosServices createAndRegisterLocalServices(
             Consumer<Object> env,
             LeaderConfig config,
             Supplier<LeaderRuntimeConfig> runtime,
-            String userAgent,
-            Supplier<Optional<String>> authTokenSupplier) {
-        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(config, runtime, userAgent, authTokenSupplier);
+            String userAgent) {
+        LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(config, runtime, userAgent);
 
         env.accept(localPaxosServices.ourAcceptor());
         env.accept(localPaxosServices.ourLearner());
@@ -100,8 +97,7 @@ public final class Leaders {
     public static LocalPaxosServices createInstrumentedLocalServices(
             LeaderConfig config,
             Supplier<LeaderRuntimeConfig> runtime,
-            String userAgent,
-            Supplier<Optional<String>> authTokenSupplier) {
+            String userAgent) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
@@ -110,15 +106,14 @@ public final class Leaders {
                 .remoteAcceptorUris(remoteLeaderUris)
                 .remoteLearnerUris(remoteLeaderUris)
                 .build();
-        return createInstrumentedLocalServices(config, runtime, remotePaxosServerSpec, userAgent, authTokenSupplier);
+        return createInstrumentedLocalServices(config, runtime, remotePaxosServerSpec, userAgent);
     }
 
     public static LocalPaxosServices createInstrumentedLocalServices(
             LeaderConfig config,
             Supplier<LeaderRuntimeConfig> runtime,
             RemotePaxosServerSpec remotePaxosServerSpec,
-            String userAgent,
-            Supplier<Optional<String>> authTokenSupplier) {
+            String userAgent) {
         UUID leaderUuid = UUID.randomUUID();
 
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
@@ -138,19 +133,17 @@ public final class Leaders {
                 ourLearner,
                 remotePaxosServerSpec.remoteLearnerUris(),
                 sslSocketFactory,
-                authTokenSupplier,
                 PaxosLearner.class,
                 userAgent);
         List<PaxosAcceptor> acceptors = createProxyAndLocalList(
                 ourAcceptor,
                 remotePaxosServerSpec.remoteAcceptorUris(),
                 sslSocketFactory,
-                authTokenSupplier,
                 PaxosAcceptor.class,
                 userAgent);
 
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(
-                remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, authTokenSupplier, userAgent);
+                remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory, userAgent);
 
         InstrumentedExecutorService proposerExecutorService = new InstrumentedExecutorService(
                 PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -204,13 +197,12 @@ public final class Leaders {
             T localObject,
             Set<String> remoteUris,
             Optional<SSLSocketFactory> sslSocketFactory,
-            Supplier<Optional<String>> authTokenSupplier,
             Class<T> clazz) {
         return createProxyAndLocalList(
                 localObject,
                 remoteUris,
                 sslSocketFactory,
-                authTokenSupplier,clazz,
+                clazz,
                 UserAgents.DEFAULT_USER_AGENT);
     }
 
@@ -218,13 +210,11 @@ public final class Leaders {
             T localObject,
             Set<String> remoteUris,
             Optional<SSLSocketFactory> sslSocketFactory,
-            Supplier<Optional<String>> authTokenSupplier,
             Class<T> clazz,
             String userAgent) {
         return ImmutableList.copyOf(Iterables.concat(
                 AtlasDbHttpClients.createProxies(
                         sslSocketFactory,
-                        authTokenSupplier,
                         remoteUris,
                         true,
                         clazz,
@@ -235,7 +225,6 @@ public final class Leaders {
     public static Map<PingableLeader, HostAndPort> generatePingables(
             Collection<String> remoteEndpoints,
             Optional<SSLSocketFactory> sslSocketFactory,
-            Supplier<Optional<String>> authTokenSupplier,
             String userAgent) {
         /* The interface used as a key here may be a proxy, which may have strange .equals() behavior.
          * This is circumvented by using an IdentityHashMap which will just use native == for equality.
@@ -244,7 +233,6 @@ public final class Leaders {
         for (String endpoint : remoteEndpoints) {
             PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(
                     sslSocketFactory,
-                    authTokenSupplier,
                     endpoint,
                     true,
                     PingableLeader.class,

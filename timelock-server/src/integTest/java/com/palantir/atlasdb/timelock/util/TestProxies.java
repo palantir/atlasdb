@@ -61,7 +61,6 @@ public class TestProxies {
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
                 Optional.of(SSL_SOCKET_FACTORY),
-                Optional::empty,
                 uri,
                 serviceInterface,
                 MultiNodePaxosTimeLockServerIntegrationTest.class.toString()));

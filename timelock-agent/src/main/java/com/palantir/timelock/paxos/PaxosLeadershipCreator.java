@@ -44,7 +44,6 @@ public class PaxosLeadershipCreator {
     private final TimeLockInstallConfiguration install;
     private final Supplier<PaxosRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
-    private final Supplier<Optional<String>> authTokenSupplier;
 
     private PingableLeader localPingableLeader;
     private LeaderElectionService leaderElectionService;
@@ -56,7 +55,6 @@ public class PaxosLeadershipCreator {
         this.install = install;
         this.runtime = JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime);
         this.registrar = registrar;
-        this.authTokenSupplier = () -> runtime.get().internalAuthSecret();
     }
 
     public void registerLeaderElectionService() {
@@ -74,8 +72,7 @@ public class PaxosLeadershipCreator {
                         .remoteAcceptorUris(paxosSubresourceUris)
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
-                "leader-election-service",
-                authTokenSupplier);
+                "leader-election-service");
         localPingableLeader = localPaxosServices.pingableLeader();
         leaderElectionService = localPaxosServices.leaderElectionService();
 

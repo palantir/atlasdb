@@ -65,7 +65,6 @@ public class BenchmarkRunnerBase {
     protected static final BenchmarksService createClient() {
         return AtlasDbFeignTargetFactory.createProxyWithFailover(
                 Optional.empty(),
-                Optional::empty,
                 Optional.empty(),
                 ImmutableSet.of(BENCHMARK_SERVER),
                 10_000,

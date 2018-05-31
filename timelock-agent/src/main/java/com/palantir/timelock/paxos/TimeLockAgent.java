@@ -118,7 +118,7 @@ public class TimeLockAgent {
         registrar.accept(resource);
         Supplier<Optional<String>> authTokenSupplier = () -> runtime.get().internalAuthSecret();
 
-        ClockSkewMonitorCreator.create(install, registrar, authTokenSupplier).registerClockServices();
+        ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
     }
 
     @SuppressWarnings("unused") // used by external health checks

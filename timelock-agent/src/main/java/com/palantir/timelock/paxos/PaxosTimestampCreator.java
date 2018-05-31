@@ -78,7 +78,6 @@ public class PaxosTimestampCreator implements TimestampCreator {
                 paxosResource.getPaxosAcceptor(client),
                 namespacedUris,
                 optionalSecurity,
-                authTokenSupplier,
                 PaxosAcceptor.class,
                 "timestamp-bound-store." + client);
 
@@ -87,7 +86,6 @@ public class PaxosTimestampCreator implements TimestampCreator {
                 ourLearner,
                 namespacedUris,
                 optionalSecurity,
-                authTokenSupplier,
                 PaxosLearner.class,
                 "timestamp-bound-store." + client);
 

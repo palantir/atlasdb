@@ -39,7 +39,6 @@ public final class TimelockUtils {
     private static <T> T createFromUris(List<String> endpointUris, Class<T> type) {
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
                 Optional.empty(),
-                Optional::empty,
                 Optional.empty(),
                 endpointUris,
                 type);

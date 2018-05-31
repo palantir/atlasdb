@@ -74,7 +74,6 @@ public class LockRemotingTest {
 
         LockService lock = AtlasDbFeignTargetFactory.createProxy(
                 Optional.empty(),
-                Optional::empty,
                 lockService.baseUri().toString(),
                 LockService.class,
                 UserAgents.DEFAULT_USER_AGENT);
