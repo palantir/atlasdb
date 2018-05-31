@@ -105,6 +105,10 @@ develop
          - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
 
+    *    - |fixed|
+         - Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
+           Previously, the method determining whether the transaction had committed successfully or been aborted would hit a code path that would always result in an NPE.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3205>`__)
 
 =======
 v0.86.0
