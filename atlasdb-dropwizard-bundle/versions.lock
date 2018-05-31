@@ -3,6 +3,7 @@
         "ch.qos.logback:logback-classic": {
             "locked": "1.1.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-cli",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-logging",
                 "io.dropwizard:dropwizard-servlets"
@@ -1540,6 +1541,7 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "transitive": [
+                "ch.qos.logback:logback-classic",
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -1586,6 +1588,7 @@
         "ch.qos.logback:logback-classic": {
             "locked": "1.1.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-cli",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-logging",
                 "io.dropwizard:dropwizard-servlets"
@@ -3123,6 +3126,7 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "transitive": [
+                "ch.qos.logback:logback-classic",
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",

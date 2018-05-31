@@ -1,5 +1,14 @@
 {
     "compileClasspath": {
+        "ch.qos.logback:logback-classic": {
+            "locked": "1.1.7"
+        },
+        "ch.qos.logback:logback-core": {
+            "locked": "1.1.7",
+            "transitive": [
+                "ch.qos.logback:logback-classic"
+            ]
+        },
         "com.carrotsearch:hppc": {
             "locked": "0.5.4",
             "transitive": [
@@ -1057,6 +1066,7 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "transitive": [
+                "ch.qos.logback:logback-classic",
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -1093,6 +1103,15 @@
         }
     },
     "runtime": {
+        "ch.qos.logback:logback-classic": {
+            "locked": "1.1.7"
+        },
+        "ch.qos.logback:logback-core": {
+            "locked": "1.1.7",
+            "transitive": [
+                "ch.qos.logback:logback-classic"
+            ]
+        },
         "com.carrotsearch:hppc": {
             "locked": "0.5.4",
             "transitive": [
@@ -2146,6 +2165,7 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "transitive": [
+                "ch.qos.logback:logback-classic",
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
