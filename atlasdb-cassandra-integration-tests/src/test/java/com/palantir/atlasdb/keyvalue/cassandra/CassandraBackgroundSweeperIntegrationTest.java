@@ -46,7 +46,7 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
                 ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
                     .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
-        return CassandraKeyValueServiceImpl.create(
+        return CassandraTestTools.createKeyValueServiceWithInMemoryTimestampService(
                 config,
                 CassandraContainer.LEADER_CONFIG);
     }

@@ -47,11 +47,14 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampService;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -63,6 +66,7 @@ public class CassandraSchemaLockTest {
             .with(new ThreeNodeCassandraCluster());
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
+    private final TimestampService timestampService = new InMemoryTimestampService();
 
     @Test
     public void shouldCreateTablesConsistentlyWithMultipleCassandraNodes() throws Exception {
@@ -74,7 +78,7 @@ public class CassandraSchemaLockTest {
             for (int i = 0; i < THREAD_COUNT; i++) {
                 async(() -> {
                     CassandraKeyValueService keyValueService =
-                            CassandraKeyValueServiceImpl.create(config, Optional.empty());
+                            createKeyValueService(config, Optional.empty());
                     barrier.await();
                     keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
                     return null;
@@ -86,7 +90,7 @@ public class CassandraSchemaLockTest {
         }
 
         CassandraKeyValueService kvs =
-                CassandraKeyValueServiceImpl.create(config, Optional.empty());
+                createKeyValueService(config, Optional.empty());
         assertThat(kvs.getAllTableNames(), hasItem(table1));
 
         assertThat(new File(CONTAINERS.getLogDirectory()),
@@ -134,5 +138,14 @@ public class CassandraSchemaLockTest {
                 description.appendText("a file with no column family ID mismatch errors");
             }
         };
+    }
+
+    private CassandraKeyValueService createKeyValueService(
+            CassandraKeyValueServiceConfig kvsConfig,
+            Optional<LeaderConfig> leaderConfig) {
+        return CassandraKeyValueServiceImpl.create(
+                kvsConfig,
+                leaderConfig,
+                timestampService::getFreshTimestamp);
     }
 }

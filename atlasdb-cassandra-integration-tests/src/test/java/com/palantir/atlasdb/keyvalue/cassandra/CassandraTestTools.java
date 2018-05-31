@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -32,8 +33,14 @@ import java.util.stream.Stream;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
 import org.joda.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.common.base.Throwables;
+import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampService;
 
 /**
  * Utilities for ETE tests
@@ -97,5 +104,38 @@ public final class CassandraTestTools {
             }
         });
         executorService.shutdown();
+    }
+
+    public static CassandraKeyValueService createKeyValueServiceWithInMemoryTimestampService(
+            CassandraKeyValueServiceConfig kvsConfig,
+            Optional<LeaderConfig> leaderConfig) {
+        return createKeyValueServiceWithInMemoryTimestampService(
+                kvsConfig,
+                leaderConfig,
+                LoggerFactory.getLogger(CassandraKeyValueService.class));
+    }
+
+    public static CassandraKeyValueService createKeyValueServiceWithInMemoryTimestampService(
+            CassandraKeyValueServiceConfig kvsConfig,
+            Optional<LeaderConfig> leaderConfig,
+            Logger logger) {
+        TimestampService timestampService = new InMemoryTimestampService();
+        return CassandraKeyValueServiceImpl.create(
+                kvsConfig,
+                leaderConfig,
+                timestampService::getFreshTimestamp,
+                logger);
+    }
+
+    public static CassandraKeyValueService createKeyValueServiceWithInMemoryTimestampService(
+            CassandraKeyValueServiceConfig kvsConfig,
+            Optional<LeaderConfig> leaderConfig,
+            CassandraClientPool pool) {
+        TimestampService timestampService = new InMemoryTimestampService();
+        return CassandraKeyValueServiceImpl.create(
+                kvsConfig,
+                leaderConfig,
+                timestampService::getFreshTimestamp,
+                pool);
     }
 }

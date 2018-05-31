@@ -37,6 +37,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.connection.DockerPort;
+import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampService;
 
 public abstract class NodesDownTestSetup {
 
@@ -97,7 +99,11 @@ public abstract class NodesDownTestSetup {
     }
 
     protected static CassandraKeyValueService createCassandraKvs() {
-        return CassandraKeyValueServiceImpl.create(CONFIG, ThreeNodeCassandraCluster.LEADER_CONFIG);
+        TimestampService timestampService = new InMemoryTimestampService();
+        return CassandraKeyValueServiceImpl.create(
+                CONFIG,
+                ThreeNodeCassandraCluster.LEADER_CONFIG,
+                timestampService::getFreshTimestamp);
     }
 
     private static void degradeCassandraCluster(List<String> nodesToKill) {

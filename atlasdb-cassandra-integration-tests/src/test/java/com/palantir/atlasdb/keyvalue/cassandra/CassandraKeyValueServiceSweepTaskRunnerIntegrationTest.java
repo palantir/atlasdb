@@ -64,7 +64,9 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
                         .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
 
-        return CassandraKeyValueServiceImpl.create(config, CassandraContainer.LEADER_CONFIG);
+        return CassandraTestTools.createKeyValueServiceWithInMemoryTimestampService(
+                config,
+                CassandraContainer.LEADER_CONFIG);
     }
 
     @Test

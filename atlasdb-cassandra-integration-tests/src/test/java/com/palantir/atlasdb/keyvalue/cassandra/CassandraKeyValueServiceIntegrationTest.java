@@ -111,7 +111,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
-        return CassandraKeyValueServiceImpl.create(
+        return CassandraTestTools.createKeyValueServiceWithInMemoryTimestampService(
                 config,
                 CassandraContainer.LEADER_CONFIG,
                 testLogger);

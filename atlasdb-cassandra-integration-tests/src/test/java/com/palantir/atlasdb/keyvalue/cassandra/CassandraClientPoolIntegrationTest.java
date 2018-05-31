@@ -54,7 +54,7 @@ public class CassandraClientPoolIntegrationTest {
     private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(
             CassandraContainer.KVS_CONFIG, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
 
-    private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
+    private CassandraKeyValueService kv = CassandraTestTools.createKeyValueServiceWithInMemoryTimestampService(
             CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG,
             clientPool);
