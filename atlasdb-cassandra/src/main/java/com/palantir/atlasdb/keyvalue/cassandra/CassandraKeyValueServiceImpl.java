@@ -1877,7 +1877,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     }
                 }
                 clientPool.markWritesForTable(values, tableRef);
-                return null;
+                return Optional.empty();
             });
             failure.ifPresent(exception -> {
                 throw exception;
