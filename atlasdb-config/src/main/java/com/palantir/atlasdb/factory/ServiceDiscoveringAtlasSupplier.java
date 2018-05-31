@@ -35,6 +35,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.qos.FakeQosClient;
@@ -99,6 +100,21 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
             QosClient qosClient) {
+        // TODO (jkong): There is probably a cleaner way to handle the default value here, though something that
+        //               always throws is exactly what we want, which is what FTSA does.
+        this(config, runtimeConfig, leaderConfig, namespace, timestampTable, initializeAsync, qosClient,
+                new FreshTimestampSupplierAdapter());
+    }
+
+    public ServiceDiscoveringAtlasSupplier(
+            KeyValueServiceConfig config,
+            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace,
+            Optional<TableReference> timestampTable,
+            boolean initializeAsync,
+            QosClient qosClient,
+            FreshTimestampSupplierAdapter timestampSupplierAdapter) {
         this.config = config;
         this.leaderConfig = leaderConfig;
 
@@ -116,7 +132,8 @@ public class ServiceDiscoveringAtlasSupplier {
                         leaderConfig,
                         namespace,
                         initializeAsync,
-                        qosClient));
+                        qosClient,
+                        timestampSupplierAdapter));
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
