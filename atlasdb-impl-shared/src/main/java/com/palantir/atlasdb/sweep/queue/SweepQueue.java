@@ -105,7 +105,6 @@ public final class SweepQueue implements SweepQueueWriter {
         long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
 
         if (lastSweptTs + 1 >= sweepTs) {
-            logIfSweepTsWentBackwards(lastSweptTs, shardStrategy, sweepTs);
             return;
         }
 
@@ -128,16 +127,6 @@ public final class SweepQueue implements SweepQueueWriter {
 
         metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
         metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());
-    }
-
-    private void logIfSweepTsWentBackwards(long lastSweptTs, ShardAndStrategy shardStrategy, long sweepTs) {
-        if (lastSweptTs >= sweepTs) {
-            log.warn("Last swept timestamp {} for {} is greater or equal to the sweep timestamp {}. This indicates "
-                            + "that the sweep timestamp has been greater in the past.",
-                    SafeArg.of("lastSweptTs", lastSweptTs),
-                    SafeArg.of("shardStrategy", shardStrategy.toText()),
-                    SafeArg.of("sweepTs", sweepTs));
-        }
     }
 
     private SweepBatch getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
