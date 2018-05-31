@@ -1866,18 +1866,21 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         try {
-            clientPool.runWithRetry(client -> {
+            Optional<KeyAlreadyExistsException> failure = clientPool.runWithRetry(client -> {
                 for (Entry<Cell, byte[]> e : values.entrySet()) {
                     CheckAndSetRequest request = CheckAndSetRequest.newCell(tableRef, e.getKey(), e.getValue());
                     CASResult casResult = executeCheckAndSet(client, request);
                     if (!casResult.isSuccess()) {
-                        throw new KeyAlreadyExistsException(
+                        return Optional.of(new KeyAlreadyExistsException(
                                 String.format("The row in table %s already exists.", tableRef.getQualifiedName()),
-                                ImmutableList.of(e.getKey()));
+                                ImmutableList.of(e.getKey())));
                     }
                 }
                 clientPool.markWritesForTable(values, tableRef);
                 return null;
+            });
+            failure.ifPresent(exception -> {
+                throw exception;
             });
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
@@ -1897,22 +1900,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void checkAndSet(final CheckAndSetRequest request) throws CheckAndSetException {
         try {
-            clientPool.runWithRetry(client -> {
-                CASResult casResult = executeCheckAndSet(client, request);
+            CASResult casResult = clientPool.runWithRetry(client -> executeCheckAndSet(client, request);
+            if (!casResult.isSuccess()) {
+                List<byte[]> currentValues = casResult.current_values.stream()
+                        .map(Column::getValue)
+                        .collect(Collectors.toList());
 
-                if (!casResult.isSuccess()) {
-                    List<byte[]> currentValues = casResult.current_values.stream()
-                            .map(Column::getValue)
-                            .collect(Collectors.toList());
-
-                    throw new CheckAndSetException(
-                            request.cell(),
-                            request.table(),
-                            request.oldValue().orElse(null),
-                            currentValues);
-                }
-                return null;
-            });
+                throw new CheckAndSetException(
+                        request.cell(),
+                        request.table(),
+                        request.oldValue().orElse(null),
+                        currentValues);
+            }
         } catch (CheckAndSetException e) {
             throw e;
         } catch (Exception e) {

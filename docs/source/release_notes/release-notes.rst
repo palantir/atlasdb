@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won't
+           blacklist connections due to a failed CAS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3215>`__)
+
+
     *    - |devbreak| |new|
          - KVS method ``deleteAllTimestamps`` now also takes a boolean argument specifying if garbage deletion sentinels should also be deleted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3212>`__)
