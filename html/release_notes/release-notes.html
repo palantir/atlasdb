@@ -235,7 +235,12 @@ The deletes were (necessarily) run at consistency <code class="docutils literal 
 transactions had significantly impaired performance if a database node was down.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3199">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The <code class="docutils literal notranslate"><span class="pre">Transaction.getRowsColumnRange</span></code> method that returns an iterator now throws for <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE</span></code> conflict handlers. This functionality was
+never implemented correctly and never offered the serializable guarantee. The method now throws an <code class="docutils literal notranslate"><span class="pre">UnsupportedOperationException</span></code> in this case.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3200">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3208">Pull Request</a>)</td>
 </tr>
