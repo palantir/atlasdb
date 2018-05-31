@@ -111,17 +111,20 @@ public final class SweepQueue implements SweepQueueWriter {
             return;
         }
 
-        log.info("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept timestamp"
+        log.debug("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept timestamp"
                 + " for this shard and strategy was {}.", SafeArg.of("shardStrategy", shardStrategy.toText()),
                 SafeArg.of("sweepTs", sweepTs), SafeArg.of("lastSweptTs", lastSweptTs));
 
         SweepBatch sweepBatch = getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
-        log.info("Put {} ranged tombstones and swept up to timestamp {} for {}.",
-                SafeArg.of("tombstones", sweepBatch.writes().size()),
-                SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
-                SafeArg.of("shardStrategy", shardStrategy.toText()));
+
+        if (sweepBatch.writes().size() > 0) {
+            log.debug("Put {} ranged tombstones and swept up to timestamp {} for {}.",
+                    SafeArg.of("tombstones", sweepBatch.writes().size()),
+                    SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
+                    SafeArg.of("shardStrategy", shardStrategy.toText()));
+        }
 
         cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp());
 
