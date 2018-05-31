@@ -64,7 +64,8 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
                         .quorumSize(1)
                         .localServer(addr.getHostString())
                         .leaders(ImmutableSet.of(addr.getHostString()))
-                        .build()))
+                        .build()),
+                () -> 0L) // note: this isn't actually the CKVS that runs during the benchmarks!
                 .isInitialized();
     }
 
