@@ -96,9 +96,15 @@ develop
            transactions had significantly impaired performance if a database node was down.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3199>`__)
 
+    *    - |fixed| |devbreak|
+         - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers. This functionality was
+           never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3200>`__)
+
     *    - |improved|
          - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
+
 
 =======
 v0.86.0
