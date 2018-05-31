@@ -79,7 +79,7 @@ develop
               - ``lastSweptTimestamp``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3202>`__)
-    
+
     *    - |improved| |logs|
          - Added logging of the values used to determine which table to sweep, provides more insight into why tables are being swept and others aren't.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2829>`__)
@@ -89,6 +89,12 @@ develop
            This release fixes several issues with communication between Atlas servers and a QoS service, if configured (especially in HA configurations).
            Note that this change does not affect communication between timelock nodes, or between an Atlas client and timelock, as these do not currently use remoting.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3196>`__)
+
+    *    - |fixed|
+         - ``SnapshotTransaction`` now asynchronously deletes values for transactions that get rolled back.
+           This restores the behaviour from before the previous `fix <https://github.com/palantir/atlasdb/pull/3199>`__,
+           except that the parent transaction no longer waits for the delete to finish.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/32xx>`__)
 
     *    - |fixed|
          - ``SnapshotTransaction`` will no longer attempt to delete values for transactions that get rolled back.
