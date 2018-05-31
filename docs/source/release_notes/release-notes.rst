@@ -96,6 +96,10 @@ develop
            transactions had significantly impaired performance if a database node was down.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3199>`__)
 
+    *    - |improved|
+         - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
+
 =======
 v0.86.0
 =======
