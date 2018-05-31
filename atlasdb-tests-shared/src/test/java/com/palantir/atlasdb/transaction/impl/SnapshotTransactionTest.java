@@ -800,8 +800,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
             return null;
         });
-
-        verify(keyValueService, times(0)).delete(any(), any());
     }
 
     @Test
