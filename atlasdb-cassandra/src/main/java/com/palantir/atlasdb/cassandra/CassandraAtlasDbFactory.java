@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cassandra;
 
 import java.util.Optional;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -56,6 +58,28 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Optional<String> namespace,
             boolean initializeAsync,
             QosClient qosClient) {
+        return createRawKeyValueService(
+                config,
+                runtimeConfig,
+                leaderConfig,
+                namespace,
+                initializeAsync,
+                qosClient,
+                () -> {
+                    throw new NotInitializedException("Cassandra KVS isn't ready without a fresh timestamp source");
+                });
+    }
+
+    @Override
+    public KeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace,
+            boolean initializeAsync,
+            QosClient qosClient,
+            LongSupplier freshTimestampSource) {
+        // TODO (jkong): Push the LongSupplier into CassandraKeyValueServiceImpl
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, runtimeConfig, namespace);
         Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig = preprocessKvsRuntimeConfig(

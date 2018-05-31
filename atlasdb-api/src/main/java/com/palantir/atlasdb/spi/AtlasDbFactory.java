@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.spi;
 
 import java.util.Optional;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -30,6 +31,8 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public interface AtlasDbFactory {
+    Logger log = LoggerFactory.getLogger(AtlasDbFactory.class);
+
     long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
     boolean DEFAULT_INITIALIZE_ASYNC = false;
 
@@ -45,6 +48,14 @@ public interface AtlasDbFactory {
                 FakeQosClient.INSTANCE);
     }
 
+    KeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace,
+            boolean initializeAsync,
+            QosClient qosClient);
+
     /**
      * Creates a KeyValueService instance of type according to the config parameter.
      *
@@ -56,15 +67,21 @@ public interface AtlasDbFactory {
      * @param initializeAsync If the implementations supports it, and initializeAsync is true, the KVS will initialize
      * asynchronously when synchronous initialization fails.
      * @param qosClient the client for checking limits from the Quality-of-Service service.
+     * @param freshTimestampSource a source of fresh timestamps, which may be relevant for some KVS operations.
      * @return The requested KeyValueService instance
      */
-    KeyValueService createRawKeyValueService(
+    default KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             boolean initializeAsync,
-            QosClient qosClient);
+            QosClient qosClient,
+            LongSupplier freshTimestampSource) {
+        log.info("Created a raw key-value service with type {} and provided an unused fresh timestamp source.",
+                getType());
+        return createRawKeyValueService(config, runtimeConfig, leaderConfig, namespace, initializeAsync, qosClient);
+    }
 
     default TimestampService createTimestampService(KeyValueService rawKvs) {
         return createTimestampService(rawKvs, Optional.empty(), DEFAULT_INITIALIZE_ASYNC);
@@ -77,7 +94,6 @@ public interface AtlasDbFactory {
 
     default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return () -> {
-            Logger log = LoggerFactory.getLogger(AtlasDbFactory.class);
             log.warn("AtlasDB doesn't yet support automated migration for KVS type {}.", getType());
             return NO_OP_FAST_FORWARD_TIMESTAMP;
         };
