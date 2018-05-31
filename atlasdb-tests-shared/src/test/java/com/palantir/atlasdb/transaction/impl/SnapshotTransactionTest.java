@@ -277,7 +277,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         m.assertIsSatisfied();
     }
 
-    @Ignore("Until we know what we want to do with GC this will be ignored.")
+    @Ignore("Was ignored long ago, and now we need to fix the mocking logic.")
     // This tests that uncommitted values are deleted and cleaned up
     @SuppressWarnings("unchecked")
     @Test
@@ -291,7 +291,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         timestampService.getFreshTimestamp();
         final long startTs = timestampService.getFreshTimestamp();
         final long transactionTs = timestampService.getFreshTimestamp();
-        keyValueService.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY), startTs);
+        keyValueService.put(TABLE, ImmutableMap.of(cell, rowName), startTs);
 
         final Sequence seq = m.sequence("seq");
         m.checking(new Expectations() {{
@@ -326,7 +326,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 sweepQueue,
                 deleteExecutor);
-        snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+        snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
         m.assertIsSatisfied();
