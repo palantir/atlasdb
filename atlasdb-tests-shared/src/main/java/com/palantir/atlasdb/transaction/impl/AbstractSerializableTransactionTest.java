@@ -44,10 +44,12 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -61,12 +63,12 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.impl.LegacyTimelockService;
 
-
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
     @Override
     protected TransactionManager getManager() {
-        return SerializableTransactionManager.createForTest(
+        MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterUninitialized();
+        SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 keyValueService,
                 timestampService,
                 lockClient,
@@ -79,7 +81,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                MultiTableSweepQueueWriter.NO_OP);
+                sweepQueue);
+        sweepQueue.callbackInit(txManager);
+        return txManager;
     }
 
     @Override
@@ -108,12 +112,20 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP) {
+                getSweepQueueWriterInitialized()) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());
             }
         };
+    }
+
+    protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
+        return MultiTableSweepQueueWriter.NO_OP;
+    }
+
+    protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
+        return MultiTableSweepQueueWriter.NO_OP;
     }
 
     @Test
@@ -520,6 +532,28 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     private BatchingVisitable<RowResult<byte[]>> getRangeRetainingCol(Transaction txn, String col) {
         return txn.getRange(TEST_TABLE,
                 RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes(col))).build());
+    }
+
+    @Test
+    public void testColumnRangeReadUnsupported() {
+        Transaction t1 = startTransaction();
+        try {
+            t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(PtBytes.toBytes("row1")),
+                    new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY), 1);
+            fail();
+        } catch (UnsupportedOperationException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testColumnRangeReadSupported() {
+        Transaction t1 = startTransaction();
+        // The transactions table is registered as IGNORE_ALL, so the request is supported
+        // Reading at timestamp 0 to avoid any repercussions for in-flight transactions
+        t1.getRowsColumnRange(TransactionConstants.TRANSACTION_TABLE,
+                ImmutableList.of(ValueType.VAR_LONG.convertFromJava(0L)),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY), 1);
     }
 
     @Test

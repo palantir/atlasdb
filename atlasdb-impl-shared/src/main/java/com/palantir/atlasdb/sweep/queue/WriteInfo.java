@@ -18,39 +18,51 @@ package com.palantir.atlasdb.sweep.queue;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.math.IntMath;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 
 /**
  * Contains information about a committed write, for use by the sweep queue.
  */
 @Value.Immutable
-@JsonSerialize(as = ImmutableWriteInfo.class)
-@JsonDeserialize(as = ImmutableWriteInfo.class)
 public interface WriteInfo {
-
-    @JsonProperty("ts")
     long timestamp();
+    WriteReference writeRef();
 
-    @JsonProperty("c")
-    Cell cell();
+    default TableReference tableRef() {
+        return writeRef().tableRef();
+    }
 
-    @JsonProperty("d")
-    boolean isTombstone();
+    default Cell cell() {
+        return writeRef().cell();
+    }
 
     default long timestampToDeleteAtExclusive(Sweeper sweeper) {
-        if (sweeper.shouldSweepLastCommitted() && isTombstone()) {
+        if (sweeper.shouldSweepLastCommitted() && writeRef().isTombstone()) {
             return timestamp() + 1L;
         }
-
         return timestamp();
     }
 
-    static WriteInfo of(Cell cell, boolean isTombstone, long timestamp) {
-        return ImmutableWriteInfo.builder().cell(cell).isTombstone(isTombstone).timestamp(timestamp).build();
+    default int toShard(int numShards) {
+        return IntMath.mod(writeRef().cellReference().hashCode(), numShards);
     }
 
+    static WriteInfo of(WriteReference writeRef, long timestamp) {
+        return ImmutableWriteInfo.builder()
+                .writeRef(writeRef)
+                .timestamp(timestamp)
+                .build();
+    }
+
+    static WriteInfo tombstone(TableReference tableRef, Cell cell, long timestamp) {
+        return WriteInfo.of(WriteReference.of(tableRef, cell, true), timestamp);
+    }
+
+    static WriteInfo write(TableReference tableRef, Cell cell, long timestamp) {
+        return WriteInfo.of(WriteReference.of(tableRef, cell, false), timestamp);
+    }
 }

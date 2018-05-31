@@ -22,6 +22,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -33,10 +34,21 @@ public interface TodoResource {
     @Consumes(MediaType.APPLICATION_JSON)
     void addTodo(Todo todo);
 
+    @POST
+    @Path("/addWithId")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    long addTodoWithIdAndReturnTimestamp(@QueryParam("id") long id, Todo todo);
+
     @GET
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
     List<Todo> getTodoList();
+
+    @GET
+    @Path("/doesNotExistBeforeTimestamp")
+    @Produces(MediaType.APPLICATION_JSON)
+    boolean doesNotExistBeforeTimestamp(@QueryParam("id") long id, @QueryParam("timestamp") long timestamp);
 
     @GET
     @Path("/healthcheck")

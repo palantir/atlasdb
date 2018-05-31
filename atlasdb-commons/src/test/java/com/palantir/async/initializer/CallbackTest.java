@@ -62,7 +62,7 @@ public class CallbackTest {
 
     @Test
     public void noOpCallbackDoesNotBlockOnRun() {
-        Callback<Object> noOp = new Callback.NoOp<>();
+        Callback<Object> noOp = Callback.noOp();
 
         long start = System.currentTimeMillis();
         noOp.runWithRetry(new Object());
@@ -71,7 +71,7 @@ public class CallbackTest {
 
     @Test
     public void noOpCallbackDoesNotBlockClosing() {
-        Callback<Object> noOp = new Callback.NoOp<>();
+        Callback<Object> noOp = Callback.noOp();
         long start = System.currentTimeMillis();
 
         PTExecutors.newSingleThreadScheduledExecutor().submit(() -> noOp.runWithRetry(new Object()));

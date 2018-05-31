@@ -49,6 +49,36 @@ develop
 
     *    - Type
          - Change
+
+    *    - |devbreak| |new|
+         - KVS method ``deleteAllTimestamps`` now also takes a boolean argument specifying if garbage deletion sentinels should also be deleted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3212>`__)
+
+
+    *    - |new|
+         - AtlasDB now implements targeted sweep using a sweep queue.
+           As long as the ``enableSweepQueueWrites`` property of the ``targetedSweep`` configuration is set to true, information about each transactional write and delete will be persisted into the sweep queue.
+           If ``targetedSweep`` is enabled in AtlasDB runtime configurations, background threads will read the persisted information from the sweep queue and delete stale data from the kvs.
+           For more details on targeted sweep, please refer to the :ref:`targeted sweep docs<targeted-sweep>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3094>`__)
+
+           Note that targeted sweep is considered a beta feature as it is not fully functional yet.
+           Consult with the AtlasDB team if you wish to use targeted sweep in addition to, or instead of, standard sweep.
+
+    *    - |new| |metrics|
+         - Added tagged targeted sweep metrics for conservative and thorough sweep.
+           The metrics show the cumulative number of enqueued writes, entries read, tombstones put, and aborted cells deleted.
+           Additionally, there are metrics for the sweep timestamp of the last sweep iteration and for the lowest last swept timestamp across all shards.
+           The metrics, tagged with the sweep strategy used, are as follws (with the common prefix ``com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.``):
+
+              - ``enqueuedWrites``
+              - ``entriesRead``
+              - ``tombstonesPut``
+              - ``abortedWritesDeleted``
+              - ``sweepTimestamp``
+              - ``lastSweptTimestamp``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3202>`__)
     
     *    - |improved| |logs|
          - Added logging of the values used to determine which table to sweep, provides more insight into why tables are being swept and others aren't.
@@ -65,6 +95,15 @@ develop
            The deletes were (necessarily) run at consistency ``ALL``, meaning that if aborted data was present, read
            transactions had significantly impaired performance if a database node was down.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3199>`__)
+
+    *    - |fixed| |devbreak|
+         - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers. This functionality was
+           never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3200>`__)
+
+    *    - |improved|
+         - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
 
     *    - |fixed|
          - Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.

@@ -565,7 +565,7 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.7",
+            "locked": "2.9",
             "transitive": [
                 "com.palantir.atlasdb:lock-impl"
             ]
@@ -1221,7 +1221,7 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.7",
+            "locked": "2.9",
             "transitive": [
                 "com.palantir.atlasdb:lock-impl"
             ]

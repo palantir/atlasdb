@@ -681,7 +681,7 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.7",
+            "locked": "2.9",
             "transitive": [
                 "com.palantir.docker.compose:docker-compose-rule-core"
             ]
@@ -1585,7 +1585,7 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.7",
+            "locked": "2.9",
             "transitive": [
                 "com.palantir.docker.compose:docker-compose-rule-core"
             ]
