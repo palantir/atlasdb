@@ -453,12 +453,6 @@
                 "com.palantir.tritium:tritium-registry"
             ]
         },
-        "javax.annotation:javax.annotation-api": {
-            "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-api"
-            ]
-        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
@@ -1008,12 +1002,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.tritium:tritium-registry"
-            ]
-        },
-        "javax.annotation:javax.annotation-api": {
-            "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "javax.validation:validation-api": {

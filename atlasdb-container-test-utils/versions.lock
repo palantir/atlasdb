@@ -654,12 +654,6 @@
                 "io.netty:netty-handler"
             ]
         },
-        "javax.annotation:javax.annotation-api": {
-            "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-api"
-            ]
-        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
@@ -1554,12 +1548,6 @@
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler"
-            ]
-        },
-        "javax.annotation:javax.annotation-api": {
-            "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "javax.validation:validation-api": {

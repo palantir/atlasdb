@@ -999,13 +999,6 @@
                 "io.netty:netty-handler"
             ]
         },
-        "javax.annotation:javax.annotation-api": {
-            "locked": "1.2",
-            "transitive": [
-                "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:timestamp-api"
-            ]
-        },
         "javax.inject:javax.inject": {
             "locked": "1",
             "transitive": [

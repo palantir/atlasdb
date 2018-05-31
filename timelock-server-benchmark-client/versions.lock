@@ -1199,8 +1199,6 @@
         "javax.annotation:javax.annotation-api": {
             "locked": "1.2",
             "transitive": [
-                "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:timestamp-api",
                 "org.glassfish.jersey.core:jersey-common",
                 "org.glassfish.jersey.core:jersey-server"
             ]
@@ -2945,8 +2943,6 @@
         "javax.annotation:javax.annotation-api": {
             "locked": "1.2",
             "transitive": [
-                "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:timestamp-api",
                 "org.glassfish.jersey.core:jersey-common",
                 "org.glassfish.jersey.core:jersey-server"
             ]

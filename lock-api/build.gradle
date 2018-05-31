@@ -15,7 +15,6 @@ dependencies {
     compile project(":atlasdb-commons")
     compile project(":timestamp-api")
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
-    compile group: 'javax.annotation', name: 'javax.annotation-api'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
