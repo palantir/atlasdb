@@ -42,6 +42,7 @@ import java.util.Random;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -809,12 +810,26 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
                 .thenReturn(PreCommitConditions.NO_OP);
 
+        CountDownLatch blockForDelete = new CountDownLatch(1);
+        deleteExecutor.submit(() -> {
+            try {
+                blockForDelete.await();
+            } catch (InterruptedException e) {
+                fail("executor interrupted during test!");
+            }
+        });
+
         serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
             return null;
         });
 
+        verify(keyValueService, times(0)).delete(any(), any());
+
+        // Free up the deleteExecutor, and wait for it to finish
+        blockForDelete.countDown();
         deleteExecutor.awaitTermination(1, TimeUnit.SECONDS);
+
         verify(keyValueService, times(1)).delete(any(), any());
     }
 
