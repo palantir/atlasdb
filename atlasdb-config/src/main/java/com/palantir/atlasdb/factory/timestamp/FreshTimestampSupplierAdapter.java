@@ -22,15 +22,9 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.TimestampService;
 
 public class FreshTimestampSupplierAdapter implements LongSupplier {
+    public static LongSupplier NO_TIMESTAMP_SERVICE = FreshTimestampSupplierAdapter::throwNotInitializedException;
+
     private volatile TimestampService timestampService;
-
-    public FreshTimestampSupplierAdapter() {
-        // leave timestamp service as null
-    }
-
-    public FreshTimestampSupplierAdapter(TimestampService timestampService) {
-        this.timestampService = timestampService;
-    }
 
     public void setTimestampService(TimestampService timestampService) {
         this.timestampService = timestampService;
@@ -40,8 +34,12 @@ public class FreshTimestampSupplierAdapter implements LongSupplier {
     public long getAsLong() {
         TimestampService timestampServiceForThisCall = timestampService;
         if (timestampServiceForThisCall == null) {
-            throw new NotInitializedException("The timestamp supplier is not ready yet!");
+            throwNotInitializedException();
         }
         return timestampServiceForThisCall.getFreshTimestamp();
+    }
+
+    private static long throwNotInitializedException() {
+        throw new NotInitializedException("The timestamp supplier is not ready yet!");
     }
 }

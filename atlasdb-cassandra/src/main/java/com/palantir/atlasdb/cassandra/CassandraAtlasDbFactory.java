@@ -79,7 +79,6 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             boolean initializeAsync,
             QosClient qosClient,
             LongSupplier freshTimestampSource) {
-        // TODO (jkong): Push the LongSupplier into CassandraKeyValueServiceImpl
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, runtimeConfig, namespace);
         Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig = preprocessKvsRuntimeConfig(
