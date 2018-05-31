@@ -540,6 +540,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         try {
             t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(PtBytes.toBytes("row1")),
                     new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY), 1);
+            fail();
         } catch (UnsupportedOperationException e) {
             // expected
         }
