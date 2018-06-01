@@ -107,7 +107,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), logger);
+        return new PutRewritingKeyValueService(createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), logger));
     }
 
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
@@ -145,7 +145,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testTokenRangeWritesLogger() {
-        CassandraKeyValueServiceImpl kvs = (CassandraKeyValueServiceImpl) keyValueService;
+        CassandraKeyValueService kvs = (CassandraKeyValueService) keyValueService;
+        if (kvs instanceof PutRewritingKeyValueService) {
+            kvs = ((PutRewritingKeyValueService) kvs).delegate();
+        }
         CassandraClientPoolImpl clientPool = (CassandraClientPoolImpl) kvs.getClientPool();
         TokenRangeWritesLogger tokenRangeWritesLogger = clientPool.getTokenRangeWritesLogger();
 
@@ -218,7 +221,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public void testCfEqualityChecker() throws TException {
         CassandraKeyValueServiceImpl kvs;
         if (keyValueService instanceof CassandraKeyValueService) {
-            kvs = (CassandraKeyValueServiceImpl) keyValueService;
+            if (keyValueService instanceof PutRewritingKeyValueService) {
+                kvs = (CassandraKeyValueServiceImpl) ((PutRewritingKeyValueService) keyValueService).delegate();
+            } else {
+                kvs = (CassandraKeyValueServiceImpl) keyValueService;
+            }
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(testTable);
             assertTrue("The nesting of Key Value Services has apparently changed",
@@ -273,7 +280,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testLockTablesStateCleanUp() throws Exception {
-        CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
+        CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
                 ckvs.getClientPool(),
                 CassandraContainer.KVS_CONFIG);
@@ -303,7 +310,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testCleanCassLocksStateCli() throws Exception {
-        CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
+        CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
                 ckvs.getClientPool(),
                 CassandraContainer.KVS_CONFIG);
@@ -327,7 +334,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     private void createExtraLocksTable(SchemaMutationLockTables lockTables,
-            CassandraKeyValueServiceImpl kvs) throws TException {
+            CassandraKeyValueService kvs) throws TException {
         TableReference originalTable = Iterables.getOnlyElement(lockTables.getAllLockTables());
 
         try {

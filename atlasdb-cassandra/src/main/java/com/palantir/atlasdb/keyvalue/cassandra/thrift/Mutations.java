@@ -23,17 +23,19 @@ public final class Mutations {
 
     private Mutations() { }
 
-    public static Mutation rangeTombstoneForColumn(byte[] columnName, long maxTimestampExclusive) {
+    public static Mutation rangeTombstoneForColumn(
+            byte[] columnName, long maxTimestampExclusive, long cassandraTimestamp) {
         Deletion deletion = new Deletion()
-                .setTimestamp(maxTimestampExclusive)
+                .setTimestamp(cassandraTimestamp)
                 .setPredicate(SlicePredicates.rangeTombstoneForColumn(columnName, maxTimestampExclusive));
 
         return new Mutation().setDeletion(deletion);
     }
 
-    public static Mutation rangeTombstoneIncludingSentinelForColumn(byte[] columnName, long maxTimestampExclusive) {
+    public static Mutation rangeTombstoneIncludingSentinelForColumn(
+            byte[] columnName, long maxTimestampExclusive, long cassandraTimestamp) {
         Deletion deletion = new Deletion()
-                .setTimestamp(maxTimestampExclusive)
+                .setTimestamp(cassandraTimestamp)
                 .setPredicate(SlicePredicates
                         .rangeTombstoneIncludingSentinelForColumn(columnName, maxTimestampExclusive));
 

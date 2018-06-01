@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -175,7 +176,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 cells.put(Cell.create(Ints.toByteArray(i), "d".getBytes()), Ints.toByteArray(9876543 - i));
             }
         }
-        kvs.put(tableRef, cells, startTs);
+        kvs.multiPut(ImmutableMap.of(tableRef, cells), startTs);
         txService.putUnlessExists(startTs, commitTs);
     }
 }

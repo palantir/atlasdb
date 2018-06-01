@@ -40,7 +40,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 /**
  * Utilities for ETE tests
@@ -119,7 +118,8 @@ public final class CassandraTestTools {
             CassandraKeyValueServiceConfig kvsConfig,
             Optional<LeaderConfig> leaderConfig,
             Logger logger) {
-        TimestampService timestampService = new InMemoryTimestampService();
+        InMemoryTimestampService timestampService = new InMemoryTimestampService();
+        timestampService.fastForwardTimestamp(1_000_000L);
         return CassandraKeyValueServiceImpl.create(
                 kvsConfig,
                 leaderConfig,
@@ -131,7 +131,8 @@ public final class CassandraTestTools {
             CassandraKeyValueServiceConfig kvsConfig,
             Optional<LeaderConfig> leaderConfig,
             CassandraClientPool pool) {
-        TimestampService timestampService = new InMemoryTimestampService();
+        InMemoryTimestampService timestampService = new InMemoryTimestampService();
+        timestampService.fastForwardTimestamp(1_000_000L);
         return CassandraKeyValueServiceImpl.create(
                 kvsConfig,
                 leaderConfig,

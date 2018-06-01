@@ -1811,10 +1811,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Mutation getMutation(Cell cell, long maxTimestampExclusive, boolean deleteSentinel) {
+        long cassandraTimestamp = freshTimestampSupplier.get();
         if (deleteSentinel) {
-            return Mutations.rangeTombstoneIncludingSentinelForColumn(cell.getColumnName(), maxTimestampExclusive);
+            return Mutations.rangeTombstoneIncludingSentinelForColumn(
+                    cell.getColumnName(), maxTimestampExclusive, cassandraTimestamp);
         }
-        return Mutations.rangeTombstoneForColumn(cell.getColumnName(), maxTimestampExclusive);
+        return Mutations.rangeTombstoneForColumn(cell.getColumnName(), maxTimestampExclusive, cassandraTimestamp);
     }
 
     /**
