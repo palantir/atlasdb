@@ -45,6 +45,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
+    private int minShards;
 
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
@@ -61,6 +62,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
         this.thoroughScheduler = new BackgroundSweepScheduler(thoroughThreads,
                 TableMetadataPersistence.SweepStrategy.THOROUGH);
+        this.minShards = Math.max(conservativeThreads, thoroughThreads);
     }
 
     /**
@@ -94,7 +96,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        queue = SweepQueue.create(kvs, shardsConfig);
+        queue = SweepQueue.create(kvs, shardsConfig, minShards);
         timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();

@@ -55,9 +55,10 @@ public final class SweepQueue implements SweepQueueWriter {
         this.metrics = metrics;
     }
 
-    public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig) {
+    public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig, int minShards) {
         TargetedSweepMetrics metrics = TargetedSweepMetrics.withRecomputingInterval(FIVE_MINUTES);
         ShardProgress progress = new ShardProgress(kvs);
+        progress.updateNumberOfShards(minShards);
         Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, FIVE_MINUTES);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
