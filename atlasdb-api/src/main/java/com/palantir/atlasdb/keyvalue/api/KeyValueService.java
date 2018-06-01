@@ -41,14 +41,10 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 /**
  * A service which stores key-value pairs.
  */
-@Path("/keyvalue")
 public interface KeyValueService extends AutoCloseable {
     /**
      * Performs non-destructive cleanup when the KVS is no longer needed.
      */
-    @POST
-    @Path("close")
-    @Override
     void close();
 
     /**
@@ -57,9 +53,6 @@ public interface KeyValueService extends AutoCloseable {
      * This can be used to decompose a complex key value service using table splits, tiers,
      * or other delegating operations into its subcomponents.
      */
-    @POST
-    @Path("get-delegates")
-    @Produces(MediaType.APPLICATION_JSON)
     Collection<? extends KeyValueService> getDelegates();
 
     /**
@@ -76,15 +69,11 @@ public interface KeyValueService extends AutoCloseable {
      * @throws IllegalArgumentException if any of the requests were invalid
      *         (e.g., attempting to retrieve values from a non-existent table).
      */
-    @POST
-    @Path("get-rows")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<Cell, Value> getRows(@QueryParam("tableRef") TableReference tableRef,
+    Map<Cell, Value> getRows(TableReference tableRef,
                              Iterable<byte[]> rows,
-                             @QueryParam("columnSelection") ColumnSelection columnSelection,
-                             @QueryParam("timestamp") long timestamp);
+                             ColumnSelection columnSelection,
+                             long timestamp);
 
     /**
      * Gets values from the key-value store for the specified rows and column range
@@ -99,16 +88,12 @@ public interface KeyValueService extends AutoCloseable {
      *         the values that are spanned by the {@code batchColumnRangeSelection} in increasing order by column name.
      * @throws IllegalArgumentException if {@code rows} contains duplicates.
      */
-    @POST
-    @Path("get-rows-col-range")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
-            @QueryParam("tableRef") TableReference tableRef,
+            TableReference tableRef,
             Iterable<byte[]> rows,
-            @QueryParam("batchColumnRangeSelection") BatchColumnRangeSelection batchColumnRangeSelection,
-            @QueryParam("timestamp") long timestamp);
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            long timestamp);
 
     /**
      * Gets values from the key-value store for the specified rows and column range as a single iterator. This method
@@ -128,17 +113,13 @@ public interface KeyValueService extends AutoCloseable {
      *         and sorted by increasing column name.
      * @throws IllegalArgumentException if {@code rows} contains duplicates.
      */
-    @POST
-    @Path("get-rows-col-range-2")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     RowColumnRangeIterator getRowsColumnRange(
-            @QueryParam("tableRef") TableReference tableRef,
+            TableReference tableRef,
             Iterable<byte[]> rows,
-            @QueryParam("columnRangeSelection") ColumnRangeSelection columnRangeSelection,
-            @QueryParam("cellBatchHint") int cellBatchHint,
-            @QueryParam("timestamp") long timestamp);
+            ColumnRangeSelection columnRangeSelection,
+            int cellBatchHint,
+            long timestamp);
 
     /**
      * Gets values from the key-value store.
@@ -152,12 +133,8 @@ public interface KeyValueService extends AutoCloseable {
      * @throws IllegalArgumentException if any of the requests were invalid
      *         (e.g., attempting to retrieve values from a non-existent table).
      */
-    @POST
-    @Path("get")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<Cell, Value> get(@QueryParam("tableRef") TableReference tableRef, Map<Cell, Long> timestampByCell);
+    Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
     /**
      * Gets timestamp values from the key-value store.
@@ -172,41 +149,18 @@ public interface KeyValueService extends AutoCloseable {
      * @throws IllegalArgumentException if any of the requests were invalid
      *         (e.g., attempting to retrieve values from a non-existent table).
      */
-    @POST
-    @Path("get-latest-timestamps")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<Cell, Long> getLatestTimestamps(@QueryParam("tableRef") TableReference tableRef,
+    Map<Cell, Long> getLatestTimestamps(TableReference tableRef,
                                         Map<Cell, Long> timestampByCell);
 
     /**
-     * Puts values into the key-value store. This call <i>does not</i> guarantee
-     * atomicity across cells. On failure, it is possible
-     * that some of the requests will have succeeded (without having been rolled
-     * back). Similarly, concurrent batched requests may interleave.
-     * <p>
-     * If the key-value store supports durability, this call guarantees that the
-     * requests have successfully been written to disk before returning.
-     * <p>
-     * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
-     * try {@link #delete(TableReference, Multimap)}.
-     * <p>
-     * May throw KeyAlreadyExistsException, if storing a different value to existing key,
-     * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}}.
-     * <p>
-     * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
-     *  @param tableRef the name of the table to put values into.
-     * @param values map containing the key-value entries to put.
-     * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
+     * A legacy version of put which delegates to {@link #multiPut(Map, long)},
+     * this method is not intended to be implemented (but does not suffer from this).
      */
-    @POST
-    @Path("put")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    default void put(@QueryParam("tableRef") TableReference tableRef,
+    default void put(TableReference tableRef,
              Map<Cell, byte[]> values,
-             @QueryParam("timestamp") long timestamp) throws KeyAlreadyExistsException {
+             long timestamp) throws KeyAlreadyExistsException {
         multiPut(Collections.singletonMap(tableRef, values), timestamp);
     }
 
@@ -229,12 +183,9 @@ public interface KeyValueService extends AutoCloseable {
      *  @param valuesByTable map containing the key-value entries to put by table.
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
      */
-    @POST
-    @Path("multi-put")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
-                  @QueryParam("timestamp") long timestamp) throws KeyAlreadyExistsException;
+                  long timestamp) throws KeyAlreadyExistsException;
 
     /**
      * Puts values into the key-value store with individually specified timestamps.
@@ -259,12 +210,9 @@ public interface KeyValueService extends AutoCloseable {
      * @param cellValues map containing the key-value entries to put with
      *               non-negative timestamps less than {@link Long#MAX_VALUE}.
      */
-    @POST
-    @Path("put-with-timestamps")
-    @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent
     @Idempotent
-    void putWithTimestamps(@QueryParam("tableRef") TableReference tableRef,
+    void putWithTimestamps(TableReference tableRef,
                            Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
 
     /**
@@ -289,10 +237,7 @@ public interface KeyValueService extends AutoCloseable {
      * @throws KeyAlreadyExistsException If you are putting a Cell with the same timestamp as
      *                                      one that already exists.
      */
-    @POST
-    @Path("put-unless-exists")
-    @Consumes(MediaType.APPLICATION_JSON)
-    void putUnlessExists(@QueryParam("tableRef") TableReference tableRef,
+    void putUnlessExists(TableReference tableRef,
                          Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
@@ -300,9 +245,6 @@ public interface KeyValueService extends AutoCloseable {
      *
      * @return true iff checkAndSet is supported (for all delegates/tables, if applicable)
      */
-    @POST
-    @Path("supports-check-and-set")
-    @Consumes(MediaType.APPLICATION_JSON)
     boolean supportsCheckAndSet();
 
     /**
@@ -325,9 +267,6 @@ public interface KeyValueService extends AutoCloseable {
      * @param checkAndSetRequest the request, including table, cell, old value and new value.
      * @throws CheckAndSetException if the stored value for the cell was not as expected.
      */
-    @POST
-    @Path("check-and-set")
-    @Consumes(MediaType.APPLICATION_JSON)
     void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException;
 
     /**
@@ -352,11 +291,8 @@ public interface KeyValueService extends AutoCloseable {
      *  @param tableRef the name of the table to delete values from.
      * @param keys map containing the keys to delete values for; the map should specify, for each
      */
-    @POST
-    @Path("delete")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void delete(@QueryParam("tableRef") TableReference tableRef, Multimap<Cell, Long> keys);
+    void delete(TableReference tableRef, Multimap<Cell, Long> keys);
 
     /**
      * Deletes values in a range from the key-value store.
@@ -371,11 +307,8 @@ public interface KeyValueService extends AutoCloseable {
      * @param tableRef the name of the table to delete values from.
      * @param range the range to delete
      */
-    @POST
-    @Path("delete-range")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void deleteRange(@QueryParam("tableRef") TableReference tableRef, RangeRequest range);
+    void deleteRange(TableReference tableRef, RangeRequest range);
 
     /**
      * For each cell, deletes all timestamps prior to the associated maximum timestamp. Depending on the
@@ -385,13 +318,10 @@ public interface KeyValueService extends AutoCloseable {
      * @param maxTimestampExclusiveByCell exclusive maximum timestamp to delete for each cell.
      * @param deleteSentinels if true, this method will also delete garbage collection sentinels.
      */
-    @POST
-    @Path("delete-all-timestamps")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void deleteAllTimestamps(@QueryParam("tableRef") TableReference tableRef,
+    void deleteAllTimestamps(TableReference tableRef,
             Map<Cell, Long> maxTimestampExclusiveByCell,
-            @DefaultValue("false") @QueryParam("deleteSentinels") boolean deleteSentinels);
+            boolean deleteSentinels);
 
     /**
      * Truncate a table in the key-value store.
@@ -404,11 +334,8 @@ public interface KeyValueService extends AutoCloseable {
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      * @throws RuntimeException or a subclass of RuntimeException if the table does not exist
      */
-    @POST
-    @Path("truncate-table")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void truncateTable(@QueryParam("tableRef") TableReference tableRef) throws InsufficientConsistencyException;
+    void truncateTable(TableReference tableRef) throws InsufficientConsistencyException;
 
     /**
      * Truncate tables in the key-value store.
@@ -420,9 +347,6 @@ public interface KeyValueService extends AutoCloseable {
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      * @throws RuntimeException or a subclass of RuntimeException if the table does not exist
      */
-    @POST
-    @Path("truncate-tables")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void truncateTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException;
 
@@ -434,14 +358,10 @@ public interface KeyValueService extends AutoCloseable {
      * @param rangeRequest the range to load.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's
      */
-    @POST
-    @Path("get-range")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    ClosableIterator<RowResult<Value>> getRange(@QueryParam("tableRef") TableReference tableRef,
+    ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
                                                 RangeRequest rangeRequest,
-                                                @QueryParam("timestamp") long timestamp);
+                                                long timestamp);
 
     /**
      * Gets timestamp values from the key-value store. For each row, this returns all associated
@@ -461,16 +381,12 @@ public interface KeyValueService extends AutoCloseable {
      *
      * @deprecated use {@link #getCandidateCellsForSweeping}
      */
-    @POST
-    @Path("get-range-of-timestamps")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     @Deprecated
     ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
-            @QueryParam("tableRef") TableReference tableRef,
+            TableReference tableRef,
             RangeRequest rangeRequest,
-            @QueryParam("timestamp") long timestamp) throws InsufficientConsistencyException;
+            long timestamp) throws InsufficientConsistencyException;
 
     /**
      * For a given range of rows, returns all candidate cells for sweeping (and their timestamps).
@@ -507,15 +423,11 @@ public interface KeyValueService extends AutoCloseable {
      * set to true when there aren't more left.  The next call will return zero results and have
      * moreResultsAvailable set to false.
      */
-    @POST
-    @Path("get-first-batch-for-ranges")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            @QueryParam("tableRef") TableReference tableRef,
+            TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
-            @QueryParam("timestamp") long timestamp);
+            long timestamp);
 
     ////////////////////////////////////////////////////////////
     // TABLE CREATION AND METADATA
@@ -527,12 +439,8 @@ public interface KeyValueService extends AutoCloseable {
      * Do not fall into the trap of performing drop & immediate re-create of tables;
      * instead use 'truncate' for this task.
      */
-    @DELETE
-    @Path("drop-table")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void dropTable(@QueryParam("tableName") TableReference tableRef) throws InsufficientConsistencyException;
+    void dropTable(TableReference tableRef) throws InsufficientConsistencyException;
 
 
     /**
@@ -543,10 +451,6 @@ public interface KeyValueService extends AutoCloseable {
      * Do not fall into the trap of performing drop & immediate re-create of tables;
      * instead use 'truncate' for this task.
      */
-    @DELETE
-    @Path("drop-tables")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void dropTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException;
 
@@ -554,22 +458,14 @@ public interface KeyValueService extends AutoCloseable {
      * Creates a table with the specified name. If the table already exists, no action is performed
      * (the table is left in its current state).
      */
-    @POST
-    @Path("create-table")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void createTable(@QueryParam("tableRef") TableReference tableRef, byte[] tableMetadata)
+    void createTable(TableReference tableRef, byte[] tableMetadata)
             throws InsufficientConsistencyException;
 
     /**
      * Creates many tables in idempotent fashion. If you are making many tables at once,
      * use this call as the implementation can be much faster/less error-prone on some KVSs.
      */
-    @POST
-    @Path("create-tables")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) throws InsufficientConsistencyException;
 
@@ -580,9 +476,6 @@ public interface KeyValueService extends AutoCloseable {
      * the names of any tables used internally by the key value service (a common example is
      * a _metadata table for storing table metadata).
      */
-    @POST
-    @Path("get-all-table-names")
-    @Produces(MediaType.APPLICATION_JSON)
     @Idempotent
     Set<TableReference> getAllTableNames();
 
@@ -593,10 +486,7 @@ public interface KeyValueService extends AutoCloseable {
      * with the given name exists. Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
      */
     @Idempotent
-    @POST
-    @Path("get-metadata-for-table")
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    byte[] getMetadataForTable(@QueryParam("tableRef") TableReference tableRef);
+    byte[] getMetadataForTable(TableReference tableRef);
 
     /**
      * Gets the metadata for all known user-created Atlas tables.
@@ -605,21 +495,12 @@ public interface KeyValueService extends AutoCloseable {
      * @return a Map from TableReference to byte array representing the metadata for the table
      * Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating
      */
-    @POST
-    @Path("get-metadata-for-tables")
-    @Produces(MediaType.APPLICATION_JSON)
     @Idempotent
     Map<TableReference, byte[]> getMetadataForTables();
 
-    @POST
-    @Path("put-metadata-for-table")
-    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Idempotent
-    void putMetadataForTable(@QueryParam("tableRef") TableReference tableRef, byte[] metadata);
+    void putMetadataForTable(TableReference tableRef, byte[] metadata);
 
-    @POST
-    @Path("put-metadata-for-tables")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata);
 
@@ -631,11 +512,8 @@ public interface KeyValueService extends AutoCloseable {
      * Adds a value with timestamp = Value.INVALID_VALUE_TIMESTAMP to each of the given cells. If
      * a value already exists at that time stamp, nothing is written for that cell.
      */
-    @POST
-    @Path("add-gc-sentinel-values")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void addGarbageCollectionSentinelValues(@QueryParam("tableName") TableReference tableRef, Iterable<Cell> cells);
+    void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells);
 
     /**
      * Gets timestamp values from the key-value store. For each cell, this returns all associated
@@ -654,14 +532,10 @@ public interface KeyValueService extends AutoCloseable {
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
-    @POST
-    @Path("get-all-timestamps")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Multimap<Cell, Long> getAllTimestamps(@QueryParam("tableName") TableReference tableRef,
+    Multimap<Cell, Long> getAllTimestamps(TableReference tableRef,
                                           Set<Cell> cells,
-                                          @QueryParam("timestamp") long timestamp)
+                                          long timestamp)
             throws InsufficientConsistencyException;
 
     /**
@@ -670,9 +544,6 @@ public interface KeyValueService extends AutoCloseable {
      *
      * This call must be implemented so that it completes synchronously.
      */
-    @POST
-    @Path("compact-internally")
-    @Consumes(MediaType.APPLICATION_JSON)
     void compactInternally(TableReference tableRef);
 
     /**
@@ -696,9 +567,6 @@ public interface KeyValueService extends AutoCloseable {
      * <p>
      * This call must be implemented so that it completes synchronously.
      */
-    @POST
-    @Path("node-availability-status")
-    @Consumes(MediaType.APPLICATION_JSON)
     ClusterAvailabilityStatus getClusterAvailabilityStatus();
 
     ////////////////////////////////////////////////////////////
