@@ -21,15 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
@@ -156,8 +147,11 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * A legacy version of put which delegates to {@link #multiPut(Map, long)},
      * this method is not intended to be implemented (but does not suffer from this).
+     *
+     * @deprecated please use multiPut instead.
      */
     @Idempotent
+    @Deprecated
     default void put(TableReference tableRef,
              Map<Cell, byte[]> values,
              long timestamp) throws KeyAlreadyExistsException {
