@@ -35,6 +35,7 @@ import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.performance.BenchmarkParam;
 import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
@@ -142,7 +143,12 @@ public class AtlasDbPerfCli {
         if (!cli.testRun) {
             runCli(cli, optBuilder);
         } else {
-            runCliInTestMode(optBuilder);
+            try {
+                runCliInTestMode(optBuilder);
+            } catch (Exception e) {
+                LoggerFactory.getLogger(AtlasDbPerfCli.class).error("fail", e);
+                System.exit(7);
+            }
         }
     }
 

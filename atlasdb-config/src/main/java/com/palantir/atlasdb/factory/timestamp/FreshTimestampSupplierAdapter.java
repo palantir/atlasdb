@@ -40,6 +40,6 @@ public class FreshTimestampSupplierAdapter implements LongSupplier {
     }
 
     private static long throwNotInitializedException() {
-        throw new NotInitializedException("The timestamp supplier is not ready yet!");
+        throw new NotInitializedException(FreshTimestampSupplierAdapter.class.getName());
     }
 }
