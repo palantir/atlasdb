@@ -29,7 +29,6 @@ import org.openjdk.jmh.runner.format.OutputFormat;
 
 public final class MinimalReportFormatForTest implements OutputFormat {
     private static final PrintStream out = System.out;
-    private static final PrintStream err = System.err;
 
     private static final MinimalReportFormatForTest INSTANCE = new MinimalReportFormatForTest();
 
@@ -80,9 +79,7 @@ public final class MinimalReportFormatForTest implements OutputFormat {
 
     @Override
     public void println(String str) {
-        if (str.contains("Error") || str.contains("Exception")) {
-            err.println(str);
-        }
+
     }
 
     @Override
