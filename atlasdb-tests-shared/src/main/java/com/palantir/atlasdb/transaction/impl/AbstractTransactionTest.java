@@ -82,7 +82,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
-import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
