@@ -962,7 +962,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return null;
         })).isSameAs(conditionFailure);
 
-        // read is rolling back
         List<Cell> cells = serializableTxManager.runTaskReadOnly(tx ->
                 BatchingVisitableView.of(tx.getRowsColumnRange(
                         TABLE,
