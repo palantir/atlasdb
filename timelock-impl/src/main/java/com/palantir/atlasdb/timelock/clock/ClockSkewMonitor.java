@@ -34,6 +34,7 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.tokens.auth.AuthHeader;
 
 /**
  * ClockSkewMonitor keeps track of the system time of the other nodes in the cluster, and compares it to the local
@@ -51,13 +52,17 @@ public final class ClockSkewMonitor {
 
     public static ClockSkewMonitor create(
             Set<String> remoteServers,
-            Optional<SSLSocketFactory> optionalSecurity) {
+            Optional<SSLSocketFactory> optionalSecurity,
+            Supplier<AuthHeader> authHeaderSupplier) {
         Map<String, ClockService> clocksByServer = Maps.toMap(
                 remoteServers,
-                (remoteServer) -> AtlasDbHttpClients.createProxy(
-                        optionalSecurity,
-                        remoteServer,
-                        ClockService.class));
+                (remoteServer) -> {
+                    AuthedClockService authedClockService = AtlasDbHttpClients.createProxy(
+                            optionalSecurity,
+                            remoteServer,
+                            AuthedClockService.class);
+                    return new ProvidedAuthClockService(authedClockService, authHeaderSupplier);
+                });
 
         return new ClockSkewMonitor(
                 clocksByServer,

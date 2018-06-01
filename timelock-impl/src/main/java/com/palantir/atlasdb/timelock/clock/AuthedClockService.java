@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,19 @@
 
 package com.palantir.atlasdb.timelock.clock;
 
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
-public interface ClockService {
+import com.palantir.tokens.auth.AuthHeader;
 
-    long getSystemTimeInNanos();
+@Path("/clock")
+public interface AuthedClockService {
+    @POST
+    @Path("system-time-nanos")
+    @Produces(MediaType.APPLICATION_JSON)
+    long getSystemTimeInNanos(@HeaderParam(HttpHeaders.AUTHORIZATION) AuthHeader authHeader);
 }

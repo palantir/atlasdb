@@ -29,29 +29,34 @@ import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
+import com.palantir.tokens.auth.AuthHeader;
 
 public class ClockSkewMonitorCreator {
     private final Set<String> remoteServers;
     private final Optional<SSLSocketFactory> optionalSecurity;
     private final Consumer<Object> registrar;
+    private final Supplier<AuthHeader> authHeaderSupplier;
 
     @VisibleForTesting
     ClockSkewMonitorCreator(Set<String> remoteServers,
             Optional<SSLSocketFactory> optionalSecurity,
-            Consumer<Object> registrar) {
+            Consumer<Object> registrar,
+            Supplier<AuthHeader> authHeaderSupplier) {
         this.remoteServers = remoteServers;
         this.optionalSecurity = optionalSecurity;
         this.registrar = registrar;
+        this.authHeaderSupplier = authHeaderSupplier;
     }
 
     public static ClockSkewMonitorCreator create(
             TimeLockInstallConfiguration install,
-            Consumer<Object> registrar) {
+            Consumer<Object> registrar,
+            Supplier<AuthHeader> authHeaderSupplier) {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
         Optional<SSLSocketFactory> optionalSecurity =
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory);
 
-        return new ClockSkewMonitorCreator(remoteServers, optionalSecurity, registrar);
+        return new ClockSkewMonitorCreator(remoteServers, optionalSecurity, registrar, authHeaderSupplier);
     }
 
     public void registerClockServices() {
@@ -60,6 +65,6 @@ public class ClockSkewMonitorCreator {
     }
 
     private void runClockSkewMonitorInBackground() {
-        ClockSkewMonitor.create(remoteServers, optionalSecurity).runInBackground();
+        ClockSkewMonitor.create(remoteServers, optionalSecurity, authHeaderSupplier).runInBackground();
     }
 }
