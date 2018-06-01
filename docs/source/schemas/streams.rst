@@ -123,4 +123,4 @@ A single stream of bytes may be stored multiple times and have many
 references to it, but will only be stored once under the covers. When
 all references to a stream are removed it will be cleaned up by the
 OnCleanupTask that is registered with the cleaner. See
-`Cleanup <Cleanup>`__ for more details.
+`Cleanup Tasks <cleanup_tasks>`__ for more details.
