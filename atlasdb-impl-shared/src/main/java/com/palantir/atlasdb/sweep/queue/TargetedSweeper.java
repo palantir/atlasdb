@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -142,6 +144,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         private final int numThreads;
         private final TableMetadataPersistence.SweepStrategy sweepStrategy;
         private final AtomicLong counter = new AtomicLong(0);
+        private final Set<Integer> shardsBeingSwept = new ConcurrentSkipListSet<>();
+
         private ScheduledExecutorService executorService;
 
         private BackgroundSweepScheduler(int numThreads, TableMetadataPersistence.SweepStrategy sweepStrategy) {
@@ -160,15 +164,25 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         }
 
         private void runOneIteration() {
-            ShardAndStrategy shardStrategy = ShardAndStrategy.of(getShardAndIncrement(), sweepStrategy);
+            ShardAndStrategy shardStrategy = ShardAndStrategy.of(lockNextShardToSweep(), sweepStrategy);
             try {
                 sweepNextBatch(shardStrategy);
             } catch (Throwable th) {
-                log.error("Targeted sweep for {} failed and will be retried later.",
+                log.warn("Targeted sweep for {} failed and will be retried later.",
                         SafeArg.of("shardStrategy", shardStrategy.toText()), th);
+            } finally {
+                shardsBeingSwept.remove(shardStrategy.shard());
             }
         }
-        
+
+        private int lockNextShardToSweep() {
+            int nextShardCandidate = getShardAndIncrement();
+            while (!shardsBeingSwept.add(nextShardCandidate)) {
+                nextShardCandidate = getShardAndIncrement();
+            }
+            return nextShardCandidate;
+        }
+
         private int getShardAndIncrement() {
             return queue.modShards(counter.getAndIncrement());
         }
