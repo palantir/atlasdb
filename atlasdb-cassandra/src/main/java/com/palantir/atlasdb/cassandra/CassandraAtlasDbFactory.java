@@ -38,7 +38,6 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -65,9 +64,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 namespace,
                 initializeAsync,
                 qosClient,
-                () -> {
-                    throw new NotInitializedException("Cassandra KVS isn't ready without a fresh timestamp source");
-                });
+                CassandraMutationTimestampProviders.legacy());
     }
 
     @Override
@@ -79,6 +76,24 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             boolean initializeAsync,
             QosClient qosClient,
             LongSupplier freshTimestampSource) {
+        return createRawKeyValueService(
+                config,
+                runtimeConfig,
+                leaderConfig,
+                namespace,
+                initializeAsync,
+                qosClient,
+                CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource));
+    }
+
+    private KeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace,
+            boolean initializeAsync,
+            QosClient qosClient,
+            CassandraMutationTimestampProvider mutationTimestampProvider) {
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, runtimeConfig, namespace);
         Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig = preprocessKvsRuntimeConfig(
@@ -87,6 +102,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 preprocessedConfig,
                 cassandraRuntimeConfig,
                 leaderConfig,
+                mutationTimestampProvider,
                 initializeAsync,
                 qosClient);
     }

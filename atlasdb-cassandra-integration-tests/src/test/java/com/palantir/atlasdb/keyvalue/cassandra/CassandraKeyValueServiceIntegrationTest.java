@@ -57,6 +57,7 @@ import com.google.common.collect.Range;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cli.command.CleanCassLocksStateCommand;
 import com.palantir.atlasdb.config.LockLeader;
@@ -114,6 +115,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return CassandraKeyValueServiceImpl.create(
                 config,
                 CassandraContainer.LEADER_CONFIG,
+                CassandraMutationTimestampProviders.legacy(),
                 testLogger);
     }
 

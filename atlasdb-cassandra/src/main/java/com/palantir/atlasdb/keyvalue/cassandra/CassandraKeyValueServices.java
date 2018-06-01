@@ -302,6 +302,7 @@ public final class CassandraKeyValueServices {
         Column col = new Column();
         col.setName(colName);
         col.setValue(contents);
+        col.setTimestamp(writeTimestamp);
         return col;
     }
 

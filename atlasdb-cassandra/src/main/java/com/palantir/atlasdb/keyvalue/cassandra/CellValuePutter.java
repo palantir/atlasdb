@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -46,7 +45,7 @@ public class CellValuePutter {
     private static final Function<Map.Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
             input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
-    private final Supplier<Long> freshTimestampSupplier;
+    private final Function<Long, Long> mutationTimestampGetter;
 
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
@@ -59,13 +58,13 @@ public class CellValuePutter {
             TaskRunner taskRunner,
             WrappingQueryRunner queryRunner,
             ConsistencyLevel writeConsistency,
-            Supplier<Long> freshTimestampSupplier) {
+            Function<Long, Long> mutationTimestampGetter) {
         this.config = config;
         this.clientPool = clientPool;
         this.taskRunner = taskRunner;
         this.queryRunner = queryRunner;
         this.writeConsistency = writeConsistency;
-        this.freshTimestampSupplier = freshTimestampSupplier;
+        this.mutationTimestampGetter = mutationTimestampGetter;
     }
 
     void putAndOverwriteTimestamps(final String kvsMethodName,
@@ -91,7 +90,12 @@ public class CellValuePutter {
                     "Atlas put " + entry.getValue().size()
                             + " cell values to " + tableRef + " on " + entry.getKey(),
                     () -> {
-                        putForSingleHost(kvsMethodName, entry.getKey(), tableRef, entry.getValue().entrySet(), overwriteTimestamps);
+                        putForSingleHost(
+                                kvsMethodName,
+                                entry.getKey(),
+                                tableRef,
+                                entry.getValue().entrySet(),
+                                overwriteTimestamps);
                         clientPool.markWritesForTable(entry.getValue(), tableRef);
                         return null;
                     }));
@@ -124,7 +128,7 @@ public class CellValuePutter {
                                         : CassandraKeyValueServices.createColumn(
                                                 cell,
                                                 e.getValue(),
-                                                freshTimestampSupplier.get());
+                                                mutationTimestampGetter.apply(e.getValue().getTimestamp()));
 
                                 ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
                                 colOrSup.setColumn(col);
