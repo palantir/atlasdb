@@ -50,10 +50,36 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed| |devbreak|
+         - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers. This functionality was
+           never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3200>`__)
+
+    *    - |fixed|
+         - Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
+           Previously, the method determining whether the transaction had committed successfully or been aborted would hit a code path that would always result in an NPE.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3205>`__)
+
+    *    - |improved|
+         - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
+
+=======
+v0.88.0
+=======
+
+30 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |devbreak| |new|
          - KVS method ``deleteAllTimestamps`` now also takes a boolean argument specifying if garbage deletion sentinels should also be deleted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3212>`__)
-
 
     *    - |new|
          - AtlasDB now implements targeted sweep using a sweep queue.
@@ -90,6 +116,19 @@ develop
            Note that this change does not affect communication between timelock nodes, or between an Atlas client and timelock, as these do not currently use remoting.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3196>`__)
 
+=======
+v0.87.0
+=======
+
+25 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
          - ``SnapshotTransaction`` now asynchronously deletes values for transactions that get rolled back.
            This restores the behaviour from before the previous `fix <https://github.com/palantir/atlasdb/pull/3199>`__,
@@ -101,20 +140,6 @@ develop
            The deletes were (necessarily) run at consistency ``ALL``, meaning that if aborted data was present, read
            transactions had significantly impaired performance if a database node was down.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3199>`__)
-
-    *    - |fixed| |devbreak|
-         - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers. This functionality was
-           never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3200>`__)
-
-    *    - |improved|
-         - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
-
-    *    - |fixed|
-         - Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
-           Previously, the method determining whether the transaction had committed successfully or been aborted would hit a code path that would always result in an NPE.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3205>`__)
 
 =======
 v0.86.0
