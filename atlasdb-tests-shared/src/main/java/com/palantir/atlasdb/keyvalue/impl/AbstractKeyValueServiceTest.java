@@ -1399,7 +1399,7 @@ public abstract class AbstractKeyValueServiceTest {
             keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
                     TEST_CELL, Value.create(value01, TEST_TIMESTAMP + 1)));
             // Legal
-        } catch (AtlasDbDependencyException e) {
+        } catch (KeyAlreadyExistsException e) {
             // Legal
         }
 
@@ -1407,7 +1407,7 @@ public abstract class AbstractKeyValueServiceTest {
         try {
             keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, value00));
             // Legal
-        } catch (AtlasDbDependencyException e) {
+        } catch (KeyAlreadyExistsException e) {
             // Legal
         }
 

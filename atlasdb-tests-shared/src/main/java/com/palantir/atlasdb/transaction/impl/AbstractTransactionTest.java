@@ -58,6 +58,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -178,7 +179,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         assertThatThrownBy(() ->
                 keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
                         ImmutableMap.of(cell, "v2".getBytes())))
-                .isInstanceOf(AtlasDbDependencyException.class);
+                .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
     @Test
