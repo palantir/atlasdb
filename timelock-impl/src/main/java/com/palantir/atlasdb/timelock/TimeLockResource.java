@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
@@ -36,7 +35,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@RolesAllowed("EXTERNAL")
 @Path("/{namespace: [a-zA-Z0-9_-]+}")
 public class TimeLockResource {
     private final Logger log = LoggerFactory.getLogger(TimeLockResource.class);
@@ -53,25 +51,21 @@ public class TimeLockResource {
     }
 
     @Path("/lock")
-    @RolesAllowed("EXTERNAL")
     public LockService getLockService(@Safe @PathParam("namespace") String namespace) {
         return getOrCreateServices(namespace).getLockService();
     }
 
     @Path("/timestamp")
-    @RolesAllowed("EXTERNAL")
     public TimestampService getTimeService(@Safe @PathParam("namespace") String namespace) {
         return getOrCreateServices(namespace).getTimestampService();
     }
 
     @Path("/timelock")
-    @RolesAllowed("EXTERNAL")
     public Object getTimelockService(@Safe @PathParam("namespace") String namespace) {
         return getOrCreateServices(namespace).getTimelockService().getPresentService();
     }
 
     @Path("/timestamp-management")
-    @RolesAllowed("EXTERNAL")
     public TimestampManagementService getTimestampManagementService(@Safe @PathParam("namespace") String namespace) {
         return getOrCreateServices(namespace).getTimestampManagementService();
     }

@@ -15,7 +15,6 @@
  */
 package com.palantir.timestamp;
 
-import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -24,7 +23,6 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 
-@RolesAllowed("EXTERNAL")
 @Path("/timestamp")
 public interface TimestampService {
     /**
@@ -42,7 +40,6 @@ public interface TimestampService {
      * that may have been observed before the request was initiated.
      */
     @POST // This has to be POST because we can't allow caching.
-    @RolesAllowed("EXTERNAL")
     @Path("fresh-timestamp")
     @Produces(MediaType.APPLICATION_JSON)
     long getFreshTimestamp();
@@ -52,7 +49,6 @@ public interface TimestampService {
      * This range may have less than the requested amount.
      */
     @POST // This has to be POST because we can't allow caching.
-    @RolesAllowed("EXTERNAL")
     @Path("fresh-timestamps")
     @Produces(MediaType.APPLICATION_JSON)
     TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);

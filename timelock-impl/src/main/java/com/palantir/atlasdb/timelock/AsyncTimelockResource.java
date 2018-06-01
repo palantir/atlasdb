@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock;
 
 import java.util.Set;
 
-import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -40,7 +39,6 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
-@RolesAllowed("EXTERNAL")
 @Path("/timelock")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
@@ -53,35 +51,30 @@ public class AsyncTimelockResource {
     }
 
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("fresh-timestamp")
     public long getFreshTimestamp() {
         return timelock.getFreshTimestamp();
     }
 
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("fresh-timestamps")
     public TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested) {
         return timelock.getFreshTimestamps(numTimestampsRequested);
     }
 
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("lock-immutable-timestamp")
     public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
         return timelock.lockImmutableTimestamp(request);
     }
 
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("immutable-timestamp")
     public long getImmutableTimestamp() {
         return timelock.getImmutableTimestamp();
     }
 
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("lock")
     public void lock(@Suspended final AsyncResponse response, LockRequest request) {
         AsyncResult<LockToken> result = timelock.lock(request);
@@ -98,7 +91,6 @@ public class AsyncTimelockResource {
     }
 
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
         AsyncResult<Void> result = timelock.waitForLocks(request);
@@ -127,7 +119,6 @@ public class AsyncTimelockResource {
     }
 
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("current-time-millis")
     public long currentTimeMillis() {
         return timelock.currentTimeMillis();

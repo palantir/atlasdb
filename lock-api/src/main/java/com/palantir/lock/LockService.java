@@ -19,7 +19,6 @@ import java.math.BigInteger;
 import java.util.Set;
 
 import javax.annotation.Nullable;
-import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -39,7 +38,6 @@ import com.palantir.logsafe.Safe;
  * @author jtamer
  */
 
-@RolesAllowed("EXTERNAL")
 @Path("/lock")
 @Beta public interface LockService extends RemoteLockService {
     /**
@@ -51,7 +49,6 @@ import com.palantir.logsafe.Safe;
      *         if no locks were acquired
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("lock-with-full-response/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -67,7 +64,6 @@ import com.palantir.logsafe.Safe;
      * @see #unlockSimple(SimpleHeldLocksToken)
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("unlock-deprecated")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -75,7 +71,6 @@ import com.palantir.logsafe.Safe;
     @NonIdempotent boolean unlock(HeldLocksToken token);
 
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("unlock-simple")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -115,7 +110,6 @@ import com.palantir.logsafe.Safe;
      *         {@code token} is held by an anonymous lock client
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("unlock-and-freeze")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -129,7 +123,6 @@ import com.palantir.logsafe.Safe;
      * @throws IllegalArgumentException if {@code client} is anonymous.
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("get-tokens/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -143,7 +136,6 @@ import com.palantir.logsafe.Safe;
      * @return the subset of tokens which are still valid after being refreshed
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("refresh-tokens")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -158,7 +150,6 @@ import com.palantir.logsafe.Safe;
      */
 
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("refresh-grant")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -172,7 +163,6 @@ import com.palantir.logsafe.Safe;
      *         or {@code null} if the grant could not be refreshed.
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("refresh-grant-id")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -197,7 +187,6 @@ import com.palantir.logsafe.Safe;
      *         a lock grant because of reentrancy
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("convert-to-grant")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -211,7 +200,6 @@ import com.palantir.logsafe.Safe;
      * @throws IllegalArgumentException if {@code grant} is invalid
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("use-grant/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -225,7 +213,6 @@ import com.palantir.logsafe.Safe;
      * @throws IllegalArgumentException if {@code grantId} is invalid
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("use-grant-id/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -236,7 +223,6 @@ import com.palantir.logsafe.Safe;
      * @deprecated use {@link #getMinLockedInVersionId(LockClient)} instead
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("min-locked-in-version-id")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -250,7 +236,6 @@ import com.palantir.logsafe.Safe;
      * version ID in their {@link LockRequest}s.
      */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("min-locked-in-version-id-for-client/{client: .*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -258,7 +243,6 @@ import com.palantir.logsafe.Safe;
 
     /** Returns the options used to configure the lock server. */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("lock-server-options")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -266,7 +250,6 @@ import com.palantir.logsafe.Safe;
 
     /** Returns the current time in milliseconds on the server. */
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("current-time-millis")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -274,7 +257,6 @@ import com.palantir.logsafe.Safe;
     @Idempotent long currentTimeMillis();
 
     @POST
-    @RolesAllowed("EXTERNAL")
     @Path("log-current-state")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
