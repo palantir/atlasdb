@@ -196,17 +196,6 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) throws KeyAlreadyExistsException {
-        Validate.isTrue(timestamp != Long.MAX_VALUE);
-        Validate.isTrue(timestamp >= 0);
-        Validate.isTrue(!tableRef.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
-        if (values.isEmpty()) {
-            return;
-        }
-        delegate.put(tableRef, values, timestamp);
-    }
-
-    @Override
     public void putMetadataForTable(TableReference tableRef, byte[] tableMetadata) {
         sanityCheckTableMetadata(tableRef, tableMetadata);
         delegate.putMetadataForTable(tableRef, tableMetadata);

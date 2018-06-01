@@ -193,23 +193,6 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        TableStats s = getTableStats(tableRef);
-
-        long start = System.currentTimeMillis();
-        super.put(tableRef, values, timestamp);
-        long finish = System.currentTimeMillis();
-        s.totalPutMillis.addAndGet(finish - start);
-        s.totalPutCalls.incrementAndGet();
-
-        // Only update stats after put was successful.
-        s.totalPutCells.addAndGet(values.size());
-        for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-            incrementPutBytes(s, e.getKey(), e.getValue());
-        }
-    }
-
-    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         long start = System.currentTimeMillis();
         super.multiPut(valuesByTable, timestamp);

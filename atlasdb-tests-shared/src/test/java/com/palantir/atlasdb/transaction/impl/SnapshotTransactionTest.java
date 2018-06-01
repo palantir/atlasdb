@@ -149,7 +149,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
 
         @Override
-        public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
+        public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
             if (randomlyThrow && random.nextInt(3) == 0) {
                 throw new RuntimeException();
             }
@@ -161,7 +161,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 }
                 throw new RuntimeException();
             }
-            super.put(tableRef, values, timestamp);
+            super.multiPut(valuesByTable, timestamp);
         }
 
         public void setRandomlyHang(boolean randomlyHang) {

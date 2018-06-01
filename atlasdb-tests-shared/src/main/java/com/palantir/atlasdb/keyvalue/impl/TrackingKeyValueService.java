@@ -69,12 +69,6 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        tablesWrittenTo.add(tableRef);
-        super.put(tableRef, values, timestamp);
-    }
-
-    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         tablesWrittenTo.addAll(valuesByTable.keySet());
         super.multiPut(valuesByTable, timestamp);

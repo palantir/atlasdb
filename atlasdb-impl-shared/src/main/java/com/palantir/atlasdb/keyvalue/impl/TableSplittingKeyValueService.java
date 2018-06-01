@@ -302,11 +302,6 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        getDelegate(tableRef).put(tableRef, values, timestamp);
-    }
-
-    @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         getDelegate(tableRef).putMetadataForTable(tableRef, metadata);
     }

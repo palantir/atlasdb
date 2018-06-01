@@ -311,12 +311,6 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        maybeLog(() -> delegate.put(tableRef, values, timestamp),
-                logCellsAndSize("put", tableRef, values.keySet().size(), byteSize(values)));
-    }
-
-    @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         maybeLog(() -> delegate.putMetadataForTable(tableRef, metadata),
                 logTimeAndTable("putMetadataForTable", tableRef));

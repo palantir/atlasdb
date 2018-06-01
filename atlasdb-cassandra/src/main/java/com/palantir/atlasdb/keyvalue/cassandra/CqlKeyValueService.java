@@ -561,18 +561,6 @@ public class CqlKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp) {
-        try {
-            putInternal(
-                    tableRef,
-                    KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
-                    TransactionType.NONE);
-        } catch (Throwable t) {
-            throw Throwables.throwUncheckedException(t);
-        }
-    }
-
-    @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
         try {
             putInternal(tableRef, values.entries(), TransactionType.NONE);

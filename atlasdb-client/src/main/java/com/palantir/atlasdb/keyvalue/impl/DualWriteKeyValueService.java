@@ -85,12 +85,6 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        delegate1.put(tableRef, values, timestamp);
-        delegate2.put(tableRef, values, timestamp);
-    }
-
-    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         delegate1.multiPut(valuesByTable, timestamp);
         delegate2.multiPut(valuesByTable, timestamp);

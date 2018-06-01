@@ -380,11 +380,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), false);
-    }
-
-    @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
         putInternal(tableRef, values.entries(), false);
     }

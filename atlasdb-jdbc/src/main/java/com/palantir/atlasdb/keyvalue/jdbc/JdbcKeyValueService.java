@@ -487,22 +487,6 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void put(final TableReference tableRef,
-                    final Map<Cell, byte[]> values,
-                    final long timestamp) throws KeyAlreadyExistsException {
-        if (values.isEmpty()) {
-            return;
-        }
-
-        for (List<Entry<Cell, byte[]>> partition : Iterables.partition(values.entrySet(), batchSizeForMutations)) {
-            run((Function<DSLContext, Void>) ctx -> {
-                putBatch(ctx, tableRef, SingleTimestampPutBatch.create(partition, timestamp), true);
-                return null;
-            });
-        }
-    }
-
-    @Override
     public void multiPut(final Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
                          final long timestamp) throws KeyAlreadyExistsException {
         run((Function<DSLContext, Void>) ctx -> {

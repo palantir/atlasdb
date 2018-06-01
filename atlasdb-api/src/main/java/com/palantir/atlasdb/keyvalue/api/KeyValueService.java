@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -203,9 +204,11 @@ public interface KeyValueService extends AutoCloseable {
     @Path("put")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void put(@QueryParam("tableRef") TableReference tableRef,
+    default void put(@QueryParam("tableRef") TableReference tableRef,
              Map<Cell, byte[]> values,
-             @QueryParam("timestamp") long timestamp) throws KeyAlreadyExistsException;
+             @QueryParam("timestamp") long timestamp) throws KeyAlreadyExistsException {
+        multiPut(Collections.singletonMap(tableRef, values), timestamp);
+    }
 
     /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee

@@ -333,15 +333,6 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("put({}, {} values, ts {})",
-                LoggingArgs.safeTableOrPlaceholder(tableRef), values.size(), timestamp)) {
-            delegate().put(tableRef, values, timestamp);
-        }
-    }
-
-    @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("putMetadataForTable({}, {} bytes)",

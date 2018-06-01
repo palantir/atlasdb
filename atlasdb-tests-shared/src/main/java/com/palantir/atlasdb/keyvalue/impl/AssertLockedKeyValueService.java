@@ -50,42 +50,43 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+        valuesByTable.forEach((tableRef, values) -> {
+            if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
+                SortedMap<LockDescriptor, LockMode> mapToAssertLockHeld = Maps.newTreeMap();
+                SortedMap<LockDescriptor, LockMode> mapToAssertLockNotHeld = Maps.newTreeMap();
+                for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
+                    LockDescriptor descriptor = AtlasRowLockDescriptor.of(tableRef.getQualifiedName(),
+                            e.getKey().getRowName());
+                    if (Arrays.equals(e.getValue(),
+                            TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS))) {
+                        mapToAssertLockNotHeld.put(descriptor, LockMode.READ);
+                    } else {
+                        mapToAssertLockHeld.put(descriptor, LockMode.READ);
+                    }
+                }
 
-        if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
-            SortedMap<LockDescriptor, LockMode> mapToAssertLockHeld = Maps.newTreeMap();
-            SortedMap<LockDescriptor, LockMode> mapToAssertLockNotHeld = Maps.newTreeMap();
-            for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-                LockDescriptor descriptor = AtlasRowLockDescriptor.of(tableRef.getQualifiedName(),
-                        e.getKey().getRowName());
-                if (Arrays.equals(e.getValue(),
-                        TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS))) {
-                    mapToAssertLockNotHeld.put(descriptor, LockMode.READ);
-                } else {
-                    mapToAssertLockHeld.put(descriptor, LockMode.READ);
+                try {
+                    if (!mapToAssertLockHeld.isEmpty()) {
+                        LockRequest request = LockRequest.builder(mapToAssertLockHeld)
+                                .doNotBlock()
+                                .lockAsManyAsPossible()
+                                .build();
+                        LockRefreshToken lock = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
+                        Validate.isTrue(lock == null, "these should already be held");
+                    }
+
+                    if (!mapToAssertLockNotHeld.isEmpty()) {
+                        LockRequest request = LockRequest.builder(mapToAssertLockNotHeld).doNotBlock().build();
+                        LockRefreshToken lock = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
+                        Validate.isTrue(lock != null, "these should already be waited for");
+                    }
+                } catch (InterruptedException e) {
+                    throw Throwables.throwUncheckedException(e);
                 }
             }
+        });
 
-            try {
-                if (!mapToAssertLockHeld.isEmpty()) {
-                    LockRequest request = LockRequest.builder(mapToAssertLockHeld)
-                            .doNotBlock()
-                            .lockAsManyAsPossible()
-                            .build();
-                    LockRefreshToken lock = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
-                    Validate.isTrue(lock == null, "these should already be held");
-                }
-
-                if (!mapToAssertLockNotHeld.isEmpty()) {
-                    LockRequest request = LockRequest.builder(mapToAssertLockNotHeld).doNotBlock().build();
-                    LockRefreshToken lock = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
-                    Validate.isTrue(lock != null, "these should already be waited for");
-                }
-            } catch (InterruptedException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
-        }
-
-        super.put(tableRef, values, timestamp);
+        super.multiPut(valuesByTable, timestamp);
     }
 }
