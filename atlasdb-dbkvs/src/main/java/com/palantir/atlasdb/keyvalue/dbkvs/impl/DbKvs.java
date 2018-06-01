@@ -385,6 +385,30 @@ public final class DbKvs extends AbstractKeyValueService {
         return entry -> Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length;
     }
 
+    private void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, boolean idempotent) {
+        Iterable<List<Entry<Cell, byte[]>>> batches = IterablePartitioner.partitionByCountAndBytes(
+                values.entrySet(),
+                config.mutationBatchCount(),
+                config.mutationBatchSizeBytes(),
+                tableRef,
+                getByteSizingFunction());
+
+        runReadWrite(tableRef, (readTable, writeTable) -> {
+            for (List<Entry<Cell, byte[]>> batch : batches) {
+                try {
+                    writeTable.put(batch, timestamp);
+                } catch (KeyAlreadyExistsException e) {
+                    if (idempotent) {
+                        putIfNotUpdate(readTable, writeTable, tableRef, batch, timestamp, e);
+                    } else {
+                        throw e;
+                    }
+                }
+            }
+            return null;
+        });
+    }
+
     /* (non-Javadoc)
      * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
      */
@@ -409,7 +433,7 @@ public final class DbKvs extends AbstractKeyValueService {
                     String originalName = Thread.currentThread().getName();
                     Thread.currentThread().setName("Atlas multiPut of " + p.size() + " cells into " + table);
                     try {
-                        put(table, Maps2.fromEntries(p), timestamp);
+                        put(table, Maps2.fromEntries(p), timestamp, true);
                         return null;
                     } finally {
                         Thread.currentThread().setName(originalName);
@@ -503,19 +527,7 @@ public final class DbKvs extends AbstractKeyValueService {
 
     @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        Iterable<List<Entry<Cell, byte[]>>> batches = IterablePartitioner.partitionByCountAndBytes(
-                values.entrySet(),
-                config.mutationBatchCount(),
-                config.mutationBatchSizeBytes(),
-                tableRef,
-                getByteSizingFunction());
-
-        runReadWrite(tableRef, (readTable, writeTable) -> {
-            for (List<Entry<Cell, byte[]>> batch : batches) {
-                writeTable.put(batch, AtlasDbConstants.TRANSACTION_TS);
-            }
-            return null;
-        });
+        put(tableRef, values, AtlasDbConstants.TRANSACTION_TS, false);
     }
 
     @Override

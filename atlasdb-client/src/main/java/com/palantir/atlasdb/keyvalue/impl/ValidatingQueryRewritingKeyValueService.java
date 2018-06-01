@@ -184,14 +184,6 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
 
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) throws KeyAlreadyExistsException {
-        if (valuesByTable.isEmpty()) {
-            return;
-        }
-        if (valuesByTable.size() == 1) {
-            Entry<TableReference, ? extends Map<Cell, byte[]>> entry = Iterables.getOnlyElement(valuesByTable.entrySet());
-            put(entry.getKey(), entry.getValue(), timestamp);
-            return;
-        }
         delegate.multiPut(valuesByTable, timestamp);
     }
 
