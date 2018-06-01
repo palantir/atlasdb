@@ -15,7 +15,10 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -28,6 +31,37 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
  * This will read the values of all committed transactions.
  */
 public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
+
+    private static final ExecutorService IGNORING_EXECUTOR = new AbstractExecutorService() {
+        @Override
+        public void shutdown() {
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            return null;
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return false;
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return false;
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+            return false;
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            // Should not be called
+        }
+    };
 
     public ShouldNotDeleteAndRollbackTransaction(KeyValueService keyValueService,
                                TransactionService transactionService,
@@ -49,7 +83,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
               // never actually used, since timelockService is null
               AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
               getRangesExecutor,
-              defaultGetRangesConcurrency);
+              defaultGetRangesConcurrency,
+              IGNORING_EXECUTOR);
     }
 
     @Override

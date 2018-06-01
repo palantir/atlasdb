@@ -124,7 +124,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    long lockAcquireTimeoutMs,
                                    ExecutorService getRangesExecutor,
                                    int defaultGetRangesConcurrency,
-                                   MultiTableSweepQueueWriter sweepQueue) {
+                                   MultiTableSweepQueueWriter sweepQueue,
+                                   ExecutorService deleteExecutor) {
         super(keyValueService,
               timelockService,
               transactionService,
@@ -143,7 +144,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               lockAcquireTimeoutMs,
               getRangesExecutor,
               defaultGetRangesConcurrency,
-              sweepQueue);
+              sweepQueue,
+              deleteExecutor);
     }
 
     @Override
@@ -637,7 +639,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                 RangeRequests.getNextStartRow(false, rangeEnd),
                                 range.getBatchHint());
                     }
-                    rangesToRows.computeIfAbsent(range, ignored -> Lists.newArrayList()).add(row);                    
+                    rangesToRows.computeIfAbsent(range, ignored -> Lists.newArrayList()).add(row);
                 }
             }
             for (Entry<BatchColumnRangeSelection, List<byte[]>> e : rangesToRows.entrySet()) {
@@ -727,7 +729,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 lockAcquireTimeoutMs,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP) {
+                MultiTableSweepQueueWriter.NO_OP,
+                deleteExecutor) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
