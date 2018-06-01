@@ -22,8 +22,6 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.TimestampService;
 
 public class FreshTimestampSupplierAdapter implements LongSupplier {
-    public static LongSupplier NO_TIMESTAMP_SERVICE = FreshTimestampSupplierAdapter::throwNotInitializedException;
-
     private volatile TimestampService timestampService;
 
     public void setTimestampService(TimestampService timestampService) {

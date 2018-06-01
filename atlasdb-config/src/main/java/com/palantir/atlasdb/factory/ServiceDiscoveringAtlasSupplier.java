@@ -36,7 +36,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.qos.FakeQosClient;
@@ -101,10 +100,21 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
             QosClient qosClient) {
-        // TODO (jkong): There is probably a cleaner way to handle the default value here, though something that
-        //               always throws is exactly what we want, which is what FTSA does.
-        this(config, runtimeConfig, leaderConfig, namespace, timestampTable, initializeAsync, qosClient,
-                FreshTimestampSupplierAdapter.NO_TIMESTAMP_SERVICE);
+        this.config = config;
+        this.leaderConfig = leaderConfig;
+
+        AtlasDbFactory atlasFactory = createAtlasFactoryOfCorrectType(config);
+        keyValueService = Suppliers.memoize(
+                () -> atlasFactory.createRawKeyValueService(
+                        config,
+                        runtimeConfig,
+                        leaderConfig,
+                        namespace,
+                        initializeAsync,
+                        qosClient));
+        timestampService = () ->
+                atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
+        timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -116,16 +126,11 @@ public class ServiceDiscoveringAtlasSupplier {
             boolean initializeAsync,
             QosClient qosClient,
             LongSupplier timestampSupplier) {
+        // TODO (jkong): Remove some duplication between the above constructor and this
         this.config = config;
         this.leaderConfig = leaderConfig;
 
-        AtlasDbFactory atlasFactory = StreamSupport.stream(loader.spliterator(), false)
-                .filter(producesCorrectType())
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "No atlas provider for KeyValueService type " + config.type() + " could be found."
-                        + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
-                ));
+        AtlasDbFactory atlasFactory = createAtlasFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(
                 () -> atlasFactory.createRawKeyValueService(
                         config,
@@ -169,6 +174,16 @@ public class ServiceDiscoveringAtlasSupplier {
             log.error("[timestamp-service-creation] The timestamp service was fetched for a second time. "
                     + "We tried to output thread dumps to a temporary file, but encountered an error.", e);
         }
+    }
+
+    private AtlasDbFactory createAtlasFactoryOfCorrectType(KeyValueServiceConfig config) {
+        return StreamSupport.stream(loader.spliterator(), false)
+                .filter(producesCorrectType())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No atlas provider for KeyValueService type " + config.type() + " could be found."
+                                + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
+                ));
     }
 
     @VisibleForTesting
