@@ -20,6 +20,13 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+/**
+ * A version of composed supplier that caches the result of applying the function to the value supplied by the
+ * underlying supplier. The result is recomputed only if the supplied value changes.
+ *
+ * Intended to be used when applying the function is expensive in comparison to getting the value from the underlying
+ * supplier.
+ */
 public class CachedComposedSupplier<F, T> implements Supplier<T> {
     private final Function<F, T> function;
     private final Supplier<F> supplier;
