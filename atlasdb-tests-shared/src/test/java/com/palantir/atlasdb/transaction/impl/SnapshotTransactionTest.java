@@ -93,7 +93,6 @@ import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -991,7 +990,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 timestampCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueue);
+                sweepQueue,
+                deleteExecutor);
 
         //forcing to try to commit a transaction that is already committed
         when(timestampMock.getFreshTimestamp()).thenReturn(2L);
@@ -1037,21 +1037,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 timestampCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueue);
+                sweepQueue,
+                deleteExecutor);
 
         //simulate roll back at commit time
         transactionService.putUnlessExists(snapshot.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
 
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
-        assertThatThrownBy(() -> snapshot.commit()).isInstanceOf(TransactionLockTimeoutException.class);
-    }
-
-    private void put(Transaction txn, TableReference table, WriteInfo write) {
-        if (write.writeRef().isTombstone()) {
-            txn.delete(table, ImmutableSet.of(write.cell()));
-        } else {
-            txn.put(table, ImmutableMap.of(write.cell(), new byte[1]));
-        }
+        assertThatThrownBy(snapshot::commit).isInstanceOf(TransactionLockTimeoutException.class);
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {
