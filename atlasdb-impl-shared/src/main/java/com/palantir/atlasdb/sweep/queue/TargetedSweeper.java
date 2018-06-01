@@ -171,7 +171,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
                 log.warn("Targeted sweep for {} failed and will be retried later.",
                         SafeArg.of("shardStrategy", shardStrategy.toText()), th);
             } finally {
-                shardsBeingSwept.remove(shardStrategy.shard());
+                unlockShard(shardStrategy.shard());
             }
         }
 
@@ -185,6 +185,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
         private int getShardAndIncrement() {
             return queue.modShards(counter.getAndIncrement());
+        }
+
+        private void unlockShard(int shard) {
+            shardsBeingSwept.remove(shard);
         }
 
         @Override
