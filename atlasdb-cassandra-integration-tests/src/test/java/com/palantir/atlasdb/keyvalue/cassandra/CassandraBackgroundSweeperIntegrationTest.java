@@ -48,6 +48,7 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
                 : CassandraContainer.KVS_CONFIG;
         return CassandraKeyValueServiceImpl.create(
                 config,
-                CassandraContainer.LEADER_CONFIG);
+                CassandraContainer.LEADER_CONFIG,
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 }
