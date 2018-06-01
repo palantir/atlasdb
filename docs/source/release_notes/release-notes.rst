@@ -50,6 +50,14 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - When writing to Cassandra, the internal write timestamp for writes (including sweep sentinels) and deletes to regular tables are now a fresh timestamp from the timestamp service, as opposed to being an arbitrary hardcoded value or related to the transaction's start timestamp.
+           This should improve Cassandra's ability to purge droppable tombstones at compaction time, particularly in tables that see heavy volumes of overwrites and sweeping.
+
+           Note that this only applies if you have created your Transaction Manager through the ``TransactionManagers`` factory.
+           If you are creating your transaction manager elsewhere, you should supply a suitable ``freshTimestampProvider`` in initialization - until then, read and write timestamps will continue to use the old scheme.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/NNNN>`__)
+
     *    - |fixed| |devbreak|
          - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers. This functionality was
            never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
