@@ -187,6 +187,37 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The <code class="docutils literal notranslate"><span class="pre">Transaction.getRowsColumnRange</span></code> method that returns an iterator now throws for <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE</span></code> conflict handlers. This functionality was
+never implemented correctly and never offered the serializable guarantee. The method now throws an <code class="docutils literal notranslate"><span class="pre">UnsupportedOperationException</span></code> in this case.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3200">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
+Previously, the method determining whether the transaction had committed successfully or been aborted would hit a code path that would always result in an NPE.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3205">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3208">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-88-0">
+<h2>v0.88.0<a class="headerlink" href="#v0-88-0" title="Permalink to this headline">¶</a></h2>
+<p>30 May 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-new">NEW</span></td>
 <td>KVS method <code class="docutils literal notranslate"><span class="pre">deleteAllTimestamps</span></code> now also takes a boolean argument specifying if garbage deletion sentinels should also be deleted.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3212">Pull Request</a>)</td>
@@ -229,25 +260,28 @@ This release fixes several issues with communication between Atlas servers and a
 Note that this change does not affect communication between timelock nodes, or between an Atlas client and timelock, as these do not currently use remoting.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3196">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-87-0">
+<h2>v0.87.0<a class="headerlink" href="#v0-87-0" title="Permalink to this headline">¶</a></h2>
+<p>25 May 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">SnapshotTransaction</span></code> will no longer attempt to delete values for transactions that get rolled back.
 The deletes were (necessarily) run at consistency <code class="docutils literal notranslate"><span class="pre">ALL</span></code>, meaning that if aborted data was present, read
 transactions had significantly impaired performance if a database node was down.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3199">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>The <code class="docutils literal notranslate"><span class="pre">Transaction.getRowsColumnRange</span></code> method that returns an iterator now throws for <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE</span></code> conflict handlers. This functionality was
-never implemented correctly and never offered the serializable guarantee. The method now throws an <code class="docutils literal notranslate"><span class="pre">UnsupportedOperationException</span></code> in this case.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3200">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3208">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
-Previously, the method determining whether the transaction had committed successfully or been aborted would hit a code path that would always result in an NPE.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3205">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
