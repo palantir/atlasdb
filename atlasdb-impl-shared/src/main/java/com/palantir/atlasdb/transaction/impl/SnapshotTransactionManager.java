@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -65,6 +66,7 @@ import com.palantir.timestamp.TimestampService;
     final boolean allowHiddenTableAccess;
     protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
+    final ExecutorService deleteExecutor;
     final TimestampTracker timestampTracker;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
@@ -87,7 +89,8 @@ import com.palantir.timestamp.TimestampService;
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             Supplier<Long> timestampCacheSize,
-            MultiTableSweepQueueWriter sweepQueueWriter) {
+            MultiTableSweepQueueWriter sweepQueueWriter,
+            ExecutorService deleteExecutor) {
         super(timestampCacheSize);
 
         this.keyValueService = keyValueService;
@@ -106,6 +109,7 @@ import com.palantir.timestamp.TimestampService;
         this.timestampTracker = timestampTracker;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueueWriter = sweepQueueWriter;
+        this.deleteExecutor = deleteExecutor;
     }
 
     @Override
@@ -187,7 +191,8 @@ import com.palantir.timestamp.TimestampService;
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter);
+                sweepQueueWriter,
+                deleteExecutor);
     }
 
     @Override
@@ -214,7 +219,8 @@ import com.palantir.timestamp.TimestampService;
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter);
+                sweepQueueWriter,
+                deleteExecutor);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));
@@ -250,10 +256,22 @@ import com.palantir.timestamp.TimestampService;
             timestampTracker.close();
             cleaner.close();
             keyValueService.close();
+            shutdownExecutor(deleteExecutor);
+            shutdownExecutor(getRangesExecutor);
             closeLockServiceIfPossible();
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
                 callback.run();
             }
+        }
+    }
+
+    private void shutdownExecutor(ExecutorService executor) {
+        executor.shutdown();
+        try {
+            executor.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException ex) {
+            // Continue with further clean-up
+            Thread.currentThread().interrupt();
         }
     }
 

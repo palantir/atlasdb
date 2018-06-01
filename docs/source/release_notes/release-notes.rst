@@ -63,6 +63,12 @@ develop
            never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3200>`__)
 
+    *    - |improved|
+         - ``SnapshotTransaction`` now asynchronously deletes values for transactions that get rolled back.
+           This restores the behaviour from before the previous `fix <https://github.com/palantir/atlasdb/pull/3199>`__,
+           except that the parent transaction no longer waits for the delete to finish.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3219>`__)
+
     *    - |fixed|
          - Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
            Previously, the method determining whether the transaction had committed successfully or been aborted would hit a code path that would always result in an NPE.
