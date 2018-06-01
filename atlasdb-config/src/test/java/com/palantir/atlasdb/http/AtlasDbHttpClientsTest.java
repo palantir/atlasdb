@@ -104,7 +104,7 @@ public class AtlasDbHttpClientsTest {
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
         unavailableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(503)));
 
-        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, Optional::empty,
+        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
                 Optional.empty(), bothUris, TestResource.class);
         int response = client.getTestNumber();
 
@@ -115,7 +115,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void userAgentIsPresentOnClientRequests() {
         TestResource client =
-                AtlasDbHttpClients.createProxy(NO_SSL, Optional::empty, getUriForPort(availablePort), TestResource.class);
+                AtlasDbHttpClients.createProxy(NO_SSL, getUriForPort(availablePort), TestResource.class);
         client.getTestNumber();
 
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
@@ -124,57 +124,10 @@ public class AtlasDbHttpClientsTest {
     }
 
     @Test
-    public void authHeaderIsPresentOnClientRequests() {
-        String authHeader = "foo";
-        TestResource client = AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(NO_SSL,
-                () -> Optional.of(authHeader),
-                Optional.empty(),
-                ImmutableSet.of(getUriForPort(availablePort)),
-                TestResource.class);
-        client.getTestNumber();
-
-        availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
-                .withHeader(FeignOkHttpClients.AUTHORIZATION_HEADER, WireMock.equalTo(authHeader)));
-    }
-
-    @Test
-    public void authHeaderNotPresentIfNotSupplied() {
-        TestResource client = AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(NO_SSL,
-                Optional::empty,
-                Optional.empty(),
-                ImmutableSet.of(getUriForPort(availablePort)),
-                TestResource.class);
-        client.getTestNumber();
-
-        availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
-                .withoutHeader(FeignOkHttpClients.AUTHORIZATION_HEADER));
-    }
-
-    @Test
-    public void authHeaderIsLiveReloadable() {
-        Supplier<Optional<String>> authTokenSupplier = () -> authToken;
-        TestResource client = AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(NO_SSL,
-                authTokenSupplier,
-                Optional.empty(),
-                ImmutableSet.of(getUriForPort(availablePort)),
-                TestResource.class);
-
-        client.getTestNumber();
-        availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
-                .withoutHeader(FeignOkHttpClients.AUTHORIZATION_HEADER));
-
-        authToken = Optional.of("foo");
-
-        client.getTestNumber();
-        availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
-                .withHeader(FeignOkHttpClients.AUTHORIZATION_HEADER, WireMock.equalTo(authToken.get())));
-    }
-
-    @Test
     public void directProxyIsConfigurableOnClientRequests() {
         Optional<ProxySelector> directProxySelector = Optional.of(
                 ServiceCreator.createProxySelector(ProxyConfiguration.DIRECT));
-        TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, Optional::empty,
+        TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
                 directProxySelector, ImmutableSet.of(getUriForPort(availablePort)), TestResource.class);
         clientWithDirectCall.getTestNumber();
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
@@ -187,7 +140,7 @@ public class AtlasDbHttpClientsTest {
     public void httpProxyIsConfigurableOnClientRequests() {
         Optional<ProxySelector> httpProxySelector = Optional.of(
                 ServiceCreator.createProxySelector(ProxyConfiguration.of(getHostAndPort(proxyPort))));
-        TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, Optional::empty,
+        TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
                 httpProxySelector, ImmutableSet.of(getUriForPort(availablePort)), TestResource.class);
         clientWithHttpProxy.getTestNumber();
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
