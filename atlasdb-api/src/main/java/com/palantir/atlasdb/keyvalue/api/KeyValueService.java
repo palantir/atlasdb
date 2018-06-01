@@ -36,6 +36,7 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * Performs non-destructive cleanup when the KVS is no longer needed.
      */
+    @Override
     void close();
 
     /**
