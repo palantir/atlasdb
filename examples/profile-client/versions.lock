@@ -352,6 +352,7 @@
         "com.palantir.tokens:auth-tokens": {
             "locked": "3.0.0",
             "transitive": [
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:service-config"
             ]
         },
@@ -903,6 +904,7 @@
         "com.palantir.tokens:auth-tokens": {
             "locked": "3.0.0",
             "transitive": [
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:service-config"
             ]
         },

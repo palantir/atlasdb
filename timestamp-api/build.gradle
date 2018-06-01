@@ -5,6 +5,7 @@ dependencies {
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+    compile group: 'com.palantir.tokens', name: 'auth-tokens'
 
     testCompile group: 'org.assertj', name: 'assertj-core'
 }

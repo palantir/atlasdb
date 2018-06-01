@@ -28,7 +28,8 @@
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.remoting-api:tracing",
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
@@ -48,7 +49,8 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
@@ -152,6 +154,12 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
+        "com.palantir.tokens:auth-tokens": {
+            "locked": "3.0.0",
+            "transitive": [
+                "com.palantir.atlasdb:timestamp-api"
+            ]
+        },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
             "transitive": [
@@ -199,7 +207,8 @@
             "locked": "1.7.25",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens"
             ]
         }
     },
@@ -232,7 +241,8 @@
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.remoting-api:tracing",
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
@@ -252,7 +262,8 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
@@ -356,6 +367,12 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
+        "com.palantir.tokens:auth-tokens": {
+            "locked": "3.0.0",
+            "transitive": [
+                "com.palantir.atlasdb:timestamp-api"
+            ]
+        },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
             "transitive": [
@@ -403,7 +420,8 @@
             "locked": "1.7.25",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens"
             ]
         }
     }
