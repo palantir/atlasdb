@@ -333,16 +333,6 @@ public class TracingKeyValueServiceTest {
     }
 
     @Test
-    public void put() throws Exception {
-        Map<Cell, byte[]> values = ImmutableMap.of(CELL, VALUE_BYTES);
-        kvs.put(TABLE_REF, values, TIMESTAMP);
-
-        checkSpan("atlasdb-kvs.put({table}, 1 values, ts 1)");
-        verify(delegate).put(TABLE_REF, values, TIMESTAMP);
-        verifyNoMoreInteractions(delegate);
-    }
-
-    @Test
     public void putMetadataForTable() throws Exception {
         kvs.putMetadataForTable(TABLE_REF, METADATA_BYTES);
 
