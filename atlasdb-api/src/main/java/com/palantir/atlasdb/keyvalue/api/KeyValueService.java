@@ -15,13 +15,20 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import static java.util.stream.Collectors.groupingBy;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
@@ -160,6 +167,19 @@ public interface KeyValueService extends AutoCloseable {
              Map<Cell, byte[]> values,
              long timestamp) throws KeyAlreadyExistsException {
         multiPut(Collections.singletonMap(tableRef, values), timestamp);
+    }
+
+    /**
+     * A default implementation that lets one write a stream of data into AtlasDB.
+     */
+    default void put(Stream<Write> writes) {
+        Map<TableReference, ImmutableListMultimap<Cell, Value>> writesByTable =
+                writes.collect(
+                        groupingBy(Write::table,
+                                ImmutableListMultimap.toImmutableListMultimap(
+                                        Write::cell,
+                                        write -> Value.create(write.value(), write.timestamp()))));
+        writesByTable.forEach(this::putWithTimestamps);
     }
 
     /**

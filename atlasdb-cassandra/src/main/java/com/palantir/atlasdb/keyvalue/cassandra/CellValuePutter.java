@@ -17,9 +17,13 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Stream;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -27,13 +31,12 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Mutation;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
@@ -42,8 +45,8 @@ import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class CellValuePutter {
-    private static final Function<Map.Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
-            input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
+    private static final Function<Write, Long> ENTRY_SIZING_FUNCTION = input ->
+            input.value().length + 4L + Cells.getApproxSizeOfCell(input.cell());
 
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
@@ -63,64 +66,76 @@ public class CellValuePutter {
         this.writeConsistency = writeConsistency;
     }
 
-    void put(final String kvsMethodName,
-            final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
-        Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
-        List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
-        for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
-            tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
-                    "Atlas put " + entry.getValue().size()
-                            + " cell values to " + tableRef + " on " + entry.getKey(),
-                    () -> {
-                        putForSingleHost(kvsMethodName, entry.getKey(), tableRef, entry.getValue().entrySet());
-                        clientPool.markWritesForTable(entry.getValue(), tableRef);
-                        return null;
-                    }));
+    void put(final String kvsMethodName, final Stream<Write> writes) {
+        Map<InetSocketAddress, List<Write>> partitionedByHost = HostPartitioner.partitionByHost(clientPool,
+                writes, write -> write.cell().getRowName());
+        List<Callable<Void>> callables = new ArrayList<>();
+        for (Map.Entry<InetSocketAddress, List<Write>> entry : partitionedByHost.entrySet()) {
+            callables.addAll(getMultiPutTasksForSingleHost(kvsMethodName, entry.getKey(), entry.getValue()));
         }
-        taskRunner.runAllTasksCancelOnFailure(tasks);
+        taskRunner.runAllTasksCancelOnFailure(callables);
     }
 
-    private void putForSingleHost(String kvsMethodName,
+    private List<Callable<Void>> getMultiPutTasksForSingleHost(
+            String kvsMethodName, InetSocketAddress host, List<Write> values) {
+        Iterable<List<Write>> partitioned =
+                IterablePartitioner.partitionByCountAndBytes(values,
+                        config.mutationBatchCount(),
+                        config.mutationBatchSizeBytes(),
+                        extractTableNames(values).toString(),
+                        ENTRY_SIZING_FUNCTION);
+        List<Callable<Void>> tasks = Lists.newArrayList();
+        for (final List<Write> batch : partitioned) {
+            final Set<TableReference> tableRefs = extractTableNames(batch);
+            tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
+                    "Atlas multiPut of " + batch.size() + " cells into " + tableRefs + " on " + host,
+                    () -> multiPutForSingleHostInternal(kvsMethodName, host, tableRefs, batch)
+            ));
+        }
+        return tasks;
+    }
+
+    private Void multiPutForSingleHostInternal(
+            final String kvsMethodName,
             final InetSocketAddress host,
-            final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
-        clientPool.runWithRetryOnHost(host,
-                new FunctionCheckedException<CassandraClient, Void, Exception>() {
-                    @Override
-                    public Void apply(CassandraClient client) throws Exception {
-                        int mutationBatchCount = config.mutationBatchCount();
-                        int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
-                        for (List<Map.Entry<Cell, Value>> partition : IterablePartitioner.partitionByCountAndBytes(
-                                values,
-                                mutationBatchCount,
-                                mutationBatchSizeBytes,
-                                tableRef,
-                                ENTRY_SIZING_FUNCTION)) {
-                            MutationMap map = new MutationMap();
-                            for (Map.Entry<Cell, Value> e : partition) {
-                                Cell cell = e.getKey();
-                                Column col = CassandraKeyValueServices.createColumn(cell, e.getValue());
+            final Set<TableReference> tableRefs,
+            final List<Write> batch) throws Exception {
+        final MutationMap mutationMap = convertToMutations(batch);
+        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
+            @Override
+            public Void apply(CassandraClient client) throws Exception {
+                return queryRunner.batchMutate(kvsMethodName, client, tableRefs, mutationMap,
+                        writeConsistency);
+            }
 
-                                ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
-                                colOrSup.setColumn(col);
-                                Mutation mutation = new Mutation();
-                                mutation.setColumn_or_supercolumn(colOrSup);
+            @Override
+            public String toString() {
+                return "batch_mutate(" + host + ", " + tableRefs + ", " + batch.size() + " values)";
+            }
+        });
+    }
 
-                                map.addMutationForCell(cell, tableRef, mutation);
-                            }
+    private MutationMap convertToMutations(List<Write> batch) {
+        MutationMap mutationMap = new MutationMap();
+        for (Write write : batch) {
+            Cell cell = write.cell();
+            Column col = CassandraKeyValueServices.createColumn(cell, Value.create(write.value(), write.timestamp()));
 
-                            queryRunner.batchMutate(kvsMethodName, client, ImmutableSet.of(tableRef), map,
-                                    writeConsistency);
-                        }
-                        return null;
-                    }
+            ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
+            colOrSup.setColumn(col);
+            Mutation mutation = new Mutation();
+            mutation.setColumn_or_supercolumn(colOrSup);
 
-                    @Override
-                    public String toString() {
-                        return "batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
-                                + Iterables.size(values) + " values)";
-                    }
-                });
+            mutationMap.addMutationForCell(cell, write.table(), mutation);
+        }
+        return mutationMap;
+    }
+
+    private Set<TableReference> extractTableNames(List<Write> writes) {
+        Set<TableReference> tableRefs = new HashSet<>();
+        for (Write write : writes) {
+            tableRefs.add(write.table());
+        }
+        return tableRefs;
     }
 }

@@ -15,8 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,6 +70,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -92,6 +97,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
@@ -902,16 +908,21 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        try {
-            cellValuePutter.put("putWithTimestamps", tableRef, values.entries());
-        } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
-        }
+        cellValuePutter.put("putWithTimestamps", values.entries().stream().map(entry ->
+                Write.of(tableRef,
+                        entry.getKey(),
+                        entry.getValue().getTimestamp(),
+                        entry.getValue().getContents())));
     }
 
     @Override
     protected int getMultiPutBatchCount() {
         return config.mutationBatchCount();
+    }
+
+    @Override
+    public void put(Stream<Write> writes) {
+        cellValuePutter.put("put", writes);
     }
 
     /**
@@ -929,83 +940,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
-        List<TableCellAndValue> flattened = Lists.newArrayList();
-        for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> tableAndValues : valuesByTable.entrySet()) {
-            for (Map.Entry<Cell, byte[]> entry : tableAndValues.getValue().entrySet()) {
-                flattened.add(new TableCellAndValue(tableAndValues.getKey(), entry.getKey(), entry.getValue()));
-            }
-        }
-        Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost = HostPartitioner.partitionByHost(clientPool,
-                flattened, TableCellAndValue.EXTRACT_ROW_NAME_FUNCTION);
-
-        List<Callable<Void>> callables = Lists.newArrayList();
-        for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
-            callables.addAll(getMultiPutTasksForSingleHost(entry.getKey(), entry.getValue(), timestamp));
-        }
-        taskRunner.runAllTasksCancelOnFailure(callables);
-    }
-
-    private List<Callable<Void>> getMultiPutTasksForSingleHost(final InetSocketAddress host,
-                                                               Collection<TableCellAndValue> values,
-                                                               final long timestamp) {
-        Iterable<List<TableCellAndValue>> partitioned =
-                IterablePartitioner.partitionByCountAndBytes(values,
-                        getMultiPutBatchCount(),
-                        getMultiPutBatchSizeBytes(),
-                        extractTableNames(values).toString(),
-                        TableCellAndValue.SIZING_FUNCTION);
-        List<Callable<Void>> tasks = Lists.newArrayList();
-        for (final List<TableCellAndValue> batch : partitioned) {
-            final Set<TableReference> tableRefs = extractTableNames(batch);
-            tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
-                    "Atlas multiPut of " + batch.size() + " cells into " + tableRefs + " on " + host,
-                    () -> multiPutForSingleHostInternal(host, tableRefs, batch, timestamp)
-            ));
-        }
-        return tasks;
-    }
-
-    private Set<TableReference> extractTableNames(Iterable<TableCellAndValue> tableCellAndValues) {
-        Set<TableReference> tableRefs = Sets.newHashSet();
-        for (TableCellAndValue tableCellAndValue : tableCellAndValues) {
-            tableRefs.add(tableCellAndValue.tableRef);
-        }
-        return tableRefs;
-    }
-
-    private Void multiPutForSingleHostInternal(final InetSocketAddress host,
-                                               final Set<TableReference> tableRefs,
-                                               final List<TableCellAndValue> batch,
-                                               long timestamp) throws Exception {
-        final MutationMap mutationMap = convertToMutations(batch, timestamp);
-        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
-            @Override
-            public Void apply(CassandraClient client) throws Exception {
-                return wrappingQueryRunner.batchMutate("multiPut", client, tableRefs, mutationMap,
-                        writeConsistency);
-            }
-
-            @Override
-            public String toString() {
-                return "batch_mutate(" + host + ", " + tableRefs + ", " + batch.size() + " values)";
-            }
-        });
-    }
-
-    private MutationMap convertToMutations(List<TableCellAndValue> batch, long timestamp) {
-        MutationMap mutationMap = new MutationMap();
-        for (TableCellAndValue tableCellAndValue : batch) {
-            Cell cell = tableCellAndValue.cell;
-            Column col = CassandraKeyValueServices.createColumn(cell, Value.create(tableCellAndValue.value, timestamp));
-
-            ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
-            colOrSup.setColumn(col);
-            Mutation mutation = new Mutation();
-            mutation.setColumn_or_supercolumn(colOrSup);
-
-            mutationMap.addMutationForCell(cell, tableCellAndValue.tableRef, mutation);
-        }
-        return mutationMap;
+        cellValuePutter.put("multiPut", valuesByTable.entrySet().stream()
+                .flatMap(writes -> writes.getValue().entrySet().stream()
+                        .map(write -> Write.of(writes.getKey(), write.getKey(), timestamp, write.getValue()))));
     }
 
     /**
@@ -1195,7 +1132,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .map(rows -> rows.stream()
                         .map(CandidateRowForSweeping::cells)
                         .flatMap(List::stream)
-                        .collect(Collectors.toList()));
+                        .collect(toList()));
     }
 
     private ClosableIterator<List<CandidateRowForSweeping>> getCandidateRowsForSweeping(
@@ -1413,7 +1350,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             Set<TableReference> existingTablesLowerCased = cassandraTables.getExistingLowerCased().stream()
                     .map(TableReference::fromInternalTableName)
-                    .collect(Collectors.toSet());
+                    .collect(toSet());
 
             for (Entry<TableReference, byte[]> tableAndMetadataPair : tableNamesToTableMetadata.entrySet()) {
                 TableReference table = tableAndMetadataPair.getKey();
@@ -1491,7 +1428,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public Set<TableReference> getAllTableNames() {
         return getTableReferencesWithoutFiltering()
                 .filter(tr -> !HiddenTables.isHidden(tr))
-                .collect(Collectors.toSet());
+                .collect(toSet());
     }
 
     /**
@@ -1580,7 +1517,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private Set<TableReference> getAllTableReferencesWithoutFiltering() {
         return getTableReferencesWithoutFiltering()
-                .collect(Collectors.toSet());
+                .collect(toSet());
     }
 
     private Stream<TableReference> getTableReferencesWithoutFiltering() {
@@ -1799,9 +1736,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         try {
-            final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
             cellValuePutter.put("addGarbageCollectionSentinelValues",
-                    tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
+                    Streams.stream(cells)
+                            .map(cell -> Write.of(tableRef,
+                                    cell,
+                                    Value.INVALID_VALUE_TIMESTAMP,
+                                    PtBytes.EMPTY_BYTE_ARRAY)));
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
@@ -1882,7 +1822,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 if (!casResult.isSuccess()) {
                     List<byte[]> currentValues = casResult.current_values.stream()
                             .map(Column::getValue)
-                            .collect(Collectors.toList());
+                            .collect(toList());
 
                     throw new CheckAndSetException(
                             request.cell(),

@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KsDef;
@@ -35,6 +36,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
@@ -109,11 +111,8 @@ class CassandraTableDropper {
         );
 
         try {
-            cellValuePutter.put("put", AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                    KeyValueServices.toConstantTimestampValues(
-                            ((Map<Cell, byte[]>) ImmutableMap.of(
-                                    CassandraKeyValueServices.getMetadataCell(tableRef), meta)).entrySet(),
-                            ts));
+            cellValuePutter.put("put", Stream.of(Write.of(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                    CassandraKeyValueServices.getMetadataCell(tableRef), ts, meta)));
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
