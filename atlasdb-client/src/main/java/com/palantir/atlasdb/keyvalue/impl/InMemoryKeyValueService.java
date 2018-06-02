@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static java.util.Collections.singleton;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -29,6 +31,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -38,6 +41,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
@@ -66,6 +70,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -375,16 +380,19 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
+    public void put(Stream<Write> writes) {
+        writes.forEach(write -> putInternal(
+                write.table(),
+                ImmutableMap.of(write.cell(), Value.create(write.value(), write.timestamp())).entrySet(),
+                false));
+    }
+
+    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp) {
         valuesByTable.forEach((tableRef, values) ->
                 putInternal(tableRef,
                         KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
                         false));
-    }
-
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        putInternal(tableRef, values.entries(), false);
     }
 
     @Override

@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.common.base.ClosableIterator;
@@ -126,17 +127,23 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
         context.totalDeletes += batchToDelete.size();
         batchToDelete.clear();
         try {
-            context.kvs.putWithTimestamps(AtlasDbConstants.SCRUB_TABLE, batchToCreate);
+            putBatch(context, batchToCreate);
         } catch (KeyAlreadyExistsException e) {
             context.kvs.delete(AtlasDbConstants.SCRUB_TABLE,
                     Multimaps.transformValues(batchToCreate, Value::getTimestamp));
-            context.kvs.putWithTimestamps(AtlasDbConstants.SCRUB_TABLE, batchToCreate);
+            putBatch(context, batchToCreate);
         }
         context.totalPuts += batchToCreate.size();
         batchToCreate.clear();
         context.output.println("Moved " + context.totalDeletes + " cells from "
                 + "the old scrub queue into " + context.totalPuts + " cells in "
                 + "the new scrub queue.");
+    }
+
+    private static void putBatch(Context context, Multimap<Cell, Value> batch) {
+        context.kvs.put(batch.entries().stream()
+                .map(entry -> Write.of(AtlasDbConstants.SCRUB_TABLE, entry.getKey(),
+                        entry.getValue().getTimestamp(), entry.getValue().getContents())));
     }
 
     @Override

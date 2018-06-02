@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.SortedMap;
+import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
@@ -107,14 +109,13 @@ public class ScrubberTest {
         Cell cell3 = Cell.create(new byte[] {3}, new byte[] {4});
         TableReference tableRef = TableReference.createFromFullyQualifiedName("foo.bar");
         kvs.createTable(tableRef, new byte[] {});
-        kvs.putWithTimestamps(tableRef, ImmutableMultimap.<Cell, Value>builder()
-                .put(cell1, Value.create(new byte[] {3}, 10))
-                .put(cell1, Value.create(new byte[] {4}, 20))
-                .put(cell2, Value.create(new byte[] {4}, 30))
-                .put(cell2, Value.create(new byte[] {5}, 40))
-                .put(cell2, Value.create(new byte[] {6}, 50))
-                .put(cell3, Value.create(new byte[] {7}, 60))
-                .build());
+        kvs.put(Stream.of(
+                Write.of(tableRef, cell1, 10, new byte[] {3}),
+                Write.of(tableRef, cell1, 20, new byte[] {4}),
+                Write.of(tableRef, cell2, 30, new byte[] {4}),
+                Write.of(tableRef, cell2, 40, new byte[] {5}),
+                Write.of(tableRef, cell2, 50, new byte[] {6}),
+                Write.of(tableRef, cell3, 60, new byte[] {7})));
         transactions.putUnlessExists(10, 15);
         transactions.putUnlessExists(20, 25);
         transactions.putUnlessExists(30, 35);

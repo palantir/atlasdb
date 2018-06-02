@@ -7,6 +7,7 @@ package com.palantir.atlasdb.cli.command;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.util.SortedMap;
+import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -26,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -54,11 +56,11 @@ public class TestScrubQueueMigrationCommand {
         Cell cell2 = Cell.create(new byte[] {7, 8, 9}, new byte[] {4, 5, 6});
         Cell cell3 = Cell.create(new byte[] {1, 2, 3}, new byte[] {7, 8, 9});
         kvs.createTable(AtlasDbConstants.OLD_SCRUB_TABLE, new byte[] {0});
-        kvs.putWithTimestamps(AtlasDbConstants.OLD_SCRUB_TABLE, ImmutableMultimap.of(
-                cell1, Value.create("foo\0bar".getBytes(), 10),
-                cell1, Value.create("baz".getBytes(), 20),
-                cell2, Value.create("foo".getBytes(), 30),
-                cell3, Value.create("foo\0bar\0baz".getBytes(), 40)));
+        kvs.put(Stream.of(
+                Write.of(AtlasDbConstants.OLD_SCRUB_TABLE, cell1, 10, "foo\0bar".getBytes()),
+                Write.of(AtlasDbConstants.OLD_SCRUB_TABLE, cell1, 20, "baz".getBytes()),
+                Write.of(AtlasDbConstants.OLD_SCRUB_TABLE, cell2, 30, "foo".getBytes()),
+                Write.of(AtlasDbConstants.OLD_SCRUB_TABLE, cell3, 40, "foo\0bar\0baz".getBytes())));
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ScrubQueueMigrationCommand.run(kvs, new PrintWriter(baos, true), 1000);
         BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> visitable =

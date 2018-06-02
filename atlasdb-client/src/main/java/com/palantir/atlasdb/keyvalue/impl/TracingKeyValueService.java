@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ForwardingObject;
@@ -41,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.ClosableIterator;
@@ -323,6 +325,14 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public void put(Stream<Write> writes) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("put()")) {
+            delegate.put(writes);
+        }
+    }
+
+    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
@@ -363,15 +373,6 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public boolean supportsCheckAndSet() {
         return delegate().supportsCheckAndSet();
-    }
-
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("putWithTimestamps({}, {} values)",
-                LoggingArgs.safeTableOrPlaceholder(tableRef), values.size())) {
-            delegate().putWithTimestamps(tableRef, values);
-        }
     }
 
     @Override

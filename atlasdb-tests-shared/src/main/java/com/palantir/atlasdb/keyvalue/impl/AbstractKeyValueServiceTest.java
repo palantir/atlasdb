@@ -41,6 +41,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.After;
@@ -80,6 +81,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -1261,7 +1263,7 @@ public abstract class AbstractKeyValueServiceTest {
         putTestDataForMultipleTimestamps();
         final Value val1 = Value.create(value0_t1, TEST_TIMESTAMP + 1);
         final Value val5 = Value.create(value0_t5, TEST_TIMESTAMP + 5);
-        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(TEST_CELL, val5));
+        keyValueService.put(Stream.of(Write.of(TEST_TABLE, TEST_CELL, TEST_TIMESTAMP + 5, value0_t5)));
         assertEquals(
                 val5,
                 keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 6)).get(TEST_CELL));
@@ -1360,17 +1362,9 @@ public abstract class AbstractKeyValueServiceTest {
             }
         }
 
-        keyValueService.putWithTimestamps(
-                TEST_TABLE,
-                ImmutableMultimap.of(
-                        TEST_CELL,
-                        Value.create(value00, TEST_TIMESTAMP + 1)));
+        keyValueService.put(Stream.of(Write.of(TEST_TABLE, TEST_CELL, TEST_TIMESTAMP + 1, value00)));
         try {
-            keyValueService.putWithTimestamps(
-                    TEST_TABLE,
-                    ImmutableMultimap.of(
-                            TEST_CELL,
-                            Value.create(value00, TEST_TIMESTAMP + 1)));
+            keyValueService.put(Stream.of(Write.of(TEST_TABLE, TEST_CELL, TEST_TIMESTAMP + 1, value00)));
         } catch (AtlasDbDependencyException e) {
             if (KeyAlreadyExistsException.class.isInstance(e.getCause())) {
                 Assert.fail("Must not throw when overwriting with same value!");
@@ -1378,8 +1372,7 @@ public abstract class AbstractKeyValueServiceTest {
         }
 
         try {
-            keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
-                    TEST_CELL, Value.create(value01, TEST_TIMESTAMP + 1)));
+            keyValueService.put(Stream.of(Write.of(TEST_TABLE, TEST_CELL, TEST_TIMESTAMP + 1, value01)));
             // Legal
         } catch (AtlasDbDependencyException e) {
             // Legal
@@ -1576,8 +1569,7 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     private void writeToCell(Cell cell, byte[] data) {
-        Value val = Value.create(data, TEST_TIMESTAMP + 1);
-        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(cell, val));
+        keyValueService.put(Stream.of(Write.of(TEST_TABLE, cell, TEST_TIMESTAMP + 1, data)));
     }
 
     private byte[] getRowsForCell(Cell cell) {

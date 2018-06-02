@@ -361,16 +361,6 @@ public class TracingKeyValueServiceTest {
     }
 
     @Test
-    public void putWithTimestamps() throws Exception {
-        Multimap<Cell, Value> values = ImmutableMultimap.of(CELL, VALUE);
-        kvs.putWithTimestamps(TABLE_REF, values);
-
-        checkSpan("atlasdb-kvs.putWithTimestamps({table}, 1 values)");
-        verify(delegate).putWithTimestamps(TABLE_REF, values);
-        verifyNoMoreInteractions(delegate);
-    }
-
-    @Test
     public void truncateTable() throws Exception {
         kvs.truncateTable(TABLE_REF);
 

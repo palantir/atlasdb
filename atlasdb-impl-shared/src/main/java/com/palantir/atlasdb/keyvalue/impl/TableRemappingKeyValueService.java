@@ -15,13 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static java.util.stream.Collectors.groupingBy;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ForwardingObject;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -44,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -215,6 +220,18 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public void put(Stream<Write> writes) {
+        delegate.put(writes.map(write -> {
+            try {
+                return Write.of(tableMapper.getMappedTableName(write.table()),
+                        write.cell(), write.timestamp(), write.value());
+            } catch (TableMappingNotFoundException e) {
+                throw new IllegalArgumentException(e);
+            }
+        }));
+    }
+
+    @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         try {
             return delegate().getMetadataForTable(tableMapper.getMappedTableName(tableRef));
@@ -378,15 +395,6 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                     .table(tableMapper.getMappedTableName(checkAndSetRequest.table()))
                     .build();
             delegate().checkAndSet(request);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        try {
-            delegate().putWithTimestamps(tableMapper.getMappedTableName(tableRef), values);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }

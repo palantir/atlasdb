@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -195,43 +197,6 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         delegate.putUnlessExists(tableRef, values);
-    }
-
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException {
-        if (cellValues.isEmpty()) {
-            return;
-        }
-        Validate.isTrue(!tableRef.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
-
-        long lastTimestamp = -1;
-        boolean allAtSameTimestamp = true;
-        for (Value value : cellValues.values()) {
-            long timestamp = value.getTimestamp();
-            Validate.isTrue(timestamp != Long.MAX_VALUE);
-            Validate.isTrue(timestamp >= 0);
-            if (lastTimestamp != -1 && timestamp != lastTimestamp) {
-                allAtSameTimestamp = false;
-            }
-            lastTimestamp = timestamp;
-        }
-
-        if (allAtSameTimestamp) {
-            Multimap<Cell, byte[]> cellValuesWithStrippedTimestamp = Multimaps.transformValues(cellValues, Value.GET_VALUE);
-
-            Map<Cell, byte[]> putMap = Maps.transformValues(cellValuesWithStrippedTimestamp.asMap(), input -> {
-                try {
-                    return Iterables.getOnlyElement(input);
-                } catch (IllegalArgumentException e) {
-                    log.error("Application tried to put multiple same-cell values in at same timestamp; attempting to perform last-write-wins, but ordering is not guaranteed.");
-                    return Iterables.getLast(input);
-                }
-            });
-
-            KeyValueServices.put(this, tableRef, putMap, lastTimestamp);
-            return;
-        }
-        delegate.putWithTimestamps(tableRef, cellValues);
     }
 
     @Override

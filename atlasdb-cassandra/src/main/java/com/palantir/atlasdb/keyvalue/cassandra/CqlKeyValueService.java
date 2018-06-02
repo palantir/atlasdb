@@ -29,6 +29,7 @@ import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.net.ssl.SSLContext;
 
@@ -96,6 +97,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlKeyValueServices.AllTimestampsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlKeyValueServices.Local;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlKeyValueServices.Peer;
@@ -489,6 +491,11 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         } catch (Throwable t) {
             throw Throwables.throwUncheckedException(t);
         }
+    }
+
+    @Override
+    public void put(Stream<Write> writes) {
+        throw new UnsupportedOperationException("I have another PR out to delete this");
     }
 
     private Map<Cell, Long> getLatestTimestampsInternal(final TableReference tableRef,

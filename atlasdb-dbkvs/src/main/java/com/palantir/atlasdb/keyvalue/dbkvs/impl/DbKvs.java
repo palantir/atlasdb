@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -43,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -69,6 +74,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Atomics;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -87,6 +93,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.H2DdlConfig;
@@ -122,6 +129,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
@@ -409,54 +417,71 @@ public final class DbKvs extends AbstractKeyValueService {
         });
     }
 
+    private Stream<Callable<Void>> putWritesForTable(TableReference table, Map<Cell, Value> writes) {
+        NavigableMap<Cell, Value> sortedMap = ImmutableSortedMap.copyOf(writes);
+
+        Iterable<List<Entry<Cell, Value>>> partitions = IterablePartitioner.partitionByCountAndBytes(
+                sortedMap.entrySet(),
+                getMultiPutBatchCount(),
+                getMultiPutBatchSizeBytes(),
+                table,
+                getValueSizingFunction());
+
+        return Streams.stream(partitions)
+                .map(batch -> () -> {
+                    runReadWrite(table, (readTable, writeTable) -> {
+                        try {
+                            writeTable.put(batch);
+                        } catch (KeyAlreadyExistsException e) {
+                            putIfNotUpdate(readTable, writeTable, table, batch, e);
+                        }
+                        return null;
+                    });
+                    return null;
+                });
+    }
+
+    private void executeCallables(List<Callable<Void>> callables) {
+        try {
+            List<Future<Void>> futures = executor.invokeAll(callables);
+            for (Future<Void> future : futures) {
+                future.get();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw Throwables.throwUncheckedException(e);
+        } catch (ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+    }
+
+    @Override
+    public void put(Stream<Write> writes) {
+        Map<TableReference, Map<Cell, Value>> writesByTable = writes.collect(
+                groupingBy(Write::table, toMap(Write::cell,
+                        write -> Value.create(write.value(), write.timestamp()))));
+        List<Callable<Void>> callables = KeyedStream.stream(writesByTable)
+                .flatMap(this::putWritesForTable)
+                .values()
+                .collect(toList());
+        executeCallables(callables);
+    }
+
     /* (non-Javadoc)
      * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
      */
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp)
             throws KeyAlreadyExistsException {
-        List<Callable<Void>> callables = Lists.newArrayList();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
-            final TableReference table = e.getKey();
-            // We sort here because some key value stores are more efficient if you store adjacent keys together.
-            NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
-
-            Iterable<List<Entry<Cell, byte[]>>> partitions = IterablePartitioner.partitionByCountAndBytes(
-                    sortedMap.entrySet(),
-                    getMultiPutBatchCount(),
-                    getMultiPutBatchSizeBytes(),
-                    table,
-                    entry -> entry == null ? 0 : entry.getValue().length + Cells.getApproxSizeOfCell(entry.getKey()));
-
-            for (final List<Entry<Cell, byte[]>> p : partitions) {
-                callables.add(() -> {
-                    String originalName = Thread.currentThread().getName();
-                    Thread.currentThread().setName("Atlas multiPut of " + p.size() + " cells into " + table);
-                    try {
-                        put(table, Maps2.fromEntries(p), timestamp, true);
-                        return null;
-                    } finally {
-                        Thread.currentThread().setName(originalName);
-                    }
-                });
-            }
-        }
-
-        List<Future<Void>> futures;
-        try {
-            futures = executor.invokeAll(callables);
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-        for (Future<Void> future : futures) {
-            try {
-                future.get();
-            } catch (InterruptedException e) {
-                throw Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
-            }
-        }
+        List<Callable<Void>> callables = KeyedStream.stream(valuesByTable)
+                .map(tableValues -> Maps.transformValues(tableValues, value -> Value.create(value, timestamp)))
+                .flatMap(this::putWritesForTable)
+                .values()
+                .collect(toList());
+        executeCallables(callables);
+        put(valuesByTable.entrySet().stream()
+                .flatMap(writes -> writes.getValue().entrySet().stream()
+                        .map(write -> Write.of(writes.getKey(), write.getKey(), timestamp, write.getValue()))));
     }
 
     private void putIfNotUpdate(
@@ -501,28 +526,6 @@ public final class DbKvs extends AbstractKeyValueService {
                 Lists.transform(batch,
                         input -> Maps.immutableEntry(input.getKey(), Value.create(input.getValue(), timestamp)));
         putIfNotUpdate(readTable, writeTable, tableRef, batchValues, ex);
-    }
-
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues)
-            throws KeyAlreadyExistsException {
-        Iterable<List<Entry<Cell, Value>>> batches = IterablePartitioner.partitionByCountAndBytes(
-                cellValues.entries(),
-                config.mutationBatchCount(),
-                config.mutationBatchSizeBytes(),
-                tableRef,
-                getValueSizingFunction());
-
-        runReadWrite(tableRef, (readTable, writeTable) -> {
-            for (List<Entry<Cell, Value>> batch : batches) {
-                try {
-                    writeTable.put(batch);
-                } catch (KeyAlreadyExistsException e) {
-                    putIfNotUpdate(readTable, writeTable, tableRef, batch, e);
-                }
-            }
-            return null;
-        });
     }
 
     @Override
@@ -747,7 +750,7 @@ public final class DbKvs extends AbstractKeyValueService {
         }
         List<RowResult<Set<Long>>> finalResults = cellsByRow.entrySet().stream()
                 .map(entry -> RowResult.create(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+                .collect(toList());
 
         return SimpleTokenBackedResultsPage.create(result.getToken(), finalResults, result.mayHaveMoreResults());
     }

@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.jdbc;
 
+import static java.util.stream.Collectors.groupingBy;
+
 import static org.jooq.Clause.TABLE_VALUES;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.row;
@@ -62,6 +64,7 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.stream.Stream;
 
 import javax.sql.DataSource;
 
@@ -94,6 +97,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -124,6 +128,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -486,6 +491,28 @@ public class JdbcKeyValueService implements KeyValueService {
                 .fetch();
     }
 
+    // Inefficient impl because who cares, it's JDBC
+    @Override
+    public void put(Stream<Write> writes) {
+        Map<TableReference, ImmutableListMultimap<Cell, Value>> putsWithTimestamps =
+                writes.collect(groupingBy(Write::table,
+                        ImmutableListMultimap.toImmutableListMultimap(
+                                Write::cell,
+                                write -> Value.create(write.value(), write.timestamp()))));
+        putsWithTimestamps.forEach((tableRef, values) -> {
+            if (values.isEmpty()) {
+                return;
+            }
+
+            for (List<Entry<Cell, Value>> partValues : Iterables.partition(values.entries(), batchSizeForMutations)) {
+                run((Function<DSLContext, Void>) ctx -> {
+                    putBatch(ctx, tableRef, new MultiTimestampPutBatch(partValues), true);
+                    return null;
+                });
+            }
+        });
+    }
+
     @Override
     public void multiPut(final Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
                          final long timestamp) throws KeyAlreadyExistsException {
@@ -502,21 +529,6 @@ public class JdbcKeyValueService implements KeyValueService {
             }
             return null;
         });
-    }
-
-    @Override
-    public void putWithTimestamps(final TableReference tableRef,
-                                  final Multimap<Cell, Value> values) throws KeyAlreadyExistsException {
-        if (values.isEmpty()) {
-            return;
-        }
-
-        for (List<Entry<Cell, Value>> partValues : Iterables.partition(values.entries(), batchSizeForMutations)) {
-            run((Function<DSLContext, Void>) ctx -> {
-                putBatch(ctx, tableRef, new MultiTimestampPutBatch(partValues), true);
-                return null;
-            });
-        }
     }
 
     @Override

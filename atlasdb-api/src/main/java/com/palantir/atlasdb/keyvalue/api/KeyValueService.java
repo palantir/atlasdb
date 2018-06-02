@@ -153,34 +153,39 @@ public interface KeyValueService extends AutoCloseable {
                                         Map<Cell, Long> timestampByCell);
 
     /**
-     * A legacy version of put which delegates to {@link #multiPut(Map, long)},
+     * A legacy version of put which delegates to {@link #put(Stream)},
      * this method is not intended to be implemented or used.
      * <p>
      * There exist a few internal implementations of this class, and we will
      * remove this method when they are gone.
      * <p>
-     * @deprecated please use multiPut instead.
+     * @deprecated please use {@link #put(Stream)} instead.
      */
     @Idempotent
     @Deprecated
     default void put(TableReference tableRef,
              Map<Cell, byte[]> values,
              long timestamp) throws KeyAlreadyExistsException {
-        multiPut(Collections.singletonMap(tableRef, values), timestamp);
+        put(values.entrySet().stream().map(entry -> Write.of(tableRef, entry.getKey(), timestamp, entry.getValue())));
     }
 
     /**
-     * A default implementation that lets one write a stream of data into AtlasDB.
+     * Puts values into the key-value store. This call <i>does not</i> guarantee
+     * atomicity across cells. On failure, it is possible that some of the requests
+     * will have succeeded (without having been rolled back). Similarly, concurrent
+     * batched requests may interleave.
+     * <p>
+     * If the key-value store supports durability, this call guarantees that the
+     * requests have successfully been written to disk before returning.
+     * <p>
+     * May throw KeyAlreadyExistsException, if storing a different value to existing key,
+     * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}.
+     * <p>
+     * While this request takes a {@link Stream}, it should not be assumed that this
+     * method operates on only a fixed window, and as such the consumer should
+     * assume that all of the writes in the stream be bufferable in memory.
      */
-    default void put(Stream<Write> writes) {
-        Map<TableReference, ImmutableListMultimap<Cell, Value>> writesByTable =
-                writes.collect(
-                        groupingBy(Write::table,
-                                ImmutableListMultimap.toImmutableListMultimap(
-                                        Write::cell,
-                                        write -> Value.create(write.value(), write.timestamp()))));
-        writesByTable.forEach(this::putWithTimestamps);
-    }
+    void put(Stream<Write> writes);
 
     /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee
@@ -206,32 +211,21 @@ public interface KeyValueService extends AutoCloseable {
                   long timestamp) throws KeyAlreadyExistsException;
 
     /**
-     * Puts values into the key-value store with individually specified timestamps.
-     * This call <i>does not</i> guarantee atomicity across cells. On failure, it is possible
-     * that some of the requests will have succeeded (without having been rolled
-     * back). Similarly, concurrent batched requests may interleave.
+     * A legacy version of put which delegates to {@link #put(Stream)},
+     * this method is not intended to be implemented or used.
      * <p>
-     * If the key-value store supports durability, this call guarantees that the
-     * requests have successfully been written to disk before returning.
+     * There exist a few internal implementations of this class, and we will
+     * remove this method when they are gone.
      * <p>
-     * This method may be non-idempotent. On some write-once implementations retrying this
-     * call may result in failure. The way around this is to delete and retry.
-     * <p>
-     * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
-     * try {@link #delete(TableReference, Multimap)}.
-     * <p>
-     * May throw KeyAlreadyExistsException, if storing a different value to existing key,
-     * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}.
-     * <p>
-     * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
-     *  @param tableRef the name of the table to put values into.
-     * @param cellValues map containing the key-value entries to put with
-     *               non-negative timestamps less than {@link Long#MAX_VALUE}.
+     * @deprecated please use {@link #put(Stream)} instead.
      */
-    @NonIdempotent
     @Idempotent
-    void putWithTimestamps(TableReference tableRef,
-                           Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
+    @Deprecated
+    default void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) {
+        put(cellValues.entries().stream()
+                .map(entry -> Write.of(tableRef, entry.getKey(),
+                        entry.getValue().getTimestamp(), entry.getValue().getContents())));
+    }
 
     /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee

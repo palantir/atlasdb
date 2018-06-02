@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toMap;
+
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -22,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -47,6 +51,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -288,6 +293,14 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void put(Stream<Write> writes) {
+        Map<TableReference, List<Write>> writesByTable = writes.collect(groupingBy(Write::table));
+        Map<KeyValueService, Stream<Write>> writesByDelegate = writesByTable.entrySet().stream()
+                .collect(toMap(e -> getDelegate(e.getKey()), e -> e.getValue().stream(), Stream::concat));
+        writesByDelegate.forEach(KeyValueService::put);
+    }
+
+    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         Map<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> mapByDelegate = Maps.newHashMap();
         for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
@@ -327,11 +340,6 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         getDelegate(checkAndSetRequest.table()).checkAndSet(checkAndSetRequest);
-    }
-
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        getDelegate(tableRef).putWithTimestamps(tableRef, values);
     }
 
     @Override

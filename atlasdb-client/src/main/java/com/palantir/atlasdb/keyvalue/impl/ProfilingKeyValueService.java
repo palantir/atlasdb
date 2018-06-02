@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
@@ -43,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.KvsProfilingLogger.LoggingFunction;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -290,6 +292,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void put(Stream<Write> writes) {
+        maybeLog(() -> delegate.put(writes), logTime("put"));
+    }
+
+    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         long startTime = System.currentTimeMillis();
         maybeLog(() -> delegate.multiPut(valuesByTable, timestamp),
@@ -337,12 +344,6 @@ public final class ProfilingKeyValueService implements KeyValueService {
     public void checkAndSet(CheckAndSetRequest request) {
         maybeLog(() -> delegate.checkAndSet(request),
                 logCellsAndSize("checkAndSet", request.table(), 1, request.newValue().length));
-    }
-
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        maybeLog(() -> delegate.putWithTimestamps(tableRef, values),
-                logCellsAndSize("putWithTimestamps", tableRef, values.keySet().size(), byteSize(values)));
     }
 
     @Override

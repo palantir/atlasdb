@@ -28,7 +28,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +54,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityNamedColumn;
@@ -120,6 +124,19 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
+    public void put(Stream<Write> writes) {
+        MutableInt newWrites = new MutableInt(0);
+        MutableLong writesSize = new MutableLong(0);
+        delegate().put(writes.peek(write -> {
+            writesByTable.add(write.table(), 1);
+            newWrites.increment();
+            writesSize.add(write.value().length);
+        }));
+        recordModifications(newWrites.intValue());
+        recordModificationsSize(writesSize.longValue());
+    }
+
+    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         delegate().multiPut(valuesByTable, timestamp);
         int newWrites = 0;
@@ -132,15 +149,6 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         }
         recordModifications(newWrites);
         recordModificationsSize(writesSize);
-    }
-
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) {
-        delegate().putWithTimestamps(tableRef, cellValues);
-        writesByTable.add(tableRef, cellValues.size());
-        recordModifications(cellValues.size());
-        recordModificationsSize(cellValues.entries().stream()
-                .mapToLong(cellEntry -> cellEntry.getValue().getContents().length).sum());
     }
 
     @Override

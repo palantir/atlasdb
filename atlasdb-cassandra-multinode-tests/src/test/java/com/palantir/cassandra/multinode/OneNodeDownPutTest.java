@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 
 public class OneNodeDownPutTest {
@@ -48,8 +50,8 @@ public class OneNodeDownPutTest {
 
     @Test
     public void canPutWithTimestamps() {
-        OneNodeDownTestSuite.kvs.putWithTimestamps(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_2, newValue));
+        OneNodeDownTestSuite.kvs.put(Stream.of(
+                Write.of(OneNodeDownTestSuite.TEST_TABLE, OneNodeDownTestSuite.CELL_1_2, newTimestamp, newContents)));
         OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_2, newValue);
     }
 

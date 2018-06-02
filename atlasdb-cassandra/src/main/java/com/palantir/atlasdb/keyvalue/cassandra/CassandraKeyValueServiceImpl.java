@@ -895,26 +895,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return super.getLatestTimestamps(tableRef, timestampByCell);
     }
 
-    /**
-     * Puts values into the key-value store with individually specified timestamps. This call <i>does not</i>
-     * guarantee atomicity across cells. On failure, it is possible that some of the requests have succeeded
-     * (without having been rolled back). Similarly, concurrent batched requests may interleave.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to put values into.
-     * @param values map containing the key-value entries to put with
-     *               non-negative timestamps less than {@link Long#MAX_VALUE}.
-     */
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        cellValuePutter.put("putWithTimestamps", values.entries().stream().map(entry ->
-                Write.of(tableRef,
-                        entry.getKey(),
-                        entry.getValue().getTimestamp(),
-                        entry.getValue().getContents())));
-    }
-
     @Override
     protected int getMultiPutBatchCount() {
         return config.mutationBatchCount();

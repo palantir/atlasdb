@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -31,11 +32,12 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.common.base.ClosableIterator;
 
 public class TrackingKeyValueService extends ForwardingKeyValueService {
-    private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(Maps.newConcurrentMap());
-    private final Set<TableReference> tablesReadFrom = Sets.newSetFromMap(Maps.newConcurrentMap());
+    private final Set<TableReference> tablesWrittenTo = Sets.newConcurrentHashSet();
+    private final Set<TableReference> tablesReadFrom = Sets.newConcurrentHashSet();
     private final KeyValueService delegate;
 
     public TrackingKeyValueService(KeyValueService delegate) {
@@ -69,15 +71,14 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
-        tablesWrittenTo.addAll(valuesByTable.keySet());
-        super.multiPut(valuesByTable, timestamp);
+    public void put(Stream<Write> writes) {
+        super.put(writes.peek(write -> tablesWrittenTo.add(write.table())));
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        tablesWrittenTo.add(tableRef);
-        super.putWithTimestamps(tableRef, values);
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+        tablesWrittenTo.addAll(valuesByTable.keySet());
+        super.multiPut(valuesByTable, timestamp);
     }
 
     @Override

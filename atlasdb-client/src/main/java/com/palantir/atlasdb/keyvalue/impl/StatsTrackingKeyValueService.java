@@ -21,12 +21,16 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -36,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.MapEntries;
@@ -44,41 +49,41 @@ import com.palantir.common.collect.MapEntries;
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     public static class TableStats {
-        final AtomicLong totalGetValueBytes = new AtomicLong(0L);
-        final AtomicLong totalPutValueBytes = new AtomicLong(0L);
-        final AtomicLong totalGetCellBytes = new AtomicLong(0L);
-        final AtomicLong totalPutCellBytes = new AtomicLong(0L);
-        final AtomicLong totalGetCells = new AtomicLong(0L);
-        final AtomicLong totalPutCells = new AtomicLong(0L);
-        final AtomicLong totalGetMillis = new AtomicLong(0L);
-        final AtomicLong totalPutMillis = new AtomicLong(0L);
-        final AtomicLong totalGetCalls = new AtomicLong(0L);
-        final AtomicLong totalPutCalls = new AtomicLong(0L);
+        final LongAdder totalGetValueBytes = new LongAdder();
+        final LongAdder totalPutValueBytes = new LongAdder();
+        final LongAdder totalGetCellBytes = new LongAdder();
+        final LongAdder totalPutCellBytes = new LongAdder();
+        final LongAdder totalGetCells = new LongAdder();
+        final LongAdder totalPutCells = new LongAdder();
+        final LongAdder totalGetMillis = new LongAdder();
+        final LongAdder totalPutMillis = new LongAdder();
+        final LongAdder totalGetCalls = new LongAdder();
+        final LongAdder totalPutCalls = new LongAdder();
 
-        public long getTotalGetValueBytes() { return totalGetValueBytes.get(); }
-        public long getTotalPutValueBytes() { return totalPutValueBytes.get(); }
-        public long getTotalGetCellBytes() { return totalGetCellBytes.get(); }
-        public long getTotalPutCellBytes() { return totalPutCellBytes.get(); }
-        public long getTotalGetCells() { return totalGetCells.get(); }
-        public long getTotalPutCells() { return totalPutCells.get(); }
-        public long getTotalGetMillis() { return totalGetMillis.get(); }
-        public long getTotalPutMillis() { return totalPutMillis.get(); }
+        public long getTotalGetValueBytes() { return totalGetValueBytes.sum(); }
+        public long getTotalPutValueBytes() { return totalPutValueBytes.sum(); }
+        public long getTotalGetCellBytes() { return totalGetCellBytes.sum(); }
+        public long getTotalPutCellBytes() { return totalPutCellBytes.sum(); }
+        public long getTotalGetCells() { return totalGetCells.sum(); }
+        public long getTotalPutCells() { return totalPutCells.sum(); }
+        public long getTotalGetMillis() { return totalGetMillis.sum(); }
+        public long getTotalPutMillis() { return totalPutMillis.sum(); }
         public long getTotalGetBytes() { return getTotalGetCellBytes() + getTotalGetValueBytes(); }
         public long getTotalPutBytes() { return getTotalPutCellBytes() + getTotalPutValueBytes(); }
-        public long getTotalGetCalls() { return totalGetCalls.get(); }
-        public long getTotalPutCalls() { return totalPutCalls.get(); }
+        public long getTotalGetCalls() { return totalGetCalls.sum(); }
+        public long getTotalPutCalls() { return totalPutCalls.sum(); }
 
         public void add(TableStats other) {
-            totalGetValueBytes.addAndGet(other.totalGetValueBytes.get());
-            totalPutValueBytes.addAndGet(other.totalPutValueBytes.get());
-            totalGetCellBytes.addAndGet(other.totalGetCellBytes.get());
-            totalPutCellBytes.addAndGet(other.totalPutCellBytes.get());
-            totalGetCells.addAndGet(other.totalGetCells.get());
-            totalPutCells.addAndGet(other.totalPutCells.get());
-            totalGetMillis.addAndGet(other.totalGetMillis.get());
-            totalPutMillis.addAndGet(other.totalPutMillis.get());
-            totalGetCalls.addAndGet(other.totalGetCalls.get());
-            totalPutCalls.addAndGet(other.totalPutCalls.get());
+            totalGetValueBytes.add(other.totalGetValueBytes.sum());
+            totalPutValueBytes.add(other.totalPutValueBytes.sum());
+            totalGetCellBytes.add(other.totalGetCellBytes.sum());
+            totalPutCellBytes.add(other.totalPutCellBytes.sum());
+            totalGetCells.add(other.totalGetCells.sum());
+            totalPutCells.add(other.totalPutCells.sum());
+            totalGetMillis.add(other.totalGetMillis.sum());
+            totalPutMillis.add(other.totalPutMillis.sum());
+            totalGetCalls.add(other.totalGetCalls.sum());
+            totalPutCalls.add(other.totalPutCalls.sum());
         }
     }
 
@@ -125,9 +130,9 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
             cellBytes += cell.getRowName().length;
             cellBytes += cell.getColumnName().length;
         }
-        s.totalGetCellBytes.addAndGet(cellBytes);
-        s.totalGetMillis.addAndGet(finish - start);
-        s.totalGetCalls.incrementAndGet();
+        s.totalGetCellBytes.add(cellBytes);
+        s.totalGetMillis.add(finish - start);
+        s.totalGetCalls.increment();
         updateGetStats(s, r);
 
         return r;
@@ -145,10 +150,10 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         // Update stats only after successful get.
         TableStats s = getTableStats(tableRef);
         for (byte[] row : rows) {
-            s.totalGetCellBytes.addAndGet(row.length);
+            s.totalGetCellBytes.add(row.length);
         }
-        s.totalGetMillis.addAndGet(finish - start);
-        s.totalGetCalls.incrementAndGet();
+        s.totalGetMillis.add(finish - start);
+        s.totalGetCalls.increment();
         updateGetStats(s, r);
 
         return r;
@@ -162,8 +167,8 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         long start = System.currentTimeMillis();
         final ClosableIterator<RowResult<Value>> it = super.getRange(tableRef, range, timestamp);
         long finish = System.currentTimeMillis();
-        s.totalGetMillis.addAndGet(finish - start);
-        s.totalGetCalls.incrementAndGet();
+        s.totalGetMillis.add(finish - start);
+        s.totalGetCalls.increment();
 
         return new ForwardingClosableIterator<RowResult<Value>>() {
             @Override
@@ -176,7 +181,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
                 long begin = System.currentTimeMillis();
                 RowResult<Value> ret = super.next();
                 long end = System.currentTimeMillis();
-                s.totalGetMillis.addAndGet(end - begin);
+                s.totalGetMillis.add(end - begin);
                 updateGetStats(s, MapEntries.toMap(ret.getCells()));
                 return ret;
             }
@@ -184,12 +189,12 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     private void updateGetStats(TableStats s, Map<Cell, Value> r) {
-        s.totalGetCells.addAndGet(r.size());
+        s.totalGetCells.add(r.size());
         long totalSize = 0;
         for (Map.Entry<Cell, Value> e : r.entrySet()) {
             totalSize += e.getValue().getContents().length;
         }
-        s.totalGetValueBytes.addAndGet(totalSize);
+        s.totalGetValueBytes.add(totalSize);
     }
 
     @Override
@@ -201,11 +206,11 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
             TableReference tableRef = entry.getKey();
             Map<Cell, byte[]> values = entry.getValue();
             TableStats s = getTableStats(tableRef);
-            s.totalPutMillis.addAndGet(finish - start);
-            s.totalPutCalls.incrementAndGet();
+            s.totalPutMillis.add(finish - start);
+            s.totalPutCalls.increment();
 
             // Only update stats after put was successful.
-            s.totalPutCells.addAndGet(values.size());
+            s.totalPutCells.add(values.size());
             for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
                 incrementPutBytes(s, e.getKey(), e.getValue());
             }
@@ -213,20 +218,27 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        TableStats s = getTableStats(tableRef);
-
+    public void put(Stream<Write> writes) {
+        Multiset<TableReference> tables = HashMultiset.create();
+        Multiset<TableReference> cellBytes = HashMultiset.create();
+        Multiset<TableReference> valueBytes = HashMultiset.create();
         long start = System.currentTimeMillis();
-        super.putWithTimestamps(tableRef, values);
+        super.put(writes.peek(write -> {
+            tables.add(write.table());
+            cellBytes.add(write.table(), write.cell().getColumnName().length + write.cell().getRowName().length);
+            valueBytes.add(write.table(), write.value().length);
+        }));
         long finish = System.currentTimeMillis();
-        s.totalPutMillis.addAndGet(finish - start);
-        s.totalPutCalls.incrementAndGet();
+        tables.forEach(table -> {
+            int count = tables.count(table);
+            TableStats s = getTableStats(table);
+            s.totalPutMillis.add(finish - start);
+            s.totalPutCalls.increment();
 
-        // Only update stats after put was successful.
-        s.totalPutCells.addAndGet(values.size());
-        for (Entry<Cell, Value> e : values.entries()) {
-            incrementPutBytes(s, e.getKey(), e.getValue().getContents());
-        }
+            s.totalPutCells.add(count);
+            s.totalPutCellBytes.add(cellBytes.count(table));
+            s.totalPutValueBytes.add(valueBytes.count(table));
+        });
     }
 
     @Override
@@ -235,7 +247,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         TableStats s = timeOperation(tableRef, () -> super.putUnlessExists(tableRef, values));
 
         // Only update stats after put was successful.
-        s.totalPutCells.addAndGet(values.size());
+        s.totalPutCells.add(values.size());
         for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
             incrementPutBytes(s, e.getKey(), e.getValue());
         }
@@ -246,17 +258,12 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         TableStats s = timeOperation(request.table(), () -> super.checkAndSet(request));
 
         // Only update stats after put was successful.
-        s.totalPutCells.incrementAndGet(); // can only CAS one value
+        s.totalPutCells.increment(); // can only CAS one value
         incrementPutBytes(s, request.cell(), request.newValue());
     }
 
     private TableStats getTableStats(TableReference tableRef) {
-        TableStats s = statsByTableName.get(tableRef);
-        if (s == null) {
-            statsByTableName.putIfAbsent(tableRef, new TableStats());
-            s = statsByTableName.get(tableRef);
-        }
-        return s;
+        return statsByTableName.computeIfAbsent(tableRef, unused -> new TableStats());
     }
 
     private TableStats timeOperation(TableReference tableRef, Runnable operation) {
@@ -265,15 +272,15 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         long start = System.currentTimeMillis();
         operation.run();
         long finish = System.currentTimeMillis();
-        s.totalPutMillis.addAndGet(finish - start);
-        s.totalPutCalls.incrementAndGet();
+        s.totalPutMillis.add(finish - start);
+        s.totalPutCalls.increment();
         return s;
     }
 
     private void incrementPutBytes(TableStats s, Cell cell, byte[] value) {
-        s.totalPutCellBytes.addAndGet(cell.getRowName().length);
-        s.totalPutCellBytes.addAndGet(cell.getColumnName().length);
-        s.totalPutValueBytes.addAndGet(value.length);
+        s.totalPutCellBytes.add(cell.getRowName().length);
+        s.totalPutCellBytes.add(cell.getColumnName().length);
+        s.totalPutValueBytes.add(value.length);
     }
 
     public void dumpStats(PrintWriter writer) {

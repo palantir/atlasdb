@@ -15,10 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -37,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -85,15 +90,16 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
-        delegate1.multiPut(valuesByTable, timestamp);
-        delegate2.multiPut(valuesByTable, timestamp);
+    public void put(Stream<Write> writes) {
+        List<Write> buffered = writes.collect(toList());
+        delegate1.put(buffered.stream());
+        delegate2.put(buffered.stream());
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        delegate1.putWithTimestamps(tableRef, values);
-        delegate2.putWithTimestamps(tableRef, values);
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+        delegate1.multiPut(valuesByTable, timestamp);
+        delegate2.multiPut(valuesByTable, timestamp);
     }
 
     @Override
