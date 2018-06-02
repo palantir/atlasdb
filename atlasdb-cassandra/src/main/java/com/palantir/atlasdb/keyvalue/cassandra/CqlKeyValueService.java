@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -70,7 +69,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -568,58 +566,8 @@ public class CqlKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        try {
-            putInternal(tableRef, values.entries(), TransactionType.NONE);
-        } catch (Throwable t) {
-            throw Throwables.throwUncheckedException(t);
-        }
-    }
-
-    @Override
     protected int getMultiPutBatchCount() {
         return config.mutationBatchCount();
-    }
-
-    @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
-            throws KeyAlreadyExistsException {
-        Map<ResultSetFuture, TableReference> resultSetFutures = Maps.newHashMap();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
-            final TableReference table = e.getKey();
-            // We sort here because some key value stores are more efficient if you store adjacent keys together.
-            NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
-
-
-            Iterable<List<Entry<Cell, byte[]>>> partitions = IterablePartitioner.partitionByCountAndBytes(
-                    sortedMap.entrySet(),
-                    getMultiPutBatchCount(),
-                    getMultiPutBatchSizeBytes(),
-                    table,
-                    CqlKeyValueServices.MULTIPUT_ENTRY_SIZING_FUNCTION);
-
-
-            for (final List<Entry<Cell, byte[]>> p : partitions) {
-                List<Entry<Cell, Value>> partition = Lists.transform(p,
-                        input -> Maps.immutableEntry(input.getKey(), Value.create(input.getValue(), timestamp)));
-                resultSetFutures.put(getPutPartitionResultSetFuture(table, partition, TransactionType.NONE), table);
-            }
-        }
-
-        for (Entry<ResultSetFuture, TableReference> result : resultSetFutures.entrySet()) {
-            ResultSet resultSet;
-            try {
-                resultSet = result.getKey().getUninterruptibly();
-                resultSet.all();
-            } catch (Throwable t) {
-                throw Throwables.throwUncheckedException(t);
-            }
-            cqlKeyValueServices.logTracedQuery(
-                    getPutQuery(result.getValue(), CassandraConstants.NO_TTL),
-                    resultSet,
-                    session,
-                    cqlStatementCache.normalQuery);
-        }
     }
 
     private void putInternal(
