@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import static java.util.stream.Collectors.groupingBy;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +23,6 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ForwardingObject;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;

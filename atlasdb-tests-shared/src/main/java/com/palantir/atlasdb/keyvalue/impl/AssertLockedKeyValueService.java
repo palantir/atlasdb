@@ -34,7 +34,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
