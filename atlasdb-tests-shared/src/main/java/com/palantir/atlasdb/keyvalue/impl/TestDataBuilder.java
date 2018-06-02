@@ -57,7 +57,7 @@ public class TestDataBuilder {
 
     public void store() {
         for (Map.Entry<Long, Map<Cell, byte[]>> e : cellsByTimestamp.entrySet()) {
-            kvs.put(table, e.getValue(), e.getKey());
+            KeyValueServices.put(kvs, table, e.getValue(), e.getKey());
         }
     }
 

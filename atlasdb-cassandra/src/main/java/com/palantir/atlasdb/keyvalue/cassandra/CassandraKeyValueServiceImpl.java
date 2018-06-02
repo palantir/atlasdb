@@ -1683,7 +1683,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             "(all tables in a call to putMetadataForTables)");
                 }
                 // Done with actual schema mutation, push the metadata
-                put(AtlasDbConstants.DEFAULT_METADATA_TABLE, newMetadata, System.currentTimeMillis());
+                KeyValueServices.put(this, AtlasDbConstants.DEFAULT_METADATA_TABLE, newMetadata, System.currentTimeMillis());
                 return null;
             });
         } catch (Exception e) {

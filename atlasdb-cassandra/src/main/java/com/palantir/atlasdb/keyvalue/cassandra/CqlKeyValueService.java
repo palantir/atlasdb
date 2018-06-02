@@ -92,6 +92,7 @@ import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -997,7 +998,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
 
         CqlKeyValueServices.waitForSchemaVersionsToCoalesce("dropTables(" + tablesToDrop.size() + " tables)", this);
 
-        put(AtlasDbConstants.DEFAULT_METADATA_TABLE, Maps.toMap(
+        KeyValueServices.put(this, AtlasDbConstants.DEFAULT_METADATA_TABLE, Maps.toMap(
                         Lists.transform(Lists.newArrayList(tablesToDrop), CqlKeyValueServices::getMetadataCell),
                         Functions.constant(PtBytes.EMPTY_BYTE_ARRAY)),
                 System.currentTimeMillis());
@@ -1109,7 +1110,8 @@ public class CqlKeyValueService extends AbstractKeyValueService {
             }
         }
         if (!cellToMetadata.isEmpty()) {
-            put(AtlasDbConstants.DEFAULT_METADATA_TABLE, cellToMetadata, System.currentTimeMillis());
+            KeyValueServices.put(this,
+                    AtlasDbConstants.DEFAULT_METADATA_TABLE, cellToMetadata, System.currentTimeMillis());
             if (possiblyNeedToPerformSettingsChanges) {
                 CqlKeyValueServices.waitForSchemaVersionsToCoalesce(
                         "putMetadataForTables(" + tableNameToMetadata.size() + " tables)", this);

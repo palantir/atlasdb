@@ -149,16 +149,6 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
-        return delegate.getClusterAvailabilityStatus();
-    }
-
-    @Override
-    public Collection<? extends KeyValueService> getDelegates() {
-        return ImmutableList.of(delegate);
-    }
-
-    @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         if (Iterables.isEmpty(rangeRequests)) {
             return ImmutableMap.of();
@@ -180,11 +170,6 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return ImmutableMap.of();
         }
         return delegate.getRows(tableRef, rows, columnSelection, timestamp);
-    }
-
-    @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) throws KeyAlreadyExistsException {
-        delegate.multiPut(valuesByTable, timestamp);
     }
 
     @Override
@@ -246,7 +231,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
                 }
             });
 
-            put(tableRef, putMap, lastTimestamp);
+            KeyValueServices.put(this, tableRef, putMap, lastTimestamp);
             return;
         }
         delegate.putWithTimestamps(tableRef, cellValues);
