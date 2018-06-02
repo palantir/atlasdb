@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import static java.util.Collections.singleton;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
