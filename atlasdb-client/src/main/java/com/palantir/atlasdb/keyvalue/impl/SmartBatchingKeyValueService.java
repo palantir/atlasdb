@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadFactory;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -111,8 +110,8 @@ public class SmartBatchingKeyValueService extends ForwardingKeyValueService {
         @Override
         public void onEvent(WritesHolder event, long sequence, boolean endOfBatch) {
             batch.add(ModifiableWritesHolder.create().from(event));
-            event.setCompletion(null);
             event.setWrites(null);
+            event.setCompletion(null);
             if (endOfBatch) {
                 flush();
             }
@@ -135,16 +134,10 @@ public class SmartBatchingKeyValueService extends ForwardingKeyValueService {
                 .setNameFormat("smart-batching-kvs-%d")
                 .build();
 
-        // Given we batch at a lower level too, we are CPU limiting ourselves here. So, create a thread per CPU.
-        int concurrency = Runtime.getRuntime().availableProcessors();
         int bufferSize = 1024;
         Disruptor<WritesHolder> disruptor = new Disruptor<>(ModifiableWritesHolder::create, bufferSize, threadFactory);
 
-        WriteHolderHandler[] handlers = IntStream.range(0, concurrency)
-                .mapToObj(unused -> new WriteHolderHandler(delegate))
-                .toArray(WriteHolderHandler[]::new);
-
-        disruptor.handleEventsWith(handlers);
+        disruptor.handleEventsWith(new WriteHolderHandler(delegate));
         disruptor.start();
 
         return new SmartBatchingKeyValueService(delegate, disruptor);
