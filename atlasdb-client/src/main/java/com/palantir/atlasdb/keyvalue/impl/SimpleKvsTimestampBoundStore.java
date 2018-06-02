@@ -97,7 +97,7 @@ public class SimpleKvsTimestampBoundStore implements TimestampBoundStore {
     }
 
     private void putValue(long value) {
-        kv.put(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, PtBytes.toBytes(value)), KV_TS);
+        KeyValueServices.put(kv, AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, PtBytes.toBytes(value)), KV_TS);
     }
 
     private long getValueFromResult(Map<Cell, Value> result) {

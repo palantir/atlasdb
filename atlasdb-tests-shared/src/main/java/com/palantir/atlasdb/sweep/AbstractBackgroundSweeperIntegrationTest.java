@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
@@ -175,7 +176,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 cells.put(Cell.create(Ints.toByteArray(i), "d".getBytes()), Ints.toByteArray(9876543 - i));
             }
         }
-        kvs.put(tableRef, cells, startTs);
+        KeyValueServices.put(kvs, tableRef, cells, startTs);
         txService.putUnlessExists(startTs, commitTs);
     }
 }

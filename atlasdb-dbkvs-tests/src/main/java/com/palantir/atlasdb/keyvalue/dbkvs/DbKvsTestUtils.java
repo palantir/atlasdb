@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public final class DbKvsTestUtils {
@@ -55,7 +56,7 @@ public final class DbKvsTestUtils {
                 toPut.put(cell, new byte[] {0});
             }
             for (int ts = 10 * col; ts < 11 * col; ++ts) {
-                kvs.put(tableName, toPut, ts);
+                KeyValueServices.put(kvs, tableName, toPut, ts);
                 if (txService != null) {
                     txService.putUnlessExists(ts, ts);
                 }

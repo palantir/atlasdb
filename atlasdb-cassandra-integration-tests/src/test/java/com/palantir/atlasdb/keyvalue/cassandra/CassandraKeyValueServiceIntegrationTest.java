@@ -68,6 +68,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -155,7 +156,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 Range.openClosed(getToken("ghi"), getToken("opq")),
                 Range.greaterThan(getToken("opq"))));
 
-        kvs.put(TEST_TABLE, ImmutableMap.of(Cell.create(PtBytes.toBytes("a"), column0), PtBytes.toBytes("test")), 100L);
+        KeyValueServices.put(kvs, TEST_TABLE, ImmutableMap.of(Cell.create(PtBytes.toBytes("a"), column0), PtBytes.toBytes("test")), 100L);
 
         kvs.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
                 Cell.create(PtBytes.toBytes("g"), column0), Value.create(PtBytes.toBytes("value"), 200L),

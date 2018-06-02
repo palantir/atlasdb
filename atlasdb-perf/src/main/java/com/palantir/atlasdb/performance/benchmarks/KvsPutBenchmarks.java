@@ -32,6 +32,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.performance.benchmarks.table.EmptyTables;
 
 /**
@@ -51,7 +52,7 @@ public class KvsPutBenchmarks {
     @Measurement(time = 6, timeUnit = TimeUnit.SECONDS)
     public Object singleRandomPut(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
-        tables.getKvs().put(tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
+        KeyValueServices.put(tables.getKvs(), tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
         return batch;
     }
 
@@ -61,7 +62,7 @@ public class KvsPutBenchmarks {
     @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomPut(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
-        tables.getKvs().put(tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
+        KeyValueServices.put(tables.getKvs(), tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
         return batch;
     }
 

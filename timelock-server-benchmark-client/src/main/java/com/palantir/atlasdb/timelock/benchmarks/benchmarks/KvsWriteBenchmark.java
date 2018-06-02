@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 public final class KvsWriteBenchmark extends AbstractBenchmark {
@@ -48,6 +49,6 @@ public final class KvsWriteBenchmark extends AbstractBenchmark {
     @Override
     protected void performOneCall() {
         byte[] data = UUID.randomUUID().toString().getBytes();
-        keyValueService.put(TABLE, ImmutableMap.of(Cell.create(data, data), data), 101L);
+        KeyValueServices.put(keyValueService, TABLE, ImmutableMap.of(Cell.create(data, data), data), 101L);
     }
 }

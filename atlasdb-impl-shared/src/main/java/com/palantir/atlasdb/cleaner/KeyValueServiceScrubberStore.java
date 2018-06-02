@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -142,10 +143,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
             for (Entry<Cell, byte[]> e : batch) {
                 batchMap.put(e.getKey(), e.getValue());
             }
-            keyValueService.put(
-                    AtlasDbConstants.SCRUB_TABLE,
-                    batchMap,
-                    scrubTimestamp);
+            KeyValueServices.put(keyValueService, AtlasDbConstants.SCRUB_TABLE, batchMap, scrubTimestamp);
         }
     }
 

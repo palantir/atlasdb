@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -173,7 +174,7 @@ public class KvsRangeMigrator implements RangeMigrator {
 
     protected void writeToKvs(Map<Cell, byte[]> writeMap) {
         try {
-            writeKvs.put(destTable, writeMap, migrationTimestamp);
+            KeyValueServices.put(writeKvs, destTable, writeMap, migrationTimestamp);
         } catch (KeyAlreadyExistsException e) {
             retryWriteToKvs(writeMap);
         }
@@ -184,7 +185,7 @@ public class KvsRangeMigrator implements RangeMigrator {
                 writeMap.keySet(),
                 migrationTimestamp));
         writeKvs.delete(destTable, keys);
-        writeKvs.put(destTable, writeMap, migrationTimestamp);
+        KeyValueServices.put(writeKvs, destTable, writeMap, migrationTimestamp);
     }
 
     private byte[] getNextRowName(byte[] lastRow) {

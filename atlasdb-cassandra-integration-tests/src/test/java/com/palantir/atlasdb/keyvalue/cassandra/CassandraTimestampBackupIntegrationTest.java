@@ -33,6 +33,7 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -234,8 +235,6 @@ public class CassandraTimestampBackupIntegrationTest {
     private void setupTwoReadableBoundsInKv() {
         backupRunner.backupExistingTimestamp();
         byte[] rowAndColumnNameBytes = PtBytes.toBytes(CassandraTimestampUtils.ROW_AND_COLUMN_NAME);
-        kv.put(AtlasDbConstants.TIMESTAMP_TABLE,
-                ImmutableMap.of(Cell.create(rowAndColumnNameBytes, rowAndColumnNameBytes), PtBytes.toBytes(0L)),
-                Long.MAX_VALUE - 1);
+        KeyValueServices.put(kv, AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(Cell.create(rowAndColumnNameBytes, rowAndColumnNameBytes), PtBytes.toBytes(0L)), Long.MAX_VALUE - 1);
     }
 }

@@ -47,6 +47,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetricsTest;
 import com.palantir.exception.NotInitializedException;
 
@@ -94,8 +95,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void sweepStrategyNothingDoesNotPersistAnything() {
         enqueueWrite(TABLE_NOTH, LOW_TS);
         enqueueWrite(TABLE_NOTH, LOW_TS2);
-        verify(spiedKvs, times(2)).put(eq(TABLE_NOTH), anyMap(), anyLong());
-        verify(spiedKvs, times(2)).put(any(TableReference.class), anyMap(), anyLong());
+        KeyValueServices.put(verify(spiedKvs, times(2)), eq(TABLE_NOTH), anyMap(), anyLong());
+        KeyValueServices.put(verify(spiedKvs, times(2)), any(TableReference.class), anyMap(), anyLong());
     }
 
     @Test
@@ -599,13 +600,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private Map<TableReference, ? extends Map<Cell, byte[]>> writeToCell(TableReference tableRef, long ts, Cell cell) {
         Map<Cell, byte[]> singleWrite = ImmutableMap.of(cell, PtBytes.toBytes(ts));
-        spiedKvs.put(tableRef, singleWrite, ts);
+        KeyValueServices.put(spiedKvs, tableRef, singleWrite, ts);
         return ImmutableMap.of(tableRef, singleWrite);
     }
 
     private Map<TableReference, ? extends Map<Cell, byte[]>> tombstoneToDefaultCell(TableReference tableRef, long ts) {
         Map<Cell, byte[]> singleWrite = ImmutableMap.of(DEFAULT_CELL, PtBytes.EMPTY_BYTE_ARRAY);
-        spiedKvs.put(tableRef, singleWrite, ts);
+        KeyValueServices.put(spiedKvs, tableRef, singleWrite, ts);
         return ImmutableMap.of(tableRef, singleWrite);
     }
 

@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.docker.compose.connection.DockerPort;
 
 public abstract class NodesDownTestSetup {
@@ -85,10 +86,10 @@ public abstract class NodesDownTestSetup {
     private static void setupTestTable() {
         CassandraKeyValueService setupDb = createCassandraKvs();
         setupDb.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, PtBytes.toBytes("old_value")), OLD_TIMESTAMP);
-        setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
-        setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_1_2, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
-        setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_2_1, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
+        KeyValueServices.put(setupDb, TEST_TABLE, ImmutableMap.of(CELL_1_1, PtBytes.toBytes("old_value")), OLD_TIMESTAMP);
+        KeyValueServices.put(setupDb, TEST_TABLE, ImmutableMap.of(CELL_1_1, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
+        KeyValueServices.put(setupDb, TEST_TABLE, ImmutableMap.of(CELL_1_2, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
+        KeyValueServices.put(setupDb, TEST_TABLE, ImmutableMap.of(CELL_2_1, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
 
         setupDb.createTable(TEST_TABLE_TO_DROP, AtlasDbConstants.GENERIC_TABLE_METADATA);
         setupDb.createTable(TEST_TABLE_TO_DROP_2, AtlasDbConstants.GENERIC_TABLE_METADATA);

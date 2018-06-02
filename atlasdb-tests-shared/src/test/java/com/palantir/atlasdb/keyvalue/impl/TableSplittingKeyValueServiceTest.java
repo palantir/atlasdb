@@ -52,10 +52,10 @@ public class TableSplittingKeyValueServiceTest {
         );
 
         mockery.checking(new Expectations() {{
-            oneOf(tableDelegate).put(TABLE, VALUES, TIMESTAMP);
+            KeyValueServices.put(oneOf(tableDelegate), TABLE, VALUES, TIMESTAMP);
         }});
 
-        splittingKvs.put(TABLE, VALUES, TIMESTAMP);
+        KeyValueServices.put(splittingKvs, TABLE, VALUES, TIMESTAMP);
     }
 
     @Test
@@ -67,10 +67,10 @@ public class TableSplittingKeyValueServiceTest {
         );
 
         mockery.checking(new Expectations() {{
-            oneOf(namespaceDelegate).put(TABLE, VALUES, TIMESTAMP);
+            KeyValueServices.put(oneOf(namespaceDelegate), TABLE, VALUES, TIMESTAMP);
         }});
 
-        splittingKvs.put(TABLE, VALUES, TIMESTAMP);
+        KeyValueServices.put(splittingKvs, TABLE, VALUES, TIMESTAMP);
     }
 
     @Test
@@ -82,10 +82,10 @@ public class TableSplittingKeyValueServiceTest {
         );
 
         mockery.checking(new Expectations() {{
-            oneOf(tableDelegate).put(TABLE, VALUES, TIMESTAMP);
+            KeyValueServices.put(oneOf(tableDelegate), TABLE, VALUES, TIMESTAMP);
         }});
 
-        splittingKvs.put(TABLE, VALUES, TIMESTAMP);
+        KeyValueServices.put(splittingKvs, TABLE, VALUES, TIMESTAMP);
     }
 
     @Test
@@ -96,10 +96,10 @@ public class TableSplittingKeyValueServiceTest {
         );
 
         mockery.checking(new Expectations() {{
-            oneOf(defaultKvs).put(TABLE, VALUES, TIMESTAMP);
+            KeyValueServices.put(oneOf(defaultKvs), TABLE, VALUES, TIMESTAMP);
         }});
 
-        splittingKvs.put(TABLE, VALUES, TIMESTAMP);
+        KeyValueServices.put(splittingKvs, TABLE, VALUES, TIMESTAMP);
     }
 
     @Test

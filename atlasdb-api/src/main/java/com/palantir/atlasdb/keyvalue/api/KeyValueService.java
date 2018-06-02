@@ -147,8 +147,11 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * A legacy version of put which delegates to {@link #multiPut(Map, long)},
-     * this method is not intended to be implemented (but does not suffer from this).
-     *
+     * this method is not intended to be implemented or used.
+     * <p>
+     * There exist a few internal implementations of this class, and we will
+     * remove this method when they are gone.
+     * <p>
      * @deprecated please use multiPut instead.
      */
     @Idempotent

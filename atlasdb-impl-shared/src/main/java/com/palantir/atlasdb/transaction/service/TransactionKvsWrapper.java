@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class TransactionKvsWrapper {
@@ -86,7 +87,7 @@ public class TransactionKvsWrapper {
                     TransactionConstants.getValueForTimestamp(entry.getValue()));
         }
 
-        keyValueService.put(TransactionConstants.TRANSACTION_TABLE, kvMap, 0); // This can throw unchecked exceptions
+        KeyValueServices.put(keyValueService, TransactionConstants.TRANSACTION_TABLE, kvMap, 0); // This can throw unchecked exceptions
     }
 
 }

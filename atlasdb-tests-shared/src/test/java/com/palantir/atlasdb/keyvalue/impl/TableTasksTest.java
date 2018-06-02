@@ -103,15 +103,11 @@ public class TableTasksTest {
             int randomInt = rand.nextInt(3);
             if (randomInt >= 1) {
                 keys1.put(key, col);
-                kvs.put(table1,
-                        ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}),
-                        1);
+                KeyValueServices.put(kvs, table1, ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}), 1);
             }
             if (randomInt <= 1) {
                 keys2.put(key, col);
-                kvs.put(table2,
-                        ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}),
-                        1);
+                KeyValueServices.put(kvs, table2, ImmutableMap.of(Cell.create(new byte[]{(byte) key}, new byte[]{(byte) col}), new byte[] {0}), 1);
             }
             if (rand.nextBoolean()) {
                 key++;

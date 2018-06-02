@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -109,7 +110,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         EncodingUtils.flipAllBitsInPlace(row);
         Cell cell = Cell.create(row, COLUMN);
         byte[] value = EncodingUtils.encodeUnsignedVarLong(timestamp);
-        keyValueService.put(AtlasDbConstants.PUNCH_TABLE, ImmutableMap.of(cell, value), timestamp);
+        KeyValueServices.put(keyValueService, AtlasDbConstants.PUNCH_TABLE, ImmutableMap.of(cell, value), timestamp);
     }
 
     @Override

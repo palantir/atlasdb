@@ -60,6 +60,10 @@ public class KeyValueServices {
 
     private KeyValueServices() {/**/}
 
+    public static void put(KeyValueService service, TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
+        service.multiPut(Collections.singletonMap(tableRef, values), timestamp);
+    }
+
     public static TableMetadata getTableMetadataSafe(KeyValueService service, TableReference tableRef) {
         try {
             byte[] metadataForTable = service.getMetadataForTable(tableRef);

@@ -41,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -494,7 +495,7 @@ public abstract class AbstractSweepTest {
 
     protected void put(final TableReference tableRef, Cell cell, final String val, final long ts) {
         Map<Cell, byte[]> writes = ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8));
-        kvs.put(tableRef, writes, ts);
+        KeyValueServices.put(kvs, tableRef, writes, ts);
         putTimestampIntoTransactionTable(ts);
     }
 
@@ -504,7 +505,7 @@ public abstract class AbstractSweepTest {
 
     protected void putUncommitted(final String row, final String val, final long ts) {
         Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
-        kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)), ts);
+        KeyValueServices.put(kvs, TABLE_NAME, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8)), ts);
     }
 
     protected void createTable(SweepStrategy sweepStrategy) {

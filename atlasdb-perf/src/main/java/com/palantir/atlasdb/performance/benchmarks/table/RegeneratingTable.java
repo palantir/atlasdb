@@ -31,6 +31,7 @@ import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -103,7 +104,7 @@ public abstract class RegeneratingTable<T> {
         public void setupTableData() {
             getKvs().truncateTable(getTableRef());
             Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, 1);
-            getKvs().put(getTableRef(), batch, Tables.DUMMY_TIMESTAMP);
+            KeyValueServices.put(getKvs(), getTableRef(), batch, Tables.DUMMY_TIMESTAMP);
             data = Multimaps.forMap(Maps.transformValues(batch, $ -> Tables.DUMMY_TIMESTAMP));
         }
 
@@ -121,7 +122,7 @@ public abstract class RegeneratingTable<T> {
         public void setupTableData() {
             getKvs().truncateTable(getTableRef());
             Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, BATCH_SIZE);
-            getKvs().put(getTableRef(), batch, Tables.DUMMY_TIMESTAMP);
+            KeyValueServices.put(getKvs(), getTableRef(), batch, Tables.DUMMY_TIMESTAMP);
             data = Multimaps.forMap(Maps.transformValues(batch, $ -> Tables.DUMMY_TIMESTAMP));
         }
 

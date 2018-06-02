@@ -272,7 +272,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
         public void store() {
             for (Map.Entry<Long, Map<Cell, byte[]>> e : cellsByTimestamp.entrySet()) {
-                kvs.put(TEST_TABLE, e.getValue(), e.getKey());
+                KeyValueServices.put(kvs, TEST_TABLE, e.getValue(), e.getKey());
             }
         }
     }

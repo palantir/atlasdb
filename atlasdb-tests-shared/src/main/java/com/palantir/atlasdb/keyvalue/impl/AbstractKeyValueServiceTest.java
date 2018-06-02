@@ -162,7 +162,7 @@ public abstract class AbstractKeyValueServiceTest {
         Cell cell3 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col3"));
         byte[] val = PtBytes.toBytes("val");
 
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(cell1, val, cell2, val, cell3, val), 0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(cell1, val, cell2, val, cell3, val), 0);
 
         Map<Cell, Value> rows1 = keyValueService.getRows(
                 TEST_TABLE,
@@ -281,7 +281,7 @@ public abstract class AbstractKeyValueServiceTest {
         values.put(Cell.create(row1, column4), value10);
         values.put(Cell.create(row1, column5), value10);
         values.put(Cell.create(row1, column6), value10);
-        keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, values, TEST_TIMESTAMP);
 
         RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
                 TEST_TABLE,
@@ -325,14 +325,10 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testGetRowColumnRangeMultipleHistorical() {
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row1, column0), value0_t0), TEST_TIMESTAMP);
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row1, column0), value0_t1), TEST_TIMESTAMP + 1);
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row1, column1), value0_t0), TEST_TIMESTAMP);
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row1, column1), value0_t1), TEST_TIMESTAMP + 1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row1, column0), value0_t0), TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row1, column0), value0_t1), TEST_TIMESTAMP + 1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row1, column1), value0_t0), TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row1, column1), value0_t1), TEST_TIMESTAMP + 1);
 
         // The initial multiget will get results for column0 only, then the next page for column1 will not include
         // the TEST_TIMESTAMP result so we have to get another page for column1.
@@ -446,14 +442,10 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testGetRowColumnRangeCellBatchMultipleHistorical() {
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row1, column0), value0_t0), TEST_TIMESTAMP);
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row1, column0), value0_t1), TEST_TIMESTAMP + 1);
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row1, column1), value0_t0), TEST_TIMESTAMP);
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row1, column1), value0_t1), TEST_TIMESTAMP + 1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row1, column0), value0_t0), TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row1, column0), value0_t1), TEST_TIMESTAMP + 1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row1, column1), value0_t0), TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row1, column1), value0_t1), TEST_TIMESTAMP + 1);
 
         RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
@@ -791,7 +783,7 @@ public abstract class AbstractKeyValueServiceTest {
                 PtBytes.toBytes("i"));
         values.put(Cell.create(RangeRequests.getLastRowName(), PtBytes.toBytes("c1")),
                 PtBytes.toBytes("j"));
-        keyValueService.put(tableRef, values, TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, tableRef, values, TEST_TIMESTAMP);
 
         RangeRequest request = RangeRequest.builder(reverse).batchHint(batchSizeHint).build();
         try (ClosableIterator<RowResult<Value>> iter = keyValueService.getRange(tableRef, request, Long.MAX_VALUE)) {
@@ -859,7 +851,7 @@ public abstract class AbstractKeyValueServiceTest {
         Map<Cell, byte[]> values = ImmutableMap.of(
                 Cell.create(last, PtBytes.toBytes("c1")), PtBytes.toBytes("a"),
                 Cell.create(last, last), PtBytes.toBytes("b"));
-        keyValueService.put(tableRef, values, TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, tableRef, values, TEST_TIMESTAMP);
 
         RangeRequest request = RangeRequest.builder(reverse).batchHint(batchSizeHint).build();
         try (ClosableIterator<RowResult<Value>> iter = keyValueService.getRange(tableRef, request, Long.MAX_VALUE)) {
@@ -907,10 +899,10 @@ public abstract class AbstractKeyValueServiceTest {
         Map<Cell, byte[]> unexpectedValues = Maps.transformValues(expectedValues, val -> PtBytes.toBytes("foo"));
 
         keyValueService.truncateTable(TEST_TABLE);
-        keyValueService.put(TEST_TABLE, expectedValues, TEST_TIMESTAMP); // only these should be returned
+        KeyValueServices.put(keyValueService, TEST_TABLE, expectedValues, TEST_TIMESTAMP); // only these should be returned
 
-        keyValueService.put(TEST_TABLE, unexpectedValues, TEST_TIMESTAMP - 10);
-        keyValueService.put(TEST_TABLE, unexpectedValues, TEST_TIMESTAMP + 10);
+        KeyValueServices.put(keyValueService, TEST_TABLE, unexpectedValues, TEST_TIMESTAMP - 10);
+        KeyValueServices.put(keyValueService, TEST_TABLE, unexpectedValues, TEST_TIMESTAMP + 10);
     }
 
     private void doTestGetRangePagingWithColumnSelection(int batchSizeHint,
@@ -1085,9 +1077,9 @@ public abstract class AbstractKeyValueServiceTest {
         long ts2 = 10L;
         long latestTs = 15L;
 
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value00), ts1);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value01), ts2);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value00), ts1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value01), ts2);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
 
         keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(row0col0, latestTs), false);
 
@@ -1111,17 +1103,17 @@ public abstract class AbstractKeyValueServiceTest {
         long ts2Col1 = 3L;
         long latestTsCol1 = 4L;
 
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value00), ts1Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value01), ts2Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTsCol0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value00), ts1Col0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value01), ts2Col0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTsCol0);
 
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, value00), ts1Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, value01), ts2Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, value10), latestTsCol0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row1col0, value00), ts1Col0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row1col0, value01), ts2Col0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row1col0, value10), latestTsCol0);
 
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, value00), ts1Col1);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, value01), ts2Col1);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, value10), latestTsCol1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col1, value00), ts1Col1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col1, value01), ts2Col1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col1, value10), latestTsCol1);
 
         keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(
                 row0col0, latestTsCol0,
@@ -1155,9 +1147,9 @@ public abstract class AbstractKeyValueServiceTest {
         long ts2 = 10L;
         long latestTs = 15L;
 
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value00), ts1);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value01), ts2);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value00), ts1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value01), ts2);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
 
         keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(row0col0, latestTs), true);
 
@@ -1181,17 +1173,17 @@ public abstract class AbstractKeyValueServiceTest {
         long ts2Col1 = 3L;
         long latestTsCol1 = 4L;
 
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value00), ts1Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value01), ts2Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTsCol0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value00), ts1Col0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value01), ts2Col0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTsCol0);
 
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, value00), ts1Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, value01), ts2Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, value10), latestTsCol0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row1col0, value00), ts1Col0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row1col0, value01), ts2Col0);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row1col0, value10), latestTsCol0);
 
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, value00), ts1Col1);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, value01), ts2Col1);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, value10), latestTsCol1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col1, value00), ts1Col1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col1, value01), ts2Col1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col1, value10), latestTsCol1);
 
         keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(
                 row0col0, latestTsCol0,
@@ -1219,7 +1211,7 @@ public abstract class AbstractKeyValueServiceTest {
         long latestTs = 15L;
 
         keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(row0col0));
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
 
         keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(row0col0, latestTs), false);
 
@@ -1235,7 +1227,7 @@ public abstract class AbstractKeyValueServiceTest {
         long latestTs = 15L;
 
         keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(row0col0));
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(row0col0, value10), latestTs);
 
         keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(row0col0, latestTs), true);
 
@@ -1310,12 +1302,10 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testGetRangeOfTimestampsReturnsAllRows() {
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(
                     Cell.create(row0, column0), value0_t0,
                     Cell.create(row1, column0), value0_t0,
-                    Cell.create(row2, column0), value0_t0),
-                TEST_TIMESTAMP);
+                    Cell.create(row2, column0), value0_t0), TEST_TIMESTAMP);
         RangeRequest range = RangeRequest.all().withBatchHint(1);
         List<RowResult<Set<Long>>> results = ImmutableList.copyOf(
                 keyValueService.getRangeOfTimestamps(TEST_TABLE, range, TEST_TIMESTAMP + 1));
@@ -1327,15 +1317,11 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testGetRangeOfTimestampsOmitsTimestampsLessThanMax() {
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(
-                        Cell.create(row0, column0), value0_t0),
-                TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(
+                        Cell.create(row0, column0), value0_t0), TEST_TIMESTAMP);
 
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(
-                        Cell.create(row0, column0), value0_t1),
-                TEST_TIMESTAMP + 10);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(
+                        Cell.create(row0, column0), value0_t1), TEST_TIMESTAMP + 10);
 
         RangeRequest range = RangeRequest.all().withBatchHint(2);
         List<RowResult<Set<Long>>> results = ImmutableList.copyOf(
@@ -1347,17 +1333,13 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testGetRangeOfTimestampsFetchesProperRange() {
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(
                         Cell.create(row0, column0), value0_t0,
                         Cell.create(row1, column0), value0_t0,
-                        Cell.create(row2, column0), value0_t0),
-                TEST_TIMESTAMP);
+                        Cell.create(row2, column0), value0_t0), TEST_TIMESTAMP);
 
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(
-                        Cell.create(row0, column0), value0_t1),
-                TEST_TIMESTAMP + 10);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(
+                        Cell.create(row0, column0), value0_t1), TEST_TIMESTAMP + 10);
 
         RangeRequest range = RangeRequest.builder().startRowInclusive(row1).endRowExclusive(row2).build();
         List<RowResult<Set<Long>>> results = ImmutableList.copyOf(
@@ -1645,7 +1627,7 @@ public abstract class AbstractKeyValueServiceTest {
         Map<Cell, Long> valuesToDelete = ImmutableMap.of(cell1, timestamp, cell2, timestamp);
         Map<Cell, byte[]> valuesToPut = ImmutableMap.of(cell1, value, cell2, value);
 
-        keyValueService.put(DynamicColumnTable.reference(), valuesToPut, timestamp);
+        KeyValueServices.put(keyValueService, DynamicColumnTable.reference(), valuesToPut, timestamp);
         keyValueService.delete(DynamicColumnTable.reference(), Multimaps.forMap(valuesToDelete));
 
         Map<Cell, Value> values = keyValueService.getRows(
@@ -1727,19 +1709,14 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     protected void putTestDataForRowsZeroOneAndTwo() {
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row0, column0), value0_t0), TEST_TIMESTAMP);
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row1, column0), value0_t0), TEST_TIMESTAMP);
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row2, column0), value0_t0), TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row0, column0), value0_t0), TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row1, column0), value0_t0), TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(Cell.create(row2, column0), value0_t0), TEST_TIMESTAMP);
     }
 
     protected void putTestDataForMultipleTimestamps() {
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(TEST_CELL, value0_t0), TEST_TIMESTAMP);
-        keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(TEST_CELL, value0_t1), TEST_TIMESTAMP + 1);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(TEST_CELL, value0_t0), TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(TEST_CELL, value0_t1), TEST_TIMESTAMP + 1);
     }
 
     protected void putTestDataForSingleTimestamp() {
@@ -1756,7 +1733,7 @@ public abstract class AbstractKeyValueServiceTest {
         values.put(Cell.create(row1, column2), value12);
         values.put(Cell.create(row2, column1), value21);
         values.put(Cell.create(row2, column2), value22);
-        keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP);
+        KeyValueServices.put(keyValueService, TEST_TABLE, values, TEST_TIMESTAMP);
     }
 
     private TableReference createTableWithNamedColumns(int numColumns) {

@@ -287,7 +287,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             // Committing before writing is intentional, we want the start timestamp to
             // show up in the transaction table before we write do our writes.
             commit(timestamp);
-            delegate().put(SWEEP_PRIORITY_TABLE, newWriteCounts, timestamp);
+            KeyValueServices.put(delegate(), SWEEP_PRIORITY_TABLE, newWriteCounts, timestamp);
         } catch (RuntimeException e) {
             if (Thread.interrupted()) {
                 return;

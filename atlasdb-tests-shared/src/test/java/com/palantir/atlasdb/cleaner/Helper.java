@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 
@@ -54,12 +55,9 @@ public final class Helper {
     }
 
     public void put(TableReference tableRef, String rowString, String colString, String valString, int ts) {
-        keyValueService.put(
-                tableRef,
-                ImmutableMap.of(
+        KeyValueServices.put(keyValueService, tableRef, ImmutableMap.of(
                         Cell.create(rowString.getBytes(), colString.getBytes()),
-                        valString.getBytes()),
-                ts);
+                        valString.getBytes()), ts);
     }
 
     public void close() {

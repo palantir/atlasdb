@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -47,7 +48,7 @@ public final class KvsReadBenchmark extends AbstractBenchmark {
 
     @Override
     public void setup() {
-        keyValueService.put(TABLE, ImmutableMap.of(cell, data), 100L);
+        KeyValueServices.put(keyValueService, TABLE, ImmutableMap.of(cell, data), 100L);
     }
 
     @Override

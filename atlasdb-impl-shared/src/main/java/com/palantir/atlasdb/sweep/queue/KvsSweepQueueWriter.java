@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 
 public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
@@ -51,7 +52,7 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
         Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(allWrites);
         partitionedWrites.forEach((partitionInfo, writes) -> cellsToWrite.putAll(populateCells(partitionInfo, writes)));
         if (!cellsToWrite.isEmpty()) {
-            kvs.put(tableRef, cellsToWrite, SweepQueueUtils.WRITE_TS);
+            KeyValueServices.put(kvs, tableRef, cellsToWrite, SweepQueueUtils.WRITE_TS);
         }
         maybeMetrics.ifPresent(metrics ->
                 partitionedWrites.forEach((info, writes) ->

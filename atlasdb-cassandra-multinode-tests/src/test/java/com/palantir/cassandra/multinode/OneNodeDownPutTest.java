@@ -31,6 +31,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 
 public class OneNodeDownPutTest {
 
@@ -41,8 +42,7 @@ public class OneNodeDownPutTest {
 
     @Test
     public void canPut() {
-        OneNodeDownTestSuite.kvs.put(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, newContents), newTimestamp);
+        KeyValueServices.put(OneNodeDownTestSuite.kvs, OneNodeDownTestSuite.TEST_TABLE, ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, newContents), newTimestamp);
         OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_1, newValue);
     }
 

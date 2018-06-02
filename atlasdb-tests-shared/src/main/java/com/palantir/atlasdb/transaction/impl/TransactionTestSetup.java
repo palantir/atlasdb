@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -188,7 +189,7 @@ public abstract class TransactionTestSetup {
             String value, long timestamp) {
         Cell cell = Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
         byte[] valueBytes = PtBytes.toBytes(value);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(cell, valueBytes), timestamp);
+        KeyValueServices.put(keyValueService, TEST_TABLE, ImmutableMap.of(cell, valueBytes), timestamp);
     }
 
     protected Pair<String, Long> getDirect(String rowName, String columnName, long timestamp) {

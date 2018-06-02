@@ -92,6 +92,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -251,7 +252,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         timestampService.getFreshTimestamp();
         final long startTs = timestampService.getFreshTimestamp();
         final long transactionTs = timestampService.getFreshTimestamp();
-        keyValueService.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY), startTs);
+        KeyValueServices.put(keyValueService, TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY), startTs);
 
         m.checking(new Expectations() {{
             oneOf(kvMock).get(TABLE, ImmutableMap.of(cell, transactionTs)); will(throwException(new RuntimeException()));
@@ -297,7 +298,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         timestampService.getFreshTimestamp();
         final long startTs = timestampService.getFreshTimestamp();
         final long transactionTs = timestampService.getFreshTimestamp();
-        keyValueService.put(TABLE, ImmutableMap.of(cell, rowName), startTs);
+        KeyValueServices.put(keyValueService, TABLE, ImmutableMap.of(cell, rowName), startTs);
 
         final Sequence seq = m.sequence("seq");
         m.checking(new Expectations() {{
