@@ -70,6 +70,10 @@ develop
          - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
 
+    *    - |devbreak|
+         - Due to lack of use, we have deleted the AtlasDB Dropwizard bundle.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3231>`__)
+
 =======
 v0.88.0
 =======
