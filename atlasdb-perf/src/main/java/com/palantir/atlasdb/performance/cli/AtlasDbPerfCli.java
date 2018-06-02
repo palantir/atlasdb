@@ -35,6 +35,8 @@ import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.performance.BenchmarkParam;
 import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
@@ -60,6 +62,8 @@ import io.airlift.airline.SingleCommand;
 
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCli {
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbPerfCli.class);
+
     @Inject
     private HelpOption helpOption;
 
@@ -160,7 +164,12 @@ public class AtlasDbPerfCli {
     private static void runCliInTestMode(ChainedOptionsBuilder optBuilder) throws RunnerException {
         optBuilder.warmupIterations(0)
                 .mode(Mode.SingleShotTime);
-        new Runner(optBuilder.build(), MinimalReportFormatForTest.get()).run();
+        try {
+            new Runner(optBuilder.build(), MinimalReportFormatForTest.get()).run();
+        } catch (RunnerException e) {
+            log.error("Error running benchmark test run.", e);
+            throw e;
+        }
     }
 
     private static DatabasesContainer startupDatabase(Set<String> backends) {

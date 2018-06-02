@@ -71,6 +71,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
@@ -213,6 +214,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
     private final Set<TableReference> involvedTables = Sets.newConcurrentHashSet();
+    protected final ExecutorService deleteExecutor;
 
     protected volatile boolean hasReads;
 
@@ -241,7 +243,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                long lockAcquireTimeoutMs,
                                ExecutorService getRangesExecutor,
                                int defaultGetRangesConcurrency,
-                               MultiTableSweepQueueWriter sweepQueue) {
+                               MultiTableSweepQueueWriter sweepQueue,
+                               ExecutorService deleteExecutor) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -261,6 +264,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = sweepQueue;
+        this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
     }
 
@@ -277,7 +281,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         TimestampCache timestampValidationReadCache,
                         ExecutorService getRangesExecutor,
                         int defaultGetRangesConcurrency,
-                        MultiTableSweepQueueWriter sweepQueue) {
+                        MultiTableSweepQueueWriter sweepQueue,
+                        ExecutorService deleteExecutor) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -297,6 +302,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = sweepQueue;
+        this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
     }
 
@@ -310,7 +316,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   TimestampCache timestampValidationReadCache,
                                   long lockAcquireTimeoutMs,
                                   ExecutorService getRangesExecutor,
-                                  int defaultGetRangesConcurrency) {
+                                  int defaultGetRangesConcurrency,
+                                  ExecutorService deleteExecutor) {
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
@@ -330,6 +337,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = MultiTableSweepQueueWriter.NO_OP;
+        this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
     }
 
@@ -1696,11 +1704,30 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
-        log.debug("For table: {} we are *NOT* deleting values of an uncommitted transaction: {}."
-                        + "These values will eventually be cleaned up by sweep.",
-                LoggingArgs.tableRef(tableRef),
-                UnsafeArg.of("keysToDelete", keysToDelete));
+        deleteExecutor.submit(() -> deleteCells(tableRef, keysToDelete));
         return true;
+    }
+
+    private void deleteCells(TableReference tableRef, Map<Cell, Long> keysToDelete) {
+        try {
+            log.debug("For table: {} we are deleting values of an uncommitted transaction: {}",
+                    LoggingArgs.tableRef(tableRef),
+                    UnsafeArg.of("keysToDelete", keysToDelete));
+            keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
+        } catch (RuntimeException e) {
+            final String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are"
+                    + " running. Delete has stronger consistency semantics than read/write and must talk to all nodes"
+                    + " instead of just talking to a quorum of nodes. "
+                    + "Failed to delete keys for table: {} from an uncommitted transaction; "
+                    + " sweep should eventually clean this when it processes this table.";
+            if (log.isDebugEnabled()) {
+                log.warn(msg + " The keys that failed to be deleted during rollback were {}",
+                        LoggingArgs.tableRef(tableRef),
+                        UnsafeArg.of("keysToDelete", keysToDelete));
+            } else {
+                log.warn(msg, LoggingArgs.tableRef(tableRef), e);
+            }
+        }
     }
 
     /**
@@ -1858,14 +1885,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Timer.Context timer = getTimer("waitForCommitTsMillis").time();
             waitForCommitToComplete(startTimestamps);
             long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
-            perfLogger.debug("Waited {} ms to get commit timestamps for table {}.",
-                    SafeArg.of("commitTsMillis", waitForCommitTsMillis),
-                    LoggingArgs.tableRef(tableRef));
+
+            if (tableRef != null) {
+                perfLogger.debug("Waited {} ms to get commit timestamps for table {}.",
+                        SafeArg.of("commitTsMillis", waitForCommitTsMillis),
+                        LoggingArgs.tableRef(tableRef));
+            } else {
+                perfLogger.debug("Waited {} ms to get commit timestamps",
+                        SafeArg.of("commitTsMillis", waitForCommitTsMillis));
+            }
         }
 
-        log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
-                SafeArg.of("numTimestamps", gets.size()),
-                LoggingArgs.tableRef(tableRef));
+        if (tableRef != null) {
+            log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
+                    SafeArg.of("numTimestamps", gets.size()),
+                    LoggingArgs.tableRef(tableRef));
+        } else {
+            log.trace("Getting commit timestamps for {} start timestamps",
+                    SafeArg.of("numTimestamps", gets.size()));
+        }
+
         Map<Long, Long> rawResults = loadCommitTimestamps(gets);
 
         for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
