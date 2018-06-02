@@ -72,6 +72,7 @@ import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.SmartBatchingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
@@ -307,6 +308,7 @@ public abstract class TransactionManagers {
 
             );
             kvs = TracingKeyValueService.create(kvs);
+            kvs = SmartBatchingKeyValueService.create(kvs); // note: breaks tracing
             kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
             return ValidatingQueryRewritingKeyValueService.create(kvs);
         }, closeables);
