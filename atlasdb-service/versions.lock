@@ -272,6 +272,12 @@
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
+        "com.lmax:disruptor": {
+            "locked": "3.4.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.netflix.feign:feign-core": {
             "locked": "8.17.0",
             "transitive": [
@@ -1149,6 +1155,12 @@
             "locked": "1.1.3",
             "transitive": [
                 "com.palantir.remoting3:jersey-servers"
+            ]
+        },
+        "com.lmax:disruptor": {
+            "locked": "3.4.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.netflix.feign:feign-core": {

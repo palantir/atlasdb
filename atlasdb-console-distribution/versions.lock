@@ -364,6 +364,12 @@
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
+        "com.lmax:disruptor": {
+            "locked": "3.4.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.mchange:c3p0": {
             "locked": "0.9.5.1",
             "transitive": [

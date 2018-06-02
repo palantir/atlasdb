@@ -142,6 +142,9 @@
             "locked": "1.2",
             "requested": "1.2"
         },
+        "com.lmax:disruptor": {
+            "locked": "3.4.2"
+        },
         "com.netflix.feign:feign-core": {
             "locked": "8.17.0",
             "transitive": [
@@ -658,6 +661,9 @@
         "com.googlecode.protobuf-java-format:protobuf-java-format": {
             "locked": "1.2",
             "requested": "1.2"
+        },
+        "com.lmax:disruptor": {
+            "locked": "3.4.2"
         },
         "com.netflix.feign:feign-core": {
             "locked": "8.17.0",

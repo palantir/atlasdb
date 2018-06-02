@@ -242,6 +242,12 @@
                 "com.palantir.docker.compose:docker-compose-rule-core"
             ]
         },
+        "com.lmax:disruptor": {
+            "locked": "3.4.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.netflix.feign:feign-core": {
             "locked": "8.17.0",
             "transitive": [
@@ -1144,6 +1150,12 @@
             "locked": "1.6.5",
             "transitive": [
                 "com.palantir.docker.compose:docker-compose-rule-core"
+            ]
+        },
+        "com.lmax:disruptor": {
+            "locked": "3.4.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.netflix.feign:feign-core": {

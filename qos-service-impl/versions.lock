@@ -148,6 +148,12 @@
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
+        "com.lmax:disruptor": {
+            "locked": "3.4.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.netflix.feign:feign-core": {
             "locked": "8.17.0",
             "transitive": [
@@ -679,6 +685,12 @@
         },
         "com.googlecode.protobuf-java-format:protobuf-java-format": {
             "locked": "1.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.lmax:disruptor": {
+            "locked": "3.4.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
