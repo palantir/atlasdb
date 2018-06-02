@@ -35,7 +35,6 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
@@ -119,7 +118,7 @@ public class CellValuePutter {
         MutationMap mutationMap = new MutationMap();
         for (Write write : batch) {
             Cell cell = write.cell();
-            Column col = CassandraKeyValueServices.createColumn(cell, Value.create(write.value(), write.timestamp()));
+            Column col = CassandraKeyValueServices.createColumn(cell, write.timestamp(), write.value());
 
             ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
             colOrSup.setColumn(col);
