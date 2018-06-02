@@ -906,26 +906,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     /**
-     * Puts values into the key-value store. This call <i>does not</i> guarantee atomicity across cells.
-     * On failure, it is possible that some of the requests have succeeded (without having been rolled
-     * back). Similarly, concurrent batched requests may interleave.
-     * <p>
-     * Overridden to batch more intelligently than the default implementation.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param valuesByTable map containing the key-value entries to put by table.
-     * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
-     */
-    @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
-            throws KeyAlreadyExistsException {
-        cellValuePutter.put("multiPut", valuesByTable.entrySet().stream()
-                .flatMap(writes -> writes.getValue().entrySet().stream()
-                        .map(write -> Write.of(writes.getKey(), write.getKey(), timestamp, write.getValue()))));
-    }
-
-    /**
      * Truncate a table in the key-value store.
      * <p>
      * This is preferred to dropping and re-adding a table, as live schema changes can

@@ -338,16 +338,6 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
-                         long timestamp) {
-        try {
-            delegate().multiPut(tableMapper.mapToShortTableNames(valuesByTable), timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         try {
             delegate().putMetadataForTable(tableMapper.getMappedTableName(tableRef), metadata);

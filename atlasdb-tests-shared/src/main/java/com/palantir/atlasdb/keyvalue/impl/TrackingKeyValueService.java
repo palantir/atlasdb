@@ -76,12 +76,6 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
-        tablesWrittenTo.addAll(valuesByTable.keySet());
-        super.multiPut(valuesByTable, timestamp);
-    }
-
-    @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         tablesWrittenTo.add(tableRef);
         super.putUnlessExists(tableRef, values);

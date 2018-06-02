@@ -137,21 +137,6 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
-        delegate().multiPut(valuesByTable, timestamp);
-        int newWrites = 0;
-        long writesSize = 0;
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
-            writesByTable.add(entry.getKey(), entry.getValue().size());
-            newWrites += entry.getValue().size();
-            writesSize += entry.getValue().entrySet().stream().mapToLong(cellEntry -> cellEntry.getValue().length)
-                    .sum();
-        }
-        recordModifications(newWrites);
-        recordModificationsSize(writesSize);
-    }
-
-    @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
         delegate().deleteRange(tableRef, range);
         if (RangeRequest.all().equals(range)) {

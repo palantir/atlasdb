@@ -301,20 +301,6 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
-        Map<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> mapByDelegate = Maps.newHashMap();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
-            KeyValueService delegate = getDelegate(e.getKey());
-            Map<TableReference, Map<Cell, byte[]>> map = mapByDelegate.computeIfAbsent(delegate,
-                    table -> Maps.newHashMap());
-            map.put(e.getKey(), e.getValue());
-        }
-        for (Entry<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> e : mapByDelegate.entrySet()) {
-            e.getKey().multiPut(e.getValue(), timestamp);
-        }
-    }
-
-    @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         getDelegate(tableRef).putMetadataForTable(tableRef, metadata);
     }

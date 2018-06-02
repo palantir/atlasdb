@@ -20,11 +20,14 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Write;
 
 public final class Tables {
 
@@ -58,6 +61,14 @@ public final class Tables {
         byte[] key = new byte[Tables.KEY_BYTE_ARRAY_SIZE];
         random.nextBytes(key);
         return key;
+    }
+
+    static Stream<Write> generateRandomBatch(Random random, int size, TableReference table, long timestamp) {
+        return IntStream.range(0, size).mapToObj(j -> Write.of(
+                table,
+                Cell.create(generateKey(random), Tables.COLUMN_NAME_IN_BYTES.array()),
+                timestamp,
+                generateValue(random)));
     }
 
     static Map<Cell, byte[]> generateRandomBatch(Random random, int size) {

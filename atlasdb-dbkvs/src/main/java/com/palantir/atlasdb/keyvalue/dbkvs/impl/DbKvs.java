@@ -467,23 +467,6 @@ public final class DbKvs extends AbstractKeyValueService {
         executeCallables(callables);
     }
 
-    /* (non-Javadoc)
-     * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
-     */
-    @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp)
-            throws KeyAlreadyExistsException {
-        List<Callable<Void>> callables = KeyedStream.stream(valuesByTable)
-                .map(tableValues -> Maps.transformValues(tableValues, value -> Value.create(value, timestamp)))
-                .flatMap(this::putWritesForTable)
-                .values()
-                .collect(toList());
-        executeCallables(callables);
-        put(valuesByTable.entrySet().stream()
-                .flatMap(writes -> writes.getValue().entrySet().stream()
-                        .map(write -> Write.of(writes.getKey(), write.getKey(), timestamp, write.getValue()))));
-    }
-
     private void putIfNotUpdate(
             DbReadTable readTable,
             DbWriteTable writeTable,

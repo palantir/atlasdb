@@ -17,6 +17,7 @@ package com.palantir.atlasdb.performance.benchmarks.table;
 
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Stream;
 
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
@@ -28,6 +29,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -85,6 +87,10 @@ public class EmptyTables {
         this.services.getKeyValueService().dropTables(Sets.newHashSet(
                 getFirstTableRef(), getSecondTableRef()));
         this.connector.close();
+    }
+
+    public Stream<Write> generateRandomBatchToInsert(int size, TableReference table, long timestamp) {
+        return Tables.generateRandomBatch(random, size, table, timestamp);
     }
 
     public Map<Cell, byte[]> generateBatchToInsert(int size) {

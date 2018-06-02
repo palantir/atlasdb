@@ -15,9 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.Validate;
 
@@ -25,8 +31,10 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
@@ -50,7 +58,11 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+    public void put(Stream<Write> writes) {
+        List<Write> buffered = writes.collect(toList());
+        Map<TableReference, Map<Cell, byte[]>> valuesByTable = buffered.stream().collect(groupingBy(
+                Write::table,
+                toMap(Write::cell, Write::value)));
         valuesByTable.forEach((tableRef, values) -> {
             if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
                 SortedMap<LockDescriptor, LockMode> mapToAssertLockHeld = Maps.newTreeMap();
@@ -87,6 +99,6 @@ public class AssertLockedKeyValueService extends ForwardingKeyValueService {
             }
         });
 
-        super.multiPut(valuesByTable, timestamp);
+        super.put(buffered.stream());
     }
 }

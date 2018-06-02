@@ -156,7 +156,7 @@ public interface KeyValueService extends AutoCloseable {
      * A legacy version of put which delegates to {@link #put(Stream)},
      * this method is not intended to be implemented or used.
      * <p>
-     * There exist a few internal implementations of this class, and we will
+     * There exist a few internal implementations of this method, and we will
      * remove this method when they are gone.
      * <p>
      * @deprecated please use {@link #put(Stream)} instead.
@@ -188,33 +188,29 @@ public interface KeyValueService extends AutoCloseable {
     void put(Stream<Write> writes);
 
     /**
-     * Puts values into the key-value store. This call <i>does not</i> guarantee
-     * atomicity across cells. On failure, it is possible
-     * that some of the requests will have succeeded (without having been rolled
-     * back). Similarly, concurrent batched requests may interleave.
+     * A legacy version of put which delegates to {@link #put(Stream)},
+     * this method is not intended to be implemented or used.
      * <p>
-     * If the key-value store supports durability, this call guarantees that the
-     * requests have successfully been written to disk before returning.
+     * There exist a few internal implementations of this method, and we will
+     * remove this method when they are gone.
      * <p>
-     * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
-     * try {@link #delete(TableReference, Multimap)}.
-     * <p>
-     * May throw KeyAlreadyExistsException, if storing a different value to existing key,
-     * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}.
-     * <p>
-     * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
-     *  @param valuesByTable map containing the key-value entries to put by table.
-     * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
+     * @deprecated please use {@link #put(Stream)} instead.
      */
     @Idempotent
-    void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
-                  long timestamp) throws KeyAlreadyExistsException;
+    @Deprecated
+    default void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
+                  long timestamp) throws KeyAlreadyExistsException {
+        put(valuesByTable.entrySet().stream()
+                .flatMap(entry -> entry.getValue().entrySet().stream()
+                        .map(valueEntry ->
+                                Write.of(entry.getKey(), valueEntry.getKey(), timestamp, valueEntry.getValue()))));
+    }
 
     /**
      * A legacy version of put which delegates to {@link #put(Stream)},
      * this method is not intended to be implemented or used.
      * <p>
-     * There exist a few internal implementations of this class, and we will
+     * There exist a few internal implementations of this method, and we will
      * remove this method when they are gone.
      * <p>
      * @deprecated please use {@link #put(Stream)} instead.

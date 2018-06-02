@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 
@@ -63,6 +64,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -692,8 +694,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Cell k = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
         String value = "whatever";
         byte[] v = PtBytes.toBytes(value);
-        Map<Cell, byte[]> map = ImmutableMap.of(k, v);
-        keyValueService.multiPut(ImmutableMap.of(TEST_TABLE, map, table, map), 0);
+        keyValueService.put(Stream.of(Write.of(TEST_TABLE, k, 0, v)));
         assertEquals(value, getDirect("row", "col", 1).lhSide);
         assertEquals(value, getDirect(table, "row", "col", 1).lhSide);
         keyValueService.dropTable(table);

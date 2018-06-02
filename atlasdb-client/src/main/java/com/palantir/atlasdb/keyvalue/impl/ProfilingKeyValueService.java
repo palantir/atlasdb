@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,6 +24,9 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableLong;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
@@ -293,28 +297,21 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
     @Override
     public void put(Stream<Write> writes) {
-        maybeLog(() -> delegate.put(writes), logTime("put"));
-    }
-
-    @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         long startTime = System.currentTimeMillis();
-        maybeLog(() -> delegate.multiPut(valuesByTable, timestamp),
-                (logger, stopwatch) -> {
-                    int totalCells = 0;
-                    long totalBytes = 0;
-                    for (Map<Cell, byte[]> values : valuesByTable.values()) {
-                        totalCells += values.size();
-                        totalBytes += byteSize(values);
-                    }
-                    logger.log(
-                            "Call to KVS.multiPut at time {}, on {} tables putting {} total cells of {} total bytes took {} ms.",
-                            LoggingArgs.startTimeMillis(startTime),
-                            LoggingArgs.tableCount(valuesByTable.keySet().size()),
-                            LoggingArgs.cellCount(totalCells),
-                            LoggingArgs.sizeInBytes(totalBytes),
-                            LoggingArgs.durationMillis(stopwatch));
-                });
+        Set<TableReference> seenTables = new HashSet<>();
+        MutableInt totalCells = new MutableInt();
+        MutableLong totalBytes = new MutableLong();
+        maybeLog(() -> delegate.put(writes.peek(write -> {
+            seenTables.add(write.table());
+            totalCells.increment();
+            totalBytes.add(write.value().length);
+        })), (logger, stopwatch) -> logger.log(
+                "Call to KVS.put at time {}, on {} tables putting {} total cells of {} total bytes took {} ms.",
+                LoggingArgs.startTimeMillis(startTime),
+                LoggingArgs.tableCount(seenTables.size()),
+                LoggingArgs.cellCount(totalCells.intValue()),
+                LoggingArgs.sizeInBytes(totalBytes.longValue()),
+                LoggingArgs.durationMillis(stopwatch)));
     }
 
     @Override

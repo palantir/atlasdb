@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Before;
@@ -56,6 +58,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.tracing.TestSpanObserver;
 import com.palantir.remoting.api.tracing.SpanType;
 import com.palantir.remoting3.tracing.Tracer;
@@ -323,12 +326,11 @@ public class TracingKeyValueServiceTest {
     }
 
     @Test
-    public void multiPut() throws Exception {
-        Map<TableReference, Map<Cell, byte[]>> values = ImmutableMap.of(TABLE_REF, ImmutableMap.of(CELL, VALUE_BYTES));
-        kvs.multiPut(values, TIMESTAMP);
+    public void put() throws Exception {
+        kvs.put(Stream.of(Write.of(TABLE_REF, CELL, TIMESTAMP, VALUE_BYTES)));
 
-        checkSpan("atlasdb-kvs.multiPut(1 values, ts 1)");
-        verify(delegate).multiPut(values, TIMESTAMP);
+        checkSpan("atlasdb-kvs.put()");
+        verify(delegate).put(any());
         verifyNoMoreInteractions(delegate);
     }
 

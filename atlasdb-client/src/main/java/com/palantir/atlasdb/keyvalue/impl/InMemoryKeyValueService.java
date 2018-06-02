@@ -388,14 +388,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp) {
-        valuesByTable.forEach((tableRef, values) ->
-                putInternal(tableRef,
-                        KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
-                        false));
-    }
-
-    @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         putInternal(tableRef,

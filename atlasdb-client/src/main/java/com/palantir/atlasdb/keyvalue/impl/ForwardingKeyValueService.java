@@ -165,11 +165,6 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
-        delegate().multiPut(valuesByTable, timestamp);
-    }
-
-    @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         delegate().putUnlessExists(tableRef, values);
     }

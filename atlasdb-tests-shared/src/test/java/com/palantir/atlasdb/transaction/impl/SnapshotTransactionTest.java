@@ -53,6 +53,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -91,6 +92,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
@@ -150,7 +152,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
 
         @Override
-        public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
+        public void put(Stream<Write> writes) {
             if (randomlyThrow && random.nextInt(3) == 0) {
                 throw new RuntimeException();
             }
@@ -162,7 +164,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 }
                 throw new RuntimeException();
             }
-            super.multiPut(valuesByTable, timestamp);
+            super.put(writes);
         }
 
         public void setRandomlyHang(boolean randomlyHang) {
@@ -312,7 +314,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             inSequence(seq);
             oneOf(kvMock).getLatestTimestamps(TABLE, ImmutableMap.of(cell, startTs));
             inSequence(seq);
-            oneOf(kvMock).multiPut(with(any(Map.class)), with(transactionTs));
+            oneOf(kvMock).put(with(any(Stream.class)));
             inSequence(seq);
             oneOf(kvMock).putUnlessExists(with(TransactionConstants.TRANSACTION_TABLE), with(any(Map.class)));
             inSequence(seq);

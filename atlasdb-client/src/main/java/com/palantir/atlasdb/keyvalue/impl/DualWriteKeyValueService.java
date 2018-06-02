@@ -97,12 +97,6 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
-        delegate1.multiPut(valuesByTable, timestamp);
-        delegate2.multiPut(valuesByTable, timestamp);
-    }
-
-    @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         delegate1.putUnlessExists(tableRef, values);

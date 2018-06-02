@@ -46,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
@@ -61,7 +62,8 @@ public class KeyValueServices {
     private KeyValueServices() {/**/}
 
     public static void put(KeyValueService service, TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        service.multiPut(Collections.singletonMap(tableRef, values), timestamp);
+        service.put(values.entrySet().stream()
+                .map(entry -> Write.of(tableRef, entry.getKey(), timestamp, entry.getValue())));
     }
 
     public static TableMetadata getTableMetadataSafe(KeyValueService service, TableReference tableRef) {

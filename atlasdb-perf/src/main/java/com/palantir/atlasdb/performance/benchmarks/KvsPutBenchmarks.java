@@ -19,6 +19,7 @@ package com.palantir.atlasdb.performance.benchmarks;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
@@ -74,7 +75,9 @@ public class KvsPutBenchmarks {
         Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
         multiPutMap.put(tables.getFirstTableRef(), tables.generateBatchToInsert(BATCH_SIZE));
         multiPutMap.put(tables.getSecondTableRef(), tables.generateBatchToInsert(BATCH_SIZE));
-        tables.getKvs().multiPut(multiPutMap, DUMMY_TIMESTAMP);
+        tables.getKvs().put(Stream.concat(
+                tables.generateRandomBatchToInsert(BATCH_SIZE, tables.getFirstTableRef(), DUMMY_TIMESTAMP),
+                tables.generateRandomBatchToInsert(BATCH_SIZE, tables.getSecondTableRef(), DUMMY_TIMESTAMP)));
         return multiPutMap;
     }
 

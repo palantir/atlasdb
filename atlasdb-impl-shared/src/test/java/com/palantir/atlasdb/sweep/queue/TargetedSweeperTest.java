@@ -18,11 +18,8 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -38,8 +35,6 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -99,12 +94,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void sweepStrategyNothingDoesNotPersistAnything() {
         enqueueWrite(TABLE_NOTH, LOW_TS);
         enqueueWrite(TABLE_NOTH, LOW_TS2);
-        verify(spiedKvs, times(2)).multiPut(argThat(hasKey(is(TABLE_NOTH))), anyLong());
-        verify(spiedKvs, times(2)).multiPut(anyMap(), anyLong());
-    }
-
-    private static <K, V> Matcher<Map<K, V>> hasKey(Matcher<K> key) {
-        return (Matcher<Map<K, V>>) (Matcher<?>) Matchers.hasKey(key);
+        verify(spiedKvs, times(2)).put(any());
     }
 
     @Test

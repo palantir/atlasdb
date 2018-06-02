@@ -333,16 +333,6 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
-            long timestamp) {
-        //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("multiPut({} values, ts {})",
-                valuesByTable.size(), timestamp)) {
-            delegate().multiPut(valuesByTable, timestamp);
-        }
-    }
-
-    @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("putMetadataForTable({}, {} bytes)",

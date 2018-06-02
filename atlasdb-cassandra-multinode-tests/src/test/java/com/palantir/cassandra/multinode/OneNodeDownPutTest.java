@@ -25,7 +25,6 @@ import java.util.stream.Stream;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -57,11 +56,10 @@ public class OneNodeDownPutTest {
 
     @Test
     public void canMultiPut() {
-        ImmutableMap<Cell, byte[]> entries = ImmutableMap.of(
-                OneNodeDownTestSuite.CELL_2_1, newContents,
-                OneNodeDownTestSuite.CELL_2_2, newContents);
+        OneNodeDownTestSuite.kvs.put(Stream.of(
+                Write.of(OneNodeDownTestSuite.TEST_TABLE, OneNodeDownTestSuite.CELL_2_1, newTimestamp, newContents),
+                Write.of(OneNodeDownTestSuite.TEST_TABLE, OneNodeDownTestSuite.CELL_2_2, newTimestamp, newContents)));
 
-        OneNodeDownTestSuite.kvs.multiPut(ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, entries), newTimestamp);
         OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_1, newValue);
         OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_2, newValue);
     }

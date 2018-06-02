@@ -95,6 +95,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.Write;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
@@ -1388,7 +1389,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             sweepQueue.enqueue(writesByTable, getStartTimestamp());
 
             Timer.Context writesTimer = getTimer("commitWrite").time();
-            keyValueService.multiPut(writesByTable, getStartTimestamp());
+            long startTimestamp = getStartTimestamp();
+            keyValueService.put(writesByTable.entrySet().stream()
+                    .flatMap(tableWrites -> tableWrites.getValue().entrySet().stream()
+                            .map(write ->
+                                    Write.of(tableWrites.getKey(), write.getKey(), startTimestamp, write.getValue()))));
             long millisForWrites = TimeUnit.NANOSECONDS.toMillis(writesTimer.stop());
 
             // Now that all writes are done, get the commit timestamp
