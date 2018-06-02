@@ -15,23 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import static java.util.stream.Collectors.groupingBy;
-
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
-import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
