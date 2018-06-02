@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -25,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -415,11 +415,10 @@ public final class DbKvs extends AbstractKeyValueService {
         });
     }
 
-    private Stream<Callable<Void>> putWritesForTable(TableReference table, Map<Cell, Value> writes) {
-        NavigableMap<Cell, Value> sortedMap = ImmutableSortedMap.copyOf(writes);
+    private Stream<Callable<Void>> putWritesForTable(TableReference table, NavigableMap<Cell, Value> writes) {
 
         Iterable<List<Entry<Cell, Value>>> partitions = IterablePartitioner.partitionByCountAndBytes(
-                sortedMap.entrySet(),
+                writes.entrySet(),
                 getMultiPutBatchCount(),
                 getMultiPutBatchSizeBytes(),
                 table,
@@ -455,8 +454,10 @@ public final class DbKvs extends AbstractKeyValueService {
 
     @Override
     public void put(Stream<Write> writes) {
-        Map<TableReference, Map<Cell, Value>> writesByTable = writes.collect(
-                groupingBy(Write::table, toMap(Write::cell,
+        Map<TableReference, ImmutableSortedMap<Cell, Value>> writesByTable = writes.collect(
+                groupingBy(Write::table, ImmutableSortedMap.toImmutableSortedMap(
+                        Comparator.naturalOrder(),
+                        Write::cell,
                         write -> Value.create(write.value(), write.timestamp()))));
         List<Callable<Void>> callables = KeyedStream.stream(writesByTable)
                 .flatMap(this::putWritesForTable)
