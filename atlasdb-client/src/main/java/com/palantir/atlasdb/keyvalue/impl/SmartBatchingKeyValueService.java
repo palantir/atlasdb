@@ -137,7 +137,7 @@ public class SmartBatchingKeyValueService extends ForwardingKeyValueService {
 
         // Given we batch at a lower level too, we are CPU limiting ourselves here. So, create a thread per CPU.
         int concurrency = Runtime.getRuntime().availableProcessors();
-        int bufferSize = 128;
+        int bufferSize = 1024;
         Disruptor<WritesHolder> disruptor = new Disruptor<>(ModifiableWritesHolder::create, bufferSize, threadFactory);
 
         WriteHolderHandler[] handlers = IntStream.range(0, concurrency)
