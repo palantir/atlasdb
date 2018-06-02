@@ -145,23 +145,6 @@ public interface KeyValueService extends AutoCloseable {
                                         Map<Cell, Long> timestampByCell);
 
     /**
-     * A legacy version of put which delegates to {@link #put(Stream)},
-     * this method is not intended to be implemented or used.
-     * <p>
-     * There exist a few internal implementations of this method, and we will
-     * remove this method when they are gone.
-     * <p>
-     * @deprecated please use {@link #put(Stream)} instead.
-     */
-    @Idempotent
-    @Deprecated
-    default void put(TableReference tableRef,
-             Map<Cell, byte[]> values,
-             long timestamp) throws KeyAlreadyExistsException {
-        put(values.entrySet().stream().map(entry -> Write.of(tableRef, entry.getKey(), timestamp, entry.getValue())));
-    }
-
-    /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee
      * atomicity across cells. On failure, it is possible that some of the requests
      * will have succeeded (without having been rolled back). Similarly, concurrent
@@ -178,42 +161,6 @@ public interface KeyValueService extends AutoCloseable {
      * assume that all of the writes in the stream be bufferable in memory.
      */
     void put(Stream<Write> writes);
-
-    /**
-     * A legacy version of put which delegates to {@link #put(Stream)},
-     * this method is not intended to be implemented or used.
-     * <p>
-     * There exist a few internal implementations of this method, and we will
-     * remove this method when they are gone.
-     * <p>
-     * @deprecated please use {@link #put(Stream)} instead.
-     */
-    @Idempotent
-    @Deprecated
-    default void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
-                  long timestamp) throws KeyAlreadyExistsException {
-        put(valuesByTable.entrySet().stream()
-                .flatMap(entry -> entry.getValue().entrySet().stream()
-                        .map(valueEntry ->
-                                Write.of(entry.getKey(), valueEntry.getKey(), timestamp, valueEntry.getValue()))));
-    }
-
-    /**
-     * A legacy version of put which delegates to {@link #put(Stream)},
-     * this method is not intended to be implemented or used.
-     * <p>
-     * There exist a few internal implementations of this method, and we will
-     * remove this method when they are gone.
-     * <p>
-     * @deprecated please use {@link #put(Stream)} instead.
-     */
-    @Idempotent
-    @Deprecated
-    default void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) {
-        put(cellValues.entries().stream()
-                .map(entry -> Write.of(tableRef, entry.getKey(),
-                        entry.getValue().getTimestamp(), entry.getValue().getContents())));
-    }
 
     /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee

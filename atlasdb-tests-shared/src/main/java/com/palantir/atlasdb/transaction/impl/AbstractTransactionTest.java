@@ -694,7 +694,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Cell k = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
         String value = "whatever";
         byte[] v = PtBytes.toBytes(value);
-        keyValueService.put(Stream.of(Write.of(TEST_TABLE, k, 0, v)));
+        keyValueService.put(Stream.of(Write.of(TEST_TABLE, k, 0, v), Write.of(table, k, 0, v)));
         assertEquals(value, getDirect("row", "col", 1).lhSide);
         assertEquals(value, getDirect(table, "row", "col", 1).lhSide);
         keyValueService.dropTable(table);
