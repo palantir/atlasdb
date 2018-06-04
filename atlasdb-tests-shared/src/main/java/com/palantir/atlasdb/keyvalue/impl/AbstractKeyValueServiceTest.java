@@ -1374,7 +1374,7 @@ public abstract class AbstractKeyValueServiceTest {
         try {
             keyValueService.put(Stream.of(Write.of(TEST_TABLE, TEST_CELL, TEST_TIMESTAMP + 1, value01)));
             // Legal
-        } catch (AtlasDbDependencyException e) {
+        } catch (KeyAlreadyExistsException e) {
             // Legal
         }
 
@@ -1382,12 +1382,12 @@ public abstract class AbstractKeyValueServiceTest {
         try {
             keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, value00));
             // Legal
-        } catch (AtlasDbDependencyException e) {
+        } catch (KeyAlreadyExistsException e) {
             // Legal
         }
 
         assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, value00)))
-                .isInstanceOf(AtlasDbDependencyException.class)
+                .isInstanceOf(KeyAlreadyExistsException.class)
                 .as("putUnlessExists must throw when overwriting the same cell!");
     }
 
