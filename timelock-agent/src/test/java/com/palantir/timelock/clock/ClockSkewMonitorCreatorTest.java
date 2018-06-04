@@ -36,8 +36,7 @@ public class ClockSkewMonitorCreatorTest {
         ClockSkewMonitorCreator clockSkewMonitorCreator = new ClockSkewMonitorCreator(
                 ImmutableSet.of("foo:1"),
                 Optional.empty(),
-                registrar,
-                () -> null);
+                registrar);
         clockSkewMonitorCreator.registerClockServices();
         verify(registrar).accept(any(ClockServiceImpl.class));
     }

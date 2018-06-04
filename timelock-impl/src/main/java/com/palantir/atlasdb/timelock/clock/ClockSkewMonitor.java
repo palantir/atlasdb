@@ -52,18 +52,13 @@ public final class ClockSkewMonitor {
 
     public static ClockSkewMonitor create(
             Set<String> remoteServers,
-            Optional<SSLSocketFactory> optionalSecurity,
-            Supplier<AuthHeader> authHeaderSupplier) {
+            Optional<SSLSocketFactory> optionalSecurity) {
         Map<String, ClockService> clocksByServer = Maps.toMap(
                 remoteServers,
-                (remoteServer) -> {
-                    AuthedClockService authedClockService = AtlasDbHttpClients.createProxy(
-                            optionalSecurity,
-                            remoteServer,
-                            AuthedClockService.class);
-                    return new ProvidedAuthClockService(authedClockService, authHeaderSupplier);
-                });
-
+                (remoteServer) -> AtlasDbHttpClients.createProxy(
+                        optionalSecurity,
+                        remoteServer,
+                        ClockService.class));
         return new ClockSkewMonitor(
                 clocksByServer,
                 new ClockSkewEvents(AtlasDbMetrics.getMetricRegistry()),
