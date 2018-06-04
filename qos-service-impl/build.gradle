@@ -17,6 +17,7 @@ dependencies {
     }
     compile (project(":qos-service-api"));
     compile group: 'com.google.guava', name: 'guava'
+    compile group: 'net.jcip', name: 'jcip-annotations'
 
     processor project(":atlasdb-processors")
     processor group: 'org.immutables', name: 'value'
