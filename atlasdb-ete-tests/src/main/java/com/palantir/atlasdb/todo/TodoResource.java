@@ -60,6 +60,10 @@ public interface TodoResource {
     void storeSnapshot(String snapshot);
 
     @POST
+    @Path("/targeted-sweep")
+    void runIterationOfTargetedSweep();
+
+    @POST
     @Path("/sweep-snapshot-indices")
     @Produces(MediaType.APPLICATION_JSON)
     SweepResults sweepSnapshotIndices();

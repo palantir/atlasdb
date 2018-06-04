@@ -35,6 +35,7 @@ import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
@@ -46,6 +47,9 @@ import com.palantir.atlasdb.schema.CleanupMetadataResourceImpl;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
+import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
@@ -89,8 +93,10 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
         SerializableTransactionManager transactionManager = tryToCreateTransactionManager(config, environment);
         Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(transactionManager));
-
-        environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager, sweepTaskRunner)));
+        Follower follower = CleanupFollower.create(ETE_SCHEMAS);
+        TargetedSweeper targetedSweeper = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0, follower);
+        targetedSweeper.initialize(new SpecialTimestampsSupplier(transactionManager::getImmutableTimestamp, transactionManager::getImmutableTimestamp), transactionManager.getKeyValueService(), new TargetedSweepFollower(follower, transactionManager));
+        environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager, sweepTaskRunner, targetedSweeper)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());

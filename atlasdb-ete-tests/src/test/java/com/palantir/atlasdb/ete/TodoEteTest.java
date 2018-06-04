@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThat;
 
 import java.util.Random;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -41,6 +42,7 @@ public class TodoEteTest {
     }
 
     @Test
+    @Ignore
     public void shouldSweepStreamIndices() {
         TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
@@ -86,6 +88,15 @@ public class TodoEteTest {
         SweepResults secondValueSweep = todoClient.sweepSnapshotValues();
         assertThat(secondValueSweep.getCellTsPairsExamined(), equalTo(177L));
         assertThat(secondValueSweep.getStaleValuesDeleted(), equalTo(1L + 19 * 4L));
+    }
+
+    @Test
+    public void targetedSweepStream() {
+        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+        storeFiveStreams(todoClient, 20);
+        todoClient.runIterationOfTargetedSweep();
+        todoClient.runIterationOfTargetedSweep();
+
     }
 
     private void storeFiveStreams(TodoResource todoClient, int streamSize) {

@@ -61,6 +61,11 @@ public class SimpleTodoResource implements TodoResource {
     }
 
     @Override
+    public void runIterationOfTargetedSweep() {
+        atlas.runIterationOfTargetedSweep();
+    }
+
+    @Override
     public SweepResults sweepSnapshotIndices() {
         return atlas.sweepSnapshotIndices();
     }

@@ -40,6 +40,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.generated.LatestSnapshotTable;
 import com.palantir.atlasdb.todo.generated.SnapshotsStreamStore;
@@ -55,11 +57,13 @@ public class TodoClient {
 
     private final TransactionManager transactionManager;
     private final Supplier<SweepTaskRunner> sweepTaskRunner;
+    private final TargetedSweeper targetedSweeper;
     private final Random random = new Random();
 
-    public TodoClient(TransactionManager transactionManager, Supplier<SweepTaskRunner> sweepTaskRunner) {
+    public TodoClient(TransactionManager transactionManager, Supplier<SweepTaskRunner> sweepTaskRunner, TargetedSweeper targetedSweeper) {
         this.transactionManager = transactionManager;
         this.sweepTaskRunner = sweepTaskRunner;
+        this.targetedSweeper = targetedSweeper;
     }
 
     public void addTodo(Todo todo) {
@@ -137,6 +141,10 @@ public class TodoClient {
 
             return null;
         });
+    }
+
+    public void runIterationOfTargetedSweep() {
+        targetedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0));
     }
 
     public SweepResults sweepSnapshotIndices() {
