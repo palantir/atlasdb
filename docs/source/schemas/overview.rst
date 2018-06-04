@@ -148,12 +148,7 @@ characteristics, among other things. The supported types are:
 +-------------------------------+--------------+---------------+----------------+----------+
 
 .. [1]
-  All long data types are signed, but ``VAR_SIGNED_LONG`` is
-  encoded in a manner which stores negative numbers more efficiently than
-  ``VAR_LONG``.
-  In particular, 0 to 127 are 1 byte for ``VAR_LONG`` and -64 to 63 are 1 byte for
-  ``VAR_SIGNED_LONG``. ``VAR_LONG`` will always use 10 bytes to encode negative
-  numbers.
+  All long data types are signed, except for ``VAR_LONG``.
 
 .. [2]
   A ``STRING`` or ``BLOB`` can only be a row component
