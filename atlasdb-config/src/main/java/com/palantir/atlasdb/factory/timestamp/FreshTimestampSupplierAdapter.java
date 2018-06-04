@@ -18,6 +18,7 @@ package com.palantir.atlasdb.factory.timestamp;
 
 import java.util.function.LongSupplier;
 
+import com.google.common.base.Preconditions;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.TimestampService;
 
@@ -25,16 +26,20 @@ public class FreshTimestampSupplierAdapter implements LongSupplier {
     private volatile TimestampService timestampService;
 
     public void setTimestampService(TimestampService timestampService) {
+        Preconditions.checkNotNull(timestampService, "Should not re-set timestamp service in a"
+                + " FreshTimestampSupplierAdapter to null");
         this.timestampService = timestampService;
     }
 
     @Override
     public long getAsLong() {
-        TimestampService timestampServiceForThisCall = timestampService;
-        if (timestampServiceForThisCall == null) {
+        // There are 2 reads which are not necessarily consistent. However, if the timestamp service changes in between
+        // read one and two, it will not be null and we will get a fresh timestamp from the second service read.
+        // In practice we don't expect this method to be called more than once per TransactionManager.
+        if (timestampService == null) {
             throwNotInitializedException();
         }
-        return timestampServiceForThisCall.getFreshTimestamp();
+        return timestampService.getFreshTimestamp();
     }
 
     private static long throwNotInitializedException() {
