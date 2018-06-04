@@ -44,7 +44,6 @@ public class TableSplittingKeyValueServiceTest {
     private static final Cell CELL = Cell.create("row".getBytes(), "column".getBytes());
     private static final byte[] VALUE = "value".getBytes();
     private static final long TIMESTAMP = 123L;
-    public static final ImmutableMap<Cell, byte[]> VALUES = ImmutableMap.of(CELL, VALUE);
 
     private final Mockery mockery = new Mockery();
     private final KeyValueService tableDelegate = mockery.mock(KeyValueService.class, "table delegate");
