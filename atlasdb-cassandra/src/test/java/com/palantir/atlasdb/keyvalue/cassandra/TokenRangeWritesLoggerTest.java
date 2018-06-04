@@ -202,7 +202,7 @@ public class TokenRangeWritesLoggerTest {
     }
 
     private void markWritesPerRangeForTable(long fst, long snd, long trd, long fth, TableReference tableRef) {
-        writesLogger.markWritesForTable(writesPerRange(fst, snd, trd, fth), tableRef);
+        writesPerRange(fst, snd, trd, fth).forEach(cell -> writesLogger.markWriteForTable(tableRef, cell));
     }
 
     private Set<Cell> writesPerRange(long fst, long snd, long trd, long fth) {

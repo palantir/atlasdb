@@ -210,8 +210,8 @@ public class CassandraService implements AutoCloseable {
         return tokenMap;
     }
 
-    public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
-        tokenRangeWritesLogger.markWritesForTable(entries.keySet(), tableRef);
+    public void markWriteForTable(TableReference tableRef, Cell cell) {
+        tokenRangeWritesLogger.markWriteForTable(tableRef, cell);
     }
 
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getPools() {

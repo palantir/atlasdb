@@ -34,6 +34,6 @@ public interface CassandraClientPool {
     <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K;
     InetSocketAddress getRandomHostForKey(byte[] key);
     Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools();
-    <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef);
+    void markWriteForTable(TableReference tableRef, Cell cell);
     void shutdown();
 }

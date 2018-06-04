@@ -1753,7 +1753,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 ImmutableList.of(e.getKey())));
                     }
                 }
-                clientPool.markWritesForTable(values, tableRef);
+                values.keySet().forEach(cell -> clientPool.markWriteForTable(tableRef, cell));
                 return Optional.empty();
             });
             failure.ifPresent(exception -> {

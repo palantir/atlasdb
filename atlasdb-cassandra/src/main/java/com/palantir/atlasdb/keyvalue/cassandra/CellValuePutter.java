@@ -103,8 +103,7 @@ public class CellValuePutter {
         return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
             public Void apply(CassandraClient client) throws Exception {
-                return queryRunner.batchMutate(kvsMethodName, client, tableRefs, mutationMap,
-                        writeConsistency);
+                return queryRunner.batchMutate(kvsMethodName, client, tableRefs, mutationMap, writeConsistency);
             }
 
             @Override
@@ -126,6 +125,7 @@ public class CellValuePutter {
             mutation.setColumn_or_supercolumn(colOrSup);
 
             mutationMap.addMutationForCell(cell, write.table(), mutation);
+            clientPool.markWriteForTable(write.table(), cell);
         }
         return mutationMap;
     }

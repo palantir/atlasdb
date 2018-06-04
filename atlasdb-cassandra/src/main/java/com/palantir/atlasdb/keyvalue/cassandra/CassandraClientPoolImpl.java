@@ -243,8 +243,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @Override
-    public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
-        cassandra.markWritesForTable(entries, tableRef);
+    public void markWriteForTable(TableReference tableRef, Cell cell) {
+        cassandra.markWriteForTable(tableRef, cell);
     }
 
     @VisibleForTesting

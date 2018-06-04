@@ -69,16 +69,14 @@ public final class TokenRangeWritesLogger {
         }
     }
 
-    public void markWritesForTable(Set<Cell> entries, TableReference tableRef) {
+    public void markWriteForTable(TableReference tableRef, Cell cell) {
         if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
             return;
         }
 
-        if (!statsPerTable.containsKey(tableRef)) {
-            statsPerTable.put(tableRef, new TokenRangeWrites(tableRef, ranges));
-        }
-        TokenRangeWrites tokenRangeWrites = statsPerTable.get(tableRef);
-        entries.forEach(tokenRangeWrites::markWrite);
+        TokenRangeWrites tokenRangeWrites = statsPerTable.computeIfAbsent(
+                tableRef, t -> new TokenRangeWrites(t, ranges));
+        tokenRangeWrites.markWrite(cell);
         tokenRangeWrites.maybeEmitTelemetry();
     }
 
