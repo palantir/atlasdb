@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.spi;
 
 import java.util.Optional;
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -71,7 +70,7 @@ public interface AtlasDbFactory {
             Optional<String> namespace,
             boolean initializeAsync,
             QosClient qosClient,
-            Optional<LongSupplier> freshTimestampSource);
+            Optional<Supplier<Long>> freshTimestampSource);
 
     default TimestampService createTimestampService(KeyValueService rawKvs) {
         return createTimestampService(rawKvs, Optional.empty(), DEFAULT_INITIALIZE_ASYNC);

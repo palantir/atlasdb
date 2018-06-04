@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.cassandra;
 
 import java.util.Optional;
-import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 public class CassandraMutationTimestampProviders {
     private CassandraMutationTimestampProviders() {
@@ -26,7 +26,7 @@ public class CassandraMutationTimestampProviders {
 
     /**
      * @return {@link CassandraMutationTimestampProvider} which behaves in line with existing behaviour.
-     * As far as possible, users should switch to {@link this#singleLongSupplierBacked(LongSupplier)} with a
+     * As far as possible, users should switch to {@link this#singleLongSupplierBacked(Supplier)} with a
      * fresh timestamp source from AtlasDB to promote better Cassandra compaction behaviour.
      */
     public static CassandraMutationTimestampProvider legacy() {
@@ -43,21 +43,23 @@ public class CassandraMutationTimestampProviders {
         };
     }
 
-    public static CassandraMutationTimestampProvider singleLongSupplierBacked(LongSupplier longSupplier) {
+    public static CassandraMutationTimestampProvider singleLongSupplierBacked(
+            Supplier<Long> longSupplier) {
         return new CassandraMutationTimestampProvider() {
             @Override
             public long getSweepSentinelWriteTimestamp() {
-                return longSupplier.getAsLong();
+                return longSupplier.get();
             }
 
             @Override
             public long getDeletionTimestamp(long atlasDeletionTimestamp) {
-                return longSupplier.getAsLong();
+                return longSupplier.get();
             }
         };
     }
 
-    public static CassandraMutationTimestampProvider optionallyLongSupplierBacked(Optional<LongSupplier> longSupplier) {
+    public static CassandraMutationTimestampProvider optionallyLongSupplierBacked(
+            Optional<Supplier<Long>> longSupplier) {
         return longSupplier.map(CassandraMutationTimestampProviders::singleLongSupplierBacked)
                 .orElseGet(CassandraMutationTimestampProviders::legacy);
     }

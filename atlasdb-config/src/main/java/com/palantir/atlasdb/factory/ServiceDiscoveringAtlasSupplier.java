@@ -24,7 +24,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.ServiceLoader;
-import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
@@ -79,7 +78,8 @@ public class ServiceDiscoveringAtlasSupplier {
                 namespace,
                 timestampTable,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE);
+                FakeQosClient.INSTANCE,
+                Optional.empty());
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -89,33 +89,14 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<String> namespace,
             boolean initializeAsync,
             QosClient qosClient) {
-        this(config, runtimeConfig, leaderConfig, namespace, Optional.empty(), initializeAsync, qosClient);
-    }
-
-    public ServiceDiscoveringAtlasSupplier(
-            KeyValueServiceConfig config,
-            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace,
-            Optional<TableReference> timestampTable,
-            boolean initializeAsync,
-            QosClient qosClient) {
-        this.config = config;
-        this.leaderConfig = leaderConfig;
-
-        AtlasDbFactory atlasFactory = createAtlasFactoryOfCorrectType(config);
-        keyValueService = Suppliers.memoize(
-                () -> atlasFactory.createRawKeyValueService(
-                        config,
-                        runtimeConfig,
-                        leaderConfig,
-                        namespace,
-                        initializeAsync,
-                        qosClient,
-                        Optional.empty()));
-        timestampService = () ->
-                atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
-        timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
+        this(config,
+                runtimeConfig,
+                leaderConfig,
+                namespace,
+                Optional.empty(),
+                initializeAsync,
+                qosClient,
+                Optional.empty());
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -126,7 +107,7 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
             QosClient qosClient,
-            LongSupplier timestampSupplier) {
+            Optional<java.util.function.Supplier<Long>> timestampSupplier) {
         // TODO (jkong): Remove some duplication between the above constructor and this
         this.config = config;
         this.leaderConfig = leaderConfig;
@@ -140,7 +121,7 @@ public class ServiceDiscoveringAtlasSupplier {
                         namespace,
                         initializeAsync,
                         qosClient,
-                        Optional.of(timestampSupplier)));
+                        timestampSupplier));
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());

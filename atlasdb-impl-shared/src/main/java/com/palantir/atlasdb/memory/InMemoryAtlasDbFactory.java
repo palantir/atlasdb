@@ -17,6 +17,7 @@ package com.palantir.atlasdb.memory;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -115,9 +116,10 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
             boolean initializeAsync,
-            QosClient unusedQosClient) {
+            QosClient unusedQosClient,
+            Optional<Supplier<Long>> unusedLongSupplier) {
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
 
         AtlasDbVersion.ensureVersionReported();
@@ -130,7 +132,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
             Optional<TableReference> unused,
             boolean initializeAsync) {
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
 
         AtlasDbVersion.ensureVersionReported();

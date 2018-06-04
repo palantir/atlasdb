@@ -52,7 +52,7 @@ public abstract class ServicesConfig {
                 Optional.empty(),
                 atlasDbConfig().initializeAsync(),
                 FakeQosClient.INSTANCE,
-                () -> adapter().getAsLong());
+                Optional.of(adapter()));
     }
 
     @Value.Default

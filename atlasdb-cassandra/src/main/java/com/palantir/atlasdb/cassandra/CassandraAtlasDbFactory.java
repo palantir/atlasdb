@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.cassandra;
 
 import java.util.Optional;
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -57,7 +56,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Optional<String> namespace,
             boolean initializeAsync,
             QosClient qosClient,
-            Optional<LongSupplier> freshTimestampSource) {
+            Optional<Supplier<Long>> freshTimestampSource) {
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, runtimeConfig, namespace);
         Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig = preprocessKvsRuntimeConfig(
