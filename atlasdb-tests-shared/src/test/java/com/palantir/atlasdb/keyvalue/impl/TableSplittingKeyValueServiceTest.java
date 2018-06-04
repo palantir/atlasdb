@@ -17,17 +17,25 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Write;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Expectations syntax
 public class TableSplittingKeyValueServiceTest {
@@ -52,10 +60,10 @@ public class TableSplittingKeyValueServiceTest {
         );
 
         mockery.checking(new Expectations() {{
-            KeyValueServices.put(oneOf(tableDelegate), TABLE, VALUES, TIMESTAMP);
+            oneOf(tableDelegate).put(with(write(TABLE, CELL, TIMESTAMP, VALUE)));
         }});
 
-        KeyValueServices.put(splittingKvs, TABLE, VALUES, TIMESTAMP);
+        splittingKvs.put(Stream.of(Write.of(TABLE, CELL, TIMESTAMP, VALUE)));
     }
 
     @Test
@@ -67,10 +75,10 @@ public class TableSplittingKeyValueServiceTest {
         );
 
         mockery.checking(new Expectations() {{
-            KeyValueServices.put(oneOf(namespaceDelegate), TABLE, VALUES, TIMESTAMP);
+            oneOf(namespaceDelegate).put(with(write(TABLE, CELL, TIMESTAMP, VALUE)));
         }});
 
-        KeyValueServices.put(splittingKvs, TABLE, VALUES, TIMESTAMP);
+        splittingKvs.put(Stream.of(Write.of(TABLE, CELL, TIMESTAMP, VALUE)));
     }
 
     @Test
@@ -82,10 +90,10 @@ public class TableSplittingKeyValueServiceTest {
         );
 
         mockery.checking(new Expectations() {{
-            KeyValueServices.put(oneOf(tableDelegate), TABLE, VALUES, TIMESTAMP);
+            oneOf(tableDelegate).put(with(write(TABLE, CELL, TIMESTAMP, VALUE)));
         }});
 
-        KeyValueServices.put(splittingKvs, TABLE, VALUES, TIMESTAMP);
+        splittingKvs.put(Stream.of(Write.of(TABLE, CELL, TIMESTAMP, VALUE)));
     }
 
     @Test
@@ -96,10 +104,10 @@ public class TableSplittingKeyValueServiceTest {
         );
 
         mockery.checking(new Expectations() {{
-            KeyValueServices.put(oneOf(defaultKvs), TABLE, VALUES, TIMESTAMP);
+            oneOf(defaultKvs).put(with(write(TABLE, CELL, TIMESTAMP, VALUE)));
         }});
 
-        KeyValueServices.put(splittingKvs, TABLE, VALUES, TIMESTAMP);
+        splittingKvs.put(Stream.of(Write.of(TABLE, CELL, TIMESTAMP, VALUE)));
     }
 
     @Test
@@ -138,5 +146,20 @@ public class TableSplittingKeyValueServiceTest {
                 .putAll(left)
                 .putAll(right)
                 .build();
+    }
+
+    private static Matcher<Stream<Write>> write(TableReference table, Cell cell, long timestamp, byte[] value) {
+        return new BaseMatcher<Stream<Write>>() {
+
+            @Override
+            public void describeTo(Description description) {}
+
+            @Override
+            @SuppressWarnings("unchecked")
+            public boolean matches(Object item) {
+                Set<Write> writeSet = ImmutableSet.of(Write.of(table, cell, timestamp, value));
+                return writeSet.equals(((Stream<Write>) item).collect(Collectors.toSet()));
+            }
+        };
     }
 }
