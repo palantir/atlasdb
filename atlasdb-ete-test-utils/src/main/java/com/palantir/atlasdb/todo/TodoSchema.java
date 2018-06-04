@@ -21,6 +21,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.table.description.OptionalType;
@@ -47,6 +48,8 @@ public class TodoSchema implements AtlasSchema {
                 rowComponent("id", ValueType.FIXED_LONG);
                 columns();
                 column(TEXT_COLUMN, "t", ValueType.STRING);
+
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
             }
         });
 

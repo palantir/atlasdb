@@ -103,6 +103,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     protected static final ExecutorService GET_RANGES_EXECUTOR =
             Executors.newFixedThreadPool(GET_RANGES_THREAD_POOL_SIZE);
 
+    public static final ExecutorService DELETE_EXECUTOR = Executors.newSingleThreadExecutor();
+
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
                 keyValueService,
@@ -120,7 +122,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 timestampCache,
                 GET_RANGES_EXECUTOR,
                 DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                DELETE_EXECUTOR);
     }
 
     @Test

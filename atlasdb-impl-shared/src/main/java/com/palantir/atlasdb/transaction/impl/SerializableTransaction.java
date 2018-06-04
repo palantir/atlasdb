@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -55,6 +56,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -79,7 +81,6 @@ import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.Pair;
 
 /**
@@ -123,7 +124,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    long lockAcquireTimeoutMs,
                                    ExecutorService getRangesExecutor,
                                    int defaultGetRangesConcurrency,
-                                   MultiTableSweepQueueWriter sweepQueue) {
+                                   MultiTableSweepQueueWriter sweepQueue,
+                                   ExecutorService deleteExecutor) {
         super(keyValueService,
               timelockService,
               transactionService,
@@ -142,7 +144,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               lockAcquireTimeoutMs,
               getRangesExecutor,
               defaultGetRangesConcurrency,
-              sweepQueue);
+              sweepQueue,
+              deleteExecutor);
     }
 
     @Override
@@ -181,6 +184,17 @@ public class SerializableTransaction extends SnapshotTransaction {
                 return hitEnd;
             }
         });
+    }
+
+    @Override
+    public Iterator<Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            int batchHint) {
+        if (isSerializableTable(tableRef)) {
+            throw new UnsupportedOperationException("This method does not support serializable conflict handling");
+        }
+        return super.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
     }
 
     @Override
@@ -625,7 +639,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                 RangeRequests.getNextStartRow(false, rangeEnd),
                                 range.getBatchHint());
                     }
-                    rangesToRows.computeIfAbsent(range, ignored -> Lists.newArrayList()).add(row);                    
+                    rangesToRows.computeIfAbsent(range, ignored -> Lists.newArrayList()).add(row);
                 }
             }
             for (Entry<BatchColumnRangeSelection, List<byte[]>> e : rangesToRows.entrySet()) {
@@ -639,20 +653,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                     NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(
                             getReadsInColumnRange(table, row, range),
                             input -> ByteBuffer.wrap(input));
-                    List<Entry<Cell, ByteBuffer>> realValuesAsList =
-                            bv.transformBatch(input -> filterWritesFromCells(input, writes)).immutableCopy();
-                    List<Entry<Cell, ByteBuffer>> readValuesAsList = ImmutableList.copyOf(readsInRange.entrySet());
-                    boolean isEqual = realValuesAsList.equals(readValuesAsList);
+                    boolean isEqual = bv.transformBatch(input -> filterWritesFromCells(input, writes))
+                            .isEqual(readsInRange.entrySet());
                     if (!isEqual) {
-                        log.info("Failing a serializable transaction because column ranges not equal",
-                                UnsafeArg.of("table", table),
-                                UnsafeArg.of("rowBase64", PtBytes.encodeBase64String(row)),
-                                UnsafeArg.of("rowBase16", PtBytes.encodeHexString(row)),
-                                UnsafeArg.of("range", range),
-                                UnsafeArg.of("keysReadDuringTxn",
-                                        Lists.transform(readValuesAsList, Entry::getKey)),
-                                UnsafeArg.of("keysReadDuringConflictChecking",
-                                        Lists.transform(realValuesAsList, Entry::getKey)));
                         handleTransactionConflict(table);
                     }
                 }
@@ -726,7 +729,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 lockAcquireTimeoutMs,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP) {
+                MultiTableSweepQueueWriter.NO_OP,
+                deleteExecutor) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

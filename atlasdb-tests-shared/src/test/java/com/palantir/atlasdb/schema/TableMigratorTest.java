@@ -38,6 +38,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
@@ -98,7 +99,8 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 transactionService,
                 cdm2,
                 ssm2,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                AbstractTransactionTest.DELETE_EXECUTOR);
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
 
@@ -133,7 +135,8 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 transactionService,
                 verifyCdm,
                 verifySsm,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                AbstractTransactionTest.DELETE_EXECUTOR);
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {
             verifyTxManager.runTaskReadOnly((TransactionTask<Void, RuntimeException>) txn -> {
