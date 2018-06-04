@@ -46,7 +46,6 @@ import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
@@ -73,7 +72,6 @@ public class QosCassandraEteTestSetup {
 
     @Before
     public void setup() {
-        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault());
         ensureTransactionManagerIsCreated();
     }
 

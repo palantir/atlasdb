@@ -42,7 +42,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
@@ -58,15 +58,12 @@ public class CassandraClientPoolTest {
     private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
     private static final InetSocketAddress HOST_3 = new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT);
 
-    private MetricRegistry metricRegistry;
+    private final MetricRegistry metricRegistry = new MetricRegistry();
     private CassandraKeyValueServiceConfig config;
     private Blacklist blacklist;
 
     @Before
     public void setup() {
-        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), new DefaultTaggedMetricRegistry());
-        this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
-
         config = mock(CassandraKeyValueServiceConfig.class);
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
@@ -249,7 +246,9 @@ public class CassandraClientPoolTest {
         when(config.servers()).thenReturn(servers);
 
         CassandraClientPoolImpl cassandraClientPool =
-                CassandraClientPoolImpl.createImplForTest(config,
+                CassandraClientPoolImpl.createImplForTest(
+                        MetricsManagers.of(metricRegistry, new DefaultTaggedMetricRegistry()),
+                        config,
                         CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                         blacklist);
 

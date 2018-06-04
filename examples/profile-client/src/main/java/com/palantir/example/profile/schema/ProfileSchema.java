@@ -52,7 +52,7 @@ public class ProfileSchema implements AtlasSchema {
                 rowComponent("id", ValueType.UUID);
             columns();
                 column("metadata", "m", ProfilePersistence.UserProfile.class);
-                column("create", "c", CreationData.Persister.class);
+                column("of", "c", CreationData.Persister.class);
                 column("json", "j", JsonNodePersister.class);
                 column("photo_stream_id", "p", ValueType.FIXED_LONG);
         }});
@@ -72,7 +72,7 @@ public class ProfileSchema implements AtlasSchema {
             onTable("user_profile");
             allSafeForLoggingByDefault();
             rowName();
-                componentFromColumn("time", ValueType.VAR_LONG, "create", "_value.getTimeCreated()");
+                componentFromColumn("time", ValueType.VAR_LONG, "of", "_value.getTimeCreated()");
             dynamicColumns();
                 componentFromRow("id", ValueType.UUID);
             rangeScanAllowed();

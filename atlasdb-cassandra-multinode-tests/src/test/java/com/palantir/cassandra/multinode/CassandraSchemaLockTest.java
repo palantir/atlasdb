@@ -52,6 +52,7 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -74,7 +75,9 @@ public class CassandraSchemaLockTest {
             for (int i = 0; i < THREAD_COUNT; i++) {
                 async(() -> {
                     CassandraKeyValueService keyValueService =
-                            CassandraKeyValueServiceImpl.create(config, Optional.empty());
+                            CassandraKeyValueServiceImpl.create(
+                                    MetricsManagers.createForTests(),
+                                    config, Optional.empty());
                     barrier.await();
                     keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
                     return null;
@@ -86,7 +89,9 @@ public class CassandraSchemaLockTest {
         }
 
         CassandraKeyValueService kvs =
-                CassandraKeyValueServiceImpl.create(config, Optional.empty());
+                CassandraKeyValueServiceImpl.create(
+                        MetricsManagers.createForTests(),
+                        config, Optional.empty());
         assertThat(kvs.getAllTableNames(), hasItem(table1));
 
         assertThat(new File(CONTAINERS.getLogDirectory()),

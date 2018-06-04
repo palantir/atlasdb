@@ -111,7 +111,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
 
     private TestHashComponentsStreamHashAidxTable(Transaction t, Namespace namespace, List<TestHashComponentsStreamHashAidxTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableRef = TableReference.of(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -457,7 +457,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
 
     @Override
     public void delete(Iterable<TestHashComponentsStreamHashAidxRow> rows) {
-        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumn> toRemove = HashMultimap.create();
+        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumn> toRemove = HashMultimap.of();
         Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> result = getRowsMultimap(rows);
         for (Entry<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> e : result.entries()) {
             toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -509,7 +509,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
     public void putUnlessExists(Multimap<TestHashComponentsStreamHashAidxRow, ? extends TestHashComponentsStreamHashAidxColumnValue> rows) {
         Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, TestHashComponentsStreamHashAidxColumnValue.getColumnNameFun());
         Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> toPut = HashMultimap.create();
+        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> toPut = HashMultimap.of();
         for (Entry<TestHashComponentsStreamHashAidxRow, ? extends TestHashComponentsStreamHashAidxColumnValue> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -522,7 +522,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
     public void touch(Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumn> values) {
         Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> currentValues = get(values);
         put(currentValues);
-        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumn> toDelete = HashMultimap.create(values);
+        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumn> toDelete = HashMultimap.of(values);
         for (Map.Entry<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> e : currentValues.entries()) {
             toDelete.remove(e.getKey(), e.getValue().getColumnName());
         }
@@ -530,7 +530,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<TestHashComponentsStreamHashAidxColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+        return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
     }
 
     public static ColumnSelection getColumnSelection(TestHashComponentsStreamHashAidxColumn... cols) {
@@ -541,7 +541,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
     public Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> get(Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> rowMap = HashMultimap.create();
+        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> rowMap = HashMultimap.of();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 TestHashComponentsStreamHashAidxRow row = TestHashComponentsStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -591,7 +591,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
     }
 
     private static Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> rowMap = HashMultimap.create();
+        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> rowMap = HashMultimap.of();
         for (RowResult<byte[]> result : rowResults) {
             TestHashComponentsStreamHashAidxRow row = TestHashComponentsStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -742,5 +742,5 @@ public final class TestHashComponentsStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lUM1vDkJ6ut7msUTfZ0uAA==";
+    static String __CLASS_HASH = "H3v7s7ZndFQXhZ5ufu/OZg==";
 }

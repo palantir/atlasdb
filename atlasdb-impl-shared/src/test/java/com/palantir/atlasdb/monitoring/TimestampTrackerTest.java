@@ -25,16 +25,15 @@ import static org.mockito.Mockito.when;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
-import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 
 public class TimestampTrackerTest {
@@ -49,19 +48,16 @@ public class TimestampTrackerTest {
 
     private static final long CACHE_INTERVAL_NANOS = TimestampTrackerImpl.CACHE_INTERVAL.toNanos();
 
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
     private final TimelockService timelockService = mock(TimelockService.class);
     private final Cleaner cleaner = mock(Cleaner.class);
     private final Clock mockClock = mock(Clock.class);
 
-    @BeforeClass
-    public static void cleanAtlasMetricsRegistry() {
-        AtlasDbMetrics.getMetricRegistry().removeMatching(MetricFilter.ALL);
-    }
-
     @Test
     public void defaultTrackerGeneratesTimestampMetrics() {
         try (TimestampTrackerImpl ignored = createDefaultTracker()) {
-            assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
+            assertThat(metricsManager.getRegistry().getNames())
                     .containsExactlyInAnyOrder(buildFullyQualifiedMetricName(IMMUTABLE_TIMESTAMP_NAME),
                             buildFullyQualifiedMetricName(FRESH_TIMESTAMP_NAME),
                             buildFullyQualifiedMetricName(UNREADABLE_TIMESTAMP_NAME));
@@ -108,11 +104,11 @@ public class TimestampTrackerTest {
     public void metricsAreDeregisteredUponClose() {
         try (TimestampTrackerImpl tracker = createTrackerWithClock(Clock.defaultClock())) {
             tracker.registerTimestampForTracking(FAKE_METRIC, () -> 1L);
-            assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
+            assertThat(metricsManager.getRegistry().getNames())
                     .contains(buildFullyQualifiedMetricName(FAKE_METRIC));
         }
 
-        assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
+        assertThat(metricsManager.getRegistry().getNames())
                 .doesNotContain(buildFullyQualifiedMetricName(FAKE_METRIC));
     }
 
@@ -123,7 +119,7 @@ public class TimestampTrackerTest {
 
         tracker.close();
         tracker.close();
-        assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
+        assertThat(metricsManager.getRegistry().getNames())
                 .doesNotContain(buildFullyQualifiedMetricName(FAKE_METRIC));
     }
 
@@ -241,11 +237,12 @@ public class TimestampTrackerTest {
     }
 
     private TimestampTrackerImpl createTrackerWithClock(Clock clock) {
-        return new TimestampTrackerImpl(clock, timelockService, cleaner);
+        return new TimestampTrackerImpl(metricsManager, clock, timelockService, cleaner);
     }
 
     private TimestampTrackerImpl createDefaultTracker() {
-        return (TimestampTrackerImpl) TimestampTrackerImpl.createWithDefaultTrackers(timelockService, cleaner, false);
+        return (TimestampTrackerImpl) TimestampTrackerImpl.createWithDefaultTrackers(
+                metricsManager, timelockService, cleaner, false);
     }
 
     private static String buildFullyQualifiedMetricName(String shortName) {
@@ -253,8 +250,8 @@ public class TimestampTrackerTest {
     }
 
     @SuppressWarnings("unchecked") // We know the gauges we are registering produce Longs
-    private static Gauge<Long> getGauge(String shortName) {
-        return (Gauge<Long>) AtlasDbMetrics.getMetricRegistry()
+    private Gauge<Long> getGauge(String shortName) {
+        return (Gauge<Long>) metricsManager.getRegistry()
                 .getGauges()
                 .get(buildFullyQualifiedMetricName(shortName));
     }

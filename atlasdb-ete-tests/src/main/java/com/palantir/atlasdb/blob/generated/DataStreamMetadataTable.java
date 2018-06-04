@@ -113,7 +113,7 @@ public final class DataStreamMetadataTable implements
 
     private DataStreamMetadataTable(Transaction t, Namespace namespace, List<DataStreamMetadataTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableRef = TableReference.of(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -415,7 +415,7 @@ public final class DataStreamMetadataTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<DataStreamMetadataNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, DataStreamMetadataNamedColumn.toShortName()));
+        return ColumnSelection.of(Collections2.transform(cols, DataStreamMetadataNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(DataStreamMetadataNamedColumn... cols) {
@@ -430,7 +430,7 @@ public final class DataStreamMetadataTable implements
     public Map<DataStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> getMetadatas(Collection<DataStreamMetadataRow> rows) {
         Map<Cell, DataStreamMetadataRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (DataStreamMetadataRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<DataStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -479,7 +479,7 @@ public final class DataStreamMetadataTable implements
     @Override
     public void putUnlessExists(Multimap<DataStreamMetadataRow, ? extends DataStreamMetadataNamedColumnValue<?>> rows) {
         Multimap<DataStreamMetadataRow, DataStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<DataStreamMetadataRow, DataStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
+        Multimap<DataStreamMetadataRow, DataStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.of();
         for (Entry<DataStreamMetadataRow, ? extends DataStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -576,7 +576,7 @@ public final class DataStreamMetadataTable implements
     }
 
     private static Multimap<DataStreamMetadataRow, DataStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<DataStreamMetadataRow, DataStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<DataStreamMetadataRow, DataStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.of();
         for (RowResult<byte[]> result : rowResults) {
             DataStreamMetadataRow row = DataStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -721,5 +721,5 @@ public final class DataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "0QWEydqAzFf3kFEogcduuw==";
+    static String __CLASS_HASH = "v21tGYOXwmVn/dpYb2YGVg==";
 }

@@ -113,7 +113,7 @@ public final class TwoColumnsTable implements
 
     private TwoColumnsTable(Transaction t, Namespace namespace, List<TwoColumnsTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableRef = TableReference.of(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -466,7 +466,7 @@ public final class TwoColumnsTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<TwoColumnsNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, TwoColumnsNamedColumn.toShortName()));
+        return ColumnSelection.of(Collections2.transform(cols, TwoColumnsNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(TwoColumnsNamedColumn... cols) {
@@ -482,7 +482,7 @@ public final class TwoColumnsTable implements
     public Map<TwoColumnsRow, Long> getFoos(Collection<TwoColumnsRow> rows) {
         Map<Cell, TwoColumnsRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (TwoColumnsRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("f")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("f")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<TwoColumnsRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -496,7 +496,7 @@ public final class TwoColumnsTable implements
     public Map<TwoColumnsRow, Long> getBars(Collection<TwoColumnsRow> rows) {
         Map<Cell, TwoColumnsRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (TwoColumnsRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("b")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("b")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<TwoColumnsRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -603,7 +603,7 @@ public final class TwoColumnsTable implements
     @Override
     public void putUnlessExists(Multimap<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> rows) {
         Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> toPut = HashMultimap.create();
+        Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> toPut = HashMultimap.of();
         for (Entry<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -634,7 +634,7 @@ public final class TwoColumnsTable implements
             long id = row.getId();
             FooToIdCondIdxTable.FooToIdCondIdxRow indexRow = FooToIdCondIdxTable.FooToIdCondIdxRow.of(foo);
             FooToIdCondIdxTable.FooToIdCondIdxColumn indexCol = FooToIdCondIdxTable.FooToIdCondIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
-            indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+            indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
         t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_cond_idx"), indexCells);
     }
@@ -648,7 +648,7 @@ public final class TwoColumnsTable implements
             long id = row.getId();
             FooToIdIdxTable.FooToIdIdxRow indexRow = FooToIdIdxTable.FooToIdIdxRow.of(foo);
             FooToIdIdxTable.FooToIdIdxColumn indexCol = FooToIdIdxTable.FooToIdIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
-            indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+            indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
         t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_idx"), indexCells);
     }
@@ -745,7 +745,7 @@ public final class TwoColumnsTable implements
     }
 
     private static Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> rowMap = HashMultimap.of();
         for (RowResult<byte[]> result : rowResults) {
             TwoColumnsRow row = TwoColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -781,7 +781,7 @@ public final class TwoColumnsTable implements
 
     private Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getAffectedCells(Multimap<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> rows) {
         Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> oldData = getRowsMultimap(rows.keySet());
-        Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> cellsAffected = ArrayListMultimap.create();
+        Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> cellsAffected = ArrayListMultimap.of();
         for (TwoColumnsRow row : oldData.keySet()) {
             Set<String> columns = new HashSet<String>();
             for (TwoColumnsNamedColumnValue<?> v : rows.get(row)) {
@@ -807,7 +807,7 @@ public final class TwoColumnsTable implements
                     long id = row.getId();
                     FooToIdCondIdxTable.FooToIdCondIdxRow indexRow = FooToIdCondIdxTable.FooToIdCondIdxRow.of(foo);
                     FooToIdCondIdxTable.FooToIdCondIdxColumn indexCol = FooToIdCondIdxTable.FooToIdCondIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
-                    indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+                    indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
                 }
             }
         }
@@ -824,7 +824,7 @@ public final class TwoColumnsTable implements
                     long id = row.getId();
                     FooToIdIdxTable.FooToIdIdxRow indexRow = FooToIdIdxTable.FooToIdIdxRow.of(foo);
                     FooToIdIdxTable.FooToIdIdxColumn indexCol = FooToIdIdxTable.FooToIdIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
-                    indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+                    indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
                 }
             }
         }
@@ -885,7 +885,7 @@ public final class TwoColumnsTable implements
 
         private FooToIdCondIdxTable(Transaction t, Namespace namespace, List<FooToIdCondIdxTrigger> triggers) {
             this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
+            this.tableRef = TableReference.of(namespace, rawTableName);
             this.triggers = triggers;
         }
 
@@ -1288,7 +1288,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public void delete(Iterable<FooToIdCondIdxRow> rows) {
-            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> toRemove = HashMultimap.create();
+            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> toRemove = HashMultimap.of();
             Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> result = getRowsMultimap(rows);
             for (Entry<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> e : result.entries()) {
                 toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -1340,7 +1340,7 @@ public final class TwoColumnsTable implements
         public void putUnlessExists(Multimap<FooToIdCondIdxRow, ? extends FooToIdCondIdxColumnValue> rows) {
             Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> toGet = Multimaps.transformValues(rows, FooToIdCondIdxColumnValue.getColumnNameFun());
             Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> existing = get(toGet);
-            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> toPut = HashMultimap.create();
+            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> toPut = HashMultimap.of();
             for (Entry<FooToIdCondIdxRow, ? extends FooToIdCondIdxColumnValue> entry : rows.entries()) {
                 if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                     toPut.put(entry.getKey(), entry.getValue());
@@ -1353,7 +1353,7 @@ public final class TwoColumnsTable implements
         public void touch(Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> values) {
             Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> currentValues = get(values);
             put(currentValues);
-            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> toDelete = HashMultimap.create(values);
+            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> toDelete = HashMultimap.of(values);
             for (Map.Entry<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> e : currentValues.entries()) {
                 toDelete.remove(e.getKey(), e.getValue().getColumnName());
             }
@@ -1361,7 +1361,7 @@ public final class TwoColumnsTable implements
         }
 
         public static ColumnSelection getColumnSelection(Collection<FooToIdCondIdxColumn> cols) {
-            return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+            return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
         }
 
         public static ColumnSelection getColumnSelection(FooToIdCondIdxColumn... cols) {
@@ -1372,7 +1372,7 @@ public final class TwoColumnsTable implements
         public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> get(Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> rowMap = HashMultimap.of();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     FooToIdCondIdxRow row = FooToIdCondIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -1422,7 +1422,7 @@ public final class TwoColumnsTable implements
         }
 
         private static Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> rowMap = HashMultimap.of();
             for (RowResult<byte[]> result : rowResults) {
                 FooToIdCondIdxRow row = FooToIdCondIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -1518,7 +1518,7 @@ public final class TwoColumnsTable implements
 
         private FooToIdIdxTable(Transaction t, Namespace namespace, List<FooToIdIdxTrigger> triggers) {
             this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
+            this.tableRef = TableReference.of(namespace, rawTableName);
             this.triggers = triggers;
         }
 
@@ -1935,7 +1935,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public void delete(Iterable<FooToIdIdxRow> rows) {
-            Multimap<FooToIdIdxRow, FooToIdIdxColumn> toRemove = HashMultimap.create();
+            Multimap<FooToIdIdxRow, FooToIdIdxColumn> toRemove = HashMultimap.of();
             Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> result = getRowsMultimap(rows);
             for (Entry<FooToIdIdxRow, FooToIdIdxColumnValue> e : result.entries()) {
                 toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -1987,7 +1987,7 @@ public final class TwoColumnsTable implements
         public void putUnlessExists(Multimap<FooToIdIdxRow, ? extends FooToIdIdxColumnValue> rows) {
             Multimap<FooToIdIdxRow, FooToIdIdxColumn> toGet = Multimaps.transformValues(rows, FooToIdIdxColumnValue.getColumnNameFun());
             Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> existing = get(toGet);
-            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> toPut = HashMultimap.create();
+            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> toPut = HashMultimap.of();
             for (Entry<FooToIdIdxRow, ? extends FooToIdIdxColumnValue> entry : rows.entries()) {
                 if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                     toPut.put(entry.getKey(), entry.getValue());
@@ -2000,7 +2000,7 @@ public final class TwoColumnsTable implements
         public void touch(Multimap<FooToIdIdxRow, FooToIdIdxColumn> values) {
             Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> currentValues = get(values);
             put(currentValues);
-            Multimap<FooToIdIdxRow, FooToIdIdxColumn> toDelete = HashMultimap.create(values);
+            Multimap<FooToIdIdxRow, FooToIdIdxColumn> toDelete = HashMultimap.of(values);
             for (Map.Entry<FooToIdIdxRow, FooToIdIdxColumnValue> e : currentValues.entries()) {
                 toDelete.remove(e.getKey(), e.getValue().getColumnName());
             }
@@ -2008,7 +2008,7 @@ public final class TwoColumnsTable implements
         }
 
         public static ColumnSelection getColumnSelection(Collection<FooToIdIdxColumn> cols) {
-            return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+            return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
         }
 
         public static ColumnSelection getColumnSelection(FooToIdIdxColumn... cols) {
@@ -2019,7 +2019,7 @@ public final class TwoColumnsTable implements
         public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> get(Multimap<FooToIdIdxRow, FooToIdIdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> rowMap = HashMultimap.of();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     FooToIdIdxRow row = FooToIdIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -2069,7 +2069,7 @@ public final class TwoColumnsTable implements
         }
 
         private static Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> rowMap = HashMultimap.of();
             for (RowResult<byte[]> result : rowResults) {
                 FooToIdIdxRow row = FooToIdIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -2222,5 +2222,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "rbO2fCJIg3E2QBd6AuiYKg==";
+    static String __CLASS_HASH = "pNliA57STNdonTSWi9qYDw==";
 }

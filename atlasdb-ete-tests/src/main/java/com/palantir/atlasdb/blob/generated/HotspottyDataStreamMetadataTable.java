@@ -113,7 +113,7 @@ public final class HotspottyDataStreamMetadataTable implements
 
     private HotspottyDataStreamMetadataTable(Transaction t, Namespace namespace, List<HotspottyDataStreamMetadataTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableRef = TableReference.of(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -401,7 +401,7 @@ public final class HotspottyDataStreamMetadataTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<HotspottyDataStreamMetadataNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, HotspottyDataStreamMetadataNamedColumn.toShortName()));
+        return ColumnSelection.of(Collections2.transform(cols, HotspottyDataStreamMetadataNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(HotspottyDataStreamMetadataNamedColumn... cols) {
@@ -416,7 +416,7 @@ public final class HotspottyDataStreamMetadataTable implements
     public Map<HotspottyDataStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> getMetadatas(Collection<HotspottyDataStreamMetadataRow> rows) {
         Map<Cell, HotspottyDataStreamMetadataRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (HotspottyDataStreamMetadataRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<HotspottyDataStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -465,7 +465,7 @@ public final class HotspottyDataStreamMetadataTable implements
     @Override
     public void putUnlessExists(Multimap<HotspottyDataStreamMetadataRow, ? extends HotspottyDataStreamMetadataNamedColumnValue<?>> rows) {
         Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
+        Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.of();
         for (Entry<HotspottyDataStreamMetadataRow, ? extends HotspottyDataStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -562,7 +562,7 @@ public final class HotspottyDataStreamMetadataTable implements
     }
 
     private static Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.of();
         for (RowResult<byte[]> result : rowResults) {
             HotspottyDataStreamMetadataRow row = HotspottyDataStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -707,5 +707,5 @@ public final class HotspottyDataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "T0PRzzVTzwI1X5G5YAFt6Q==";
+    static String __CLASS_HASH = "IMtjaJLjAYfvF+mrSTFwnw==";
 }

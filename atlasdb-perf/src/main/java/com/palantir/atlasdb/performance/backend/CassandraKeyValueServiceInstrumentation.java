@@ -28,6 +28,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
@@ -59,6 +60,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     @Override
     public boolean canConnect(InetSocketAddress addr) {
         return CassandraKeyValueServiceImpl.create(
+                MetricsManagers.createForTests(),
                 (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr),
                 Optional.of(ImmutableLeaderConfig.builder()
                         .quorumSize(1)

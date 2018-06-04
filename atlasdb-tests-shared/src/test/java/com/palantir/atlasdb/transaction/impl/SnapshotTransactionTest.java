@@ -132,7 +132,7 @@ import com.palantir.timestamp.TimestampService;
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     protected final TimestampCache timestampCache = new TimestampCache(
-            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+            metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     protected final int defaultGetRangesConcurrency = 2;
 
@@ -259,6 +259,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }});
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
+                metricsManager,
                 kvMock,
                 new LegacyTimelockService(timestampService, lock, lockClient),
                 transactionService,
@@ -318,6 +319,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }});
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
+                metricsManager,
                 kv,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
@@ -349,6 +351,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         final UnstableKeyValueService unstableKvs = new UnstableKeyValueService(keyValueService, random);
         final TestTransactionManager unstableTransactionManager = new TestTransactionManagerImpl(
+                metricsManager,
                 unstableKvs,
                 timestampService,
                 lockClient,
@@ -999,6 +1002,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
+                metricsManager,
                 keyValueService,
                 new LegacyTimelockService(timestampMock, lockService, lockClient),
                 transactionService,
@@ -1046,6 +1050,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
+                metricsManager,
                 keyValueService,
                 new LockExpiringTimelockService(timestampService, lockService, lockClient),
                 transactionService,

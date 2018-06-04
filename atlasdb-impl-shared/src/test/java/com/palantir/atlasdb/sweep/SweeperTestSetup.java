@@ -41,6 +41,8 @@ import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockService;
 
 public class SweeperTestSetup {
@@ -50,6 +52,7 @@ public class SweeperTestSetup {
 
     protected static AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
+    private static final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected SpecificTableSweeper specificTableSweeper;
     protected BackgroundSweeperImpl backgroundSweeper;
     protected KeyValueService kvs = mock(KeyValueService.class);
@@ -69,7 +72,7 @@ public class SweeperTestSetup {
                 .maxCellTsPairsToExamine(1000)
                 .build();
 
-        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() -> sweepBatchConfig);
+        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(metricsManager, () -> sweepBatchConfig);
     }
 
     @Before
@@ -77,6 +80,7 @@ public class SweeperTestSetup {
         specificTableSweeper = getSpecificTableSweeperService();
 
         backgroundSweeper = new BackgroundSweeperImpl(
+                metricsManager,
                 mock(LockService.class),
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,

@@ -105,12 +105,12 @@ public class KeyValueServiceMigrator {
     }
 
     /**
-     * Drop and create tables before starting migration.
+     * Drop and of tables before starting migration.
      */
     public void setup() {
         /*
          * We do *not* want to drop tables that aren't getting migrated (since that would drop them
-         * ON THE SOURCE KVS), but we *do* actually want to create metadata for those tables,
+         * ON THE SOURCE KVS), but we *do* actually want to of metadata for those tables,
          * because they might be migrated later by dbcopy.
          */
         processMessage("dropping tables: " + getCreatableTableNames(toKvs), KvsMigrationMessageLevel.INFO);

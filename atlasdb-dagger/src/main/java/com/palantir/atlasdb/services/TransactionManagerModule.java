@@ -35,6 +35,7 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.v2.TimelockService;
 
@@ -81,7 +82,8 @@ public class TransactionManagerModule {
 
     @Provides
     @Singleton
-    public SerializableTransactionManager provideTransactionManager(ServicesConfig config,
+    public SerializableTransactionManager provideTransactionManager(MetricsManager metricsManager,
+                                                                    ServicesConfig config,
                                                                     @Named("kvs") KeyValueService kvs,
                                                                     TransactionManagers.LockAndTimestampServices lts,
                                                                     LockClient lockClient,
@@ -90,6 +92,7 @@ public class TransactionManagerModule {
                                                                     SweepStrategyManager sweepStrategyManager,
                                                                     Cleaner cleaner) {
         return new SerializableTransactionManager(
+                metricsManager,
                 kvs,
                 lts.timelock(),
                 lts.lock(),
@@ -98,7 +101,7 @@ public class TransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                TimestampTrackerImpl.createNoOpTracker(),
+                TimestampTrackerImpl.createNoOpTracker(metricsManager),
                 () -> config.atlasDbRuntimeConfig().getTimestampCacheSize(),
                 config.allowAccessToHiddenTables(),
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,

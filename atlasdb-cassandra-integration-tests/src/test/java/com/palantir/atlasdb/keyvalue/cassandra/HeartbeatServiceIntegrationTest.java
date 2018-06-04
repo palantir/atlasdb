@@ -38,6 +38,8 @@ import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 
@@ -63,6 +65,9 @@ public class HeartbeatServiceIntegrationTest {
 
     private final long lockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -72,7 +77,7 @@ public class HeartbeatServiceIntegrationTest {
         CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
-        clientPool = CassandraClientPoolImpl.create(config);
+        clientPool = CassandraClientPoolImpl.create(metricsManager, config);
         lockTable = new UniqueSchemaMutationLockTable(
                 new SchemaMutationLockTables(clientPool, config),
                 LockLeader.I_AM_THE_LOCK_LEADER);

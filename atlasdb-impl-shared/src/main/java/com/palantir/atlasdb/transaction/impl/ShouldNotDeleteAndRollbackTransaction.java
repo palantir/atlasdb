@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 
 /**
  * This will read the values of all committed transactions.
@@ -63,7 +64,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
         }
     };
 
-    public ShouldNotDeleteAndRollbackTransaction(KeyValueService keyValueService,
+    public ShouldNotDeleteAndRollbackTransaction(MetricsManager metricsManager,
+                               KeyValueService keyValueService,
                                TransactionService transactionService,
                                long startTimeStamp,
                                AtlasDbConstraintCheckingMode constraintCheckingMode,
@@ -72,7 +74,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                                TimestampCache timestampCache,
                                ExecutorService getRangesExecutor,
                                int defaultGetRangesConcurrency) {
-        super(keyValueService,
+        super(metricsManager,
+              keyValueService,
               transactionService,
               null,
               startTimeStamp,

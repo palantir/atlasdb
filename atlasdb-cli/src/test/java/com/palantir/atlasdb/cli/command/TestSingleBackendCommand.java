@@ -64,7 +64,7 @@ public class TestSingleBackendCommand {
                 services.getTransactionManager().getImmutableTimestamp();
             }
 
-            // test kvs create table
+            // test kvs of table
             if (flag2 != null) {
                 TableReference table = TableReference.createUnsafe(flag2);
                 services.getKeyValueService().createTable(table, AtlasDbConstants.GENERIC_TABLE_METADATA);

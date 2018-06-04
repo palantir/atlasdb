@@ -41,6 +41,8 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
@@ -59,10 +61,12 @@ public final class SweepTestUtils {
                 TransactionServices.createTransactionService(kvs));
     }
 
-    public static SerializableTransactionManager setupTxManager(KeyValueService kvs,
+    public static SerializableTransactionManager setupTxManager(
+            KeyValueService kvs,
             TimestampService tsService,
             SweepStrategyManager ssm,
             TransactionService txService) {
+        MetricsManager metricsManager = MetricsManagers.createForTests();
         LockClient lockClient = LockClient.of("sweep client");
         LockService lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
@@ -70,8 +74,9 @@ public final class SweepTestUtils {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0);
-        SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
+        MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitialized(
+                metricsManager, () -> true, () -> 1, 0, 0);
+        SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(metricsManager,
                 kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,

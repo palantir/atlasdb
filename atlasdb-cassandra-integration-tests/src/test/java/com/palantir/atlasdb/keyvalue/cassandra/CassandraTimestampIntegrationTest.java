@@ -26,6 +26,8 @@ import org.junit.rules.RuleChain;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -36,7 +38,11 @@ public class CassandraTimestampIntegrationTest {
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
             .with(new CassandraContainer());
 
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
+
     private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
+            metricsManager,
             CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG);
 

@@ -683,6 +683,7 @@
         "com.palantir.tritium:tritium-registry": {
             "locked": "0.9.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting3:okhttp-clients"
             ]
@@ -1580,6 +1581,7 @@
         "com.palantir.tritium:tritium-registry": {
             "locked": "0.9.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting3:okhttp-clients"
             ]

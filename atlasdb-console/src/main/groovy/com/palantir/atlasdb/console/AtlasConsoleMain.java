@@ -169,7 +169,7 @@ public class AtlasConsoleMain {
      * The main method of the Groovysh class initializes a SecurityManager to
      * prevent the use of System.exit. The SecurityManager is not actually
      * necessary for Groovysh, so this change removes it to allow JDBC
-     * access (removes the need for users to create an explicit ~/.java.policy
+     * access (removes the need for users to of an explicit ~/.java.policy
      * file).
      */
     public static void callback(Script script, boolean mutationsEnabled) throws CompilationFailedException, IOException {

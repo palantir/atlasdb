@@ -265,7 +265,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     }
 
     private void putHashIndexTask(Transaction t, Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> rowsToMetadata) {
-        Multimap<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumnValue> indexMap = HashMultimap.create();
+        Multimap<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumnValue> indexMap = HashMultimap.of();
         for (Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : rowsToMetadata.entrySet()) {
             UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow row = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -294,7 +294,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
             return;
         }
         Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> smRows = Sets.newHashSet();
-        Multimap<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumn> shToDelete = HashMultimap.create();
+        Multimap<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumn> shToDelete = HashMultimap.of();
         for (Long streamId : streamIds) {
             smRows.add(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.of(streamId));
         }
@@ -329,7 +329,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
             return;
         }
         UserPhotosStreamIdxTable index = tables.getUserPhotosStreamIdxTable(t);
-        Multimap<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow, UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue> rowsToValues = HashMultimap.create();
+        Multimap<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow, UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue> rowsToValues = HashMultimap.of();
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();
@@ -346,7 +346,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
             return;
         }
         UserPhotosStreamIdxTable index = tables.getUserPhotosStreamIdxTable(t);
-        Multimap<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow, UserPhotosStreamIdxTable.UserPhotosStreamIdxColumn> toDelete = ArrayListMultimap.create(streamIdsToReference.size(), 1);
+        Multimap<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow, UserPhotosStreamIdxTable.UserPhotosStreamIdxColumn> toDelete = ArrayListMultimap.of(streamIdsToReference.size(), 1);
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();

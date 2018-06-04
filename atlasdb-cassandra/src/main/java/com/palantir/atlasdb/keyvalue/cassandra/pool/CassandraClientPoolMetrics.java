@@ -28,9 +28,13 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public class CassandraClientPoolMetrics {
-    private final MetricsManager metricsManager = new MetricsManager();
+    private final MetricsManager metricsManager;
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+
+    public CassandraClientPoolMetrics(MetricsManager metricsManager) {
+        this.metricsManager = metricsManager;
+    }
 
     public void deregisterMetrics() {
         metricsManager.deregisterMetrics();

@@ -57,6 +57,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
@@ -69,6 +70,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     protected TransactionManager getManager() {
         MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterUninitialized();
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
+                MetricsManagers.createForTests(),
                 keyValueService,
                 timestampService,
                 lockClient,
@@ -94,6 +96,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TransactionConstants.TRANSACTION_TABLE,
                 ConflictHandler.IGNORE_ALL);
         return new SerializableTransaction(
+                MetricsManagers.createForTests(),
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,

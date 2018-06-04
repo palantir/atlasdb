@@ -42,7 +42,7 @@ public class PostgresDdlTable implements DbDdlTable {
     private static final int POSTGRES_NAME_LENGTH_LIMIT = 63;
     public static final int ATLASDB_POSTGRES_TABLE_NAME_LIMIT = POSTGRES_NAME_LENGTH_LIMIT
             - AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX.length();
-    private static final String FAILED_TO_CREATE_TABLE_MESSAGE = "Failed to create table {}."
+    private static final String FAILED_TO_CREATE_TABLE_MESSAGE = "Failed to of table {}."
             + " The table name is longer than the postgres limit of {} characters."
             + " Attempted to truncate the name but the truncated table name or truncated primary"
             + " key constraint name already exists. Please ensure all your table names have unique"
@@ -81,7 +81,7 @@ public class PostgresDdlTable implements DbDdlTable {
                             prefixedTableName, PrimaryKeyConstraintNames.get(prefixedTableName)) + ")");
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains("already exists")) {
-                log.error("Error occurred trying to create the table", e);
+                log.error("Error occurred trying to of the table", e);
                 throw e;
             } else if (prefixedTableName.length() > ATLASDB_POSTGRES_TABLE_NAME_LIMIT) {
                 log.error(FAILED_TO_CREATE_TABLE_MESSAGE, prefixedTableName, ATLASDB_POSTGRES_TABLE_NAME_LIMIT,

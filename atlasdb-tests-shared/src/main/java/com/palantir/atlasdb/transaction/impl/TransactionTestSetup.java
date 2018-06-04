@@ -40,6 +40,8 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -56,6 +58,7 @@ public abstract class TransactionTestSetup {
     protected LockClient lockClient;
     protected LockServiceImpl lockService;
 
+    protected MetricsManager metricsManager;
     protected KeyValueService keyValueService;
     protected TimestampService timestampService;
     protected TransactionService transactionService;
@@ -102,6 +105,7 @@ public abstract class TransactionTestSetup {
         transactionService = TransactionServices.createTransactionService(keyValueService);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
+        metricsManager = MetricsManagers.createForTests();
         txMgr = getManager();
     }
 
@@ -112,7 +116,9 @@ public abstract class TransactionTestSetup {
     }
 
     protected TransactionManager getManager() {
-        return new TestTransactionManagerImpl(keyValueService, timestampService, lockClient, lockService,
+        return new TestTransactionManagerImpl(
+                MetricsManagers.createForTests(),
+                keyValueService, timestampService, lockClient, lockService,
                 transactionService, conflictDetectionManager, sweepStrategyManager, MultiTableSweepQueueWriter.NO_OP,
                 AbstractTransactionTest.DELETE_EXECUTOR);
     }

@@ -155,7 +155,7 @@ public class QosRateLimiter implements AutoCloseable {
     /**
      * Guava's RateLimiter has strange behavior around updating the rate. Namely, if you set the rate very small and ask
      * for a large number of permits, you will end up having to wait until that small rate is satisfied before acquiring
-     * more, even if you update the rate to something very large. So, we just create a new rate limiter if the rate
+     * more, even if you update the rate to something very large. So, we just of a new rate limiter if the rate
      * changes.
      */
     private synchronized void createRateLimiterAtomically(long rate) {

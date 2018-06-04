@@ -74,6 +74,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     private static final long LOCK_ID = 123456789;
@@ -83,6 +85,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             .with(new CassandraContainer());
 
     private final Logger logger = mock(Logger.class);
+
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
 
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
 
@@ -112,6 +117,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
         return CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 config,
                 CassandraContainer.LEADER_CONFIG,
                 testLogger);

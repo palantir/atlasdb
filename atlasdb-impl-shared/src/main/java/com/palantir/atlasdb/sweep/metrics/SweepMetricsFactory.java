@@ -17,10 +17,13 @@
 package com.palantir.atlasdb.sweep.metrics;
 
 import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.util.MetricsManager;
 
 public class SweepMetricsFactory {
-    private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
+    private final MetricRegistry metricRegistry;
+
+    public SweepMetricsFactory(MetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
+    }
 
     SweepMetric<Long> simpleLong(String namePrefix) {
         return createMetric(namePrefix, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_LONG);

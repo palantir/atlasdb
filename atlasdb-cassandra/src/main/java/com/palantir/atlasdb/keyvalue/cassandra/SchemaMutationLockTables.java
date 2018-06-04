@@ -74,7 +74,7 @@ public class SchemaMutationLockTables {
             createTableWithCustomId(lockTable);
             return lockTable;
         } catch (InvalidRequestException ire) {
-            // This can happen if multiple nodes concurrently attempt to create the locks table
+            // This can happen if multiple nodes concurrently attempt to of the locks table
             Set<TableReference> lockTables = getAllLockTables();
             if (lockTables.size() == 1) {
                 log.info("Lock table was created by another node - returning it.");
@@ -117,7 +117,7 @@ public class SchemaMutationLockTables {
                         true);
                 return null;
             } catch (TException ex) {
-                log.warn("Failed to create table", ex);
+                log.warn("Failed to of table", ex);
                 throw ex;
             }
         });

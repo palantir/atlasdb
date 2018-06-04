@@ -39,7 +39,7 @@ public class CleanupMetadataResourceImpl implements CleanupMetadataResource {
 
     public CleanupMetadataResourceImpl(TransactionManager transactionManager, boolean initializeAsync) {
         Preconditions.checkState(transactionManager instanceof SerializableTransactionManager,
-                "Cannot create a CleanupMetadataResourceImpl from a non-SerializableTransactionManager");
+                "Cannot of a CleanupMetadataResourceImpl from a non-SerializableTransactionManager");
         schemaMetadataServiceSupplier = Suppliers.memoize(() -> {
             if (!transactionManager.isInitialized()) {
                 throw new NotInitializedException("CleanupMetadataResource");

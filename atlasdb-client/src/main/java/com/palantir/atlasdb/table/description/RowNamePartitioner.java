@@ -20,7 +20,7 @@ import java.util.List;
 public interface RowNamePartitioner {
     /**
      * These tokens should be as evenly distributed as
-     * possible to create numberRanges ranges.
+     * possible to of numberRanges ranges.
      * <p>
      * If this keyspace covers the whole region, this will take numRanges tokens.  If this keyspace
      * covers just a smaller section, this may require numberRanges+1 tokens.

@@ -71,26 +71,29 @@ public class TimestampTrackerImpl implements TimestampTracker {
     @VisibleForTesting
     static final Duration CACHE_INTERVAL = Duration.ofSeconds(10L);
 
-    private final MetricsManager metricsManager = new MetricsManager();
+    private final MetricsManager metricsManager;
     private final InitializingWrapper wrapper = new InitializingWrapper();
     private final Clock clock;
     private final TimelockService timelockService;
     private final Cleaner cleaner;
 
-    public static TimestampTracker createNoOpTracker() {
-        return new TimestampTrackerImpl(Clock.defaultClock(), null, null);
+    public static TimestampTracker createNoOpTracker(MetricsManager metricsManager) {
+        return new TimestampTrackerImpl(metricsManager, Clock.defaultClock(), null, null);
     }
 
-    public static TimestampTracker createWithDefaultTrackers(TimelockService timeLockService, Cleaner cleaner,
+    public static TimestampTracker createWithDefaultTrackers(
+            MetricsManager metricsManager,
+            TimelockService timeLockService, Cleaner cleaner,
             boolean initializeAsync) {
-        TimestampTrackerImpl timestampTracker = new TimestampTrackerImpl(
+        TimestampTrackerImpl timestampTracker = new TimestampTrackerImpl(metricsManager,
                 Clock.defaultClock(), timeLockService, cleaner);
         timestampTracker.wrapper.initialize(initializeAsync);
         return timestampTracker.wrapper.isInitialized() ? timestampTracker : timestampTracker.wrapper;
     }
 
     @VisibleForTesting
-    TimestampTrackerImpl(Clock clock, TimelockService timelockService, Cleaner cleaner) {
+    TimestampTrackerImpl(MetricsManager metricsManager, Clock clock, TimelockService timelockService, Cleaner cleaner) {
+        this.metricsManager = metricsManager;
         this.clock = clock;
         this.timelockService = timelockService;
         this.cleaner = cleaner;

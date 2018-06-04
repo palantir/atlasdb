@@ -20,6 +20,7 @@ import javax.inject.Singleton;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.KeyValueServiceModule;
 import com.palantir.atlasdb.services.LockAndTimestampModule;
+import com.palantir.atlasdb.services.MetricsModule;
 import com.palantir.atlasdb.services.RawKeyValueServiceModule;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.lock.LockClient;
@@ -28,7 +29,8 @@ import dagger.Component;
 
 @Singleton
 @Component(modules = {ServicesConfigModule.class, KeyValueServiceModule.class, RawKeyValueServiceModule.class,
-                      LockAndTimestampModule.class, TestSweeperModule.class, TestTransactionManagerModule.class })
+                      LockAndTimestampModule.class, MetricsModule.class,
+                      TestSweeperModule.class, TestTransactionManagerModule.class })
 public abstract class TestAtlasDbServices extends AtlasDbServices {
 
     public abstract LockClient getTestLockClient();

@@ -113,7 +113,7 @@ public final class RangeScanTestTable implements
 
     private RangeScanTestTable(Transaction t, Namespace namespace, List<RangeScanTestTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableRef = TableReference.of(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -377,7 +377,7 @@ public final class RangeScanTestTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<RangeScanTestNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, RangeScanTestNamedColumn.toShortName()));
+        return ColumnSelection.of(Collections2.transform(cols, RangeScanTestNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(RangeScanTestNamedColumn... cols) {
@@ -392,7 +392,7 @@ public final class RangeScanTestTable implements
     public Map<RangeScanTestRow, Long> getColumn1s(Collection<RangeScanTestRow> rows) {
         Map<Cell, RangeScanTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (RangeScanTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<RangeScanTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -441,7 +441,7 @@ public final class RangeScanTestTable implements
     @Override
     public void putUnlessExists(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> rows) {
         Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> toPut = HashMultimap.create();
+        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> toPut = HashMultimap.of();
         for (Entry<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -538,7 +538,7 @@ public final class RangeScanTestTable implements
     }
 
     private static Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> rowMap = HashMultimap.of();
         for (RowResult<byte[]> result : rowResults) {
             RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -732,5 +732,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "uM9vE+quytC6Gzz3VgTqZQ==";
+    static String __CLASS_HASH = "7YYoqJP5TTUQPhiFvDb+dg==";
 }

@@ -113,7 +113,7 @@ public final class DataTable implements
 
     private DataTable(Transaction t, Namespace namespace, List<DataTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableRef = TableReference.of(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -377,7 +377,7 @@ public final class DataTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<DataNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, DataNamedColumn.toShortName()));
+        return ColumnSelection.of(Collections2.transform(cols, DataNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(DataNamedColumn... cols) {
@@ -392,7 +392,7 @@ public final class DataTable implements
     public Map<DataRow, Long> getValues(Collection<DataRow> rows) {
         Map<Cell, DataRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (DataRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<DataRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -509,7 +509,7 @@ public final class DataTable implements
     @Override
     public void putUnlessExists(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
         Multimap<DataRow, DataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<DataRow, DataNamedColumnValue<?>> toPut = HashMultimap.create();
+        Multimap<DataRow, DataNamedColumnValue<?>> toPut = HashMultimap.of();
         for (Entry<DataRow, ? extends DataNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -542,7 +542,7 @@ public final class DataTable implements
             long id = row.getId();
             Index1IdxTable.Index1IdxRow indexRow = Index1IdxTable.Index1IdxRow.of(value);
             Index1IdxTable.Index1IdxColumn indexCol = Index1IdxTable.Index1IdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
-            indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+            indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
         t.delete(TableReference.createFromFullyQualifiedName("default.index1_idx"), indexCells);
     }
@@ -556,7 +556,7 @@ public final class DataTable implements
             long id = row.getId();
             Index2IdxTable.Index2IdxRow indexRow = Index2IdxTable.Index2IdxRow.of(value, id);
             Index2IdxTable.Index2IdxColumn indexCol = Index2IdxTable.Index2IdxColumn.of(row.persistToBytes(), col.persistColumnName());
-            indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+            indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
         t.delete(TableReference.createFromFullyQualifiedName("default.index2_idx"), indexCells);
     }
@@ -570,7 +570,7 @@ public final class DataTable implements
             for (long value : valueIterable) {
                 Index3IdxTable.Index3IdxRow indexRow = Index3IdxTable.Index3IdxRow.of(value);
                 Index3IdxTable.Index3IdxColumn indexCol = Index3IdxTable.Index3IdxColumn.of(row.persistToBytes(), col.persistColumnName());
-                indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+                indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
             }
         }
         t.delete(TableReference.createFromFullyQualifiedName("default.index3_idx"), indexCells);
@@ -587,7 +587,7 @@ public final class DataTable implements
                 for (long value2 : value2Iterable) {
                     Index4IdxTable.Index4IdxRow indexRow = Index4IdxTable.Index4IdxRow.of(value1, value2);
                     Index4IdxTable.Index4IdxColumn indexCol = Index4IdxTable.Index4IdxColumn.of(row.persistToBytes(), col.persistColumnName());
-                    indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+                    indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
                 }
             }
         }
@@ -677,7 +677,7 @@ public final class DataTable implements
     }
 
     private static Multimap<DataRow, DataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<DataRow, DataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<DataRow, DataNamedColumnValue<?>> rowMap = HashMultimap.of();
         for (RowResult<byte[]> result : rowResults) {
             DataRow row = DataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -713,7 +713,7 @@ public final class DataTable implements
 
     private Multimap<DataRow, DataNamedColumnValue<?>> getAffectedCells(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
         Multimap<DataRow, DataNamedColumnValue<?>> oldData = getRowsMultimap(rows.keySet());
-        Multimap<DataRow, DataNamedColumnValue<?>> cellsAffected = ArrayListMultimap.create();
+        Multimap<DataRow, DataNamedColumnValue<?>> cellsAffected = ArrayListMultimap.of();
         for (DataRow row : oldData.keySet()) {
             Set<String> columns = new HashSet<String>();
             for (DataNamedColumnValue<?> v : rows.get(row)) {
@@ -738,7 +738,7 @@ public final class DataTable implements
                     long id = row.getId();
                     Index1IdxTable.Index1IdxRow indexRow = Index1IdxTable.Index1IdxRow.of(value);
                     Index1IdxTable.Index1IdxColumn indexCol = Index1IdxTable.Index1IdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
-                    indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+                    indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
                 }
             }
         }
@@ -755,7 +755,7 @@ public final class DataTable implements
                     long id = row.getId();
                     Index2IdxTable.Index2IdxRow indexRow = Index2IdxTable.Index2IdxRow.of(value, id);
                     Index2IdxTable.Index2IdxColumn indexCol = Index2IdxTable.Index2IdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName());
-                    indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+                    indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
                 }
             }
         }
@@ -772,7 +772,7 @@ public final class DataTable implements
                     for (long value : valueIterable) {
                         Index3IdxTable.Index3IdxRow indexRow = Index3IdxTable.Index3IdxRow.of(value);
                         Index3IdxTable.Index3IdxColumn indexCol = Index3IdxTable.Index3IdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName());
-                        indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+                        indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
                     }
                 }
             }
@@ -792,7 +792,7 @@ public final class DataTable implements
                         for (long value2 : value2Iterable) {
                             Index4IdxTable.Index4IdxRow indexRow = Index4IdxTable.Index4IdxRow.of(value1, value2);
                             Index4IdxTable.Index4IdxColumn indexCol = Index4IdxTable.Index4IdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName());
-                            indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+                            indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));
                         }
                     }
                 }
@@ -855,7 +855,7 @@ public final class DataTable implements
 
         private Index1IdxTable(Transaction t, Namespace namespace, List<Index1IdxTrigger> triggers) {
             this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
+            this.tableRef = TableReference.of(namespace, rawTableName);
             this.triggers = triggers;
         }
 
@@ -1258,7 +1258,7 @@ public final class DataTable implements
 
         @Override
         public void delete(Iterable<Index1IdxRow> rows) {
-            Multimap<Index1IdxRow, Index1IdxColumn> toRemove = HashMultimap.create();
+            Multimap<Index1IdxRow, Index1IdxColumn> toRemove = HashMultimap.of();
             Multimap<Index1IdxRow, Index1IdxColumnValue> result = getRowsMultimap(rows);
             for (Entry<Index1IdxRow, Index1IdxColumnValue> e : result.entries()) {
                 toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -1310,7 +1310,7 @@ public final class DataTable implements
         public void putUnlessExists(Multimap<Index1IdxRow, ? extends Index1IdxColumnValue> rows) {
             Multimap<Index1IdxRow, Index1IdxColumn> toGet = Multimaps.transformValues(rows, Index1IdxColumnValue.getColumnNameFun());
             Multimap<Index1IdxRow, Index1IdxColumnValue> existing = get(toGet);
-            Multimap<Index1IdxRow, Index1IdxColumnValue> toPut = HashMultimap.create();
+            Multimap<Index1IdxRow, Index1IdxColumnValue> toPut = HashMultimap.of();
             for (Entry<Index1IdxRow, ? extends Index1IdxColumnValue> entry : rows.entries()) {
                 if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                     toPut.put(entry.getKey(), entry.getValue());
@@ -1323,7 +1323,7 @@ public final class DataTable implements
         public void touch(Multimap<Index1IdxRow, Index1IdxColumn> values) {
             Multimap<Index1IdxRow, Index1IdxColumnValue> currentValues = get(values);
             put(currentValues);
-            Multimap<Index1IdxRow, Index1IdxColumn> toDelete = HashMultimap.create(values);
+            Multimap<Index1IdxRow, Index1IdxColumn> toDelete = HashMultimap.of(values);
             for (Map.Entry<Index1IdxRow, Index1IdxColumnValue> e : currentValues.entries()) {
                 toDelete.remove(e.getKey(), e.getValue().getColumnName());
             }
@@ -1331,7 +1331,7 @@ public final class DataTable implements
         }
 
         public static ColumnSelection getColumnSelection(Collection<Index1IdxColumn> cols) {
-            return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+            return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
         }
 
         public static ColumnSelection getColumnSelection(Index1IdxColumn... cols) {
@@ -1342,7 +1342,7 @@ public final class DataTable implements
         public Multimap<Index1IdxRow, Index1IdxColumnValue> get(Multimap<Index1IdxRow, Index1IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<Index1IdxRow, Index1IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index1IdxRow, Index1IdxColumnValue> rowMap = HashMultimap.of();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     Index1IdxRow row = Index1IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -1392,7 +1392,7 @@ public final class DataTable implements
         }
 
         private static Multimap<Index1IdxRow, Index1IdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<Index1IdxRow, Index1IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index1IdxRow, Index1IdxColumnValue> rowMap = HashMultimap.of();
             for (RowResult<byte[]> result : rowResults) {
                 Index1IdxRow row = Index1IdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -1487,7 +1487,7 @@ public final class DataTable implements
             BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index1IdxRowResult>, RuntimeException>() {
                 @Override
                 public boolean visit(List<Index1IdxRowResult> rowResults) {
-                    Multimap<Index1IdxRow, Index1IdxColumn> toRemove = HashMultimap.create();
+                    Multimap<Index1IdxRow, Index1IdxColumn> toRemove = HashMultimap.of();
                     for (Index1IdxRowResult rowResult : rowResults) {
                         for (Index1IdxColumnValue columnValue : rowResult.getColumnValues()) {
                             toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
@@ -1541,7 +1541,7 @@ public final class DataTable implements
 
         private Index2IdxTable(Transaction t, Namespace namespace, List<Index2IdxTrigger> triggers) {
             this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
+            this.tableRef = TableReference.of(namespace, rawTableName);
             this.triggers = triggers;
         }
 
@@ -1932,7 +1932,7 @@ public final class DataTable implements
 
         @Override
         public void delete(Iterable<Index2IdxRow> rows) {
-            Multimap<Index2IdxRow, Index2IdxColumn> toRemove = HashMultimap.create();
+            Multimap<Index2IdxRow, Index2IdxColumn> toRemove = HashMultimap.of();
             Multimap<Index2IdxRow, Index2IdxColumnValue> result = getRowsMultimap(rows);
             for (Entry<Index2IdxRow, Index2IdxColumnValue> e : result.entries()) {
                 toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -1984,7 +1984,7 @@ public final class DataTable implements
         public void putUnlessExists(Multimap<Index2IdxRow, ? extends Index2IdxColumnValue> rows) {
             Multimap<Index2IdxRow, Index2IdxColumn> toGet = Multimaps.transformValues(rows, Index2IdxColumnValue.getColumnNameFun());
             Multimap<Index2IdxRow, Index2IdxColumnValue> existing = get(toGet);
-            Multimap<Index2IdxRow, Index2IdxColumnValue> toPut = HashMultimap.create();
+            Multimap<Index2IdxRow, Index2IdxColumnValue> toPut = HashMultimap.of();
             for (Entry<Index2IdxRow, ? extends Index2IdxColumnValue> entry : rows.entries()) {
                 if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                     toPut.put(entry.getKey(), entry.getValue());
@@ -1997,7 +1997,7 @@ public final class DataTable implements
         public void touch(Multimap<Index2IdxRow, Index2IdxColumn> values) {
             Multimap<Index2IdxRow, Index2IdxColumnValue> currentValues = get(values);
             put(currentValues);
-            Multimap<Index2IdxRow, Index2IdxColumn> toDelete = HashMultimap.create(values);
+            Multimap<Index2IdxRow, Index2IdxColumn> toDelete = HashMultimap.of(values);
             for (Map.Entry<Index2IdxRow, Index2IdxColumnValue> e : currentValues.entries()) {
                 toDelete.remove(e.getKey(), e.getValue().getColumnName());
             }
@@ -2005,7 +2005,7 @@ public final class DataTable implements
         }
 
         public static ColumnSelection getColumnSelection(Collection<Index2IdxColumn> cols) {
-            return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+            return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
         }
 
         public static ColumnSelection getColumnSelection(Index2IdxColumn... cols) {
@@ -2016,7 +2016,7 @@ public final class DataTable implements
         public Multimap<Index2IdxRow, Index2IdxColumnValue> get(Multimap<Index2IdxRow, Index2IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<Index2IdxRow, Index2IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index2IdxRow, Index2IdxColumnValue> rowMap = HashMultimap.of();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     Index2IdxRow row = Index2IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -2066,7 +2066,7 @@ public final class DataTable implements
         }
 
         private static Multimap<Index2IdxRow, Index2IdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<Index2IdxRow, Index2IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index2IdxRow, Index2IdxColumnValue> rowMap = HashMultimap.of();
             for (RowResult<byte[]> result : rowResults) {
                 Index2IdxRow row = Index2IdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -2161,7 +2161,7 @@ public final class DataTable implements
             BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index2IdxRowResult>, RuntimeException>() {
                 @Override
                 public boolean visit(List<Index2IdxRowResult> rowResults) {
-                    Multimap<Index2IdxRow, Index2IdxColumn> toRemove = HashMultimap.create();
+                    Multimap<Index2IdxRow, Index2IdxColumn> toRemove = HashMultimap.of();
                     for (Index2IdxRowResult rowResult : rowResults) {
                         for (Index2IdxColumnValue columnValue : rowResult.getColumnValues()) {
                             toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
@@ -2215,7 +2215,7 @@ public final class DataTable implements
 
         private Index3IdxTable(Transaction t, Namespace namespace, List<Index3IdxTrigger> triggers) {
             this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
+            this.tableRef = TableReference.of(namespace, rawTableName);
             this.triggers = triggers;
         }
 
@@ -2584,7 +2584,7 @@ public final class DataTable implements
 
         @Override
         public void delete(Iterable<Index3IdxRow> rows) {
-            Multimap<Index3IdxRow, Index3IdxColumn> toRemove = HashMultimap.create();
+            Multimap<Index3IdxRow, Index3IdxColumn> toRemove = HashMultimap.of();
             Multimap<Index3IdxRow, Index3IdxColumnValue> result = getRowsMultimap(rows);
             for (Entry<Index3IdxRow, Index3IdxColumnValue> e : result.entries()) {
                 toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -2636,7 +2636,7 @@ public final class DataTable implements
         public void putUnlessExists(Multimap<Index3IdxRow, ? extends Index3IdxColumnValue> rows) {
             Multimap<Index3IdxRow, Index3IdxColumn> toGet = Multimaps.transformValues(rows, Index3IdxColumnValue.getColumnNameFun());
             Multimap<Index3IdxRow, Index3IdxColumnValue> existing = get(toGet);
-            Multimap<Index3IdxRow, Index3IdxColumnValue> toPut = HashMultimap.create();
+            Multimap<Index3IdxRow, Index3IdxColumnValue> toPut = HashMultimap.of();
             for (Entry<Index3IdxRow, ? extends Index3IdxColumnValue> entry : rows.entries()) {
                 if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                     toPut.put(entry.getKey(), entry.getValue());
@@ -2649,7 +2649,7 @@ public final class DataTable implements
         public void touch(Multimap<Index3IdxRow, Index3IdxColumn> values) {
             Multimap<Index3IdxRow, Index3IdxColumnValue> currentValues = get(values);
             put(currentValues);
-            Multimap<Index3IdxRow, Index3IdxColumn> toDelete = HashMultimap.create(values);
+            Multimap<Index3IdxRow, Index3IdxColumn> toDelete = HashMultimap.of(values);
             for (Map.Entry<Index3IdxRow, Index3IdxColumnValue> e : currentValues.entries()) {
                 toDelete.remove(e.getKey(), e.getValue().getColumnName());
             }
@@ -2657,7 +2657,7 @@ public final class DataTable implements
         }
 
         public static ColumnSelection getColumnSelection(Collection<Index3IdxColumn> cols) {
-            return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+            return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
         }
 
         public static ColumnSelection getColumnSelection(Index3IdxColumn... cols) {
@@ -2668,7 +2668,7 @@ public final class DataTable implements
         public Multimap<Index3IdxRow, Index3IdxColumnValue> get(Multimap<Index3IdxRow, Index3IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<Index3IdxRow, Index3IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index3IdxRow, Index3IdxColumnValue> rowMap = HashMultimap.of();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     Index3IdxRow row = Index3IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -2718,7 +2718,7 @@ public final class DataTable implements
         }
 
         private static Multimap<Index3IdxRow, Index3IdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<Index3IdxRow, Index3IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index3IdxRow, Index3IdxColumnValue> rowMap = HashMultimap.of();
             for (RowResult<byte[]> result : rowResults) {
                 Index3IdxRow row = Index3IdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -2813,7 +2813,7 @@ public final class DataTable implements
             BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index3IdxRowResult>, RuntimeException>() {
                 @Override
                 public boolean visit(List<Index3IdxRowResult> rowResults) {
-                    Multimap<Index3IdxRow, Index3IdxColumn> toRemove = HashMultimap.create();
+                    Multimap<Index3IdxRow, Index3IdxColumn> toRemove = HashMultimap.of();
                     for (Index3IdxRowResult rowResult : rowResults) {
                         for (Index3IdxColumnValue columnValue : rowResult.getColumnValues()) {
                             toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
@@ -2867,7 +2867,7 @@ public final class DataTable implements
 
         private Index4IdxTable(Transaction t, Namespace namespace, List<Index4IdxTrigger> triggers) {
             this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
+            this.tableRef = TableReference.of(namespace, rawTableName);
             this.triggers = triggers;
         }
 
@@ -3258,7 +3258,7 @@ public final class DataTable implements
 
         @Override
         public void delete(Iterable<Index4IdxRow> rows) {
-            Multimap<Index4IdxRow, Index4IdxColumn> toRemove = HashMultimap.create();
+            Multimap<Index4IdxRow, Index4IdxColumn> toRemove = HashMultimap.of();
             Multimap<Index4IdxRow, Index4IdxColumnValue> result = getRowsMultimap(rows);
             for (Entry<Index4IdxRow, Index4IdxColumnValue> e : result.entries()) {
                 toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -3310,7 +3310,7 @@ public final class DataTable implements
         public void putUnlessExists(Multimap<Index4IdxRow, ? extends Index4IdxColumnValue> rows) {
             Multimap<Index4IdxRow, Index4IdxColumn> toGet = Multimaps.transformValues(rows, Index4IdxColumnValue.getColumnNameFun());
             Multimap<Index4IdxRow, Index4IdxColumnValue> existing = get(toGet);
-            Multimap<Index4IdxRow, Index4IdxColumnValue> toPut = HashMultimap.create();
+            Multimap<Index4IdxRow, Index4IdxColumnValue> toPut = HashMultimap.of();
             for (Entry<Index4IdxRow, ? extends Index4IdxColumnValue> entry : rows.entries()) {
                 if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                     toPut.put(entry.getKey(), entry.getValue());
@@ -3323,7 +3323,7 @@ public final class DataTable implements
         public void touch(Multimap<Index4IdxRow, Index4IdxColumn> values) {
             Multimap<Index4IdxRow, Index4IdxColumnValue> currentValues = get(values);
             put(currentValues);
-            Multimap<Index4IdxRow, Index4IdxColumn> toDelete = HashMultimap.create(values);
+            Multimap<Index4IdxRow, Index4IdxColumn> toDelete = HashMultimap.of(values);
             for (Map.Entry<Index4IdxRow, Index4IdxColumnValue> e : currentValues.entries()) {
                 toDelete.remove(e.getKey(), e.getValue().getColumnName());
             }
@@ -3331,7 +3331,7 @@ public final class DataTable implements
         }
 
         public static ColumnSelection getColumnSelection(Collection<Index4IdxColumn> cols) {
-            return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+            return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
         }
 
         public static ColumnSelection getColumnSelection(Index4IdxColumn... cols) {
@@ -3342,7 +3342,7 @@ public final class DataTable implements
         public Multimap<Index4IdxRow, Index4IdxColumnValue> get(Multimap<Index4IdxRow, Index4IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<Index4IdxRow, Index4IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index4IdxRow, Index4IdxColumnValue> rowMap = HashMultimap.of();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     Index4IdxRow row = Index4IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -3392,7 +3392,7 @@ public final class DataTable implements
         }
 
         private static Multimap<Index4IdxRow, Index4IdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<Index4IdxRow, Index4IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index4IdxRow, Index4IdxColumnValue> rowMap = HashMultimap.of();
             for (RowResult<byte[]> result : rowResults) {
                 Index4IdxRow row = Index4IdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -3487,7 +3487,7 @@ public final class DataTable implements
             BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<Index4IdxRowResult>, RuntimeException>() {
                 @Override
                 public boolean visit(List<Index4IdxRowResult> rowResults) {
-                    Multimap<Index4IdxRow, Index4IdxColumn> toRemove = HashMultimap.create();
+                    Multimap<Index4IdxRow, Index4IdxColumn> toRemove = HashMultimap.of();
                     for (Index4IdxRowResult rowResult : rowResults) {
                         for (Index4IdxColumnValue columnValue : rowResult.getColumnValues()) {
                             toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
@@ -3598,5 +3598,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "x1VLSlvGrbiHfQq/rupNww==";
+    static String __CLASS_HASH = "3XvxsMdk/86817m8xesWfA==";
 }

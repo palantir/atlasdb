@@ -35,6 +35,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.ShouldRetry;
 
 @RunWith(Parameterized.class)
@@ -44,6 +46,9 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
     public static final Containers CONTAINERS = new Containers(
                 CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class)
             .with(new CassandraContainer());
+
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
@@ -64,7 +69,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
                         .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
 
-        return CassandraKeyValueServiceImpl.create(config, CassandraContainer.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.create(metricsManager, config, CassandraContainer.LEADER_CONFIG);
     }
 
     @Test

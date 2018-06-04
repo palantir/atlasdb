@@ -23,10 +23,12 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 
-@ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
+@ShouldRetry // The first test can fail with a TException: No host tried was able to of the keyspace requested.
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceTransactionIntegrationTest.class)
@@ -35,9 +37,13 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
+
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG);
     }

@@ -58,7 +58,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     /**
-     * @deprecated in favour of ProfilingKeyValueService#create(KeyValueService delegate). Use
+     * @deprecated in favour of ProfilingKeyValueService#of(KeyValueService delegate). Use
      * {@link KvsProfilingLogger#setSlowLogThresholdMillis(long)} to configure the slow logging threshold.
      * @param delegate the KeyValueService to be profiled
      * Defaults to using a 1 second slowlog.

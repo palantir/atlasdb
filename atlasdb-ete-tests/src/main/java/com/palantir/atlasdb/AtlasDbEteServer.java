@@ -24,6 +24,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
@@ -55,8 +56,10 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
@@ -87,8 +90,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
-        SerializableTransactionManager transactionManager = tryToCreateTransactionManager(config, environment);
-        Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(transactionManager));
+        TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
+        SerializableTransactionManager transactionManager =
+                tryToCreateTransactionManager(config, environment, taggedMetricRegistry);
+        Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(
+                transactionManager, environment.metrics(), taggedMetricRegistry));
 
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager, sweepTaskRunner)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
@@ -99,23 +105,28 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 config.getAtlasDbConfig().initializeAsync()));
     }
 
-    private SerializableTransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)
+    private SerializableTransactionManager tryToCreateTransactionManager(
+            AtlasDbEteConfiguration config, Environment environment, TaggedMetricRegistry taggedMetricRegistry)
             throws InterruptedException {
         if (config.getAtlasDbConfig().initializeAsync()) {
-            return createTransactionManager(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), environment);
+            return createTransactionManager(
+                    config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), environment, taggedMetricRegistry);
         } else {
             return createTransactionManagerWithRetry(config.getAtlasDbConfig(),
                     config.getAtlasDbRuntimeConfig(),
-                    environment);
+                    environment,
+                    taggedMetricRegistry);
         }
     }
 
-    private SweepTaskRunner getSweepTaskRunner(SerializableTransactionManager transactionManager) {
+    private SweepTaskRunner getSweepTaskRunner(SerializableTransactionManager transactionManager,
+            MetricRegistry metricRegistry, TaggedMetricRegistry taggedMetricRegistry) {
         KeyValueService kvs = transactionManager.getKeyValueService();
         LongSupplier ts = transactionManager.getTimestampService()::getFreshTimestamp;
         TransactionService txnService = TransactionServices.createTransactionService(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.completelyConservative(kvs); // maybe createDefault
         PersistentLockManager noLocks = new PersistentLockManager(
+                MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 new NoOpPersistentLockService(),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CleanupFollower follower = CleanupFollower.create(ETE_SCHEMAS);
@@ -126,28 +137,30 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private SerializableTransactionManager createTransactionManagerWithRetry(AtlasDbConfig config,
             Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig,
-            Environment environment)
+            Environment environment,
+            TaggedMetricRegistry taggedMetricRegistry)
             throws InterruptedException {
         Stopwatch sw = Stopwatch.createStarted();
         while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {
             try {
-                return createTransactionManager(config, atlasDbRuntimeConfig, environment);
+                return createTransactionManager(config, atlasDbRuntimeConfig, environment, taggedMetricRegistry);
             } catch (RuntimeException e) {
-                log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
+                log.warn("An error occurred while trying to of transaction manager. Retrying...", e);
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
             }
         }
-        throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
+        throw new IllegalStateException("Timed-out because we were unable to of transaction manager");
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private SerializableTransactionManager createTransactionManager(AtlasDbConfig config,
-            Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfigOptional, Environment environment) {
+            Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfigOptional, Environment environment,
+            TaggedMetricRegistry taggedMetricRegistry) {
         return TransactionManagers.builder()
                 .config(config)
                 .userAgent("ete test")
                 .globalMetricsRegistry(environment.metrics())
-                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalTaggedMetricRegistry(taggedMetricRegistry)
                 .registrar(environment.jersey()::register)
                 .addAllSchemas(ETE_SCHEMAS)
                 .runtimeConfigSupplier(() -> atlasDbRuntimeConfigOptional)

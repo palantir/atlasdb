@@ -92,7 +92,9 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldNotMakeRemoteCallsInAReadonlyTransactionIfNoWorkIsDone() {
         TimestampService mockTimestampService = mock(TimestampService.class);
         LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(getKeyValueService(),
+        TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(
+                metricsManager,
+                getKeyValueService(),
                 mockTimestampService, LockClient.of("foo"), mockLockService, transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE,
@@ -118,7 +120,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnThoroughSweptTable() {
         TimelockService timelock = mock(TimelockService.class);
         LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(keyValueService,
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
+                keyValueService,
                 timelock,
                 mockLockService,
                 transactionService,
@@ -126,7 +129,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                TimestampTrackerImpl.createNoOpTracker(),
+                TimestampTrackerImpl.createNoOpTracker(metricsManager),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
@@ -149,7 +152,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldNotConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnNonThoroughSweptTable() {
         TimelockService timelock = mock(TimelockService.class);
         LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(keyValueService,
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
+                keyValueService,
                 timelock,
                 mockLockService,
                 transactionService,
@@ -157,7 +161,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                TimestampTrackerImpl.createNoOpTracker(),
+                TimestampTrackerImpl.createNoOpTracker(metricsManager),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
@@ -179,7 +183,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldNotConflictIfImmutableTimestampLockExpiresIfNoReadsOrWrites() {
         TimelockService timelock = mock(TimelockService.class);
         LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(keyValueService,
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
+                keyValueService,
                 timelock,
                 mockLockService,
                 transactionService,
@@ -187,7 +192,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                TimestampTrackerImpl.createNoOpTracker(),
+                TimestampTrackerImpl.createNoOpTracker(metricsManager),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,

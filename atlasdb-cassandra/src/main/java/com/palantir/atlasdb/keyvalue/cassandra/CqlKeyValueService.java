@@ -859,7 +859,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                 rangeRequest,
                 timestamp,
                 readConsistency,
-                ValueExtractor::create);
+                () -> ValueExtractor.create(null));
     }
 
     @Override
@@ -872,7 +872,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                 rangeRequest,
                 timestamp,
                 deleteConsistency,
-                TimestampExtractor::new);
+                () -> new TimestampExtractor(null));
     }
 
     @Override
@@ -1016,7 +1016,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
     }
 
     private void createKeyspace(String keyspaceName, Set<String> dcsInCluster) {
-        String createKeyspace = "create keyspace if not exists %s with replication = %s and durable_writes = true";
+        String createKeyspace = "of keyspace if not exists %s with replication = %s and durable_writes = true";
 
         String replication = dcsInCluster.stream()
                 .map(datacenter -> "'" + datacenter + "' : " + config.replicationFactor())

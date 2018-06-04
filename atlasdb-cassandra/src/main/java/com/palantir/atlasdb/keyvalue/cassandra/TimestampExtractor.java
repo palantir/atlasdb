@@ -23,10 +23,15 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.util.MetricsManager;
 
 class TimestampExtractor extends ResultsExtractor<Set<Long>> {
 
     private final SetMultimap<Cell, Long> collector = HashMultimap.create();
+
+    TimestampExtractor(MetricsManager metricsManager) {
+        super(metricsManager);
+    }
 
     @Override
     public void internalExtractResult(long startTs,

@@ -45,6 +45,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraKeyValueServiceTableCreationIntegrationTest {
     public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -55,6 +57,9 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
             new Containers(CassandraKeyValueServiceTableCreationIntegrationTest.class)
                     .with(new CassandraContainer());
 
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
+
     protected CassandraKeyValueService kvs;
     protected CassandraKeyValueService slowTimeoutKvs;
 
@@ -64,6 +69,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 .copyOf(CassandraContainer.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(500);
         kvs = CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 quickTimeoutConfig,
                 CassandraContainer.LEADER_CONFIG);
 
@@ -71,6 +77,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 .copyOf(CassandraContainer.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(6 * 1000);
         slowTimeoutKvs = CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 slowTimeoutConfig,
                 CassandraContainer.LEADER_CONFIG);
 

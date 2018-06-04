@@ -39,6 +39,8 @@ import com.palantir.atlasdb.sweep.AbstractSweepTest;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
@@ -49,6 +51,9 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
             CassandraTargetedSweepIntegrationTest.class)
             .with(new CassandraContainer());
 
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
+
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
             getKeyValueService(), CassandraContainer.KVS_CONFIG);
@@ -57,7 +62,9 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     public void setup() {
         super.setup();
 
-        sweepQueue = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0);
+        sweepQueue = TargetedSweeper.createUninitialized(
+                metricsManager,
+                () -> true, () -> 1, 0, 0);
         sweepQueue.initialize(timestampsSupplier, kvs);
     }
 
@@ -65,7 +72,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
 
-        return CassandraKeyValueServiceImpl.create(config, CassandraContainer.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.create(metricsManager, config, CassandraContainer.LEADER_CONFIG);
     }
 
     @Override

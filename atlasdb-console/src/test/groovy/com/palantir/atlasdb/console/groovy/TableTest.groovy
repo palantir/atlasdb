@@ -1,20 +1,18 @@
 package com.palantir.atlasdb.console.groovy
 
+import static groovy.test.GroovyAssert.assertEquals
+import static groovy.test.GroovyAssert.shouldFail
+
+import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
 import com.palantir.atlasdb.console.exceptions.IllegalConsoleCommandException
 import com.palantir.atlasdb.console.module.Range
 import com.palantir.atlasdb.console.module.Table
-import org.junit.Assert
-
-import static groovy.test.GroovyAssert.assertEquals
-import static groovy.test.GroovyAssert.shouldFail
-
 import org.gmock.WithGMock
+import org.junit.Assert
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-
-import com.palantir.atlasdb.api.TransactionToken
 import org.junit.rules.ExpectedException
 
 @WithGMock

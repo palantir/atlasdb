@@ -113,7 +113,7 @@ public final class UserPhotosStreamValueTable implements
 
     private UserPhotosStreamValueTable(Transaction t, Namespace namespace, List<UserPhotosStreamValueTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableRef = TableReference.of(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -389,7 +389,7 @@ public final class UserPhotosStreamValueTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<UserPhotosStreamValueNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, UserPhotosStreamValueNamedColumn.toShortName()));
+        return ColumnSelection.of(Collections2.transform(cols, UserPhotosStreamValueNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(UserPhotosStreamValueNamedColumn... cols) {
@@ -404,7 +404,7 @@ public final class UserPhotosStreamValueTable implements
     public Map<UserPhotosStreamValueRow, byte[]> getValues(Collection<UserPhotosStreamValueRow> rows) {
         Map<Cell, UserPhotosStreamValueRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (UserPhotosStreamValueRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<UserPhotosStreamValueRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -453,7 +453,7 @@ public final class UserPhotosStreamValueTable implements
     @Override
     public void putUnlessExists(Multimap<UserPhotosStreamValueRow, ? extends UserPhotosStreamValueNamedColumnValue<?>> rows) {
         Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
+        Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> toPut = HashMultimap.of();
         for (Entry<UserPhotosStreamValueRow, ? extends UserPhotosStreamValueNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -550,7 +550,7 @@ public final class UserPhotosStreamValueTable implements
     }
 
     private static Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> rowMap = HashMultimap.of();
         for (RowResult<byte[]> result : rowResults) {
             UserPhotosStreamValueRow row = UserPhotosStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -695,5 +695,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "irQPf+iC8Kagft1QMRC2Cw==";
+    static String __CLASS_HASH = "hzL8cfX2Q4FxMsscq/SepQ==";
 }

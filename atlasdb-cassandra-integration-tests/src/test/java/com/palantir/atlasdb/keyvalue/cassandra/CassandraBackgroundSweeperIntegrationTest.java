@@ -26,6 +26,8 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     @ClassRule
@@ -40,6 +42,9 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
         return Arrays.asList(true, false);
     }
 
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
+
     @Override
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = useColumnBatchSize
@@ -47,6 +52,7 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
                     .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
         return CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 config,
                 CassandraContainer.LEADER_CONFIG);
     }

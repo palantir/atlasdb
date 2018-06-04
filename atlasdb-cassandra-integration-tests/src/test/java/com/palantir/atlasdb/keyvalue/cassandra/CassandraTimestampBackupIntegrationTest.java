@@ -33,6 +33,7 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -48,6 +49,7 @@ public class CassandraTimestampBackupIntegrationTest {
             .with(new CassandraContainer());
 
     private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
+            MetricsManagers.createForTests(),
             CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG);
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);

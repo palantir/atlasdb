@@ -367,7 +367,7 @@ public final class CqlKeyValueServices {
 
     static class StartTsResultsCollector implements ThreadSafeCqlResultVisitor {
         private final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
-        private final ValueExtractor extractor = new ValueExtractor(collectedResults);
+        private final ValueExtractor extractor = new ValueExtractor(null, collectedResults);
         private final long startTs;
 
         StartTsResultsCollector(long startTs) {

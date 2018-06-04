@@ -18,6 +18,7 @@ package com.palantir.atlasdb.factory.timestamp;
 
 import java.util.function.Supplier;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.DynamicDecoratingProxy;
 import com.palantir.atlasdb.factory.ServiceCreator;
@@ -34,19 +35,22 @@ public final class DecoratedTimelockServices {
     }
 
     public static TimelockService createTimelockServiceWithTimestampBatching(
+            MetricRegistry metricRegistry,
             TimelockService timelockService,
             Supplier<TimestampClientConfig> configSupplier) {
         return DynamicDecoratingProxy.newProxyInstance(
                 new TimestampDecoratingTimelockService(timelockService,
-                        createRequestBatchingTimestampService(timelockService)),
+                        createRequestBatchingTimestampService(metricRegistry, timelockService)),
                 timelockService,
                 JavaSuppliers.compose(TimestampClientConfig::enableTimestampBatching, configSupplier),
                 TimelockService.class);
     }
 
     private static TimestampService createRequestBatchingTimestampService(
+            MetricRegistry metrics,
             TimelockService timelockService) {
         return ServiceCreator.createInstrumentedService(
+                metrics,
                 new RequestBatchingTimestampService(new TimelockTimestampServiceAdapter(timelockService)),
                 TimestampService.class);
     }

@@ -113,7 +113,7 @@ public final class LatestSnapshotTable implements
 
     private LatestSnapshotTable(Transaction t, Namespace namespace, List<LatestSnapshotTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableRef = TableReference.of(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -377,7 +377,7 @@ public final class LatestSnapshotTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<LatestSnapshotNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, LatestSnapshotNamedColumn.toShortName()));
+        return ColumnSelection.of(Collections2.transform(cols, LatestSnapshotNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(LatestSnapshotNamedColumn... cols) {
@@ -392,7 +392,7 @@ public final class LatestSnapshotTable implements
     public Map<LatestSnapshotRow, Long> getStreamIds(Collection<LatestSnapshotRow> rows) {
         Map<Cell, LatestSnapshotRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (LatestSnapshotRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("i")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("i")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<LatestSnapshotRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -441,7 +441,7 @@ public final class LatestSnapshotTable implements
     @Override
     public void putUnlessExists(Multimap<LatestSnapshotRow, ? extends LatestSnapshotNamedColumnValue<?>> rows) {
         Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> toPut = HashMultimap.create();
+        Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> toPut = HashMultimap.of();
         for (Entry<LatestSnapshotRow, ? extends LatestSnapshotNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -538,7 +538,7 @@ public final class LatestSnapshotTable implements
     }
 
     private static Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> rowMap = HashMultimap.of();
         for (RowResult<byte[]> result : rowResults) {
             LatestSnapshotRow row = LatestSnapshotRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -683,5 +683,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Z4JOlMtJnr6Ul0c6qTd/dQ==";
+    static String __CLASS_HASH = "29qG8fq4mK27P5cwnPmTuQ==";
 }

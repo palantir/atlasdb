@@ -23,14 +23,21 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
 public class SweepMetricsManager {
-    private final SweepMetricsFactory factory = new SweepMetricsFactory();
+    private final SweepMetric<Long> cellsExamined;
+    private final SweepMetric<Long> cellsDeleted;
+    private final SweepMetric<Long> timeSweeping;
+    private final SweepMetric<Long> totalTime;
+    private final SweepMetric<String> tableSweeping;
+    private final SweepMetric<Long> sweepErrors;
 
-    private final SweepMetric<Long> cellsExamined = factory.accumulatingLong(AtlasDbMetricNames.CELLS_EXAMINED);
-    private final SweepMetric<Long> cellsDeleted = factory.accumulatingLong(AtlasDbMetricNames.CELLS_SWEPT);
-    private final SweepMetric<Long> timeSweeping = factory.simpleLong(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
-    private final SweepMetric<Long> totalTime = factory.simpleLong(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
-    private final SweepMetric<String> tableSweeping = factory.simpleString(AtlasDbMetricNames.TABLE_BEING_SWEPT);
-    private final SweepMetric<Long> sweepErrors = factory.simpleMeter(AtlasDbMetricNames.SWEEP_ERROR);
+    public SweepMetricsManager(SweepMetricsFactory factory) {
+        cellsExamined = factory.accumulatingLong(AtlasDbMetricNames.CELLS_EXAMINED);
+        cellsDeleted = factory.accumulatingLong(AtlasDbMetricNames.CELLS_SWEPT);
+        timeSweeping = factory.simpleLong(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
+        totalTime = factory.simpleLong(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
+        tableSweeping = factory.simpleString(AtlasDbMetricNames.TABLE_BEING_SWEPT);
+        sweepErrors = factory.simpleMeter(AtlasDbMetricNames.SWEEP_ERROR);
+    }
 
     public void resetBeforeDeleteBatch() {
         cellsExamined.set(0L);

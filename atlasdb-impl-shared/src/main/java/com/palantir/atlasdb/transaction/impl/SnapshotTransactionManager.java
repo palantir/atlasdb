@@ -43,6 +43,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -54,6 +55,7 @@ import com.palantir.timestamp.TimestampService;
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final int NUM_RETRIES = 10;
 
+    final MetricsManager metricsManager;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
@@ -75,6 +77,7 @@ import com.palantir.timestamp.TimestampService;
     final AtomicBoolean isClosed;
 
     protected SnapshotTransactionManager(
+            MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockService lockService,
@@ -91,8 +94,9 @@ import com.palantir.timestamp.TimestampService;
             Supplier<Long> timestampCacheSize,
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor) {
-        super(timestampCacheSize);
+        super(metricsManager, timestampCacheSize);
 
+        this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -173,6 +177,7 @@ import com.palantir.timestamp.TimestampService;
             LockToken immutableTsLock,
             PreCommitCondition condition) {
         return new SnapshotTransaction(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 transactionService,
@@ -201,6 +206,7 @@ import com.palantir.timestamp.TimestampService;
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
         SnapshotTransaction transaction = new SnapshotTransaction(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 transactionService,

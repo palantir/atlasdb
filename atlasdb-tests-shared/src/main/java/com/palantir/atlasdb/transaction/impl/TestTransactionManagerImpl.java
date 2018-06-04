@@ -33,6 +33,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
@@ -44,7 +45,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     private Optional<Long> unreadableTs = Optional.empty();
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
-    public TestTransactionManagerImpl(KeyValueService keyValueService,
+    public TestTransactionManagerImpl(MetricsManager metricsManager,
+            KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
             LockService lockService,
@@ -53,7 +55,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             SweepStrategyManager sweepStrategyManager,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor) {
-        super(
+        super(metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
@@ -62,7 +64,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                TimestampTrackerImpl.createNoOpTracker(),
+                TimestampTrackerImpl.createNoOpTracker(metricsManager),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
@@ -73,13 +75,14 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
-    public TestTransactionManagerImpl(KeyValueService keyValueService,
+    public TestTransactionManagerImpl(MetricsManager metricsManager,
+            KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
             LockService lockService,
             TransactionService transactionService,
             AtlasDbConstraintCheckingMode constraintCheckingMode) {
-        super(
+        super(metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
@@ -88,7 +91,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                TimestampTrackerImpl.createNoOpTracker(),
+                TimestampTrackerImpl.createNoOpTracker(metricsManager),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
@@ -116,6 +119,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     @Override
     public Transaction createNewTransaction() {
         return new SnapshotTransaction(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 transactionService,

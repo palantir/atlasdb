@@ -50,6 +50,8 @@ import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.exception.PalantirRuntimeException;
 
 @RunWith(Parameterized.class)
@@ -70,6 +72,8 @@ public class SchemaMutationLockIntegrationTest {
     private UniqueSchemaMutationLockTable lockTable;
     private SchemaMutationLockTestTools lockTestTools;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
 
     @SuppressWarnings({"WeakerAccess", "DefaultAnnotationParam"}) // test parameter
     @Parameterized.Parameter(value = 0)
@@ -99,7 +103,7 @@ public class SchemaMutationLockIntegrationTest {
                 .withSchemaMutationTimeoutMillis(500);
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
-        clientPool = CassandraClientPoolImpl.create(quickTimeoutConfig);
+        clientPool = CassandraClientPoolImpl.create(metricsManager, quickTimeoutConfig);
         lockTable = new UniqueSchemaMutationLockTable(
                 new SchemaMutationLockTables(clientPool, quickTimeoutConfig),
                 LockLeader.I_AM_THE_LOCK_LEADER);

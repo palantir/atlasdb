@@ -31,6 +31,7 @@ import com.palantir.atlasdb.qos.QueryWeight;
 import com.palantir.atlasdb.qos.metrics.QosMetrics;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.remoting.api.errors.QosException;
 
 public class AtlasDbQosClient implements QosClient {
@@ -41,8 +42,8 @@ public class AtlasDbQosClient implements QosClient {
     private final QosMetrics metrics;
     private final Ticker ticker;
 
-    public static AtlasDbQosClient create(QosRateLimiters rateLimiters) {
-        return new AtlasDbQosClient(rateLimiters, new QosMetrics(), Ticker.systemTicker());
+    public static AtlasDbQosClient create(MetricsManager metrics, QosRateLimiters rateLimiters) {
+        return new AtlasDbQosClient(rateLimiters, new QosMetrics(metrics), Ticker.systemTicker());
     }
 
     @VisibleForTesting

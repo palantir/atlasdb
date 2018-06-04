@@ -32,6 +32,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
@@ -43,6 +44,7 @@ import com.palantir.lock.v2.TimelockService;
  * isolation but will always read the most recently committed value for any {@link Cell}.
  */
 public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
+    private final MetricsManager metricsManager;
     protected final KeyValueService keyValueService;
     protected final TransactionService transactionService;
     protected final AtlasDbConstraintCheckingMode constraintCheckingMode;
@@ -52,13 +54,15 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
     final ExecutorService getRangesExecutor;
     final int defaultGetRangesConcurrency;
 
-    public ReadOnlyTransactionManager(KeyValueService keyValueService,
+    public ReadOnlyTransactionManager(MetricsManager metricsManager,
+            KeyValueService keyValueService,
             TransactionService transactionService,
             AtlasDbConstraintCheckingMode constraintCheckingMode,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             Supplier<Long> timestampCacheSize) {
         this(
+                metricsManager,
                 keyValueService,
                 transactionService,
                 constraintCheckingMode,
@@ -70,7 +74,8 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
                 timestampCacheSize);
     }
 
-    public ReadOnlyTransactionManager(KeyValueService keyValueService,
+    public ReadOnlyTransactionManager(MetricsManager metricsManager,
+            KeyValueService keyValueService,
             TransactionService transactionService,
             AtlasDbConstraintCheckingMode constraintCheckingMode,
             Supplier<Long> startTimestamp,
@@ -79,6 +84,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
             int defaultGetRangesConcurrency,
             Supplier<Long> timestampCacheSize) {
         this(
+                metricsManager,
                 keyValueService,
                 transactionService,
                 constraintCheckingMode,
@@ -90,7 +96,9 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
                 timestampCacheSize);
     }
 
-    public ReadOnlyTransactionManager(KeyValueService keyValueService,
+    public ReadOnlyTransactionManager(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
             TransactionService transactionService,
             AtlasDbConstraintCheckingMode constraintCheckingMode,
             Supplier<Long> startTimestamp,
@@ -99,7 +107,8 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             Supplier<Long> timestampCacheSize) {
-        super(timestampCacheSize::get);
+        super(metricsManager, timestampCacheSize::get);
+        this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.transactionService = transactionService;
         this.constraintCheckingMode = constraintCheckingMode;
@@ -203,6 +212,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
             ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
+                metricsManager,
                 keyValueService,
                 transactionService,
                 startTimestamp.get(),

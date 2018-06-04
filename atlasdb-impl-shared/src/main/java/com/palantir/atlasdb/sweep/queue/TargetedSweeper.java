@@ -35,6 +35,7 @@ import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
@@ -47,6 +48,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private final Supplier<Integer> shardsConfig;
     private int minShards;
 
+    private final MetricsManager metricsManager;
+
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
     private BackgroundSweepScheduler conservativeScheduler;
@@ -54,8 +57,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     private volatile boolean isInitialized = false;
 
-    private TargetedSweeper(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
+    private TargetedSweeper(MetricsManager metricsManager, Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
             int conservativeThreads, int thoroughThreads) {
+        this.metricsManager = metricsManager;
         this.runSweep = runSweep;
         this.shardsConfig = shardsConfig;
         this.conservativeScheduler = new BackgroundSweepScheduler(conservativeThreads,
@@ -77,9 +81,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * @param thoroughThreads number of thorough threads to use for background targeted sweep.
      * @return returns an uninitialized targeted sweeper.
      */
-    public static TargetedSweeper createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
+    public static TargetedSweeper createUninitialized(MetricsManager metricsManager,
+            Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
             int conservativeThreads, int thoroughThreads) {
-        return new TargetedSweeper(enabled, shardsConfig, conservativeThreads, thoroughThreads);
+        return new TargetedSweeper(metricsManager, enabled, shardsConfig, conservativeThreads, thoroughThreads);
     }
 
     /**
@@ -96,7 +101,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        queue = SweepQueue.create(kvs, shardsConfig, minShards);
+        queue = SweepQueue.create(metricsManager, kvs, shardsConfig, minShards);
         timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();

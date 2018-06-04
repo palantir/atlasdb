@@ -24,6 +24,7 @@ import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
@@ -39,8 +40,8 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
         public void cleanup() {}
     };
 
-    AbstractConditionAwareTransactionManager(Supplier<Long> timestampCacheSize) {
-        super(timestampCacheSize);
+    AbstractConditionAwareTransactionManager(MetricsManager metricsManager, Supplier<Long> timestampCacheSize) {
+        super(metricsManager, timestampCacheSize);
     }
 
     @Override

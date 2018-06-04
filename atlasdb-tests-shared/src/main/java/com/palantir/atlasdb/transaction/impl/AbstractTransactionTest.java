@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -75,6 +76,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -90,6 +92,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     protected final TimestampCache timestampCache = new TimestampCache(
+            new MetricRegistry(),
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected boolean supportsReverse() {
         return true;
@@ -107,6 +110,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
+                MetricsManagers.createForTests(),
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,

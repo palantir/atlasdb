@@ -40,7 +40,11 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class ResultsExtractor<T> {
 
-    protected MetricsManager metricsManager = new MetricsManager();
+    protected final MetricsManager metricsManager;
+
+    public ResultsExtractor(MetricsManager metricsManager) {
+        this.metricsManager = metricsManager;
+    }
 
     @SuppressWarnings("VisibilityModifier")
     public final byte[] extractResults(

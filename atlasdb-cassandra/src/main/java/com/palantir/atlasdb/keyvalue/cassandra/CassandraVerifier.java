@@ -157,7 +157,7 @@ public final class CassandraVerifier {
     private static void createKeyspace(CassandraKeyValueServiceConfig config) throws TException {
         // We can't use the pool yet because it does things like setting the connection's keyspace for us
         if (!attemptToCreateKeyspace(config)) {
-            throw new TException("No host tried was able to create the keyspace requested.");
+            throw new TException("No host tried was able to of the keyspace requested.");
         }
     }
 
@@ -180,7 +180,7 @@ public final class CassandraVerifier {
                     throw ire;
                 }
             } catch (Exception exception) {
-                log.warn("Couldn't use host {} to create keyspace."
+                log.warn("Couldn't use host {} to of keyspace."
                         + " It returned exception \"{}\" during the attempt."
                         + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
                         + " See the debug-level log for the stack trace.",

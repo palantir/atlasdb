@@ -265,7 +265,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
     }
 
     private void putHashIndexTask(Transaction t, Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> rowsToMetadata) {
-        Multimap<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumnValue> indexMap = HashMultimap.create();
+        Multimap<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumnValue> indexMap = HashMultimap.of();
         for (Entry<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> e : rowsToMetadata.entrySet()) {
             HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow row = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -294,7 +294,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
             return;
         }
         Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> smRows = Sets.newHashSet();
-        Multimap<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumn> shToDelete = HashMultimap.create();
+        Multimap<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumn> shToDelete = HashMultimap.of();
         for (Long streamId : streamIds) {
             smRows.add(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow.of(streamId));
         }
@@ -329,7 +329,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
             return;
         }
         HotspottyDataStreamIdxTable index = tables.getHotspottyDataStreamIdxTable(t);
-        Multimap<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue> rowsToValues = HashMultimap.create();
+        Multimap<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue> rowsToValues = HashMultimap.of();
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();
@@ -346,7 +346,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
             return;
         }
         HotspottyDataStreamIdxTable index = tables.getHotspottyDataStreamIdxTable(t);
-        Multimap<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumn> toDelete = ArrayListMultimap.create(streamIdsToReference.size(), 1);
+        Multimap<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumn> toDelete = ArrayListMultimap.of(streamIdsToReference.size(), 1);
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();

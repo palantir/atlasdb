@@ -113,7 +113,7 @@ public final class SweepPriorityTable implements
 
     private SweepPriorityTable(Transaction t, Namespace namespace, List<SweepPriorityTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableRef = TableReference.of(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -733,7 +733,7 @@ public final class SweepPriorityTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<SweepPriorityNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, SweepPriorityNamedColumn.toShortName()));
+        return ColumnSelection.of(Collections2.transform(cols, SweepPriorityNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(SweepPriorityNamedColumn... cols) {
@@ -752,7 +752,7 @@ public final class SweepPriorityTable implements
     public Map<SweepPriorityRow, Long> getWriteCounts(Collection<SweepPriorityRow> rows) {
         Map<Cell, SweepPriorityRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (SweepPriorityRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("w")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("w")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<SweepPriorityRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -766,7 +766,7 @@ public final class SweepPriorityTable implements
     public Map<SweepPriorityRow, Long> getLastSweepTimes(Collection<SweepPriorityRow> rows) {
         Map<Cell, SweepPriorityRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (SweepPriorityRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("t")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("t")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<SweepPriorityRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -780,7 +780,7 @@ public final class SweepPriorityTable implements
     public Map<SweepPriorityRow, Long> getMinimumSweptTimestamps(Collection<SweepPriorityRow> rows) {
         Map<Cell, SweepPriorityRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (SweepPriorityRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("m")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("m")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<SweepPriorityRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -794,7 +794,7 @@ public final class SweepPriorityTable implements
     public Map<SweepPriorityRow, Long> getCellsDeleteds(Collection<SweepPriorityRow> rows) {
         Map<Cell, SweepPriorityRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (SweepPriorityRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("d")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("d")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<SweepPriorityRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -808,7 +808,7 @@ public final class SweepPriorityTable implements
     public Map<SweepPriorityRow, Long> getCellsExamineds(Collection<SweepPriorityRow> rows) {
         Map<Cell, SweepPriorityRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (SweepPriorityRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("e")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("e")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<SweepPriorityRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -953,7 +953,7 @@ public final class SweepPriorityTable implements
     @Override
     public void putUnlessExists(Multimap<SweepPriorityRow, ? extends SweepPriorityNamedColumnValue<?>> rows) {
         Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> toPut = HashMultimap.create();
+        Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> toPut = HashMultimap.of();
         for (Entry<SweepPriorityRow, ? extends SweepPriorityNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -1094,7 +1094,7 @@ public final class SweepPriorityTable implements
     }
 
     private static Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> rowMap = HashMultimap.of();
         for (RowResult<byte[]> result : rowResults) {
             SweepPriorityRow row = SweepPriorityRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -1239,5 +1239,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Fy5OQz2p3OpBl5iG2MX60w==";
+    static String __CLASS_HASH = "ClNadspuriE24IkFjAh5FA==";
 }

@@ -44,6 +44,8 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
@@ -91,7 +93,10 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final InMemoryKeyValueService kvs2 = new InMemoryKeyValueService(false);
         final ConflictDetectionManager cdm2 = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager ssm2 = SweepStrategyManagers.completelyConservative(kvs2);
+        final MetricsManager metricsManager =
+                MetricsManagers.createForTests();
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
+                metricsManager,
                 kvs2,
                 timestampService,
                 lockClient,
@@ -128,6 +133,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final ConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(kvs2);
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
+                metricsManager,
                 kvs2,
                 timestampService,
                 lockClient,

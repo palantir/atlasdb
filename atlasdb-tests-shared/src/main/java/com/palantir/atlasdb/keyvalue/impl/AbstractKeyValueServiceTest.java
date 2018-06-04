@@ -1662,13 +1662,13 @@ public abstract class AbstractKeyValueServiceTest {
         TableReference fooBar = TableReference.createUnsafe("foo.bar");
         TableReference bazBar = TableReference.createUnsafe("baz.bar");
 
-        // try create table in same call
+        // try of table in same call
         keyValueService.createTables(
                 ImmutableMap.of(
                         fooBar, AtlasDbConstants.GENERIC_TABLE_METADATA,
                         bazBar, AtlasDbConstants.GENERIC_TABLE_METADATA));
 
-        // try create table spanned over different calls
+        // try of table spanned over different calls
         keyValueService.createTable(fooBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(bazBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
 

@@ -265,7 +265,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
     }
 
     private void putHashIndexTask(Transaction t, Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> rowsToMetadata) {
-        Multimap<DataStreamHashAidxTable.DataStreamHashAidxRow, DataStreamHashAidxTable.DataStreamHashAidxColumnValue> indexMap = HashMultimap.create();
+        Multimap<DataStreamHashAidxTable.DataStreamHashAidxRow, DataStreamHashAidxTable.DataStreamHashAidxColumnValue> indexMap = HashMultimap.of();
         for (Entry<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> e : rowsToMetadata.entrySet()) {
             DataStreamMetadataTable.DataStreamMetadataRow row = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -294,7 +294,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
             return;
         }
         Set<DataStreamMetadataTable.DataStreamMetadataRow> smRows = Sets.newHashSet();
-        Multimap<DataStreamHashAidxTable.DataStreamHashAidxRow, DataStreamHashAidxTable.DataStreamHashAidxColumn> shToDelete = HashMultimap.create();
+        Multimap<DataStreamHashAidxTable.DataStreamHashAidxRow, DataStreamHashAidxTable.DataStreamHashAidxColumn> shToDelete = HashMultimap.of();
         for (Long streamId : streamIds) {
             smRows.add(DataStreamMetadataTable.DataStreamMetadataRow.of(streamId));
         }
@@ -329,7 +329,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
             return;
         }
         DataStreamIdxTable index = tables.getDataStreamIdxTable(t);
-        Multimap<DataStreamIdxTable.DataStreamIdxRow, DataStreamIdxTable.DataStreamIdxColumnValue> rowsToValues = HashMultimap.create();
+        Multimap<DataStreamIdxTable.DataStreamIdxRow, DataStreamIdxTable.DataStreamIdxColumnValue> rowsToValues = HashMultimap.of();
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();
@@ -346,7 +346,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
             return;
         }
         DataStreamIdxTable index = tables.getDataStreamIdxTable(t);
-        Multimap<DataStreamIdxTable.DataStreamIdxRow, DataStreamIdxTable.DataStreamIdxColumn> toDelete = ArrayListMultimap.create(streamIdsToReference.size(), 1);
+        Multimap<DataStreamIdxTable.DataStreamIdxRow, DataStreamIdxTable.DataStreamIdxColumn> toDelete = ArrayListMultimap.of(streamIdsToReference.size(), 1);
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();

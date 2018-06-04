@@ -28,7 +28,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 public class TargetedSweepMetricsTest {
@@ -36,11 +37,13 @@ public class TargetedSweepMetricsTest {
     private static final ShardAndStrategy CONS_ONE = ShardAndStrategy.conservative(1);
     private static final ShardAndStrategy CONS_TWO = ShardAndStrategy.conservative(2);
     private static final ShardAndStrategy THOR_ZERO = ShardAndStrategy.thorough(0);
+    private static final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
     private TargetedSweepMetrics metrics;
 
     @Before
     public void setup() {
-        metrics = TargetedSweepMetrics.withRecomputingInterval(1);
+        metrics = TargetedSweepMetrics.withRecomputingInterval(metricsManager, 1);
     }
 
     @Test
@@ -314,6 +317,6 @@ public class TargetedSweepMetricsTest {
                 .safeTags(tag)
                 .build();
 
-        return (Gauge<Long>) AtlasDbMetrics.getTaggedMetricRegistry().getMetrics().get(metricName);
+        return (Gauge<Long>) metricsManager.getTaggedRegistry().getMetrics().get(metricName);
     }
 }

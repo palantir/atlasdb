@@ -51,15 +51,18 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private final QosClient qosClient;
     private final InetSocketAddress host;
     private final CassandraKeyValueServiceConfig config;
-    private final MetricsManager metricsManager = new MetricsManager();
+    private final MetricsManager metricsManager;
     private final AtomicLong count = new AtomicLong();
     private final AtomicInteger openRequests = new AtomicInteger();
     private final GenericObjectPool<CassandraClient> clientPool;
 
-    public CassandraClientPoolingContainer(QosClient qosClient,
+    public CassandraClientPoolingContainer(
+            MetricsManager metricsManager,
+            QosClient qosClient,
             InetSocketAddress host,
             CassandraKeyValueServiceConfig config,
             int poolNumber) {
+        this.metricsManager = metricsManager;
         this.qosClient = qosClient;
         this.host = host;
         this.config = config;
@@ -235,7 +238,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      * @param poolNumber number of the pool for metric registration.
      */
     private GenericObjectPool<CassandraClient> createClientPool(int poolNumber) {
-        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(qosClient, host, config);
+        CassandraClientFactory cassandraClientFactory =
+                new CassandraClientFactory(metricsManager, qosClient, host, config);
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
 
         poolConfig.setMinIdle(config.poolSize());

@@ -113,7 +113,7 @@ public final class KeyValueTable implements
 
     private KeyValueTable(Transaction t, Namespace namespace, List<KeyValueTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
+        this.tableRef = TableReference.of(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -377,7 +377,7 @@ public final class KeyValueTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<KeyValueNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, KeyValueNamedColumn.toShortName()));
+        return ColumnSelection.of(Collections2.transform(cols, KeyValueNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(KeyValueNamedColumn... cols) {
@@ -392,7 +392,7 @@ public final class KeyValueTable implements
     public Map<KeyValueRow, Long> getStreamIds(Collection<KeyValueRow> rows) {
         Map<Cell, KeyValueRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (KeyValueRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("s")), row);
+            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("s")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<KeyValueRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -441,7 +441,7 @@ public final class KeyValueTable implements
     @Override
     public void putUnlessExists(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
         Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = HashMultimap.create();
+        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = HashMultimap.of();
         for (Entry<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -538,7 +538,7 @@ public final class KeyValueTable implements
     }
 
     private static Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> rowMap = HashMultimap.of();
         for (RowResult<byte[]> result : rowResults) {
             KeyValueRow row = KeyValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -683,5 +683,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "mALQAWLKy270UHPLbKi+4Q==";
+    static String __CLASS_HASH = "LexaFx/uVF3f44Gvf/npfg==";
 }

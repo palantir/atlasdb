@@ -33,8 +33,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 public final class TargetedSweepMetrics {
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
 
-    private TargetedSweepMetrics(long millis) {
-        MetricsManager metricsManager = new MetricsManager();
+    private TargetedSweepMetrics(MetricsManager metricsManager, long millis) {
         metricsForStrategyMap = ImmutableMap.of(
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, millis),
@@ -42,8 +41,8 @@ public final class TargetedSweepMetrics {
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, millis));
     }
 
-    public static TargetedSweepMetrics withRecomputingInterval(long millis) {
-        return new TargetedSweepMetrics(millis);
+    public static TargetedSweepMetrics withRecomputingInterval(MetricsManager metricsManager, long millis) {
+        return new TargetedSweepMetrics(metricsManager, millis);
     }
 
     public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes) {

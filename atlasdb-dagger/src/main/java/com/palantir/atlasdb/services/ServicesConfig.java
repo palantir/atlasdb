@@ -28,6 +28,7 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.util.MetricsManager;
 
 @Value.Immutable
 public abstract class ServicesConfig {
@@ -36,9 +37,9 @@ public abstract class ServicesConfig {
 
     public abstract AtlasDbRuntimeConfig atlasDbRuntimeConfig();
 
-    @Value.Derived
-    public ServiceDiscoveringAtlasSupplier atlasDbSupplier() {
+    public ServiceDiscoveringAtlasSupplier atlasDbSupplier(MetricsManager metrics) {
         return new ServiceDiscoveringAtlasSupplier(
+                metrics,
                 atlasDbConfig().keyValueService(),
                 () -> atlasDbRuntimeConfig().keyValueService(),
                 atlasDbConfig().leader(),

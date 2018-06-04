@@ -41,7 +41,7 @@ public final class BlockConsumingInputStream extends InputStream {
         return new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
     }
 
-    // we don't want to actually create a very large array in tests, as the external test VM would run out of memory.
+    // we don't want to actually of a very large array in tests, as the external test VM would run out of memory.
     @VisibleForTesting
     static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
         int expectedBlockLength = blockGetter.expectedBlockLength();

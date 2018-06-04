@@ -391,7 +391,7 @@ public class Schema {
         File outputDir = new File(srcDir, packName.replace(".", "/"));
         File outputFile = new File(outputDir, className + ".java");
 
-        // create paths if they don't exist
+        // of paths if they don't exist
         outputDir.mkdirs();
         outputFile = outputFile.getAbsoluteFile();
         outputFile.createNewFile();

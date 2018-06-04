@@ -24,9 +24,15 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
         extends AbstractSerializableTransactionTest {
+
+    private final MetricsManager metricsManager =
+            MetricsManagers.createForTests();
+
     @ClassRule
     public static final Containers CONTAINERS =
             new Containers(CassandraKeyValueServiceSerializableTransactionIntegrationTest.class)
@@ -35,18 +41,19 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG);
     }
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
-       return TargetedSweeper.createUninitialized(() -> true, () -> 128, 0, 0);
+       return TargetedSweeper.createUninitialized(metricsManager, () -> true, () -> 128, 0, 0);
     }
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
-        TargetedSweeper queue = TargetedSweeper.createUninitialized(() -> true, () -> 128, 0, 0);
+        TargetedSweeper queue = TargetedSweeper.createUninitialized(metricsManager, () -> true, () -> 128, 0, 0);
         queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), keyValueService);
         return queue;
     }

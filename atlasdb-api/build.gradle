@@ -17,6 +17,11 @@ dependencies {
   compile (group: 'com.palantir.remoting3', name: 'jaxrs-clients') {
     exclude (module:'jsr305')
   }
+  compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
+    exclude (group: 'com.palantir.remoting3', module: 'tracing')
+    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
+    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
+  }
 
   processor group: 'org.immutables', name: 'value'
 

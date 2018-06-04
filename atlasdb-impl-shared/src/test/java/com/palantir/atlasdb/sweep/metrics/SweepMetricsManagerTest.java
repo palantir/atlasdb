@@ -23,7 +23,6 @@ import static org.junit.Assert.assertThat;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,9 +41,7 @@ import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.CurrentValueMetric;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class SweepMetricsManagerTest {
     private static final long EXAMINED = 15L;
@@ -101,20 +98,14 @@ public class SweepMetricsManagerTest {
     private static final byte[] UNSAFE_METADATA = createTableMetadataWithLogSafety(
             TableMetadataPersistence.LogSafety.UNSAFE).persistToBytes();
 
-    private static MetricRegistry metricRegistry;
+    private MetricRegistry metricRegistry;
 
     private SweepMetricsManager sweepMetricsManager;
 
     @Before
     public void setUp() {
-        sweepMetricsManager = new SweepMetricsManager();
-        metricRegistry = AtlasDbMetrics.getMetricRegistry();
-    }
-
-    @After
-    public void tearDown() {
-        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(),
-                new DefaultTaggedMetricRegistry());
+        metricRegistry = new MetricRegistry();
+        sweepMetricsManager = new SweepMetricsManager(new SweepMetricsFactory(metricRegistry));
     }
 
     @Test

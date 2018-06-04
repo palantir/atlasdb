@@ -33,6 +33,7 @@ import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
@@ -51,6 +52,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public KeyValueService createRawKeyValueService(
+            MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,

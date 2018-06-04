@@ -45,7 +45,7 @@ public interface AtlasDbService {
 
     @Idempotent
     @POST
-    @Path("create-table/{tableName}")
+    @Path("of-table/{tableName}")
     void createTable(@PathParam("tableName") String tableName);
 
     @Idempotent

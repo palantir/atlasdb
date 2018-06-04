@@ -50,15 +50,16 @@ public final class TokenRangeWritesLogger {
     static final long TIME_UNTIL_LOG_MILLIS = Duration.ofHours(6).toMillis();
     private static final double CONFIDENCE_FOR_LOGGING = 0.99;
 
+    private final MetricsManager metricsManager;
     private final ConcurrentMap<TableReference, TokenRangeWrites> statsPerTable = new ConcurrentHashMap<>();
     private volatile Set<Range<LightweightOppToken>> ranges = ImmutableSet.of(Range.all());
 
-    private TokenRangeWritesLogger() {
-        // use factory method
+    private TokenRangeWritesLogger(MetricsManager metricsManager) {
+        this.metricsManager = metricsManager;
     }
 
-    public static TokenRangeWritesLogger createUninitialized() {
-        return new TokenRangeWritesLogger();
+    public static TokenRangeWritesLogger createUninitialized(MetricsManager metricsManager) {
+        return new TokenRangeWritesLogger(metricsManager);
     }
 
     public void updateTokenRanges(Set<Range<LightweightOppToken>> newRanges) {
@@ -75,7 +76,7 @@ public final class TokenRangeWritesLogger {
         }
 
         if (!statsPerTable.containsKey(tableRef)) {
-            statsPerTable.put(tableRef, new TokenRangeWrites(tableRef, ranges));
+            statsPerTable.put(tableRef, new TokenRangeWrites(metricsManager, tableRef, ranges));
         }
         TokenRangeWrites tokenRangeWrites = statsPerTable.get(tableRef);
         entries.forEach(tokenRangeWrites::markWrite);
@@ -90,12 +91,15 @@ public final class TokenRangeWritesLogger {
         private double probabilityDistributionIsNotUniform = 0.0;
         private long numberOfWritesUsedToCalculateDistribution = 0;
 
-        private TokenRangeWrites(TableReference tableRef, Set<Range<LightweightOppToken>> ranges) {
+        private TokenRangeWrites(
+                MetricsManager metricsManager,
+                TableReference tableRef,
+                Set<Range<LightweightOppToken>> ranges) {
             this.tableRef = tableRef;
             ImmutableRangeMap.Builder<LightweightOppToken, AtomicLong> builder = ImmutableRangeMap.builder();
             ranges.forEach(range -> builder.put(range, new AtomicLong(0)));
             this.writesPerRange = builder.build();
-            new MetricsManager()
+            metricsManager
                     .registerGaugeForTable(TokenRangeWritesLogger.class, "probabilityDistributionIsNotUniform",
                             tableRef, this::getProbabilityDistributionIsNotUniform);
         }

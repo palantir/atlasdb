@@ -183,7 +183,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     final TransactionService defaultTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
-    private static final MetricsManager metricsManager = new MetricsManager();
+    protected final MetricsManager metricsManager;
 
     private final MultiTableSweepQueueWriter sweepQueue;
 
@@ -225,7 +225,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      *                           grab a read lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
-    /* package */ SnapshotTransaction(KeyValueService keyValueService,
+    /* package */ SnapshotTransaction(
+                               MetricsManager metricsManager,
+                               KeyValueService keyValueService,
                                TimelockService timelockService,
                                TransactionService transactionService,
                                Cleaner cleaner,
@@ -245,6 +247,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                int defaultGetRangesConcurrency,
                                MultiTableSweepQueueWriter sweepQueue,
                                ExecutorService deleteExecutor) {
+        this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -270,7 +273,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     // TEST ONLY
     @VisibleForTesting
-    SnapshotTransaction(KeyValueService keyValueService,
+    SnapshotTransaction(MetricsManager metricsManager,
+                        KeyValueService keyValueService,
                         TimelockService timelockService,
                         TransactionService transactionService,
                         Cleaner cleaner,
@@ -283,6 +287,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         int defaultGetRangesConcurrency,
                         MultiTableSweepQueueWriter sweepQueue,
                         ExecutorService deleteExecutor) {
+        this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -306,7 +311,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.hasReads = false;
     }
 
-    protected SnapshotTransaction(KeyValueService keyValueService,
+    protected SnapshotTransaction(MetricsManager metricsManager,
+                                  KeyValueService keyValueService,
                                   TransactionService transactionService,
                                   TimelockService timelockService,
                                   long startTimeStamp,
@@ -318,6 +324,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   ExecutorService getRangesExecutor,
                                   int defaultGetRangesConcurrency,
                                   ExecutorService deleteExecutor) {
+        this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
@@ -919,7 +926,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return RowResults.filterDeletedColumnsAndEmptyRows(mergeIterators);
     }
 
-    private static List<Entry<Cell, byte[]>> mergeInLocalWrites(
+    private List<Entry<Cell, byte[]>> mergeInLocalWrites(
             Iterator<Entry<Cell, byte[]>> postFilterIterator,
             Iterator<Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
@@ -932,7 +939,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilterEmptyValues(mergeIterators);
     }
 
-    private static List<Entry<Cell, byte[]>> postFilterEmptyValues(
+    private List<Entry<Cell, byte[]>> postFilterEmptyValues(
             Iterator<Entry<Cell, byte[]>> mergeIterators) {
         List<Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
         Predicate<Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value.IS_EMPTY),
@@ -2076,7 +2083,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return getMeter("SnapshotTransactionConflict");
     }
 
-    private static Meter getMeter(String name) {
+    private Meter getMeter(String name) {
         // TODO(hsaraogi): add table names as a tag
         return metricsManager.registerOrGetMeter(SnapshotTransaction.class, name);
     }

@@ -265,7 +265,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
     }
 
     private void putHashIndexTask(Transaction t, Map<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> rowsToMetadata) {
-        Multimap<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow, StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumnValue> indexMap = HashMultimap.create();
+        Multimap<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow, StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumnValue> indexMap = HashMultimap.of();
         for (Entry<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> e : rowsToMetadata.entrySet()) {
             StreamTestStreamMetadataTable.StreamTestStreamMetadataRow row = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -294,7 +294,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
             return;
         }
         Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> smRows = Sets.newHashSet();
-        Multimap<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow, StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumn> shToDelete = HashMultimap.create();
+        Multimap<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow, StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumn> shToDelete = HashMultimap.of();
         for (Long streamId : streamIds) {
             smRows.add(StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.of(streamId));
         }
@@ -329,7 +329,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
             return;
         }
         StreamTestStreamIdxTable index = tables.getStreamTestStreamIdxTable(t);
-        Multimap<StreamTestStreamIdxTable.StreamTestStreamIdxRow, StreamTestStreamIdxTable.StreamTestStreamIdxColumnValue> rowsToValues = HashMultimap.create();
+        Multimap<StreamTestStreamIdxTable.StreamTestStreamIdxRow, StreamTestStreamIdxTable.StreamTestStreamIdxColumnValue> rowsToValues = HashMultimap.of();
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();
@@ -346,7 +346,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
             return;
         }
         StreamTestStreamIdxTable index = tables.getStreamTestStreamIdxTable(t);
-        Multimap<StreamTestStreamIdxTable.StreamTestStreamIdxRow, StreamTestStreamIdxTable.StreamTestStreamIdxColumn> toDelete = ArrayListMultimap.create(streamIdsToReference.size(), 1);
+        Multimap<StreamTestStreamIdxTable.StreamTestStreamIdxRow, StreamTestStreamIdxTable.StreamTestStreamIdxColumn> toDelete = ArrayListMultimap.of(streamIdsToReference.size(), 1);
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();

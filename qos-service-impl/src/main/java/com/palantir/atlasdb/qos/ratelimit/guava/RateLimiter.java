@@ -65,7 +65,7 @@ import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter.SmoothWarmingU
  * <p>As an example, imagine that we have a list of tasks to execute, but we don't want to
  * submit more than 2 per second:
  *<pre>  {@code
- *  final RateLimiter rateLimiter = RateLimiter.create(2.0); // rate is "2 permits per second"
+ *  final RateLimiter rateLimiter = RateLimiter.of(2.0); // rate is "2 permits per second"
  *  void submitTasks(List<Runnable> tasks, Executor executor) {
  *    for (Runnable task : tasks) {
  *      rateLimiter.acquire(); // may wait
@@ -78,7 +78,7 @@ import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter.SmoothWarmingU
  * at 5kb per second. This could be accomplished by requiring a permit per byte, and specifying
  * a rate of 5000 permits per second:
  *<pre>  {@code
- *  final RateLimiter rateLimiter = RateLimiter.create(5000.0); // rate = 5000 permits per second
+ *  final RateLimiter rateLimiter = RateLimiter.of(5000.0); // rate = 5000 permits per second
  *  void submitPacket(byte[] packet) {
  *    rateLimiter.acquire(packet.length);
  *    networkService.send(packet);
