@@ -29,6 +29,7 @@ import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -57,8 +58,8 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     public void setup() {
         super.setup();
 
-        sweepQueue = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0);
-        sweepQueue.initialize(timestampsSupplier, kvs);
+        sweepQueue = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0, mock(Follower.class));
+        sweepQueue.initialize(timestampsSupplier, kvs, null);
     }
 
     @Override

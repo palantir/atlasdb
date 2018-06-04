@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import java.io.Closeable;
@@ -31,6 +32,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -115,7 +117,7 @@ public class AtlasDbTestCase {
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
-        sweepQueue = spy(TargetedSweeper.createUninitialized(() -> true, () -> sweepQueueShards, 0, 0));
+        sweepQueue = spy(TargetedSweeper.createUninitialized(() -> true, () -> sweepQueueShards, 0, 0, mock(Follower.class)));
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,

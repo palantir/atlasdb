@@ -15,8 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import org.junit.ClassRule;
+import static org.mockito.Mockito.mock;
 
+import org.junit.ClassRule;
+import org.mockito.Mockito;
+
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -41,13 +45,13 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
-       return TargetedSweeper.createUninitialized(() -> true, () -> 128, 0, 0);
+       return TargetedSweeper.createUninitialized(() -> true, () -> 128, 0, 0, mock(Follower.class));
     }
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
-        TargetedSweeper queue = TargetedSweeper.createUninitialized(() -> true, () -> 128, 0, 0);
-        queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), keyValueService);
+        TargetedSweeper queue = TargetedSweeper.createUninitialized(() -> true, () -> 128, 0, 0, mock(Follower.class));
+        queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), keyValueService, null);
         return queue;
     }
 

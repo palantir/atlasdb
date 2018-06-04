@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
@@ -45,7 +46,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
-    private int minShards;
+    private final int minShards;
+    private final Follower follower;
 
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
@@ -55,7 +57,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private volatile boolean isInitialized = false;
 
     private TargetedSweeper(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
-            int conservativeThreads, int thoroughThreads) {
+            int conservativeThreads, int thoroughThreads, Follower follower) {
         this.runSweep = runSweep;
         this.shardsConfig = shardsConfig;
         this.conservativeScheduler = new BackgroundSweepScheduler(conservativeThreads,
@@ -63,6 +65,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         this.thoroughScheduler = new BackgroundSweepScheduler(thoroughThreads,
                 TableMetadataPersistence.SweepStrategy.THOROUGH);
         this.minShards = Math.max(conservativeThreads, thoroughThreads);
+        this.follower = follower;
     }
 
     /**
@@ -78,8 +81,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * @return returns an uninitialized targeted sweeper.
      */
     public static TargetedSweeper createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
-            int conservativeThreads, int thoroughThreads) {
-        return new TargetedSweeper(enabled, shardsConfig, conservativeThreads, thoroughThreads);
+            int conservativeThreads, int thoroughThreads, Follower follower) {
+        return new TargetedSweeper(enabled, shardsConfig, conservativeThreads, thoroughThreads, follower);
     }
 
     /**
@@ -89,14 +92,14 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * @param timestamps supplier of unreadable and immutable timestamps.
      * @param kvs key value service that must be already initialized.
      */
-    public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs) {
+    public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs, TargetedSweepFollower targetedSweepFollower) {
         if (isInitialized) {
             return;
         }
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        queue = SweepQueue.create(kvs, shardsConfig, minShards);
+        queue = SweepQueue.create(kvs, shardsConfig, minShards, targetedSweepFollower);
         timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
@@ -105,7 +108,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     @Override
     public void callbackInit(SerializableTransactionManager txManager) {
-        initialize(SpecialTimestampsSupplier.create(txManager), txManager.getKeyValueService());
+        initialize(SpecialTimestampsSupplier.create(txManager), txManager.getKeyValueService(),
+                new TargetedSweepFollower(follower, txManager));
     }
 
     @Override

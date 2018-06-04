@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
@@ -55,7 +56,7 @@ public final class SweepQueue implements SweepQueueWriter {
         this.metrics = metrics;
     }
 
-    public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig, int minShards) {
+    public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig, int minShards, TargetedSweepFollower follower) {
         TargetedSweepMetrics metrics = TargetedSweepMetrics.withRecomputingInterval(FIVE_MINUTES);
         ShardProgress progress = new ShardProgress(kvs);
         progress.updateNumberOfShards(minShards);
@@ -63,7 +64,7 @@ public final class SweepQueue implements SweepQueueWriter {
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
-        SweepQueueDeleter deleter = new SweepQueueDeleter(kvs);
+        SweepQueueDeleter deleter = new SweepQueueDeleter(kvs, follower);
         SweepQueueCleaner cleaner = new SweepQueueCleaner(cells, timestamps, progress);
         return new SweepQueue(cells, timestamps, progress, deleter, cleaner, shards, metrics);
     }
