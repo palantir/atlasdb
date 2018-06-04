@@ -111,7 +111,7 @@ public final class GenericRangeScanTestTable implements
 
     private GenericRangeScanTestTable(Transaction t, Namespace namespace, List<GenericRangeScanTestTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -457,7 +457,7 @@ public final class GenericRangeScanTestTable implements
 
     @Override
     public void delete(Iterable<GenericRangeScanTestRow> rows) {
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toRemove = HashMultimap.of();
+        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toRemove = HashMultimap.create();
         Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> result = getRowsMultimap(rows);
         for (Entry<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> e : result.entries()) {
             toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -509,7 +509,7 @@ public final class GenericRangeScanTestTable implements
     public void putUnlessExists(Multimap<GenericRangeScanTestRow, ? extends GenericRangeScanTestColumnValue> rows) {
         Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toGet = Multimaps.transformValues(rows, GenericRangeScanTestColumnValue.getColumnNameFun());
         Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> existing = get(toGet);
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> toPut = HashMultimap.of();
+        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> toPut = HashMultimap.create();
         for (Entry<GenericRangeScanTestRow, ? extends GenericRangeScanTestColumnValue> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -522,7 +522,7 @@ public final class GenericRangeScanTestTable implements
     public void touch(Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> values) {
         Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> currentValues = get(values);
         put(currentValues);
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toDelete = HashMultimap.of(values);
+        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toDelete = HashMultimap.create(values);
         for (Map.Entry<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> e : currentValues.entries()) {
             toDelete.remove(e.getKey(), e.getValue().getColumnName());
         }
@@ -530,7 +530,7 @@ public final class GenericRangeScanTestTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<GenericRangeScanTestColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+        return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
     }
 
     public static ColumnSelection getColumnSelection(GenericRangeScanTestColumn... cols) {
@@ -541,7 +541,7 @@ public final class GenericRangeScanTestTable implements
     public Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> get(Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> rowMap = HashMultimap.of();
+        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> rowMap = HashMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 GenericRangeScanTestRow row = GenericRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -591,7 +591,7 @@ public final class GenericRangeScanTestTable implements
     }
 
     private static Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> rowMap = HashMultimap.of();
+        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             GenericRangeScanTestRow row = GenericRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -686,7 +686,7 @@ public final class GenericRangeScanTestTable implements
         BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<GenericRangeScanTestRowResult>, RuntimeException>() {
             @Override
             public boolean visit(List<GenericRangeScanTestRowResult> rowResults) {
-                Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toRemove = HashMultimap.of();
+                Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toRemove = HashMultimap.create();
                 for (GenericRangeScanTestRowResult rowResult : rowResults) {
                     for (GenericRangeScanTestColumnValue columnValue : rowResult.getColumnValues()) {
                         toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
@@ -795,5 +795,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "bPzORMIzpuN0DhQA3iOWiQ==";
+    static String __CLASS_HASH = "4fCBdR4I71aAK8klRZ7Hqw==";
 }

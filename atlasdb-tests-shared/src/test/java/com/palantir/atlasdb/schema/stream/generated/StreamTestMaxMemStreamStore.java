@@ -265,7 +265,7 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
     }
 
     private void putHashIndexTask(Transaction t, Map<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> rowsToMetadata) {
-        Multimap<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumnValue> indexMap = HashMultimap.of();
+        Multimap<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumnValue> indexMap = HashMultimap.create();
         for (Entry<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> e : rowsToMetadata.entrySet()) {
             StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow row = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -294,7 +294,7 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
             return;
         }
         Set<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow> smRows = Sets.newHashSet();
-        Multimap<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumn> shToDelete = HashMultimap.of();
+        Multimap<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumn> shToDelete = HashMultimap.create();
         for (Long streamId : streamIds) {
             smRows.add(StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow.of(streamId));
         }
@@ -329,7 +329,7 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
             return;
         }
         StreamTestMaxMemStreamIdxTable index = tables.getStreamTestMaxMemStreamIdxTable(t);
-        Multimap<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumnValue> rowsToValues = HashMultimap.of();
+        Multimap<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumnValue> rowsToValues = HashMultimap.create();
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();
@@ -346,7 +346,7 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
             return;
         }
         StreamTestMaxMemStreamIdxTable index = tables.getStreamTestMaxMemStreamIdxTable(t);
-        Multimap<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumn> toDelete = ArrayListMultimap.of(streamIdsToReference.size(), 1);
+        Multimap<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumn> toDelete = ArrayListMultimap.create(streamIdsToReference.size(), 1);
         for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
             Long streamId = entry.getKey();
             byte[] reference = entry.getValue();

@@ -111,7 +111,7 @@ public final class SnapshotsStreamIdxTable implements
 
     private SnapshotsStreamIdxTable(Transaction t, Namespace namespace, List<SnapshotsStreamIdxTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -457,7 +457,7 @@ public final class SnapshotsStreamIdxTable implements
 
     @Override
     public void delete(Iterable<SnapshotsStreamIdxRow> rows) {
-        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumn> toRemove = HashMultimap.of();
+        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumn> toRemove = HashMultimap.create();
         Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> result = getRowsMultimap(rows);
         for (Entry<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> e : result.entries()) {
             toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -509,7 +509,7 @@ public final class SnapshotsStreamIdxTable implements
     public void putUnlessExists(Multimap<SnapshotsStreamIdxRow, ? extends SnapshotsStreamIdxColumnValue> rows) {
         Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumn> toGet = Multimaps.transformValues(rows, SnapshotsStreamIdxColumnValue.getColumnNameFun());
         Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> existing = get(toGet);
-        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> toPut = HashMultimap.of();
+        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> toPut = HashMultimap.create();
         for (Entry<SnapshotsStreamIdxRow, ? extends SnapshotsStreamIdxColumnValue> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -522,7 +522,7 @@ public final class SnapshotsStreamIdxTable implements
     public void touch(Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumn> values) {
         Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> currentValues = get(values);
         put(currentValues);
-        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumn> toDelete = HashMultimap.of(values);
+        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumn> toDelete = HashMultimap.create(values);
         for (Map.Entry<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> e : currentValues.entries()) {
             toDelete.remove(e.getKey(), e.getValue().getColumnName());
         }
@@ -530,7 +530,7 @@ public final class SnapshotsStreamIdxTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<SnapshotsStreamIdxColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+        return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
     }
 
     public static ColumnSelection getColumnSelection(SnapshotsStreamIdxColumn... cols) {
@@ -541,7 +541,7 @@ public final class SnapshotsStreamIdxTable implements
     public Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> get(Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> rowMap = HashMultimap.of();
+        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> rowMap = HashMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 SnapshotsStreamIdxRow row = SnapshotsStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -591,7 +591,7 @@ public final class SnapshotsStreamIdxTable implements
     }
 
     private static Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> rowMap = HashMultimap.of();
+        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             SnapshotsStreamIdxRow row = SnapshotsStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -742,5 +742,5 @@ public final class SnapshotsStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "oV9X2qWAH8VR26gUfvzF/g==";
+    static String __CLASS_HASH = "1Z0UT5cHF4GCHwjaZ8WAyw==";
 }

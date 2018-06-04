@@ -111,7 +111,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
 
     private StreamTestMaxMemStreamHashAidxTable(Transaction t, Namespace namespace, List<StreamTestMaxMemStreamHashAidxTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -457,7 +457,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
 
     @Override
     public void delete(Iterable<StreamTestMaxMemStreamHashAidxRow> rows) {
-        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> toRemove = HashMultimap.of();
+        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> toRemove = HashMultimap.create();
         Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> result = getRowsMultimap(rows);
         for (Entry<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> e : result.entries()) {
             toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -509,7 +509,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
     public void putUnlessExists(Multimap<StreamTestMaxMemStreamHashAidxRow, ? extends StreamTestMaxMemStreamHashAidxColumnValue> rows) {
         Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, StreamTestMaxMemStreamHashAidxColumnValue.getColumnNameFun());
         Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> toPut = HashMultimap.of();
+        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> toPut = HashMultimap.create();
         for (Entry<StreamTestMaxMemStreamHashAidxRow, ? extends StreamTestMaxMemStreamHashAidxColumnValue> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -522,7 +522,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
     public void touch(Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> values) {
         Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> currentValues = get(values);
         put(currentValues);
-        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> toDelete = HashMultimap.of(values);
+        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> toDelete = HashMultimap.create(values);
         for (Map.Entry<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> e : currentValues.entries()) {
             toDelete.remove(e.getKey(), e.getValue().getColumnName());
         }
@@ -530,7 +530,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<StreamTestMaxMemStreamHashAidxColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+        return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
     }
 
     public static ColumnSelection getColumnSelection(StreamTestMaxMemStreamHashAidxColumn... cols) {
@@ -541,7 +541,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
     public Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> get(Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> rowMap = HashMultimap.of();
+        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> rowMap = HashMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 StreamTestMaxMemStreamHashAidxRow row = StreamTestMaxMemStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -591,7 +591,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
     }
 
     private static Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> rowMap = HashMultimap.of();
+        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             StreamTestMaxMemStreamHashAidxRow row = StreamTestMaxMemStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -742,5 +742,5 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8rWNe64ceftJMujx+vZb1Q==";
+    static String __CLASS_HASH = "Z9DahI01RLfpmtQLstmkYw==";
 }

@@ -399,9 +399,9 @@ public class TableRenderer {
             line("private ", Table, "(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
                 line("this.t = t;");
                 if (isGeneric) {
-                    line("this.tableRef = TableReference.of(namespace, tableName);");
+                    line("this.tableRef = TableReference.create(namespace, tableName);");
                 } else {
-                    line("this.tableRef = TableReference.of(namespace, rawTableName);");
+                    line("this.tableRef = TableReference.create(namespace, rawTableName);");
                 }
                 line("this.triggers = triggers;");
             } line("}");
@@ -445,7 +445,7 @@ public class TableRenderer {
             line();
             line("@Override");
             line("public void delete(Iterable<", Row, "> rows) {"); {
-                line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.of();");
+                line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.create();");
                 line("Multimap<", Row, ", ", ColumnValue, "> result = getRowsMultimap(rows);");
                 line("for (Entry<", Row, ", ", ColumnValue, "> e : result.entries()) {"); {
                     line("toRemove.put(e.getKey(), e.getValue().getColumnName());");
@@ -582,7 +582,7 @@ public class TableRenderer {
             line("public void touch(Multimap<", Row, ", ", Column, "> values) {"); {
                 line("Multimap<", Row, ", ", ColumnValue, "> currentValues = get(values);");
                 line("put(currentValues);");
-                line("Multimap<", Row, ", ", Column, "> toDelete = HashMultimap.of(values);");
+                line("Multimap<", Row, ", ", Column, "> toDelete = HashMultimap.create(values);");
                 line("for (Map.Entry<", Row, ", ", ColumnValue, "> e : currentValues.entries()) {"); {
                     line("toDelete.remove(e.getKey(), e.getValue().getColumnName());");
                 } line("}");
@@ -620,7 +620,7 @@ public class TableRenderer {
 
         private void renderColumnSelection(boolean isDynamic) {
             line("public static ColumnSelection getColumnSelection(Collection<", Column, "> cols) {");
-                line("return ColumnSelection.of(Collections2.transform(cols, ", isDynamic ? "Persistables.persistToBytesFunction()" : Column + ".toShortName()", "));");
+                line("return ColumnSelection.create(Collections2.transform(cols, ", isDynamic ? "Persistables.persistToBytesFunction()" : Column + ".toShortName()", "));");
             line("}");
             line();
             line("public static ColumnSelection getColumnSelection(", Column, "... cols) {");
@@ -641,7 +641,7 @@ public class TableRenderer {
             line("public Map<", Row, ", ", ColumnRenderers.TypeName(col), "> get", ColumnRenderers.VarName(col), "s(Collection<", Row, "> rows) {"); {
                 line("Map<Cell, ", Row, "> cells = Maps.newHashMapWithExpectedSize(rows.size());");
                 line("for (", Row, " row : rows) {"); {
-                    line("cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes(", ColumnRenderers.short_name(col), ")), row);");
+                    line("cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes(", ColumnRenderers.short_name(col), ")), row);");
                 } line("}");
                 line("Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());");
                 line("Map<", Row, ", ", ColumnRenderers.TypeName(col), "> ret = Maps.newHashMapWithExpectedSize(results.size());");
@@ -683,7 +683,7 @@ public class TableRenderer {
         private void renderNamedGetAffectedCells() {
             line("private Multimap<", Row, ", ", ColumnValue, "> getAffectedCells(Multimap<", Row, ", ? extends ", ColumnValue, "> rows) {"); {
                 line("Multimap<", Row, ", ", ColumnValue, "> oldData = getRowsMultimap(rows.keySet());");
-                line("Multimap<", Row, ", ", ColumnValue, "> cellsAffected = ArrayListMultimap.of();");
+                line("Multimap<", Row, ", ", ColumnValue, "> cellsAffected = ArrayListMultimap.create();");
                 line("for (", Row, " row : oldData.keySet()) {"); {
                     line("Set<String> columns = new HashSet<String>();");
                     line("for (", ColumnValue, " v : rows.get(row)) {"); {
@@ -732,7 +732,7 @@ public class TableRenderer {
             line("@Override");
             line("public void putUnlessExists(Multimap<", Row, ", ? extends ", ColumnValue, "> rows) {"); {
                 line("Multimap<", Row, ", ", ColumnValue, "> existing = getRowsMultimap(rows.keySet());");
-                line("Multimap<", Row, ", ", ColumnValue, "> toPut = HashMultimap.of();");
+                line("Multimap<", Row, ", ", ColumnValue, "> toPut = HashMultimap.create();");
                 line("for (Entry<", Row, ", ? extends ", ColumnValue, "> entry : rows.entries()) {"); {
                     line("if (!existing.containsEntry(entry.getKey(), entry.getValue())) {"); {
                         line("toPut.put(entry.getKey(), entry.getValue());");
@@ -749,7 +749,7 @@ public class TableRenderer {
             line("public void putUnlessExists(Multimap<", Row, ", ? extends ", ColumnValue, "> rows) {"); {
                 line("Multimap<", Row, ", ", Column, "> toGet = Multimaps.transformValues(rows, ", ColumnValue, ".getColumnNameFun());");
                 line("Multimap<", Row, ", ", ColumnValue, "> existing = get(toGet);");
-                line("Multimap<", Row, ", ", ColumnValue, "> toPut = HashMultimap.of();");
+                line("Multimap<", Row, ", ", ColumnValue, "> toPut = HashMultimap.create();");
                 line("for (Entry<", Row, ", ? extends ", ColumnValue, "> entry : rows.entries()) {"); {
                     line("if (!existing.containsEntry(entry.getKey(), entry.getValue())) {"); {
                         line("toPut.put(entry.getKey(), entry.getValue());");
@@ -810,7 +810,7 @@ public class TableRenderer {
 
                             line(indexName, "Table.", indexName, "Row indexRow = ", indexName, "Table.", indexName, "Row.of(", Joiner.on(", ").join(rowArgumentNames), ");");
                             line(indexName, "Table.", indexName, "Column indexCol = ", indexName, "Table.", indexName, "Column.of(", Joiner.on(", ").join(colArgumentNames), ");");
-                            line("indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));");
+                            line("indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));");
 
                             for (int i = 0 ; i < iterableArgNames.size() ; i++) {
                                 line("}");
@@ -886,7 +886,7 @@ public class TableRenderer {
 
                     line(indexName, "Table.", indexName, "Row indexRow = ", indexName, "Table.", indexName, "Row.of(", Joiner.on(", ").join(rowArgumentNames), ");");
                     line(indexName, "Table.", indexName, "Column indexCol = ", indexName, "Table.", indexName, "Column.of(", Joiner.on(", ").join(colArgumentNames), ");");
-                    line("indexCells.add(Cell.of(indexRow.persistToBytes(), indexCol.persistToBytes()));");
+                    line("indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));");
 
                     for (int i = 0 ; i < iterableArgNames.size() ; i++) {
                         line("}");
@@ -985,7 +985,7 @@ public class TableRenderer {
                 line("BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<", RowResult, ">, RuntimeException>() {"); {
                     line("@Override");
                     line("public boolean visit(List<", RowResult, "> rowResults) {"); {
-                        line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.of();");
+                        line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.create();");
                         line("for (", RowResult, " rowResult : rowResults) {"); {
                             line("for (", ColumnValue, " columnValue : rowResult.getColumnValues()) {"); {
                                 line("toRemove.put(rowResult.getRowName(), columnValue.getColumnName());");
@@ -1074,7 +1074,7 @@ public class TableRenderer {
             line("public Multimap<", Row, ", ", ColumnValue, "> get(Multimap<", Row, ", ", Column, "> cells) {"); {
                 line("Set<Cell> rawCells = ColumnValues.toCells(cells);");
                 line("Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);");
-                line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.of();");
+                line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.create();");
                 line("for (Entry<Cell, byte[]> e : rawResults.entrySet()) {");
                     line("if (e.getValue().length > 0) {");
                         line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());");
@@ -1104,7 +1104,7 @@ public class TableRenderer {
             } line("}");
             line();
             line("private static Multimap<", Row, ", ", ColumnValue, "> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {"); {
-                line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.of();");
+                line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.create();");
                 line("for (RowResult<byte[]> result : rowResults) {"); {
                     line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());");
                     line("for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {"); {

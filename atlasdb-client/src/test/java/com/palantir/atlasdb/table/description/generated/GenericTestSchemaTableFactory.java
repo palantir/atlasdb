@@ -12,7 +12,7 @@ import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class GenericTestSchemaTableFactory {
-    private static final Namespace defaultNamespace = Namespace.of("test", Namespace.UNCHECKED_NAME);
+    private static final Namespace defaultNamespace = Namespace.create("test", Namespace.UNCHECKED_NAME);
 
     private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
 

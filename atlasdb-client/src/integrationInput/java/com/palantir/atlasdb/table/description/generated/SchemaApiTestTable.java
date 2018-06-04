@@ -113,7 +113,7 @@ public final class SchemaApiTestTable implements
 
     private SchemaApiTestTable(Transaction t, Namespace namespace, List<SchemaApiTestTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -466,7 +466,7 @@ public final class SchemaApiTestTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<SchemaApiTestNamedColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, SchemaApiTestNamedColumn.toShortName()));
+        return ColumnSelection.create(Collections2.transform(cols, SchemaApiTestNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(SchemaApiTestNamedColumn... cols) {
@@ -482,7 +482,7 @@ public final class SchemaApiTestTable implements
     public Map<SchemaApiTestRow, Long> getColumn1s(Collection<SchemaApiTestRow> rows) {
         Map<Cell, SchemaApiTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (SchemaApiTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<SchemaApiTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -496,7 +496,7 @@ public final class SchemaApiTestTable implements
     public Map<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> getColumn2s(Collection<SchemaApiTestRow> rows) {
         Map<Cell, SchemaApiTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (SchemaApiTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("d")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("d")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -569,7 +569,7 @@ public final class SchemaApiTestTable implements
     @Override
     public void putUnlessExists(Multimap<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> rows) {
         Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = HashMultimap.of();
+        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -677,7 +677,7 @@ public final class SchemaApiTestTable implements
     }
 
     private static Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> rowMap = HashMultimap.of();
+        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             SchemaApiTestRow row = SchemaApiTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -871,5 +871,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "JXbb0g0SgIFpVP5YSYg1fQ==";
+    static String __CLASS_HASH = "5qdVJNmNbPw5F+15Dz/tGw==";
 }

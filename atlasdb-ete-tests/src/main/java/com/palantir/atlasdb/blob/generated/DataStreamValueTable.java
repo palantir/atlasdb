@@ -113,7 +113,7 @@ public final class DataStreamValueTable implements
 
     private DataStreamValueTable(Transaction t, Namespace namespace, List<DataStreamValueTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -404,7 +404,7 @@ public final class DataStreamValueTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<DataStreamValueNamedColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, DataStreamValueNamedColumn.toShortName()));
+        return ColumnSelection.create(Collections2.transform(cols, DataStreamValueNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(DataStreamValueNamedColumn... cols) {
@@ -419,7 +419,7 @@ public final class DataStreamValueTable implements
     public Map<DataStreamValueRow, byte[]> getValues(Collection<DataStreamValueRow> rows) {
         Map<Cell, DataStreamValueRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (DataStreamValueRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<DataStreamValueRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -468,7 +468,7 @@ public final class DataStreamValueTable implements
     @Override
     public void putUnlessExists(Multimap<DataStreamValueRow, ? extends DataStreamValueNamedColumnValue<?>> rows) {
         Multimap<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> toPut = HashMultimap.of();
+        Multimap<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<DataStreamValueRow, ? extends DataStreamValueNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -565,7 +565,7 @@ public final class DataStreamValueTable implements
     }
 
     private static Multimap<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> rowMap = HashMultimap.of();
+        Multimap<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             DataStreamValueRow row = DataStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -710,5 +710,5 @@ public final class DataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "S6hw4UzLhBwVyXuUtCxpqg==";
+    static String __CLASS_HASH = "QmxUnz6S2Lpt8j5ZQwH4mQ==";
 }

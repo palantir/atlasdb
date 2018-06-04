@@ -1,15 +1,14 @@
 package com.palantir.atlasdb.schema.generated;
 
-import java.util.List;
-
-import javax.annotation.Generated;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.lang.Override;
+import java.util.List;
+import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class TargetedSweepTableFactory {

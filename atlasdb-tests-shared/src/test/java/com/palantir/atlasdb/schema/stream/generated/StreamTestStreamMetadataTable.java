@@ -113,7 +113,7 @@ public final class StreamTestStreamMetadataTable implements
 
     private StreamTestStreamMetadataTable(Transaction t, Namespace namespace, List<StreamTestStreamMetadataTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -401,7 +401,7 @@ public final class StreamTestStreamMetadataTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<StreamTestStreamMetadataNamedColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, StreamTestStreamMetadataNamedColumn.toShortName()));
+        return ColumnSelection.create(Collections2.transform(cols, StreamTestStreamMetadataNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(StreamTestStreamMetadataNamedColumn... cols) {
@@ -416,7 +416,7 @@ public final class StreamTestStreamMetadataTable implements
     public Map<StreamTestStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> getMetadatas(Collection<StreamTestStreamMetadataRow> rows) {
         Map<Cell, StreamTestStreamMetadataRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (StreamTestStreamMetadataRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<StreamTestStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -465,7 +465,7 @@ public final class StreamTestStreamMetadataTable implements
     @Override
     public void putUnlessExists(Multimap<StreamTestStreamMetadataRow, ? extends StreamTestStreamMetadataNamedColumnValue<?>> rows) {
         Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.of();
+        Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<StreamTestStreamMetadataRow, ? extends StreamTestStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -562,7 +562,7 @@ public final class StreamTestStreamMetadataTable implements
     }
 
     private static Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.of();
+        Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             StreamTestStreamMetadataRow row = StreamTestStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -707,5 +707,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "LwrcXKKlfW3g0GDsN3UNuw==";
+    static String __CLASS_HASH = "0rzCCCseY1EKXPgaOJTDwg==";
 }

@@ -113,7 +113,7 @@ public final class CompactMetadataTable implements
 
     private CompactMetadataTable(Transaction t, Namespace namespace, List<CompactMetadataTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -377,7 +377,7 @@ public final class CompactMetadataTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<CompactMetadataNamedColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, CompactMetadataNamedColumn.toShortName()));
+        return ColumnSelection.create(Collections2.transform(cols, CompactMetadataNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(CompactMetadataNamedColumn... cols) {
@@ -392,7 +392,7 @@ public final class CompactMetadataTable implements
     public Map<CompactMetadataRow, Long> getLastCompactTimes(Collection<CompactMetadataRow> rows) {
         Map<Cell, CompactMetadataRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (CompactMetadataRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("t")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("t")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<CompactMetadataRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -441,7 +441,7 @@ public final class CompactMetadataTable implements
     @Override
     public void putUnlessExists(Multimap<CompactMetadataRow, ? extends CompactMetadataNamedColumnValue<?>> rows) {
         Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> toPut = HashMultimap.of();
+        Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<CompactMetadataRow, ? extends CompactMetadataNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -538,7 +538,7 @@ public final class CompactMetadataTable implements
     }
 
     private static Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> rowMap = HashMultimap.of();
+        Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             CompactMetadataRow row = CompactMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -683,5 +683,5 @@ public final class CompactMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SQUc7Esk5NSYiE7ngIe2LA==";
+    static String __CLASS_HASH = "acEZxDWIkwYVNh5XdgAAJQ==";
 }

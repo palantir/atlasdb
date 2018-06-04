@@ -113,7 +113,7 @@ public final class StreamTestStreamValueTable implements
 
     private StreamTestStreamValueTable(Transaction t, Namespace namespace, List<StreamTestStreamValueTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -389,7 +389,7 @@ public final class StreamTestStreamValueTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<StreamTestStreamValueNamedColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, StreamTestStreamValueNamedColumn.toShortName()));
+        return ColumnSelection.create(Collections2.transform(cols, StreamTestStreamValueNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(StreamTestStreamValueNamedColumn... cols) {
@@ -404,7 +404,7 @@ public final class StreamTestStreamValueTable implements
     public Map<StreamTestStreamValueRow, byte[]> getValues(Collection<StreamTestStreamValueRow> rows) {
         Map<Cell, StreamTestStreamValueRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (StreamTestStreamValueRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<StreamTestStreamValueRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -453,7 +453,7 @@ public final class StreamTestStreamValueTable implements
     @Override
     public void putUnlessExists(Multimap<StreamTestStreamValueRow, ? extends StreamTestStreamValueNamedColumnValue<?>> rows) {
         Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> toPut = HashMultimap.of();
+        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<StreamTestStreamValueRow, ? extends StreamTestStreamValueNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -550,7 +550,7 @@ public final class StreamTestStreamValueTable implements
     }
 
     private static Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> rowMap = HashMultimap.of();
+        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             StreamTestStreamValueRow row = StreamTestStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -695,5 +695,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Y/vz3XvOTMPn/hnoXIb1pg==";
+    static String __CLASS_HASH = "x228mprds1LAyTRJxS8eYg==";
 }

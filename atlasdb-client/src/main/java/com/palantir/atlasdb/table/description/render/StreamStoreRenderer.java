@@ -432,7 +432,7 @@ public class StreamStoreRenderer {
 
             private void putHashIndexTask() {
                 line("private void putHashIndexTask(Transaction t, Map<", StreamMetadataRow, ", StreamMetadata> rowsToMetadata) {"); {
-                    line("Multimap<", StreamHashAidxRow, ", ", StreamHashAidxColumnValue, "> indexMap = HashMultimap.of();");
+                    line("Multimap<", StreamHashAidxRow, ", ", StreamHashAidxColumnValue, "> indexMap = HashMultimap.create();");
                     line("for (Entry<", StreamMetadataRow, ", StreamMetadata> e : rowsToMetadata.entrySet()) {"); {
                         line(StreamMetadataRow, " row = e.getKey();");
                         line("StreamMetadata metadata = e.getValue();");
@@ -464,7 +464,7 @@ public class StreamStoreRenderer {
                     } line("}");
 
                     line("Set<", StreamMetadataRow, "> smRows = Sets.newHashSet();");
-                    line("Multimap<", StreamHashAidxRow, ", ", StreamHashAidxColumn, "> shToDelete = HashMultimap.of();");
+                    line("Multimap<", StreamHashAidxRow, ", ", StreamHashAidxColumn, "> shToDelete = HashMultimap.create();");
                     line("for (", StreamId, " streamId : streamIds) {"); {
                         line("smRows.add(", StreamMetadataRow, ".of(streamId));");
                     } line("}");
@@ -527,7 +527,7 @@ public class StreamStoreRenderer {
                         line("return;");
                     } line("}");
                     line(StreamIdxTable, " index = tables.get", StreamIdxTable, "(t);");
-                    line("Multimap<", StreamIdxRow, ", ", StreamIdxColumnValue, "> rowsToValues = HashMultimap.of();");
+                    line("Multimap<", StreamIdxRow, ", ", StreamIdxColumnValue, "> rowsToValues = HashMultimap.create();");
                     line("for (Map.Entry<", StreamId, ", byte[]> entry : streamIdsToReference.entrySet()) {"); {
                         line(StreamId, " streamId = entry.getKey();");
                         line("byte[] reference = entry.getValue();");
@@ -546,7 +546,7 @@ public class StreamStoreRenderer {
                         line("return;");
                     } line("}");
                     line(StreamIdxTable, " index = tables.get", StreamIdxTable, "(t);");
-                    line("Multimap<", StreamIdxRow, ", ", StreamIdxColumn, "> toDelete = ArrayListMultimap.of(streamIdsToReference.size(), 1);");
+                    line("Multimap<", StreamIdxRow, ", ", StreamIdxColumn, "> toDelete = ArrayListMultimap.create(streamIdsToReference.size(), 1);");
                     line("for (Map.Entry<", StreamId, ", byte[]> entry : streamIdsToReference.entrySet()) {"); {
                         line(StreamId, " streamId = entry.getKey();");
                         line("byte[] reference = entry.getValue();");
@@ -620,7 +620,7 @@ public class StreamStoreRenderer {
                     line("int blocksInMemory = getNumberOfBlocksThatFitInMemory();");
                     line();
                     line("try {"); {
-                        line("return BlockConsumingInputStream.of(pageRefresher, totalBlocks, blocksInMemory);");
+                        line("return BlockConsumingInputStream.create(pageRefresher, totalBlocks, blocksInMemory);");
                     } line("} catch(IOException e) {"); {
                         line("throw Throwables.throwUncheckedException(e);");
                     } line("}");

@@ -315,7 +315,7 @@ public final class TableFactoryRenderer {
         if (defaultNamespaceName.isEmpty()) {
             namespaceFieldBuilder.initializer("$T.EMPTY_NAMESPACE", Namespace.class);
         } else {
-            namespaceFieldBuilder.initializer("$T.of($S, $T.UNCHECKED_NAME)",
+            namespaceFieldBuilder.initializer("$T.create($S, $T.UNCHECKED_NAME)",
                     Namespace.class, defaultNamespaceName, Namespace.class);
         }
         return namespaceFieldBuilder.build();

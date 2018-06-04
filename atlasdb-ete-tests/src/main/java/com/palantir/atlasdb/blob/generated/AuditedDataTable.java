@@ -113,7 +113,7 @@ public final class AuditedDataTable implements
 
     private AuditedDataTable(Transaction t, Namespace namespace, List<AuditedDataTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -377,7 +377,7 @@ public final class AuditedDataTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<AuditedDataNamedColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, AuditedDataNamedColumn.toShortName()));
+        return ColumnSelection.create(Collections2.transform(cols, AuditedDataNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(AuditedDataNamedColumn... cols) {
@@ -392,7 +392,7 @@ public final class AuditedDataTable implements
     public Map<AuditedDataRow, byte[]> getDatas(Collection<AuditedDataRow> rows) {
         Map<Cell, AuditedDataRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AuditedDataRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("d")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("d")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AuditedDataRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -441,7 +441,7 @@ public final class AuditedDataTable implements
     @Override
     public void putUnlessExists(Multimap<AuditedDataRow, ? extends AuditedDataNamedColumnValue<?>> rows) {
         Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> toPut = HashMultimap.of();
+        Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<AuditedDataRow, ? extends AuditedDataNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -538,7 +538,7 @@ public final class AuditedDataTable implements
     }
 
     private static Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> rowMap = HashMultimap.of();
+        Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             AuditedDataRow row = AuditedDataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -683,5 +683,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cxC6iir0zIjbz1A0okl0ng==";
+    static String __CLASS_HASH = "DiDUi25lSvagf9Ql856UPw==";
 }

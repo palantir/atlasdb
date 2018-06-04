@@ -163,7 +163,7 @@ public class TableClassRendererV2 {
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(Transaction.class, "t")
                 .addParameter(Namespace.class, "namespace")
-                .addStatement("this.tableRef = $T.of(namespace, rawTableName)", TableReference.class)
+                .addStatement("this.tableRef = $T.create(namespace, rawTableName)", TableReference.class)
                 .addStatement("this.t = t")
                 .build());
         return results;
@@ -266,7 +266,7 @@ public class TableClassRendererV2 {
                 .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
                 .addStatement("byte[] bytes = row.persistToBytes()")
                 .addStatement("$T colSelection = \n"
-                                + "$T.of($T.of($T.toCachedBytes($S)))",
+                                + "$T.create($T.of($T.toCachedBytes($S)))",
                         ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
                 .addCode("\n")
@@ -306,7 +306,7 @@ public class TableClassRendererV2 {
 
         getterBuilder
                 .addStatement("$T colSelection = \n "
-                                + "$T.of($T.of($T.toCachedBytes($S)))",
+                                + "$T.create($T.of($T.toCachedBytes($S)))",
                         ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
                 .addStatement("$T<$T> rows = $T\n"
@@ -348,7 +348,7 @@ public class TableClassRendererV2 {
 
         getterBuilder
                 .addStatement("$T colSelection = \n "
-                                + "$T.of($T.of($T.toCachedBytes($S)))",
+                                + "$T.create($T.of($T.toCachedBytes($S)))",
                         ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
                 .addCode("\n")
@@ -385,7 +385,7 @@ public class TableClassRendererV2 {
 
         getterBuilder
                 .addStatement("$T colSelection =\n"
-                                + "$T.of($T.of($T.toCachedBytes($L)))",
+                                + "$T.create($T.of($T.toCachedBytes($L)))",
                         ColumnSelection.class, ColumnSelection.class, ImmutableList.class, PtBytes.class,
                         ColumnRenderers.short_name(col))
                 .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
@@ -454,7 +454,7 @@ public class TableClassRendererV2 {
 
         getterBuilder
                 .addStatement("$T colSelection =\n"
-                                + "$T.of($T.of($T.toCachedBytes($L)))",
+                                + "$T.create($T.of($T.toCachedBytes($L)))",
                         ColumnSelection.class, ColumnSelection.class, ImmutableList.class, PtBytes.class,
                         ColumnRenderers.short_name(col))
                 .addStatement("rangeRequest = rangeRequest.getBuilder()."
@@ -496,7 +496,7 @@ public class TableClassRendererV2 {
 
         getterBuilder
                 .addStatement("$T colSelection =\n"
-                                + "$T.of($T.of($T.toCachedBytes($L)))",
+                                + "$T.create($T.of($T.toCachedBytes($L)))",
                         ColumnSelection.class, ColumnSelection.class, ImmutableList.class, PtBytes.class,
                         ColumnRenderers.short_name(col))
                 .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
@@ -534,7 +534,7 @@ public class TableClassRendererV2 {
 
         getterBuilder
                 .addStatement("$T colSelection =\n"
-                                + "$T.of($T.of($T.toCachedBytes($L)))",
+                                + "$T.create($T.of($T.toCachedBytes($L)))",
                         ColumnSelection.class, ColumnSelection.class, ImmutableList.class, PtBytes.class,
                         ColumnRenderers.short_name(col))
                 .addStatement("rangeRequest = rangeRequest.getBuilder()."
@@ -584,7 +584,7 @@ public class TableClassRendererV2 {
                         Set.class, Cell.class, Sets.class, namedColumns.size());
 
         for (NamedColumnDescription col : namedColumns) {
-            deleteRowBuilder.addStatement("cells.add($T.of(rowBytes, $T.toCachedBytes($L)))",
+            deleteRowBuilder.addStatement("cells.add($T.create(rowBytes, $T.toCachedBytes($L)))",
                     Cell.class, PtBytes.class, ColumnRenderers.short_name(col));
         }
         deleteRowBuilder.addStatement("t.delete(tableRef, cells)");
@@ -602,7 +602,7 @@ public class TableClassRendererV2 {
         return deleteColumnBuilder
                 .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
                 .addStatement("byte[] rowBytes = row.persistToBytes()", Persistables.class)
-                .addStatement("$T<$T> cells = $T.of($T.of(rowBytes, $T.toCachedBytes($L)))",
+                .addStatement("$T<$T> cells = $T.of($T.create(rowBytes, $T.toCachedBytes($L)))",
                         Set.class, Cell.class, ImmutableSet.class,
                         Cell.class, PtBytes.class, ColumnRenderers.short_name(col))
                 .addStatement("t.delete(tableRef, cells)")

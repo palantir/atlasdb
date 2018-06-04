@@ -113,7 +113,7 @@ public final class HashComponentsTestTable implements
 
     private HashComponentsTestTable(Transaction t, Namespace namespace, List<HashComponentsTestTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -420,7 +420,7 @@ public final class HashComponentsTestTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<HashComponentsTestNamedColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, HashComponentsTestNamedColumn.toShortName()));
+        return ColumnSelection.create(Collections2.transform(cols, HashComponentsTestNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(HashComponentsTestNamedColumn... cols) {
@@ -435,7 +435,7 @@ public final class HashComponentsTestTable implements
     public Map<HashComponentsTestRow, String> getColumns(Collection<HashComponentsTestRow> rows) {
         Map<Cell, HashComponentsTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (HashComponentsTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<HashComponentsTestRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -484,7 +484,7 @@ public final class HashComponentsTestTable implements
     @Override
     public void putUnlessExists(Multimap<HashComponentsTestRow, ? extends HashComponentsTestNamedColumnValue<?>> rows) {
         Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> toPut = HashMultimap.of();
+        Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<HashComponentsTestRow, ? extends HashComponentsTestNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -581,7 +581,7 @@ public final class HashComponentsTestTable implements
     }
 
     private static Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> rowMap = HashMultimap.of();
+        Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             HashComponentsTestRow row = HashComponentsTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -775,5 +775,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SVkEHVm1FuvfnXxpxB2BwA==";
+    static String __CLASS_HASH = "N0r8rTta9qcxehzWbQu7MQ==";
 }

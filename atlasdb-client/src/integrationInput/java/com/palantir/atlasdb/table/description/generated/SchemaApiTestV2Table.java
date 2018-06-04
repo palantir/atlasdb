@@ -43,7 +43,7 @@ public class SchemaApiTestV2Table {
     private final TableReference tableRef;
 
     private SchemaApiTestV2Table(Transaction t, Namespace namespace) {
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.t = t;
     }
 
@@ -73,7 +73,7 @@ public class SchemaApiTestV2Table {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] bytes = row.persistToBytes();
         ColumnSelection colSelection = 
-                ColumnSelection.of(ImmutableList.of(PtBytes.toCachedBytes("c")));
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
 
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), colSelection).get(bytes);
         if (rowResult == null) {
@@ -89,7 +89,7 @@ public class SchemaApiTestV2Table {
      * If the column does not exist for a key, the entry will be omitted from the map. */
     public Map<String, Long> getColumn1(Iterable<String> rowKeys) {
         ColumnSelection colSelection = 
-                 ColumnSelection.of(ImmutableList.of(PtBytes.toCachedBytes("c")));
+                 ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
         List<SchemaApiTestTable.SchemaApiTestRow> rows = Lists
                 .newArrayList(rowKeys)
                 .stream()
@@ -112,7 +112,7 @@ public class SchemaApiTestV2Table {
      * do not use for large amounts of data. The order of results is preserved in the map. */
     public LinkedHashMap<String, Long> getSmallRowRangeColumn1(RangeRequest rangeRequest) {
         ColumnSelection colSelection =
-                ColumnSelection.of(ImmutableList.of(PtBytes.toCachedBytes("c")));
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
         Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
                 "Must not request columns other than Column1.");
@@ -147,7 +147,7 @@ public class SchemaApiTestV2Table {
     public LinkedHashMap<String, Long> getSmallRowRangeColumn1(RangeRequest rangeRequest,
             int sizeLimit) {
         ColumnSelection colSelection =
-                ColumnSelection.of(ImmutableList.of(PtBytes.toCachedBytes("c")));
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).batchHint(sizeLimit).build();
         Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
                 "Must not request columns other than Column1.");
@@ -171,7 +171,7 @@ public class SchemaApiTestV2Table {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] bytes = row.persistToBytes();
         ColumnSelection colSelection = 
-                ColumnSelection.of(ImmutableList.of(PtBytes.toCachedBytes("d")));
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
 
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), colSelection).get(bytes);
         if (rowResult == null) {
@@ -187,7 +187,7 @@ public class SchemaApiTestV2Table {
      * If the column does not exist for a key, the entry will be omitted from the map. */
     public Map<String, StringValue> getColumn2(Iterable<String> rowKeys) {
         ColumnSelection colSelection = 
-                 ColumnSelection.of(ImmutableList.of(PtBytes.toCachedBytes("d")));
+                 ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
         List<SchemaApiTestTable.SchemaApiTestRow> rows = Lists
                 .newArrayList(rowKeys)
                 .stream()
@@ -210,7 +210,7 @@ public class SchemaApiTestV2Table {
      * do not use for large amounts of data. The order of results is preserved in the map. */
     public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(RangeRequest rangeRequest) {
         ColumnSelection colSelection =
-                ColumnSelection.of(ImmutableList.of(PtBytes.toCachedBytes("d")));
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
         Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
                 "Must not request columns other than Column2.");
@@ -245,7 +245,7 @@ public class SchemaApiTestV2Table {
     public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(RangeRequest rangeRequest,
             int sizeLimit) {
         ColumnSelection colSelection =
-                ColumnSelection.of(ImmutableList.of(PtBytes.toCachedBytes("d")));
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).batchHint(sizeLimit).build();
         Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
                 "Must not request columns other than Column2.");
@@ -269,8 +269,8 @@ public class SchemaApiTestV2Table {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] rowBytes = row.persistToBytes();
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(2);
-        cells.add(Cell.of(rowBytes, PtBytes.toCachedBytes("c")));
-        cells.add(Cell.of(rowBytes, PtBytes.toCachedBytes("d")));
+        cells.add(Cell.create(rowBytes, PtBytes.toCachedBytes("c")));
+        cells.add(Cell.create(rowBytes, PtBytes.toCachedBytes("d")));
         t.delete(tableRef, cells);
     }
 
@@ -279,7 +279,7 @@ public class SchemaApiTestV2Table {
     public void deleteColumn1(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] rowBytes = row.persistToBytes();
-        Set<Cell> cells = ImmutableSet.of(Cell.of(rowBytes, PtBytes.toCachedBytes("c")));
+        Set<Cell> cells = ImmutableSet.of(Cell.create(rowBytes, PtBytes.toCachedBytes("c")));
         t.delete(tableRef, cells);
     }
 
@@ -288,7 +288,7 @@ public class SchemaApiTestV2Table {
     public void deleteColumn2(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] rowBytes = row.persistToBytes();
-        Set<Cell> cells = ImmutableSet.of(Cell.of(rowBytes, PtBytes.toCachedBytes("d")));
+        Set<Cell> cells = ImmutableSet.of(Cell.create(rowBytes, PtBytes.toCachedBytes("d")));
         t.delete(tableRef, cells);
     }
 

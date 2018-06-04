@@ -113,7 +113,7 @@ public final class TodoTable implements
 
     private TodoTable(Transaction t, Namespace namespace, List<TodoTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -377,7 +377,7 @@ public final class TodoTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<TodoNamedColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, TodoNamedColumn.toShortName()));
+        return ColumnSelection.create(Collections2.transform(cols, TodoNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(TodoNamedColumn... cols) {
@@ -392,7 +392,7 @@ public final class TodoTable implements
     public Map<TodoRow, String> getTexts(Collection<TodoRow> rows) {
         Map<Cell, TodoRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (TodoRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("t")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("t")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<TodoRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -441,7 +441,7 @@ public final class TodoTable implements
     @Override
     public void putUnlessExists(Multimap<TodoRow, ? extends TodoNamedColumnValue<?>> rows) {
         Multimap<TodoRow, TodoNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<TodoRow, TodoNamedColumnValue<?>> toPut = HashMultimap.of();
+        Multimap<TodoRow, TodoNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<TodoRow, ? extends TodoNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -538,7 +538,7 @@ public final class TodoTable implements
     }
 
     private static Multimap<TodoRow, TodoNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<TodoRow, TodoNamedColumnValue<?>> rowMap = HashMultimap.of();
+        Multimap<TodoRow, TodoNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             TodoRow row = TodoRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -683,5 +683,5 @@ public final class TodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "WXXiEAz1y0IRcXaI/tF0Jg==";
+    static String __CLASS_HASH = "eVIIA61NiFNq1bfAA4tx1A==";
 }

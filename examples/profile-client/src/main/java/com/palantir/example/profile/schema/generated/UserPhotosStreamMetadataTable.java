@@ -113,7 +113,7 @@ public final class UserPhotosStreamMetadataTable implements
 
     private UserPhotosStreamMetadataTable(Transaction t, Namespace namespace, List<UserPhotosStreamMetadataTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -401,7 +401,7 @@ public final class UserPhotosStreamMetadataTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<UserPhotosStreamMetadataNamedColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, UserPhotosStreamMetadataNamedColumn.toShortName()));
+        return ColumnSelection.create(Collections2.transform(cols, UserPhotosStreamMetadataNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(UserPhotosStreamMetadataNamedColumn... cols) {
@@ -416,7 +416,7 @@ public final class UserPhotosStreamMetadataTable implements
     public Map<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> getMetadatas(Collection<UserPhotosStreamMetadataRow> rows) {
         Map<Cell, UserPhotosStreamMetadataRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (UserPhotosStreamMetadataRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -465,7 +465,7 @@ public final class UserPhotosStreamMetadataTable implements
     @Override
     public void putUnlessExists(Multimap<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> rows) {
         Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.of();
+        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -562,7 +562,7 @@ public final class UserPhotosStreamMetadataTable implements
     }
 
     private static Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.of();
+        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             UserPhotosStreamMetadataRow row = UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -707,5 +707,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "mlx7u82XBe3Tg+Hj8N7Zxw==";
+    static String __CLASS_HASH = "7iwDT85x7QJRRwZVqWTd9A==";
 }

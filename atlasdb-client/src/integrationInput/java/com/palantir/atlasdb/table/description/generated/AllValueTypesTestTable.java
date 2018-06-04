@@ -113,7 +113,7 @@ public final class AllValueTypesTestTable implements
 
     private AllValueTypesTestTable(Transaction t, Namespace namespace, List<AllValueTypesTestTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -1447,7 +1447,7 @@ public final class AllValueTypesTestTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<AllValueTypesTestNamedColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, AllValueTypesTestNamedColumn.toShortName()));
+        return ColumnSelection.create(Collections2.transform(cols, AllValueTypesTestNamedColumn.toShortName()));
     }
 
     public static ColumnSelection getColumnSelection(AllValueTypesTestNamedColumn... cols) {
@@ -1472,7 +1472,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, Long> getColumn0s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c0")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c0")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1486,7 +1486,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, Long> getColumn1s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c1")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c1")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1500,7 +1500,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, Long> getColumn2s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c2")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c2")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1514,7 +1514,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, Long> getColumn3s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c3")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c3")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1528,7 +1528,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, Sha256Hash> getColumn4s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c4")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c4")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Sha256Hash> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1542,7 +1542,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, String> getColumn5s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c5")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c5")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1556,7 +1556,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, String> getColumn6s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c6")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c6")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1570,7 +1570,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, byte[]> getColumn7s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c7")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c7")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1584,7 +1584,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, byte[]> getColumn8s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c8")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c8")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1598,7 +1598,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, Long> getColumn9s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c9")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c9")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1612,7 +1612,7 @@ public final class AllValueTypesTestTable implements
     public Map<AllValueTypesTestRow, UUID> getColumn10s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.of(row.persistToBytes(), PtBytes.toCachedBytes("c10")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c10")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, UUID> ret = Maps.newHashMapWithExpectedSize(results.size());
@@ -1901,7 +1901,7 @@ public final class AllValueTypesTestTable implements
     @Override
     public void putUnlessExists(Multimap<AllValueTypesTestRow, ? extends AllValueTypesTestNamedColumnValue<?>> rows) {
         Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = HashMultimap.of();
+        Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<AllValueTypesTestRow, ? extends AllValueTypesTestNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -2108,7 +2108,7 @@ public final class AllValueTypesTestTable implements
     }
 
     private static Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> rowMap = HashMultimap.of();
+        Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             AllValueTypesTestRow row = AllValueTypesTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -2253,5 +2253,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "N0G2RMTY5B7zt7gLC5dyMg==";
+    static String __CLASS_HASH = "m62HNZyLfiSwGJe89IYpsg==";
 }

@@ -111,7 +111,7 @@ public final class DataStreamHashAidxTable implements
 
     private DataStreamHashAidxTable(Transaction t, Namespace namespace, List<DataStreamHashAidxTrigger> triggers) {
         this.t = t;
-        this.tableRef = TableReference.of(namespace, rawTableName);
+        this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
     }
 
@@ -457,7 +457,7 @@ public final class DataStreamHashAidxTable implements
 
     @Override
     public void delete(Iterable<DataStreamHashAidxRow> rows) {
-        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> toRemove = HashMultimap.of();
+        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> toRemove = HashMultimap.create();
         Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> result = getRowsMultimap(rows);
         for (Entry<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> e : result.entries()) {
             toRemove.put(e.getKey(), e.getValue().getColumnName());
@@ -509,7 +509,7 @@ public final class DataStreamHashAidxTable implements
     public void putUnlessExists(Multimap<DataStreamHashAidxRow, ? extends DataStreamHashAidxColumnValue> rows) {
         Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, DataStreamHashAidxColumnValue.getColumnNameFun());
         Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> toPut = HashMultimap.of();
+        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> toPut = HashMultimap.create();
         for (Entry<DataStreamHashAidxRow, ? extends DataStreamHashAidxColumnValue> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
@@ -522,7 +522,7 @@ public final class DataStreamHashAidxTable implements
     public void touch(Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> values) {
         Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> currentValues = get(values);
         put(currentValues);
-        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> toDelete = HashMultimap.of(values);
+        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> toDelete = HashMultimap.create(values);
         for (Map.Entry<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> e : currentValues.entries()) {
             toDelete.remove(e.getKey(), e.getValue().getColumnName());
         }
@@ -530,7 +530,7 @@ public final class DataStreamHashAidxTable implements
     }
 
     public static ColumnSelection getColumnSelection(Collection<DataStreamHashAidxColumn> cols) {
-        return ColumnSelection.of(Collections2.transform(cols, Persistables.persistToBytesFunction()));
+        return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
     }
 
     public static ColumnSelection getColumnSelection(DataStreamHashAidxColumn... cols) {
@@ -541,7 +541,7 @@ public final class DataStreamHashAidxTable implements
     public Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> get(Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> rowMap = HashMultimap.of();
+        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> rowMap = HashMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 DataStreamHashAidxRow row = DataStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -591,7 +591,7 @@ public final class DataStreamHashAidxTable implements
     }
 
     private static Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> rowMap = HashMultimap.of();
+        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             DataStreamHashAidxRow row = DataStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -742,5 +742,5 @@ public final class DataStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "NjuiG1Adzki0GepIxaelnQ==";
+    static String __CLASS_HASH = "ucMDeXaO3xHImMNYqW8X4A==";
 }
