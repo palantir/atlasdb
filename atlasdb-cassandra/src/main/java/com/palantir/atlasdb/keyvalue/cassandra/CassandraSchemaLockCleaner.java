@@ -78,7 +78,7 @@ public final class CassandraSchemaLockCleaner {
                 taskRunner,
                 wrappingQueryRunner,
                 ConsistencyLevel.QUORUM,
-                unused -> System.currentTimeMillis()); // CassandraTableDropper also uses wall clock time
+                System::currentTimeMillis); // CassandraTableDropper also uses wall clock time
 
         return new CassandraTableDropper(config,
                 clientPool,

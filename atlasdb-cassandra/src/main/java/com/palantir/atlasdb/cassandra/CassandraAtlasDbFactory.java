@@ -56,44 +56,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             boolean initializeAsync,
-            QosClient qosClient) {
-        return createRawKeyValueService(
-                config,
-                runtimeConfig,
-                leaderConfig,
-                namespace,
-                initializeAsync,
-                qosClient,
-                CassandraMutationTimestampProviders.legacy());
-    }
-
-    @Override
-    public KeyValueService createRawKeyValueService(
-            KeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace,
-            boolean initializeAsync,
             QosClient qosClient,
-            LongSupplier freshTimestampSource) {
-        return createRawKeyValueService(
-                config,
-                runtimeConfig,
-                leaderConfig,
-                namespace,
-                initializeAsync,
-                qosClient,
-                CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource));
-    }
-
-    private KeyValueService createRawKeyValueService(
-            KeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace,
-            boolean initializeAsync,
-            QosClient qosClient,
-            CassandraMutationTimestampProvider mutationTimestampProvider) {
+            Optional<LongSupplier> freshTimestampSource) {
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, runtimeConfig, namespace);
         Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig = preprocessKvsRuntimeConfig(
@@ -102,7 +66,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 preprocessedConfig,
                 cassandraRuntimeConfig,
                 leaderConfig,
-                mutationTimestampProvider,
+                CassandraMutationTimestampProviders.optionallyLongSupplierBacked(freshTimestampSource),
                 initializeAsync,
                 qosClient);
     }

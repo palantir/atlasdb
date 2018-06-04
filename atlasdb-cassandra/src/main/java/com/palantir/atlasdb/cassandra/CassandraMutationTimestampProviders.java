@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.cassandra;
 
+import java.util.Optional;
 import java.util.function.LongSupplier;
 
 public class CassandraMutationTimestampProviders {
@@ -23,11 +24,16 @@ public class CassandraMutationTimestampProviders {
         // factory
     }
 
+    /**
+     * @return {@link CassandraMutationTimestampProvider} which behaves in line with existing behaviour.
+     * As far as possible, users should switch to {@link this#singleLongSupplierBacked(LongSupplier)} with a
+     * fresh timestamp source from AtlasDB to promote better Cassandra compaction behaviour.
+     */
     public static CassandraMutationTimestampProvider legacy() {
         return new CassandraMutationTimestampProvider() {
             @Override
-            public long getMultiPutWriteTimestamp(long atlasWriteTimestamp) {
-                return atlasWriteTimestamp;
+            public long getSweepSentinelWriteTimestamp() {
+                return 0;
             }
 
             @Override
@@ -40,7 +46,7 @@ public class CassandraMutationTimestampProviders {
     public static CassandraMutationTimestampProvider singleLongSupplierBacked(LongSupplier longSupplier) {
         return new CassandraMutationTimestampProvider() {
             @Override
-            public long getMultiPutWriteTimestamp(long atlasWriteTimestamp) {
+            public long getSweepSentinelWriteTimestamp() {
                 return longSupplier.getAsLong();
             }
 
@@ -49,5 +55,10 @@ public class CassandraMutationTimestampProviders {
                 return longSupplier.getAsLong();
             }
         };
+    }
+
+    public static CassandraMutationTimestampProvider optionallyLongSupplierBacked(Optional<LongSupplier> longSupplier) {
+        return longSupplier.map(CassandraMutationTimestampProviders::singleLongSupplierBacked)
+                .orElseGet(CassandraMutationTimestampProviders::legacy);
     }
 }

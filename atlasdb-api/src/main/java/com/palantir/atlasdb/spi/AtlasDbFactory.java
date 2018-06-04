@@ -45,16 +45,9 @@ public interface AtlasDbFactory {
                 leaderConfig,
                 Optional.empty(),
                 DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE);
+                FakeQosClient.INSTANCE,
+                Optional.empty());
     }
-
-    KeyValueService createRawKeyValueService(
-            KeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace,
-            boolean initializeAsync,
-            QosClient qosClient);
 
     /**
      * Creates a KeyValueService instance of type according to the config parameter.
@@ -67,21 +60,18 @@ public interface AtlasDbFactory {
      * @param initializeAsync If the implementations supports it, and initializeAsync is true, the KVS will initialize
      * asynchronously when synchronous initialization fails.
      * @param qosClient the client for checking limits from the Quality-of-Service service.
-     * @param freshTimestampSource a source of fresh timestamps, which may be relevant for some KVS operations.
+     * @param freshTimestampSource If present, a source of fresh timestamps, which may be relevant for some KVS
+     * operations.
      * @return The requested KeyValueService instance
      */
-    default KeyValueService createRawKeyValueService(
+    KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             boolean initializeAsync,
             QosClient qosClient,
-            LongSupplier freshTimestampSource) {
-        log.info("Created a raw key-value service with type {} and provided an unused fresh timestamp source.",
-                getType());
-        return createRawKeyValueService(config, runtimeConfig, leaderConfig, namespace, initializeAsync, qosClient);
-    }
+            Optional<LongSupplier> freshTimestampSource);
 
     default TimestampService createTimestampService(KeyValueService rawKvs) {
         return createTimestampService(rawKvs, Optional.empty(), DEFAULT_INITIALIZE_ASYNC);

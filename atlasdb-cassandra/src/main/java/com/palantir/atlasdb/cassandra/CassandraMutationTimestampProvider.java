@@ -16,7 +16,20 @@
 
 package com.palantir.atlasdb.cassandra;
 
+/**
+ * This interface produces Cassandra timestamps for mutations, where it makes sense for these to be overridden.
+ * Generally, to ensure that Cassandra is able to compact tombstones smoothly, these values should increase over
+ * time and should largely be in line with AtlasDB's notion of logical time.
+ */
 public interface CassandraMutationTimestampProvider {
-    long getMultiPutWriteTimestamp(long atlasWriteTimestamp);
+    /**
+     * Cassandra timestamp at which sweep sentinels should be written.
+     */
+    long getSweepSentinelWriteTimestamp();
+
+    /**
+     * Cassandra timestamp at which KVS-level deletes should be performed.
+     * @param atlasDeletionTimestamp Atlas timestamp of the relevant delete.
+     */
     long getDeletionTimestamp(long atlasDeletionTimestamp);
 }

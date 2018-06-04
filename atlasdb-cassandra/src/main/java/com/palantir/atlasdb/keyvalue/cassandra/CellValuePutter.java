@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -45,7 +46,7 @@ public class CellValuePutter {
     private static final Function<Map.Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
             input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
-    private final Function<Long, Long> mutationTimestampGetter;
+    private final Supplier<Long> sentinelTimestampSupplier;
 
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
@@ -58,25 +59,25 @@ public class CellValuePutter {
             TaskRunner taskRunner,
             WrappingQueryRunner queryRunner,
             ConsistencyLevel writeConsistency,
-            Function<Long, Long> mutationTimestampGetter) {
+            Supplier<Long> sentinelTimestampSupplier) {
         this.config = config;
         this.clientPool = clientPool;
         this.taskRunner = taskRunner;
         this.queryRunner = queryRunner;
         this.writeConsistency = writeConsistency;
-        this.mutationTimestampGetter = mutationTimestampGetter;
-    }
-
-    void putAndOverwriteTimestamps(final String kvsMethodName,
-            final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
-        put(kvsMethodName, tableRef, values, true);
+        this.sentinelTimestampSupplier = sentinelTimestampSupplier;
     }
 
     void put(final String kvsMethodName,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
         put(kvsMethodName, tableRef, values, false);
+    }
+
+    void putWithOverriddenTimestamps(final String kvsMethodName,
+            final TableReference tableRef,
+            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+        put(kvsMethodName, tableRef, values, true);
     }
 
     private void put(final String kvsMethodName,
@@ -114,6 +115,12 @@ public class CellValuePutter {
                     public Void apply(CassandraClient client) throws Exception {
                         int mutationBatchCount = config.mutationBatchCount();
                         int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
+                        long sentinelTimestamp = Long.MIN_VALUE;
+                        if (overwriteTimestamps) {
+                            // Note: This is not needed on a non-sentinel code path.
+                            sentinelTimestamp = sentinelTimestampSupplier.get();
+                        }
+
                         for (List<Map.Entry<Cell, Value>> partition : IterablePartitioner.partitionByCountAndBytes(
                                 values,
                                 mutationBatchCount,
@@ -124,11 +131,11 @@ public class CellValuePutter {
                             for (Map.Entry<Cell, Value> e : partition) {
                                 Cell cell = e.getKey();
                                 Column col = overwriteTimestamps
-                                        ? CassandraKeyValueServices.createColumn(cell, e.getValue())
-                                        : CassandraKeyValueServices.createColumn(
+                                        ? CassandraKeyValueServices.createColumnForDelete(
                                                 cell,
                                                 e.getValue(),
-                                                mutationTimestampGetter.apply(e.getValue().getTimestamp()));
+                                                sentinelTimestamp)
+                                        : CassandraKeyValueServices.createColumn(cell, e.getValue());
 
                                 ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
                                 colOrSup.setColumn(col);

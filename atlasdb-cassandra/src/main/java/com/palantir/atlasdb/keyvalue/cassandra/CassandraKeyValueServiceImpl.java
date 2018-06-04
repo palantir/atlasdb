@@ -360,7 +360,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 taskRunner,
                 wrappingQueryRunner,
                 writeConsistency,
-                mutationTimestampProvider::getMultiPutWriteTimestamp);
+                mutationTimestampProvider::getSweepSentinelWriteTimestamp);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellLoader, cellValuePutter,
                 wrappingQueryRunner, deleteConsistency);
     }
@@ -933,7 +933,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp) {
         try {
-            cellValuePutter.putAndOverwriteTimestamps("put", tableRef,
+            cellValuePutter.put("put", tableRef,
                     KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
@@ -1049,8 +1049,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Cell cell = tableCellAndValue.cell;
             Column col = CassandraKeyValueServices.createColumn(
                     cell,
-                    Value.create(tableCellAndValue.value, timestamp),
-                    mutationTimestampProvider.getMultiPutWriteTimestamp(timestamp));
+                    Value.create(tableCellAndValue.value, timestamp));
             ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
             colOrSup.setColumn(col);
             Mutation mutation = new Mutation();
@@ -1856,7 +1855,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-            cellValuePutter.put("addGarbageCollectionSentinelValues",
+            cellValuePutter.putWithOverriddenTimestamps("addGarbageCollectionSentinelValues",
                     tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);

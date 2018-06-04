@@ -111,7 +111,8 @@ public class ServiceDiscoveringAtlasSupplier {
                         leaderConfig,
                         namespace,
                         initializeAsync,
-                        qosClient));
+                        qosClient,
+                        Optional.empty()));
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
@@ -139,7 +140,7 @@ public class ServiceDiscoveringAtlasSupplier {
                         namespace,
                         initializeAsync,
                         qosClient,
-                        timestampSupplier));
+                        Optional.of(timestampSupplier)));
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
