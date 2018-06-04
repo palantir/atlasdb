@@ -98,7 +98,7 @@ public class CachedComposedSupplierTest {
         assertThat(counter).isEqualTo(1 + supplierCounter / 100);
     }
 
-    Integer countingFunction(Integer input) {
+    private Integer countingFunction(Integer input) {
         counter++;
         if (input == null) {
             return null;

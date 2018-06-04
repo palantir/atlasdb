@@ -55,9 +55,11 @@ public final class SweepQueue implements SweepQueueWriter {
         this.metrics = metrics;
     }
 
-    public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig) {
+
+    public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig, int minShards) {
         TargetedSweepMetrics metrics = TargetedSweepMetrics.create(kvs, FIVE_MINUTES);
         ShardProgress progress = new ShardProgress(kvs);
+        progress.updateNumberOfShards(minShards);
         Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, FIVE_MINUTES);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
@@ -89,7 +91,7 @@ public final class SweepQueue implements SweepQueueWriter {
     public void enqueue(List<WriteInfo> writes) {
         sweepableTimestamps.enqueue(writes);
         sweepableCells.enqueue(writes);
-        log.info("Enqueued {} writes into the sweep queue.", writes.size());
+        log.debug("Enqueued {} writes into the sweep queue.", SafeArg.of("writes", writes.size()));
     }
 
     /**
@@ -105,23 +107,23 @@ public final class SweepQueue implements SweepQueueWriter {
         long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
 
         if (lastSweptTs + 1 >= sweepTs) {
-            log.warn("Last swept timestamp {} for {} is inconsistent with the sweep timestamp {}, since there can be "
-                            + "no timestamps between the two values.", SafeArg.of("lastSweptTs", lastSweptTs),
-                    SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("sweepTs", sweepTs));
             return;
         }
 
-        log.info("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept timestamp"
+        log.debug("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept timestamp"
                 + " for this shard and strategy was {}.", SafeArg.of("shardStrategy", shardStrategy.toText()),
                 SafeArg.of("sweepTs", sweepTs), SafeArg.of("lastSweptTs", lastSweptTs));
 
         SweepBatch sweepBatch = getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
-        log.info("Put {} ranged tombstones and swept up to timestamp {} for {}.",
-                SafeArg.of("tombstones", sweepBatch.writes().size()),
-                SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
-                SafeArg.of("shardStrategy", shardStrategy.toText()));
+
+        if (sweepBatch.writes().size() > 0) {
+            log.debug("Put {} ranged tombstones and swept up to timestamp {} for {}.",
+                    SafeArg.of("tombstones", sweepBatch.writes().size()),
+                    SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
+                    SafeArg.of("shardStrategy", shardStrategy.toText()));
+        }
 
         cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp());
 

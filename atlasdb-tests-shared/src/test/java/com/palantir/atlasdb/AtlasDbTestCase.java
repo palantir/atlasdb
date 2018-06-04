@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -77,6 +78,7 @@ public class AtlasDbTestCase {
     protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     protected TargetedSweeper sweepQueue;
     protected int sweepQueueShards = 128;
+    protected ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
     @BeforeClass
     public static void setupLockClient() {
@@ -107,7 +109,7 @@ public class AtlasDbTestCase {
         timestampService = new InMemoryTimestampService();
         KeyValueService kvs = getBaseKeyValueService();
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
-        keyValueService = new TrackingKeyValueService(keyValueServiceWithStats);
+        keyValueService = spy(new TrackingKeyValueService(keyValueServiceWithStats));
         TransactionTables.createTables(kvs);
         transactionService = TransactionServices.createTransactionService(kvs);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
@@ -123,7 +125,8 @@ public class AtlasDbTestCase {
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                sweepQueue);
+                sweepQueue,
+                deleteExecutor);
 
         sweepQueue.callbackInit(serializableTxManager);
         txManager = new CachingTestTransactionManager(serializableTxManager);
