@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static com.palantir.async.initializer.Callback.noOp;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -195,7 +193,7 @@ public abstract class TransactionManagers {
      */
     @Value.Default
     Callback<TransactionManager> asyncInitializationCallback() {
-        return new Callback.noOp();
+        return Callback.noOp();
     }
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
@@ -599,7 +597,7 @@ public abstract class TransactionManagers {
                             .freshTimestampSource(unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
                             .build());
         }
-        return noOp();
+        return Callback.noOp();
     }
 
     private static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
