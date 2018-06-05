@@ -17,7 +17,6 @@
 package com.palantir.timelock.paxos;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -102,8 +101,7 @@ public class TimeLockAgent {
         return new PaxosTimestampCreator(paxosResource,
                 PaxosRemotingUtils.getRemoteServerPaths(install),
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
-                JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime),
-                () -> runtime.get().internalAuthSecret());
+                JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime));
     }
 
     private void createAndRegisterResources() {
@@ -116,7 +114,6 @@ public class TimeLockAgent {
         resource = new TimeLockResource(this::createInvalidatingTimeLockServices,
                 JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime));
         registrar.accept(resource);
-        Supplier<Optional<String>> authTokenSupplier = () -> runtime.get().internalAuthSecret();
 
         ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
     }

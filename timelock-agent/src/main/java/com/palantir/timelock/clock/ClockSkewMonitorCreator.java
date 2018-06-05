@@ -19,7 +19,6 @@ package com.palantir.timelock.clock;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -29,7 +28,6 @@ import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
-import com.palantir.tokens.auth.AuthHeader;
 
 public class ClockSkewMonitorCreator {
     private final Set<String> remoteServers;
@@ -47,8 +45,7 @@ public class ClockSkewMonitorCreator {
 
     public static ClockSkewMonitorCreator create(
             TimeLockInstallConfiguration install,
-            Consumer<Object> registrar,
-            Supplier<AuthHeader> authHeaderSupplier) {
+            Consumer<Object> registrar) {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
         Optional<SSLSocketFactory> optionalSecurity =
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory);
