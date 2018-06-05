@@ -56,6 +56,11 @@ develop
            The metrics, tagged with the sweep strategy used, and with the prefix ``com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.`` is ``millisSinceLastSweptTs``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3206>`__)
 
+    *    - |fixed|
+         - We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won't
+           blacklist connections due to a failed CAS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3215>`__)
+
     *    - |fixed| |devbreak|
          - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers. This functionality was
            never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
