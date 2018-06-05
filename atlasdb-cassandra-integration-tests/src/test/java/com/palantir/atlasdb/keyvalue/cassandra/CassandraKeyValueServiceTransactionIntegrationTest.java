@@ -28,7 +28,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 
-@ShouldRetry // The first test can fail with a TException: No host tried was able to of the keyspace requested.
+@ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceTransactionIntegrationTest.class)
