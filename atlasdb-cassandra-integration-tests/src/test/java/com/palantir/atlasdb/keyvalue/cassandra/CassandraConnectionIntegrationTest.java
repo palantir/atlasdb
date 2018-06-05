@@ -36,8 +36,7 @@ public class CassandraConnectionIntegrationTest {
             .copyOf(CassandraContainer.KVS_CONFIG)
             .withCredentials(Optional.empty());
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Test
     public void testAuthProvided() {

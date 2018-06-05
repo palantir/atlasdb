@@ -51,8 +51,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
             CassandraTargetedSweepIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(

@@ -38,8 +38,7 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Override
     protected KeyValueService createKeyValueService() {

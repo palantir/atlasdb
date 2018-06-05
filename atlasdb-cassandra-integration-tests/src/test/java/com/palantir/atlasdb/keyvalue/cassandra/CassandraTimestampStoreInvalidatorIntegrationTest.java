@@ -47,8 +47,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     private static final long ONE_MILLION = 1_000_000;
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
             metricsManager,

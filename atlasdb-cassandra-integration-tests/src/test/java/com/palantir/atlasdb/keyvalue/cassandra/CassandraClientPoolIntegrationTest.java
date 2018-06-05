@@ -54,8 +54,7 @@ public class CassandraClientPoolIntegrationTest {
 
     private Blacklist blacklist = new Blacklist(CassandraContainer.KVS_CONFIG);
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
             CassandraContainer.KVS_CONFIG, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);

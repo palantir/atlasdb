@@ -30,8 +30,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
         extends AbstractSerializableTransactionTest {
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @ClassRule
     public static final Containers CONTAINERS =

@@ -63,8 +63,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService kvs;
     protected LockAwareTransactionManager txManager;
     protected final AtomicLong sweepTimestamp = new AtomicLong();

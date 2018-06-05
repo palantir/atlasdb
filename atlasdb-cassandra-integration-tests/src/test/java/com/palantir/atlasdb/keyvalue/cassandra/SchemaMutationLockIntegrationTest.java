@@ -72,8 +72,7 @@ public class SchemaMutationLockIntegrationTest {
     private UniqueSchemaMutationLockTable lockTable;
     private SchemaMutationLockTestTools lockTestTools;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @SuppressWarnings({"WeakerAccess", "DefaultAnnotationParam"}) // test parameter
     @Parameterized.Parameter(value = 0)

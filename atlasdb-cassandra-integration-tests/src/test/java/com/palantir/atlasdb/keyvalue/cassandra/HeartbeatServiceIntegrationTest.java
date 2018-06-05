@@ -65,8 +65,7 @@ public class HeartbeatServiceIntegrationTest {
 
     private final long lockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

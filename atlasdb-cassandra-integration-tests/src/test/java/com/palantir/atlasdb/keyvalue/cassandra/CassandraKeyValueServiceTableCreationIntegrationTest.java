@@ -57,8 +57,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
             new Containers(CassandraKeyValueServiceTableCreationIntegrationTest.class)
                     .with(new CassandraContainer());
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     protected CassandraKeyValueService kvs;
     protected CassandraKeyValueService slowTimeoutKvs;

@@ -86,8 +86,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private final Logger logger = mock(Logger.class);
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
 

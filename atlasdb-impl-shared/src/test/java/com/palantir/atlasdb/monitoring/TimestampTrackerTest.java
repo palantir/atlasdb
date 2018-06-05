@@ -48,8 +48,7 @@ public class TimestampTrackerTest {
 
     private static final long CACHE_INTERVAL_NANOS = TimestampTrackerImpl.CACHE_INTERVAL.toNanos();
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final TimelockService timelockService = mock(TimelockService.class);
     private final Cleaner cleaner = mock(Cleaner.class);
     private final Clock mockClock = mock(Clock.class);

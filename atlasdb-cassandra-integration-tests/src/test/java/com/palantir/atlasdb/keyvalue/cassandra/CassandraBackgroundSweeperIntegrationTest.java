@@ -42,8 +42,7 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
         return Arrays.asList(true, false);
     }
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Override
     protected KeyValueService getKeyValueService() {

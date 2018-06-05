@@ -38,8 +38,7 @@ public class CassandraTimestampIntegrationTest {
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
             metricsManager,

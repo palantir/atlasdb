@@ -51,8 +51,7 @@ public class SchemaMutationLockTablesIntegrationTest {
     public static final Containers CONTAINERS = new Containers(SchemaMutationLockTablesIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     private SchemaMutationLockTables lockTables;
     private CassandraKeyValueServiceConfig config;

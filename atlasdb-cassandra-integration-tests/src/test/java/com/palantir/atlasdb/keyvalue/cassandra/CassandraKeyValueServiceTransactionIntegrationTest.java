@@ -37,8 +37,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
-    private final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Override
     protected KeyValueService getKeyValueService() {
