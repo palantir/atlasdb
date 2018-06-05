@@ -53,6 +53,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
      * @param runtimeConfig unused.
      * @param leaderConfig unused.
      * @param namespace unused.
+     * @param unusedLongSupplier unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
      * @param unusedQosClient unused.
      * @return The requested KeyValueService instance
@@ -63,6 +64,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
+            Optional<Supplier<Long>> unusedLongSupplier,
             boolean initializeAsync,
             QosClient unusedQosClient) {
         if (initializeAsync) {
