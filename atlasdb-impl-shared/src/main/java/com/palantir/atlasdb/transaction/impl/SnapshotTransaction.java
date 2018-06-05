@@ -218,7 +218,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected volatile boolean hasReads;
 
-    private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
+    private final Timer.Context transactionTimerContext;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -248,6 +248,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                MultiTableSweepQueueWriter sweepQueue,
                                ExecutorService deleteExecutor) {
         this.metricsManager = metricsManager;
+        this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -288,6 +289,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         MultiTableSweepQueueWriter sweepQueue,
                         ExecutorService deleteExecutor) {
         this.metricsManager = metricsManager;
+        this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -325,6 +327,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   int defaultGetRangesConcurrency,
                                   ExecutorService deleteExecutor) {
         this.metricsManager = metricsManager;
+        this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
