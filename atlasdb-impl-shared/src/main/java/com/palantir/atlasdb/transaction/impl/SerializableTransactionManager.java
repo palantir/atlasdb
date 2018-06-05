@@ -17,6 +17,8 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -319,6 +321,43 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueueWriter) {
+        this(
+                keyValueService,
+                timelockService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                timestampTracker,
+                timestampCacheSize,
+                allowHiddenTableAccess,
+                lockAcquireTimeoutMs,
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency,
+                sweepQueueWriter,
+                Executors.newSingleThreadExecutor()
+        );
+    }
+
+    @VisibleForTesting
+    SerializableTransactionManager(KeyValueService keyValueService,
+            TimelockService timelockService,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            TimestampTracker timestampTracker,
+            Supplier<Long> timestampCacheSize,
+            boolean allowHiddenTableAccess,
+            Supplier<Long> lockAcquireTimeoutMs,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            MultiTableSweepQueueWriter sweepQueueWriter,
+            ExecutorService deleteExecutor) {
         super(
                 keyValueService,
                 timelockService,
@@ -334,7 +373,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 timestampCacheSize,
-                sweepQueueWriter);
+                sweepQueueWriter,
+                deleteExecutor
+        );
     }
 
     @Override
@@ -361,7 +402,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter);
+                sweepQueueWriter,
+                deleteExecutor);
     }
 
     @VisibleForTesting

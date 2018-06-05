@@ -1730,18 +1730,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
+            boolean deleteSentinels) {
         Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
                 clientPool, maxTimestampExclusiveByCell.entrySet());
         for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
-            deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue());
+            deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue(), deleteSentinels);
         }
     }
 
     public void deleteAllTimestampsOnSingleHost(
             TableReference tableRef,
             InetSocketAddress host,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
+            Map<Cell, Long> maxTimestampExclusiveByCell,
+            boolean deleteSentinels) {
         if (maxTimestampExclusiveByCell.isEmpty()) {
             return;
         }
@@ -1751,7 +1753,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 @Override
                 public Void apply(CassandraClient client) throws Exception {
-                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef);
+                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef, deleteSentinels);
                     return null;
                 }
 
@@ -1770,19 +1772,24 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void insertRangeTombstones(CassandraClient client, Map<Cell, Long> maxTimestampExclusiveByCell,
-            TableReference tableRef) throws TException {
+            TableReference tableRef, boolean deleteSentinel) throws TException {
         MutationMap mutationMap = new MutationMap();
 
         maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
-            Mutation mutation = Mutations.rangeTombstoneForColumn(
-                    cell.getColumnName(),
-                    maxTimestampExclusive);
+            Mutation mutation = getMutation(cell, maxTimestampExclusive, deleteSentinel);
 
             mutationMap.addMutationForCell(cell, tableRef, mutation);
         });
 
         wrappingQueryRunner.batchMutate("deleteAllTimestamps", client, ImmutableSet.of(tableRef), mutationMap,
                 deleteConsistency);
+    }
+
+    private Mutation getMutation(Cell cell, long maxTimestampExclusive, boolean deleteSentinel) {
+        if (deleteSentinel) {
+            return Mutations.rangeTombstoneIncludingSentinelForColumn(cell.getColumnName(), maxTimestampExclusive);
+        }
+        return Mutations.rangeTombstoneForColumn(cell.getColumnName(), maxTimestampExclusive);
     }
 
     /**
@@ -1859,19 +1866,24 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         try {
-            clientPool.runWithRetry(client -> {
+            Optional<KeyAlreadyExistsException> failure = clientPool.runWithRetry(client -> {
                 for (Entry<Cell, byte[]> e : values.entrySet()) {
                     CheckAndSetRequest request = CheckAndSetRequest.newCell(tableRef, e.getKey(), e.getValue());
                     CASResult casResult = executeCheckAndSet(client, request);
                     if (!casResult.isSuccess()) {
-                        throw new KeyAlreadyExistsException(
+                        return Optional.of(new KeyAlreadyExistsException(
                                 String.format("The row in table %s already exists.", tableRef.getQualifiedName()),
-                                ImmutableList.of(e.getKey()));
+                                ImmutableList.of(e.getKey())));
                     }
                 }
                 clientPool.markWritesForTable(values, tableRef);
-                return null;
+                return Optional.empty();
             });
+            failure.ifPresent(exception -> {
+                throw exception;
+            });
+        } catch (KeyAlreadyExistsException e) {
+            throw e;
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
@@ -1890,22 +1902,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void checkAndSet(final CheckAndSetRequest request) throws CheckAndSetException {
         try {
-            clientPool.runWithRetry(client -> {
-                CASResult casResult = executeCheckAndSet(client, request);
+            CASResult casResult = clientPool.runWithRetry(client -> executeCheckAndSet(client, request));
+            if (!casResult.isSuccess()) {
+                List<byte[]> currentValues = casResult.current_values.stream()
+                        .map(Column::getValue)
+                        .collect(Collectors.toList());
 
-                if (!casResult.isSuccess()) {
-                    List<byte[]> currentValues = casResult.current_values.stream()
-                            .map(Column::getValue)
-                            .collect(Collectors.toList());
-
-                    throw new CheckAndSetException(
-                            request.cell(),
-                            request.table(),
-                            request.oldValue().orElse(null),
-                            currentValues);
-                }
-                return null;
-            });
+                throw new CheckAndSetException(
+                        request.cell(),
+                        request.table(),
+                        request.oldValue().orElse(null),
+                        currentValues);
+            }
         } catch (CheckAndSetException e) {
             throw e;
         } catch (Exception e) {

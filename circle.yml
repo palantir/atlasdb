@@ -1,7 +1,7 @@
 machine:
   java:
     version:
-      oraclejdk8
+      openjdk8
   environment:
     _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
     TERM: dumb
@@ -14,6 +14,8 @@ machine:
 
 checkout:
   post:
+    # ensure all tags are fetched and up-to-date
+    - git tag -l | xargs git tag -d && git fetch -t
     - ./scripts/circle-ci/pull-all-images.sh:
         background: true
     - ./scripts/circle-ci/stop-services.sh:

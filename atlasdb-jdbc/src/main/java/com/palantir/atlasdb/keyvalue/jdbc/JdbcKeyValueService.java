@@ -690,8 +690,10 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell) {
-        AbstractKeyValueService.deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell);
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
+            boolean deleteSentinels) {
+        AbstractKeyValueService
+                .deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell, deleteSentinels);
     }
 
     @Override

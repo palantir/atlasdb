@@ -45,6 +45,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellLimit;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
@@ -59,8 +60,7 @@ public class SweepTaskRunner {
     private static final Logger log = LoggerFactory.getLogger(SweepTaskRunner.class);
 
     private final KeyValueService keyValueService;
-    private final LongSupplier unreadableTimestampSupplier;
-    private final LongSupplier immutableTimestampSupplier;
+    private final SpecialTimestampsSupplier specialTimestampsSupplier;
     private final TransactionService transactionService;
     private final SweepStrategyManager sweepStrategyManager;
     private final CellsSweeper cellsSweeper;
@@ -84,15 +84,14 @@ public class SweepTaskRunner {
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
-            LongSupplier unreadableTimestampSupplier,
-            LongSupplier immutableTimestampSupplier,
+            LongSupplier unreadableTsSupplier,
+            LongSupplier immutableTsSupplier,
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper,
             SweepMetricsManager metricsManager) {
         this.keyValueService = keyValueService;
-        this.unreadableTimestampSupplier = unreadableTimestampSupplier;
-        this.immutableTimestampSupplier = immutableTimestampSupplier;
+        this.specialTimestampsSupplier = new SpecialTimestampsSupplier(unreadableTsSupplier, immutableTsSupplier);
         this.transactionService = transactionService;
         this.sweepStrategyManager = sweepStrategyManager;
         this.cellsSweeper = cellsSweeper;
@@ -128,8 +127,7 @@ public class SweepTaskRunner {
     }
 
     public long getConservativeSweepTimestamp() {
-        return Sweeper.CONSERVATIVE.getSweepTimestampSupplier().getSweepTimestamp(
-                unreadableTimestampSupplier, immutableTimestampSupplier);
+        return Sweeper.CONSERVATIVE.getSweepTimestamp(specialTimestampsSupplier);
     }
 
     private SweepResults runInternal(
@@ -181,8 +179,7 @@ public class SweepTaskRunner {
         // (1) force old readers to abort (if they read a garbage collection sentinel), or
         // (2) force old writers to retry (note that we must roll back any uncommitted transactions that
         //     we encounter
-        long sweepTs = sweeper.getSweepTimestampSupplier().getSweepTimestamp(
-                unreadableTimestampSupplier, immutableTimestampSupplier);
+        long sweepTs = sweeper.getSweepTimestamp(specialTimestampsSupplier);
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .batchSizeHint(batchConfig.candidateBatchSize())

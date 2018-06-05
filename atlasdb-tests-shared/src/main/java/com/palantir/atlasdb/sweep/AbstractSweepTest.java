@@ -43,7 +43,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
-import com.palantir.atlasdb.sweep.queue.test.InMemorySweepQueue;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -102,7 +101,6 @@ public abstract class AbstractSweepTest {
         persistentLockManager = new PersistentLockManager(
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
-        InMemorySweepQueue.clear();
     }
 
     @After
@@ -498,7 +496,6 @@ public abstract class AbstractSweepTest {
         Map<Cell, byte[]> writes = ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8));
         kvs.put(tableRef, writes, ts);
         putTimestampIntoTransactionTable(ts);
-        InMemorySweepQueue.writer().enqueue(tableRef, writes, ts);
     }
 
     private void putTimestampIntoTransactionTable(long ts) {

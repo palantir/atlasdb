@@ -16,7 +16,7 @@ CONTAINER_2=(':atlasdb-ete-tests:check')
 
 CONTAINER_3=(':atlasdb-perf:postgresBenchmarkTest')
 
-CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check'  ':atlasdb-cassandra-integration-tests:longTest')
+CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-cassandra-integration-tests:longTest')
 
 CONTAINER_5=(':atlasdb-ete-tests:longTest' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
 

@@ -27,11 +27,10 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
@@ -41,9 +40,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -51,7 +52,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -65,6 +65,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Supplier;
@@ -76,7 +77,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
@@ -92,11 +92,9 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -108,6 +106,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.common.base.AbortingVisitor;
@@ -127,6 +126,8 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.timestamp.TimestampService;
 
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
@@ -199,13 +200,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        // Some KV stores need more nodes to be up to accomplish a delete, so we model that here as throwing
-        keyValueService = new TrackingKeyValueService(keyValueService) {
-            @Override
-            public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-                throw new RuntimeException("cannot delete");
-            }
-        };
         keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -277,7 +271,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 timestampCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueue);
+                sweepQueue,
+                deleteExecutor);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -288,7 +283,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         m.assertIsSatisfied();
     }
 
-    @Ignore("Until we know what we want to do with GC this will be ignored.")
+    @Ignore("Was ignored long ago, and now we need to fix the mocking logic.")
     // This tests that uncommitted values are deleted and cleaned up
     @SuppressWarnings("unchecked")
     @Test
@@ -302,7 +297,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         timestampService.getFreshTimestamp();
         final long startTs = timestampService.getFreshTimestamp();
         final long transactionTs = timestampService.getFreshTimestamp();
-        keyValueService.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY), startTs);
+        keyValueService.put(TABLE, ImmutableMap.of(cell, rowName), startTs);
 
         final Sequence seq = m.sequence("seq");
         m.checking(new Expectations() {{
@@ -335,8 +330,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 timestampCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueue);
-        snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
+                sweepQueue,
+                deleteExecutor);
+        snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
         m.assertIsSatisfied();
@@ -360,7 +356,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                sweepQueue);
+                sweepQueue,
+                deleteExecutor);
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -803,6 +800,55 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
                 .thenReturn(PreCommitConditions.NO_OP);
+
+        serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+            return null;
+        });
+    }
+
+    @Test
+    public void transactionDeletesAsyncOnRollback() throws InterruptedException {
+        Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
+        when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
+                .thenReturn(PreCommitConditions.NO_OP);
+
+        CountDownLatch blockForDelete = new CountDownLatch(1);
+        deleteExecutor.submit(() -> {
+            try {
+                blockForDelete.await();
+            } catch (InterruptedException e) {
+                fail("executor interrupted during test!");
+            }
+        });
+
+        serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
+            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+            return null;
+        });
+
+        verify(keyValueService, times(0)).delete(any(), any());
+
+        // Free up the deleteExecutor, and wait for it to finish
+        blockForDelete.countDown();
+        deleteExecutor.awaitTermination(1, TimeUnit.SECONDS);
+
+        verify(keyValueService, times(1)).delete(any(), any());
+    }
+
+    // Simulates the case when the KVS is degraded, meaning that deletes time out
+    @Test(timeout = 5000L)
+    public void transactionRollbackIsNotDelayedBySlowDeletes() {
+        Answer throwAfterTenSeconds = ignored -> {
+            Thread.sleep(10_000L);
+            throw new RuntimeException();
+        };
+        doAnswer(throwAfterTenSeconds).when(keyValueService).delete(any(), any());
+
+        Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
+        when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
+                .thenReturn(PreCommitConditions.NO_OP);
+
         serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
             return null;
@@ -910,74 +956,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void committedWritesAreAddedToSweepQueue() {
-        List<WriteInfo> table1Writes = ImmutableList.of(
-                WriteInfo.of(Cell.create("a".getBytes(), "b".getBytes()), false, 2L),
-                WriteInfo.of(Cell.create("a".getBytes(), "c".getBytes()), false, 2L),
-                WriteInfo.of(Cell.create("a".getBytes(), "d".getBytes()), true, 2L),
-                WriteInfo.of(Cell.create("b".getBytes(), "d".getBytes()), false, 2L));
-        List<WriteInfo> table2Writes = ImmutableList.of(
-                WriteInfo.of(Cell.create("w".getBytes(), "x".getBytes()), false, 2L),
-                WriteInfo.of(Cell.create("y".getBytes(), "z".getBytes()), false, 2L),
-                WriteInfo.of(Cell.create("z".getBytes(), "z".getBytes()), true, 2L));
-
-        AtomicLong startTs = new AtomicLong(0);
-        txManager.runTaskWithRetry(txn -> {
-            table1Writes.forEach(write -> {
-                put(txn, TABLE1, write);
-            });
-            table2Writes.forEach(write -> {
-                put(txn, TABLE2, write);
-            });
-            return null;
-        });
-
-        verify(sweepQueue).enqueue(eq(TABLE1), eq(table1Writes));
-        verify(sweepQueue).enqueue(eq(TABLE2), eq(table2Writes));
-    }
-
-    @Test
-    public void noWritesAddedToSweepQueueOnConflict() {
-        Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
-        byte[] value = new byte[1];
-
-        Transaction t1 = txManager.createNewTransaction();
-        Transaction t2 = txManager.createNewTransaction();
-
-        t1.put(TABLE, ImmutableMap.of(cell, value));
-        t2.put(TABLE, ImmutableMap.of(cell, new byte[1]));
-
-        t1.commit();
-        verify(sweepQueue).enqueue(any(), any());
-
-        try {
-            t2.commit();
-            fail();
-        } catch (TransactionConflictException e) {
-            // expected
-        }
-
-        verifyNoMoreInteractions(sweepQueue);
-    }
-
-    @Test
-    public void noWritesAddedToSweepQueueOnException() {
-        Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
-        byte[] value = new byte[1];
-
-        try {
-            txManager.runTaskWithRetry(txn -> {
-                txn.put(TABLE, ImmutableMap.of(cell, value));
-                throw new RuntimeException("test");
-            });
-        } catch (RuntimeException e) {
-            // expected
-        }
-
-        verifyZeroInteractions(sweepQueue);
-    }
-
-    @Test
     public void getRowsColumnRangesReturnsInOrderInCaseOfAbortedTxns() {
         byte[] row = "foo".getBytes();
         Cell firstCell = Cell.create(row, "a".getBytes());
@@ -1014,12 +992,80 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertEquals(ImmutableList.of(firstCell, secondCell), cells);
     }
 
-    private void put(Transaction txn, TableReference table, WriteInfo write) {
-        if (write.isTombstone()) {
-            txn.delete(table, ImmutableSet.of(write.cell()));
-        } else {
-            txn.put(table, ImmutableMap.of(write.cell(), new byte[1]));
+    @Test
+    public void commitDoesNotThrowIfAlreadySuccessfullyCommitted() {
+        final TimestampService timestampMock = mock(TimestampService.class);
+        final long transactionTs = 1L;
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+
+        SnapshotTransaction snapshot = new SnapshotTransaction(
+                keyValueService,
+                new LegacyTimelockService(timestampMock, lockService, lockClient),
+                transactionService,
+                NoOpCleaner.INSTANCE,
+                transactionTs,
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
+                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueue,
+                deleteExecutor);
+
+        //forcing to try to commit a transaction that is already committed
+        when(timestampMock.getFreshTimestamp()).thenReturn(2L);
+        transactionService.putUnlessExists(transactionTs, timestampMock.getFreshTimestamp());
+
+        snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+        snapshot.commit();
+    }
+
+    @Test
+    public void commitThrowsIfRolledBackAtCommitTime() {
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+
+        //this timelock service simulates the case where commitLocks are expired between pre-commit check and commit
+        class LockExpiringTimelockService extends LegacyTimelockService {
+            LockExpiringTimelockService(TimestampService timestampService, LockService lockService,
+                    LockClient immutableTsLockClient) {
+                super(timestampService, lockService, immutableTsLockClient);
+            }
+
+            private volatile boolean preCommitConditionChecked = false;
+
+            @Override
+            public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+                if (!preCommitConditionChecked) {
+                    preCommitConditionChecked = true;
+                    return tokens;
+                }
+                return ImmutableSet.of();
+            }
         }
+
+        SnapshotTransaction snapshot = new SnapshotTransaction(
+                keyValueService,
+                new LockExpiringTimelockService(timestampService, lockService, lockClient),
+                transactionService,
+                NoOpCleaner.INSTANCE,
+                timestampService.getFreshTimestamp(),
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
+                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueue,
+                deleteExecutor);
+
+        //simulate roll back at commit time
+        transactionService.putUnlessExists(snapshot.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
+
+        snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+        assertThatThrownBy(snapshot::commit).isInstanceOf(TransactionLockTimeoutException.class);
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {

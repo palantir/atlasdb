@@ -17,6 +17,8 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -39,6 +41,7 @@ import com.palantir.timestamp.TimestampService;
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
+    private Optional<Long> unreadableTs = Optional.empty();
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(KeyValueService keyValueService,
@@ -48,7 +51,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
-            MultiTableSweepQueueWriter sweepQueue) {
+            MultiTableSweepQueueWriter sweepQueue,
+            ExecutorService deleteExecutor) {
         super(
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -64,7 +68,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                sweepQueue);
+                sweepQueue,
+                deleteExecutor);
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -89,7 +94,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                AbstractTransactionTest.DELETE_EXECUTOR);
     }
 
     @Override
@@ -121,7 +127,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 timestampValidationReadCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter);
+                sweepQueueWriter,
+                deleteExecutor);
     }
 
     @Override
@@ -132,6 +139,15 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     @Override
     public void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
         conflictHandlerOverrides.put(table, conflictHandler);
+    }
+
+    @Override
+    public long getUnreadableTimestamp() {
+        return unreadableTs.orElse(super.getUnreadableTimestamp());
+    }
+
+    public void setUnreadableTimestamp(long timestamp) {
+        unreadableTs = Optional.of(timestamp);
     }
 
     private Map<TableReference, ConflictHandler> getConflictHandlerWithOverrides() {

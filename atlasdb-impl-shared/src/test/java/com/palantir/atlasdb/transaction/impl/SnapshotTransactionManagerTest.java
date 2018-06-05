@@ -25,6 +25,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.junit.Test;
 import org.mockito.InOrder;
@@ -45,6 +47,8 @@ public class SnapshotTransactionManagerTest {
     private final Cleaner cleaner = mock(Cleaner.class);
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             keyValueService,
             new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
@@ -61,7 +65,8 @@ public class SnapshotTransactionManagerTest {
             TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-            MultiTableSweepQueueWriter.NO_OP);
+            MultiTableSweepQueueWriter.NO_OP,
+            executorService);
 
     @Test
     public void isAlwaysInitialized() {
@@ -104,7 +109,8 @@ public class SnapshotTransactionManagerTest {
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                executorService);
         newTransactionManager.close(); // should not throw
     }
 

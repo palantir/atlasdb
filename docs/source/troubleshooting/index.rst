@@ -39,14 +39,7 @@ You will see one or both of the following exceptions when the schema mutation lo
 Clear with CLI
 --------------
 
-The :ref:`AtlasDB Dropwizard bundle <dropwizard-bundle>` comes with a command that will clear the schema mutation lock.
-To use the CLI, shut down your AtlasDB clients and run:
-
-.. code-block:: bash
-
-   ./service/bin/<service> atlasdb clean-cass-locks-state var/conf/<service>.yml --offline
-
-Alternatively, one can also run the CLIs as a separate distribution. These distributions are published on
+One runs the CLIs as a separate distribution. These distributions are published on
 `Bintray <https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/0.78.0/>`__ - please make
 sure to use the corresponding version of the CLIs with your service. The command can then be invoked as
 
