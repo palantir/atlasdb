@@ -100,7 +100,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> readsByTable = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, ConcurrentMap<RangeRequest, byte[]>> rangeEndByTable = Maps.newConcurrentMap();
-    final ConcurrentMap<TableReference, ConcurrentMap<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
+    final ConcurrentMap<TableReference, ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
             columnRangeEndsByTable = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<Cell>> cellsRead = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
@@ -297,14 +297,15 @@ public class SerializableTransaction extends SnapshotTransaction {
             byte[] maxCol) {
         Validate.notNull(maxCol, "maxCol cannot be null");
         if (!columnRangeEndsByTable.containsKey(table)) {
-            ConcurrentMap<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>> newMap = Maps.newConcurrentMap();
+            ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> newMap = Maps.newConcurrentMap();
             columnRangeEndsByTable.putIfAbsent(table, newMap);
         }
         if (!columnRangeEndsByTable.get(table).containsKey(row)) {
             ConcurrentMap<BatchColumnRangeSelection, byte[]> newMap = Maps.newConcurrentMap();
-            columnRangeEndsByTable.get(table).putIfAbsent(row, newMap);
+            columnRangeEndsByTable.get(table).putIfAbsent(ByteBuffer.wrap(row), newMap);
         }
-        ConcurrentMap<BatchColumnRangeSelection, byte[]> rangeEnds = columnRangeEndsByTable.get(table).get(row);
+        ConcurrentMap<BatchColumnRangeSelection, byte[]> rangeEnds =
+                columnRangeEndsByTable.get(table).get(ByteBuffer.wrap(row));
 
         if (maxCol.length == 0) {
             rangeEnds.put(columnRangeSelection, maxCol);
@@ -618,16 +619,17 @@ public class SerializableTransaction extends SnapshotTransaction {
     private void verifyColumnRanges(Transaction readOnlyTransaction) {
         // verify each set of reads to ensure they are the same.
         for (Entry<TableReference,
-                ConcurrentMap<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>>> tableAndRange :
+                ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>> tableAndRange :
                 columnRangeEndsByTable.entrySet()) {
             TableReference table = tableAndRange.getKey();
-            Map<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>> columnRangeEnds = tableAndRange.getValue();
+            Map<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> columnRangeEnds =
+                    tableAndRange.getValue();
 
             Map<Cell, byte[]> writes = writesByTable.get(table);
             Map<BatchColumnRangeSelection, List<byte[]>> rangesToRows = Maps.newHashMap();
-            for (Entry<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
+            for (Entry<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
                     columnRangeEnds.entrySet()) {
-                byte[] row = rowAndRangeEnds.getKey();
+                byte[] row = rowAndRangeEnds.getKey().array();
                 Map<BatchColumnRangeSelection, byte[]> rangeEnds = rowAndRangeEnds.getValue();
 
                 for (Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {

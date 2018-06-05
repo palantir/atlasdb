@@ -679,15 +679,20 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Test
     public void testMultipleReadsToSameColumnRange() {
-        byte[] row = PtBytes.toBytes("row1");
+        String rowString = "row1";
+        byte[] row = PtBytes.toBytes(rowString);
+        byte[] rowDifferentReference = PtBytes.toBytes(rowString);
+
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
                 t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
                         BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+        columnRange.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeAgain =
-                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(rowDifferentReference),
                         BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        put(t1, "row1_1", "col0", "v0");
+        columnRangeAgain.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        put(t1, "mutation to ensure", "conflict", "handling");
         t1.commit();
     }
 
