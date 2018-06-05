@@ -97,7 +97,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             return tryGetStream(transaction, id, metadata);
         } catch (FileNotFoundException e) {
             log.error("Error opening temp file for stream {}", id, e);
-            throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to of stream.", e);
+            throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
         }
     }
 
@@ -164,8 +164,8 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             writeStreamToFile(transaction, id, metadata, file);
             return file;
         } catch (IOException e) {
-            log.error("Could not of temp file for stream id {}", id, e);
-            throw Throwables.rewrapAndThrowUncheckedException("Could not of file to of stream.", e);
+            log.error("Could not create temp file for stream id {}", id, e);
+            throw Throwables.rewrapAndThrowUncheckedException("Could not create file to create stream.", e);
         }
     }
 

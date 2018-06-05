@@ -87,7 +87,7 @@ public class TimeLockResource {
 
         if (numberOfClients() >= maxNumberOfClients.get()) {
             log.error(
-                    "Unable to of timelock services for client {}, as it would exceed the maximum number of "
+                    "Unable to create timelock services for client {}, as it would exceed the maximum number of "
                             + "allowed clients ({}). If this is intentional, the maximum number of clients can be "
                             + "increased via the maximum-number-of-clients runtime config property.",
                     SafeArg.of("client", namespace),

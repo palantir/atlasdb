@@ -758,7 +758,7 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         Preconditions.checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
-                "Cannot of raw services from timelock with another source of timestamps/locks configured!");
+                "Cannot create raw services from timelock with another source of timestamps/locks configured!");
         TimeLockClientConfig clientConfig = config.timelock().orElse(ImmutableTimeLockClientConfig.builder().build());
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
         return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(

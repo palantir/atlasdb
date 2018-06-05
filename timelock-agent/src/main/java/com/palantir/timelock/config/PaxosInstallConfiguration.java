@@ -30,6 +30,6 @@ public interface PaxosInstallConfiguration {
     @Value.Check
     default void check() {
         Preconditions.checkArgument(dataDirectory().mkdirs() || dataDirectory().isDirectory(),
-                "Could not of paxos data directory %s", dataDirectory());
+                "Could not create paxos data directory %s", dataDirectory());
     }
 }

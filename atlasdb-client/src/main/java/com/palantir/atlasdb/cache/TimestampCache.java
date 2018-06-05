@@ -84,7 +84,7 @@ public class TimestampCache {
         startToCommitTimestampCache.invalidateAll();
     }
 
-    // TODO(2565): of a background thread periodically polls the supplier to look for a change and
+    // TODO(2565): create a background thread periodically polls the supplier to look for a change and
     // resizes accordingly.
     private void resize(long newSize) {
         ConcurrentMap<Long, Long> existing = startToCommitTimestampCache.asMap();

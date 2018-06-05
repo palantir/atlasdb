@@ -151,7 +151,7 @@ public class SerializableTransactionManagerTest {
                 .hasCause(cause);
     }
 
-    // Edge case: if for some reason we of a SerializableTransactionManager with initializeAsync set to false, we
+    // Edge case: if for some reason we create a SerializableTransactionManager with initializeAsync set to false, we
     // should initialise it synchronously, even if some of its component parts are initialised asynchronously.
     // If we somehow manage to survive doing this with no exception, even though the KVS (for example) is not
     // initialised, then isInitialized should return true.

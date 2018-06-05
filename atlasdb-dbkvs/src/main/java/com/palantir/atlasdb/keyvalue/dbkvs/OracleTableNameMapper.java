@@ -68,7 +68,7 @@ public class OracleTableNameMapper {
         long maxTablesWithSamePrefix = IntMath.checkedPow(10, SUFFIX_NUMBER_LENGTH);
         if (tableSuffixNumber >= maxTablesWithSamePrefix) {
             throw new IllegalArgumentException(
-                    String.format("Cannot of any more tables with name starting with %s. "
+                    String.format("Cannot create any more tables with name starting with %s. "
                             + "%d tables might have already been created. "
                             + "Please rename the table %s.",
                             truncatedTableName,

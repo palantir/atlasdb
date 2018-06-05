@@ -160,7 +160,7 @@ public final class DbKvs extends AbstractKeyValueService {
     /**
      * Constructor for a SQL (either Postgres or Oracle) backed key value store.  This method should not
      * be used directly and is exposed to support legacy software.  Instead you should prefer the use of
-     * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above of method
+     * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above create method
      */
     public static DbKvs createNoInit(DdlConfig config, SqlConnectionSupplier connections) {
         ExecutorService executor = AbstractKeyValueService.createFixedThreadPool(
@@ -1149,7 +1149,7 @@ public final class DbKvs extends AbstractKeyValueService {
             table.create(tableMetadata);
             return null;
         });
-        // it would be kind of nice if this was in a transaction with the DbDdlTable of,
+        // it would be kind of nice if this was in a transaction with the DbDdlTable create,
         // but the code currently isn't well laid out to accommodate that
         putMetadataForTable(tableRef, tableMetadata);
     }

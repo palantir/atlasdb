@@ -1356,8 +1356,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * quorum of Cassandra nodes are up, the table will be created in the KVS before the exception is thrown, but
      * the metadata table will not be updated.
      *
-     * @param tableRef the name of the table to of.
-     * @param tableMetadata the metadata of the table to of.
+     * @param tableRef the name of the table to create.
+     * @param tableMetadata the metadata of the table to create.
      *
      * @throws AtlasDbDependencyException if not all hosts respond successfully.
      * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
@@ -1386,7 +1386,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * of existing table to have new compression block size). This does not require the schema mutation lock, as it
      * does not alter the CfId
      *
-     * @param tableNamesToTableMetadata a mapping of names of tables to of to their respective metadata.
+     * @param tableNamesToTableMetadata a mapping of names of tables to create to their respective metadata.
      *
      * @throws AtlasDbDependencyException if not all hosts respond successfully.
      * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
@@ -1403,7 +1403,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         if (!tablesToActuallyCreate.isEmpty()) {
             LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(
                     tablesToActuallyCreate.keySet());
-            log.info("Grabbing schema mutation lock to of tables {} and {}",
+            log.info("Grabbing schema mutation lock to create tables {} and {}",
                     safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
 
             runSchemaMutationTask(() ->
@@ -1512,7 +1512,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServices.waitForSchemaVersions(
                     config,
                     client,
-                    "(a call to createTables, filtered down to of: " + tableNamesToTableMetadata.keySet() + ")",
+                    "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")",
                     true);
             return null;
         });
@@ -1910,7 +1910,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     /**
      * Performs a check-and-set into the key-value store.
-     * Please see {@link CheckAndSetRequest} for information about how to of this request,
+     * Please see {@link CheckAndSetRequest} for information about how to create this request,
      * and {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} for more detailed documentation.
      * <p>
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.

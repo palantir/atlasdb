@@ -149,7 +149,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
             }
         }
-        throw new IllegalStateException("Timed-out because we were unable to of transaction manager");
+        throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

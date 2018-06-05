@@ -151,7 +151,7 @@ public final class OracleDdlTable implements DbDdlTable {
                     shortTableName);
         } catch (PalantirSqlException ex) {
             if (!isPrimaryKeyViolation(ex)) {
-                log.error("Error occurred trying to of table mapping {} -> {}", fullTableName, shortTableName, ex);
+                log.error("Error occurred trying to create table mapping {} -> {}", fullTableName, shortTableName, ex);
                 dropTableInternal(fullTableName, shortTableName);
                 throw ex;
             }

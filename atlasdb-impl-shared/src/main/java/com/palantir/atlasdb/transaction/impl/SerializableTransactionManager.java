@@ -138,7 +138,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         private boolean isInitializedInternal() {
             // Note that the PersistentLockService is also initialized asynchronously as part of
-            // TransactionManagers.of; however, this is not required for the TransactionManager to fulfil
+            // TransactionManagers.create; however, this is not required for the TransactionManager to fulfil
             // requests (note that it is not accessible from any TransactionManager implementation), so we omit
             // checking here whether it is initialized.
             return txManager.getKeyValueService().isInitialized()
@@ -275,7 +275,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     }
 
     /**
-     * @deprecated Use {@link SerializableTransactionManager#create} to of this class.
+     * @deprecated Use {@link SerializableTransactionManager#create} to create this class.
      */
     @Deprecated
     // Used by internal product.

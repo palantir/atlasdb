@@ -57,7 +57,7 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
         return applyDynamic(() -> input);
     }
 
-    // Semi-horrible, but given that we of ServiceCreators explicitly and I'd rather not API break our
+    // Semi-horrible, but given that we create ServiceCreators explicitly and I'd rather not API break our
     // implementation of Function, leaving this here for now.
     public T applyDynamic(Supplier<ServerListConfig> input) {
         return createService(
@@ -113,7 +113,7 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
                 // fall through
         }
 
-        throw new IllegalStateException("Failed to of ProxySelector for proxy configuration: " + proxyConfig);
+        throw new IllegalStateException("Failed to create ProxySelector for proxy configuration: " + proxyConfig);
     }
 
     private static ProxySelector fixedProxySelectorFor(Proxy proxy) {
