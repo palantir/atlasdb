@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
-        CommandLineEteTest.class
         })
 public class DbKvsTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
