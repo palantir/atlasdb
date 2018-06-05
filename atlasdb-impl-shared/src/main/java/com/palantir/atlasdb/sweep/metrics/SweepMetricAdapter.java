@@ -69,11 +69,4 @@ public abstract class SweepMetricAdapter<M extends Metric, T> {
                     .setMethod(CurrentValueMetric::setValue)
                     .build();
 
-    static final SweepMetricAdapter<AccumulatingValueMetric, Long> ACCUMULATING_VALUE_ADAPTER =
-            ImmutableSweepMetricAdapter.<AccumulatingValueMetric, Long>builder()
-                    .metricConstructor((metricRegistry, name) ->
-                            (AccumulatingValueMetric) metricRegistry.gauge(name, AccumulatingValueMetric::new))
-                    .setMethod(AccumulatingValueMetric::setValue)
-                    .accumulateMethod(AccumulatingValueMetric::accumulateValue)
-                    .build();
 }

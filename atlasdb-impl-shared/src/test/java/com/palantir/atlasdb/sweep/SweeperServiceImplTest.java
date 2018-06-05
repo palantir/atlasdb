@@ -143,7 +143,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3}));
         ArgumentCaptor<SweepResults> argumentCaptor = ArgumentCaptor.forClass(SweepResults.class);
 
-        Mockito.verify(sweepMetricsManager, times(1)).updateMetrics(argumentCaptor.capture(), eq(TABLE_REF));
+        Mockito.verify(sweepMetricsManager, times(1)).updateMetrics(argumentCaptor.capture());
         verifyExpectedArgument(argumentCaptor.getValue());
     }
 

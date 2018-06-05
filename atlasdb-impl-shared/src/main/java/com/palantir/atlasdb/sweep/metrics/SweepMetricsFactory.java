@@ -22,17 +22,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 public class SweepMetricsFactory {
     private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
 
-    SweepMetric<Long> simpleLong(String namePrefix) {
-        return createMetric(namePrefix, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_LONG);
-    }
-
-    SweepMetric<String> simpleString(String namePrefix) {
-        return createMetric(namePrefix, SweepMetricAdapter.CURRENT_VALUE_ADAPTER_STRING);
-    }
-
-    SweepMetric<Long> accumulatingLong(String namePrefix) {
-        return createMetric(namePrefix, SweepMetricAdapter.ACCUMULATING_VALUE_ADAPTER);
-    }
 
     SweepMetric<Long> simpleMeter(String namePrefix) {
         return createMetric(namePrefix, SweepMetricAdapter.METER_ADAPTER);

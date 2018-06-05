@@ -15,42 +15,37 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.util.MetricsManager;
 
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
 public class SweepMetricsManager {
-    private final SweepMetricsFactory factory = new SweepMetricsFactory();
+    private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
 
-    private final SweepMetric<Long> cellsExamined = factory.accumulatingLong(AtlasDbMetricNames.CELLS_EXAMINED);
-    private final SweepMetric<Long> cellsDeleted = factory.accumulatingLong(AtlasDbMetricNames.CELLS_SWEPT);
-    private final SweepMetric<Long> timeSweeping = factory.simpleLong(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
-    private final SweepMetric<Long> totalTime = factory.simpleLong(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
-    private final SweepMetric<String> tableSweeping = factory.simpleString(AtlasDbMetricNames.TABLE_BEING_SWEPT);
-    private final SweepMetric<Long> sweepErrors = factory.simpleMeter(AtlasDbMetricNames.SWEEP_ERROR);
+    private final Meter cellsExamined = metricRegistry.meter(AtlasDbMetricNames.CELLS_EXAMINED);
+    private final Meter cellsDeleted = metricRegistry.meter(AtlasDbMetricNames.CELLS_SWEPT);
+    private final Meter timeSweeping = metricRegistry.meter(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
+    private final Meter totalTime = metricRegistry.meter(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
+    private final Meter sweepErrors = metricRegistry.meter(AtlasDbMetricNames.SWEEP_ERROR);
 
-    public void resetBeforeDeleteBatch() {
-        cellsExamined.set(0L);
-        cellsDeleted.set(0L);
-    }
 
     public void updateAfterDeleteBatch(long cellTsPairsExamined, long staleValuesDeleted) {
-        cellsExamined.accumulate(cellTsPairsExamined);
-        cellsDeleted.accumulate(staleValuesDeleted);
+        cellsExamined.mark(cellTsPairsExamined);
+        cellsDeleted.mark(staleValuesDeleted);
     }
 
-    public void updateMetrics(SweepResults sweepResults, TableReference tableRef) {
-        cellsExamined.set(sweepResults.getCellTsPairsExamined());
-        cellsDeleted.set(sweepResults.getStaleValuesDeleted());
-        tableSweeping.set(LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName());
-        timeSweeping.set(sweepResults.getTimeInMillis());
-        totalTime.set(sweepResults.getTimeElapsedSinceStartedSweeping());
+    public void updateMetrics(SweepResults sweepResults) {
+        cellsExamined.mark(sweepResults.getCellTsPairsExamined());
+        cellsDeleted.mark(sweepResults.getStaleValuesDeleted());
+        timeSweeping.mark(sweepResults.getTimeInMillis());
+        totalTime.mark(sweepResults.getTimeElapsedSinceStartedSweeping());
     }
 
     public void sweepError() {
-        sweepErrors.set(1L);
+        sweepErrors.mark(1L);
     }
 }
