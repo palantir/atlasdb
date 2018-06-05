@@ -190,7 +190,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     protected SerializableTransactionManager() {
         this(null, null, null, null, null, null, null, null,
                 null, null, () -> 1L, false, null, 1, 1,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP, null);
     }
 
     public static SerializableTransactionManager create(MetricsManager metricsManager,
@@ -212,8 +212,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<SerializableTransactionManager> callback) {
         TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
-                metricsManager,
-                timelockService, cleaner, initializeAsync);
+                metricsManager, timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -230,7 +229,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 lockAcquireTimeoutMs,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter);
+                sweepQueueWriter,
+                Executors.newSingleThreadExecutor());
 
         if (!initializeAsync) {
             callback.runWithRetry(serializableTransactionManager);
@@ -271,89 +271,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
-                sweepQueue);
-    }
-
-    /**
-     * @deprecated Use {@link SerializableTransactionManager#create} to create this class.
-     */
-    @Deprecated
-    // Used by internal product.
-    public SerializableTransactionManager(MetricsManager metricsManager,
-            KeyValueService keyValueService,
-            TimestampService timestampService,
-            LockClient lockClient,
-            LockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            boolean allowHiddenTableAccess,
-            TimestampTracker timestampTracker,
-            int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency,
-            Supplier<Long> timestampCacheSize) {
-        this(
-                metricsManager,
-                keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                timestampTracker,
-                timestampCacheSize,
-                allowHiddenTableAccess,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP
-        );
+                sweepQueue,
+                Executors.newSingleThreadExecutor());
     }
 
     // Canonical constructor.
     public SerializableTransactionManager(MetricsManager metricsManager,
-            KeyValueService keyValueService,
-            TimelockService timelockService,
-            LockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            TimestampTracker timestampTracker,
-            Supplier<Long> timestampCacheSize,
-            boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs,
-            int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency,
-            MultiTableSweepQueueWriter sweepQueueWriter) {
-        this(
-                metricsManager,
-                keyValueService,
-                timelockService,
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                timestampTracker,
-                timestampCacheSize,
-                allowHiddenTableAccess,
-                lockAcquireTimeoutMs,
-                concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                sweepQueueWriter,
-                Executors.newSingleThreadExecutor()
-        );
-    }
-
-    @VisibleForTesting
-    SerializableTransactionManager(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockService lockService,

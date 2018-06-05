@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -76,7 +77,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -84,7 +84,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -109,21 +108,25 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     public static final ExecutorService DELETE_EXECUTOR = Executors.newSingleThreadExecutor();
 
     protected Transaction startTransaction() {
-        return new SnapshotTransaction(
-                MetricsManagers.createForTests(),
+        long startTimestamp = timestampService.getFreshTimestamp();
+        return new SnapshotTransaction(metricsManager,
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                null,
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                timestampService.getFreshTimestamp(),
-                TestConflictDetectionManagers.createWithStaticConflictDetection(ImmutableMap.of(
-                        TEST_TABLE,
-                        ConflictHandler.RETRY_ON_WRITE_WRITE,
-                        TransactionConstants.TRANSACTION_TABLE,
-                        ConflictHandler.IGNORE_ALL)),
+                () -> startTimestamp,
+                ConflictDetectionManagers.createWithNoConflictDetection(),
+                SweepStrategyManagers.createDefault(keyValueService),
+                startTimestamp,
+                Optional.empty(),
+                PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                false,
                 timestampCache,
+                // never actually used, since timelockService is null
+                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 GET_RANGES_EXECUTOR,
                 DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,

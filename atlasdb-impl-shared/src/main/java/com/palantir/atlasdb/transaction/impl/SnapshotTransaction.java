@@ -48,7 +48,6 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
@@ -57,7 +56,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -81,7 +79,6 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -268,85 +265,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = sweepQueue;
-        this.deleteExecutor = deleteExecutor;
-        this.hasReads = false;
-    }
-
-    // TEST ONLY
-    @VisibleForTesting
-    SnapshotTransaction(MetricsManager metricsManager,
-                        KeyValueService keyValueService,
-                        TimelockService timelockService,
-                        TransactionService transactionService,
-                        Cleaner cleaner,
-                        long startTimeStamp,
-                        ConflictDetectionManager conflictDetectionManager,
-                        AtlasDbConstraintCheckingMode constraintCheckingMode,
-                        TransactionReadSentinelBehavior readSentinelBehavior,
-                        TimestampCache timestampValidationReadCache,
-                        ExecutorService getRangesExecutor,
-                        int defaultGetRangesConcurrency,
-                        MultiTableSweepQueueWriter sweepQueue,
-                        ExecutorService deleteExecutor) {
-        this.metricsManager = metricsManager;
-        this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = keyValueService;
-        this.timelockService = timelockService;
-        this.defaultTransactionService = transactionService;
-        this.cleaner = cleaner;
-        this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = conflictDetectionManager;
-        this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        this.immutableTimestamp = 0;
-        this.immutableTimestampLock = Optional.empty();
-        this.preCommitCondition = PreCommitConditions.NO_OP;
-        this.constraintCheckingMode = constraintCheckingMode;
-        this.transactionReadTimeoutMillis = null;
-        this.readSentinelBehavior = readSentinelBehavior;
-        this.allowHiddenTableAccess = false;
-        this.timestampValidationReadCache = timestampValidationReadCache;
-        this.lockAcquireTimeoutMs = AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
-        this.getRangesExecutor = getRangesExecutor;
-        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
-        this.sweepQueue = sweepQueue;
-        this.deleteExecutor = deleteExecutor;
-        this.hasReads = false;
-    }
-
-    protected SnapshotTransaction(MetricsManager metricsManager,
-                                  KeyValueService keyValueService,
-                                  TransactionService transactionService,
-                                  TimelockService timelockService,
-                                  long startTimeStamp,
-                                  AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                  TransactionReadSentinelBehavior readSentinelBehavior,
-                                  boolean allowHiddenTableAccess,
-                                  TimestampCache timestampValidationReadCache,
-                                  long lockAcquireTimeoutMs,
-                                  ExecutorService getRangesExecutor,
-                                  int defaultGetRangesConcurrency,
-                                  ExecutorService deleteExecutor) {
-        this.metricsManager = metricsManager;
-        this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = keyValueService;
-        this.defaultTransactionService = transactionService;
-        this.cleaner = NoOpCleaner.INSTANCE;
-        this.timelockService = timelockService;
-        this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = ConflictDetectionManagers.createWithNoConflictDetection();
-        this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        this.immutableTimestamp = startTimeStamp;
-        this.immutableTimestampLock = Optional.empty();
-        this.preCommitCondition = PreCommitConditions.NO_OP;
-        this.constraintCheckingMode = constraintCheckingMode;
-        this.transactionReadTimeoutMillis = null;
-        this.readSentinelBehavior = readSentinelBehavior;
-        this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.timestampValidationReadCache = timestampValidationReadCache;
-        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
-        this.getRangesExecutor = getRangesExecutor;
-        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
-        this.sweepQueue = MultiTableSweepQueueWriter.NO_OP;
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
     }

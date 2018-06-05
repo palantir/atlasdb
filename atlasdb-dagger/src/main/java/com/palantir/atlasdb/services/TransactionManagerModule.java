@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.services;
 
+import java.util.concurrent.Executors;
+
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -107,7 +109,8 @@ public class TransactionManagerModule {
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                Executors.newSingleThreadExecutor());
     }
 
 }

@@ -118,20 +118,28 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     @Override
     public Transaction createNewTransaction() {
-        return new SnapshotTransaction(
-                metricsManager,
+        long startTimestamp = timelockService.getFreshTimestamp();
+        return new SnapshotTransaction(metricsManager,
                 keyValueService,
-                timelockService,
+                null,
                 transactionService,
-                cleaner,
-                timelockService.getFreshTimestamp(),
-                getConflictDetectionManager(),
-                constraintModeSupplier.get(),
+                NoOpCleaner.INSTANCE,
+                () -> startTimestamp,
+                ConflictDetectionManagers.createWithNoConflictDetection(),
+                SweepStrategyManagers.createDefault(keyValueService),
+                startTimestamp,
+                Optional.empty(),
+                PreCommitConditions.NO_OP,
+                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                false,
                 timestampValidationReadCache,
+                // never actually used, since timelockService is null
+                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter,
+                MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor);
     }
 
