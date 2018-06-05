@@ -51,7 +51,7 @@ develop
          - Change
 
     *    - |improved|
-         - When writing to Cassandra, the internal write timestamp for writes of sweep sentinels and deletes to regular tables are now an approximately fresh timestamp from the timestamp service, as opposed to being an arbitrary hardcoded value or related to the transaction's start timestamp.
+         - When writing to Cassandra, the internal write timestamp for writes of sweep sentinels, range tombstones and deletes to regular tables are now approximately fresh timestamps from the timestamp service, as opposed to being an arbitrary hardcoded value or related to the transaction's start timestamp.
            This should improve Cassandra's ability to purge droppable tombstones at compaction time, particularly in tables that see heavy volumes of overwrites and sweeping.
 
            Note that this only applies if you have created your Transaction Manager through the ``TransactionManagers`` factory.
