@@ -40,4 +40,10 @@ public interface CassandraMutationTimestampProvider {
      * @param atlasDeletionTimestamp Atlas timestamp of the relevant delete.
      */
     long getDeletionTimestamp(long atlasDeletionTimestamp);
+
+    /**
+     * Cassandra timestamp at which a range tombstone should be written.
+     * @param maximumAtlasTimestampExclusive Maximum timestamp, exclusive, of the range tombstone.
+     */
+    long getRangeTombstoneTimestamp(long maximumAtlasTimestampExclusive);
 }

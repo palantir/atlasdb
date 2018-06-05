@@ -40,6 +40,11 @@ public class CassandraMutationTimestampProviders {
             public long getDeletionTimestamp(long atlasDeletionTimestamp) {
                 return atlasDeletionTimestamp + 1;
             }
+
+            @Override
+            public long getRangeTombstoneTimestamp(long maximumAtlasTimestampExclusive) {
+                return getDeletionTimestamp(maximumAtlasTimestampExclusive);
+            }
         };
     }
 
@@ -53,6 +58,11 @@ public class CassandraMutationTimestampProviders {
 
             @Override
             public long getDeletionTimestamp(long atlasDeletionTimestamp) {
+                return longSupplier.get();
+            }
+
+            @Override
+            public long getRangeTombstoneTimestamp(long maximumAtlasTimestampExclusive) {
                 return longSupplier.get();
             }
         };

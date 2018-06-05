@@ -44,6 +44,12 @@ public class CassandraMutationTimestampProvidersTest {
     }
 
     @Test
+    public void legacyProviderWritesRangeTombstonesAtAtlasTimestampPlusOne() {
+        assertThat(LEGACY_PROVIDER.getRangeTombstoneTimestamp(1234)).isEqualTo(1234 + 1);
+        assertThat(LEGACY_PROVIDER.getRangeTombstoneTimestamp(12345678)).isEqualTo(12345678 + 1);
+    }
+
+    @Test
     public void supplierBackedProviderQueriesSupplierForSweepSentinelTimestamps() {
         assertThat(supplierBackedProvider.getSweepSentinelWriteTimestamp()).isEqualTo(1);
         assertThat(supplierBackedProvider.getSweepSentinelWriteTimestamp()).isEqualTo(2);
@@ -55,6 +61,13 @@ public class CassandraMutationTimestampProvidersTest {
         assertThat(supplierBackedProvider.getDeletionTimestamp(1234)).isEqualTo(1);
         assertThat(supplierBackedProvider.getDeletionTimestamp(12345678)).isEqualTo(2);
         assertThat(supplierBackedProvider.getDeletionTimestamp(314159265358979L)).isEqualTo(3);
+    }
+
+    @Test
+    public void supplierBackedProviderQueriesSupplierForRangeTombstoneTimestamps() {
+        assertThat(supplierBackedProvider.getRangeTombstoneTimestamp(3141592)).isEqualTo(1);
+        assertThat(supplierBackedProvider.getRangeTombstoneTimestamp(0)).isEqualTo(2);
+        assertThat(supplierBackedProvider.getRangeTombstoneTimestamp(1L<<60)).isEqualTo(3);
     }
 
     @Test
