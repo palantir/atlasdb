@@ -58,6 +58,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -81,7 +82,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
-import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -103,6 +103,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     protected static final ExecutorService GET_RANGES_EXECUTOR =
             Executors.newFixedThreadPool(GET_RANGES_THREAD_POOL_SIZE);
 
+    public static final ExecutorService DELETE_EXECUTOR = Executors.newSingleThreadExecutor();
+
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
                 keyValueService,
@@ -120,7 +122,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 timestampCache,
                 GET_RANGES_EXECUTOR,
                 DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                DELETE_EXECUTOR);
     }
 
     @Test
@@ -178,7 +181,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         assertThatThrownBy(() ->
                 keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
                         ImmutableMap.of(cell, "v2".getBytes())))
-                .isInstanceOf(AtlasDbDependencyException.class);
+                .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
     @Test

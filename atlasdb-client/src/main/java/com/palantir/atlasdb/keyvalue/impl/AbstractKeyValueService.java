@@ -18,11 +18,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -43,7 +38,6 @@ import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -51,8 +45,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
@@ -141,56 +133,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         return AtlasDbPerformanceConstants.MAX_BATCH_SIZE_BYTES;
     }
 
-    /* (non-Javadoc)
-     * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
-     */
-    @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp)
-            throws KeyAlreadyExistsException {
-        List<Callable<Void>> callables = Lists.newArrayList();
-        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
-            final TableReference table = e.getKey();
-            // We sort here because some key value stores are more efficient if you store adjacent keys together.
-            NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
-
-            Iterable<List<Entry<Cell, byte[]>>> partitions = IterablePartitioner.partitionByCountAndBytes(
-                    sortedMap.entrySet(),
-                    getMultiPutBatchCount(),
-                    getMultiPutBatchSizeBytes(),
-                    table,
-                    entry -> entry == null ? 0 : entry.getValue().length + Cells.getApproxSizeOfCell(entry.getKey()));
-
-            for (final List<Entry<Cell, byte[]>> p : partitions) {
-                callables.add(() -> {
-                    String originalName = Thread.currentThread().getName();
-                    Thread.currentThread().setName("Atlas multiPut of " + p.size() + " cells into " + table);
-                    try {
-                        put(table, Maps2.fromEntries(p), timestamp);
-                        return null;
-                    } finally {
-                        Thread.currentThread().setName(originalName);
-                    }
-                });
-            }
-        }
-
-        List<Future<Void>> futures;
-        try {
-            futures = executor.invokeAll(callables);
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-        for (Future<Void> future : futures) {
-            try {
-                future.get();
-            } catch (InterruptedException e) {
-                throw Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
-            }
-        }
-    }
-
     @Override
     public void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata) {
         for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
@@ -214,12 +156,12 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void deleteAllTimestamps(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell) {
-        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell);
+            Map<Cell, Long> maxTimestampExclusiveByCell, boolean deleteSentinels) {
+        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell, deleteSentinels);
     }
 
     public static void deleteAllTimestampsDefaultImpl(KeyValueService kvs, TableReference tableRef,
-            Map<Cell, Long> maxTimestampByCell) {
+            Map<Cell, Long> maxTimestampByCell, boolean deleteSentinel) {
         if (maxTimestampByCell.isEmpty()) {
             return;
         }
@@ -233,7 +175,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             long maxTimestampForCell = maxTimestampByCell.get(entry.getKey());
 
             long timestamp = entry.getValue();
-            return timestamp < maxTimestampForCell && timestamp != Value.INVALID_VALUE_TIMESTAMP;
+            return timestamp < maxTimestampForCell && (deleteSentinel || timestamp != Value.INVALID_VALUE_TIMESTAMP);
         });
 
         kvs.delete(tableRef, timestampsByCellExcludingSentinels);
