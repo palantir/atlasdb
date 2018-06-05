@@ -53,6 +53,7 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
+import com.palantir.atlasdb.transaction.impl.SerializableTransaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -75,6 +76,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             CheckAndSetSchema.getSchema(),
             TodoSchema.getSchema(),
             BlobSchema.getSchema());
+    private static final Follower FOLLOWER = CleanupFollower.create(ETE_SCHEMAS);
+
 
     public static void main(String[] args) throws Exception {
         new AtlasDbEteServer().run(args);
@@ -89,18 +92,19 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
-        SerializableTransactionManager transactionManager = tryToCreateTransactionManager(config, environment);
-        Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(transactionManager));
-        TargetedSweeper targetedSweeper = getTargetedSweeperIgnoringUnreadableTs(transactionManager);
+        SerializableTransactionManager txManager = tryToCreateTransactionManager(config, environment);
+        Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(txManager));
+        TargetedSweeper sweeper = getTargetedSweeperWithFollower();
+        Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
         environment.jersey().register(new SimpleTodoResource(new TodoClient(
-                transactionManager,
+                txManager,
                 sweepTaskRunner,
-                targetedSweeper)));
-        environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
+                sweeperSupplier)));
+        environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(txManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
         environment.jersey().register(new CleanupMetadataResourceImpl(
-                transactionManager,
+                txManager,
                 config.getAtlasDbConfig().initializeAsync()));
     }
 
@@ -128,14 +132,17 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         return new SweepTaskRunner(kvs, ts, ts, txnService, ssm, cellsSweeper);
     }
 
-    private TargetedSweeper getTargetedSweeperIgnoringUnreadableTs(SerializableTransactionManager manager) {
-        Follower follower = CleanupFollower.create(ETE_SCHEMAS);
-        TargetedSweeper targetedSweeper = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0, follower);
-        targetedSweeper.initialize(
-                new SpecialTimestampsSupplier(manager::getImmutableTimestamp, manager::getImmutableTimestamp),
-                manager.getKeyValueService(),
-                new TargetedSweepFollower(follower, manager));
+    private TargetedSweeper getTargetedSweeperWithFollower() {
+        TargetedSweeper targetedSweeper = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0, FOLLOWER);
         return targetedSweeper;
+    }
+
+    private TargetedSweeper initializeAndGet(TargetedSweeper sweeper, SerializableTransactionManager txManager) {
+        sweeper.initialize(
+                new SpecialTimestampsSupplier(txManager::getImmutableTimestamp, txManager::getImmutableTimestamp),
+                txManager.getKeyValueService(),
+                new TargetedSweepFollower(FOLLOWER, txManager));
+        return sweeper;
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

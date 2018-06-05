@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -64,15 +65,15 @@ public class TodoClient {
     private static final Logger log = LoggerFactory.getLogger(TodoClient.class);
 
     private final TransactionManager transactionManager;
-    private final KeyValueService kvs;
+    private final Supplier<KeyValueService> kvs;
     private final Supplier<SweepTaskRunner> sweepTaskRunner;
-    private final TargetedSweeper targetedSweeper;
+    private final Supplier<TargetedSweeper> targetedSweeper;
     private final Random random = new Random();
 
     public TodoClient(TransactionManager transactionManager, Supplier<SweepTaskRunner> sweepTaskRunner,
-            TargetedSweeper targetedSweeper) {
+            Supplier<TargetedSweeper> targetedSweeper) {
         this.transactionManager = transactionManager;
-        this.kvs = ((SerializableTransactionManager) transactionManager).getKeyValueService();
+        this.kvs = Suppliers.memoize(((SerializableTransactionManager) transactionManager)::getKeyValueService);
         this.sweepTaskRunner = sweepTaskRunner;
         this.targetedSweeper = targetedSweeper;
     }
@@ -95,7 +96,7 @@ public class TodoClient {
     public boolean doesNotExistBeforeTimestamp(long id, long ts) {
         TableReference tableRef = TodoSchemaTableFactory.of().getTodoTable(null).getTableRef();
         Cell cell = Cell.create(ValueType.FIXED_LONG.convertFromJava(id), TodoSchema.todoTextColumn());
-        return kvs.get(tableRef, ImmutableMap.of(cell, ts + 1)).isEmpty();
+        return kvs.get().get(tableRef, ImmutableMap.of(cell, ts + 1)).isEmpty();
     }
 
     public List<Todo> getTodoList() {
@@ -154,7 +155,7 @@ public class TodoClient {
     }
 
     public void runIterationOfTargetedSweep() {
-        targetedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0));
+        targetedSweeper.get().sweepNextBatch(ShardAndStrategy.conservative(0));
     }
 
 
@@ -191,17 +192,18 @@ public class TodoClient {
 
     private Map<Cell, Value> cellsDeleted(TableReference tableRef) {
         Set<Cell> allCells = getAllCells(tableRef);
-        Map<Cell, Value> latest = kvs.get(tableRef, Maps.asMap(allCells, ignore -> Long.MAX_VALUE));
+        Map<Cell, Value> latest = kvs.get().get(tableRef, Maps.asMap(allCells, ignore -> Long.MAX_VALUE));
         return Maps.filterEntries(latest, ent -> Arrays.equals(ent.getValue().getContents(), PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     private Value getValueForEntry(TableReference tableRef, Map.Entry<Cell, Value> entry) {
-        return kvs.get(tableRef, ImmutableMap.of(entry.getKey(), entry.getValue().getTimestamp()))
+        return kvs.get().get(tableRef, ImmutableMap.of(entry.getKey(), entry.getValue().getTimestamp()))
                 .get(entry.getKey());
     }
 
     private Set<Cell> getAllCells(TableReference tableRef) {
-        try (ClosableIterator<RowResult<Value>> iterator = kvs.getRange(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
+        try (ClosableIterator<RowResult<Value>> iterator = kvs.get()
+                .getRange(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
             return iterator.stream()
                     .map(RowResult::getCells)
                     .flatMap(Streams::stream)
@@ -211,7 +213,7 @@ public class TodoClient {
     }
 
     public void truncate() {
-        Schemas.truncateTablesAndIndexes(TodoSchema.getSchema(), kvs);
-        Schemas.truncateTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+        Schemas.truncateTablesAndIndexes(TodoSchema.getSchema(), kvs.get());
+        Schemas.truncateTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs.get());
     }
 }
