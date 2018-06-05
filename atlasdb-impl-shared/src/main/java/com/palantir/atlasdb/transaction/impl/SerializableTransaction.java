@@ -24,6 +24,7 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -48,6 +49,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -268,69 +270,39 @@ public class SerializableTransaction extends SnapshotTransaction {
             rangeEnds.put(range, maxRow);
         }
 
-        while (true) {
-            byte[] curVal = rangeEnds.get(range);
+        rangeEnds.compute(range, (r, curVal) -> {
             if (curVal == null) {
-                byte[] oldVal = rangeEnds.putIfAbsent(range, maxRow);
-                if (oldVal == null) {
-                    return;
-                } else {
-                    continue;
-                }
+                return maxRow;
+            } else if (curVal.length == 0) {
+                return curVal;
             }
-            if (curVal.length == 0) {
-                return;
-            }
-            if (UnsignedBytes.lexicographicalComparator().compare(curVal, maxRow) >= 0) {
-                return;
-            }
-            if (rangeEnds.replace(range, curVal, maxRow)) {
-                return;
-            }
-        }
+            return Ordering.from(UnsignedBytes.lexicographicalComparator()).max(curVal, maxRow);
+        });
     }
 
     private void setColumnRangeEnd(
             TableReference table,
-            byte[] row,
+            byte[] unwrappedRow,
             BatchColumnRangeSelection columnRangeSelection,
             byte[] maxCol) {
         Validate.notNull(maxCol, "maxCol cannot be null");
-        if (!columnRangeEndsByTable.containsKey(table)) {
-            ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> newMap = Maps.newConcurrentMap();
-            columnRangeEndsByTable.putIfAbsent(table, newMap);
-        }
-        if (!columnRangeEndsByTable.get(table).containsKey(row)) {
-            ConcurrentMap<BatchColumnRangeSelection, byte[]> newMap = Maps.newConcurrentMap();
-            columnRangeEndsByTable.get(table).putIfAbsent(ByteBuffer.wrap(row), newMap);
-        }
+        ByteBuffer row = ByteBuffer.wrap(unwrappedRow);
+        columnRangeEndsByTable.computeIfAbsent(table, unused -> new ConcurrentHashMap<>());
         ConcurrentMap<BatchColumnRangeSelection, byte[]> rangeEnds =
-                columnRangeEndsByTable.get(table).get(ByteBuffer.wrap(row));
+                columnRangeEndsByTable.get(table).computeIfAbsent(row, unused -> new ConcurrentHashMap<>());
 
         if (maxCol.length == 0) {
             rangeEnds.put(columnRangeSelection, maxCol);
         }
 
-        while (true) {
-            byte[] curVal = rangeEnds.get(columnRangeSelection);
+        rangeEnds.compute(columnRangeSelection, (range, curVal) -> {
             if (curVal == null) {
-                byte[] oldVal = rangeEnds.putIfAbsent(columnRangeSelection, maxCol);
-                if (oldVal == null) {
-                    return;
-                } else {
-                    continue;
-                }
+                return maxCol;
+            } else if (curVal.length == 0) {
+                return curVal;
             }
-            if (curVal.length == 0) {
-                return;
-            }
-            if (UnsignedBytes.lexicographicalComparator().compare(curVal, maxCol) >= 0) {
-                return;
-            }
-            if (rangeEnds.replace(columnRangeSelection, curVal, maxCol)) {
-                return;
-            }
-        }
+            return Ordering.from(UnsignedBytes.lexicographicalComparator()).max(curVal, maxCol);
+        });
     }
 
     boolean isSerializableTable(TableReference table) {
