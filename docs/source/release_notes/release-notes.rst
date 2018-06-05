@@ -3523,7 +3523,7 @@ v0.35.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
 
     *    - |fixed|
-         - AtlasDB :ref:`CLIs <clis>` run via the :ref:`Dropwizard bundle <dropwizard-bundle>` can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
+         - AtlasDB :ref:`CLIs <clis>` run via the Dropwizard bundle can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
            Previously, these CLIs would throw an error that a leader block was not specified.
            Note that CLIs will not perform automated migrations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
@@ -4682,7 +4682,7 @@ v0.14.0
 
     *    - |fixed|
          - Fixed and standardized serialization and deserialization of AtlasDBConfig.
-           This prevented CLIs deployed via the :ref:`Dropwizard bundle <dropwizard-bundle>` from loading configuration properly.
+           This prevented CLIs deployed via the Dropwizard bundle from loading configuration properly.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
 
     *    - |devbreak|
