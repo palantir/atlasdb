@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.mockito.Mockito.mock;
 
 import org.junit.ClassRule;
-import org.mockito.Mockito;
 
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.containers.CassandraContainer;
