@@ -24,6 +24,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
 public class SweepMetricsManager {
+    public static final String METRIC_BASE_NAME = SweepMetricsManager.class.getPackage().getName() + ".SweepMetric";
+
     private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
 
     private final Meter cellsExamined = metricRegistry.meter(getMetricName(AtlasDbMetricNames.CELLS_EXAMINED));
@@ -50,6 +52,6 @@ public class SweepMetricsManager {
     }
 
     private String getMetricName(String name) {
-        return MetricRegistry.name(SweepMetric.class, name);
+        return MetricRegistry.name(METRIC_BASE_NAME, name);
     }
 }
