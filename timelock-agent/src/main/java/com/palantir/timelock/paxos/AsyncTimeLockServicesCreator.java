@@ -60,6 +60,12 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
         AsyncOrLegacyTimelockService asyncOrLegacyTimelockService;
+        AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
+                AsyncTimelockService.class,
+                () -> AsyncTimeLockServicesCreator.createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
+                client);
+        asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
+                new AsyncTimelockResource(asyncTimelockService));
 
         LockService lockService = instrumentInLeadershipProxy(
                 LockService.class,
@@ -68,14 +74,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier),
                 client);
 
-        AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
-                AsyncTimelockService.class,
-                () -> AsyncTimeLockServicesCreator.createRawAsyncTimelockService(client,
-                        rawTimestampServiceSupplier),
-                client);
-        asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
-                new AsyncTimelockResource(asyncTimelockService));
-
         return TimeLockServices.create(
                 asyncTimelockService,
                 lockService,
@@ -83,7 +81,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 asyncTimelockService);
     }
 
-    private static AsyncTimelockService createRawAsyncTimelockService(String client,
+    private static AsyncTimelockService createRawAsyncTimelockService(
+            String client,
             Supplier<ManagedTimestampService> timestampServiceSupplier) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
                 PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()

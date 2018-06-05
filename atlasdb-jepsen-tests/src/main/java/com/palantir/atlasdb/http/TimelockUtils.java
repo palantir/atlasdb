@@ -18,6 +18,8 @@ package com.palantir.atlasdb.http;
 import java.util.List;
 import java.util.Optional;
 
+import javax.net.ssl.SSLSocketFactory;
+
 import com.google.common.collect.Lists;
 
 public final class TimelockUtils {
@@ -38,7 +40,7 @@ public final class TimelockUtils {
 
     private static <T> T createFromUris(List<String> endpointUris, Class<T> type) {
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
-                Optional.empty(),
+                Optional.<SSLSocketFactory>empty(),
                 Optional.empty(),
                 endpointUris,
                 type);

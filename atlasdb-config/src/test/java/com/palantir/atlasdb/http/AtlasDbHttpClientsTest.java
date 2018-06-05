@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.ws.rs.GET;
@@ -67,7 +66,6 @@ public class AtlasDbHttpClientsTest {
     private int unavailablePort;
     private int proxyPort;
     private Set<String> bothUris;
-    private Optional<String> authToken = Optional.empty();
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());

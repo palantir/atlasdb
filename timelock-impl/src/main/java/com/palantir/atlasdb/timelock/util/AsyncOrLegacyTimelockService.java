@@ -42,9 +42,11 @@ public abstract class AsyncOrLegacyTimelockService {
 
     @Value.Check
     protected void check() {
-        Preconditions.checkState(getAsyncTimelockResource().isPresent() || getLegacyTimelockService().isPresent(),
+        Preconditions.checkState(
+                getAsyncTimelockResource().isPresent() || getLegacyTimelockService().isPresent(),
                 "Either the async timelock resource or legacy timelock service should be present!");
-        Preconditions.checkState(!(getAsyncTimelockResource().isPresent() && getLegacyTimelockService().isPresent()),
+        Preconditions.checkState(
+                !(getAsyncTimelockResource().isPresent() && getLegacyTimelockService().isPresent()),
                 "It shouldn't be that both the async and legacy timelock services are available.");
     }
 

@@ -98,7 +98,7 @@ public final class AtlasDbFeignTargetFactory {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(new RsErrorDecoder())
-                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
+                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(),  userAgent))
                 .target(type, uri);
     }
 

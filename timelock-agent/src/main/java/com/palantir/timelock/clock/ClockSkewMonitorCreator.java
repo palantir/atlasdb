@@ -43,9 +43,7 @@ public class ClockSkewMonitorCreator {
         this.registrar = registrar;
     }
 
-    public static ClockSkewMonitorCreator create(
-            TimeLockInstallConfiguration install,
-            Consumer<Object> registrar) {
+    public static ClockSkewMonitorCreator create(TimeLockInstallConfiguration install, Consumer<Object> registrar) {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
         Optional<SSLSocketFactory> optionalSecurity =
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory);
