@@ -212,6 +212,10 @@ Previously, the method determining whether the transaction had committed success
 <td>Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3208">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Due to lack of use, we have deleted the AtlasDB Dropwizard bundle.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3231">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -3883,7 +3887,7 @@ Note that we are not yet publishing this image.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1661">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>AtlasDB <a class="reference internal" href="../cluster_management/clis.html#clis"><span class="std std-ref">CLIs</span></a> run via the <a class="reference internal" href="../cluster_management/dropwizard-bundle.html#dropwizard-bundle"><span class="std std-ref">Dropwizard bundle</span></a> can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
+<td>AtlasDB <a class="reference internal" href="../cluster_management/clis.html#clis"><span class="std std-ref">CLIs</span></a> run via the Dropwizard bundle can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
 Previously, these CLIs would throw an error that a leader block was not specified.
 Note that CLIs will not perform automated migrations.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1661">Pull Request</a>)</td>
@@ -5097,7 +5101,7 @@ Please refer to <a class="reference internal" href="../configuration/leader_conf
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed and standardized serialization and deserialization of AtlasDBConfig.
-This prevented CLIs deployed via the <a class="reference internal" href="../cluster_management/dropwizard-bundle.html#dropwizard-bundle"><span class="std std-ref">Dropwizard bundle</span></a> from loading configuration properly.
+This prevented CLIs deployed via the Dropwizard bundle from loading configuration properly.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/875">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
