@@ -1,12 +1,11 @@
 {
     "compileClasspath": {
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1"
         },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.google.code.findbugs:annotations",
                 "com.google.guava:guava"
             ]
         },
@@ -24,12 +23,6 @@
             "locked": "1.1",
             "transitive": [
                 "com.google.guava:guava"
-            ]
-        },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
             ]
         },
         "org.apache.cassandra:cassandra-all": {
@@ -54,13 +47,12 @@
         }
     },
     "runtime": {
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1"
         },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.google.code.findbugs:annotations",
                 "com.google.guava:guava"
             ]
         },
@@ -78,12 +70,6 @@
             "locked": "1.1",
             "transitive": [
                 "com.google.guava:guava"
-            ]
-        },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
             ]
         },
         "org.apache.cassandra:cassandra-all": {

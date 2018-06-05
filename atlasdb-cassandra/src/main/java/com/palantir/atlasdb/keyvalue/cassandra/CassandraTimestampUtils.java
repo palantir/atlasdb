@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -236,10 +235,6 @@ public final class CassandraTimestampUtils {
 
     private static String encodeCassandraHexBytes(byte[] bytes) {
         return "0x" + BaseEncoding.base16().upperCase().encode(bytes);
-    }
-
-    private static ByteBuffer toByteBuffer(String string) {
-        return ByteBuffer.wrap(PtBytes.toBytes(string));
     }
 
     private static String wrapInQuotes(String tableName) {

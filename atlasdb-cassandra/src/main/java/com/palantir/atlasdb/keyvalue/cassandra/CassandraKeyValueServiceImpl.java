@@ -867,29 +867,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     /**
-     * Gets timestamp values from the key-value store.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to retrieve values from.
-     * @param timestampByCell map containing the cells to retrieve timestamps for. The map
-     *        specifies, for each key, the maximum timestamp (exclusive) at which to
-     *        retrieve that key's value.
-     *
-     * @return map of retrieved values. cells which do not exist (either
-     *         because they were deleted or never created in the first place)
-     *         are simply not returned.
-     *
-     * @throws IllegalArgumentException if any of the requests were invalid
-     *         (e.g., attempting to retrieve values from a non-existent table).
-     */
-    @Override
-    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        // TODO(unknown): optimize by only getting column name after cassandra api change
-        return super.getLatestTimestamps(tableRef, timestampByCell);
-    }
-
-    /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee atomicity across cells.
      * On failure, it is possible that some of the requests have succeeded (without having been rolled
      * back). Similarly, concurrent batched requests may interleave.
@@ -1866,19 +1843,24 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         try {
-            clientPool.runWithRetry(client -> {
+            Optional<KeyAlreadyExistsException> failure = clientPool.runWithRetry(client -> {
                 for (Entry<Cell, byte[]> e : values.entrySet()) {
                     CheckAndSetRequest request = CheckAndSetRequest.newCell(tableRef, e.getKey(), e.getValue());
                     CASResult casResult = executeCheckAndSet(client, request);
                     if (!casResult.isSuccess()) {
-                        throw new KeyAlreadyExistsException(
+                        return Optional.of(new KeyAlreadyExistsException(
                                 String.format("The row in table %s already exists.", tableRef.getQualifiedName()),
-                                ImmutableList.of(e.getKey()));
+                                ImmutableList.of(e.getKey())));
                     }
                 }
                 clientPool.markWritesForTable(values, tableRef);
-                return null;
+                return Optional.empty();
             });
+            failure.ifPresent(exception -> {
+                throw exception;
+            });
+        } catch (KeyAlreadyExistsException e) {
+            throw e;
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
@@ -1897,22 +1879,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void checkAndSet(final CheckAndSetRequest request) throws CheckAndSetException {
         try {
-            clientPool.runWithRetry(client -> {
-                CASResult casResult = executeCheckAndSet(client, request);
+            CASResult casResult = clientPool.runWithRetry(client -> executeCheckAndSet(client, request));
+            if (!casResult.isSuccess()) {
+                List<byte[]> currentValues = casResult.current_values.stream()
+                        .map(Column::getValue)
+                        .collect(Collectors.toList());
 
-                if (!casResult.isSuccess()) {
-                    List<byte[]> currentValues = casResult.current_values.stream()
-                            .map(Column::getValue)
-                            .collect(Collectors.toList());
-
-                    throw new CheckAndSetException(
-                            request.cell(),
-                            request.table(),
-                            request.oldValue().orElse(null),
-                            currentValues);
-                }
-                return null;
-            });
+                throw new CheckAndSetException(
+                        request.cell(),
+                        request.table(),
+                        request.oldValue().orElse(null),
+                        currentValues);
+            }
         } catch (CheckAndSetException e) {
             throw e;
         } catch (Exception e) {

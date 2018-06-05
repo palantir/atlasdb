@@ -44,5 +44,4 @@ public class AggregateRecomputingMetricTest {
         Thread.sleep(2);
         assertThat(test.getValue()).isEqualTo(1L);
     }
-
 }

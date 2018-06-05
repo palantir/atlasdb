@@ -18,11 +18,9 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -39,23 +37,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
+import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetricsTest;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.exception.NotInitializedException;
 
 public class TargetedSweeperTest extends AbstractSweepQueueTest {
@@ -69,6 +66,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private SweepableTimestamps sweepableTimestamps;
     private SweepableCells sweepableCells;
     private TargetedSweepFollower mockFollower;
+    private PuncherStore puncherStore;
 
     @Before
     public void setup() {
@@ -79,11 +77,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
         sweepableCells = new SweepableCells(spiedKvs, partitioner, null);
+        puncherStore = KeyValueServicePuncherStore.create(spiedKvs, false);
     }
 
     @Test
     public void callingEnqueueAndSweepOnUnitializedSweeperThrows() {
-        TargetedSweeper uninitializedSweeper = TargetedSweeper.createUninitialized(null, null, 0, 0, mock(Follower.class));
+        TargetedSweeper uninitializedSweeper = TargetedSweeper
+                .createUninitialized(null, null, 0, 0, mock(Follower.class));
         assertThatThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
                 .isInstanceOf(NotInitializedException.class)
                 .hasMessageContaining("Targeted Sweeper");
@@ -105,11 +105,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void initializingTargetedSweeperWithMoreThreadsThanShardsIncreasesNumberOfShards() {
         assertThat(progress.getNumberOfShards()).isLessThanOrEqualTo(DEFAULT_SHARDS);
 
-        TargetedSweeper sweeperConservative = TargetedSweeper.createUninitialized(null, null, DEFAULT_SHARDS + 5, 0, mock(Follower.class));
+        TargetedSweeper sweeperConservative = TargetedSweeper
+                .createUninitialized(null, null, DEFAULT_SHARDS + 5, 0, mock(Follower.class));
         sweeperConservative.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 5);
 
-        TargetedSweeper sweeperThorough = TargetedSweeper.createUninitialized(null, null, 0, DEFAULT_SHARDS + 10, mock(Follower.class));
+        TargetedSweeper sweeperThorough = TargetedSweeper
+                .createUninitialized(null, null, 0, DEFAULT_SHARDS + 10, mock(Follower.class));
         sweeperThorough.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 10);
     }
@@ -146,8 +148,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(1);
-        TargetedSweepMetricsTest.assertLastSweptConservativeEquals(maxTsForFinePartition(0));
         TargetedSweepMetricsTest.assertSweepTimestampConservativeEquals(getSweepTsCons());
+        TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(0));
+
+        punchCurrentTimeAtTimestamp(LOW_TS);
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeLessThanOneSecond();
     }
 
     @Test
@@ -303,7 +308,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(), any(), eq(false));
 
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(1);
-        TargetedSweepMetricsTest.assertLastSweptConservativeEquals(maxTsForFinePartition(0));
+        TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(0));
+
+        punchCurrentTimeAtTimestamp(LOW_TS + 8);
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeLessThanOneSecond();
     }
 
     @Test
@@ -333,7 +341,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, tsFineFour + 1);
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(3);
         TargetedSweepMetricsTest.assertEntriesReadConservativeEquals(4);
-        TargetedSweepMetricsTest.assertLastSweptConservativeEquals(maxTsForFinePartition(3));
+        TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(3));
+
+        punchCurrentTimeAtTimestamp(tsFineFour + 1L);
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeLessThanOneSecond();
     }
 
     @Test
@@ -472,7 +483,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONS, sweepTimestamp - 5 + 1, sweepTimestamp - 5);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, sweepTimestamp + 5);
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(1);
-        TargetedSweepMetricsTest.assertLastSweptConservativeEquals(sweepTimestamp - 1);
+        TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(sweepTimestamp - 1);
     }
 
     @Test
@@ -719,5 +730,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(sweepableTimestamps
                 .nextSweepableTimestampPartition(ShardAndStrategy.conservative(CONS_SHARD), -1L, getSweepTsCons()))
                 .isEmpty();
+    }
+
+    private void punchCurrentTimeAtTimestamp(long timestamp) {
+        puncherStore.put(timestamp, System.currentTimeMillis());
     }
 }
