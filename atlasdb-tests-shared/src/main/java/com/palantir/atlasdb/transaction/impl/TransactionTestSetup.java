@@ -113,7 +113,8 @@ public abstract class TransactionTestSetup {
 
     protected TransactionManager getManager() {
         return new TestTransactionManagerImpl(keyValueService, timestampService, lockClient, lockService,
-                transactionService, conflictDetectionManager, sweepStrategyManager, MultiTableSweepQueueWriter.NO_OP);
+                transactionService, conflictDetectionManager, sweepStrategyManager, MultiTableSweepQueueWriter.NO_OP,
+                AbstractTransactionTest.DELETE_EXECUTOR);
     }
 
     protected void put(Transaction txn,

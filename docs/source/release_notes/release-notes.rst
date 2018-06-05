@@ -52,13 +52,50 @@ develop
 
     *    - |devbreak|
          - Dropwizard transitive dependencies have been removed from the ``atlasdb-config`` subproject.
-           Configuration deserialization no longer utilizes Dropwizard's `DiscoverableSubtypeResolver <https://github.com/dropwizard/dropwizard/blob/master/dropwizard-jackson/src/main/java/io/dropwizard/jackson/DiscoverableSubtypeResolver.java>`__.
+           Usages of ``AtlasDbConfigs`` for config parsing still support discovering subtypes of config, as we ship AtlasDB with an implementation of Dropwizard's `DiscoverableSubtypeResolver <https://github.com/dropwizard/dropwizard/blob/master/dropwizard-jackson/src/main/java/io/dropwizard/jackson/DiscoverableSubtypeResolver.java>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3218>`__)
+
+    *    - |fixed|
+         - We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won't
+           blacklist connections due to a failed CAS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3215>`__)
+
+    *    - |fixed| |devbreak|
+         - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers. This functionality was
+           never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3200>`__)
+
+    *    - |improved|
+         - ``SnapshotTransaction`` now asynchronously deletes values for transactions that get rolled back.
+           This restores the behaviour from before the previous `fix <https://github.com/palantir/atlasdb/pull/3199>`__,
+           except that the parent transaction no longer waits for the delete to finish.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3219>`__)
+
+    *    - |fixed|
+         - Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
+           Previously, the method determining whether the transaction had committed successfully or been aborted would hit a code path that would always result in an NPE.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3205>`__)
+
+    *    - |improved|
+         - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
+
+=======
+v0.88.0
+=======
+
+30 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |devbreak| |new|
          - KVS method ``deleteAllTimestamps`` now also takes a boolean argument specifying if garbage deletion sentinels should also be deleted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3212>`__)
-
 
     *    - |new|
          - AtlasDB now implements targeted sweep using a sweep queue.
@@ -84,7 +121,7 @@ develop
               - ``lastSweptTimestamp``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3202>`__)
-    
+
     *    - |improved| |logs|
          - Added logging of the values used to determine which table to sweep, provides more insight into why tables are being swept and others aren't.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2829>`__)
@@ -95,25 +132,24 @@ develop
            Note that this change does not affect communication between timelock nodes, or between an Atlas client and timelock, as these do not currently use remoting.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3196>`__)
 
+=======
+v0.87.0
+=======
+
+25 May 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
          - ``SnapshotTransaction`` will no longer attempt to delete values for transactions that get rolled back.
            The deletes were (necessarily) run at consistency ``ALL``, meaning that if aborted data was present, read
            transactions had significantly impaired performance if a database node was down.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3199>`__)
-
-    *    - |fixed| |devbreak|
-         - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers. This functionality was
-           never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3200>`__)
-
-    *    - |improved|
-         - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
-
-    *    - |fixed|
-         - Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
-           Previously, the method determining whether the transaction had committed successfully or been aborted would hit a code path that would always result in an NPE.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3205>`__)
 
 =======
 v0.86.0

@@ -65,6 +65,12 @@ public class ShardProgressTest {
     }
 
     @Test
+    public void cannotUpdateNumberOfShardsToZero() {
+        progress.updateNumberOfShards(0);
+        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SWEEP_QUEUE_SHARDS);
+    }
+
+    @Test
     public void attemptingToDecreaseNumberOfShardsIsNoop() {
         progress.updateNumberOfShards(64);
         progress.updateNumberOfShards(32);

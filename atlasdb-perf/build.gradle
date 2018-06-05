@@ -7,6 +7,14 @@ apply plugin: 'application'
 mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasDbPerfCli'
 applicationName = 'atlasdb-perf'
 
+configurations.all {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group == 'com.google.code.findbugs' && details.requested.name == 'annotations') {
+            details.useTarget group: 'com.google.code.findbugs', name: 'findbugs-annotations', version: '3.0.1'
+        }
+    }
+}
+
 dependencies {
   compile project(':atlasdb-api')
   compile project(':atlasdb-dagger')
