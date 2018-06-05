@@ -120,15 +120,19 @@ import com.palantir.common.annotation.Output;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.lock.AuthedLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
+import com.palantir.lock.ProvidedAuthLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.AuthedTimelockService;
+import com.palantir.lock.v2.ProvidedAuthTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
@@ -136,6 +140,7 @@ import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
@@ -681,8 +686,7 @@ public abstract class TransactionManagers {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
-            return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent,
-                    () -> runtimeConfigSupplier.get().timelockRuntime().flatMap(TimeLockRuntimeConfig::authToken));
+            return createRawLeaderServices(config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
@@ -716,8 +720,9 @@ public abstract class TransactionManagers {
             String userAgent) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
-        Supplier<Optional<String>> authTokenSupplier = () -> runtimeConfigSupplier.get().timelockRuntime().flatMap(
-                TimeLockRuntimeConfig::authToken);
+
+        Supplier<AuthHeader> authTokenSupplier = () -> runtimeConfigSupplier.get().timelockRuntime().flatMap(
+                    TimeLockRuntimeConfig::authToken).map(AuthHeader::valueOf).orElse(null);
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(serverListConfigSupplier, authTokenSupplier, invalidator, userAgent, config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
@@ -741,17 +746,21 @@ public abstract class TransactionManagers {
 
     private static LockAndTimestampServices getLockAndTimestampServices(
             Supplier<ServerListConfig> timelockServerListConfig,
-            Supplier<Optional<String>> authTokenSupplier,
+            Supplier<AuthHeader> authTokenSupplier,
             String userAgent) {
-        LockService lockService = new ServiceCreator<>(LockService.class, userAgent)
-                .applyDynamic(timelockServerListConfig, authTokenSupplier);
-        TimelockService timelockService = new ServiceCreator<>(TimelockService.class, userAgent)
-                .applyDynamic(timelockServerListConfig, authTokenSupplier);
+        AuthedLockService lockService = new ServiceCreator<>(AuthedLockService.class, userAgent)
+                .applyDynamic(timelockServerListConfig);
+        ProvidedAuthLockService providedAuthLockService = new ProvidedAuthLockService(lockService, authTokenSupplier);
+
+        AuthedTimelockService timelockService = new ServiceCreator<>(AuthedTimelockService.class, userAgent)
+                .applyDynamic(timelockServerListConfig);
+        ProvidedAuthTimelockService providedAuthTimelockService = new ProvidedAuthTimelockService(timelockService, authTokenSupplier);
+
 
         return ImmutableLockAndTimestampServices.builder()
-                .lock(lockService)
-                .timestamp(new TimelockTimestampServiceAdapter(timelockService))
-                .timelock(timelockService)
+                .lock(providedAuthLockService)
+                .timestamp(new TimelockTimestampServiceAdapter(providedAuthTimelockService))
+                .timelock(providedAuthTimelockService)
                 .build();
     }
 
@@ -760,16 +769,14 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
-            String userAgent,
-            Supplier<Optional<String>> authTokenSupplier) {
+            String userAgent) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LeaderRuntimeConfig defaultRuntime = ImmutableLeaderRuntimeConfig.builder().build();
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
                 env,
                 leaderConfig,
                 () -> defaultRuntime,
-                userAgent,
-                authTokenSupplier);
+                userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.createInstrumentedService(
                 AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leader),
@@ -801,7 +808,6 @@ public abstract class TransactionManagers {
             String localServerId = localPingableLeader.getUUID();
             PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
                     ServiceCreator.createSslSocketFactory(leaderConfig.sslConfiguration()),
-                    authTokenSupplier,
                     Iterables.getOnlyElement(leaderConfig.leaders()),
                     PingableLeader.class,
                     userAgent);
