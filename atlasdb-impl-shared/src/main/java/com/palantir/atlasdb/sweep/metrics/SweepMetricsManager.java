@@ -26,11 +26,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 public class SweepMetricsManager {
     private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
 
-    private final Meter cellsExamined = metricRegistry.meter(AtlasDbMetricNames.CELLS_EXAMINED);
-    private final Meter cellsDeleted = metricRegistry.meter(AtlasDbMetricNames.CELLS_SWEPT);
-    private final Meter timeSweeping = metricRegistry.meter(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
-    private final Meter totalTime = metricRegistry.meter(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
-    private final Meter sweepErrors = metricRegistry.meter(AtlasDbMetricNames.SWEEP_ERROR);
+    private final Meter cellsExamined = metricRegistry.meter(getMetricName(AtlasDbMetricNames.CELLS_EXAMINED));
+    private final Meter cellsDeleted = metricRegistry.meter(getMetricName(AtlasDbMetricNames.CELLS_SWEPT));
+    private final Meter timeSweeping = metricRegistry.meter(getMetricName(AtlasDbMetricNames.TIME_SPENT_SWEEPING));
+    private final Meter totalTime = metricRegistry.meter(getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING));
+    private final Meter sweepErrors = metricRegistry.meter(getMetricName(AtlasDbMetricNames.SWEEP_ERROR));
 
 
     public void updateAfterDeleteBatch(long cellTsPairsExamined, long staleValuesDeleted) {
@@ -47,5 +47,9 @@ public class SweepMetricsManager {
 
     public void sweepError() {
         sweepErrors.mark(1L);
+    }
+
+    private String getMetricName(String name) {
+        return MetricRegistry.name(SweepMetric.class, name);
     }
 }
