@@ -91,6 +91,19 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
+    public void initializingTargetedSweeperWithMoreThreadsThanShardsIncreasesNumberOfShards() {
+        assertThat(progress.getNumberOfShards()).isLessThanOrEqualTo(DEFAULT_SHARDS);
+
+        TargetedSweeper sweeperConservative = TargetedSweeper.createUninitialized(null, null, DEFAULT_SHARDS + 5, 0);
+        sweeperConservative.initialize(timestampsSupplier, spiedKvs);
+        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 5);
+
+        TargetedSweeper sweeperThorough = TargetedSweeper.createUninitialized(null, null, 0, DEFAULT_SHARDS + 10);
+        sweeperThorough.initialize(timestampsSupplier, spiedKvs);
+        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 10);
+    }
+
+    @Test
     public void sweepStrategyNothingDoesNotPersistAnything() {
         enqueueWrite(TABLE_NOTH, LOW_TS);
         enqueueWrite(TABLE_NOTH, LOW_TS2);

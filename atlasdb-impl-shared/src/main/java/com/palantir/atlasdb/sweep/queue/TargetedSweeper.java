@@ -17,10 +17,15 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -33,11 +38,14 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements MultiTableSweepQueueWriter {
+    private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
+    private int minShards;
 
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
@@ -54,6 +62,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
         this.thoroughScheduler = new BackgroundSweepScheduler(thoroughThreads,
                 TableMetadataPersistence.SweepStrategy.THOROUGH);
+        this.minShards = Math.max(conservativeThreads, thoroughThreads);
     }
 
     /**
@@ -87,7 +96,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        queue = SweepQueue.create(kvs, shardsConfig);
+        queue = SweepQueue.create(kvs, shardsConfig, minShards);
         timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
@@ -137,6 +146,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         private final int numThreads;
         private final TableMetadataPersistence.SweepStrategy sweepStrategy;
         private final AtomicLong counter = new AtomicLong(0);
+        private final Set<Integer> shardsBeingSwept = new ConcurrentSkipListSet<>();
+
         private ScheduledExecutorService executorService;
 
         private BackgroundSweepScheduler(int numThreads, TableMetadataPersistence.SweepStrategy sweepStrategy) {
@@ -149,15 +160,37 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
                 executorService = PTExecutors
                         .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", true));
                 for (int i = 0; i < numThreads; i++) {
-                    executorService.scheduleWithFixedDelay(
-                            () -> sweepNextBatch(ShardAndStrategy.of(getShardAndIncrement(), sweepStrategy)),
-                            1, 5, TimeUnit.SECONDS);
+                    executorService.scheduleWithFixedDelay(this::runOneIteration, 1, 5, TimeUnit.SECONDS);
                 }
             }
         }
 
+        private void runOneIteration() {
+            ShardAndStrategy shardStrategy = ShardAndStrategy.of(lockNextShardToSweep(), sweepStrategy);
+            try {
+                sweepNextBatch(shardStrategy);
+            } catch (Throwable th) {
+                log.warn("Targeted sweep for {} failed and will be retried later.",
+                        SafeArg.of("shardStrategy", shardStrategy.toText()), th);
+            } finally {
+                unlockShard(shardStrategy.shard());
+            }
+        }
+
+        private int lockNextShardToSweep() {
+            int nextShardCandidate = getShardAndIncrement();
+            while (!shardsBeingSwept.add(nextShardCandidate)) {
+                nextShardCandidate = getShardAndIncrement();
+            }
+            return nextShardCandidate;
+        }
+
         private int getShardAndIncrement() {
             return queue.modShards(counter.getAndIncrement());
+        }
+
+        private void unlockShard(int shard) {
+            shardsBeingSwept.remove(shard);
         }
 
         @Override

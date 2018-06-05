@@ -58,6 +58,11 @@ develop
            If you are creating your transaction manager elsewhere, you should supply a suitable ``freshTimestampProvider`` in initialization - until then, read and write timestamps will continue to use the old scheme.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/NNNN>`__)
 
+    *    - |fixed|
+         - We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won't
+           blacklist connections due to a failed CAS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3215>`__)
+
     *    - |fixed| |devbreak|
          - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers. This functionality was
            never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
@@ -77,6 +82,10 @@ develop
     *    - |improved|
          - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
+
+    *    - |devbreak|
+         - Due to lack of use, we have deleted the AtlasDB Dropwizard bundle.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3231>`__)
 
 =======
 v0.88.0
@@ -3522,7 +3531,7 @@ v0.35.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
 
     *    - |fixed|
-         - AtlasDB :ref:`CLIs <clis>` run via the :ref:`Dropwizard bundle <dropwizard-bundle>` can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
+         - AtlasDB :ref:`CLIs <clis>` run via the Dropwizard bundle can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
            Previously, these CLIs would throw an error that a leader block was not specified.
            Note that CLIs will not perform automated migrations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
@@ -4681,7 +4690,7 @@ v0.14.0
 
     *    - |fixed|
          - Fixed and standardized serialization and deserialization of AtlasDBConfig.
-           This prevented CLIs deployed via the :ref:`Dropwizard bundle <dropwizard-bundle>` from loading configuration properly.
+           This prevented CLIs deployed via the Dropwizard bundle from loading configuration properly.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
 
     *    - |devbreak|
