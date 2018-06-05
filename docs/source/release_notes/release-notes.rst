@@ -51,6 +51,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Atlas no longer throws if you read the same column range twice in a serializable transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3239>`__)
+
+    *    - |fixed|
          - We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won't
            blacklist connections due to a failed CAS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3215>`__)
