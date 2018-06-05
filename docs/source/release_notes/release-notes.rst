@@ -56,7 +56,12 @@ develop
 
            Note that this only applies if you have created your Transaction Manager through the ``TransactionManagers`` factory.
            If you are creating your transaction manager elsewhere, you should supply a suitable ``freshTimestampProvider`` in initialization - until then, read and write timestamps will continue to use the old scheme.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/NNNN>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3224>`__)
+
+    *    - |devbreak|
+         - ``AtlasDbFactory`` now takes an additional ``Optional<Supplier<Long>>`` parameter when creating a key-value-service.
+           In general, delegating implementations should pass this parameter to the delegate; non-delegating implementations that do not use this as an input to the underlying key-value-service should pass ``Optional.empty()`` leaving the parameter unused.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3224>`__)
 
     *    - |fixed|
          - We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won't
