@@ -25,23 +25,23 @@ import com.google.common.base.Preconditions;
 @JsonSerialize(as = ImmutableTimelockServiceAuthClient.class)
 @JsonDeserialize(as = ImmutableTimelockServiceAuthClient.class)
 @Value.Immutable
-public abstract class  TimelockServiceAuthClient {
+public abstract class TimelockServiceAuthClient {
 
     private static final int MIN_SECRET_LENGTH = 16;
 
     /**
      * Namespace for which requests should be authorized in Timelock server
      */
-    abstract String namespace();
+    public abstract String namespace();
 
     /**
      * Token that is expected with each request specific to the namespace above to Timelock server.
      * The requests that provide this token will be authorized for the namespace above.
      */
-    abstract String token();
+    public abstract String token();
 
     @Value.Check
-    public void check() {
+    protected void check() {
         Preconditions.checkState(token().length() >= MIN_SECRET_LENGTH,
                 "Internal auth secret must have at least %s characters.", MIN_SECRET_LENGTH);
     }
