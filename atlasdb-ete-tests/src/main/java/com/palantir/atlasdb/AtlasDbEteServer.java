@@ -38,7 +38,6 @@ import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -84,7 +83,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public void initialize(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
         bootstrap.setMetricRegistry(SharedMetricRegistries.getOrCreate("AtlasDbTest"));
         enableEnvironmentVariablesInConfig(bootstrap);
-        bootstrap.addBundle(new AtlasDbBundle<>());
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
     }
 

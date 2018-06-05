@@ -28,7 +28,6 @@ import com.palantir.atlasdb.containers.CassandraEnvironment;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
-        CommandLineEteTest.class,
         ServiceExposureEteTest.class,
         MultiCassandraSingleNodeDownEteTest.class,
         MultiCassandraDoubleNodeDownEteTest.class
