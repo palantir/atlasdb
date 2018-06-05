@@ -18,18 +18,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public final class CassandraConstants {
-    static final int LONG_RUNNING_QUERY_SOCKET_TIMEOUT_MILLIS = 62000;
-    public static final int DEFAULT_REPLICATION_FACTOR = 3;
-    public static final int DEFAULT_THRIFT_PORT = 9160;
-    public static final int DEFAULT_CQL_PORT = 9042;
-    static final int SECONDS_WAIT_FOR_VERSIONS = 60;
     static final int MAX_TRUNCATION_ATTEMPTS = 3; // tied to an exponential timeout, be careful if you change it
-
-    static final int ABSOLUTE_MINIMUM_NUMBER_OF_TOKENS_PER_NODE = 32;
-    static final long TS_SIZE = 4L;
 
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
     static final double DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.1;
@@ -52,13 +43,6 @@ public final class CassandraConstants {
     // 1 hour; AtlasDB only performs deletes with consistency ALL, so there is no need to ensure repairs
     // complete within gc_grace_seconds.
     public static final int DEFAULT_GC_GRACE_SECONDS = 60 * 60;
-    static final float TOMBSTONE_THRESHOLD_RATIO = 0.2f;
-
-    // JMX compaction related
-    public static final String JMX_RMI = "service:jmx:rmi:///jndi/rmi://[%s]:%d/jmxrmi";
-    public static final String STORAGE_SERVICE_OBJECT_NAME = "org.apache.cassandra.db:type=StorageService";
-    public static final String COMPACTION_MANAGER_OBJECT_NAME = "org.apache.cassandra.db:type=CompactionManager";
-    public static final String HINTED_HANDOFF_MANAGER_OBJECT_NAME = "org.apache.cassandra.db:type=HintedHandoffManager";
 
     // this is only used to sanity check reads from a TFramedTransport;
     // writes are sanity checked with server side frame size limits and are user-configurable,
@@ -67,9 +51,6 @@ public final class CassandraConstants {
 
     static final String CFDEF_COMPRESSION_TYPE_KEY = "sstable_compression";
     static final String CFDEF_COMPRESSION_CHUNK_LENGTH_KEY = "chunk_length_kb";
-
-    public static final TableReference NO_TABLE = TableReference.createWithEmptyNamespace("SYSTEM");
-    public static final int NO_TTL = -1;
 
     static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
     static final String SIZE_TIERED_COMPACTION_STRATEGY =

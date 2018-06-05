@@ -9,5 +9,4 @@ Cluster Management
    backup-restore
    clis
    console
-   dropwizard-bundle
    sweep

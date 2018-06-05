@@ -8,8 +8,6 @@ AtlasDB Sweep CLI
 
 .. note::
   For instructions on how to run an AtlasDB CLI, see :ref:`Command Line Utilities <clis>`.
-  If you are using a recent version of AtlasDB, it may be easier to run the command via the
-  :ref:`Dropwizard Bundle <dropwizard-bundle>` instead.
 
 If you ever need to force a particular table or namespace to be swept immediately, you can run the CLI ``./bin/atlasdb sweep``.
 The CLI has the following arguments:

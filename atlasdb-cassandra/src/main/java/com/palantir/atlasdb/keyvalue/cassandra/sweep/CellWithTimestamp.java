@@ -15,13 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 
 @Value.Immutable
 public abstract class CellWithTimestamp {
@@ -34,12 +31,6 @@ public abstract class CellWithTimestamp {
                 .cell(cell)
                 .timestamp(timestamp)
                 .build();
-    }
-
-    public ColumnOrSuperColumn asColumnOrSuperColumn() {
-        Column col = new Column().setName(
-                CassandraKeyValueServices.makeCompositeBuffer(cell().getColumnName(), timestamp()));
-        return new ColumnOrSuperColumn().setColumn(col);
     }
 
     @Value.Check
