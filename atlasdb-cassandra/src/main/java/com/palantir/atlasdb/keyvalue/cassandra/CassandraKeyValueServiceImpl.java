@@ -890,29 +890,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     /**
-     * Gets timestamp values from the key-value store.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to retrieve values from.
-     * @param timestampByCell map containing the cells to retrieve timestamps for. The map
-     *        specifies, for each key, the maximum timestamp (exclusive) at which to
-     *        retrieve that key's value.
-     *
-     * @return map of retrieved values. cells which do not exist (either
-     *         because they were deleted or never created in the first place)
-     *         are simply not returned.
-     *
-     * @throws IllegalArgumentException if any of the requests were invalid
-     *         (e.g., attempting to retrieve values from a non-existent table).
-     */
-    @Override
-    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        // TODO(unknown): optimize by only getting column name after cassandra api change
-        return super.getLatestTimestamps(tableRef, timestampByCell);
-    }
-
-    /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee atomicity across cells.
      * On failure, it is possible that some of the requests have succeeded (without having been rolled
      * back). Similarly, concurrent batched requests may interleave.

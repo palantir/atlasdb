@@ -18,8 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -90,7 +90,7 @@ class CellDeleter {
                                     cellVersions.getKey().getColumnName(),
                                     ts);
                             SlicePredicate pred = new SlicePredicate();
-                            pred.setColumn_names(Arrays.asList(colName));
+                            pred.setColumn_names(Collections.singletonList(colName));
                             Deletion del = new Deletion();
                             del.setPredicate(pred);
                             del.setTimestamp(deleteTimestampGetter.apply(ts));

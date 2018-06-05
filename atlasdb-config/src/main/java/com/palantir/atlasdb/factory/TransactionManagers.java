@@ -119,7 +119,6 @@ import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorro
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.common.annotation.Output;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
@@ -142,6 +141,7 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.JavaSuppliers;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
