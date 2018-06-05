@@ -93,10 +93,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
         SerializableTransactionManager transactionManager = tryToCreateTransactionManager(config, environment);
         Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(transactionManager));
-        Follower follower = CleanupFollower.create(ETE_SCHEMAS);
-        TargetedSweeper targetedSweeper = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0, follower);
-        targetedSweeper.initialize(new SpecialTimestampsSupplier(transactionManager::getImmutableTimestamp, transactionManager::getImmutableTimestamp), transactionManager.getKeyValueService(), new TargetedSweepFollower(follower, transactionManager));
-        environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager, sweepTaskRunner, targetedSweeper)));
+        TargetedSweeper targetedSweeper = getTargetedSweeperIgnoringUnreadableTs(transactionManager);
+        environment.jersey().register(new SimpleTodoResource(new TodoClient(
+                transactionManager,
+                sweepTaskRunner,
+                targetedSweeper)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
@@ -105,8 +106,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 config.getAtlasDbConfig().initializeAsync()));
     }
 
-    private SerializableTransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)
-            throws InterruptedException {
+    private SerializableTransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config,
+            Environment environment) throws InterruptedException {
         if (config.getAtlasDbConfig().initializeAsync()) {
             return createTransactionManager(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), environment);
         } else {
@@ -127,6 +128,16 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         CleanupFollower follower = CleanupFollower.create(ETE_SCHEMAS);
         CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, noLocks, ImmutableList.of(follower));
         return new SweepTaskRunner(kvs, ts, ts, txnService, ssm, cellsSweeper);
+    }
+
+    private TargetedSweeper getTargetedSweeperIgnoringUnreadableTs(SerializableTransactionManager manager) {
+        Follower follower = CleanupFollower.create(ETE_SCHEMAS);
+        TargetedSweeper targetedSweeper = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0, follower);
+        targetedSweeper.initialize(
+                new SpecialTimestampsSupplier(manager::getImmutableTimestamp, manager::getImmutableTimestamp),
+                manager.getKeyValueService(),
+                new TargetedSweepFollower(follower, manager));
+        return targetedSweeper;
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

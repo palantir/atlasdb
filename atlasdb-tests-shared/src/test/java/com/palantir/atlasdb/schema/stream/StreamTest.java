@@ -62,6 +62,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
@@ -85,6 +86,7 @@ import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamMeta
 import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -116,7 +118,11 @@ public class StreamTest extends AtlasDbTestCase {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
-    public void createSchema() {
+    public void createSchema() throws Exception {
+        sweepQueueShards = 1;
+        follower = CleanupFollower.create(StreamTestSchema.getSchema());
+        super.setUp();
+        serializableTxManager.setUnreadableTimestamp(Long.MAX_VALUE);
         Schemas.deleteTablesAndIndexes(StreamTestSchema.getSchema(), keyValueService);
         Schemas.createTablesAndIndexes(StreamTestSchema.getSchema(), keyValueService);
 
@@ -152,6 +158,11 @@ public class StreamTest extends AtlasDbTestCase {
             assertArrayEquals(data, outputStream.toByteArray());
             return null;
         });
+        txManager.runTaskWithRetry(transaction -> {
+            defaultStore.unmarkStreamAsUsed(transaction, streamId, "ref".getBytes());
+            return null;}
+        );
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
     }
 
     @Test

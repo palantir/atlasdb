@@ -16,10 +16,12 @@
 package com.palantir.atlasdb.todo;
 
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -28,6 +30,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -37,11 +41,14 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.generated.LatestSnapshotTable;
 import com.palantir.atlasdb.todo.generated.SnapshotsStreamStore;
@@ -49,6 +56,7 @@ import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -56,12 +64,15 @@ public class TodoClient {
     private static final Logger log = LoggerFactory.getLogger(TodoClient.class);
 
     private final TransactionManager transactionManager;
+    private final KeyValueService kvs;
     private final Supplier<SweepTaskRunner> sweepTaskRunner;
     private final TargetedSweeper targetedSweeper;
     private final Random random = new Random();
 
-    public TodoClient(TransactionManager transactionManager, Supplier<SweepTaskRunner> sweepTaskRunner, TargetedSweeper targetedSweeper) {
+    public TodoClient(TransactionManager transactionManager, Supplier<SweepTaskRunner> sweepTaskRunner,
+            TargetedSweeper targetedSweeper) {
         this.transactionManager = transactionManager;
+        this.kvs = ((SerializableTransactionManager) transactionManager).getKeyValueService();
         this.sweepTaskRunner = sweepTaskRunner;
         this.targetedSweeper = targetedSweeper;
     }
@@ -82,7 +93,6 @@ public class TodoClient {
     }
 
     public boolean doesNotExistBeforeTimestamp(long id, long ts) {
-        KeyValueService kvs = ((SerializableTransactionManager) transactionManager).getKeyValueService();
         TableReference tableRef = TodoSchemaTableFactory.of().getTodoTable(null).getTableRef();
         Cell cell = Cell.create(ValueType.FIXED_LONG.convertFromJava(id), TodoSchema.todoTextColumn());
         return kvs.get(tableRef, ImmutableMap.of(cell, ts + 1)).isEmpty();
@@ -147,6 +157,7 @@ public class TodoClient {
         targetedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0));
     }
 
+
     public SweepResults sweepSnapshotIndices() {
         TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
         TableReference indexTable = tableFactory.getSnapshotsStreamIdxTable(null).getTableRef();
@@ -166,5 +177,41 @@ public class TodoClient {
                 .maxCellTsPairsToExamine(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
                 .build();
         return sweepTaskRunner.get().run(table, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
+    }
+
+    public long numCellsDeleted(TableReference tableRef) {
+        return cellsDeleted(tableRef).size();
+    }
+
+    public long numCellsDeletedAndSwept(TableReference tableRef) {
+        return cellsDeleted(tableRef).entrySet().stream()
+                .filter(entry -> getValueForEntry(tableRef, entry).getTimestamp() == Value.INVALID_VALUE_TIMESTAMP)
+                .count();
+    }
+
+    private Map<Cell, Value> cellsDeleted(TableReference tableRef) {
+        Set<Cell> allCells = getAllCells(tableRef);
+        Map<Cell, Value> latest = kvs.get(tableRef, Maps.asMap(allCells, ignore -> Long.MAX_VALUE));
+        return Maps.filterEntries(latest, ent -> Arrays.equals(ent.getValue().getContents(), PtBytes.EMPTY_BYTE_ARRAY));
+    }
+
+    private Value getValueForEntry(TableReference tableRef, Map.Entry<Cell, Value> entry) {
+        return kvs.get(tableRef, ImmutableMap.of(entry.getKey(), entry.getValue().getTimestamp()))
+                .get(entry.getKey());
+    }
+
+    private Set<Cell> getAllCells(TableReference tableRef) {
+        try (ClosableIterator<RowResult<Value>> iterator = kvs.getRange(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
+            return iterator.stream()
+                    .map(RowResult::getCells)
+                    .flatMap(Streams::stream)
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toSet());
+        }
+    }
+
+    public void truncate() {
+        Schemas.truncateTablesAndIndexes(TodoSchema.getSchema(), kvs);
+        Schemas.truncateTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 }

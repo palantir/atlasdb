@@ -21,7 +21,7 @@ import static org.junit.Assert.assertThat;
 
 import java.util.Random;
 
-import org.junit.Ignore;
+import org.junit.After;
 import org.junit.Test;
 
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -33,23 +33,26 @@ import com.palantir.atlasdb.todo.TodoResource;
 public class TodoEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
+    private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+
+    @After
+    public void cleanupStreamTables() {
+        todoClient.truncate();
+    }
+
     @Test
     public void shouldBeAbleToWriteAndListTodos() {
-        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
         todoClient.addTodo(TODO);
         assertThat(todoClient.getTodoList(), hasItem(TODO));
     }
 
     @Test
-    @Ignore
     public void shouldSweepStreamIndices() {
-        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
-
         // Stores five small streams, each of which fits into a single block
         // Each time a stream is stored, the previous stream (if any) is deleted
         // This is represented by a delete in the index table.
-        storeFiveStreams(todoClient, 4321);
+        storeFiveStreams(4321);
 
         SweepResults firstSweep = todoClient.sweepSnapshotIndices();
 
@@ -66,7 +69,7 @@ public class TodoEteTest {
         assertThat(valueSweep.getStaleValuesDeleted(), equalTo(4L));
 
         // Stores five larger streams, which take 19 blocks each
-        storeFiveStreams(todoClient, 7654321);
+        storeFiveStreams(7654321);
 
         // The index table now contains ten rows:
         // 4 rows with a sentinel and a delete (sweep sees the delete, but doesn't sweep it - 4 examined, 0 deleted)
@@ -90,16 +93,7 @@ public class TodoEteTest {
         assertThat(secondValueSweep.getStaleValuesDeleted(), equalTo(1L + 19 * 4L));
     }
 
-    @Test
-    public void targetedSweepStream() {
-        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
-        storeFiveStreams(todoClient, 20);
-        todoClient.runIterationOfTargetedSweep();
-        todoClient.runIterationOfTargetedSweep();
-
-    }
-
-    private void storeFiveStreams(TodoResource todoClient, int streamSize) {
+    private void storeFiveStreams(int streamSize) {
         Random random = new Random();
         byte[] bytes = new byte[streamSize];
         for (int i = 0; i < 5; i++) {

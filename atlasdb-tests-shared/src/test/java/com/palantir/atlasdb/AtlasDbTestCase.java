@@ -81,6 +81,7 @@ public class AtlasDbTestCase {
     protected TargetedSweeper sweepQueue;
     protected int sweepQueueShards = 128;
     protected ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
+    protected Follower follower = mock(Follower.class);
 
     @BeforeClass
     public static void setupLockClient() {
@@ -117,7 +118,7 @@ public class AtlasDbTestCase {
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
-        sweepQueue = spy(TargetedSweeper.createUninitialized(() -> true, () -> sweepQueueShards, 0, 0, mock(Follower.class)));
+        sweepQueue = spy(TargetedSweeper.createUninitialized(() -> true, () -> sweepQueueShards, 0, 0, follower));
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,

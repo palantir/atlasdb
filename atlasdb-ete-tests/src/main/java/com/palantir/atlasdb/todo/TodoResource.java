@@ -26,6 +26,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Path("/todos")
 public interface TodoResource {
@@ -72,4 +73,21 @@ public interface TodoResource {
     @Path("/sweep-snapshot-values")
     @Produces(MediaType.APPLICATION_JSON)
     SweepResults sweepSnapshotValues();
+
+    @POST
+    @Path("cells-deleted")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    long numberOfCellsDeleted(TableReference tableRef);
+
+    @POST
+    @Path("cells-deleted-and-swept")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    long numberOfCellsDeletedAndSwept(TableReference tableRef);
+
+    @POST
+    @Path("truncate-tables")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void truncate();
 }

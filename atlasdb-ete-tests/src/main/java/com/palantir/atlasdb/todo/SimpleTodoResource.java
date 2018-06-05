@@ -21,6 +21,7 @@ import java.util.List;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SimpleTodoResource implements TodoResource {
     private TodoClient atlas;
@@ -73,6 +74,21 @@ public class SimpleTodoResource implements TodoResource {
     @Override
     public SweepResults sweepSnapshotValues() {
         return atlas.sweepSnapshotValues();
+    }
+
+    @Override
+    public long numberOfCellsDeleted(TableReference tableRef) {
+        return atlas.numCellsDeleted(tableRef);
+    }
+
+    @Override
+    public long numberOfCellsDeletedAndSwept(TableReference tableRef) {
+        return atlas.numCellsDeletedAndSwept(tableRef);
+    }
+
+    @Override
+    public void truncate() {
+        atlas.truncate();
     }
 }
 
