@@ -70,14 +70,15 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     /**
      * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
-     * {@link #initialize(SpecialTimestampsSupplier, KeyValueService)} method before any writes can be made to the
-     * sweep queue, or before sweeping.
+     * {@link #initialize(SpecialTimestampsSupplier, KeyValueService, TargetedSweepFollower)} method before any writes
+     * can be made to the sweep queue, or before sweeping.
      *
      * @param enabled live reloadable config controlling whether background threads should perform targeted sweep.
      * @param shardsConfig live reloadable config specifying the desired number of shards. Since the number of shards
      * must never be reduced, this will be ignored if the persisted number of shards is greater.
      * @param conservativeThreads number of conservative threads to use for background targeted sweep.
      * @param thoroughThreads number of thorough threads to use for background targeted sweep.
+     * @param follower follower used for sweeps.
      * @return returns an uninitialized targeted sweeper.
      */
     public static TargetedSweeper createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
@@ -91,15 +92,16 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      *
      * @param timestamps supplier of unreadable and immutable timestamps.
      * @param kvs key value service that must be already initialized.
+     * @param follow follower used for sweeps.
      */
-    public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs, TargetedSweepFollower targetedSweepFollower) {
+    public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs, TargetedSweepFollower follow) {
         if (isInitialized) {
             return;
         }
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        queue = SweepQueue.create(kvs, shardsConfig, minShards, targetedSweepFollower);
+        queue = SweepQueue.create(kvs, shardsConfig, minShards, follow);
         timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
@@ -108,7 +110,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     @Override
     public void callbackInit(SerializableTransactionManager txManager) {
-        initialize(SpecialTimestampsSupplier.create(txManager), txManager.getKeyValueService(),
+        initialize(SpecialTimestampsSupplier.create(txManager),
+                txManager.getKeyValueService(),
                 new TargetedSweepFollower(follower, txManager));
     }
 

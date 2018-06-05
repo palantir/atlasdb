@@ -18,9 +18,11 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
+import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -34,13 +36,17 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFineParti
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.IntStream;
 
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -57,15 +63,18 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private static final long LOW_TS2 = 2 * LOW_TS;
     private static final long LOW_TS3 = 3 * LOW_TS;
 
-    private TargetedSweeper sweepQueue = TargetedSweeper.createUninitialized(() -> true, () -> DEFAULT_SHARDS, 0, 0, mock(Follower.class));
+    private TargetedSweeper sweepQueue = TargetedSweeper
+            .createUninitialized(() -> true, () -> DEFAULT_SHARDS, 0, 0, mock(Follower.class));
     private ShardProgress progress;
     private SweepableTimestamps sweepableTimestamps;
     private SweepableCells sweepableCells;
+    private TargetedSweepFollower mockFollower;
 
     @Before
     public void setup() {
         super.setup();
-        sweepQueue.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
+        mockFollower = mock(TargetedSweepFollower.class);
+        sweepQueue.initialize(timestampsSupplier, spiedKvs, mockFollower);
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
@@ -182,6 +191,28 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertReadAtTimestampReturnsNothing(TABLE_THOR, LOW_TS + 1);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, LOW_TS2);
+    }
+
+    @Test
+    public void conservativeSweepCallsFollower() {
+        enqueueWrite(TABLE_CONS, LOW_TS);
+        enqueueWrite(TABLE_CONS, LOW_TS2);
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+
+        ArgumentCaptor<Set> captor = ArgumentCaptor.forClass(Set.class);
+        verify(mockFollower, times(1)).run(eq(TABLE_CONS), captor.capture());
+        assertThat(Iterables.getOnlyElement(captor.getAllValues())).containsExactly(DEFAULT_CELL);
+    }
+
+    @Test
+    public void thoroughSweepCallsFollower() {
+        enqueueWrite(TABLE_THOR, LOW_TS);
+        enqueueWrite(TABLE_THOR, LOW_TS2);
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
+
+        ArgumentCaptor<Set> captor = ArgumentCaptor.forClass(Set.class);
+        verify(mockFollower, times(1)).run(eq(TABLE_THOR), captor.capture());
+        assertThat(Iterables.getOnlyElement(captor.getAllValues())).containsExactly(DEFAULT_CELL);
     }
 
     @Test

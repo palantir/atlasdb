@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.AbstractSweepTest;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
@@ -46,9 +47,8 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     private TargetedSweeper sweepQueue;
 
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(
-            CassandraTargetedSweepIntegrationTest.class)
-            .with(new CassandraContainer());
+    public static final Containers CONTAINERS =
+            new Containers(CassandraTargetedSweepIntegrationTest.class).with(new CassandraContainer());
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
@@ -59,7 +59,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
         super.setup();
 
         sweepQueue = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0, mock(Follower.class));
-        sweepQueue.initialize(timestampsSupplier, kvs, null);
+        sweepQueue.initialize(timestampsSupplier, kvs, mock(TargetedSweepFollower.class));
     }
 
     @Override
