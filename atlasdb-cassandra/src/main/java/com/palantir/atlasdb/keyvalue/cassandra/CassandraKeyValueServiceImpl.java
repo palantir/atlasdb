@@ -228,7 +228,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        return create(config, leaderConfig, mutationTimestampProvider, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(
+                config,
+                CassandraKeyValueServiceRuntimeConfig::getDefault,
+                leaderConfig,
+                mutationTimestampProvider,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                FakeQosClient.INSTANCE);
     }
 
     public static CassandraKeyValueService create(
@@ -242,19 +248,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 mutationTimestampProvider,
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
-    }
-
-    public static CassandraKeyValueService create(
-            CassandraKeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig,
-            CassandraMutationTimestampProvider mutationTimestampProvider,
-            boolean initializeAsync) {
-        return create(config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
-                leaderConfig,
-                mutationTimestampProvider,
-                initializeAsync,
-                FakeQosClient.INSTANCE);
     }
 
     public static CassandraKeyValueService create(

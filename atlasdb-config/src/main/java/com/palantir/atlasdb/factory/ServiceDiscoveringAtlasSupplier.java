@@ -119,9 +119,9 @@ public class ServiceDiscoveringAtlasSupplier {
                         runtimeConfig,
                         leaderConfig,
                         namespace,
+                        timestampSupplier,
                         initializeAsync,
-                        qosClient,
-                        timestampSupplier));
+                        qosClient));
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());

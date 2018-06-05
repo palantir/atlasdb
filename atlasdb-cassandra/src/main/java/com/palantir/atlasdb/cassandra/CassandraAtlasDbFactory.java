@@ -54,9 +54,9 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
+            Optional<Supplier<Long>> freshTimestampSource,
             boolean initializeAsync,
-            QosClient qosClient,
-            Optional<Supplier<Long>> freshTimestampSource) {
+            QosClient qosClient) {
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, runtimeConfig, namespace);
         Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig = preprocessKvsRuntimeConfig(

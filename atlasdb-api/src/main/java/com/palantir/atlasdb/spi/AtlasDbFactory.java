@@ -43,9 +43,9 @@ public interface AtlasDbFactory {
                 Optional::empty,
                 leaderConfig,
                 Optional.empty(),
+                Optional.empty(),
                 DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE,
-                Optional.empty());
+                FakeQosClient.INSTANCE);
     }
 
     /**
@@ -56,11 +56,11 @@ public interface AtlasDbFactory {
      * @param leaderConfig If the implementation supports it, the optional leader configuration.
      * @param namespace If the implementation supports it, this is the namespace to use when the namespace in config is
      * absent. If both are present, they must match.
+     * @param freshTimestampSource If present, a source of fresh timestamps, which may be relevant for some KVS
+     * operations.
      * @param initializeAsync If the implementations supports it, and initializeAsync is true, the KVS will initialize
      * asynchronously when synchronous initialization fails.
      * @param qosClient the client for checking limits from the Quality-of-Service service.
-     * @param freshTimestampSource If present, a source of fresh timestamps, which may be relevant for some KVS
-     * operations.
      * @return The requested KeyValueService instance
      */
     KeyValueService createRawKeyValueService(
@@ -68,9 +68,9 @@ public interface AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
+            Optional<Supplier<Long>> freshTimestampSource,
             boolean initializeAsync,
-            QosClient qosClient,
-            Optional<Supplier<Long>> freshTimestampSource);
+            QosClient qosClient);
 
     default TimestampService createTimestampService(KeyValueService rawKvs) {
         return createTimestampService(rawKvs, Optional.empty(), DEFAULT_INITIALIZE_ASYNC);

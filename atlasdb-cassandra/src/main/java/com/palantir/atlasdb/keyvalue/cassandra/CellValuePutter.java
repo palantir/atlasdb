@@ -46,7 +46,7 @@ public class CellValuePutter {
     private static final Function<Map.Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
             input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
-    private final Supplier<Long> sentinelTimestampSupplier;
+    private final Supplier<Long> timestampOverrideSupplier;
 
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
@@ -59,13 +59,13 @@ public class CellValuePutter {
             TaskRunner taskRunner,
             WrappingQueryRunner queryRunner,
             ConsistencyLevel writeConsistency,
-            Supplier<Long> sentinelTimestampSupplier) {
+            Supplier<Long> timestampOverrideSupplier) {
         this.config = config;
         this.clientPool = clientPool;
         this.taskRunner = taskRunner;
         this.queryRunner = queryRunner;
         this.writeConsistency = writeConsistency;
-        this.sentinelTimestampSupplier = sentinelTimestampSupplier;
+        this.timestampOverrideSupplier = timestampOverrideSupplier;
     }
 
     void put(final String kvsMethodName,
@@ -108,17 +108,17 @@ public class CellValuePutter {
             final InetSocketAddress host,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values,
-            boolean overwriteTimestamps) throws Exception {
+            boolean overrideTimestamps) throws Exception {
         clientPool.runWithRetryOnHost(host,
                 new FunctionCheckedException<CassandraClient, Void, Exception>() {
                     @Override
                     public Void apply(CassandraClient client) throws Exception {
                         int mutationBatchCount = config.mutationBatchCount();
                         int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
-                        long sentinelTimestamp = Long.MIN_VALUE;
-                        if (overwriteTimestamps) {
-                            // Note: This is not needed on a non-sentinel code path.
-                            sentinelTimestamp = sentinelTimestampSupplier.get();
+                        long overrideTimestamp = Long.MIN_VALUE;
+                        if (overrideTimestamps) {
+                            // Note: The timestamp is not needed on a non-sentinel code path.
+                            overrideTimestamp = timestampOverrideSupplier.get();
                         }
 
                         for (List<Map.Entry<Cell, Value>> partition : IterablePartitioner.partitionByCountAndBytes(
@@ -130,11 +130,11 @@ public class CellValuePutter {
                             MutationMap map = new MutationMap();
                             for (Map.Entry<Cell, Value> e : partition) {
                                 Cell cell = e.getKey();
-                                Column col = overwriteTimestamps
+                                Column col = overrideTimestamps
                                         ? CassandraKeyValueServices.createColumnForDelete(
                                                 cell,
                                                 e.getValue(),
-                                                sentinelTimestamp)
+                                                overrideTimestamp)
                                         : CassandraKeyValueServices.createColumn(cell, e.getValue());
 
                                 ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();

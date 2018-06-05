@@ -55,9 +55,9 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
+            Optional<Supplier<Long>> unusedLongSupplier,
             boolean initializeAsync,
-            QosClient unusedQosClient,
-            Optional<Supplier<Long>> unusedLongSupplier) {
+            QosClient unusedQosClient) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
