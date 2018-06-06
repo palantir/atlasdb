@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Fixed an issue where ``getRowsColumnRange`` would return no results if the number of rows was more than the batch hint.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3248>`__)
+
 
 =======
 v0.89.0
