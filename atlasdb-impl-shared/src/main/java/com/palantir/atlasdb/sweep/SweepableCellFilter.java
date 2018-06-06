@@ -48,7 +48,7 @@ public class SweepableCellFilter {
     public BatchOfCellsToSweep getCellsToSweep(List<CandidateCellForSweeping> candidates) {
         Preconditions.checkArgument(!candidates.isEmpty(),
                 "Got an empty collection of candidates. This is a programming error.");
-        CommitTsLoader commitTss = CommitTsLoader.create(transactionService, getAllTimestamps(candidates));
+        CommitTsLoader commitTss = createCommitTsLoader(candidates);
         ImmutableBatchOfCellsToSweep.Builder builder = ImmutableBatchOfCellsToSweep.builder();
         long numCellTsPairsExamined = 0;
         Cell lastCellExamined = null;
@@ -63,6 +63,10 @@ public class SweepableCellFilter {
             lastCellExamined = candidate.cell();
         }
         return builder.numCellTsPairsExamined(numCellTsPairsExamined).lastCellExamined(lastCellExamined).build();
+    }
+
+    private CommitTsLoader createCommitTsLoader(List<CandidateCellForSweeping> candidates) {
+        return CommitTsLoader.create(transactionService, getAllTimestamps(candidates));
     }
 
     // Decide if the candidate cell needs to be swept, and if so, for which timestamps.
