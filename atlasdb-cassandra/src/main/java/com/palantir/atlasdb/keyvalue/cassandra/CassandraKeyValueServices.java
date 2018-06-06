@@ -279,13 +279,16 @@ public final class CassandraKeyValueServices {
     }
 
     static Column createColumn(Cell cell, Value value) {
+        return createColumn(cell, value, value.getTimestamp());
+    }
+
+    static Column createColumn(Cell cell, Value value, long writeTimestamp) {
         byte[] contents = value.getContents();
-        long timestamp = value.getTimestamp();
-        ByteBuffer colName = makeCompositeBuffer(cell.getColumnName(), timestamp);
+        ByteBuffer colName = makeCompositeBuffer(cell.getColumnName(), value.getTimestamp());
         Column col = new Column();
         col.setName(colName);
         col.setValue(contents);
-        col.setTimestamp(timestamp);
+        col.setTimestamp(writeTimestamp);
         return col;
     }
 

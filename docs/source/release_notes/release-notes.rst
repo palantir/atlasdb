@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - The internal cassandra write timestamp for writes (including the sweep sentinel) and deletes to regular tables are now the wall clock time of the client, as opposed to being an arbitrary hardcoded value or related to the transaction's start timestamp.
+           This should improve Cassandra's ability to purge droppable tombstones at compaction time. Particularly in tables that see heavy volumes of overwrites and sweeping.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3151>`__)
 
 =======
 v0.89.0

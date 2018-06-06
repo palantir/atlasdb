@@ -72,8 +72,13 @@ public final class CassandraSchemaLockCleaner {
         TaskRunner taskRunner = new TaskRunner(executorService);
         CellLoader cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
 
-        CellValuePutter cellValuePutter = new CellValuePutter(config, clientPool, taskRunner,
-                wrappingQueryRunner, ConsistencyLevel.QUORUM);
+        CellValuePutter cellValuePutter = new CellValuePutter(
+                config,
+                clientPool,
+                taskRunner,
+                wrappingQueryRunner,
+                ConsistencyLevel.QUORUM,
+                () -> System.currentTimeMillis()); // CassandraTableDropper also uses wall clock time
 
         return new CassandraTableDropper(config,
                 clientPool,
