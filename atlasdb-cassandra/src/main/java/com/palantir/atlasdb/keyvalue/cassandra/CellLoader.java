@@ -140,8 +140,11 @@ class CellLoader {
             final byte[] col = entry.getKey();
             Collection<Cell> columnCells = entry.getValue();
             if (columnCells.size() > fetchBatchCount) {
-                log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to "
-                                + "multiget {} rows; this may indicate overly-large batching on a higher level.\n{}",
+                log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to"
+                                + " multiget {} rows; this may indicate overly-large batching on a higher level."
+                                + " Note that batches are executed in parallel, which may cause load on both"
+                                + " your Atlas client as well as on Cassandra if the number of rows is exceptionally"
+                                + " high.\n{}",
                         SafeArg.of("host", CassandraLogHelper.host(host)),
                         LoggingArgs.tableRef(tableRef),
                         SafeArg.of("rows", columnCells.size()),
