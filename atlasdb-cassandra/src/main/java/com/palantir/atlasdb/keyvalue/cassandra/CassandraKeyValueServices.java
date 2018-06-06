@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
@@ -36,7 +35,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -269,18 +267,6 @@ public final class CassandraKeyValueServices {
         return new UUID(uuid.getLong(uuid.position()), uuid.getLong(uuid.position() + 8)).toString();
     }
 
-    static String buildErrorMessage(String prefix, Map<String, Throwable> errorsByHost) {
-        StringBuilder result = new StringBuilder();
-        result.append(prefix).append("\n\n");
-        for (Map.Entry<String, Throwable> entry : errorsByHost.entrySet()) {
-            String host = entry.getKey();
-            Throwable cause = entry.getValue();
-            result.append(String.format("Error on host %s:%n%s%n%n", host, cause));
-        }
-        return result.toString();
-    }
-
-
     static String getFilteredStackTrace(String filter) {
         Exception ex = new Exception();
         StackTraceElement[] stackTrace = ex.getStackTrace();
@@ -369,13 +355,6 @@ public final class CassandraKeyValueServices {
                 ret.put(Cell.create(row, pair.lhSide), pair.rhSide);
             }
         }
-    }
-
-    protected static int convertTtl(final long durationMillis, TimeUnit sourceTimeUnit) {
-        long ttlSeconds = TimeUnit.SECONDS.convert(durationMillis, sourceTimeUnit);
-        Preconditions.checkArgument(ttlSeconds > 0 && ttlSeconds < Integer.MAX_VALUE,
-                "Expiration time must be between 0 and ~68 years");
-        return (int) ttlSeconds;
     }
 
     public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {

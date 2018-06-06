@@ -50,6 +50,16 @@ develop
     *    - Type
          - Change
 
+    *    - |new| |metrics|
+         - Added a new tagged metric for targeted sweep showing approximate time in milliseconds since the last swept timestamp has been issued.
+           This metric can be used to estimate how far targeted sweep is lagging behind the current moment in time.
+           The metrics, tagged with the sweep strategy used, and with the prefix ``com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.`` is ``millisSinceLastSweptTs``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3206>`__)
+
+    *    - |fixed|
+         - Atlas no longer throws if you read the same column range twice in a serializable transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3239>`__)
+
     *    - |fixed|
          - We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won't
            blacklist connections due to a failed CAS.

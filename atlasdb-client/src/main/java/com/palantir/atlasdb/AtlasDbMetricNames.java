@@ -56,5 +56,6 @@ public final class AtlasDbMetricNames {
     public static final String TOMBSTONES_PUT = "tombstonesPut";
     public static final String ABORTED_WRITES_DELETED = "abortedWritesDeleted";
     public static final String SWEEP_TS = "sweepTimestamp";
-    public static final String SWEPT_TS = "lastSweptTimestamp";
+    public static final String LAST_SWEPT_TS = "lastSweptTimestamp";
+    public static final String LAG_MILLIS = "millisSinceLastSweptTs";
 }

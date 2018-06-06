@@ -24,10 +24,10 @@ import com.palantir.atlasdb.factory.DynamicDecoratingProxy;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TimestampDecoratingTimelockService;
-import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.RequestBatchingTimestampService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.JavaSuppliers;
 
 public final class DecoratedTimelockServices {
     private DecoratedTimelockServices() {

@@ -56,9 +56,9 @@ public final class SweepQueue implements SweepQueueWriter {
         this.metrics = metrics;
     }
 
-    public static SweepQueue create(MetricsManager metricsManager,
-            KeyValueService kvs, Supplier<Integer> shardsConfig, int minShards) {
-        TargetedSweepMetrics metrics = TargetedSweepMetrics.withRecomputingInterval(metricsManager, FIVE_MINUTES);
+    public static SweepQueue create(
+            MetricsManager metricsManager, KeyValueService kvs, Supplier<Integer> shardsConfig, int minShards) {
+        TargetedSweepMetrics metrics = TargetedSweepMetrics.create(metricsManager, kvs, FIVE_MINUTES);
         ShardProgress progress = new ShardProgress(kvs);
         progress.updateNumberOfShards(minShards);
         Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, FIVE_MINUTES);
