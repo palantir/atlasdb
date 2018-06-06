@@ -121,7 +121,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         long startTimestamp = timelockService.getFreshTimestamp();
         return new SnapshotTransaction(metricsManager,
                 keyValueService,
-                null,
+                timelockService,
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimestamp,

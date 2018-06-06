@@ -84,6 +84,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -111,7 +112,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         long startTimestamp = timestampService.getFreshTimestamp();
         return new SnapshotTransaction(metricsManager,
                 keyValueService,
-                null,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimestamp,
