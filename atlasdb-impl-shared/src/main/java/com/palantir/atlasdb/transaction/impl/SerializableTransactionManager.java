@@ -37,6 +37,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
@@ -188,7 +189,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     // TODO(ssouza): it's hard to change the interface of STM with this.
     // We should extract interfaces and delete this hack.
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null,
+        this(MetricsManagers.createForTests(), null, null, null,
+                null, null, null, null,
                 null, null, () -> 1L, false, null, 1, 1,
                 MultiTableSweepQueueWriter.NO_OP, null);
     }
