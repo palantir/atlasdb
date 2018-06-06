@@ -20,11 +20,11 @@ import java.util.function.Supplier;
 
 import com.palantir.tokens.auth.AuthHeader;
 
-public class ProvidedAuthTimestampManagementService implements TimestampManagementService {
+public class AuthDecoratedTimestampManagementService implements TimestampManagementService {
     private final AuthedTimestampManagementService authedTimestampManagementService;
     private final Supplier<AuthHeader> authHeaderSupplier;
 
-    public ProvidedAuthTimestampManagementService(
+    public AuthDecoratedTimestampManagementService(
             AuthedTimestampManagementService authedTimestampManagementService,
             Supplier<AuthHeader> authHeaderSupplier) {
         this.authedTimestampManagementService = authedTimestampManagementService;

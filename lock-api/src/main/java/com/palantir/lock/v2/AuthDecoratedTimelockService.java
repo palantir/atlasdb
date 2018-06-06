@@ -22,11 +22,11 @@ import java.util.function.Supplier;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 
-public class ProvidedAuthTimelockService implements TimelockService {
+public class AuthDecoratedTimelockService implements TimelockService {
     private final AuthedTimelockService authedTimelockService;
     private final Supplier<AuthHeader> authHeaderSupplier;
 
-    public ProvidedAuthTimelockService(AuthedTimelockService authedTimelockService,
+    public AuthDecoratedTimelockService(AuthedTimelockService authedTimelockService,
             Supplier<AuthHeader> authHeaderSupplier) {
         this.authedTimelockService = authedTimelockService;
         this.authHeaderSupplier = authHeaderSupplier;

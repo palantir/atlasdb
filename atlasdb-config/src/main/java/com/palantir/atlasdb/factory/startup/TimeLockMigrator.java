@@ -24,7 +24,7 @@ import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.AuthedTimestampManagementService;
-import com.palantir.timestamp.ProvidedAuthTimestampManagementService;
+import com.palantir.timestamp.AuthDecoratedTimestampManagementService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tokens.auth.AuthHeader;
@@ -88,7 +88,7 @@ public class TimeLockMigrator extends AsyncInitializer {
 
         AuthedTimestampManagementService authedTimestampManagementService =
                 new ServiceCreator<>(AuthedTimestampManagementService.class, userAgent).applyDynamic(serverListConfig);
-        return new ProvidedAuthTimestampManagementService(authedTimestampManagementService, authHeaderSupplier);
+        return new AuthDecoratedTimestampManagementService(authedTimestampManagementService, authHeaderSupplier);
     }
 
     @Override
