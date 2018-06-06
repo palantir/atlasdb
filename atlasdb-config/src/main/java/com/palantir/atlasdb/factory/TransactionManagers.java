@@ -727,13 +727,13 @@ public abstract class TransactionManagers {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
-        Supplier<AuthHeader> authTokenSupplier = () -> runtimeConfigSupplier.get().timelockRuntime().flatMap(
+        Supplier<AuthHeader> authHeaderSupplier = () -> runtimeConfigSupplier.get().timelockRuntime().flatMap(
                     TimeLockRuntimeConfig::authToken).map(AuthHeader::valueOf).orElse(null);
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(serverListConfigSupplier, authTokenSupplier, invalidator, userAgent, config.initializeAsync());
+                TimeLockMigrator.create(serverListConfigSupplier, authHeaderSupplier, invalidator, userAgent, config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
         return ImmutableLockAndTimestampServices.copyOf(
-                getLockAndTimestampServices(serverListConfigSupplier, authTokenSupplier, userAgent))
+                getLockAndTimestampServices(serverListConfigSupplier, authHeaderSupplier, userAgent))
                 .withMigrator(migrator);
     }
 
@@ -752,15 +752,15 @@ public abstract class TransactionManagers {
 
     private static LockAndTimestampServices getLockAndTimestampServices(
             Supplier<ServerListConfig> timelockServerListConfig,
-            Supplier<AuthHeader> authTokenSupplier,
+            Supplier<AuthHeader> authHeaderSupplier,
             String userAgent) {
         AuthedLockService lockService = new ServiceCreator<>(AuthedLockService.class, userAgent)
                 .applyDynamic(timelockServerListConfig);
-        ProvidedAuthLockService providedAuthLockService = new ProvidedAuthLockService(lockService, authTokenSupplier);
+        ProvidedAuthLockService providedAuthLockService = new ProvidedAuthLockService(lockService, authHeaderSupplier);
 
         AuthedTimelockService timelockService = new ServiceCreator<>(AuthedTimelockService.class, userAgent)
                 .applyDynamic(timelockServerListConfig);
-        ProvidedAuthTimelockService providedAuthTimelockService = new ProvidedAuthTimelockService(timelockService, authTokenSupplier);
+        ProvidedAuthTimelockService providedAuthTimelockService = new ProvidedAuthTimelockService(timelockService, authHeaderSupplier);
 
 
         return ImmutableLockAndTimestampServices.builder()

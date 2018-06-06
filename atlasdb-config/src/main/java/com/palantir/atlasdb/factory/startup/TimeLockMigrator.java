@@ -46,20 +46,20 @@ public class TimeLockMigrator extends AsyncInitializer {
 
     public static TimeLockMigrator create(
             ServerListConfig serverListConfig,
-            Supplier<AuthHeader> authTokenSupplier,
+            Supplier<AuthHeader> authHeaderSupplier,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
-        return create(() -> serverListConfig, authTokenSupplier, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(() -> serverListConfig, authHeaderSupplier, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimeLockMigrator create(
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Supplier<AuthHeader> authTokenSupplier,
+            Supplier<AuthHeader> authHeaderSupplier,
             TimestampStoreInvalidator invalidator,
             String userAgent,
             boolean initializeAsync) {
         TimestampManagementService remoteTimestampManagementService =
-                createRemoteManagementService(serverListConfigSupplier, userAgent, authTokenSupplier);
+                createRemoteManagementService(serverListConfigSupplier, userAgent, authHeaderSupplier);
         return new TimeLockMigrator(invalidator, remoteTimestampManagementService, initializeAsync);
     }
 
@@ -84,11 +84,11 @@ public class TimeLockMigrator extends AsyncInitializer {
     private static TimestampManagementService createRemoteManagementService(
             Supplier<ServerListConfig> serverListConfig,
             String userAgent,
-            Supplier<AuthHeader> authTokenSupplier) {
+            Supplier<AuthHeader> authHeaderSupplier) {
 
         AuthedTimestampManagementService authedTimestampManagementService =
                 new ServiceCreator<>(AuthedTimestampManagementService.class, userAgent).applyDynamic(serverListConfig);
-        return new ProvidedAuthTimestampManagementService(authedTimestampManagementService, authTokenSupplier);
+        return new ProvidedAuthTimestampManagementService(authedTimestampManagementService, authHeaderSupplier);
     }
 
     @Override
