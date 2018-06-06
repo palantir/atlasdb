@@ -24,6 +24,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -38,6 +39,8 @@ import gnu.trove.set.TLongSet;
 public final class CommitTsLoader {
     private static final Logger log = LoggerFactory.getLogger(CommitTsLoader.class);
 
+    private static final int TS_PER_BATCH = 5000;
+
     private final TLongLongMap commitTsByStartTs;
     private final TransactionService transactionService;
 
@@ -49,10 +52,20 @@ public final class CommitTsLoader {
     public static CommitTsLoader create(TransactionService transactionService, TLongSet startTssToWarmingCache) {
         TLongLongMap cache = new TLongLongHashMap();
         if (!startTssToWarmingCache.isEmpty()) {
-            // Ideally TransactionService should work with primitive collections to avoid GC overhead..
-            cache.putAll(transactionService.get(TDecorators.wrap(startTssToWarmingCache)));
+            warmCache(transactionService, startTssToWarmingCache, cache);
+
         }
         return new CommitTsLoader(cache, transactionService);
+    }
+
+    private static void warmCache(
+            TransactionService transactionService,
+            TLongSet startTssToWarmingCache,
+            TLongLongMap cache) {
+        // Ideally TransactionService should work with primitive collections to avoid GC overhead..
+        for (List<Long> longList : Iterables.partition(TDecorators.wrap(startTssToWarmingCache), TS_PER_BATCH)) {
+            cache.putAll(transactionService.get(longList));
+        }
     }
 
     public long load(long startTs) {
