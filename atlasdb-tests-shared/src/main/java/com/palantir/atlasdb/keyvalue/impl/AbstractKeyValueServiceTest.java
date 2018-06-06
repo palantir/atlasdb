@@ -485,10 +485,11 @@ public abstract class AbstractKeyValueServiceTest {
     private static void assertNextElementMatches(RowColumnRangeIterator iterator,
                                                  Cell expectedCell,
                                                  byte[] expectedContents) {
-        assertTrue(iterator.hasNext());
+        assertTrue("Expected next element to match, but iterator was exhausted!", iterator.hasNext());
         Map.Entry<Cell, Value> entry = iterator.next();
-        assertEquals(expectedCell, entry.getKey());
-        assertArrayEquals(expectedContents, entry.getValue().getContents());
+        assertEquals("Expected next element to match, but keys were different!", expectedCell, entry.getKey());
+        assertArrayEquals("Expected next element to match, but values were different!",
+                expectedContents, entry.getValue().getContents());
     }
 
     @Test
