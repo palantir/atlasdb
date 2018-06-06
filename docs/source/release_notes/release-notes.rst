@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - When determining if large sets of candidate cells were part of committed transactions, Background and Targeted Sweep will now read smaller batches of timestamps from the transaction service in serial.
+           Previously, though these reads were re-partitioned into smaller batches, the batch requests were made in parallel which could monopolise Atlas client-side as well as KVS-side resources.
+           There may be a small performance regression here, though this change promotes better stability for the underlying key-value-service especially in the presence of wide rows.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3245>`__)
+
     *    - |new| |metrics|
          - Added a new tagged metric for targeted sweep showing approximate time in milliseconds since the last swept timestamp has been issued.
            This metric can be used to estimate how far targeted sweep is lagging behind the current moment in time.
