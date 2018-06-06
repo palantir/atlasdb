@@ -37,8 +37,8 @@ import com.palantir.tokens.auth.AuthHeader;
 
 /**
  * Defines the service which handles locking operations.
- *
- * @author jtamer
+ * Compared to {@link LockService} this requires an AuthHeader, passed as first parameter in all the methods.
+ * The auth header can be used by Timelock server to authorize the requests for for each namespace.
  */
 
 @Path("/lock")
@@ -156,7 +156,6 @@ import com.palantir.tokens.auth.AuthHeader;
      * @return the new {@link HeldLocksGrant} token if refreshed successfully,
      *         or {@code null} if the grant could not be refreshed.
      */
-
     @POST
     @Path("refresh-grant")
     @Produces(MediaType.APPLICATION_JSON)

@@ -24,11 +24,11 @@ import javax.annotation.Nullable;
 
 import com.palantir.tokens.auth.AuthHeader;
 
-public class ProvidedAuthLockService implements LockService {
+public class AuthDecoratingLockService implements LockService {
     private final AuthedLockService authedLockService;
     private final Supplier<AuthHeader> authHeaderSupplier;
 
-    public ProvidedAuthLockService(AuthedLockService authedLockService,
+    public AuthDecoratingLockService(AuthedLockService authedLockService,
             Supplier<AuthHeader> authHeaderSupplier) {
         this.authedLockService= authedLockService;
         this.authHeaderSupplier = authHeaderSupplier;

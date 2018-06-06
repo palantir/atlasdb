@@ -129,7 +129,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
-import com.palantir.lock.ProvidedAuthLockService;
+import com.palantir.lock.AuthDecoratingLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.TimeLockClient;
@@ -756,7 +756,7 @@ public abstract class TransactionManagers {
             String userAgent) {
         AuthedLockService lockService = new ServiceCreator<>(AuthedLockService.class, userAgent)
                 .applyDynamic(timelockServerListConfig);
-        ProvidedAuthLockService providedAuthLockService = new ProvidedAuthLockService(lockService, authHeaderSupplier);
+        AuthDecoratingLockService authDecoratingLockService = new AuthDecoratingLockService(lockService, authHeaderSupplier);
 
         AuthedTimelockService timelockService = new ServiceCreator<>(AuthedTimelockService.class, userAgent)
                 .applyDynamic(timelockServerListConfig);
@@ -764,7 +764,7 @@ public abstract class TransactionManagers {
 
 
         return ImmutableLockAndTimestampServices.builder()
-                .lock(providedAuthLockService)
+                .lock(authDecoratingLockService)
                 .timestamp(new TimelockTimestampServiceAdapter(providedAuthTimelockService))
                 .timelock(providedAuthTimelockService)
                 .build();
