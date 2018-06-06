@@ -30,6 +30,7 @@ import java.util.stream.LongStream;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
@@ -102,7 +103,7 @@ public class CommitTsLoaderTest {
 
         doAnswer((invocation) -> {
             Collection<Long> timestamps = ((Collection<Long>) invocation.getArguments()[0]);
-            if (timestamps.size() > CommitTsLoader.TS_PER_BATCH) {
+            if (timestamps.size() > AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT) {
                 fail("Requested more timestamps in a batch than is reasonable!");
             }
             return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));

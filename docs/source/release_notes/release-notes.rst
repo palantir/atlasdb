@@ -56,6 +56,12 @@ develop
            There may be a small performance regression here, though this change promotes better stability for the underlying key-value-service especially in the presence of wide rows.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3245>`__)
 
+    *    - |userbreak|
+         - The size of batches that are used when the ``CommitTsLoader`` loads timestamps is now set to be a non-configurable 50,000.
+           This used to be configured via the ``fetchBatchSize`` parameter; other workflows that use this parameter are unaffected.
+           If you have a use case for configuring this specifically, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3245>`__)
+
     *    - |new| |metrics|
          - Added a new tagged metric for targeted sweep showing approximate time in milliseconds since the last swept timestamp has been issued.
            This metric can be used to estimate how far targeted sweep is lagging behind the current moment in time.
