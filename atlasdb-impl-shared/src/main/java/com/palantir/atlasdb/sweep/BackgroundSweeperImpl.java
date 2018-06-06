@@ -57,7 +57,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private final PersistentLockManager persistentLockManager;
     private final SpecificTableSweeper specificTableSweeper;
 
-    private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
+    private final SweepOutcomeMetrics sweepOutcomeMetrics;
 
     private Thread daemon;
 
@@ -75,6 +75,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         this.metricsManager = metricsManager;
+        this.sweepOutcomeMetrics = new SweepOutcomeMetrics();
         this.lockService = lockService;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.sweepBatchConfigSource = sweepBatchConfigSource;
