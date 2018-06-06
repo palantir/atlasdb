@@ -24,6 +24,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -39,7 +40,8 @@ import gnu.trove.set.TLongSet;
 public final class CommitTsLoader {
     private static final Logger log = LoggerFactory.getLogger(CommitTsLoader.class);
 
-    private static final int TS_PER_BATCH = 5000;
+    @VisibleForTesting
+    static final int TS_PER_BATCH = 5000;
 
     private final TLongLongMap commitTsByStartTs;
     private final TransactionService transactionService;

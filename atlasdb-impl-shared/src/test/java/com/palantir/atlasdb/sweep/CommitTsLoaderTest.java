@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -103,7 +102,7 @@ public class CommitTsLoaderTest {
 
         doAnswer((invocation) -> {
             Collection<Long> timestamps = ((Collection<Long>) invocation.getArguments()[0]);
-            if (timestamps.size() > 5_000) {
+            if (timestamps.size() > CommitTsLoader.TS_PER_BATCH) {
                 fail("Requested more timestamps in a batch than is reasonable!");
             }
             return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
@@ -114,7 +113,5 @@ public class CommitTsLoaderTest {
 
         CommitTsLoader loader = CommitTsLoader.create(mockTransactionService, initialTimestamps);
         assertThat(loader.load(valuesToInsert - 1)).isEqualTo(valuesToInsert - 1);
-
-        verify(mockTransactionService, atLeast(2)).get(any());
     }
 }
