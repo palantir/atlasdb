@@ -24,7 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -102,7 +102,7 @@ public class CommitTsLoaderTest {
         long valuesToInsert = 1_000_000;
 
         doAnswer((invocation) -> {
-            List<Long> timestamps = ((List<Long>) invocation.getArguments()[0]);
+            Collection<Long> timestamps = ((Collection<Long>) invocation.getArguments()[0]);
             if (timestamps.size() > 5_000) {
                 fail("Requested more timestamps in a batch than is reasonable!");
             }

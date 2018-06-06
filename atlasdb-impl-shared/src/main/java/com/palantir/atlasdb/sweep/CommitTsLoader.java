@@ -62,7 +62,7 @@ public final class CommitTsLoader {
             TransactionService transactionService,
             TLongSet startTssToWarmingCache,
             TLongLongMap cache) {
-        // Ideally TransactionService should work with primitive collections to avoid GC overhead..
+        // Ideally TransactionService should work with primitive collections to avoid GC overhead.
         for (List<Long> longList : Iterables.partition(TDecorators.wrap(startTssToWarmingCache), TS_PER_BATCH)) {
             cache.putAll(transactionService.get(longList));
         }
