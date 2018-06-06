@@ -187,6 +187,26 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-89-0">
+<h2>v0.89.0<a class="headerlink" href="#v0-89-0" title="Permalink to this headline">¶</a></h2>
+<p>6 June 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>When determining if large sets of candidate cells were part of committed transactions, Background and Targeted Sweep will now read smaller batches of timestamps from the transaction service in serial.
 Previously, though these reads were re-partitioned into smaller batches, the batch requests were made in parallel which could monopolise Atlas client-side as well as KVS-side resources.
@@ -194,49 +214,50 @@ There may be a small performance regression here, though this change promotes be
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3245">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
-<td>The size of batches that are used when the <code class="docutils literal notranslate"><span class="pre">CommitTsLoader</span></code> loads timestamps is now set to be a non-configurable 50,000.
-This used to be configured via the <code class="docutils literal notranslate"><span class="pre">fetchBatchSize</span></code> parameter; other workflows that use this parameter are unaffected.
+<td>The size of batches that are used when the <code class="docutils literal notranslate"><span class="pre">CommitTsLoader</span></code> loads timestamps as part of sweep is now set to be a non-configurable 50,000.
+This used to be configured via the <code class="docutils literal notranslate"><span class="pre">fetchBatchSize</span></code> parameter in Cassandra config.
+Other workflows that use this parameter continue to respect it.
 If you have a use case for configuring this specifically, please contact the AtlasDB team.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3245">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The <code class="docutils literal notranslate"><span class="pre">Transaction.getRowsColumnRange</span></code> method that returns an iterator now throws for <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE</span></code> conflict handlers.
+This functionality was never implemented correctly and never offered the serializable guarantee.
+The method now throws an <code class="docutils literal notranslate"><span class="pre">UnsupportedOperationException</span></code> in this case.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3200">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Due to lack of use, we have deleted the AtlasDB Dropwizard bundle.
+Users who need Atlas Console and CLI functionality are encouraged to use the respective distributions.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3231">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>Added a new tagged metric for targeted sweep showing approximate time in milliseconds since the last swept timestamp has been issued.
 This metric can be used to estimate how far targeted sweep is lagging behind the current moment in time.
-The metrics, tagged with the sweep strategy used, and with the prefix <code class="docutils literal notranslate"><span class="pre">com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.</span></code> is <code class="docutils literal notranslate"><span class="pre">millisSinceLastSweptTs</span></code>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3206">Pull Request</a>)</td>
+The metric is <code class="docutils literal notranslate"><span class="pre">com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.millisSinceLastSweptTs</span></code> and is tagged with the sweep strategy used.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3217">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Atlas no longer throws if you read the same column range twice in a serializable transaction.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3239">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won’t
-blacklist connections due to a failed CAS.
+<td>We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won’t blacklist connections due to a failed CAS.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3215">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>The <code class="docutils literal notranslate"><span class="pre">Transaction.getRowsColumnRange</span></code> method that returns an iterator now throws for <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE</span></code> conflict handlers. This functionality was
-never implemented correctly and never offered the serializable guarantee. The method now throws an <code class="docutils literal notranslate"><span class="pre">UnsupportedOperationException</span></code> in this case.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3200">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">SnapshotTransaction</span></code> now asynchronously deletes values for transactions that get rolled back.
-This restores the behaviour from before the previous <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3199">fix</a>,
-except that the parent transaction no longer waits for the delete to finish.
+This restores the behaviour from before the previous <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3199">fix</a>, except that the parent transaction no longer waits for the delete to finish.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3219">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
 Previously, the method determining whether the transaction had committed successfully or been aborted would hit a code path that would always result in an NPE.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3205">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3208">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>Due to lack of use, we have deleted the AtlasDB Dropwizard bundle.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3231">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
