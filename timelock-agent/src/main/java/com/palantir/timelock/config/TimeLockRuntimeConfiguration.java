@@ -49,18 +49,18 @@ public abstract class TimeLockRuntimeConfiguration {
     }
 
     /**
-     * The namespace and token credentials the server should use to authenticate basic service clients
+     * The namespace and token credentials the server should use to authenticate basic service clients.
      */
-    @JsonProperty("service-auth-clients")
+    @JsonProperty("service-auth-credentials")
     @Value.Default
-    public List<TimelockClientCredentials> serviceAuthClients() {
+    public List<TimelockClientCredentials> serviceAuthCredentials() {
         return ImmutableList.of();
     }
 
     /**
-     * The tokens the server should use to authenticate admin clients
+     * The tokens the server should use to authenticate admin clients.
      */
-    @JsonProperty("admin-auth-clients")
+    @JsonProperty("admin-auth-tokens")
     @Value.Default
     public List<String> adminAuthTokens() {
         return ImmutableList.of();
