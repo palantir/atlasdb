@@ -21,10 +21,10 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonSerialize(as = ImmutableTimelockServiceAuthClient.class)
-@JsonDeserialize(as = ImmutableTimelockServiceAuthClient.class)
+@JsonSerialize(as = ImmutableTimelockClientCredentials.class)
+@JsonDeserialize(as = ImmutableTimelockClientCredentials.class)
 @Value.Immutable
-public abstract class TimelockServiceAuthClient {
+public abstract class TimelockClientCredentials {
 
     /**
      * Namespace for which requests should be authorized in Timelock server
