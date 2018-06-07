@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import java.util.Optional;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -64,7 +65,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            Optional<Supplier<Long>> unusedLongSupplier,
+            LongSupplier unusedLongSupplier,
             boolean initializeAsync,
             QosClient unusedQosClient) {
         if (initializeAsync) {
