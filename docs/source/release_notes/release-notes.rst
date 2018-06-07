@@ -54,6 +54,9 @@ develop
          - Fixed an issue where ``getRowsColumnRange`` would return no results if the number of rows was more than the batch hint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3248>`__)
 
+    *    - |devbreak|
+         - The ``BackgroundSweeper`` is no longer a ``Runnable``. Its job is now to manage ``BackgroundSweeperThread`` instances, which are ``Runnable``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/NNNN>`__)
 
 =======
 v0.89.0

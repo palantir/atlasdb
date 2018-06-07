@@ -83,7 +83,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     @Override
     public synchronized void runInBackground() {
         Preconditions.checkState(daemon == null);
-        daemon = new Thread(this);
+        daemon = new Thread(backgroundSweepThread);
         daemon.setDaemon(true);
         daemon.setName("BackgroundSweeper");
         daemon.start();
@@ -130,11 +130,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             Thread.currentThread().interrupt();
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
-    }
-
-    @Override
-    public void run() {
-        backgroundSweepThread.run();
     }
 
     @VisibleForTesting
