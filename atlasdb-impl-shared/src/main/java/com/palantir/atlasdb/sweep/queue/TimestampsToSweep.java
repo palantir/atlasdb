@@ -25,11 +25,13 @@ import org.immutables.value.Value;
 public interface TimestampsToSweep {
     List<Long> timestampsDescending();
     Optional<Long> maxSwept();
+    boolean processedAll();
 
-    static TimestampsToSweep of(List<Long> list, Optional<Long> max) {
+    static TimestampsToSweep of(List<Long> list, Optional<Long> max, boolean processedAll) {
         return ImmutableTimestampsToSweep.builder()
                 .timestampsDescending(list)
                 .maxSwept(max)
+                .processedAll(processedAll)
                 .build();
     }
 }

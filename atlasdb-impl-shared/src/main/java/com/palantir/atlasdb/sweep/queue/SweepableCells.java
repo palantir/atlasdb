@@ -145,7 +145,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         log.info("Read {} entries from the sweep queue.", SafeArg.of("number", writesByStartTs.size()));
         TimestampsToSweep tsToSweep = getTimestampsToSweepAndCleanupAborted(shardStrategy, sweepTs, writesByStartTs);
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
-        Optional<Long> lastSweptTs = getLastSweptTs(writesByStartTs, tsToSweep, resultIterator, partitionFine, sweepTs);
+        Optional<Long> lastSweptTs = getLastSweptTs(tsToSweep, resultIterator, partitionFine, sweepTs);
         return SweepBatch.of(writes, lastSweptTs.orElse(minTsExclusive));
     }
 
@@ -170,21 +170,13 @@ public class SweepableCells extends KvsSweepQueueWriter {
         return writesToSweepFor.values();
     }
 
-    private Optional<Long> getLastSweptTs(Multimap<Long, WriteInfo> writesByStartTs,
-            TimestampsToSweep startTsCommitted, RowColumnRangeIterator resultIterator,
+    private Optional<Long> getLastSweptTs(TimestampsToSweep startTsCommitted, RowColumnRangeIterator resultIterator,
             long partitionFine, long maxTsExclusive) {
-        if (!startTsCommitted.maxSwept().isPresent()) {
-            return Optional.of(lastGuaranteedSwept(partitionFine, maxTsExclusive));
-        }
-
-        if (startTsCommitted.maxSwept().get() < writesByStartTs.keySet().stream().max(Comparator.naturalOrder()).get()) {
+        if (startTsCommitted.processedAll() && exhaustedAllColumns(resultIterator)) {
+                return Optional.of(lastGuaranteedSwept(partitionFine, maxTsExclusive));
+            } else {
             return startTsCommitted.maxSwept();
         }
-
-        if (exhaustedAllColumns(resultIterator)) {
-            return Optional.of(lastGuaranteedSwept(partitionFine, maxTsExclusive));
-        }
-        return startTsCommitted.maxSwept();
     }
 
     private RowColumnRangeIterator getRowColumnRange(SweepableCellsTable.SweepableCellsRow row, long partitionFine,
@@ -199,6 +191,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         Map<TableReference, Multimap<Cell, Long>> cellsToDelete = new HashMap<>();
         List<Long> committedTimestamps = new ArrayList<>();
         Long maxStartTs = null;
+        boolean processedAll = true;
 
         List<Long> sortedStartTimestamps = startToCommitTs.keySet().stream().sorted().collect(Collectors.toList());
         for (long startTs: sortedStartTimestamps) {
@@ -214,6 +207,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
                 committedTimestamps.add(startTs);
             } else {
                 maxStartTs = startTs - 1;
+                processedAll = false;
                 break;
             }
         }
@@ -225,7 +219,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         });
 
         committedTimestamps.sort(Comparator.reverseOrder());
-        return TimestampsToSweep.of(committedTimestamps, Optional.ofNullable(maxStartTs));
+        return TimestampsToSweep.of(committedTimestamps, Optional.ofNullable(maxStartTs), processedAll);
     }
 
     private List<WriteInfo> getWrites(SweepableCellsTable.SweepableCellsRow row,
