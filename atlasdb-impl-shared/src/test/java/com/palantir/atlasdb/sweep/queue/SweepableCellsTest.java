@@ -120,6 +120,13 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     }
 
     @Test
+    public void readDoesNotReturnValuesFromTransactionsCommittedAfterSweepTs() {
+        writeToDefaultCellCommitedAt(sweepableCells, TS + 1, SMALL_SWEEP_TS, TABLE_CONS);
+        SweepBatch conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS);
+        assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
+    }
+
+    @Test
     public void lastSweptTimestampIsMinimumOfSweepTsAndEndOfFinePartitionWhenThereAreMatches() {
         SweepBatch conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(SMALL_SWEEP_TS - 1);
