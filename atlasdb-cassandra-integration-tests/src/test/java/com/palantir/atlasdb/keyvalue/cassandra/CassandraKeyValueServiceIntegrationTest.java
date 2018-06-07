@@ -40,8 +40,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.xml.bind.DatatypeConverter;
-
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
@@ -63,6 +61,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
+import com.google.common.io.BaseEncoding;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -423,16 +422,20 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                             + " VALUES (%s, %s, %s, %s) USING TIMESTAMP %s;",
                     CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow(),
                     tableReference.getQualifiedName().replaceAll("\\.", "__"),
-                    "0x" + DatatypeConverter.printHexBinary(cell.getRowName()).toLowerCase(),
-                    "0x" + DatatypeConverter.printHexBinary(cell.getColumnName()).toLowerCase(),
+                    convertBytesToHexString(cell.getRowName()),
+                    convertBytesToHexString(cell.getColumnName()),
                     ~atlasTimestamp,
-                    "0x" + DatatypeConverter.printHexBinary(PtBytes.toBytes("abababab")).toLowerCase(),
+                    convertBytesToHexString(PtBytes.toBytes("testtesttest")),
                     cassandraTimestamp));
             return input.execute_cql3_query(
                     cqlQuery,
                     Compression.NONE,
                     ConsistencyLevel.QUORUM);
         });
+    }
+
+    private String convertBytesToHexString(byte[] bytes) {
+        return "0x" + BaseEncoding.base16().lowerCase().encode(bytes);
     }
 
     private void createExtraLocksTable(SchemaMutationLockTables lockTables,
