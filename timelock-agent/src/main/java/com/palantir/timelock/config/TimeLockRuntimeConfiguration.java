@@ -23,8 +23,6 @@ import com.palantir.atlasdb.timelock.auth.TimelockServiceAuthClient;
 @Value.Immutable
 public abstract class TimeLockRuntimeConfiguration {
 
-    private static final int MIN_SECRET_LENGTH = 16;
-
     @Value.Default
     public PaxosRuntimeConfiguration paxos() {
         return ImmutablePaxosRuntimeConfiguration.builder().build();
@@ -72,9 +70,5 @@ public abstract class TimeLockRuntimeConfiguration {
     public void check() {
         Preconditions.checkState(slowLockLogTriggerMillis() >= 0,
                 "Slow lock log trigger threshold must be nonnegative, but found %s", slowLockLogTriggerMillis());
-
-        Preconditions.checkState(
-                !internalAuthSecret().isPresent() || internalAuthSecret().get().length() >= MIN_SECRET_LENGTH,
-                "Internal auth secret must have at least %s characters.", MIN_SECRET_LENGTH);
     }
 }
