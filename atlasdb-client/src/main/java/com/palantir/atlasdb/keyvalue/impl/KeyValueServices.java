@@ -206,7 +206,7 @@ public class KeyValueServices {
         if (Iterables.isEmpty(rows)) {
             return new LocalRowColumnRangeIterator(Collections.emptyIterator());
         }
-        int columnBatchSize = batchHint / Iterables.size(rows);
+        int columnBatchSize = Math.max(1, batchHint / Iterables.size(rows));
         BatchColumnRangeSelection batchColumnRangeSelection =
                 BatchColumnRangeSelection.create(columnRangeSelection, columnBatchSize);
         Map<byte[], RowColumnRangeIterator> rowsColumnRanges =
