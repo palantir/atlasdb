@@ -29,11 +29,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.remoting2.errors.SerializableError;
-
-import io.dropwizard.jackson.Jackson;
+import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 public class ExceptionMappersSerializationTest {
-    private static final ObjectMapper MAPPER = Jackson.newObjectMapper();
+    private static final ObjectMapper MAPPER = ObjectMappers.newServerObjectMapper();
 
     private static final StackTraceElement[] TRACES = { new StackTraceElement("class", "method", null, 1) };
     private static final ServiceNotAvailableException SERVICE_NOT_AVAILABLE_EXCEPTION =
