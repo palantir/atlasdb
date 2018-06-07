@@ -38,6 +38,15 @@ public abstract class SweepConfig {
         return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
     }
 
+    // TODO handle live reload
+    /**
+     * The number of background sweep threads to run.
+     */
+    @Value.Default
+    public int sweepThreads() {
+        return 1;
+    }
+
     /**
      * The number of milliseconds to wait between each batch of cells processed by the background sweeper.
      */

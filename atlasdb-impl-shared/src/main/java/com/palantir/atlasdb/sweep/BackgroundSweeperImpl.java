@@ -20,7 +20,6 @@ import java.util.concurrent.CountDownLatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
@@ -33,20 +32,21 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     private static final long MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS = 10_000;
 
+    // Shared between threads
     private final PersistentLockManager persistentLockManager;
     private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
-    private final BackgroundSweepThread backgroundSweepThread;
 
+    private final BackgroundSweepThread backgroundSweepThread;
     private Thread daemon;
 
     private final CountDownLatch shuttingDown = new CountDownLatch(1);
 
-    @VisibleForTesting
-    BackgroundSweeperImpl(
+    private BackgroundSweeperImpl(
             LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
+            Supplier<Integer> sweepThreads,
             Supplier<Long> sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             PersistentLockManager persistentLockManager,
@@ -61,6 +61,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     public static BackgroundSweeperImpl create(
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
+            Supplier<Integer> sweepThreads,
             Supplier<Long> sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             PersistentLockManager persistentLockManager,
@@ -73,6 +74,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,
                 isSweepEnabled,
+                sweepThreads,
                 sweepPauseMillis,
                 sweepPriorityOverrideConfig,
                 persistentLockManager,
