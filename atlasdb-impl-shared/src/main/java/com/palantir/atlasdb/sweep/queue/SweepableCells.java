@@ -174,7 +174,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
             TimestampsToSweep startTsCommitted, RowColumnRangeIterator resultIterator,
             long partitionFine, long maxTsExclusive) {
         if (!startTsCommitted.maxSwept().isPresent()) {
-            return Optional.empty();
+            return Optional.of(lastGuaranteedSwept(partitionFine, maxTsExclusive));
         }
 
         if (startTsCommitted.maxSwept().get() < writesByStartTs.keySet().stream().max(Comparator.naturalOrder()).get()) {
