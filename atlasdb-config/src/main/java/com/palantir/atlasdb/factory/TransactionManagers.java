@@ -63,7 +63,6 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
@@ -124,19 +123,19 @@ import com.palantir.common.annotation.Output;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.lock.AuthDecoratingLockService;
 import com.palantir.lock.AuthedLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
-import com.palantir.lock.AuthDecoratingLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.v2.AuthedTimelockService;
 import com.palantir.lock.v2.AuthDecoratedTimelockService;
+import com.palantir.lock.v2.AuthedTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
@@ -727,8 +726,7 @@ public abstract class TransactionManagers {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
-        Supplier<AuthHeader> authHeaderSupplier = () -> runtimeConfigSupplier.get().timelockRuntime().flatMap(
-                    TimeLockRuntimeConfig::authToken).map(AuthHeader::valueOf).orElse(null);
+        Supplier<AuthHeader> authHeaderSupplier = () -> AuthHeader.valueOf(runtimeConfigSupplier.get().timelockRuntime().get().authToken());
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(serverListConfigSupplier, authHeaderSupplier, invalidator, userAgent, config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set

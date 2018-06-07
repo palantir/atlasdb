@@ -38,8 +38,6 @@ public abstract class TimeLockRuntimeConfig {
      * to authorize the request for the specified namespace.
      */
     @JsonProperty("auth-token")
-    @Value.Default
-    public Optional<String> authToken() {
-        return Optional.empty();
+    public abstract String authToken();
     }
 }
