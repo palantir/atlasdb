@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
@@ -38,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
@@ -63,7 +65,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     protected KeyValueService kvs;
     protected LockAwareTransactionManager txManager;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
-    private BackgroundSweeperImpl backgroundSweeper;
+    private BackgroundSweepThread backgroundSweeper;
     private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
             .deleteBatchSize(8)
             .candidateBatchSize(15)
@@ -101,13 +103,17 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
         sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() -> sweepBatchConfig);
 
-        backgroundSweeper = BackgroundSweeperImpl.create(
+        backgroundSweeper = new BackgroundSweepThread(
+                txManager.getLockService(),
+                NextTableToSweepProvider.create(kvs, specificTableSweeper.getSweepPriorityStore()),
                 sweepBatchConfigSource,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis
                 SweepPriorityOverrideConfig::defaultConfig,
-                persistentLockManager,
-                specificTableSweeper);
+                specificTableSweeper,
+                new SweepOutcomeMetrics(), // TODO this is kind of odd
+                new CountDownLatch(1) // TODO so is this
+        );
     }
 
     @Test

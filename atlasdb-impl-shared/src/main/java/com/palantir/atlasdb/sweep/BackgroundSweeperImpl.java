@@ -27,7 +27,6 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
-import com.palantir.lock.SingleLockService;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -133,18 +132,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     }
 
     @VisibleForTesting
-    SweepOutcome checkConfigAndRunSweep(SingleLockService locks) throws InterruptedException {
-        return backgroundSweepThread.checkConfigAndRunSweep(locks);
-    }
-
-    @VisibleForTesting
     SweepOutcome runOnce() {
         return backgroundSweepThread.runOnce();
     }
-
-    @VisibleForTesting
-    SingleLockService createSweepLocks() {
-        return backgroundSweepThread.createSweepLocks();
-    }
-
 }
