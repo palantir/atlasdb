@@ -245,8 +245,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         }
     }
 
-    // there's a bug in older jdk8s around type inference here, don't make the same mistake two of us made
-    // and try to lambda refactor this unless you live far enough in the future that this isn't an issue
     private Optional<TableToSweep> getTableToSweep() {
         return specificTableSweeper.getTxManager().runTaskWithRetry(
                 tx -> {
