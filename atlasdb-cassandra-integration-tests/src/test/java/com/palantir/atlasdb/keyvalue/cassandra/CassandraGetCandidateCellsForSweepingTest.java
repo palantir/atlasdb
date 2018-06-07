@@ -42,7 +42,7 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
         return CassandraKeyValueServiceImpl.create(
                 CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG,
-                CassandraMutationTimestampProviders.legacy(),
+                CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 Mockito.mock(Logger.class));
     }
 

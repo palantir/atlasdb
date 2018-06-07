@@ -284,7 +284,7 @@ public abstract class TransactionManagers {
                         Optional.empty(),
                         config.initializeAsync(),
                         qosClient,
-                        Optional.of(Suppliers.memoizeWithExpiration(adapter::get, 10, TimeUnit.SECONDS)));
+                        adapter);
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));

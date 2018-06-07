@@ -221,7 +221,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig) {
-        return create(config, leaderConfig, CassandraMutationTimestampProviders.legacy());
+        return create(config, leaderConfig, CassandraMutationTimestampProviders.legacyModeForTestsOnly());
     }
 
     public static CassandraKeyValueService create(

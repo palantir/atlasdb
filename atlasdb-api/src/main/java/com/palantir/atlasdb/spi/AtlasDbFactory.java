@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.spi;
 
 import java.util.Optional;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -34,6 +35,9 @@ public interface AtlasDbFactory {
 
     long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
     boolean DEFAULT_INITIALIZE_ASYNC = false;
+    LongSupplier THROWING_FRESH_TIMESTAMP_SOURCE = () -> {
+        throw new UnsupportedOperationException("Not expecting to use fresh timestamps");
+    };
 
     String getType();
 
@@ -43,7 +47,7 @@ public interface AtlasDbFactory {
                 Optional::empty,
                 leaderConfig,
                 Optional.empty(),
-                Optional.empty(),
+                THROWING_FRESH_TIMESTAMP_SOURCE,
                 DEFAULT_INITIALIZE_ASYNC,
                 FakeQosClient.INSTANCE);
     }
@@ -68,7 +72,7 @@ public interface AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            Optional<Supplier<Long>> freshTimestampSource,
+            LongSupplier freshTimestampSource,
             boolean initializeAsync,
             QosClient qosClient);
 

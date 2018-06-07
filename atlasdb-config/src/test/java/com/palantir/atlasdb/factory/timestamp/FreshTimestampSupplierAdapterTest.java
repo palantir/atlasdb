@@ -34,7 +34,7 @@ public class FreshTimestampSupplierAdapterTest {
 
     @Test
     public void throwsNotInitializedIfTimestampServiceNotSet() {
-        assertThatThrownBy(adapter::get).isInstanceOf(NotInitializedException.class);
+        assertThatThrownBy(adapter::getAsLong).isInstanceOf(NotInitializedException.class);
     }
 
     @Test
@@ -46,7 +46,7 @@ public class FreshTimestampSupplierAdapterTest {
     public void delegatesCallToTimestampServiceIfSet() {
         TimestampService timestampService = mock(TimestampService.class);
         adapter.setTimestampService(timestampService);
-        adapter.get();
+        adapter.getAsLong();
         verify(timestampService, times(1)).getFreshTimestamp();
         verifyNoMoreInteractions(timestampService);
     }
@@ -57,12 +57,12 @@ public class FreshTimestampSupplierAdapterTest {
         TimestampService timestampService2 = mock(TimestampService.class);
 
         adapter.setTimestampService(timestampService1);
-        adapter.get();
+        adapter.getAsLong();
         verify(timestampService1, times(1)).getFreshTimestamp();
         verify(timestampService2, never()).getFreshTimestamp();
 
         adapter.setTimestampService(timestampService2);
-        adapter.get();
+        adapter.getAsLong();
         verify(timestampService1, times(1)).getFreshTimestamp();
         verify(timestampService2, times(1)).getFreshTimestamp();
 
@@ -83,6 +83,6 @@ public class FreshTimestampSupplierAdapterTest {
         when(timestampService.getFreshTimestamp()).thenThrow(new IllegalStateException());
 
         adapter.setTimestampService(timestampService);
-        assertThatThrownBy(adapter::get).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(adapter::getAsLong).isInstanceOf(IllegalStateException.class);
     }
 }

@@ -17,6 +17,7 @@ package com.palantir.atlasdb.memory;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -104,6 +105,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
      * @param runtimeConfig unused.
      * @param leaderConfig unused.
      * @param unused unused.
+     * @param unusedLongSupplier unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
      * @param unusedQosClient unused.
      * @return The requested KeyValueService instance
@@ -114,7 +116,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
-            Optional<Supplier<Long>> unusedLongSupplier,
+            LongSupplier unusedLongSupplier,
             boolean initializeAsync,
             QosClient unusedQosClient) {
         if (initializeAsync) {

@@ -16,8 +16,7 @@
 
 package com.palantir.atlasdb.cassandra;
 
-import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.function.LongSupplier;
 
 public class CassandraMutationTimestampProviders {
     private CassandraMutationTimestampProviders() {
@@ -26,10 +25,10 @@ public class CassandraMutationTimestampProviders {
 
     /**
      * @return {@link CassandraMutationTimestampProvider} which behaves in line with existing behaviour.
-     * As far as possible, users should switch to {@link this#singleLongSupplierBacked(Supplier)} with a
+     * As far as possible, users should switch to {@link this#singleLongSupplierBacked(LongSupplier)} with a
      * fresh timestamp source from AtlasDB to promote better Cassandra compaction behaviour.
      */
-    public static CassandraMutationTimestampProvider legacy() {
+    public static CassandraMutationTimestampProvider legacyModeForTestsOnly() {
         return new CassandraMutationTimestampProvider() {
             @Override
             public long getSweepSentinelWriteTimestamp() {
@@ -49,28 +48,22 @@ public class CassandraMutationTimestampProviders {
     }
 
     public static CassandraMutationTimestampProvider singleLongSupplierBacked(
-            Supplier<Long> longSupplier) {
+            LongSupplier longSupplier) {
         return new CassandraMutationTimestampProvider() {
             @Override
             public long getSweepSentinelWriteTimestamp() {
-                return longSupplier.get();
+                return longSupplier.getAsLong();
             }
 
             @Override
             public long getDeletionTimestamp(long atlasDeletionTimestamp) {
-                return longSupplier.get();
+                return longSupplier.getAsLong();
             }
 
             @Override
             public long getRangeTombstoneTimestamp(long maximumAtlasTimestampExclusive) {
-                return longSupplier.get();
+                return longSupplier.getAsLong();
             }
         };
-    }
-
-    public static CassandraMutationTimestampProvider optionallyLongSupplierBacked(
-            Optional<Supplier<Long>> longSupplier) {
-        return longSupplier.map(CassandraMutationTimestampProviders::singleLongSupplierBacked)
-                .orElseGet(CassandraMutationTimestampProviders::legacy);
     }
 }

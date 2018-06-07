@@ -389,12 +389,29 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 true);
 
         putDummyValueAtCellAndTimestamp(tableReference, CELL, 1337L, STARTING_ATLAS_TIMESTAMP - 5_000_000);
-        Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 1337L + 1));
-        assertThat(results.containsKey(CELL), is(false));
+        Map<Cell, Value> resultExpectedCoveredByRangeTombstone =
+                keyValueService.get(tableReference, ImmutableMap.of(CELL, 1337L + 1));
+        assertThat(resultExpectedCoveredByRangeTombstone.containsKey(CELL), is(false));
+    }
 
+    @Test
+    public void cassandraTimestampsAreNotUsedAsAtlasTimestampsForRangeTombstone() throws Exception {
+        TableReference tableReference =
+                TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
+        keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        keyValueService.deleteAllTimestamps(
+                tableReference,
+                ImmutableMap.of(CELL, 1_234_567L),
+                true);
+
+        // A value written outside of the range tombstone should not be covered by the range tombstone, even if
+        // the Cassandra timestamp of the value is much lower than that of the range tombstone.
+        // This test is likely to fail if the implementation confuses Cassandra timestamps for Atlas timestamps.
         putDummyValueAtCellAndTimestamp(tableReference, CELL, 1_333_337L, STARTING_ATLAS_TIMESTAMP - 5_000_000);
-        Map<Cell, Value> results2 = keyValueService.get(tableReference, ImmutableMap.of(CELL, Long.MAX_VALUE));
-        assertThat(results2.containsKey(CELL), is(true));
+        Map<Cell, Value> resultsOutsideRangeTombstone =
+                keyValueService.get(tableReference, ImmutableMap.of(CELL, Long.MAX_VALUE));
+        assertThat(resultsOutsideRangeTombstone.containsKey(CELL), is(true));
     }
 
     private void putDummyValueAtCellAndTimestamp(

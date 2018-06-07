@@ -18,14 +18,13 @@ package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
 public class CassandraMutationTimestampProvidersTest {
     private static final CassandraMutationTimestampProvider LEGACY_PROVIDER =
-            CassandraMutationTimestampProviders.legacy();
+            CassandraMutationTimestampProviders.legacyModeForTestsOnly();
 
     private final AtomicLong timestamp = new AtomicLong(0);
     private final CassandraMutationTimestampProvider supplierBackedProvider =
@@ -68,22 +67,5 @@ public class CassandraMutationTimestampProvidersTest {
         assertThat(supplierBackedProvider.getRangeTombstoneTimestamp(3141592)).isEqualTo(1);
         assertThat(supplierBackedProvider.getRangeTombstoneTimestamp(0)).isEqualTo(2);
         assertThat(supplierBackedProvider.getRangeTombstoneTimestamp(1L<<60)).isEqualTo(3);
-    }
-
-    @Test
-    public void optionallyBackedBehavesLikeLegacyIfEmptyProvided() {
-        CassandraMutationTimestampProvider provider =
-                CassandraMutationTimestampProviders.optionallyLongSupplierBacked(Optional.empty());
-        assertThat(provider.getSweepSentinelWriteTimestamp()).isEqualTo(0);
-        assertThat(provider.getSweepSentinelWriteTimestamp()).isEqualTo(0);
-    }
-
-    @Test
-    public void optionallyBackedCallsSupplierIfPresent() {
-        CassandraMutationTimestampProvider provider =
-                CassandraMutationTimestampProviders.optionallyLongSupplierBacked(
-                        Optional.of(timestamp::incrementAndGet));
-        assertThat(provider.getSweepSentinelWriteTimestamp()).isEqualTo(1);
-        assertThat(provider.getSweepSentinelWriteTimestamp()).isEqualTo(2);
     }
 }

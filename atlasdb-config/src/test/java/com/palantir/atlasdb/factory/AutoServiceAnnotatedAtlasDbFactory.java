@@ -18,6 +18,7 @@ package com.palantir.atlasdb.factory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.jmock.Mockery;
@@ -55,7 +56,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
-            Optional<Supplier<Long>> unusedLongSupplier,
+            LongSupplier unusedLongSupplier,
             boolean initializeAsync,
             QosClient unusedQosClient) {
         if (initializeAsync) {

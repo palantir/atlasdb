@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
@@ -79,7 +80,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 timestampTable,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 FakeQosClient.INSTANCE,
-                Optional.empty());
+                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -96,7 +97,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 Optional.empty(),
                 initializeAsync,
                 qosClient,
-                Optional.empty());
+                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -107,7 +108,7 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
             QosClient qosClient,
-            Optional<java.util.function.Supplier<Long>> timestampSupplier) {
+            LongSupplier timestampSupplier) {
         // TODO (jkong): Remove some duplication between the above constructor and this
         this.config = config;
         this.leaderConfig = leaderConfig;
