@@ -20,14 +20,11 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
 
 @JsonSerialize(as = ImmutableTimelockServiceAuthClient.class)
 @JsonDeserialize(as = ImmutableTimelockServiceAuthClient.class)
 @Value.Immutable
 public abstract class TimelockServiceAuthClient {
-
-    private static final int MIN_SECRET_LENGTH = 16;
 
     /**
      * Namespace for which requests should be authorized in Timelock server
@@ -40,9 +37,4 @@ public abstract class TimelockServiceAuthClient {
      */
     public abstract String token();
 
-    @Value.Check
-    protected void check() {
-        Preconditions.checkState(token().length() >= MIN_SECRET_LENGTH,
-                "Internal auth secret must have at least %s characters.", MIN_SECRET_LENGTH);
-    }
 }

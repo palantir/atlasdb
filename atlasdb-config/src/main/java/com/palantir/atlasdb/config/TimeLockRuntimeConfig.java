@@ -16,18 +16,20 @@
 
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 
 @JsonSerialize(as = ImmutableTimeLockRuntimeConfig.class)
 @JsonDeserialize(as = ImmutableTimeLockRuntimeConfig.class)
 @Value.Immutable
 public abstract class TimeLockRuntimeConfig {
+
+    private static final int MIN_TOKEN_LENGTH = 16;
+
     @Value.Default
     public ServerListConfig serversList() {
         return ImmutableServerListConfig.builder().build();
@@ -39,5 +41,10 @@ public abstract class TimeLockRuntimeConfig {
      */
     @JsonProperty("auth-token")
     public abstract String authToken();
+
+    @Value.Check
+    protected void check() {
+        Preconditions.checkState(authToken() != null || authToken().length() >= MIN_TOKEN_LENGTH,
+                "The auth token must have at least %s characters.", MIN_TOKEN_LENGTH);
     }
 }
