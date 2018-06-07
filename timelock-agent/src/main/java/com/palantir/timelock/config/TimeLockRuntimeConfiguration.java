@@ -64,7 +64,7 @@ public abstract class TimeLockRuntimeConfiguration {
      */
     @JsonProperty("admin-auth-clients")
     @Value.Default
-    public List<String> adminAuthSecrets() {
+    public List<String> adminAuthTokens() {
         return ImmutableList.of();
     }
 
