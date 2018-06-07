@@ -32,14 +32,21 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     private static final long MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS = 10_000;
 
-    // Shared between threads
-    private final PersistentLockManager persistentLockManager;
-    private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
-
-    private final BackgroundSweepThread backgroundSweepThread;
+    // Thread management
+    private final Supplier<Integer> sweepThreads;
     private Thread daemon;
-
     private final CountDownLatch shuttingDown = new CountDownLatch(1);
+
+    // Shared between threads
+    private final LockService lockService;
+    private final NextTableToSweepProvider nextTableToSweepProvider;
+    private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
+    private final Supplier<Boolean> isSweepEnabled;
+    private final Supplier<Long> sweepPauseMillis;
+    private final Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig;
+    private final PersistentLockManager persistentLockManager;
+    private final SpecificTableSweeper specificTableSweeper;
+    private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
 
     private BackgroundSweeperImpl(
             LockService lockService,
@@ -51,11 +58,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
+        this.lockService = lockService;
+        this.nextTableToSweepProvider = nextTableToSweepProvider;
+        this.sweepBatchConfigSource = sweepBatchConfigSource;
+        this.isSweepEnabled = isSweepEnabled;
+        this.sweepThreads = sweepThreads;
+        this.sweepPauseMillis = sweepPauseMillis;
+        this.sweepPriorityOverrideConfig = sweepPriorityOverrideConfig;
         this.persistentLockManager = persistentLockManager;
-
-        this.backgroundSweepThread = new BackgroundSweepThread(lockService, nextTableToSweepProvider,
-                sweepBatchConfigSource, isSweepEnabled, sweepPauseMillis, sweepPriorityOverrideConfig,
-                specificTableSweeper, sweepOutcomeMetrics, shuttingDown);
+        this.specificTableSweeper = specificTableSweeper;
     }
 
     public static BackgroundSweeperImpl create(
@@ -84,6 +95,11 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     @Override
     public synchronized void runInBackground() {
         Preconditions.checkState(daemon == null);
+
+        BackgroundSweepThread backgroundSweepThread = new BackgroundSweepThread(lockService, nextTableToSweepProvider,
+                sweepBatchConfigSource, isSweepEnabled, sweepPauseMillis, sweepPriorityOverrideConfig,
+                specificTableSweeper, sweepOutcomeMetrics, shuttingDown);
+
         daemon = new Thread(backgroundSweepThread);
         daemon.setDaemon(true);
         daemon.setName("BackgroundSweeper");
