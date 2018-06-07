@@ -31,6 +31,12 @@ import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 
+/**
+ * Defines the service which handles locking operations.
+ * Compared to {@link TimelockService} this requires an AuthHeader, passed as first parameter in all the methods.
+ * The auth header can be used by Timelock server to authorize the requests for each namespace.
+ */
+
 @Path("/timelock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)

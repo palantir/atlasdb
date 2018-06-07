@@ -33,6 +33,10 @@ public abstract class TimeLockRuntimeConfig {
         return ImmutableServerListConfig.builder().build();
     }
 
+    /**
+     * Token added to the Authorization header of the requests to Timelock server
+     * to authorize the request for the specified namespace.
+     */
     @JsonProperty("auth-token")
     @Value.Default
     public Optional<String> authToken() {

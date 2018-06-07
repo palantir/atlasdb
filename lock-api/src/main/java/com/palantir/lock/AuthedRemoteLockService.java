@@ -32,6 +32,11 @@ import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.logsafe.Safe;
 import com.palantir.tokens.auth.AuthHeader;
 
+/**
+ * Compared to {@link RemoteLockService} this requires an AuthHeader, passed as first parameter in all the methods.
+ * The auth header can be used by Timelock server to authorize the requests for each namespace.
+ */
+
 public interface AuthedRemoteLockService {
     /**
      * Attempts to acquire the requested set of locks for the given client.

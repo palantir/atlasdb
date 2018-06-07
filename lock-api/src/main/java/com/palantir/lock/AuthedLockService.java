@@ -38,7 +38,7 @@ import com.palantir.tokens.auth.AuthHeader;
 /**
  * Defines the service which handles locking operations.
  * Compared to {@link LockService} this requires an AuthHeader, passed as first parameter in all the methods.
- * The auth header can be used by Timelock server to authorize the requests for for each namespace.
+ * The auth header can be used by Timelock server to authorize the requests for each namespace.
  */
 
 @Path("/lock")
