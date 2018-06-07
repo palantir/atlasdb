@@ -188,7 +188,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void waitForLocksRequestCanTimeOut() {
         if (isUsingSyncAdapter(cluster)) {
-            // legacyModeForTestsOnly API does not support timeouts on this endpoint
+            // legacy API does not support timeouts on this endpoint
             return;
         }
 
