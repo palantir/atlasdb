@@ -16,18 +16,25 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
+import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
 
 public class CommitTsLoaderTest {
@@ -87,5 +94,25 @@ public class CommitTsLoaderTest {
                 .when(mockTransactionService).get(VALID_START_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void warmingCacheShouldNotPlaceUndueLoadOnTransactionService() throws Exception {
+        long valuesToInsert = 1_000_000;
+
+        doAnswer((invocation) -> {
+            Collection<Long> timestamps = ((Collection<Long>) invocation.getArguments()[0]);
+            if (timestamps.size() > AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT) {
+                fail("Requested more timestamps in a batch than is reasonable!");
+            }
+            return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
+        }).when(mockTransactionService).get(any());
+
+        TLongSet initialTimestamps = new TLongHashSet();
+        initialTimestamps.addAll(LongStream.range(0, valuesToInsert).boxed().collect(Collectors.toList()));
+
+        CommitTsLoader loader = CommitTsLoader.create(mockTransactionService, initialTimestamps);
+        assertThat(loader.load(valuesToInsert - 1)).isEqualTo(valuesToInsert - 1);
     }
 }

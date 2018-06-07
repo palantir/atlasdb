@@ -29,7 +29,6 @@ import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
-import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.LockService;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.timelock.TimeLockStatus;
@@ -40,6 +39,7 @@ import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
+import com.palantir.util.JavaSuppliers;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {

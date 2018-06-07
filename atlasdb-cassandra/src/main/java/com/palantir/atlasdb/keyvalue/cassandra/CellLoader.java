@@ -38,6 +38,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -135,13 +136,16 @@ class CellLoader {
             cellsByCol.put(cell.getColumnName(), cell);
         }
         List<Callable<Void>> tasks = Lists.newArrayList();
-        int fetchBatchCount = config.fetchBatchCount();
+        int fetchBatchCount = AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT;
         for (Map.Entry<byte[], Collection<Cell>> entry : Multimaps.asMap(cellsByCol).entrySet()) {
             final byte[] col = entry.getKey();
             Collection<Cell> columnCells = entry.getValue();
             if (columnCells.size() > fetchBatchCount) {
-                log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to "
-                                + "multiget {} rows; this may indicate overly-large batching on a higher level.\n{}",
+                log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to"
+                                + " multiget {} rows; this may indicate overly-large batching on a higher level."
+                                + " Note that batches are executed in parallel, which may cause load on both"
+                                + " your Atlas client as well as on Cassandra if the number of rows is exceptionally"
+                                + " high.\n{}",
                         SafeArg.of("host", CassandraLogHelper.host(host)),
                         LoggingArgs.tableRef(tableRef),
                         SafeArg.of("rows", columnCells.size()),
