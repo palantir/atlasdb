@@ -38,6 +38,7 @@ import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -565,6 +566,32 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         TargetedSweepMetricsTest.assertSweepTimestampThoroughEquals(5);
     }
 
+    @Test
+    public void doNotSweepAnythingAfterEntryWithCommitTsAfterSweepTs() {
+        immutableTs = 1000L;
+        enqueueWrite(TABLE_CONS, 900);
+        enqueueWrite(TABLE_CONS, 910);
+        enqueueWriteCommitedAt(TABLE_CONS, 950, 1000);
+        enqueueWrite(TABLE_CONS, 970);
+        enqueueWrite(TABLE_CONS, 920);
+
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(920L);
+        ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
+        verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), argument.capture(), eq(false));
+        assertThat(argument.getValue()).containsValue(920L);
+
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(920L);
+        verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap(), eq(false));
+
+        immutableTs = 1101L;
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(1101L - 1L);
+        verify(spiedKvs, times(2)).deleteAllTimestamps(any(TableReference.class), argument.capture(), eq(false));
+        assertThat(argument.getValue()).containsValue(970L);
+    }
+
     private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int sweepIterations) {
         enqueueWrite(TABLE_CONS, sweepTimestamp - 10);
         enqueueWrite(TABLE_CONS, sweepTimestamp - 5);
@@ -586,6 +613,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private void enqueueWrite(TableReference tableRef, long ts) {
         putTimestampIntoTransactionTable(ts, ts);
         sweepQueue.enqueue(writeToDefaultCell(tableRef, ts), ts);
+    }
+
+    private void enqueueWriteCommitedAt(TableReference tableRef, long startTs, long commitTs) {
+        putTimestampIntoTransactionTable(startTs, commitTs);
+        sweepQueue.enqueue(writeToDefaultCell(tableRef, startTs), startTs);
     }
 
     private void enqueueTombstone(TableReference tableRef, long ts) {

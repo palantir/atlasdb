@@ -17,17 +17,16 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TimestampsToSweep {
     List<Long> timestampsDescending();
-    Optional<Long> maxSwept();
+    Long maxSwept();
     boolean processedAll();
 
-    static TimestampsToSweep of(List<Long> list, Optional<Long> max, boolean processedAll) {
+    static TimestampsToSweep of(List<Long> list, long max, boolean processedAll) {
         return ImmutableTimestampsToSweep.builder()
                 .timestampsDescending(list)
                 .maxSwept(max)
