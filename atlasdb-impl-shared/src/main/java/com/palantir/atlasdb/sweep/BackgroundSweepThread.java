@@ -37,7 +37,7 @@ import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class BackgroundSweepThread implements Runnable {
+class BackgroundSweepThread implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweepThread.class);
     private SweepOutcomeMetrics sweepOutcomeMetrics;
     private SpecificTableSweeper specificTableSweeper;
