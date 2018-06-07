@@ -173,8 +173,8 @@ public class SweepableCells extends KvsSweepQueueWriter {
     private Optional<Long> getLastSweptTs(TimestampsToSweep startTsCommitted, RowColumnRangeIterator resultIterator,
             long partitionFine, long maxTsExclusive) {
         if (startTsCommitted.processedAll() && exhaustedAllColumns(resultIterator)) {
-                return Optional.of(lastGuaranteedSwept(partitionFine, maxTsExclusive));
-            } else {
+            return Optional.of(lastGuaranteedSwept(partitionFine, maxTsExclusive));
+        } else {
             return startTsCommitted.maxSwept();
         }
     }
@@ -194,7 +194,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         boolean processedAll = true;
 
         List<Long> sortedStartTimestamps = startToCommitTs.keySet().stream().sorted().collect(Collectors.toList());
-        for (long startTs: sortedStartTimestamps) {
+        for (long startTs : sortedStartTimestamps) {
             long commitTs = startToCommitTs.get(startTs);
             if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
                 maxStartTs = startTs;
