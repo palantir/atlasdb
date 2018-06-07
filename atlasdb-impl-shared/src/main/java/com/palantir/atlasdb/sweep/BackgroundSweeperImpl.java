@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import org.slf4j.Logger;
@@ -22,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.common.base.Throwables;
@@ -34,7 +36,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     // Thread management
     private final Supplier<Integer> sweepThreads;
-    private Thread daemon;
+    private Set<Thread> daemons;
     private final CountDownLatch shuttingDown = new CountDownLatch(1);
 
     // Shared between threads
@@ -94,16 +96,24 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     @Override
     public synchronized void runInBackground() {
-        Preconditions.checkState(daemon == null);
+        Preconditions.checkState(daemons == null);
+        int numThreads = sweepThreads.get();
+        daemons = Sets.newHashSetWithExpectedSize(numThreads);
 
-        BackgroundSweepThread backgroundSweepThread = new BackgroundSweepThread(lockService, nextTableToSweepProvider,
-                sweepBatchConfigSource, isSweepEnabled, sweepPauseMillis, sweepPriorityOverrideConfig,
-                specificTableSweeper, sweepOutcomeMetrics, shuttingDown);
+        for (int idx = 1; idx <= numThreads; idx++) {
+            BackgroundSweepThread backgroundSweepThread = new BackgroundSweepThread(lockService,
+                    nextTableToSweepProvider,
+                    sweepBatchConfigSource, isSweepEnabled, sweepPauseMillis, sweepPriorityOverrideConfig,
+                    specificTableSweeper, sweepOutcomeMetrics, shuttingDown);
 
-        daemon = new Thread(backgroundSweepThread);
-        daemon.setDaemon(true);
-        daemon.setName("BackgroundSweeper");
-        daemon.start();
+            Thread daemon = new Thread(backgroundSweepThread);
+            daemon.setDaemon(true);
+            daemon.setName("BackgroundSweeper " + idx);
+            daemon.start();
+
+            daemons.add(daemon);
+        }
+
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             log.info("Shutting down persistent lock manager");
             try {
@@ -128,21 +138,27 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     @Override
     public synchronized void shutdown() {
         sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.SHUTDOWN);
-        if (daemon == null) {
+        if (daemons == null) {
             return;
         }
-        log.info("Signalling background sweeper to shut down.");
+        log.info("Signalling background sweepers to shut down.");
         // Interrupt the daemon, whatever lock it may be waiting on.
-        daemon.interrupt();
+        daemons.forEach(Thread::interrupt);
         // Ensure we do not accidentally abort shutdown if any code incorrectly swallows InterruptedExceptions
         // on the daemon thread.
         shuttingDown.countDown();
+
+        // TODO what happens if one of the daemons (but not the last one) causes this to throw?
+        daemons.forEach(this::verifyInterrupted);
+        daemons = null;
+    }
+
+    private void verifyInterrupted(Thread daemon) {
         try {
             daemon.join(MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS);
             if (daemon.isAlive()) {
                 log.error("Background sweep thread failed to shut down");
             }
-            daemon = null;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw Throwables.rewrapAndThrowUncheckedException(e);
