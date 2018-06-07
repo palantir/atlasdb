@@ -111,7 +111,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
-    public void testCreateTableCaseInsensitive() throws TException {
+    public void testCreateTableCaseInsensitive() {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
         TableReference table2 = TableReference.createFromFullyQualifiedName("ns.table");
         TableReference table3 = TableReference.createFromFullyQualifiedName("ns.TABle");
@@ -152,7 +152,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")
     @Test
-    public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() throws Exception {
+    @SuppressWarnings("Slf4jConstantLogMessage")
+    public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() {
         verify(logger, never()).error(startsWith("Found a table {} that did not have persisted"), anyString());
     }
 
