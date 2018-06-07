@@ -5,7 +5,6 @@
 package com.palantir.timelock.config;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.immutables.value.Value;
 
@@ -67,15 +66,6 @@ public abstract class TimeLockRuntimeConfiguration {
     @Value.Default
     public List<String> adminAuthSecrets() {
         return ImmutableList.of();
-    }
-
-    /**
-     * The token used to authenticate requests between internal nodes of the cluster if it's the case
-     */
-    @JsonProperty("internal-auth-secret")
-    @Value.Default
-    public Optional<String> internalAuthSecret() {
-        return Optional.empty();
     }
 
     @Value.Check
