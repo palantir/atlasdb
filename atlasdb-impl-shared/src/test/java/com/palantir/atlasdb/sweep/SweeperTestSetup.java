@@ -24,6 +24,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -51,7 +52,7 @@ public class SweeperTestSetup {
     protected static AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
     protected SpecificTableSweeper specificTableSweeper;
-    protected BackgroundSweeperImpl backgroundSweeper;
+    protected BackgroundSweepThread backgroundSweeper;
     protected KeyValueService kvs = mock(KeyValueService.class);
     protected SweepProgressStore progressStore = mock(SweepProgressStore.class);
     protected SweepPriorityStore priorityStore = mock(SweepPriorityStore.class);
@@ -76,15 +77,16 @@ public class SweeperTestSetup {
     public void setup() {
         specificTableSweeper = getSpecificTableSweeperService();
 
-        backgroundSweeper = new BackgroundSweeperImpl(
+        backgroundSweeper = new BackgroundSweepThread(
                 mock(LockService.class),
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
                 SweepPriorityOverrideConfig::defaultConfig,
-                mock(PersistentLockManager.class),
-                specificTableSweeper);
+                specificTableSweeper,
+                new SweepOutcomeMetrics(),
+                new CountDownLatch(1));
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {

@@ -130,9 +130,4 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
-
-    @VisibleForTesting
-    SweepOutcome runOnce() {
-        return backgroundSweepThread.runOnce();
-    }
 }
