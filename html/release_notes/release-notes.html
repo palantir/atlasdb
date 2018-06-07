@@ -24,8 +24,7 @@
 
   
 
-  
-    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
   <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
@@ -187,8 +186,14 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Dropwizard transitive dependencies have been removed from the <code class="docutils literal notranslate"><span class="pre">atlasdb-config</span></code> subproject.
+Usages of <code class="docutils literal notranslate"><span class="pre">AtlasDbConfigs</span></code> for config parsing still support discovering subtypes of config, as we ship AtlasDB with an implementation of Dropwizard’s <a class="reference external" href="https://github.com/dropwizard/dropwizard/blob/master/dropwizard-jackson/src/main/java/io/dropwizard/jackson/DiscoverableSubtypeResolver.java">DiscoverableSubtypeResolver</a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3218">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed an issue where <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code> would return no results if the number of rows was more than the batch hint.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3248">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -5650,10 +5655,7 @@ The error has been downgraded to INFO and made less scary.</td>
 
   
 
-  
-  
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-  
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
