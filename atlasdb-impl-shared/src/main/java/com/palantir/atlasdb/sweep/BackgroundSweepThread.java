@@ -39,15 +39,17 @@ import com.palantir.logsafe.UnsafeArg;
 
 class BackgroundSweepThread implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweepThread.class);
-    private SweepOutcomeMetrics sweepOutcomeMetrics;
-    private SpecificTableSweeper specificTableSweeper;
-    private AdjustableSweepBatchConfigSource sweepBatchConfigSource;
-    private Supplier<Long> sweepPauseMillis;
-    private Supplier<Boolean> isSweepEnabled;
-    private Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig;
-    private NextTableToSweepProvider nextTableToSweepProvider;
-    private CountDownLatch shuttingDown;
-    private LockService lockService;
+
+    private final SweepOutcomeMetrics sweepOutcomeMetrics;
+    private final SpecificTableSweeper specificTableSweeper;
+    private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
+    private final Supplier<Long> sweepPauseMillis;
+    private final Supplier<Boolean> isSweepEnabled;
+    private final Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig;
+    private final NextTableToSweepProvider nextTableToSweepProvider;
+    private final CountDownLatch shuttingDown;
+    private final LockService lockService;
+    private final int threadIndex;
 
     BackgroundSweepThread(LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
@@ -57,7 +59,8 @@ class BackgroundSweepThread implements Runnable {
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             SpecificTableSweeper specificTableSweeper,
             SweepOutcomeMetrics sweepOutcomeMetrics,
-            CountDownLatch shuttingDown) {
+            CountDownLatch shuttingDown,
+            int threadIndex) {
         this.specificTableSweeper = specificTableSweeper;
         this.sweepOutcomeMetrics = sweepOutcomeMetrics;
         this.sweepBatchConfigSource = sweepBatchConfigSource;
@@ -67,6 +70,7 @@ class BackgroundSweepThread implements Runnable {
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.shuttingDown = shuttingDown;
         this.lockService = lockService;
+        this.threadIndex = threadIndex;
     }
 
     @Override
@@ -263,6 +267,6 @@ class BackgroundSweepThread implements Runnable {
 
     @VisibleForTesting
     SingleLockService createSweepLocks() {
-        return SingleLockService.createSingleLockServiceWithSafeLockId(lockService, "atlas sweep");
+        return SingleLockService.createSingleLockServiceWithSafeLockId(lockService, "atlas sweep " + threadIndex);
     }
 }

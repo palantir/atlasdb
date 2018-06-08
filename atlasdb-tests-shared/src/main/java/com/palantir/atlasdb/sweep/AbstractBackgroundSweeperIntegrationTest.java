@@ -112,8 +112,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 SweepPriorityOverrideConfig::defaultConfig,
                 specificTableSweeper,
                 new SweepOutcomeMetrics(), // TODO this is kind of odd
-                new CountDownLatch(1) // TODO so is this
-        );
+                new CountDownLatch(1), // TODO so is this
+                0);
     }
 
     @Test

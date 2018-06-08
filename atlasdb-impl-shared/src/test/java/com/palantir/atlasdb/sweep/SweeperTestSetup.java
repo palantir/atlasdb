@@ -86,7 +86,8 @@ public class SweeperTestSetup {
                 SweepPriorityOverrideConfig::defaultConfig,
                 specificTableSweeper,
                 new SweepOutcomeMetrics(),
-                new CountDownLatch(1));
+                new CountDownLatch(1),
+                0);
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {
