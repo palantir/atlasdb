@@ -76,8 +76,8 @@ Priority Overrides
 ~~~~~~~~~~~~~~~~~~
 
 .. warning::
-   Specifying priority tables can be useful for influencing sweep's behaviour in the short run.
-   However, while configured, no table that is not marked as a priority table will ever be swept, meaning that old versions of cells will not be cleaned up.
+   Specifying ``priorityTables`` can be useful for influencing sweep's behaviour in the short run.
+   However, if any tables are specified as ``priorityTables`` then no other tables will ever be swept, meaning that old versions of cells for those tables will accumulate.
    It is not intended for priority tables to be specified in a steady state, generally speaking.
 
 There may be situations in which the background sweeper's heuristics for selecting tables to sweep may not satisfy one's requirements.
@@ -108,6 +108,10 @@ table we have swept; we thus don't have enough information to update the sweep p
 registering that we have only done a partial sweep. In practice, this would tend to mean that the probability the
 original table being swept will be picked again for sweeping after overrides have been removed may be a little higher
 than if we accounted for the partial sweep.
+
+One possible use of having blacklist tables is for specifying tables which you don't want the background sweeper to
+sweep, but you still want to be able to carry out a manual sweep. Note that specifying tables as
+``SweepStrategy.NOTHING`` will mean that even manual sweeps will not do anything.
 
 .. toctree::
     :maxdepth: 1
