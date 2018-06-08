@@ -60,7 +60,6 @@ public class SweepableCellFilter {
     }
 
     private Optional<CellToSweep> getCellToSweep(CandidateCellForSweeping candidate, Map<Long, Long> startToCommitTs) {
-        Preconditions.checkArgument(candidate.sortedTimestamps().size() > 0);
         List<Long> timestampsToSweep = new ArrayList<>();
         List<Long> uncommittedTimestamps = new ArrayList<>();
         boolean maxStartTsIsCommittedBeforeTs = false;
