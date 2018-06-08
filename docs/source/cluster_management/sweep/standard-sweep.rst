@@ -81,7 +81,7 @@ Priority Overrides
    It is not intended for priority tables to be specified in a steady state, generally speaking.
 
 There may be situations in which the background sweeper's heuristics for selecting tables to sweep may not satisfy one's requirements.
-One can influence the selection process by configuring the ``sweepPriorityOverrides`` parameter in runtime configuration.
+One can influence the selection process by configuring the ``sweep.sweepPriorityOverrides`` parameter in runtime configuration.
 
 .. csv-table::
    :header: "AtlasDB Runtime Config", "Default", "Description"
