@@ -225,6 +225,7 @@ public class SpecificTableSweeper {
                 SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()),
                 SafeArg.of("time sweeping table", cumulativeResults.getTimeInMillis()),
                 SafeArg.of("time elapsed", cumulativeResults.getTimeElapsedSinceStartedSweeping()));
+        tableToSweep.getSweepLock().close();
         sweepProgressStore.clearProgress(threadIndex);
     }
 

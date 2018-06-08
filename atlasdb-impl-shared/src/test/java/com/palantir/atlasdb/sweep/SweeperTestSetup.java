@@ -43,6 +43,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.LockService;
+import com.palantir.lock.SingleLockService;
 
 public class SweeperTestSetup {
 
@@ -131,7 +132,7 @@ public class SweeperTestSetup {
     }
 
     private TableToSweep getTableToSweep(TableReference tableRef) {
-        return TableToSweep.newTable(tableRef);
+        return TableToSweep.newTable(tableRef, mock(SingleLockService.class));
     }
 
     protected void setupTaskRunner(SweepResults results) {

@@ -22,22 +22,26 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
+import com.palantir.lock.SingleLockService;
 
 public final class TableToSweep {
     private final TableReference tableRef;
+    private final SingleLockService sweepLock;
     private final boolean hasPreviousProgress;
     private final SweepResults previousResults;
 
-    public static TableToSweep newTable(TableReference tableRef) {
-        return new TableToSweep(tableRef, Optional.empty());
+    public static TableToSweep newTable(TableReference tableRef, SingleLockService sweepLockForTable) {
+        return new TableToSweep(tableRef, sweepLockForTable, Optional.empty());
     }
 
-    public static TableToSweep continueSweeping(TableReference tableRef, SweepProgress progress) {
-        return new TableToSweep(tableRef, Optional.of(progress));
+    public static TableToSweep continueSweeping(TableReference tableRef, SingleLockService sweepLock,
+            SweepProgress progress) {
+        return new TableToSweep(tableRef, sweepLock, Optional.of(progress));
     }
 
-    private TableToSweep(TableReference tableRef, Optional<SweepProgress> progress) {
+    private TableToSweep(TableReference tableRef, SingleLockService sweepLock, Optional<SweepProgress> progress) {
         this.tableRef = tableRef;
+        this.sweepLock = sweepLock;
         this.hasPreviousProgress = progress.isPresent();
         this.previousResults = progress.map(SweepProgress::getPreviousResults)
                 .orElse(SweepResults.createEmptySweepResultWithMoreToSweep());
@@ -45,6 +49,10 @@ public final class TableToSweep {
 
     public TableReference getTableRef() {
         return tableRef;
+    }
+
+    public SingleLockService getSweepLock() {
+        return sweepLock;
     }
 
     boolean hasPreviousProgress() {

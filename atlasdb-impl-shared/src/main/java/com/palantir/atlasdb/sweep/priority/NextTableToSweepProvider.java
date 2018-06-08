@@ -106,7 +106,7 @@ public class NextTableToSweepProvider {
                 if (sweepLockForTable.haveLocks()) {
                     log.info("Decided to start sweeping {} because {}.",
                             LoggingArgs.safeTableOrPlaceholder(tableRefToSweep), reason);
-                    return Optional.of(TableToSweep.newTable(tableRefToSweep));
+                    return Optional.of(TableToSweep.newTable(tableRefToSweep, sweepLockForTable));
                 }
             } catch (InterruptedException e) {
                 log.info("Got interrupted while attempting to lock {} for sweeping.",
