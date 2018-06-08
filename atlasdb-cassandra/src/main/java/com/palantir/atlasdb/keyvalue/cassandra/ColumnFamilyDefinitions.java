@@ -15,17 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.ColumnDef;
-import org.apache.cassandra.thrift.TriggerDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -140,16 +137,16 @@ final class ColumnFamilyDefinitions {
         // explicitly set fields to default values
         cf.setCaching("KEYS_ONLY");
         cf.setDclocal_read_repair_chance(0.1);
-        cf.setTriggers(new ArrayList<TriggerDef>());
+        cf.setTriggers(ImmutableList.of());
         cf.setCells_per_row_to_cache("0");
         cf.setMin_index_interval(128);
         cf.setMax_index_interval(2048);
         cf.setComment("");
-        cf.setColumn_metadata(new ArrayList<ColumnDef>());
+        cf.setColumn_metadata(ImmutableList.of());
         cf.setMin_compaction_threshold(4);
         cf.setMax_compaction_threshold(32);
         cf.setKey_validation_class("org.apache.cassandra.db.marshal.BytesType");
-        cf.setCompaction_strategy_options(new HashMap<String, String>());
+        cf.setCompaction_strategy_options(ImmutableMap.of());
         cf.setDefault_validation_class("org.apache.cassandra.db.marshal.BytesType");
         return cf;
     }

@@ -68,14 +68,11 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1"
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.1",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
-            ]
+            "locked": "3.0.1"
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.3.1",
@@ -240,7 +237,7 @@
             ]
         },
         "com.palantir.tritium:tritium-registry": {
-            "locked": "0.9.0",
+            "locked": "0.9.1",
             "transitive": [
                 "com.palantir.remoting3:okhttp-clients"
             ]
@@ -264,12 +261,6 @@
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:jaxrs-clients"
-            ]
-        },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
             ]
         },
         "org.checkerframework:checker-compat-qual": {
@@ -372,14 +363,11 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1"
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.1",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
-            ]
+            "locked": "3.0.1"
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.3.1",
@@ -544,7 +532,7 @@
             ]
         },
         "com.palantir.tritium:tritium-registry": {
-            "locked": "0.9.0",
+            "locked": "0.9.1",
             "transitive": [
                 "com.palantir.remoting3:okhttp-clients"
             ]
@@ -568,12 +556,6 @@
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:jaxrs-clients"
-            ]
-        },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
             ]
         },
         "org.checkerframework:checker-compat-qual": {

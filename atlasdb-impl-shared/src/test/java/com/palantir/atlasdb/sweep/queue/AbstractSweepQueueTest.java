@@ -59,7 +59,7 @@ public abstract class AbstractSweepQueueTest {
     static final long TS2 = 2 * TS;
     static final long TS_FINE_PARTITION = tsPartitionFine(TS);
     static final long TS2_FINE_PARTITION = tsPartitionFine(TS2);
-    static final int DEFAULT_SHARDS = 128;
+    static final int DEFAULT_SHARDS = 8;
     static final int FIXED_SHARD = WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(DEFAULT_SHARDS);
     static final int CONS_SHARD = WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
     static final int THOR_SHARD = WriteInfo.tombstone(TABLE_THOR, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
@@ -89,7 +89,7 @@ public abstract class AbstractSweepQueueTest {
         timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createTransactionService(spiedKvs);
-        metrics = TargetedSweepMetrics.withRecomputingInterval(1);
+        metrics = TargetedSweepMetrics.create(spiedKvs, 1);
     }
 
     static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {

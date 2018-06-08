@@ -16,28 +16,36 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
 
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
-import gnu.trove.set.hash.TLongHashSet;
-
-public class CommitTsLoaderTest {
+public class CommitTsCacheTest {
     private static final Long VALID_START_TIMESTAMP = 100L;
     private static final Long VALID_COMMIT_TIMESTAMP = 200L;
     private static final Long ROLLBACK_TIMESTAMP = -1L;
     private static final Long NO_TIMESTAMP = null;
 
     private final TransactionService mockTransactionService = mock(TransactionService.class);
-    private final CommitTsLoader loader = CommitTsLoader.create(mockTransactionService, new TLongHashSet());
+    private final CommitTsCache loader = CommitTsCache.create(mockTransactionService);
 
     @Test
     public void loadShouldReturnTheValidTimestamp() throws Exception {
@@ -87,5 +95,57 @@ public class CommitTsLoaderTest {
                 .when(mockTransactionService).get(VALID_START_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void warmingCacheShouldNotPlaceUndueLoadOnTransactionService() throws Exception {
+        CommitTsCache alternativeLoader = CommitTsCache.create(mockTransactionService);
+        long valuesToInsert = 1_000_000;
+
+        doAnswer((invocation) -> {
+            Collection<Long> timestamps = ((Collection<Long>) invocation.getArguments()[0]);
+            if (timestamps.size() > AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT) {
+                fail("Requested more timestamps in a batch than is reasonable!");
+            }
+            return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
+        }).when(mockTransactionService).get(any());
+
+        Set<Long> initialTimestamps = LongStream.range(0, valuesToInsert).boxed().collect(Collectors.toSet());
+
+        alternativeLoader.loadBatch(initialTimestamps);
+        assertThat(alternativeLoader.load(valuesToInsert - 1)).isEqualTo(valuesToInsert - 1);
+    }
+
+    @Test
+    public void onlyRequestNonCachedTimestamps() throws Exception {
+        CommitTsCache alternativeLoader = CommitTsCache.create(mockTransactionService);
+
+        Set<Long> initialTimestamps = LongStream.range(0L, 20L).boxed().collect(Collectors.toSet());
+        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation, initialTimestamps))
+                .when(mockTransactionService).get(any());
+
+        alternativeLoader.loadBatch(initialTimestamps);
+        assertThat(alternativeLoader.load(19L)).isEqualTo(19L);
+
+        Set<Long> moreTimestamps = LongStream.range(10L, 22L).boxed().collect(Collectors.toSet());
+        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation, ImmutableSet.of(20L, 21L)))
+                .when(mockTransactionService).get(any());
+
+        alternativeLoader.loadBatch(moreTimestamps);
+        assertThat(alternativeLoader.load(21L)).isEqualTo(21L);
+
+        Set<Long> evenMoreTimestamps = LongStream.range(15L, 24L).boxed().collect(Collectors.toSet());
+        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation, ImmutableSet.of(22L, 23L)))
+                .when(mockTransactionService).get(any());
+
+        alternativeLoader.loadBatch(evenMoreTimestamps);
+        assertThat(alternativeLoader.load(23L)).isEqualTo(23L);
+    }
+
+    Map<Long, Long> assertRequestedTimestampsAndMapIdentity(InvocationOnMock invocation, Collection<Long> expected) {
+        Collection<Long> timestamps = ((Collection<Long>) invocation.getArguments()[0]);
+        assertThat(timestamps).containsExactlyElementsOf(expected);
+        return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
     }
 }

@@ -50,10 +50,82 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Targeted sweep will no longer sweep cells from transactions that were committed after the sweep timestamp.
+           Instead, targeted sweep will not proceed for that shard and strategy until the sweep timestamp progresses far enough.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3253>`__)
+
+    *    - |improved|
+         - The unbounded ``CommitTsLoader`` has been renamed to ``CommitTsCache`` and now has an eviction policy to prevent memory leaks.
+           Background sweep now reuses this cache for iterations of sweep instead of recreating it every iteration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3256>`__)
+
+
+    *    - |devbreak|
+         - Dropwizard transitive dependencies have been removed from the ``atlasdb-config`` subproject.
+           Usages of ``AtlasDbConfigs`` for config parsing still support discovering subtypes of config, as we ship AtlasDB with an implementation of Dropwizard's `DiscoverableSubtypeResolver <https://github.com/dropwizard/dropwizard/blob/master/dropwizard-jackson/src/main/java/io/dropwizard/jackson/DiscoverableSubtypeResolver.java>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3218>`__)
+
+    *    - |fixed|
+         - Fixed an issue where ``getRowsColumnRange`` would return no results if the number of rows was more than the batch hint.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3248>`__)
+
+
+=======
+v0.89.0
+=======
+
+6 June 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - When determining if large sets of candidate cells were part of committed transactions, Background and Targeted Sweep will now read smaller batches of timestamps from the transaction service in serial.
+           Previously, though these reads were re-partitioned into smaller batches, the batch requests were made in parallel which could monopolise Atlas client-side as well as KVS-side resources.
+           There may be a small performance regression here, though this change promotes better stability for the underlying key-value-service especially in the presence of wide rows.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3245>`__)
+
+    *    - |userbreak|
+         - The size of batches that are used when the ``CommitTsLoader`` loads timestamps as part of sweep is now set to be a non-configurable 50,000.
+           This used to be configured via the ``fetchBatchSize`` parameter in Cassandra config.
+           Other workflows that use this parameter continue to respect it.
+           If you have a use case for configuring this specifically, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3245>`__)
+
     *    - |fixed| |devbreak|
-         - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers. This functionality was
-           never implemented correctly and never offered the serializable guarantee. The method now throws an ``UnsupportedOperationException`` in this case.
+         - The ``Transaction.getRowsColumnRange`` method that returns an iterator now throws for ``SERIALIZABLE`` conflict handlers.
+           This functionality was never implemented correctly and never offered the serializable guarantee.
+           The method now throws an ``UnsupportedOperationException`` in this case.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3200>`__)
+
+    *    - |devbreak|
+         - Due to lack of use, we have deleted the AtlasDB Dropwizard bundle.
+           Users who need Atlas Console and CLI functionality are encouraged to use the respective distributions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3231>`__)
+
+    *    - |new| |metrics|
+         - Added a new tagged metric for targeted sweep showing approximate time in milliseconds since the last swept timestamp has been issued.
+           This metric can be used to estimate how far targeted sweep is lagging behind the current moment in time.
+           The metric is ``com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.millisSinceLastSweptTs`` and is tagged with the sweep strategy used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3217>`__)
+
+    *    - |fixed|
+         - Atlas no longer throws if you read the same column range twice in a serializable transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3239>`__)
+
+    *    - |fixed|
+         - We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won't blacklist connections due to a failed CAS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3215>`__)
+
+    *    - |improved|
+         - ``SnapshotTransaction`` now asynchronously deletes values for transactions that get rolled back.
+           This restores the behaviour from before the previous `fix <https://github.com/palantir/atlasdb/pull/3199>`__, except that the parent transaction no longer waits for the delete to finish.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3219>`__)
 
     *    - |fixed|
          - Fixed an issue occurring during transaction commits, where a failure to putUnlessExists a commit timestamp caused an NPE, leading to a confusing error message.
@@ -3508,7 +3580,7 @@ v0.35.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
 
     *    - |fixed|
-         - AtlasDB :ref:`CLIs <clis>` run via the :ref:`Dropwizard bundle <dropwizard-bundle>` can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
+         - AtlasDB :ref:`CLIs <clis>` run via the Dropwizard bundle can now work with a Timelock block, and will contact the relevant Timelock server for timestamps or locks in this case.
            Previously, these CLIs would throw an error that a leader block was not specified.
            Note that CLIs will not perform automated migrations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1661>`__)
@@ -4667,7 +4739,7 @@ v0.14.0
 
     *    - |fixed|
          - Fixed and standardized serialization and deserialization of AtlasDBConfig.
-           This prevented CLIs deployed via the :ref:`Dropwizard bundle <dropwizard-bundle>` from loading configuration properly.
+           This prevented CLIs deployed via the Dropwizard bundle from loading configuration properly.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
 
     *    - |devbreak|
