@@ -51,8 +51,6 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.UnsafeArg;
 
-import gnu.trove.TDecorators;
-
 /**
  * Sweeps one individual table.
  */
