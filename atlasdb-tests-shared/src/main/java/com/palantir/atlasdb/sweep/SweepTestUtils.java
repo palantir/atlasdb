@@ -15,15 +15,12 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import static org.mockito.Mockito.mock;
-
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
 
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
@@ -73,7 +70,7 @@ public final class SweepTestUtils {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0, mock(Follower.class));
+        MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,

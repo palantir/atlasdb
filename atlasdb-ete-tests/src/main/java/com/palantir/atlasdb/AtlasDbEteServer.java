@@ -93,7 +93,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
         SerializableTransactionManager txManager = tryToCreateTransactionManager(config, environment);
         Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(txManager));
-        TargetedSweeper sweeper = getTargetedSweeperWithFollower();
+        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
         environment.jersey().register(new SimpleTodoResource(new TodoClient(
                 txManager,
@@ -131,16 +131,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         return new SweepTaskRunner(kvs, ts, ts, txnService, ssm, cellsSweeper);
     }
 
-    private TargetedSweeper getTargetedSweeperWithFollower() {
-        TargetedSweeper targetedSweeper = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0, FOLLOWER);
-        return targetedSweeper;
-    }
-
     private TargetedSweeper initializeAndGet(TargetedSweeper sweeper, SerializableTransactionManager txManager) {
         sweeper.initialize(
                 new SpecialTimestampsSupplier(txManager::getImmutableTimestamp, txManager::getImmutableTimestamp),
                 txManager.getKeyValueService(),
-                new TargetedSweepFollower(FOLLOWER, txManager));
+                new TargetedSweepFollower(ImmutableList.of(FOLLOWER), txManager));
         return sweeper;
     }
 

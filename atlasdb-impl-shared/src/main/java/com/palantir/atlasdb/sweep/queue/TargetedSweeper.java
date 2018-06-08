@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -47,7 +48,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
     private final int minShards;
-    private final Follower follower;
+    private final List<Follower> followers;
 
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
@@ -57,7 +58,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private volatile boolean isInitialized = false;
 
     private TargetedSweeper(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
-            int conservativeThreads, int thoroughThreads, Follower follower) {
+            int conservativeThreads, int thoroughThreads, List<Follower> followers) {
         this.runSweep = runSweep;
         this.shardsConfig = shardsConfig;
         this.conservativeScheduler = new BackgroundSweepScheduler(conservativeThreads,
@@ -65,7 +66,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         this.thoroughScheduler = new BackgroundSweepScheduler(thoroughThreads,
                 TableMetadataPersistence.SweepStrategy.THOROUGH);
         this.minShards = Math.max(conservativeThreads, thoroughThreads);
-        this.follower = follower;
+        this.followers = followers;
     }
 
     /**
@@ -78,12 +79,17 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * must never be reduced, this will be ignored if the persisted number of shards is greater.
      * @param conservativeThreads number of conservative threads to use for background targeted sweep.
      * @param thoroughThreads number of thorough threads to use for background targeted sweep.
-     * @param follower follower used for sweeps.
+     * @param followers follower used for sweeps, as defined by your schema.
      * @return returns an uninitialized targeted sweeper.
      */
     public static TargetedSweeper createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
-            int conservativeThreads, int thoroughThreads, Follower follower) {
-        return new TargetedSweeper(enabled, shardsConfig, conservativeThreads, thoroughThreads, follower);
+            int conservativeThreads, int thoroughThreads, List<Follower> followers) {
+        return new TargetedSweeper(enabled, shardsConfig, conservativeThreads, thoroughThreads, followers);
+    }
+
+    @VisibleForTesting
+    public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
+        return createUninitialized(() -> true, shards, 0, 0, ImmutableList.of());
     }
 
     /**
@@ -112,7 +118,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     public void callbackInit(SerializableTransactionManager txManager) {
         initialize(SpecialTimestampsSupplier.create(txManager),
                 txManager.getKeyValueService(),
-                new TargetedSweepFollower(follower, txManager));
+                new TargetedSweepFollower(followers, txManager));
     }
 
     @Override

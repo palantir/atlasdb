@@ -19,7 +19,6 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -27,7 +26,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -62,16 +60,22 @@ public class TargetedSweepEteTest {
 
     @Test
     public void targetedSweepSmallStreamsTest() {
-        storeFiveStreams(20);
+        // store 5 streams, marking 4 as unused
+        StreamTestUtils.storeFiveStreams(todoClient, 20);
+        // first iteration of sweep sweeps away the entries in the index table, and deletes the entries in the
+        // other three tables, but does not sweep them yet
         todoClient.runIterationOfTargetedSweep();
         assertDeleted(4, 4, 4, 4);
         assertDeletedAndSwept(4, 0, 0, 0);
 
-        storeFiveStreams(20);
+        // store 5 more streams, marking 1 + 4 as unused
+        StreamTestUtils.storeFiveStreams(todoClient, 20);
+        // sweeps away the 5, 4, 4, 4 entries that were deleted, then deletes the rest
         todoClient.runIterationOfTargetedSweep();
         assertDeleted(9, 9, 9, 9);
         assertDeletedAndSwept(9, 4, 4, 4);
 
+        // sweeps away the last remaining entries
         todoClient.runIterationOfTargetedSweep();
         assertDeleted(9, 9, 9, 9);
         assertDeletedAndSwept(9, 9, 9, 9);
@@ -79,7 +83,8 @@ public class TargetedSweepEteTest {
 
     @Test
     public void targetedSweepLargeStreamsTest() {
-        storeFiveStreams(1500000);
+        //same as above, except the stream is bigger, so each uses 4 cells in the values table
+        StreamTestUtils.storeFiveStreams(todoClient, 1500000);
         todoClient.runIterationOfTargetedSweep();
         assertDeleted(4, 4, 4, 4 * 4);
         assertDeletedAndSwept(4, 0, 0, 0);
@@ -87,15 +92,6 @@ public class TargetedSweepEteTest {
         todoClient.runIterationOfTargetedSweep();
         assertDeleted(4, 4, 4, 4 * 4);
         assertDeletedAndSwept(4, 4, 4, 4 * 4);
-    }
-
-    private void storeFiveStreams(int streamSize) {
-        Random random = new Random();
-        byte[] bytes = new byte[streamSize];
-        for (int i = 0; i < 5; i++) {
-            random.nextBytes(bytes);
-            todoClient.storeSnapshot(PtBytes.toString(bytes));
-        }
     }
 
     private void assertDeleted(long idx, long hash, long meta, long val) {

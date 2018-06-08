@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import java.util.List;
 import java.util.Set;
 
 import com.palantir.atlasdb.cleaner.Follower;
@@ -25,15 +26,21 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class TargetedSweepFollower {
-    private final Follower follower;
+    private final List<Follower> followers;
     private final TransactionManager txManager;
 
-    public TargetedSweepFollower(Follower follower, TransactionManager txManager) {
-        this.follower = follower;
+    /**
+     * A follower wrapper for targeted sweep that gets initialized once the TransactionManager is available and
+     * always runs on the same manager and with Transaction.TransactionType.HARD_DELETE.
+     * @param followers followers to wrap
+     * @param txManager fixed transaction manager
+     */
+    public TargetedSweepFollower(List<Follower> followers, TransactionManager txManager) {
+        this.followers = followers;
         this.txManager = txManager;
     }
 
     public void run(TableReference tableRef, Set<Cell> cells) {
-        follower.run(txManager, tableRef, cells, Transaction.TransactionType.HARD_DELETE);
+        followers.forEach(flwr -> flwr.run(txManager, tableRef, cells, Transaction.TransactionType.HARD_DELETE));
     }
 }

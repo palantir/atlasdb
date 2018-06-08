@@ -78,12 +78,12 @@ public class SimpleTodoResource implements TodoResource {
 
     @Override
     public long numberOfCellsDeleted(TableReference tableRef) {
-        return atlas.numCellsDeleted(tableRef);
+        return atlas.numAtlasDeletes(tableRef);
     }
 
     @Override
     public long numberOfCellsDeletedAndSwept(TableReference tableRef) {
-        return atlas.numCellsDeletedAndSwept(tableRef);
+        return atlas.numSweptAtlasDeletes(tableRef);
     }
 
     @Override

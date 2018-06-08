@@ -886,7 +886,7 @@ public abstract class TransactionManagers {
                     JavaSuppliers.compose(TargetedSweepRuntimeConfig::shards, runtime),
                     config.conservativeThreads(),
                     config.thoroughThreads(),
-                    follower);
+                    ImmutableList.of(follower));
         }
         return MultiTableSweepQueueWriter.NO_OP;
     }

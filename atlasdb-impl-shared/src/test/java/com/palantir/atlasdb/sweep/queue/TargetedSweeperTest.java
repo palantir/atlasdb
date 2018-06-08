@@ -44,7 +44,6 @@ import org.mockito.ArgumentCaptor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -60,8 +59,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private static final long LOW_TS2 = 2 * LOW_TS;
     private static final long LOW_TS3 = 3 * LOW_TS;
 
-    private TargetedSweeper sweepQueue = TargetedSweeper
-            .createUninitialized(() -> true, () -> DEFAULT_SHARDS, 0, 0, mock(Follower.class));
+    private TargetedSweeper sweepQueue = TargetedSweeper.createUninitializedForTest(() -> DEFAULT_SHARDS);
     private ShardProgress progress;
     private SweepableTimestamps sweepableTimestamps;
     private SweepableCells sweepableCells;
@@ -82,8 +80,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void callingEnqueueAndSweepOnUnitializedSweeperThrows() {
-        TargetedSweeper uninitializedSweeper = TargetedSweeper
-                .createUninitialized(null, null, 0, 0, mock(Follower.class));
+        TargetedSweeper uninitializedSweeper = TargetedSweeper.createUninitializedForTest(null);
         assertThatThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
                 .isInstanceOf(NotInitializedException.class)
                 .hasMessageContaining("Targeted Sweeper");
@@ -96,7 +93,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void initializingWithUninitializedKvsThrows() {
         KeyValueService uninitializedKvs = mock(KeyValueService.class);
         when(uninitializedKvs.isInitialized()).thenReturn(false);
-        TargetedSweeper sweeper = TargetedSweeper.createUninitialized(null, null, 0, 0, mock(Follower.class));
+        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(null);
         assertThatThrownBy(() -> sweeper.initialize(null, uninitializedKvs, mock(TargetedSweepFollower.class)))
                 .isInstanceOf(IllegalStateException.class);
     }
@@ -106,12 +103,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(progress.getNumberOfShards()).isLessThanOrEqualTo(DEFAULT_SHARDS);
 
         TargetedSweeper sweeperConservative = TargetedSweeper
-                .createUninitialized(null, null, DEFAULT_SHARDS + 5, 0, mock(Follower.class));
+                .createUninitialized(null, null, DEFAULT_SHARDS + 5, 0, ImmutableList.of());
         sweeperConservative.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 5);
 
         TargetedSweeper sweeperThorough = TargetedSweeper
-                .createUninitialized(null, null, 0, DEFAULT_SHARDS + 10, mock(Follower.class));
+                .createUninitialized(null, null, 0, DEFAULT_SHARDS + 10, ImmutableList.of());
         sweeperThorough.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 10);
     }

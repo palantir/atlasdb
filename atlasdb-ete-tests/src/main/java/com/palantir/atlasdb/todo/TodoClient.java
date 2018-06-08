@@ -180,17 +180,17 @@ public class TodoClient {
         return sweepTaskRunner.get().run(table, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
     }
 
-    public long numCellsDeleted(TableReference tableRef) {
-        return cellsDeleted(tableRef).size();
+    public long numAtlasDeletes(TableReference tableRef) {
+        return getAllAtlasDeletes(tableRef).size();
     }
 
-    public long numCellsDeletedAndSwept(TableReference tableRef) {
-        return cellsDeleted(tableRef).entrySet().stream()
+    public long numSweptAtlasDeletes(TableReference tableRef) {
+        return getAllAtlasDeletes(tableRef).entrySet().stream()
                 .filter(entry -> getValueForEntry(tableRef, entry).getTimestamp() == Value.INVALID_VALUE_TIMESTAMP)
                 .count();
     }
 
-    private Map<Cell, Value> cellsDeleted(TableReference tableRef) {
+    private Map<Cell, Value> getAllAtlasDeletes(TableReference tableRef) {
         Set<Cell> allCells = getAllCells(tableRef);
         Map<Cell, Value> latest = kvs.get().get(tableRef, Maps.asMap(allCells, ignore -> Long.MAX_VALUE));
         return Maps.filterEntries(latest, ent -> Arrays.equals(ent.getValue().getContents(), PtBytes.EMPTY_BYTE_ARRAY));
