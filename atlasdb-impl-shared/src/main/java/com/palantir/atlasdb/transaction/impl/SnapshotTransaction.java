@@ -1970,7 +1970,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
             } else {
-                AssertUtils.assertAndLog(log, false, "BUG: Someone tried to roll back our transaction but"
+                log.warn("Potential bug: Someone tried to roll back our transaction but"
                         + " our locks were still valid; this is not allowed."
                         + " Held immutable timestamp lock: " + immutableTimestampLock
                         + "; held commit locks: " + commitLocksToken);

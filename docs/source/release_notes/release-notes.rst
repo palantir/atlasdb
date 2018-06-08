@@ -59,6 +59,11 @@ develop
          - Fixed an issue where ``getRowsColumnRange`` would return no results if the number of rows was more than the batch hint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3248>`__)
 
+    *    - |fixed|
+         - Some users of AtlasDB rely on being able to abort transactions which are in progress. Until the last release of AtlasDB, this worked successfully, however this was only the case because before
+           an assert could throw an AssertionError, an NPE was thrown by different code. Now, the assertion error is not thrown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3254>`__)
+
 
 =======
 v0.89.0
