@@ -23,7 +23,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface TimestampsToSweep {
     List<Long> timestampsDescending();
-    Long maxSwept();
+    long maxSwept();
     boolean processedAll();
 
     static TimestampsToSweep of(List<Long> list, long max, boolean processedAll) {

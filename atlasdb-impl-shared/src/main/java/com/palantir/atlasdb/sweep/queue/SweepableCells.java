@@ -142,7 +142,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         Multimap<Long, WriteInfo> writesByStartTs = getBatchOfWrites(row, resultIterator);
         maybeMetrics.ifPresent(metrics -> metrics.updateEntriesRead(shardStrategy, writesByStartTs.size()));
         log.info("Read {} entries from the sweep queue.", SafeArg.of("number", writesByStartTs.size()));
-        TimestampsToSweep tsToSweep = getTimestampsToSweepAndCleanupAborted(shardStrategy,
+        TimestampsToSweep tsToSweep = getTimestampsToSweepDescendingAndCleanupAborted(shardStrategy,
                 minTsExclusive, sweepTs, writesByStartTs);
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
         long lastSweptTs = getLastSweptTs(tsToSweep, resultIterator, partitionFine, sweepTs);
@@ -160,34 +160,14 @@ public class SweepableCells extends KvsSweepQueueWriter {
         return writesByStartTs;
     }
 
-    private Collection<WriteInfo> getWritesToSweep(Multimap<Long, WriteInfo> writesByStartTs, List<Long> startTs) {
-        Map<CellReference, WriteInfo> writesToSweepFor = new HashMap<>();
-        startTs.stream()
-                .map(writesByStartTs::get)
-                .flatMap(Collection::stream)
-                .forEach(write -> writesToSweepFor
-                        .putIfAbsent(write.writeRef().cellReference(), write));
-        return writesToSweepFor.values();
-    }
-
-    private long getLastSweptTs(TimestampsToSweep startTsCommitted, RowColumnRangeIterator resultIterator,
-            long partitionFine, long maxTsExclusive) {
-        if (startTsCommitted.processedAll() && exhaustedAllColumns(resultIterator)) {
-            return lastGuaranteedSwept(partitionFine, maxTsExclusive);
-        } else {
-            return startTsCommitted.maxSwept();
-        }
-    }
-
     private RowColumnRangeIterator getRowColumnRange(SweepableCellsTable.SweepableCellsRow row, long partitionFine,
             long minTsExclusive, long maxTsExclusive) {
         return getRowsColumnRange(ImmutableList.of(row.persistToBytes()),
                 columnsBetween(minTsExclusive + 1, maxTsExclusive, partitionFine), SweepQueueUtils.MAX_CELLS_DEDICATED);
     }
 
-    private TimestampsToSweep getTimestampsToSweepAndCleanupAborted(
-            ShardAndStrategy shardStrategy, long minTsExclusive, long sweepTs,
-            Multimap<Long, WriteInfo> writesByStartTs) {
+    private TimestampsToSweep getTimestampsToSweepDescendingAndCleanupAborted(ShardAndStrategy shardStrategy,
+            long minTsExclusive, long sweepTs, Multimap<Long, WriteInfo> writesByStartTs) {
         Map<Long, Long> startToCommitTs = commitTsLoader.loadBatch(writesByStartTs.keySet());
         Map<TableReference, Multimap<Cell, Long>> cellsToDelete = new HashMap<>();
         List<Long> committedTimestamps = new ArrayList<>();
@@ -220,6 +200,25 @@ public class SweepableCells extends KvsSweepQueueWriter {
 
         committedTimestamps.sort(Comparator.reverseOrder());
         return TimestampsToSweep.of(committedTimestamps, lastSweptTs, processedAll);
+    }
+
+    private Collection<WriteInfo> getWritesToSweep(Multimap<Long, WriteInfo> writesByStartTs, List<Long> startTs) {
+        Map<CellReference, WriteInfo> writesToSweepFor = new HashMap<>();
+        startTs.stream()
+                .map(writesByStartTs::get)
+                .flatMap(Collection::stream)
+                .forEach(write -> writesToSweepFor
+                        .putIfAbsent(write.writeRef().cellReference(), write));
+        return writesToSweepFor.values();
+    }
+
+    private long getLastSweptTs(TimestampsToSweep startTsCommitted, RowColumnRangeIterator resultIterator,
+            long partitionFine, long maxTsExclusive) {
+        if (startTsCommitted.processedAll() && exhaustedAllColumns(resultIterator)) {
+            return lastGuaranteedSwept(partitionFine, maxTsExclusive);
+        } else {
+            return startTsCommitted.maxSwept();
+        }
     }
 
     private List<WriteInfo> getWrites(SweepableCellsTable.SweepableCellsRow row,

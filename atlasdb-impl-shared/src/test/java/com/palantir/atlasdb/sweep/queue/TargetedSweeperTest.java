@@ -22,6 +22,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -43,6 +44,7 @@ import org.mockito.ArgumentCaptor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -578,7 +580,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(920L);
         ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
-        verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), argument.capture(), eq(false));
+        verify(spiedKvs, times(1)).deleteAllTimestamps(eq(TABLE_CONS), argument.capture(), eq(false));
         assertThat(argument.getValue()).containsValue(920L);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
@@ -588,8 +590,43 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         immutableTs = 1101L;
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(1101L - 1L);
-        verify(spiedKvs, times(2)).deleteAllTimestamps(any(TableReference.class), argument.capture(), eq(false));
+        verify(spiedKvs, times(2)).deleteAllTimestamps(eq(TABLE_CONS), argument.capture(), eq(false));
         assertThat(argument.getValue()).containsValue(970L);
+    }
+
+    @Test
+    public void doNotDeleteAnythingAfterEntryWithCommitTsAfterSweepTs() {
+        immutableTs = 1000L;
+        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONS, 900), 900);
+        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONS, 920), 920);
+        enqueueWriteCommitedAt(TABLE_CONS, 950, 2000);
+        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONS, 970), 970);
+        sweepQueue.enqueue(writeToDefaultCell(TABLE_CONS, 1110), 1110);
+
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(920L);
+        verify(spiedKvs, never()).deleteAllTimestamps(any(TableReference.class), anyMap(), eq(false));
+
+        ArgumentCaptor<Multimap> multimap = ArgumentCaptor.forClass(Multimap.class);
+        verify(spiedKvs, times(1)).delete(eq(TABLE_CONS), multimap.capture());
+        assertThat(multimap.getValue().keySet()).containsExactly(DEFAULT_CELL);
+        assertThat(multimap.getValue().values()).containsExactly(900L, 920L);
+        verify(spiedKvs, times(1)).delete(eq(TABLE_CONS), multimap.capture());
+
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(920L);
+        verify(spiedKvs, never()).deleteAllTimestamps(any(TableReference.class), anyMap(), eq(false));
+        verify(spiedKvs, times(1)).delete(any(TableReference.class), any(Multimap.class));
+        assertReadAtTimestampReturnsValue(TABLE_CONS, 1500L, 1110L);
+
+        immutableTs = 2009L;
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(2009L - 1L);
+        ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
+        verify(spiedKvs, times(1)).deleteAllTimestamps(eq(TABLE_CONS), map.capture(), eq(false));
+        assertThat(map.getValue()).containsValue(950L);
+
+        assertReadAtTimestampReturnsValue(TABLE_CONS, 1500L, 950L);
     }
 
     private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int sweepIterations) {
