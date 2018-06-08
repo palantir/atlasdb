@@ -20,9 +20,11 @@ import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,6 +38,7 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.TableToSweep;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 
 public class NextTableToSweepProviderTest {
@@ -50,8 +53,11 @@ public class NextTableToSweepProviderTest {
     private Optional<TableToSweep> tableToSweep;
 
     @Before
-    public void setup() {
+    public void setup() throws InterruptedException {
         lockService = mock(LockService.class);
+        LockRefreshToken token = new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE);
+        when(lockService.lock(anyString(), any())).thenReturn(token);
+
         calculator = mock(StreamStoreRemappingSweepPriorityCalculator.class);
         priorities = new HashMap<>();
         priorityTables = new HashSet<>();
@@ -187,7 +193,7 @@ public class NextTableToSweepProviderTest {
     }
 
     private void thenTableChosenIs(TableReference table) {
-        Assert.assertTrue(tableToSweep.isPresent());
+        Assert.assertTrue("expected to have chosen a table!", tableToSweep.isPresent());
         Assert.assertThat(tableToSweep.get().getTableRef(), is(table));
     }
 
