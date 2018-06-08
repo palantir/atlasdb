@@ -16,30 +16,28 @@
 
 package com.palantir.atlasdb.cassandra;
 
-import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.function.LongUnaryOperator;
 
 /**
  * This interface produces Cassandra timestamps for mutations, where it makes sense for these to be overridden.
  * Generally, to ensure that Cassandra is able to compact tombstones smoothly, these values should increase over
  * time and should largely be in line with AtlasDB's notion of logical time.
- *
- * Calling these methods must be cheap, at least on an amortised basis; they may be called multiple times
- * in rapid succession (as frequently as once per cell) when
- * {@link com.palantir.atlasdb.keyvalue.api.KeyValueService#delete(TableReference, Multimap)} or other deletion
- * methods are called.
  */
 public interface CassandraMutationTimestampProvider {
     /**
-     * Cassandra timestamp at which sweep sentinels should be written.
+     * Returns the Cassandra timestamp at which sweep sentinels should be written.
      */
     long getSweepSentinelWriteTimestamp();
 
     /**
-     * Cassandra timestamp at which KVS-level deletes should be performed.
-     * @param atlasDeletionTimestamp Atlas timestamp of the relevant delete.
+     * Returns an operator, which determines the Cassandra timestamp to write a delete at, given the Atlas timestamp
+     * at which the deletion occurred.
+     * The operator is intended to be use for a single batch deletion, and must not be re-used outside of the
+     * context of a single batch delete.
+     *
+     * This operator may be invoked once per cell involved in a batch delete, and thus must be cheap to invoke.
      */
-    long getDeletionTimestamp(long atlasDeletionTimestamp);
+    LongUnaryOperator getDeletionTimestampOperatorForBatchDelete();
 
     /**
      * Cassandra timestamp at which a range tombstone should be written.

@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.cassandra;
 
 import java.util.function.LongSupplier;
+import java.util.function.LongUnaryOperator;
 
 public class CassandraMutationTimestampProviders {
     private CassandraMutationTimestampProviders() {
@@ -36,13 +37,13 @@ public class CassandraMutationTimestampProviders {
             }
 
             @Override
-            public long getDeletionTimestamp(long atlasDeletionTimestamp) {
-                return atlasDeletionTimestamp + 1;
+            public LongUnaryOperator getDeletionTimestampOperatorForBatchDelete() {
+                return deletionTimestamp -> deletionTimestamp + 1;
             }
 
             @Override
             public long getRangeTombstoneTimestamp(long maximumAtlasTimestampExclusive) {
-                return getDeletionTimestamp(maximumAtlasTimestampExclusive);
+                return maximumAtlasTimestampExclusive + 1;
             }
         };
     }
@@ -56,8 +57,9 @@ public class CassandraMutationTimestampProviders {
             }
 
             @Override
-            public long getDeletionTimestamp(long atlasDeletionTimestamp) {
-                return longSupplier.getAsLong();
+            public LongUnaryOperator getDeletionTimestampOperatorForBatchDelete() {
+                long deletionTimestamp = longSupplier.getAsLong();
+                return unused -> deletionTimestamp;
             }
 
             @Override

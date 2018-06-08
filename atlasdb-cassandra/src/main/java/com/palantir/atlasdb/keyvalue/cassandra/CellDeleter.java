@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.LongUnaryOperator;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Deletion;
@@ -41,7 +41,7 @@ import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.common.base.FunctionCheckedException;
 
 class CellDeleter {
-    private final Function<Long, Long> deleteTimestampGetter;
+    private final LongUnaryOperator deleteTimestampGetter;
 
     private CassandraClientPool clientPool;
     private WrappingQueryRunner wrappingQueryRunner;
@@ -50,7 +50,7 @@ class CellDeleter {
     CellDeleter(CassandraClientPool clientPool,
             WrappingQueryRunner wrappingQueryRunner,
             ConsistencyLevel deleteConsistency,
-            Function<Long, Long> deleteTimestampGetter) {
+            LongUnaryOperator deleteTimestampGetter) {
         this.clientPool = clientPool;
         this.wrappingQueryRunner = wrappingQueryRunner;
         this.deleteConsistency = deleteConsistency;
@@ -93,7 +93,7 @@ class CellDeleter {
                             pred.setColumn_names(Collections.singletonList(colName));
                             Deletion del = new Deletion();
                             del.setPredicate(pred);
-                            del.setTimestamp(deleteTimestampGetter.apply(ts));
+                            del.setTimestamp(deleteTimestampGetter.applyAsLong(ts));
                             Mutation mutation = new Mutation();
                             mutation.setDeletion(del);
 

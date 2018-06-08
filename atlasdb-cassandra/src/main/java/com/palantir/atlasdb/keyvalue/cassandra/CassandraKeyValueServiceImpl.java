@@ -1137,7 +1137,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         new CellDeleter(clientPool,
                 wrappingQueryRunner,
                 deleteConsistency,
-                mutationTimestampProvider::getDeletionTimestamp).delete(tableRef, keys);
+                mutationTimestampProvider.getDeletionTimestampOperatorForBatchDelete()).delete(tableRef, keys);
     }
 
     @VisibleForTesting
