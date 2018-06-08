@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.sweep.TableToSweep;
 
 public class NextTableToSweepProviderTest {
     private NextTableToSweepProvider provider;
@@ -44,7 +45,7 @@ public class NextTableToSweepProviderTest {
     private Set<String> priorityTables;
     private Set<String> blacklistTables;
 
-    private Optional<TableReference> tableToSweep;
+    private Optional<TableToSweep> tableToSweep;
 
     @Before
     public void setup() {
@@ -100,7 +101,8 @@ public class NextTableToSweepProviderTest {
         whenGettingNextTableToSweep();
 
         Assert.assertTrue(tableToSweep.isPresent());
-        Assert.assertThat(tableToSweep.get(), anyOf(is(table("table2")), is(table("table3")), is(table("table4"))));
+        Assert.assertThat(tableToSweep.get().getTableRef(),
+                anyOf(is(table("table2")), is(table("table3")), is(table("table4"))));
     }
 
     @Test
@@ -183,7 +185,7 @@ public class NextTableToSweepProviderTest {
 
     private void thenTableChosenIs(TableReference table) {
         Assert.assertTrue(tableToSweep.isPresent());
-        Assert.assertThat(tableToSweep.get(), is(table));
+        Assert.assertThat(tableToSweep.get().getTableRef(), is(table));
     }
 
     // helpers

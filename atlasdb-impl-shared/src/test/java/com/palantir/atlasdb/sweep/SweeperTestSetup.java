@@ -124,8 +124,14 @@ public class SweeperTestSetup {
     }
 
     protected void setNextTableToSweep(TableReference tableRef) {
-        doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider).getNextTableToSweep(any(), anyLong());
-        doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider).getNextTableToSweep(any(), anyLong(), any());
+        doReturn(Optional.of(getTableToSweep(tableRef))).when(nextTableToSweepProvider).getNextTableToSweep(any(),
+                anyLong());
+        doReturn(Optional.of(getTableToSweep(tableRef))).when(nextTableToSweepProvider).getNextTableToSweep(any(),
+                anyLong(), any());
+    }
+
+    private TableToSweep getTableToSweep(TableReference tableRef) {
+        return new TableToSweep(tableRef, Optional.empty());
     }
 
     protected void setupTaskRunner(SweepResults results) {

@@ -208,8 +208,7 @@ class BackgroundSweepThread implements Runnable {
                         return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
                     } else {
                         log.info("Sweep is choosing a new table to sweep.");
-                        Optional<TableReference> nextTable = getNextTableToSweep(tx, overrideConfig);
-                        return nextTable.map(tableReference -> new TableToSweep(tableReference, Optional.empty()));
+                        return getNextTableToSweep(tx, overrideConfig);
                     }
                 });
     }
@@ -224,11 +223,11 @@ class BackgroundSweepThread implements Runnable {
         return overrideConfig.priorityTables().contains(currentTableName);
     }
 
-    private Optional<TableReference> getNextTableToSweep(Transaction tx, SweepPriorityOverrideConfig overrideConfig) {
+    private Optional<TableToSweep> getNextTableToSweep(Transaction tx, SweepPriorityOverrideConfig overrideConfig) {
         return nextTableToSweepProvider.getNextTableToSweep(
-                        tx,
-                        specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(),
-                        overrideConfig);
+                tx,
+                specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(),
+                overrideConfig);
     }
 
     private SweepOutcome determineCauseOfFailure(Exception originalException,

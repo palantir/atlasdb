@@ -33,6 +33,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.sweep.TableToSweep;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -55,22 +56,22 @@ public class NextTableToSweepProvider {
         return new NextTableToSweepProvider(streamStoreRemappingSweepPriorityCalculator);
     }
 
-    public Optional<TableReference> getNextTableToSweep(Transaction tx,
+    public Optional<TableToSweep> getNextTableToSweep(Transaction tx,
             long conservativeSweepTimestamp) {
         return getNextTableToSweep(tx, conservativeSweepTimestamp, SweepPriorityOverrideConfig.defaultConfig());
     }
 
-    public Optional<TableReference> getNextTableToSweep(
+    public Optional<TableToSweep> getNextTableToSweep(
             Transaction tx,
             long conservativeSweepTimestamp,
             SweepPriorityOverrideConfig overrideConfig) {
         if (!overrideConfig.priorityTables().isEmpty()) {
-            TableReference tableToSweep =
+            TableReference tableRefToSweep =
                     TableReference.createFromFullyQualifiedName(
                             getRandomValueFromList(overrideConfig.priorityTablesAsList()));
             log.info("Decided to start sweeping {} because it is on the sweep priority list.",
-                    LoggingArgs.safeTableOrPlaceholder(tableToSweep));
-            return Optional.of(tableToSweep);
+                    LoggingArgs.safeTableOrPlaceholder(tableRefToSweep));
+            return Optional.of(new TableToSweep(tableRefToSweep, Optional.empty()));
         }
 
         Map<TableReference, Double> scores = calculator.calculateSweepPriorityScores(tx, conservativeSweepTimestamp);
@@ -83,8 +84,8 @@ public class NextTableToSweepProvider {
 
         List<TableReference> tablesWithHighestPriority = findTablesWithHighestPriority(tablesWithNonZeroPriority);
 
-        Optional<TableReference> chosenTable = tablesWithHighestPriority.size() > 0
-                ? Optional.of(getRandomValueFromList(tablesWithHighestPriority))
+        Optional<TableToSweep> chosenTable = tablesWithHighestPriority.size() > 0
+                ? Optional.of(new TableToSweep(getRandomValueFromList(tablesWithHighestPriority), Optional.empty()))
                 : Optional.empty();
 
         return logDecision(chosenTable, scores, overrideConfig);
@@ -118,8 +119,8 @@ public class NextTableToSweepProvider {
         return values.get(ThreadLocalRandom.current().nextInt(values.size()));
     }
 
-    private Optional<TableReference> logDecision(
-            Optional<TableReference> chosenTable,
+    private Optional<TableToSweep> logDecision(
+            Optional<TableToSweep> chosenTable,
             Map<TableReference, Double> scores,
             SweepPriorityOverrideConfig sweepPriorityOverrideConfig) {
         if (!log.isDebugEnabled()) {
@@ -132,7 +133,7 @@ public class NextTableToSweepProvider {
                 .collect(Collectors.joining(", ", "[", "]"));
 
         String chosenTableString = chosenTable.isPresent()
-                ? LoggingArgs.safeTableOrPlaceholder(chosenTable.get()).toString()
+                ? LoggingArgs.safeTableOrPlaceholder(chosenTable.get().getTableRef()).toString()
                 : "no table";
 
         log.debug("Chose {} from scores: {}, unsafeScores: {}, overrides: {}",
