@@ -80,7 +80,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         NextTableToSweepProvider nextTableToSweepProvider = NextTableToSweepProvider
-                .create(specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
+                .create(specificTableSweeper.getKvs(),
+                        specificTableSweeper.getTxManager().getLockService(),
+                        specificTableSweeper.getSweepPriorityStore());
 
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),

@@ -35,25 +35,30 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.TableToSweep;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public class NextTableToSweepProvider {
     private static final Logger log = LoggerFactory.getLogger(NextTableToSweepProvider.class);
 
+    private final LockService lockService;
     private final StreamStoreRemappingSweepPriorityCalculator calculator;
 
     @VisibleForTesting
-    NextTableToSweepProvider(StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator) {
+    NextTableToSweepProvider(LockService lockService,
+            StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator) {
+        this.lockService = lockService;
         this.calculator = streamStoreRemappingSweepPriorityCalculator;
     }
 
-    public static NextTableToSweepProvider create(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
+    public static NextTableToSweepProvider create(KeyValueService kvs, LockService lockService,
+            SweepPriorityStore sweepPriorityStore) {
         SweepPriorityCalculator basicCalculator = new SweepPriorityCalculator(kvs, sweepPriorityStore);
         StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator =
                 new StreamStoreRemappingSweepPriorityCalculator(basicCalculator, sweepPriorityStore);
 
-        return new NextTableToSweepProvider(streamStoreRemappingSweepPriorityCalculator);
+        return new NextTableToSweepProvider(lockService, streamStoreRemappingSweepPriorityCalculator);
     }
 
     public Optional<TableToSweep> getNextTableToSweep(Transaction tx,

@@ -105,7 +105,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
         backgroundSweeper = new BackgroundSweepThread(
                 txManager.getLockService(),
-                NextTableToSweepProvider.create(kvs, specificTableSweeper.getSweepPriorityStore()),
+                NextTableToSweepProvider.create(kvs,
+                        txManager.getLockService(),
+                        specificTableSweeper.getSweepPriorityStore()),
                 sweepBatchConfigSource,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis

@@ -36,10 +36,12 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.TableToSweep;
+import com.palantir.lock.LockService;
 
 public class NextTableToSweepProviderTest {
     private NextTableToSweepProvider provider;
 
+    private LockService lockService;
     private StreamStoreRemappingSweepPriorityCalculator calculator;
     private Map<TableReference, Double> priorities;
     private Set<String> priorityTables;
@@ -49,12 +51,13 @@ public class NextTableToSweepProviderTest {
 
     @Before
     public void setup() {
+        lockService = mock(LockService.class);
         calculator = mock(StreamStoreRemappingSweepPriorityCalculator.class);
         priorities = new HashMap<>();
         priorityTables = new HashSet<>();
         blacklistTables = new HashSet<>();
 
-        provider = new NextTableToSweepProvider(calculator);
+        provider = new NextTableToSweepProvider(lockService, calculator);
     }
 
     @Test
