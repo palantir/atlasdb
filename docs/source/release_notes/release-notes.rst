@@ -50,7 +50,7 @@ develop
     *    - Type
          - Change
 
-    *    - |devbreak| |improved|
+    *    - |improved|
          - The unbounded ``CommitTsLoader`` has been renamed to ``CommitTsCache`` and now has an eviction policy to prevent memory leaks.
            Background sweep now reuses this cache for iterations of sweep instead of recreating it every iteration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3256>`__)
