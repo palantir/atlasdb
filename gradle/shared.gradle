@@ -58,6 +58,7 @@ license {
     exclude '**/generated/**/*.java'
     exclude '**/RateLimiter.java'
     exclude '**/SmoothRateLimiter.java'
+    exclude '**/DiscoverableSubtypeResolver.java'
 }
 
 ext {
