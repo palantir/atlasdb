@@ -1,10 +1,7 @@
 {
     "compileClasspath": {
         "ch.qos.logback:logback-classic": {
-            "locked": "1.1.7",
-            "transitive": [
-                "io.dropwizard:dropwizard-jackson"
-            ]
+            "locked": "1.1.7"
         },
         "ch.qos.logback:logback-core": {
             "locked": "1.1.7",
@@ -28,15 +25,12 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-api",
-                "com.palantir.atlasdb:timestamp-client",
-                "io.dropwizard:dropwizard-jackson",
-                "io.dropwizard:dropwizard-util"
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
@@ -48,14 +42,12 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
-                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
-                "com.palantir.atlasdb:atlasdb-client",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
@@ -64,7 +56,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
-                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
@@ -88,8 +79,7 @@
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:keystores",
                 "com.palantir.remoting3:tracing",
-                "com.palantir.tokens:auth-tokens",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
@@ -113,15 +103,13 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:tracing",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk7": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -133,12 +121,6 @@
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tokens:auth-tokens"
-            ]
-        },
-        "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
-            "locked": "2.6.7",
-            "transitive": [
-                "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
@@ -168,8 +150,7 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:jersey-servers",
-                "com.palantir.remoting3:tracing",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
@@ -278,7 +259,6 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.tritium:tritium-api",
                 "io.airlift:airline",
-                "io.dropwizard:dropwizard-util",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
@@ -315,9 +295,7 @@
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
-                "io.airlift:airline",
-                "io.dropwizard:dropwizard-jackson",
-                "io.dropwizard:dropwizard-util"
+                "io.airlift:airline"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -885,18 +863,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.tritium:tritium-registry"
-            ]
-        },
-        "io.dropwizard:dropwizard-jackson": {
-            "locked": "0.9.3",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "io.dropwizard:dropwizard-util": {
-            "locked": "0.9.3",
-            "transitive": [
-                "io.dropwizard:dropwizard-jackson"
             ]
         },
         "io.netty:netty-buffer": {
@@ -966,8 +932,7 @@
         "joda-time:joda-time": {
             "locked": "2.9",
             "transitive": [
-                "com.palantir.atlasdb:lock-impl",
-                "io.dropwizard:dropwizard-util"
+                "com.palantir.atlasdb:lock-impl"
             ]
         },
         "net.jcip:jcip-annotations": {
@@ -1122,6 +1087,7 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "transitive": [
+                "ch.qos.logback:logback-classic",
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -1137,7 +1103,6 @@
                 "com.palantir.tritium:tritium-slf4j",
                 "com.palantir.tritium:tritium-tracing",
                 "io.dropwizard.metrics:metrics-core",
-                "io.dropwizard:dropwizard-jackson",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
                 "org.slf4j:jcl-over-slf4j",
@@ -1160,10 +1125,7 @@
     },
     "runtime": {
         "ch.qos.logback:logback-classic": {
-            "locked": "1.1.7",
-            "transitive": [
-                "io.dropwizard:dropwizard-jackson"
-            ]
+            "locked": "1.1.7"
         },
         "ch.qos.logback:logback-core": {
             "locked": "1.1.7",
@@ -1187,15 +1149,12 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:timestamp-api",
-                "com.palantir.atlasdb:timestamp-client",
-                "io.dropwizard:dropwizard-jackson",
-                "io.dropwizard:dropwizard-util"
+                "com.palantir.atlasdb:timestamp-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
@@ -1207,14 +1166,12 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
-                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
-                "com.palantir.atlasdb:atlasdb-client",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
@@ -1223,7 +1180,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk7",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
-                "com.fasterxml.jackson.datatype:jackson-datatype-joda",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
@@ -1247,8 +1203,7 @@
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:keystores",
                 "com.palantir.remoting3:tracing",
-                "com.palantir.tokens:auth-tokens",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
@@ -1272,15 +1227,13 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:tracing",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk7": {
             "locked": "2.6.7",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -1292,12 +1245,6 @@
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tokens:auth-tokens"
-            ]
-        },
-        "com.fasterxml.jackson.datatype:jackson-datatype-joda": {
-            "locked": "2.6.7",
-            "transitive": [
-                "io.dropwizard:dropwizard-jackson"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
@@ -1327,8 +1274,7 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:jersey-servers",
-                "com.palantir.remoting3:tracing",
-                "io.dropwizard:dropwizard-jackson"
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
@@ -1437,7 +1383,6 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.tritium:tritium-api",
                 "io.airlift:airline",
-                "io.dropwizard:dropwizard-util",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
@@ -1471,9 +1416,7 @@
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
-                "io.airlift:airline",
-                "io.dropwizard:dropwizard-jackson",
-                "io.dropwizard:dropwizard-util"
+                "io.airlift:airline"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -2043,18 +1986,6 @@
                 "com.palantir.tritium:tritium-registry"
             ]
         },
-        "io.dropwizard:dropwizard-jackson": {
-            "locked": "0.9.3",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "io.dropwizard:dropwizard-util": {
-            "locked": "0.9.3",
-            "transitive": [
-                "io.dropwizard:dropwizard-jackson"
-            ]
-        },
         "io.netty:netty-buffer": {
             "locked": "4.0.47.Final",
             "transitive": [
@@ -2121,8 +2052,7 @@
         "joda-time:joda-time": {
             "locked": "2.9",
             "transitive": [
-                "com.palantir.atlasdb:lock-impl",
-                "io.dropwizard:dropwizard-util"
+                "com.palantir.atlasdb:lock-impl"
             ]
         },
         "net.jcip:jcip-annotations": {
@@ -2277,6 +2207,7 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "transitive": [
+                "ch.qos.logback:logback-classic",
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -2292,7 +2223,6 @@
                 "com.palantir.tritium:tritium-slf4j",
                 "com.palantir.tritium:tritium-tracing",
                 "io.dropwizard.metrics:metrics-core",
-                "io.dropwizard:dropwizard-jackson",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
                 "org.slf4j:jcl-over-slf4j",

@@ -426,6 +426,23 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void testGetRowColumnRangeCellBatchMultipleRowsAndSmallerBatchHint() {
+        putTestDataForSingleTimestamp();
+        RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1, row0, row2),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                2,
+                TEST_TIMESTAMP + 1);
+        assertNextElementMatches(values, Cell.create(row1, column0), value10);
+        assertNextElementMatches(values, Cell.create(row1, column2), value12);
+        assertNextElementMatches(values, TEST_CELL, value00);
+        assertNextElementMatches(values, Cell.create(row0, column1), value01);
+        assertNextElementMatches(values, Cell.create(row2, column1), value21);
+        assertNextElementMatches(values, Cell.create(row2, column2), value22);
+        assertFalse(values.hasNext());
+    }
+
+    @Test
     public void testGetRowColumnRangeCellBatchHistorical() {
         putTestDataForMultipleTimestamps();
         RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
@@ -468,10 +485,11 @@ public abstract class AbstractKeyValueServiceTest {
     private static void assertNextElementMatches(RowColumnRangeIterator iterator,
                                                  Cell expectedCell,
                                                  byte[] expectedContents) {
-        assertTrue(iterator.hasNext());
+        assertTrue("Expected next element to match, but iterator was exhausted!", iterator.hasNext());
         Map.Entry<Cell, Value> entry = iterator.next();
-        assertEquals(expectedCell, entry.getKey());
-        assertArrayEquals(expectedContents, entry.getValue().getContents());
+        assertEquals("Expected next element to match, but keys were different!", expectedCell, entry.getKey());
+        assertArrayEquals("Expected next element to match, but values were different!",
+                expectedContents, entry.getValue().getContents());
     }
 
     @Test
