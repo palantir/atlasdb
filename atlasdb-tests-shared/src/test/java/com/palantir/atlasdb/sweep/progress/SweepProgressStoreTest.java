@@ -72,27 +72,60 @@ public class SweepProgressStoreTest {
 
     @Test
     public void testLoadEmpty() {
-        Assert.assertFalse(progressStore.loadProgress().isPresent());
+        Assert.assertFalse(progressStore.loadProgress(1).isPresent());
     }
 
     @Test
     public void testSaveAndLoad() {
-        progressStore.saveProgress(PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress());
+        progressStore.saveProgress(1, PROGRESS);
+        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(1));
+    }
+
+    @Test
+    public void testOtherThreadsDoNotConflict() {
+        progressStore.saveProgress(1, PROGRESS);
+        Assert.assertFalse(progressStore.loadProgress(2).isPresent());
+
+        progressStore.saveProgress(2, OTHER_PROGRESS);
+        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(1));
     }
 
     @Test
     public void testOverwrite() {
-        progressStore.saveProgress(PROGRESS);
-        progressStore.saveProgress(OTHER_PROGRESS);
-        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress());
+        progressStore.saveProgress(1, PROGRESS);
+        progressStore.saveProgress(1, OTHER_PROGRESS);
+        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(1));
     }
 
     @Test
-    public void testClear() {
-        progressStore.saveProgress(PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress());
+    public void testClearOne() {
+        progressStore.saveProgress(1, PROGRESS);
+        progressStore.saveProgress(2, OTHER_PROGRESS);
+        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(1));
+
+        progressStore.clearProgress(1);
+        Assert.assertFalse(progressStore.loadProgress(1).isPresent());
+        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(2));
+    }
+
+    @Test
+    public void testClearAndRewrite() {
+        progressStore.saveProgress(1, PROGRESS);
+        progressStore.clearProgress(1);
+        progressStore.saveProgress(1, OTHER_PROGRESS);
+
+        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(1));
+
+    }
+
+    @Test
+    public void testClearAll() {
+        progressStore.saveProgress(1, PROGRESS);
+        progressStore.saveProgress(2, OTHER_PROGRESS);
+        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(1));
+        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(2));
         progressStore.clearProgress();
-        Assert.assertFalse(progressStore.loadProgress().isPresent());
+        Assert.assertFalse(progressStore.loadProgress(1).isPresent());
+        Assert.assertFalse(progressStore.loadProgress(2).isPresent());
     }
 }

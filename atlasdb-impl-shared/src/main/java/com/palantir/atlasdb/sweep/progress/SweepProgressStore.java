@@ -20,8 +20,18 @@ import java.util.Optional;
 
 public interface SweepProgressStore {
     void clearProgress();
+
+    void clearProgress(int threadIndex);
+
+    // Saves old (single-sweep) progress
     void saveProgress(SweepProgress newProgress);
+
+    void saveProgress(int threadIndex, SweepProgress newProgress);
+
+    // Loads old (single-sweep) progress
     Optional<SweepProgress> loadProgress();
+
+    Optional<SweepProgress> loadProgress(int threadIndex);
 
     default boolean isInitialized() {
         return true;

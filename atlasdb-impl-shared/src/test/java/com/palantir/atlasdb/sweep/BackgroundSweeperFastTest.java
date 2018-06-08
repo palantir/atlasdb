@@ -105,7 +105,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         backgroundSweeper.runOnce();
 
         ArgumentCaptor<SweepProgress> argumentCaptor = ArgumentCaptor.forClass(SweepProgress.class);
-        Mockito.verify(progressStore).saveProgress(argumentCaptor.capture());
+        Mockito.verify(progressStore).saveProgress(eq(THREAD_INDEX), argumentCaptor.capture());
 
         SweepProgress savedProgress = argumentCaptor.getValue();
         long timeSweepStarted = savedProgress.startTimeInMillis();
@@ -148,7 +148,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .build());
         backgroundSweeper.runOnce();
 
-        Mockito.verify(progressStore).saveProgress(
+        Mockito.verify(progressStore).saveProgress(eq(THREAD_INDEX),
                 eq(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
                         .staleValuesDeleted(5)

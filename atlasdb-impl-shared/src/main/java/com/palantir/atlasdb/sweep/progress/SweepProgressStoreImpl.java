@@ -27,6 +27,9 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -110,10 +113,28 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     }
 
     @Override
+    public Optional<SweepProgress> loadProgress(int threadIndex) {
+        Map<Cell, Value> entry = kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(
+                getCell(threadIndex), 1L));
+        return hydrateProgress(entry);
+    }
+
+    @Override
     public void saveProgress(SweepProgress newProgress) {
         Optional<SweepProgress> oldProgress = loadProgress();
         try {
-            kvs.checkAndSet(casProgressRequest(oldProgress, newProgress));
+            kvs.checkAndSet(casProgressRequest(CELL, oldProgress, newProgress));
+        } catch (Exception e) {
+            log.warn("Exception trying to persist sweep progress. The intermediate progress might not have been "
+                    + "persisted. This should not cause sweep issues unless the problem persists.", e);
+        }
+    }
+
+    @Override
+    public void saveProgress(int threadIndex, SweepProgress newProgress) {
+        Optional<SweepProgress> oldProgress = loadProgress(threadIndex);
+        try {
+            kvs.checkAndSet(casProgressRequest(getCell(threadIndex), oldProgress, newProgress));
         } catch (Exception e) {
             log.warn("Exception trying to persist sweep progress. The intermediate progress might not have been "
                     + "persisted. This should not cause sweep issues unless the problem persists.", e);
@@ -132,13 +153,24 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
         kvs.deleteRange(AtlasDbConstants.SWEEP_PROGRESS_TABLE, RangeRequest.all());
     }
 
-    private CheckAndSetRequest casProgressRequest(Optional<SweepProgress> oldProgress, SweepProgress progress)
+    @Override
+    public void clearProgress(int threadIndex) {
+        Multimap<Cell, Long> multimap = ImmutableMultimap.of(getCell(threadIndex), 0L);
+        kvs.delete(AtlasDbConstants.SWEEP_PROGRESS_TABLE, multimap);
+    }
+
+    private Cell getCell(int threadIndex) {
+        return Cell.create(ROW_AND_COLUMN_NAME_BYTES, PtBytes.toBytes(threadIndex));
+    }
+
+    private CheckAndSetRequest casProgressRequest(Cell cell, Optional<SweepProgress> oldProgress,
+            SweepProgress progress)
             throws JsonProcessingException {
         if (!oldProgress.isPresent()) {
-            return CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, CELL, progressToBytes(progress));
+            return CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, progressToBytes(progress));
         }
         return CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE,
-                CELL, progressToBytes(oldProgress.get()), progressToBytes(progress));
+                cell, progressToBytes(oldProgress.get()), progressToBytes(progress));
     }
 
     private void tryInitialize() {
@@ -155,7 +187,8 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
             return Optional.empty();
         }
         try {
-            return Optional.of(OBJECT_MAPPER.readValue(result.get(CELL).getContents(), SweepProgress.class));
+            Value value = Iterables.getOnlyElement(result.values());
+            return Optional.of(OBJECT_MAPPER.readValue(value.getContents(), SweepProgress.class));
         } catch (Exception e) {
             log.warn("Error deserializing SweepProgress object.", e);
             return Optional.empty();

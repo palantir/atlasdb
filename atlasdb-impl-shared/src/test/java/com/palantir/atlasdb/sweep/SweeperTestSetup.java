@@ -48,6 +48,7 @@ public class SweeperTestSetup {
 
     protected static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(
             "backgroundsweeper.fasttest");
+    protected static final int THREAD_INDEX = 0;
 
     protected static AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
@@ -87,7 +88,7 @@ public class SweeperTestSetup {
                 specificTableSweeper,
                 new SweepOutcomeMetrics(),
                 new CountDownLatch(1),
-                0);
+                THREAD_INDEX);
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {
@@ -115,11 +116,11 @@ public class SweeperTestSetup {
     }
 
     protected void setNoProgress() {
-        doReturn(Optional.empty()).when(progressStore).loadProgress();
+        doReturn(Optional.empty()).when(progressStore).loadProgress(THREAD_INDEX);
     }
 
     protected void setProgress(SweepProgress progress) {
-        doReturn(Optional.of(progress)).when(progressStore).loadProgress();
+        doReturn(Optional.of(progress)).when(progressStore).loadProgress(THREAD_INDEX);
     }
 
     protected void setNextTableToSweep(TableReference tableRef) {

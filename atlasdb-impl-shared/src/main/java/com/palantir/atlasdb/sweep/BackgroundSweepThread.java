@@ -185,7 +185,7 @@ class BackgroundSweepThread implements Runnable {
 
         SweepBatchConfig batchConfig = sweepBatchConfigSource.getAdjustedSweepConfig();
         try {
-            specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), batchConfig);
+            specificTableSweeper.runOnceAndSaveResults(threadIndex, tableToSweep.get(), batchConfig);
             return SweepOutcome.SUCCESS;
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
@@ -200,7 +200,8 @@ class BackgroundSweepThread implements Runnable {
     private Optional<TableToSweep> getTableToSweep() {
         return specificTableSweeper.getTxManager().runTaskWithRetry(
                 tx -> {
-                    Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
+                    Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore()
+                            .loadProgress(threadIndex);
                     SweepPriorityOverrideConfig overrideConfig = sweepPriorityOverrideConfig.get();
                     if (progress.map(realProgress -> shouldContinueSweepingCurrentTable(realProgress, overrideConfig))
                             .orElse(false)) {
@@ -256,7 +257,7 @@ class BackgroundSweepThread implements Runnable {
     }
 
     private void clearSweepProgress() {
-        specificTableSweeper.getSweepProgressStore().clearProgress();
+        specificTableSweeper.getSweepProgressStore().clearProgress(threadIndex);
     }
 
     private void sleepForMillis(long millis) throws InterruptedException {
