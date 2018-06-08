@@ -213,7 +213,7 @@ public class SweepTaskRunner {
                 long cellsExamined = batch.numCellTsPairsExamined();
                 totalCellTsPairsExamined += cellsExamined;
 
-                metricsManager.ifPresent(manager -> manager.updateAfterDeleteBatch(cellsExamined, cellsDeleted));
+                metricsManager.ifPresent(manager -> manager.updateCellExaminedDeleted(cellsExamined, cellsDeleted));
 
                 lastRow = batch.lastCellExamined().getRowName();
             }

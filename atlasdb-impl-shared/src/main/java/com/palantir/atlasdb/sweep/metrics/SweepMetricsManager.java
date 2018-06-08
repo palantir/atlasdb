@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -28,27 +29,25 @@ public class SweepMetricsManager {
 
     private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
 
-    private final Meter cellsExamined = metricRegistry.meter(getMetricName(AtlasDbMetricNames.CELLS_EXAMINED));
-    private final Meter cellsDeleted = metricRegistry.meter(getMetricName(AtlasDbMetricNames.CELLS_SWEPT));
-    private final Meter timeSweeping = metricRegistry.meter(getMetricName(AtlasDbMetricNames.TIME_SPENT_SWEEPING));
-    private final Meter totalTime = metricRegistry.meter(getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING));
-    private final Meter sweepErrors = metricRegistry.meter(getMetricName(AtlasDbMetricNames.SWEEP_ERROR));
+    private final Counter cellsExamined = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_EXAMINED));
+    private final Counter cellsDeleted = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_SWEPT));
+    private final Counter timeSweeping = metricRegistry.counter(getMetricName(AtlasDbMetricNames.TIME_SPENT_SWEEPING));
+    private final Counter totalTime = metricRegistry.counter(getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING));
+    private final Counter sweepErrors = metricRegistry.counter(getMetricName(AtlasDbMetricNames.SWEEP_ERROR));
 
 
-    public void updateAfterDeleteBatch(long cellTsPairsExamined, long staleValuesDeleted) {
-        cellsExamined.mark(cellTsPairsExamined);
-        cellsDeleted.mark(staleValuesDeleted);
+    public void updateCellExaminedDeleted(long cellTsPairsExamined, long staleValuesDeleted) {
+        cellsExamined.inc(cellTsPairsExamined);
+        cellsDeleted.inc(staleValuesDeleted);
     }
 
-    public void updateMetrics(SweepResults sweepResults) {
-        cellsExamined.mark(sweepResults.getCellTsPairsExamined());
-        cellsDeleted.mark(sweepResults.getStaleValuesDeleted());
-        timeSweeping.mark(sweepResults.getTimeInMillis());
-        totalTime.mark(sweepResults.getTimeElapsedSinceStartedSweeping());
+    public void updateSweepTime(long sweepTime, long totalTimeElapsedSweeping) {
+        timeSweeping.inc(sweepTime);
+        totalTime.inc(totalTimeElapsedSweeping);
     }
 
     public void sweepError() {
-        sweepErrors.mark(1L);
+        sweepErrors.inc();
     }
 
     private String getMetricName(String name) {

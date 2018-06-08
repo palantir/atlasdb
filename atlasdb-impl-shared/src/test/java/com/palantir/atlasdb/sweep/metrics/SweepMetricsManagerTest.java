@@ -26,7 +26,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.codahale.metrics.Meter;
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -89,13 +89,19 @@ public class SweepMetricsManagerTest {
 
     @Test
     public void allMetersAreSet() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS);
+        sweepMetricsManager.updateSweepTime(
+                SWEEP_RESULTS.getTimeInMillis(),
+                SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
+        sweepMetricsManager.updateCellExaminedDeleted(EXAMINED, DELETED);
 
         assertRecordedExaminedDeletedTime(
                 ImmutableList.of(EXAMINED, DELETED, TIME_SWEEPING)
         );
 
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS);
+        sweepMetricsManager.updateSweepTime(
+                OTHER_SWEEP_RESULTS.getTimeInMillis(),
+                OTHER_SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
+        sweepMetricsManager.updateCellExaminedDeleted(OTHER_EXAMINED, OTHER_DELETED);
 
         assertRecordedExaminedDeletedTime(
                 ImmutableList.of(EXAMINED + OTHER_EXAMINED,
@@ -105,19 +111,10 @@ public class SweepMetricsManagerTest {
     }
 
     @Test
-    public void metersAreUpdatedAfterDeleteBatchCorrectly() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS);
-        sweepMetricsManager.updateAfterDeleteBatch(100L, 50L);
-        sweepMetricsManager.updateAfterDeleteBatch(10L, 5L);
-
-        assertRecordedExaminedDeletedTime(
-                ImmutableList.of(EXAMINED + 110L, DELETED + 55L, TIME_SWEEPING));
-    }
-
-
-    @Test
     public void timeElapsedMeterIsSet() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS);
+        sweepMetricsManager.updateSweepTime(
+                SWEEP_RESULTS.getTimeInMillis(),
+                SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
         assertSweepTimeElapsedCurrentValueWithinMarginOfError(START_TIME);
     }
 
@@ -126,23 +123,23 @@ public class SweepMetricsManagerTest {
         sweepMetricsManager.sweepError();
         sweepMetricsManager.sweepError();
 
-        assertThat(getMeter(AtlasDbMetricNames.SWEEP_ERROR).getCount(), equalTo(2L));
+        assertThat(getCounter(AtlasDbMetricNames.SWEEP_ERROR).getCount(), equalTo(2L));
     }
 
     private void assertRecordedExaminedDeletedTime(List<Long> values) {
         for (int index = 0; index < 3; index++) {
-            Meter meter = getMeter(CURRENT_VALUE_LONG_METRIC_NAMES.get(index));
-            assertThat(meter.getCount(), equalTo(values.get(index)));
+            Counter counter = getCounter(CURRENT_VALUE_LONG_METRIC_NAMES.get(index));
+            assertThat(counter.getCount(), equalTo(values.get(index)));
         }
     }
 
     private void assertSweepTimeElapsedCurrentValueWithinMarginOfError(long timeSweepStarted) {
-        Meter meter = getMeter(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
-        assertWithinErrorMarginOf(meter.getCount(), System.currentTimeMillis() - timeSweepStarted);
+        Counter counter = getCounter(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
+        assertWithinErrorMarginOf(counter.getCount(), System.currentTimeMillis() - timeSweepStarted);
     }
 
-    private Meter getMeter(String namePrefix) {
-        return metricRegistry.meter(MetricRegistry.name(SweepMetricsManager.METRIC_BASE_NAME, namePrefix));
+    private Counter getCounter(String namePrefix) {
+        return metricRegistry.counter(MetricRegistry.name(SweepMetricsManager.METRIC_BASE_NAME, namePrefix));
     }
 
     private void assertWithinErrorMarginOf(long actual, long expected) {
