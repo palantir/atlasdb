@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -134,7 +133,7 @@ public class SweepableCellFilterTest {
     }
 
     @Test
-    public void lastTombstoneLastCommittedThorough() {
+    public void lastTombstoneLastCommittedBeforeSweepTsThorough() {
         List<CandidateCellForSweeping> candidate = setup(true, 46L);
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.THOROUGH, 50L);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
@@ -143,7 +142,16 @@ public class SweepableCellFilterTest {
     }
 
     @Test
-    public void lastTombstoneLastCommittedConservative() {
+    public void lastNotTombstoneLastCommittedBeforeSweepTsThorough() {
+        List<CandidateCellForSweeping> candidate = setup(false, 46L);
+        SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.THOROUGH, 50L);
+        List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
+        assertThat(cells.size()).isEqualTo(1);
+        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(10L, 20L, 16L);
+    }
+
+    @Test
+    public void lastTombstoneLastCommittedBeforeSweepTsConservative() {
         List<CandidateCellForSweeping> candidate = setup(true, 46L);
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.CONSERVATIVE, 50L);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
@@ -157,13 +165,31 @@ public class SweepableCellFilterTest {
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.THOROUGH, 50L);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
         assertThat(cells.size()).isEqualTo(1);
-        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(10L, 20L, 16L);
+        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(10L, 16L);
+    }
+
+    @Test
+    public void lastTombstoneLastCommittedAfterSweepTsConservative() {
+        List<CandidateCellForSweeping> candidate = setup(true, 56L);
+        SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.CONSERVATIVE, 50L);
+        List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
+        assertThat(cells.size()).isEqualTo(1);
+        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(10L, 16L);
     }
 
     @Test
     public void lastTombstoneLastAbortedThorough() {
         List<CandidateCellForSweeping> candidate = setup(true, TransactionConstants.FAILED_COMMIT_TS);
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.THOROUGH, 50L);
+        List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
+        assertThat(cells.size()).isEqualTo(1);
+        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(10L, 16L, 45L);
+    }
+
+    @Test
+    public void lastTombstoneLastAbortedConservative() {
+        List<CandidateCellForSweeping> candidate = setup(true, TransactionConstants.FAILED_COMMIT_TS);
+        SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.CONSERVATIVE, 50L);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
         assertThat(cells.size()).isEqualTo(1);
         assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(10L, 16L, 45L);
@@ -190,7 +216,7 @@ public class SweepableCellFilterTest {
         return ImmutableList.of(
                 ImmutableCandidateCellForSweeping.builder()
                         .cell(SINGLE_CELL)
-                        .sortedTimestamps(startTsToCommitTs.keySet().stream().sorted().collect(Collectors.toList()))
+                        .sortedTimestamps(ImmutableList.sortedCopyOf(startTsToCommitTs.keySet()))
                         .isLatestValueEmpty(lastIsTombstone)
                         .build());
     }

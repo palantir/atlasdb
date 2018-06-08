@@ -63,15 +63,11 @@ public class SweepableCellFilter {
         Preconditions.checkArgument(candidate.sortedTimestamps().size() > 0);
         List<Long> timestampsToSweep = new ArrayList<>();
         List<Long> uncommittedTimestamps = new ArrayList<>();
-        long maxStartTs = TransactionConstants.FAILED_COMMIT_TS;
-        boolean maxStartTsIsCommitted = false;
+        boolean maxStartTsIsCommittedBeforeTs = false;
         for (long startTs : candidate.sortedTimestamps()) {
             long commitTs = startToCommitTs.get(startTs);
 
-            if (startTs > maxStartTs && commitTs < sweepTs) {
-                maxStartTs = startTs;
-                maxStartTsIsCommitted = commitTs != TransactionConstants.FAILED_COMMIT_TS;
-            }
+            maxStartTsIsCommittedBeforeTs = commitTs != TransactionConstants.FAILED_COMMIT_TS && commitTs < sweepTs;
             // Note: there could be an open transaction whose start timestamp is equal to
             // sweepTimestamp; thus we want to sweep all cells such that:
             // (1) their commit timestamp is less than sweepTimestamp
@@ -86,7 +82,7 @@ public class SweepableCellFilter {
         boolean needsSentinel = sweeper.shouldAddSentinels() && timestampsToSweep.size() > 1;
         boolean shouldSweepLastCommitted = sweeper.shouldSweepLastCommitted()
                 && candidate.isLatestValueEmpty()
-                && maxStartTsIsCommitted;
+                && maxStartTsIsCommittedBeforeTs;
         if (!timestampsToSweep.isEmpty() && !shouldSweepLastCommitted) {
             timestampsToSweep.remove(timestampsToSweep.size() - 1);
         }
