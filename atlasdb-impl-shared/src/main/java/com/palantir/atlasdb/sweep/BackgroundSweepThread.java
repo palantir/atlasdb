@@ -205,7 +205,7 @@ class BackgroundSweepThread implements Runnable {
                     SweepPriorityOverrideConfig overrideConfig = sweepPriorityOverrideConfig.get();
                     if (progress.map(realProgress -> shouldContinueSweepingCurrentTable(realProgress, overrideConfig))
                             .orElse(false)) {
-                        return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
+                        return Optional.of(TableToSweep.continueSweeping(progress.get().tableRef(), progress.get()));
                     } else {
                         log.info("Sweep is choosing a new table to sweep.");
                         return getNextTableToSweep(tx, overrideConfig);

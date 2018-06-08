@@ -131,7 +131,7 @@ public class SweeperTestSetup {
     }
 
     private TableToSweep getTableToSweep(TableReference tableRef) {
-        return new TableToSweep(tableRef, Optional.empty());
+        return TableToSweep.newTable(tableRef);
     }
 
     protected void setupTaskRunner(SweepResults results) {

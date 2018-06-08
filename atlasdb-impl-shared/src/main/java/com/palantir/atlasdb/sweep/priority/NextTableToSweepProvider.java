@@ -71,7 +71,7 @@ public class NextTableToSweepProvider {
                             getRandomValueFromList(overrideConfig.priorityTablesAsList()));
             log.info("Decided to start sweeping {} because it is on the sweep priority list.",
                     LoggingArgs.safeTableOrPlaceholder(tableRefToSweep));
-            return Optional.of(new TableToSweep(tableRefToSweep, Optional.empty()));
+            return Optional.of(TableToSweep.newTable(tableRefToSweep));
         }
 
         Map<TableReference, Double> scores = calculator.calculateSweepPriorityScores(tx, conservativeSweepTimestamp);
@@ -85,7 +85,8 @@ public class NextTableToSweepProvider {
         List<TableReference> tablesWithHighestPriority = findTablesWithHighestPriority(tablesWithNonZeroPriority);
 
         Optional<TableToSweep> chosenTable = tablesWithHighestPriority.size() > 0
-                ? Optional.of(new TableToSweep(getRandomValueFromList(tablesWithHighestPriority), Optional.empty()))
+                ? Optional.of(
+                TableToSweep.newTable(getRandomValueFromList(tablesWithHighestPriority)))
                 : Optional.empty();
 
         return logDecision(chosenTable, scores, overrideConfig);

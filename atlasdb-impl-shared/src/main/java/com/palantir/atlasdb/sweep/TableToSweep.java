@@ -28,7 +28,15 @@ public final class TableToSweep {
     private final boolean hasPreviousProgress;
     private final SweepResults previousResults;
 
-    public TableToSweep(TableReference tableRef, Optional<SweepProgress> progress) {
+    public static TableToSweep newTable(TableReference tableRef) {
+        return new TableToSweep(tableRef, Optional.empty());
+    }
+
+    public static TableToSweep continueSweeping(TableReference tableRef, SweepProgress progress) {
+        return new TableToSweep(tableRef, Optional.of(progress));
+    }
+
+    private TableToSweep(TableReference tableRef, Optional<SweepProgress> progress) {
         this.tableRef = tableRef;
         this.hasPreviousProgress = progress.isPresent();
         this.previousResults = progress.map(SweepProgress::getPreviousResults)
