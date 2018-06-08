@@ -76,8 +76,6 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
-    private static final long LOCK_ID = 123456789;
-
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
             .with(new CassandraContainer());
@@ -129,7 +127,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
-    public void testCreateTableCaseInsensitive() throws TException {
+    public void testCreateTableCaseInsensitive() {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
         TableReference table2 = TableReference.createFromFullyQualifiedName("ns.table");
         TableReference table3 = TableReference.createFromFullyQualifiedName("ns.TABle");
@@ -253,7 +251,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     @SuppressWarnings("Slf4jConstantLogMessage")
-    public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() throws Exception {
+    public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() {
         verify(logger, never()).error(startsWith("Found a table {} that did not have persisted"), anyString());
     }
 
