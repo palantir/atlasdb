@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak| |improved|
+         - The unbounded ``CommitTsLoader`` has been renamed to ``CommitTsCache`` and now has an eviction policy to prevent memory leaks.
+           Background sweep now reuses this cache for iterations of sweep instead of recreating it every iteration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3256>`__)
+
+
     *    - |devbreak|
          - Dropwizard transitive dependencies have been removed from the ``atlasdb-config`` subproject.
            Usages of ``AtlasDbConfigs`` for config parsing still support discovering subtypes of config, as we ship AtlasDB with an implementation of Dropwizard's `DiscoverableSubtypeResolver <https://github.com/dropwizard/dropwizard/blob/master/dropwizard-jackson/src/main/java/io/dropwizard/jackson/DiscoverableSubtypeResolver.java>`__.
