@@ -36,7 +36,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -120,17 +119,6 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     }
 
     @Override
-    public void saveProgress(SweepProgress newProgress) {
-        Optional<SweepProgress> oldProgress = loadProgress();
-        try {
-            kvs.checkAndSet(casProgressRequest(CELL, oldProgress, newProgress));
-        } catch (Exception e) {
-            log.warn("Exception trying to persist sweep progress. The intermediate progress might not have been "
-                    + "persisted. This should not cause sweep issues unless the problem persists.", e);
-        }
-    }
-
-    @Override
     public void saveProgress(int threadIndex, SweepProgress newProgress) {
         Optional<SweepProgress> oldProgress = loadProgress(threadIndex);
         try {
@@ -142,17 +130,8 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     }
 
     /**
-     * Fully remove the contents of the sweep progress table.
+     * Fully remove a single column of the sweep progress table.
      */
-    @Override
-    public void clearProgress() {
-        // Use deleteRange instead of truncate
-        // 1) The table should be small, performance difference should be negligible.
-        // 2) Truncate takes an exclusive lock in Postgres, which can interfere
-        // with concurrently running backups.
-        kvs.deleteRange(AtlasDbConstants.SWEEP_PROGRESS_TABLE, RangeRequest.all());
-    }
-
     @Override
     public void clearProgress(int threadIndex) {
         Multimap<Cell, Long> multimap = ImmutableMultimap.of(getCell(threadIndex), 0L);

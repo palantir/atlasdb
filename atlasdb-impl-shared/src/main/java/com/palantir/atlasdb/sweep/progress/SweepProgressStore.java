@@ -19,12 +19,7 @@ package com.palantir.atlasdb.sweep.progress;
 import java.util.Optional;
 
 public interface SweepProgressStore {
-    void clearProgress();
-
     void clearProgress(int threadIndex);
-
-    // Saves old (single-sweep) progress
-    void saveProgress(SweepProgress newProgress);
 
     void saveProgress(int threadIndex, SweepProgress newProgress);
 

@@ -117,15 +117,4 @@ public class SweepProgressStoreTest {
         Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(1));
 
     }
-
-    @Test
-    public void testClearAll() {
-        progressStore.saveProgress(1, PROGRESS);
-        progressStore.saveProgress(2, OTHER_PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(1));
-        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(2));
-        progressStore.clearProgress();
-        Assert.assertFalse(progressStore.loadProgress(1).isPresent());
-        Assert.assertFalse(progressStore.loadProgress(2).isPresent());
-    }
 }
