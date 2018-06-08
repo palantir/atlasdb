@@ -338,7 +338,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
-    public void sweepSentinelsAreWrittenAtRelativelyCurrentTimestamp() throws Exception {
+    public void sweepSentinelsAreWrittenAtFreshTimestamp() throws Exception {
         TableReference tableReference =
                 TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
         keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -349,7 +349,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 tableReference,
                 CELL,
                 Value.INVALID_VALUE_TIMESTAMP,
-                STARTING_ATLAS_TIMESTAMP - 5_000_000);
+                STARTING_ATLAS_TIMESTAMP - 1);
 
         // The following implies that the sentinel was written with a timestamp greater than 5M, which is reasonable
         // as the current time in Atlas is 10M.
@@ -359,7 +359,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
-    public void deletionTakesPlaceAtRelativelyCurrentTimestamp() throws Exception {
+    public void deletionTakesPlaceAtFreshTimestamp() throws Exception {
         TableReference tableReference =
                 TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
         keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -371,13 +371,13 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         keyValueService.delete(tableReference, ImmutableListMultimap.of(CELL, 8L));
 
         // We want to verify that the delete wrote a Cassandra tombstone with timestamp > 5M
-        putDummyValueAtCellAndTimestamp(tableReference, CELL, 8L, STARTING_ATLAS_TIMESTAMP - 5_000_000);
+        putDummyValueAtCellAndTimestamp(tableReference, CELL, 8L, STARTING_ATLAS_TIMESTAMP - 1);
         Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 8L + 1));
         assertThat(results.containsKey(CELL), is(false));
     }
 
     @Test
-    public void rangeTombstonesWrittenAtRelativelyCurrentTimestamp() throws Exception {
+    public void rangeTombstonesWrittenAtFreshTimestamp() throws Exception {
         TableReference tableReference =
                 TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
         keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -387,7 +387,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 ImmutableMap.of(CELL, 1_234_567L),
                 true);
 
-        putDummyValueAtCellAndTimestamp(tableReference, CELL, 1337L, STARTING_ATLAS_TIMESTAMP - 5_000_000);
+        putDummyValueAtCellAndTimestamp(tableReference, CELL, 1337L, STARTING_ATLAS_TIMESTAMP - 1);
         Map<Cell, Value> resultExpectedCoveredByRangeTombstone =
                 keyValueService.get(tableReference, ImmutableMap.of(CELL, 1337L + 1));
         assertThat(resultExpectedCoveredByRangeTombstone.containsKey(CELL), is(false));
@@ -407,7 +407,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         // A value written outside of the range tombstone should not be covered by the range tombstone, even if
         // the Cassandra timestamp of the value is much lower than that of the range tombstone.
         // This test is likely to fail if the implementation confuses Cassandra timestamps for Atlas timestamps.
-        putDummyValueAtCellAndTimestamp(tableReference, CELL, 1_333_337L, STARTING_ATLAS_TIMESTAMP - 5_000_000);
+        putDummyValueAtCellAndTimestamp(tableReference, CELL, 1_333_337L, STARTING_ATLAS_TIMESTAMP - 1);
         Map<Cell, Value> resultsOutsideRangeTombstone =
                 keyValueService.get(tableReference, ImmutableMap.of(CELL, Long.MAX_VALUE));
         assertThat(resultsOutsideRangeTombstone.containsKey(CELL), is(true));
