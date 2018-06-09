@@ -81,6 +81,7 @@ public class SweepableCellFilterParametrizedTest {
     }
 
     @Before
+    @SuppressWarnings("unchecked")
     public void setup() {
             Map<Long, Long> startTsToCommitTs = new HashMap<>();
             COMMITTED_BEFORE.forEach(startTs -> startTsToCommitTs.put(startTs, startTs));

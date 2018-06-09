@@ -18,9 +18,12 @@ package com.palantir.atlasdb.sweep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyList;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collection;
@@ -34,6 +37,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -100,7 +104,6 @@ public class CommitTsCacheTest {
     @Test
     @SuppressWarnings("unchecked")
     public void warmingCacheShouldNotPlaceUndueLoadOnTransactionService() throws Exception {
-        CommitTsCache alternativeLoader = CommitTsCache.create(mockTransactionService);
         long valuesToInsert = 1_000_000;
 
         doAnswer((invocation) -> {
@@ -113,37 +116,41 @@ public class CommitTsCacheTest {
 
         Set<Long> initialTimestamps = LongStream.range(0, valuesToInsert).boxed().collect(Collectors.toSet());
 
-        alternativeLoader.loadBatch(initialTimestamps);
-        assertThat(alternativeLoader.load(valuesToInsert - 1)).isEqualTo(valuesToInsert - 1);
+        loader.loadBatch(initialTimestamps);
+        assertThat(loader.load(valuesToInsert - 1)).isEqualTo(valuesToInsert - 1);
     }
 
     @Test
     public void onlyRequestNonCachedTimestamps() throws Exception {
-        CommitTsCache alternativeLoader = CommitTsCache.create(mockTransactionService);
-
         Set<Long> initialTimestamps = LongStream.range(0L, 20L).boxed().collect(Collectors.toSet());
         doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation, initialTimestamps))
                 .when(mockTransactionService).get(any());
 
-        alternativeLoader.loadBatch(initialTimestamps);
-        assertThat(alternativeLoader.load(19L)).isEqualTo(19L);
+        loader.loadBatch(initialTimestamps);
+        assertThat(loader.load(19L)).isEqualTo(19L);
 
-        Set<Long> moreTimestamps = LongStream.range(10L, 22L).boxed().collect(Collectors.toSet());
-        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation, ImmutableSet.of(20L, 21L)))
+        Set<Long> moreTimestamps = LongStream.range(10L, 30L).boxed().collect(Collectors.toSet());
+        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation,
+                Sets.difference(moreTimestamps, initialTimestamps)))
                 .when(mockTransactionService).get(any());
 
-        alternativeLoader.loadBatch(moreTimestamps);
-        assertThat(alternativeLoader.load(21L)).isEqualTo(21L);
+        loader.loadBatch(moreTimestamps);
+        assertThat(loader.load(27L)).isEqualTo(27L);
 
-        Set<Long> evenMoreTimestamps = LongStream.range(15L, 24L).boxed().collect(Collectors.toSet());
-        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation, ImmutableSet.of(22L, 23L)))
+        Set<Long> evenMoreTimestamps = LongStream.range(7L, 50L).boxed().collect(Collectors.toSet());
+        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation,
+                Sets.difference(evenMoreTimestamps, Sets.union(initialTimestamps, moreTimestamps))))
                 .when(mockTransactionService).get(any());
 
-        alternativeLoader.loadBatch(evenMoreTimestamps);
-        assertThat(alternativeLoader.load(23L)).isEqualTo(23L);
+        loader.loadBatch(evenMoreTimestamps);
+        assertThat(loader.load(3L)).isEqualTo(3L);
+        assertThat(loader.load(37L)).isEqualTo(37L);
+        verify(mockTransactionService, times(3)).get(anyList());
+        verifyNoMoreInteractions(mockTransactionService);
     }
 
-    Map<Long, Long> assertRequestedTimestampsAndMapIdentity(InvocationOnMock invocation, Collection<Long> expected) {
+    @SuppressWarnings("unchecked")
+    private Map<Long, Long> assertRequestedTimestampsAndMapIdentity(InvocationOnMock invocation, Collection<Long> expected) {
         Collection<Long> timestamps = ((Collection<Long>) invocation.getArguments()[0]);
         assertThat(timestamps).containsExactlyElementsOf(expected);
         return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
