@@ -43,6 +43,9 @@ public class SweepableCellFilterTest {
     private static final Cell SINGLE_CELL = Cell.create(
             "cellRow".getBytes(StandardCharsets.UTF_8),
             "cellCol".getBytes(StandardCharsets.UTF_8));
+    private static final Cell ANOTHER_CELL = Cell.create(
+            "cellRow2".getBytes(StandardCharsets.UTF_8),
+            "cellCol2".getBytes(StandardCharsets.UTF_8));
 
     private final TransactionService mockTransactionService = mock(TransactionService.class);
     private final CommitTsCache commitTsCache = CommitTsCache.create(mockTransactionService);
@@ -120,6 +123,41 @@ public class SweepableCellFilterTest {
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
         assertThat(cells.size()).isEqualTo(1);
         assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(LOW_START_TS);
+    }
+
+    @Test
+    public void testNoCandidates() {
+        List<CandidateCellForSweeping> candidate = ImmutableList.of(
+                ImmutableCandidateCellForSweeping.builder()
+                        .cell(SINGLE_CELL)
+                        .sortedTimestamps(ImmutableList.of())
+                        .isLatestValueEmpty(true)
+                        .build());
+        SweepableCellFilter filter = new SweepableCellFilter(
+                commitTsCache, Sweeper.CONSERVATIVE, 100L);
+        BatchOfCellsToSweep result = filter.getCellsToSweep(candidate);
+        assertThat(result.lastCellExamined()).isEqualTo(SINGLE_CELL);
+        assertThat(result.cells()).isEmpty();
+        assertThat(result.numCellTsPairsExamined()).isEqualTo(0L);
+    }
+
+    @Test
+    public void testTwoCandidates() {
+        long sweepTimestampHigherThanCommitTimestamp = HIGH_COMMIT_TS + 1;
+        CandidateCellForSweeping snd = ImmutableCandidateCellForSweeping.builder()
+                .cell(ANOTHER_CELL)
+                .sortedTimestamps(ImmutableList.of(HIGH_START_TS))
+                .isLatestValueEmpty(true)
+                .build();
+        List<CandidateCellForSweeping> candidates = ImmutableList.of(twoCommittedTimestampsForSingleCell().get(0), snd);
+        SweepableCellFilter filter = new SweepableCellFilter(
+                commitTsCache, Sweeper.THOROUGH, sweepTimestampHigherThanCommitTimestamp);
+        BatchOfCellsToSweep result = filter.getCellsToSweep(candidates);
+        assertThat(result.lastCellExamined()).isEqualTo(ANOTHER_CELL);
+        assertThat(result.cells().size()).isEqualTo(2);
+        assertThat(result.numCellTsPairsExamined()).isEqualTo(3L);
+        assertThat(result.cells().get(0).sortedTimestamps()).containsExactly(LOW_START_TS);
+        assertThat(result.cells().get(1).sortedTimestamps()).containsExactly(HIGH_START_TS);
     }
 
     private List<CandidateCellForSweeping> twoCommittedTimestampsForSingleCell() {
