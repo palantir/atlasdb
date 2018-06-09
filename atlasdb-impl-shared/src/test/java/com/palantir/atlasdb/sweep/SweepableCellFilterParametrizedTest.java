@@ -131,7 +131,6 @@ public class SweepableCellFilterParametrizedTest {
 
         assertThat(timestamps).hasSameElementsAs(expectedAll);
         assertThat(timestamps.stream().filter(expectedCommitted::contains)).isSorted();
-        System.out.println(timestamps);
     }
 
     private CellToSweep getCellsToSweepFor() {
