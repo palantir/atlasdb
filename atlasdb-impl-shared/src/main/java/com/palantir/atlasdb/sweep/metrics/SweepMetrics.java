@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.metrics;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 
 // Not final for Mockito
@@ -30,9 +31,9 @@ public class SweepMetrics {
     private final Counter cellsExamined = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_EXAMINED));
     private final Counter cellsDeleted = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_SWEPT));
     private final Counter timeSweeping = metricRegistry.counter(getMetricName(AtlasDbMetricNames.TIME_SPENT_SWEEPING));
-    private final Counter totalTime = metricRegistry.counter(getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING));
     private final Counter sweepErrors = metricRegistry.counter(getMetricName(AtlasDbMetricNames.SWEEP_ERROR));
-
+    private final CurrentValueMetric<Long> totalTime = metricRegistry.register(
+            getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING), new CurrentValueMetric<Long>());
 
     public void updateCellExaminedDeleted(long cellTsPairsExamined, long staleValuesDeleted) {
         cellsExamined.inc(cellTsPairsExamined);
@@ -41,7 +42,7 @@ public class SweepMetrics {
 
     public void updateSweepTime(long sweepTime, long totalTimeElapsedSweeping) {
         timeSweeping.inc(sweepTime);
-        totalTime.inc(totalTimeElapsedSweeping);
+        totalTime.setValue(totalTimeElapsedSweeping);
     }
 
     public void sweepError() {

@@ -27,6 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -116,6 +117,11 @@ public class SweepMetricsTest {
                 SWEEP_RESULTS.getTimeInMillis(),
                 SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
         assertSweepTimeElapsedCurrentValueWithinMarginOfError(START_TIME);
+
+        sweepMetrics.updateSweepTime(
+                OTHER_SWEEP_RESULTS.getTimeInMillis(),
+                OTHER_SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
+        assertSweepTimeElapsedCurrentValueWithinMarginOfError(OTHER_START_TIME);
     }
 
     @Test
@@ -134,12 +140,16 @@ public class SweepMetricsTest {
     }
 
     private void assertSweepTimeElapsedCurrentValueWithinMarginOfError(long timeSweepStarted) {
-        Counter counter = getCounter(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
-        assertWithinErrorMarginOf(counter.getCount(), System.currentTimeMillis() - timeSweepStarted);
+        Gauge<Long> gauge = getGauge(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
+        assertWithinErrorMarginOf(gauge.getValue(), System.currentTimeMillis() - timeSweepStarted);
     }
 
     private Counter getCounter(String namePrefix) {
         return metricRegistry.counter(MetricRegistry.name(SweepMetrics.METRIC_BASE_NAME, namePrefix));
+    }
+
+    private Gauge<Long> getGauge(String namePrefix) {
+        return metricRegistry.getGauges().get(MetricRegistry.name(SweepMetrics.METRIC_BASE_NAME, namePrefix));
     }
 
     private void assertWithinErrorMarginOf(long actual, long expected) {
