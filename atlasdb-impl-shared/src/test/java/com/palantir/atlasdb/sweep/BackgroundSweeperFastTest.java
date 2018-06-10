@@ -198,7 +198,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetricsManager).updateSweepTime(
+        Mockito.verify(sweepMetrics).updateSweepTime(
                 intermediateResults.getTimeInMillis(),
                 intermediateResults.getTimeElapsedSinceStartedSweeping());
     }
@@ -226,7 +226,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetricsManager).updateSweepTime(
+        Mockito.verify(sweepMetrics).updateSweepTime(
                 intermediateResults.getTimeInMillis(),
                 intermediateResults.getTimeElapsedSinceStartedSweeping());
     }

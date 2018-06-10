@@ -144,7 +144,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         ArgumentCaptor<Long> sweepTime = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<Long> totalTimeElapsed = ArgumentCaptor.forClass(Long.class);
 
-        Mockito.verify(sweepMetricsManager, times(1)).updateSweepTime(sweepTime.capture(), totalTimeElapsed.capture());
+        Mockito.verify(sweepMetrics, times(1)).updateSweepTime(sweepTime.capture(), totalTimeElapsed.capture());
         verifyExpectedArgument(sweepTime.getValue(), totalTimeElapsed.getValue());
     }
 

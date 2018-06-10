@@ -16,16 +16,14 @@
 package com.palantir.atlasdb.sweep.metrics;
 
 import com.codahale.metrics.Counter;
-import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.util.MetricsManager;
 
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
-public class SweepMetricsManager {
-    public static final String METRIC_BASE_NAME = SweepMetricsManager.class.getPackage().getName() + ".SweepMetric";
+public class SweepMetrics {
+    public static final String METRIC_BASE_NAME = SweepMetrics.class.getName();
 
     private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
 
