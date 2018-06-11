@@ -32,6 +32,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
@@ -46,6 +47,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.CommitTsCache;
@@ -192,11 +194,11 @@ public class SweepableCells extends KvsSweepQueueWriter {
         cellsToDelete.forEach((tableRef, multimap) -> {
             kvs.delete(tableRef, multimap);
             maybeMetrics.ifPresent(metrics -> metrics.updateAbortedWritesDeleted(shardStrategy, multimap.size()));
-            log.info("Deleted {} aborted writes from the KVS.", SafeArg.of("number", multimap.size()));
+            log.info("Deleted {} aborted writes from table {}.", SafeArg.of("number", multimap.size()),
+                    LoggingArgs.tableRef(tableRef));
         });
 
-        committedTimestamps.sort(Comparator.reverseOrder());
-        return TimestampsToSweep.of(committedTimestamps, lastSweptTs, processedAll);
+        return TimestampsToSweep.of(Lists.reverse(committedTimestamps), lastSweptTs, processedAll);
     }
 
     private Collection<WriteInfo> getWritesToSweep(Multimap<Long, WriteInfo> writesByStartTs, List<Long> startTs) {
