@@ -36,7 +36,6 @@ import java.util.stream.LongStream;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
