@@ -27,9 +27,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -120,9 +118,21 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
 
     @Override
     public void saveProgress(int threadIndex, SweepProgress newProgress) {
-        Optional<SweepProgress> oldProgress = loadProgress(threadIndex);
+        // TODO make cleaner
+        Cell cell = getCell(threadIndex);
+        Map<Cell, Value> entry = kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(
+                cell, 1L));
+        Optional<SweepProgress> oldProgress = hydrateProgress(entry);
         try {
-            kvs.checkAndSet(casProgressRequest(getCell(threadIndex), oldProgress, newProgress));
+            CheckAndSetRequest checkAndSetRequest = oldProgress.isPresent()
+                    ? CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell,
+                    progressToBytes(oldProgress.get()), progressToBytes(newProgress))
+                    : (entry.isEmpty()
+                            ? CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell,
+                                    progressToBytes(newProgress))
+                            : CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, new byte[0],
+                                    progressToBytes(newProgress)));
+            kvs.checkAndSet(checkAndSetRequest);
         } catch (Exception e) {
             log.warn("Exception trying to persist sweep progress. The intermediate progress might not have been "
                     + "persisted. This should not cause sweep issues unless the problem persists.", e);
@@ -134,22 +144,23 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
      */
     @Override
     public void clearProgress(int threadIndex) {
-        Multimap<Cell, Long> multimap = ImmutableMultimap.of(getCell(threadIndex), 0L);
-        kvs.delete(AtlasDbConstants.SWEEP_PROGRESS_TABLE, multimap);
+        Optional<SweepProgress> oldProgress = loadProgress(threadIndex);
+        if (oldProgress.isPresent()) {
+            try {
+                CheckAndSetRequest request = CheckAndSetRequest.singleCell(
+                        AtlasDbConstants.SWEEP_PROGRESS_TABLE, getCell(threadIndex),
+                        progressToBytes(oldProgress.get()), new byte[0]);
+                kvs.checkAndSet(request);
+            } catch (JsonProcessingException e) {
+                log.warn("Exception trying to clear sweep progress. "
+                        + "Sweep may continue examining the same range if the problem persists.", e);
+            }
+        }
+
     }
 
     private Cell getCell(int threadIndex) {
-        return Cell.create(ROW_AND_COLUMN_NAME_BYTES, PtBytes.toBytes(threadIndex));
-    }
-
-    private CheckAndSetRequest casProgressRequest(Cell cell, Optional<SweepProgress> oldProgress,
-            SweepProgress progress)
-            throws JsonProcessingException {
-        if (!oldProgress.isPresent()) {
-            return CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, progressToBytes(progress));
-        }
-        return CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE,
-                cell, progressToBytes(oldProgress.get()), progressToBytes(progress));
+        return Cell.create(PtBytes.toBytes(threadIndex), ROW_AND_COLUMN_NAME_BYTES);
     }
 
     private void tryInitialize() {
@@ -167,6 +178,10 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
         }
         try {
             Value value = Iterables.getOnlyElement(result.values());
+            if (value.isEmpty()) {
+                log.info("No persisted SweepProgress information found.");
+                return Optional.empty();
+            }
             return Optional.of(OBJECT_MAPPER.readValue(value.getContents(), SweepProgress.class));
         } catch (Exception e) {
             log.warn("Error deserializing SweepProgress object.", e);

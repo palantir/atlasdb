@@ -60,9 +60,13 @@ public class SweepProgressStoreTest {
     @Before
     public void setup() {
         exec = PTExecutors.newCachedThreadPool();
-        KeyValueService kvs = new InMemoryKeyValueService(false, exec);
+        KeyValueService kvs = getKeyValueService();
         txManager = SweepTestUtils.setupTxManager(kvs);
         progressStore = SweepProgressStoreImpl.create(kvs, false);
+    }
+
+    protected KeyValueService getKeyValueService() {
+        return new InMemoryKeyValueService(false, exec);
     }
 
     @After
