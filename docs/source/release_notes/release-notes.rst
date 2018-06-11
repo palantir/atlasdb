@@ -55,11 +55,17 @@ develop
            Instead, targeted sweep will not proceed for that shard and strategy until the sweep timestamp progresses far enough.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3253>`__)
 
+    *    - |new| |improved|
+         - Targeted sweep now also sweeps stream stores.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3240>`__)
+
+           Note that targeted sweep is considered a beta feature as it is not fully functional yet.
+           Consult with the AtlasDB team if you wish to use targeted sweep in addition to, or instead of, standard sweep.
+                      
     *    - |improved|
          - The unbounded ``CommitTsLoader`` has been renamed to ``CommitTsCache`` and now has an eviction policy to prevent memory leaks.
            Background sweep now reuses this cache for iterations of sweep instead of recreating it every iteration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3256>`__)
-
 
     *    - |devbreak|
          - Dropwizard transitive dependencies have been removed from the ``atlasdb-config`` subproject.
@@ -69,6 +75,11 @@ develop
     *    - |fixed|
          - Fixed an issue where ``getRowsColumnRange`` would return no results if the number of rows was more than the batch hint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3248>`__)
+
+    *    - |fixed|
+         - Some users of AtlasDB rely on being able to abort transactions which are in progress. Until the last release of AtlasDB, this worked successfully, however this was only the case because before
+           an assert could throw an AssertionError, an NPE was thrown by different code. Now, the assertion error is not thrown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3254>`__)
 
 
 =======

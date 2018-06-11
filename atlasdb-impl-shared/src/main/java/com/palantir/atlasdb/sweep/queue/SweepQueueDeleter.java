@@ -27,9 +27,11 @@ import com.palantir.atlasdb.sweep.Sweeper;
 
 public class SweepQueueDeleter {
     private final KeyValueService kvs;
+    private final TargetedSweepFollower follower;
 
-    SweepQueueDeleter(KeyValueService kvs) {
+    SweepQueueDeleter(KeyValueService kvs, TargetedSweepFollower follower) {
         this.kvs = kvs;
+        this.follower = follower;
     }
 
     /**
@@ -44,6 +46,7 @@ public class SweepQueueDeleter {
     public void sweep(Collection<WriteInfo> writes, Sweeper sweeper) {
         Map<TableReference, Map<Cell, Long>> maxTimestampByCell = writesPerTable(writes, sweeper);
         for (Map.Entry<TableReference, Map<Cell, Long>> entry: maxTimestampByCell.entrySet()) {
+            follower.run(entry.getKey(), entry.getValue().keySet());
             if (sweeper.shouldAddSentinels()) {
                 kvs.addGarbageCollectionSentinelValues(entry.getKey(), entry.getValue().keySet());
                 kvs.deleteAllTimestamps(entry.getKey(), entry.getValue(), false);

@@ -19,11 +19,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
 
-import java.util.Random;
-
+import org.junit.After;
 import org.junit.Test;
 
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
@@ -32,9 +30,15 @@ import com.palantir.atlasdb.todo.TodoResource;
 public class TodoEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
+    private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+
+    @After
+    public void cleanupStreamTables() {
+        todoClient.truncate();
+    }
+
     @Test
     public void shouldBeAbleToWriteAndListTodos() {
-        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
         todoClient.addTodo(TODO);
         assertThat(todoClient.getTodoList(), hasItem(TODO));
@@ -42,12 +46,10 @@ public class TodoEteTest {
 
     @Test
     public void shouldSweepStreamIndices() {
-        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
-
         // Stores five small streams, each of which fits into a single block
         // Each time a stream is stored, the previous stream (if any) is deleted
         // This is represented by a delete in the index table.
-        storeFiveStreams(todoClient, 4321);
+        StreamTestUtils.storeFiveStreams(todoClient, 4321);
 
         SweepResults firstSweep = todoClient.sweepSnapshotIndices();
 
@@ -64,7 +66,7 @@ public class TodoEteTest {
         assertThat(valueSweep.getStaleValuesDeleted(), equalTo(4L));
 
         // Stores five larger streams, which take 19 blocks each
-        storeFiveStreams(todoClient, 7654321);
+        StreamTestUtils.storeFiveStreams(todoClient, 7654321);
 
         // The index table now contains ten rows:
         // 4 rows with a sentinel and a delete (sweep sees the delete, but doesn't sweep it - 4 examined, 0 deleted)
@@ -86,14 +88,5 @@ public class TodoEteTest {
         SweepResults secondValueSweep = todoClient.sweepSnapshotValues();
         assertThat(secondValueSweep.getCellTsPairsExamined(), equalTo(177L));
         assertThat(secondValueSweep.getStaleValuesDeleted(), equalTo(1L + 19 * 4L));
-    }
-
-    private void storeFiveStreams(TodoResource todoClient, int streamSize) {
-        Random random = new Random();
-        byte[] bytes = new byte[streamSize];
-        for (int i = 0; i < 5; i++) {
-            random.nextBytes(bytes);
-            todoClient.storeSnapshot(PtBytes.toString(bytes));
-        }
     }
 }
