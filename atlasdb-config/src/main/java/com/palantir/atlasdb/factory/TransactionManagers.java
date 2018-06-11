@@ -101,7 +101,7 @@ import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
-import com.palantir.atlasdb.sweep.metrics.SweepMetrics;
+import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
@@ -496,7 +496,7 @@ public abstract class TransactionManagers {
                 persistentLockManager,
                 ImmutableList.of(follower));
 
-        SweepMetrics sweepMetricsManager = new SweepMetrics();
+        LegacySweepMetrics sweepMetrics = new LegacySweepMetrics();
 
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,
@@ -505,12 +505,12 @@ public abstract class TransactionManagers {
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper,
-                sweepMetricsManager);
+                sweepMetrics);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
         AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() ->
                 getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService()));
 
-        SweepMetrics sweepMetrics = new SweepMetrics();
+        LegacySweepMetrics sweepMetrics = new LegacySweepMetrics();
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
                 env,
                 kvs,
@@ -541,7 +541,7 @@ public abstract class TransactionManagers {
             SerializableTransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetrics sweepMetrics,
+            LegacySweepMetrics sweepMetrics,
             boolean initializeAsync,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(

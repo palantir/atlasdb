@@ -36,7 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
-public class SweepMetricsTest {
+public class LegacySweepMetricsTest {
     private static final long EXAMINED = 15L;
     private static final long DELETED = 10L;
     private static final long TIME_SWEEPING = 100L;
@@ -74,11 +74,11 @@ public class SweepMetricsTest {
 
     private static MetricRegistry metricRegistry;
 
-    private SweepMetrics sweepMetrics;
+    private LegacySweepMetrics sweepMetrics;
 
     @Before
     public void setUp() {
-        sweepMetrics = new SweepMetrics();
+        sweepMetrics = new LegacySweepMetrics();
         metricRegistry = AtlasDbMetrics.getMetricRegistry();
     }
 
@@ -145,11 +145,11 @@ public class SweepMetricsTest {
     }
 
     private Counter getCounter(String namePrefix) {
-        return metricRegistry.counter(MetricRegistry.name(SweepMetrics.METRIC_BASE_NAME, namePrefix));
+        return metricRegistry.counter(MetricRegistry.name(LegacySweepMetrics.METRIC_BASE_NAME, namePrefix));
     }
 
     private Gauge<Long> getGauge(String namePrefix) {
-        return metricRegistry.getGauges().get(MetricRegistry.name(SweepMetrics.METRIC_BASE_NAME, namePrefix));
+        return metricRegistry.getGauges().get(MetricRegistry.name(LegacySweepMetrics.METRIC_BASE_NAME, namePrefix));
     }
 
     private void assertWithinErrorMarginOf(long actual, long expected) {

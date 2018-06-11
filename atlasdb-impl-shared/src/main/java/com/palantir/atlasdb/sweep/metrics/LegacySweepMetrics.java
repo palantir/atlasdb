@@ -23,8 +23,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
-public class SweepMetrics {
-    public static final String METRIC_BASE_NAME = SweepMetrics.class.getName();
+public class LegacySweepMetrics {
+    public static final String METRIC_BASE_NAME = LegacySweepMetrics.class.getName();
 
     private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
 
@@ -34,7 +34,7 @@ public class SweepMetrics {
     private final Counter sweepErrors;
     private final CurrentValueMetric<Long> totalTime;
 
-    public SweepMetrics() {
+    public LegacySweepMetrics() {
         this.cellsExamined = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_EXAMINED));
         this.cellsDeleted = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_SWEPT));
         this.timeSweeping = metricRegistry.counter(getMetricName(AtlasDbMetricNames.TIME_SPENT_SWEEPING));
