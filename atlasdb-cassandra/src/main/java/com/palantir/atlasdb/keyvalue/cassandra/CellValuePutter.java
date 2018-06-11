@@ -20,7 +20,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.function.Supplier;
+import java.util.function.LongSupplier;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -46,7 +46,7 @@ public class CellValuePutter {
     private static final Function<Map.Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
             input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
-    private final Supplier<Long> timestampOverrideSupplier;
+    private final LongSupplier timestampOverrideSupplier;
 
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
@@ -59,7 +59,7 @@ public class CellValuePutter {
             TaskRunner taskRunner,
             WrappingQueryRunner queryRunner,
             ConsistencyLevel writeConsistency,
-            Supplier<Long> timestampOverrideSupplier) {
+            LongSupplier timestampOverrideSupplier) {
         this.config = config;
         this.clientPool = clientPool;
         this.taskRunner = taskRunner;
@@ -118,7 +118,7 @@ public class CellValuePutter {
                         long overrideTimestamp = Long.MIN_VALUE;
                         if (overrideTimestamps) {
                             // Note: The timestamp is not needed on a non-sentinel code path.
-                            overrideTimestamp = timestampOverrideSupplier.get();
+                            overrideTimestamp = timestampOverrideSupplier.getAsLong();
                         }
 
                         for (List<Map.Entry<Cell, Value>> partition : IterablePartitioner.partitionByCountAndBytes(
