@@ -111,31 +111,43 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
 
     @Override
     public Optional<SweepProgress> loadProgress(int threadIndex) {
-        Map<Cell, Value> entry = kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(
-                getCell(threadIndex), 1L));
+        Map<Cell, Value> entry = getStoredProgress(threadIndex);
         return hydrateProgress(entry);
+    }
+
+    protected Map<Cell, Value> getStoredProgress(int threadIndex) {
+        return kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(getCell(threadIndex), 1L));
     }
 
     @Override
     public void saveProgress(int threadIndex, SweepProgress newProgress) {
-        // TODO make cleaner
         Cell cell = getCell(threadIndex);
-        Map<Cell, Value> entry = kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(
-                cell, 1L));
-        Optional<SweepProgress> oldProgress = hydrateProgress(entry);
+        Map<Cell, Value> entry = getStoredProgress(threadIndex);
+
         try {
-            CheckAndSetRequest checkAndSetRequest = oldProgress.isPresent()
-                    ? CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell,
-                    progressToBytes(oldProgress.get()), progressToBytes(newProgress))
-                    : (entry.isEmpty()
-                            ? CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell,
-                                    progressToBytes(newProgress))
-                            : CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, new byte[0],
-                                    progressToBytes(newProgress)));
-            kvs.checkAndSet(checkAndSetRequest);
+            kvs.checkAndSet(casProgressRequest(cell, entry, newProgress));
         } catch (Exception e) {
             log.warn("Exception trying to persist sweep progress. The intermediate progress might not have been "
                     + "persisted. This should not cause sweep issues unless the problem persists.", e);
+        }
+    }
+
+    private CheckAndSetRequest casProgressRequest(Cell cell, Map<Cell, Value> storedProgress,
+            SweepProgress newProgress) throws JsonProcessingException {
+        if (storedProgress.isEmpty()) {
+            // Progress for this thread has never been stored
+            return CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell,
+                    progressToBytes(newProgress));
+        }
+
+        Value storedValue = Iterables.getOnlyElement(storedProgress.values());
+        if (storedValue.isEmpty()) {
+            // Last iteration, this thread finished a table
+            return CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, new byte[0],
+                    progressToBytes(newProgress));
+        } else {
+            return CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell,
+                    progressToBytes(hydrateProgress(storedProgress).get()), progressToBytes(newProgress));
         }
     }
 
