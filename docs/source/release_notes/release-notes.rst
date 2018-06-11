@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Targeted sweep will no longer sweep cells from transactions that were committed after the sweep timestamp.
+           Instead, targeted sweep will not proceed for that shard and strategy until the sweep timestamp progresses far enough.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3253>`__)
+
     *    - |new| |improved|
          - Targeted sweep now also sweeps stream stores.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3240>`__)
