@@ -351,8 +351,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 Value.INVALID_VALUE_TIMESTAMP,
                 STARTING_ATLAS_TIMESTAMP - 1);
 
-        // The following implies that the sentinel was written with a timestamp greater than 5M, which is reasonable
-        // as the current time in Atlas is 10M.
         Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 1L));
         byte[] contents = results.get(CELL).getContents();
         assertThat(Arrays.equals(contents, PtBytes.EMPTY_BYTE_ARRAY), is(true));
@@ -370,7 +368,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL, Value.create(moreData, 88L)));
         keyValueService.delete(tableReference, ImmutableListMultimap.of(CELL, 8L));
 
-        // We want to verify that the delete wrote a Cassandra tombstone with timestamp > 5M
         putDummyValueAtCellAndTimestamp(tableReference, CELL, 8L, STARTING_ATLAS_TIMESTAMP - 1);
         Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 8L + 1));
         assertThat(results.containsKey(CELL), is(false));
