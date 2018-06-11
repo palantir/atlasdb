@@ -186,12 +186,17 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The unbounded <code class="docutils literal notranslate"><span class="pre">CommitTsLoader</span></code> has been renamed to <code class="docutils literal notranslate"><span class="pre">CommitTsCache</span></code> and now has an eviction policy to prevent memory leaks.
+Background sweep now reuses this cache for iterations of sweep instead of recreating it every iteration.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3256">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Dropwizard transitive dependencies have been removed from the <code class="docutils literal notranslate"><span class="pre">atlasdb-config</span></code> subproject.
 Usages of <code class="docutils literal notranslate"><span class="pre">AtlasDbConfigs</span></code> for config parsing still support discovering subtypes of config, as we ship AtlasDB with an implementation of Dropwizard’s <a class="reference external" href="https://github.com/dropwizard/dropwizard/blob/master/dropwizard-jackson/src/main/java/io/dropwizard/jackson/DiscoverableSubtypeResolver.java">DiscoverableSubtypeResolver</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3218">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue where <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code> would return no results if the number of rows was more than the batch hint.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3248">Pull Request</a>)</td>
 </tr>
