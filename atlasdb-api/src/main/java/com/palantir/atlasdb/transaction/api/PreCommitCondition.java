@@ -27,6 +27,7 @@ package com.palantir.atlasdb.transaction.api;
  * once they lapse, so they provide the necessary invariant. If they are valid at commit time, they were valid 
  * for the entire lifetime of the transaction.
  */
+@FunctionalInterface
 public interface PreCommitCondition {
 
     /**
@@ -42,5 +43,5 @@ public interface PreCommitCondition {
      * The cleanup method should not throw any exceptions - it should be best effort. When this method is called,
      * the transaction has already failed or committed.
      */
-    void cleanup();
+    default void cleanup() {}
 }
