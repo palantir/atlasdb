@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.palantir.tokens.auth.BearerToken;
 
 @JsonSerialize(as = ImmutableTimeLockRuntimeConfig.class)
 @JsonDeserialize(as = ImmutableTimeLockRuntimeConfig.class)
@@ -40,11 +41,11 @@ public abstract class TimeLockRuntimeConfig {
      * to authorize the request for the specified namespace.
      */
     @JsonProperty("auth-token")
-    public abstract String authToken();
+    public abstract BearerToken authToken();
 
     @Value.Check
     protected void check() {
-        Preconditions.checkState(authToken() != null || authToken().length() >= MIN_TOKEN_LENGTH,
+        Preconditions.checkState(authToken() != null || authToken().getToken().length() >= MIN_TOKEN_LENGTH,
                 "The auth token must have at least %s characters.", MIN_TOKEN_LENGTH);
     }
 }

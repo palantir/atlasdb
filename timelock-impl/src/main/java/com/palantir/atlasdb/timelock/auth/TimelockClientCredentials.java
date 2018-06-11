@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.tokens.auth.BearerToken;
 
 @JsonSerialize(as = ImmutableTimelockClientCredentials.class)
 @JsonDeserialize(as = ImmutableTimelockClientCredentials.class)
@@ -35,6 +36,6 @@ public abstract class TimelockClientCredentials {
      * Token that is expected with each request specific to the namespace above to Timelock server.
      * The requests that provide this token will be authorized for the namespace above.
      */
-    public abstract String token();
+    public abstract BearerToken token();
 
 }

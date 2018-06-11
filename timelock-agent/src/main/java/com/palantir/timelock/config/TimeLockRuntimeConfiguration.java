@@ -12,8 +12,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.auth.TimelockClientCredentials;
+import com.palantir.tokens.auth.BearerToken;
 
 /**
  * Dynamic (live-reloaded) portions of TimeLock's configuration.
@@ -52,19 +52,13 @@ public abstract class TimeLockRuntimeConfiguration {
      * The namespace and token credentials the server should use to authenticate basic service clients.
      */
     @JsonProperty("service-auth-credentials")
-    @Value.Default
-    public List<TimelockClientCredentials> serviceAuthCredentials() {
-        return ImmutableList.of();
-    }
+    public abstract List<TimelockClientCredentials> serviceAuthCredentials();
 
     /**
      * The tokens the server should use to authenticate admin clients.
      */
     @JsonProperty("admin-auth-tokens")
-    @Value.Default
-    public List<String> adminAuthTokens() {
-        return ImmutableList.of();
-    }
+    public abstract List<BearerToken> adminAuthTokens();
 
     @Value.Check
     public void check() {
