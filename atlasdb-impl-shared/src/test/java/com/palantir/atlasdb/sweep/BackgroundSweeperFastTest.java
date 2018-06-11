@@ -198,9 +198,15 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
+
+        ArgumentCaptor<Long> sweepTime = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> totalTimeElapsed = ArgumentCaptor.forClass(Long.class);
         Mockito.verify(sweepMetrics).updateSweepTime(
-                intermediateResults.getTimeInMillis(),
-                intermediateResults.getTimeElapsedSinceStartedSweeping());
+                sweepTime.capture(),
+                totalTimeElapsed.capture());
+
+        Assertions.assertThat(intermediateResults.getTimeInMillis()).isEqualTo(sweepTime.getValue());
+        assertWithinErrorMarginOf(intermediateResults.getTimeElapsedSinceStartedSweeping(), totalTimeElapsed.getValue());
     }
 
     @Test
@@ -226,8 +232,19 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
+
+        ArgumentCaptor<Long> sweepTime = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> totalTimeElapsed = ArgumentCaptor.forClass(Long.class);
         Mockito.verify(sweepMetrics).updateSweepTime(
-                intermediateResults.getTimeInMillis(),
-                intermediateResults.getTimeElapsedSinceStartedSweeping());
+                sweepTime.capture(),
+                totalTimeElapsed.capture());
+
+        Assertions.assertThat(intermediateResults.getTimeInMillis()).isEqualTo(sweepTime.getValue());
+        assertWithinErrorMarginOf(intermediateResults.getTimeElapsedSinceStartedSweeping(), totalTimeElapsed.getValue());
+    }
+
+    private void assertWithinErrorMarginOf(long actual, long expected) {
+        Assertions.assertThat(actual).isGreaterThanOrEqualTo((long) (expected * .95));
+        Assertions.assertThat(actual).isLessThanOrEqualTo((long) (expected * 1.05));
     }
 }

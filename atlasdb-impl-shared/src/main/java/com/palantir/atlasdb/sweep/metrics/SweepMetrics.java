@@ -28,12 +28,21 @@ public class SweepMetrics {
 
     private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
 
-    private final Counter cellsExamined = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_EXAMINED));
-    private final Counter cellsDeleted = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_SWEPT));
-    private final Counter timeSweeping = metricRegistry.counter(getMetricName(AtlasDbMetricNames.TIME_SPENT_SWEEPING));
-    private final Counter sweepErrors = metricRegistry.counter(getMetricName(AtlasDbMetricNames.SWEEP_ERROR));
-    private final CurrentValueMetric<Long> totalTime = metricRegistry.register(
-            getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING), new CurrentValueMetric<Long>());
+    private final Counter cellsExamined;
+    private final Counter cellsDeleted;
+    private final Counter timeSweeping;
+    private final Counter sweepErrors;
+    private final CurrentValueMetric<Long> totalTime;
+
+    public SweepMetrics() {
+        this.cellsExamined = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_EXAMINED));
+        this.cellsDeleted = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_SWEPT));
+        this.timeSweeping = metricRegistry.counter(getMetricName(AtlasDbMetricNames.TIME_SPENT_SWEEPING));
+        this.sweepErrors = metricRegistry.counter(getMetricName(AtlasDbMetricNames.SWEEP_ERROR));
+        this.totalTime = new CurrentValueMetric<>();
+
+        metricRegistry.gauge(getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING), () -> totalTime);
+    }
 
     public void updateCellExaminedDeleted(long cellTsPairsExamined, long staleValuesDeleted) {
         cellsExamined.inc(cellTsPairsExamined);
