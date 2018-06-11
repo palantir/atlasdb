@@ -115,7 +115,7 @@ public class AtlasDbTestCase {
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
-        sweepQueue = spy(TargetedSweeper.createUninitialized(() -> true, () -> sweepQueueShards, 0, 0));
+        sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,
