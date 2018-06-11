@@ -48,22 +48,19 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
-import com.palantir.atlasdb.sweep.CommitTsLoader;
+import com.palantir.atlasdb.sweep.CommitTsCache;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.logsafe.SafeArg;
 
-import gnu.trove.set.hash.TLongHashSet;
-
 public class SweepableCells extends KvsSweepQueueWriter {
     private final Logger log = LoggerFactory.getLogger(SweepableCells.class);
-    private final CommitTsLoader commitTsLoader;
+    private final CommitTsCache commitTsCache;
 
     public SweepableCells(KeyValueService kvs, WriteInfoPartitioner partitioner, TargetedSweepMetrics metrics) {
         super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner, metrics);
-        this.commitTsLoader = CommitTsLoader
-                .create(TransactionServices.createTransactionService(kvs), new TLongHashSet());
+        this.commitTsCache = CommitTsCache.create(TransactionServices.createTransactionService(kvs));
     }
 
     @Override
@@ -185,7 +182,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
 
     private List<Long> getCommittedTimestampsDescendingAndCleanupAborted(
             ShardAndStrategy shardStrategy, Multimap<Long, WriteInfo> startTsWrites) {
-        Map<Long, Long> startToCommitTs = commitTsLoader.loadBatch(startTsWrites.keySet());
+        Map<Long, Long> startToCommitTs = commitTsCache.loadBatch(startTsWrites.keySet());
         Map<TableReference, Multimap<Cell, Long>> cellsToDelete = new HashMap<>();
         List<Long> committedTimestamps = new ArrayList<>();
 
