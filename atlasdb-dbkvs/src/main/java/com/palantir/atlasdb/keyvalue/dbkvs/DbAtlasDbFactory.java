@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import java.util.Optional;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -53,6 +54,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
      * @param runtimeConfig unused.
      * @param leaderConfig unused.
      * @param namespace unused.
+     * @param unusedLongSupplier unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
      * @param unusedQosClient unused.
      * @return The requested KeyValueService instance
@@ -63,6 +65,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
+            LongSupplier unusedLongSupplier,
             boolean initializeAsync,
             QosClient unusedQosClient) {
         if (initializeAsync) {

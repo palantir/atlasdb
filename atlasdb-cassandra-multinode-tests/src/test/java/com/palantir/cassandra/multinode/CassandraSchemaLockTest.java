@@ -74,7 +74,7 @@ public class CassandraSchemaLockTest {
             for (int i = 0; i < THREAD_COUNT; i++) {
                 async(() -> {
                     CassandraKeyValueService keyValueService =
-                            CassandraKeyValueServiceImpl.create(config, Optional.empty());
+                            CassandraKeyValueServiceImpl.createForTesting(config, Optional.empty());
                     barrier.await();
                     keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
                     return null;
@@ -86,7 +86,7 @@ public class CassandraSchemaLockTest {
         }
 
         CassandraKeyValueService kvs =
-                CassandraKeyValueServiceImpl.create(config, Optional.empty());
+                CassandraKeyValueServiceImpl.createForTesting(config, Optional.empty());
         assertThat(kvs.getAllTableNames(), hasItem(table1));
 
         assertThat(new File(CONTAINERS.getLogDirectory()),

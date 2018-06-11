@@ -34,13 +34,18 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlRow;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -49,11 +54,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
+import com.google.common.io.BaseEncoding;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -87,6 +95,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
     private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
 
+    private static final long STARTING_ATLAS_TIMESTAMP = 10_000_000;
+  
     private byte[] tableMetadata = new TableDefinition() {
         {
             rowName();
@@ -102,6 +112,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             cachePriority(TableMetadataPersistence.CachePriority.COLD);
         }
     }.toTableMetadata().persistToBytes();
+    public static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
 
     @Override
     protected KeyValueService getKeyValueService() {
@@ -109,9 +120,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
+        // Mutation provider is needed, because deletes/sentinels are to be written after writes
         return CassandraKeyValueServiceImpl.create(
                 config,
                 CassandraContainer.LEADER_CONFIG,
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
                 testLogger);
     }
 
@@ -322,6 +335,104 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             long lockId = SchemaMutationLock.getLockIdFromColumn(resultColumn);
             assertThat(lockId, is(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID));
         }
+    }
+
+    @Test
+    public void sweepSentinelsAreWrittenAtFreshTimestamp() throws Exception {
+        TableReference tableReference =
+                TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
+        keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        keyValueService.addGarbageCollectionSentinelValues(tableReference, ImmutableList.of(CELL));
+
+        putDummyValueAtCellAndTimestamp(
+                tableReference,
+                CELL,
+                Value.INVALID_VALUE_TIMESTAMP,
+                STARTING_ATLAS_TIMESTAMP - 1);
+
+        Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 1L));
+        byte[] contents = results.get(CELL).getContents();
+        assertThat(Arrays.equals(contents, PtBytes.EMPTY_BYTE_ARRAY), is(true));
+    }
+
+    @Test
+    public void deletionTakesPlaceAtFreshTimestamp() throws Exception {
+        TableReference tableReference =
+                TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
+        keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        byte[] data = PtBytes.toBytes("data");
+        byte[] moreData = PtBytes.toBytes("data2");
+
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL, Value.create(data, 8L)));
+        keyValueService.putWithTimestamps(tableReference, ImmutableListMultimap.of(CELL, Value.create(moreData, 88L)));
+        keyValueService.delete(tableReference, ImmutableListMultimap.of(CELL, 8L));
+
+        putDummyValueAtCellAndTimestamp(tableReference, CELL, 8L, STARTING_ATLAS_TIMESTAMP - 1);
+        Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 8L + 1));
+        assertThat(results.containsKey(CELL), is(false));
+    }
+
+    @Test
+    public void rangeTombstonesWrittenAtFreshTimestamp() throws Exception {
+        TableReference tableReference =
+                TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
+        keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        keyValueService.deleteAllTimestamps(
+                tableReference,
+                ImmutableMap.of(CELL, 1_234_567L),
+                true);
+
+        putDummyValueAtCellAndTimestamp(tableReference, CELL, 1337L, STARTING_ATLAS_TIMESTAMP - 1);
+        Map<Cell, Value> resultExpectedCoveredByRangeTombstone =
+                keyValueService.get(tableReference, ImmutableMap.of(CELL, 1337L + 1));
+        assertThat(resultExpectedCoveredByRangeTombstone.containsKey(CELL), is(false));
+    }
+
+    @Test
+    public void cassandraTimestampsAreNotUsedAsAtlasTimestampsForRangeTombstone() throws Exception {
+        TableReference tableReference =
+                TableReference.createFromFullyQualifiedName("test." + RandomStringUtils.randomAlphanumeric(16));
+        keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        keyValueService.deleteAllTimestamps(
+                tableReference,
+                ImmutableMap.of(CELL, 1_234_567L),
+                true);
+
+        // A value written outside of the range tombstone should not be covered by the range tombstone, even if
+        // the Cassandra timestamp of the value is much lower than that of the range tombstone.
+        // This test is likely to fail if the implementation confuses Cassandra timestamps for Atlas timestamps.
+        putDummyValueAtCellAndTimestamp(tableReference, CELL, 1_333_337L, STARTING_ATLAS_TIMESTAMP - 1);
+        Map<Cell, Value> resultsOutsideRangeTombstone =
+                keyValueService.get(tableReference, ImmutableMap.of(CELL, Long.MAX_VALUE));
+        assertThat(resultsOutsideRangeTombstone.containsKey(CELL), is(true));
+    }
+
+    private void putDummyValueAtCellAndTimestamp(
+            TableReference tableReference, Cell cell, long atlasTimestamp, long cassandraTimestamp)
+            throws TException {
+        CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
+        ckvs.getClientPool().runWithRetry(input -> {
+            CqlQuery cqlQuery = new CqlQuery(String.format("INSERT INTO \"%s\".\"%s\" (key, column1, column2, value)"
+                            + " VALUES (%s, %s, %s, %s) USING TIMESTAMP %s;",
+                    CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow(),
+                    tableReference.getQualifiedName().replaceAll("\\.", "__"),
+                    convertBytesToHexString(cell.getRowName()),
+                    convertBytesToHexString(cell.getColumnName()),
+                    ~atlasTimestamp,
+                    convertBytesToHexString(PtBytes.toBytes("testtesttest")),
+                    cassandraTimestamp));
+            return input.execute_cql3_query(
+                    cqlQuery,
+                    Compression.NONE,
+                    ConsistencyLevel.QUORUM);
+        });
+    }
+
+    private String convertBytesToHexString(byte[] bytes) {
+        return "0x" + BaseEncoding.base16().lowerCase().encode(bytes);
     }
 
     private void createExtraLocksTable(SchemaMutationLockTables lockTables,

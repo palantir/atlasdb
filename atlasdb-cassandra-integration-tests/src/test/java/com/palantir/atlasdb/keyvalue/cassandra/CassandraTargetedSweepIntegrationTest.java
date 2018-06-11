@@ -65,7 +65,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
 
-        return CassandraKeyValueServiceImpl.create(config, CassandraContainer.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.createForTesting(config, CassandraContainer.LEADER_CONFIG);
     }
 
     @Override
