@@ -183,12 +183,7 @@ clean up this old data.</p>
 <p>AtlasDB has a variety of options for maximal flexibility.</p>
 <div class="section" id="sweeping">
 <span id="physical-cleanup-sweep"></span><h2>Sweeping<a class="headerlink" href="#sweeping" title="Permalink to this headline">¶</a></h2>
-<p>A Sweeper will run in the background and remove data that is no longer
-needed. It does this by waiting until any read-only transaction would be
-timed out. This is found in
-<code class="docutils literal notranslate"><span class="pre">Cleaner.getTransactionReadTimeoutMillis()</span></code> and defaults to 24 hours.
-The sweeper does a range scan on each table and cleans up old stuff it
-finds.</p>
+<p>Please consult the <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">Sweep documentation</span></a> for more details on sweep.</p>
 <div class="section" id="sentinel-values">
 <h3>Sentinel Values<a class="headerlink" href="#sentinel-values" title="Permalink to this headline">¶</a></h3>
 <p>The primary objective of AtlasDB is correctness. This manifests by never
@@ -209,7 +204,7 @@ case rather than allowing inconsistent reads.</p>
 <h2>Sweep Strategies<a class="headerlink" href="#sweep-strategies" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="sweepstrategy-nothing">
 <h3>SweepStrategy.NOTHING<a class="headerlink" href="#sweepstrategy-nothing" title="Permalink to this headline">¶</a></h3>
-<p>This disables sweeping for this table.</p>
+<p>This disables sweeping for this table (including for manual sweep).</p>
 </div>
 <div class="section" id="sweepstrategy-conservative">
 <h3>SweepStrategy.CONSERVATIVE<a class="headerlink" href="#sweepstrategy-conservative" title="Permalink to this headline">¶</a></h3>

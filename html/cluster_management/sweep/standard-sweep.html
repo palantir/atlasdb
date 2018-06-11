@@ -282,12 +282,12 @@ If subsequent KVS round-trips are successful, the value of <code class="docutils
 <span id="sweep-priority-overrides"></span><h3>Priority Overrides<a class="headerlink" href="#priority-overrides" title="Permalink to this headline">¶</a></h3>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">Specifying priority tables can be useful for influencing sweep’s behaviour in the short run.
-However, while configured, no table that is not marked as a priority table will ever be swept, meaning that old versions of cells will not be cleaned up.
+<p class="last">Specifying <code class="docutils literal notranslate"><span class="pre">priorityTables</span></code> can be useful for influencing sweep’s behaviour in the short run.
+However, if any tables are specified as <code class="docutils literal notranslate"><span class="pre">priorityTables</span></code> then no other tables will ever be swept, meaning that old versions of cells for those tables will accumulate.
 It is not intended for priority tables to be specified in a steady state, generally speaking.</p>
 </div>
 <p>There may be situations in which the background sweeper’s heuristics for selecting tables to sweep may not satisfy one’s requirements.
-One can influence the selection process by configuring the <code class="docutils literal notranslate"><span class="pre">sweepPriorityOverrides</span></code> parameter in runtime configuration.</p>
+One can influence the selection process by configuring the <code class="docutils literal notranslate"><span class="pre">sweep.sweepPriorityOverrides</span></code> parameter in runtime configuration.</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="8%" />
@@ -328,6 +328,9 @@ table we have swept; we thus don’t have enough information to update the sweep
 registering that we have only done a partial sweep. In practice, this would tend to mean that the probability the
 original table being swept will be picked again for sweeping after overrides have been removed may be a little higher
 than if we accounted for the partial sweep.</p>
+<p>One possible use of having blacklist tables is for specifying tables which you don’t want the background sweeper to
+sweep, but you still want to be able to carry out a manual sweep. Note that specifying tables as
+<code class="docutils literal notranslate"><span class="pre">SweepStrategy.NOTHING</span></code> will mean that even manual sweeps will not do anything.</p>
 <div class="toctree-wrapper compound">
 </div>
 </div>
