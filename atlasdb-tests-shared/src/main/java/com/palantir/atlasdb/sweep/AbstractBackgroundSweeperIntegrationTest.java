@@ -152,7 +152,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             while (iter.hasNext()) {
                 RowResult<Set<Long>> rr = iter.next();
                 numCells += rr.getColumns().size();
-                Assert.assertTrue(rr.getColumns().values().stream().allMatch(
+                Assert.assertTrue(String.format("Found unswept values in %s!", tableRef.getQualifiedName()),
+                        rr.getColumns().values().stream().allMatch(
                         s -> s.size() == 1 || (conservative && s.size() == 2 && s.contains(-1L))));
             }
             Assert.assertEquals(expectedCells, numCells);
