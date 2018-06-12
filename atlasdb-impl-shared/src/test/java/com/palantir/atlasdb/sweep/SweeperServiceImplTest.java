@@ -185,10 +185,9 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     private void verifyExpectedArgument(long sweepTime, long totalTimeElapsed) {
         assertThat(RESULTS_NO_MORE_TO_SWEEP.getTimeInMillis()).isEqualTo(sweepTime);
-        assertThat(totalTimeElapsed)
-                .isLessThanOrEqualTo(RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping());
-        assertThat(totalTimeElapsed)
-                .isGreaterThanOrEqualTo(RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping() - 1000L);
+        assertThat(totalTimeElapsed).isBetween(
+                RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping() - 1000L,
+                RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping());
     }
 
     private String encodeStartRow(byte[] rowBytes) {

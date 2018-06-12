@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static org.assertj.core.data.Percentage.withPercentage;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 
@@ -206,7 +207,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 totalTimeElapsed.capture());
 
         Assertions.assertThat(intermediateResults.getTimeInMillis()).isEqualTo(sweepTime.getValue());
-        assertWithinErrorMarginOf(intermediateResults.getTimeElapsedSinceStartedSweeping(), totalTimeElapsed.getValue());
+        Assertions.assertThat(intermediateResults.getTimeElapsedSinceStartedSweeping())
+                .isCloseTo(totalTimeElapsed.getValue(), withPercentage(5d));
     }
 
     @Test
@@ -240,11 +242,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 totalTimeElapsed.capture());
 
         Assertions.assertThat(intermediateResults.getTimeInMillis()).isEqualTo(sweepTime.getValue());
-        assertWithinErrorMarginOf(intermediateResults.getTimeElapsedSinceStartedSweeping(), totalTimeElapsed.getValue());
-    }
-
-    private void assertWithinErrorMarginOf(long actual, long expected) {
-        Assertions.assertThat(actual).isGreaterThanOrEqualTo((long) (expected * .95));
-        Assertions.assertThat(actual).isLessThanOrEqualTo((long) (expected * 1.05));
+        Assertions.assertThat(intermediateResults.getTimeElapsedSinceStartedSweeping())
+                .isCloseTo(totalTimeElapsed.getValue(), withPercentage(5d));
     }
 }

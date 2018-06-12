@@ -44,7 +44,7 @@ public class LegacySweepMetrics {
         metricRegistry.gauge(getMetricName(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING), () -> totalTime);
     }
 
-    public void updateCellExaminedDeleted(long cellTsPairsExamined, long staleValuesDeleted) {
+    public void updateCellsExaminedDeleted(long cellTsPairsExamined, long staleValuesDeleted) {
         cellsExamined.inc(cellTsPairsExamined);
         cellsDeleted.inc(staleValuesDeleted);
     }

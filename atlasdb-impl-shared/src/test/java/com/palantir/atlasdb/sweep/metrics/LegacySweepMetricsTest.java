@@ -93,7 +93,7 @@ public class LegacySweepMetricsTest {
         sweepMetrics.updateSweepTime(
                 SWEEP_RESULTS.getTimeInMillis(),
                 SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
-        sweepMetrics.updateCellExaminedDeleted(EXAMINED, DELETED);
+        sweepMetrics.updateCellsExaminedDeleted(EXAMINED, DELETED);
 
         assertRecordedExaminedDeletedTime(
                 ImmutableList.of(EXAMINED, DELETED, TIME_SWEEPING)
@@ -102,7 +102,7 @@ public class LegacySweepMetricsTest {
         sweepMetrics.updateSweepTime(
                 OTHER_SWEEP_RESULTS.getTimeInMillis(),
                 OTHER_SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
-        sweepMetrics.updateCellExaminedDeleted(OTHER_EXAMINED, OTHER_DELETED);
+        sweepMetrics.updateCellsExaminedDeleted(OTHER_EXAMINED, OTHER_DELETED);
 
         assertRecordedExaminedDeletedTime(
                 ImmutableList.of(EXAMINED + OTHER_EXAMINED,
