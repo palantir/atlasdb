@@ -23,19 +23,25 @@ public final class Mutations {
 
     private Mutations() { }
 
-    public static Mutation rangeTombstoneForColumn(byte[] columnName, long maxTimestampExclusive) {
+    public static Mutation rangeTombstoneForColumn(
+            byte[] columnName,
+            long maxAtlasTimestampExclusive,
+            long timestampForRangeTombstone) {
         Deletion deletion = new Deletion()
-                .setTimestamp(maxTimestampExclusive)
-                .setPredicate(SlicePredicates.rangeTombstoneForColumn(columnName, maxTimestampExclusive));
+                .setTimestamp(timestampForRangeTombstone)
+                .setPredicate(SlicePredicates.rangeTombstoneForColumn(columnName, maxAtlasTimestampExclusive));
 
         return new Mutation().setDeletion(deletion);
     }
 
-    public static Mutation rangeTombstoneIncludingSentinelForColumn(byte[] columnName, long maxTimestampExclusive) {
+    public static Mutation rangeTombstoneIncludingSentinelForColumn(
+            byte[] columnName,
+            long maxAtlasTimestampExclusive,
+            long timestampForRangeTombstone) {
         Deletion deletion = new Deletion()
-                .setTimestamp(maxTimestampExclusive)
+                .setTimestamp(timestampForRangeTombstone)
                 .setPredicate(SlicePredicates
-                        .rangeTombstoneIncludingSentinelForColumn(columnName, maxTimestampExclusive));
+                        .rangeTombstoneIncludingSentinelForColumn(columnName, maxAtlasTimestampExclusive));
 
         return new Mutation().setDeletion(deletion);
     }

@@ -33,7 +33,10 @@ import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
 import org.joda.time.Duration;
 
+import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
+import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.common.base.Throwables;
+import com.palantir.timestamp.InMemoryTimestampService;
 
 /**
  * Utilities for ETE tests
@@ -97,5 +100,11 @@ public final class CassandraTestTools {
             }
         });
         executorService.shutdown();
+    }
+
+    public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(long timestamp) {
+        InMemoryTimestampService timestampService = new InMemoryTimestampService();
+        timestampService.fastForwardTimestamp(timestamp);
+        return CassandraMutationTimestampProviders.singleLongSupplierBacked(timestampService::getFreshTimestamp);
     }
 }

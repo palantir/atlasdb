@@ -64,7 +64,12 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
                         .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
 
-        return CassandraKeyValueServiceImpl.create(config, CassandraContainer.LEADER_CONFIG);
+        // Timestamp of 1,000,000 is done to ensure that tombstones are written at a Cassandra timestamp that is
+        // greater than the Atlas timestamp for any values written during the test.
+        return CassandraKeyValueServiceImpl.create(
+                config,
+                CassandraContainer.LEADER_CONFIG,
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 
     @Test

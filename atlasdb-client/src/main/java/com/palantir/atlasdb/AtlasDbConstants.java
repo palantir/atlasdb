@@ -146,5 +146,7 @@ public final class AtlasDbConstants {
     public static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
     public static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
 
+    public static final int TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT = 50_000;
+
     public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
 }

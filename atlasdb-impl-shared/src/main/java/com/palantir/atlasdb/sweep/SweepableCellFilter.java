@@ -15,29 +15,26 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-
-import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.service.TransactionService;
-
-import gnu.trove.list.TLongList;
-import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.set.TLongSet;
-import gnu.trove.set.hash.TLongHashSet;
 
 public class SweepableCellFilter {
-    private final TransactionService transactionService;
+    private final CommitTsCache commitTsCache;
     private final Sweeper sweeper;
     private final long sweepTs;
 
-    public SweepableCellFilter(TransactionService transactionService, Sweeper sweeper, long sweepTs) {
-        this.transactionService = transactionService;
+    public SweepableCellFilter(CommitTsCache commitTsCache, Sweeper sweeper, long sweepTs) {
+        this.commitTsCache = commitTsCache;
         this.sweeper = sweeper;
         this.sweepTs = sweepTs;
     }
@@ -48,16 +45,13 @@ public class SweepableCellFilter {
     public BatchOfCellsToSweep getCellsToSweep(List<CandidateCellForSweeping> candidates) {
         Preconditions.checkArgument(!candidates.isEmpty(),
                 "Got an empty collection of candidates. This is a programming error.");
-        CommitTsLoader commitTss = CommitTsLoader.create(transactionService, getAllTimestamps(candidates));
+        Map<Long, Long> startToCommitTs = commitTsCache.loadBatch(getAllTimestamps(candidates));
         ImmutableBatchOfCellsToSweep.Builder builder = ImmutableBatchOfCellsToSweep.builder();
         long numCellTsPairsExamined = 0;
         Cell lastCellExamined = null;
         for (CandidateCellForSweeping candidate : candidates) {
             if (candidate.sortedTimestamps().size() > 0) {
-                CellToSweep cellToSweep = getCellToSweep(candidate, commitTss);
-                if (cellToSweep != null) {
-                    builder.addCells(cellToSweep);
-                }
+                getCellToSweep(candidate, startToCommitTs).ifPresent(builder::addCells);
             }
             numCellTsPairsExamined += candidate.sortedTimestamps().size();
             lastCellExamined = candidate.cell();
@@ -65,16 +59,14 @@ public class SweepableCellFilter {
         return builder.numCellTsPairsExamined(numCellTsPairsExamined).lastCellExamined(lastCellExamined).build();
     }
 
-    // Decide if the candidate cell needs to be swept, and if so, for which timestamps.
-    @Nullable
-    private CellToSweep getCellToSweep(CandidateCellForSweeping candidate, CommitTsLoader commitTss) {
+    private Optional<CellToSweep> getCellToSweep(CandidateCellForSweeping candidate, Map<Long, Long> startToCommitTs) {
         Preconditions.checkArgument(candidate.sortedTimestamps().size() > 0);
-        TLongList timestampsToSweep = new TLongArrayList();
-        TLongList uncommittedTimestamps = new TLongArrayList();
+        List<Long> timestampsToSweep = new ArrayList<>();
+        List<Long> uncommittedTimestamps = new ArrayList<>();
         long maxStartTs = TransactionConstants.FAILED_COMMIT_TS;
         boolean maxStartTsIsCommitted = false;
         for (long startTs : candidate.sortedTimestamps()) {
-            long commitTs = commitTss.load(startTs);
+            long commitTs = startToCommitTs.get(startTs);
 
             if (startTs > maxStartTs && commitTs < sweepTs) {
                 maxStartTs = startTs;
@@ -96,22 +88,23 @@ public class SweepableCellFilter {
                 && candidate.isLatestValueEmpty()
                 && maxStartTsIsCommitted;
         if (!timestampsToSweep.isEmpty() && !shouldSweepLastCommitted) {
-            timestampsToSweep.removeAt(timestampsToSweep.size() - 1);
+            timestampsToSweep.remove(timestampsToSweep.size() - 1);
         }
         timestampsToSweep.addAll(uncommittedTimestamps);
         if (timestampsToSweep.isEmpty()) {
-            return null;
+            return Optional.empty();
         } else {
-            return ImmutableCellToSweep.builder()
-                .cell(candidate.cell())
-                .sortedTimestamps(timestampsToSweep)
-                .needsSentinel(needsSentinel)
-                .build();
+            return Optional.of(ImmutableCellToSweep.builder()
+                    .cell(candidate.cell())
+                    .sortedTimestamps(timestampsToSweep)
+                    .needsSentinel(needsSentinel)
+                    .build()
+            );
         }
     }
 
-    private static TLongSet getAllTimestamps(Collection<CandidateCellForSweeping> candidates) {
-        TLongSet ret = new TLongHashSet();
+    private static Set<Long> getAllTimestamps(Collection<CandidateCellForSweeping> candidates) {
+        Set<Long> ret = new HashSet<>();
         for (CandidateCellForSweeping candidate : candidates) {
             ret.addAll(candidate.sortedTimestamps());
         }
