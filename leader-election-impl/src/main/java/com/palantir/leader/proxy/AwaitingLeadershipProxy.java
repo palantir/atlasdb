@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.net.HostAndPort;
@@ -63,6 +64,14 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 proxy);
     }
 
+    @VisibleForTesting
+    protected static <T> AwaitingLeadershipProxy<T> proxyForTest(Supplier<T> delegateSupplier,
+            LeaderElectionService leaderElectionService,
+            Class<T> interfaceClass,
+            AtomicReference<LeadershipToken> leadershipTokenRef) {
+        return new AwaitingLeadershipProxy<>(delegateSupplier, leaderElectionService, interfaceClass, leadershipTokenRef);
+    }
+
     final Supplier<T> delegateSupplier;
     final LeaderElectionService leaderElectionService;
     final ExecutorService executor;
@@ -79,11 +88,16 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private AwaitingLeadershipProxy(Supplier<T> delegateSupplier,
                                     LeaderElectionService leaderElectionService,
                                     Class<T> interfaceClass) {
+        this(delegateSupplier, leaderElectionService, interfaceClass, new AtomicReference<>());
+    }
+
+    private AwaitingLeadershipProxy(Supplier<T> delegateSupplier, LeaderElectionService leaderElectionService,
+            Class<T> interfaceClass, AtomicReference<LeadershipToken> leadershipTokenRef) {
         Preconditions.checkNotNull(delegateSupplier, "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.delegateSupplier = delegateSupplier;
         this.leaderElectionService = leaderElectionService;
         this.executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true));
-        this.leadershipTokenRef = new AtomicReference<>();
+        this.leadershipTokenRef = leadershipTokenRef;
         this.delegateRef = new AtomicReference<>();
         this.interfaceClass = interfaceClass;
         this.isClosed = false;
@@ -158,11 +172,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        final LeadershipToken leadershipToken = leadershipTokenRef.get();
-
-        if (leadershipToken == null) {
-            throw notCurrentLeaderException("method invoked on a non-leader");
-        }
+        final LeadershipToken leadershipToken = getLeadershipToken();
 
         if (method.getName().equals("close") && args.length == 0) {
             isClosed = true;
@@ -206,6 +216,29 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             }
             throw e.getTargetException();
         }
+    }
+
+    @VisibleForTesting
+    protected LeadershipToken getLeadershipToken() {
+        LeadershipToken leadershipToken = leadershipTokenRef.get();
+
+        if (leadershipToken == null) {
+            NotCurrentLeaderException notCurrentLeaderException = notCurrentLeaderException(
+                    "method invoked on a non-leader");
+
+            if (notCurrentLeaderException.getServiceHint().isPresent()) {
+                // There's a chance that we can gain leadership while generating this exception.
+                // In this case, we should be able to get a leadership token after all
+                leadershipToken = leadershipTokenRef.get();
+                // If leadershipToken is still null, then someone's the leader, but it isn't us.
+            }
+
+            if (leadershipToken == null) {
+                throw notCurrentLeaderException;
+            }
+        }
+
+        return leadershipToken;
     }
 
     private boolean isStillCurrentToken(LeadershipToken leadershipToken) {

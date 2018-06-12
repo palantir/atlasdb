@@ -16,51 +16,70 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.rules.RuleChain;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.AbstractSweepTest;
-import com.palantir.atlasdb.sweep.queue.BackgroundSweepQueueProcessor;
-import com.palantir.atlasdb.sweep.queue.SweepTimestampProvider;
-import com.palantir.atlasdb.sweep.queue.test.InMemorySweepQueue;
-import com.palantir.atlasdb.sweep.queue.test.InMemorySweepQueueProcessorFactory;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
+import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
+    private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
+    private TargetedSweeper sweepQueue;
 
-    private SweepTimestampProvider timestamps = mock(SweepTimestampProvider.class);
-    private BackgroundSweepQueueProcessor processor;
+    @ClassRule
+    public static final Containers CONTAINERS =
+            new Containers(CassandraTargetedSweepIntegrationTest.class).with(new CassandraContainer());
+
+    @Rule
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
+            getKeyValueService(), CassandraContainer.KVS_CONFIG);
 
     @Before
     public void setup() {
         super.setup();
 
-        InMemorySweepQueue.clear();
-        InMemorySweepQueueProcessorFactory factory = new InMemorySweepQueueProcessorFactory(kvs, ssm, timestamps);
-        processor = new BackgroundSweepQueueProcessor(kvs, factory::getProcessorForTable);
+        sweepQueue = TargetedSweeper.createUninitializedForTest(() -> 1);
+        sweepQueue.initialize(timestampsSupplier, kvs, mock(TargetedSweepFollower.class));
     }
 
     @Override
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
 
-        return CassandraKeyValueServiceImpl.create(config, CassandraContainer.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.createForTesting(config, CassandraContainer.LEADER_CONFIG);
     }
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
-        when(timestamps.getSweepTimestamp(any())).thenReturn(ts);
-        processor.sweepOneBatchForAllTables();
+        when(timestampsSupplier.getUnreadableTimestamp()).thenReturn(ts);
+        when(timestampsSupplier.getImmutableTimestamp()).thenReturn(ts);
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
         return Optional.empty();
     }
 
+    @Override
+    protected void put(final TableReference tableRef, Cell cell, final String val, final long ts) {
+        super.put(tableRef, cell, val, ts);
+        sweepQueue.enqueue(ImmutableMap.of(tableRef, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8))), ts);
+    }
 }

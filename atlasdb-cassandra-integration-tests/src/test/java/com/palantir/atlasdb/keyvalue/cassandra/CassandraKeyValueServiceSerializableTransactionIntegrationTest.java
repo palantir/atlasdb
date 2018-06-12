@@ -15,11 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.mockito.Mockito.mock;
+
 import org.junit.ClassRule;
 
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
+import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
 public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
@@ -31,9 +37,22 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CassandraKeyValueServiceImpl.create(
+        return CassandraKeyValueServiceImpl.createForTesting(
                 CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG);
+    }
+
+    @Override
+    protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
+       return TargetedSweeper.createUninitializedForTest(() -> 128);
+    }
+
+    @Override
+    protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
+        TargetedSweeper queue = TargetedSweeper.createUninitializedForTest(() -> 128);
+        queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), keyValueService,
+                mock(TargetedSweepFollower.class));
+        return queue;
     }
 
     @Override

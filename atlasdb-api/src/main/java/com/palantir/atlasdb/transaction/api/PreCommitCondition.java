@@ -16,6 +16,18 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+/**
+ * General condition that is checked before a transaction commits for validity. All conditions associated with a 
+ * transaction must be true for that transaction to commit successfully. If a given condition is valid at commit
+ * time, it must also be true that it was valid throughout the lifetime of the transaction. This is not explicitly
+ * checked, so care must be taken in designing appropriate conditions that satisfy this constraint. 
+ * 
+ * As an example, advisory locks are a common pre-commit condition and one that is built into the 
+ * {@link TransactionManager} API. These locks are granted before the transaction starts and cannot be refreshed
+ * once they lapse, so they provide the necessary invariant. If they are valid at commit time, they were valid 
+ * for the entire lifetime of the transaction.
+ */
+@FunctionalInterface
 public interface PreCommitCondition {
 
     /**
@@ -31,5 +43,5 @@ public interface PreCommitCondition {
      * The cleanup method should not throw any exceptions - it should be best effort. When this method is called,
      * the transaction has already failed or committed.
      */
-    void cleanup();
+    default void cleanup() {}
 }

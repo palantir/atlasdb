@@ -16,35 +16,51 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 /**
  * Adds {@link WriteInfo}s to a global queue to be swept.
  */
-public interface MultiTableSweepQueueWriter {
+public interface MultiTableSweepQueueWriter extends AutoCloseable {
+    MultiTableSweepQueueWriter NO_OP = ignored -> { };
 
-    MultiTableSweepQueueWriter NO_OP = (table, writes) -> { };
-
-    default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writesByTable, long timestamp) {
-        writesByTable.forEach((table, writes) -> enqueue(table, writes, timestamp));
+    default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
+        enqueue(toWriteInfos(writes, timestamp));
     }
 
-    default void enqueue(TableReference table, Map<Cell, byte[]> writes, long timestamp) {
-        enqueue(table, writes.entrySet().stream()
-                .map(entry -> ImmutableWriteInfo.builder()
-                        .cell(entry.getKey())
-                        .isTombstone(Value.isTombstone(entry.getValue()))
-                        .timestamp(timestamp)
-                        .build())
-                .collect(Collectors.toList()));
+    /**
+     * Persists the information about the writes into the sweep queue.
+     *
+     * @param writes list of writes to persist the information for
+     */
+    void enqueue(List<WriteInfo> writes);
+
+    /**
+     * This method must be implemented if asynchronous initialization is necessary for the implementation. This is
+     * generally the case if the transaction manager allows asynchronous initialization since there is no guarantee
+     * the underlying kvs is ready at object creation time.
+     *
+     * @param txManager the transaction manager performing the callback
+     */
+    default void callbackInit(SerializableTransactionManager txManager) {
+        // noop
     }
 
-    void enqueue(TableReference table, Collection<WriteInfo> writes);
+    default List<WriteInfo> toWriteInfos(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
+        return writes.entrySet().stream()
+                .flatMap(entry -> entry.getValue().entrySet().stream()
+                        .map(singleWrite -> SweepQueueUtils.toWriteInfo(entry.getKey(), singleWrite, timestamp)))
+                .collect(Collectors.toList());
+    }
 
+    @Override
+    default void close() throws Exception {
+        // noop
+    }
 }

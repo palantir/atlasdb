@@ -19,15 +19,26 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
-import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 
 public class OneNodeDownDeleteTest {
+    private static final String REQUIRES_ALL_CASSANDRA_NODES = "requires ALL Cassandra nodes to be up and available.";
 
     @Test
     public void deletingThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.delete(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP)))
-                .isInstanceOf(AtlasDbDependencyException.class);
+                .isExactlyInstanceOf(InsufficientConsistencyException.class)
+                .hasMessageContaining(REQUIRES_ALL_CASSANDRA_NODES);
+    }
+
+    @Test
+    public void deleteAllTimestampsThrows() {
+        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.deleteAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP), false))
+                .isExactlyInstanceOf(InsufficientConsistencyException.class)
+                .hasMessageContaining(REQUIRES_ALL_CASSANDRA_NODES);
     }
 }

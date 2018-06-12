@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb;
 
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -36,7 +37,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
-import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
@@ -75,9 +76,9 @@ public class AtlasDbTestCase {
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
     protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
-    protected MultiTableSweepQueueWriter sweepQueue = mock(MultiTableSweepQueueWriter.class);
-    // default methods make mockito confusing, so we delegate just the important method to the mock
-    protected MultiTableSweepQueueWriter wrappingSweepQueue = (table, writes) -> sweepQueue.enqueue(table, writes);
+    protected TargetedSweeper sweepQueue;
+    protected int sweepQueueShards = 128;
+    protected ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
     @BeforeClass
     public static void setupLockClient() {
@@ -108,11 +109,13 @@ public class AtlasDbTestCase {
         timestampService = new InMemoryTimestampService();
         KeyValueService kvs = getBaseKeyValueService();
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
-        keyValueService = new TrackingKeyValueService(keyValueServiceWithStats);
+        keyValueService = spy(new TrackingKeyValueService(keyValueServiceWithStats));
         TransactionTables.createTables(kvs);
         transactionService = TransactionServices.createTransactionService(kvs);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
+
+        sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
 
         serializableTxManager = new TestTransactionManagerImpl(
                 keyValueService,
@@ -122,7 +125,10 @@ public class AtlasDbTestCase {
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                wrappingSweepQueue);
+                sweepQueue,
+                deleteExecutor);
+
+        sweepQueue.callbackInit(serializableTxManager);
         txManager = new CachingTestTransactionManager(serializableTxManager);
     }
 

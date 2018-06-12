@@ -8,6 +8,7 @@ dependencies {
     compile project(path: ':atlasdb-dagger', configuration: 'shadow')
     compileOnly 'com.google.dagger:dagger'
     compile 'io.airlift:airline'
+    compile 'ch.qos.logback:logback-classic'
 
     processor group: 'org.immutables', name: 'value'
 
