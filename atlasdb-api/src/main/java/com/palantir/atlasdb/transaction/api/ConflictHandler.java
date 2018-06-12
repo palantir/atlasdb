@@ -67,6 +67,8 @@ public enum ConflictHandler {
      * of locking rows. Cell locks are more fine-grained, so this will produce less contention at the expense
      * of requiring more locks to be acquired.
      */
-    RETRY_ON_WRITE_WRITE_CELL;
+    RETRY_ON_WRITE_WRITE_CELL,
+
+    SERIALIZABLE_CELL,
 
 }

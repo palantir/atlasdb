@@ -1548,7 +1548,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throwIfValueChangedConflict(tableRef, writes, spanningWrites, dominatingWrites, commitLocksToken);
         } else if (conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE
                 || conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL
-                || conflictHandler == ConflictHandler.SERIALIZABLE) {
+                || conflictHandler == ConflictHandler.SERIALIZABLE
+                || conflictHandler == ConflictHandler.SERIALIZABLE_CELL) {
             if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
                 getTransactionConflictsMeter().mark();
                 throw TransactionConflictException.create(tableRef, getStartTimestamp(), spanningWrites,
@@ -1785,7 +1786,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 continue;
             }
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
-            if (conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL) {
+            if (conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL
+                    || conflictHandler == ConflictHandler.SERIALIZABLE_CELL) {
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
                     result.add(
                             AtlasCellLockDescriptor.of(
