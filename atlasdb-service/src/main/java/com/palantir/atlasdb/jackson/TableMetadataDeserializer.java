@@ -61,7 +61,7 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
         }
         // TODO: make defaults not duplicated with TableMetadata code.
         ConflictHandler conflictHandler = Optional.ofNullable(node.get("conflictHandler"))
-                .map(JsonNode::textValue).map(ConflictHandler::valueOf).orElse(ConflictHandler.IGNORE_ALL);
+                .map(JsonNode::textValue).map(ConflictHandler::valueOf).orElse(ConflictHandler.RETRY_ON_WRITE_WRITE);
         CachePriority cachePriority = Optional.ofNullable(node.get("cachePriority"))
                 .map(JsonNode::textValue).map(CachePriority::valueOf).orElse(CachePriority.WARM);
         boolean rangeScanAllowed = Optional.ofNullable(node.get("rangeScanAllowed"))
