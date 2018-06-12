@@ -150,7 +150,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(0));
 
         punchCurrentTimeAtTimestamp(LOW_TS);
-        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeLessThanOneSecond();
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeExactlyRefreshTime();
     }
 
     @Test
@@ -309,7 +309,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(0));
 
         punchCurrentTimeAtTimestamp(LOW_TS + 8);
-        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeLessThanOneSecond();
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeExactlyRefreshTime();
     }
 
     @Test
@@ -342,7 +342,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(3));
 
         punchCurrentTimeAtTimestamp(tsFineFour + 1L);
-        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeLessThanOneSecond();
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeExactlyRefreshTime();
     }
 
     @Test

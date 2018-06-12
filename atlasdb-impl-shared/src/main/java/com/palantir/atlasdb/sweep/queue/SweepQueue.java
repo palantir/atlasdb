@@ -33,7 +33,7 @@ import com.palantir.logsafe.SafeArg;
 
 public final class SweepQueue implements SweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(SweepQueue.class);
-    private static final long FIVE_MINUTES = TimeUnit.MINUTES.toMillis(5L);
+    public static final long REFRESH_INTERVAL = TimeUnit.MINUTES.toMillis(5L);
 
     private final SweepableCells sweepableCells;
     private final SweepableTimestamps sweepableTimestamps;
@@ -57,10 +57,10 @@ public final class SweepQueue implements SweepQueueWriter {
 
     public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig, int minShards,
             TargetedSweepFollower follower) {
-        TargetedSweepMetrics metrics = TargetedSweepMetrics.create(kvs, FIVE_MINUTES);
+        TargetedSweepMetrics metrics = TargetedSweepMetrics.create(kvs, REFRESH_INTERVAL);
         ShardProgress progress = new ShardProgress(kvs);
         progress.updateNumberOfShards(minShards);
-        Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, FIVE_MINUTES);
+        Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, REFRESH_INTERVAL);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);

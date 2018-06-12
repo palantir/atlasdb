@@ -113,19 +113,24 @@ public final class TargetedSweepMetrics {
             register(manager, AtlasDbMetricNames.LAST_SWEPT_TS, lastSweptTimestamp, tag);
 
             Supplier<Long> lastSweptMillis = new CachedComposedSupplier<>(tsToMillis, lastSweptTimestamp::getValue);
-            millisSinceOldestEntry = JavaSuppliers.compose(ts -> wallClock.getTimeMillis() - ts, lastSweptMillis)::get;
+            millisSinceOldestEntry = JavaSuppliers
+                    .compose(millis -> calculateMillis(wallClock, millis, recomputeMillis), lastSweptMillis)::get;
             register(manager, AtlasDbMetricNames.LAG_MILLIS, millisSinceOldestEntry, tag);
+        }
+
+        private long calculateMillis(Clock clock, long lastSweptMillis, long minimumMillis) {
+            return Math.max(clock.getTimeMillis() - lastSweptMillis, minimumMillis);
         }
 
         private static void register(MetricsManager manager, String name, Gauge<Long> metric, Map<String, String> tag) {
             manager.registerMetric(TargetedSweepMetrics.class, name, metric, tag);
         }
 
-        public void updateEnqueuedWrites(long writes) {
+        private void updateEnqueuedWrites(long writes) {
             enqueuedWrites.accumulateValue(writes);
         }
 
-        public void updateEntriesRead(long writes) {
+        private void updateEntriesRead(long writes) {
             entriesRead.accumulateValue(writes);
         }
 
