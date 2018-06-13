@@ -14,8 +14,8 @@ Mutations in Cassandra take place at a Cassandra *writetime* or timestamp. In no
 are the wall-clock times where a mutation took place. These are used to "resolve" conflicts when performing reads;
 for a given column, the most recently written value will be read ("last-write-wins").
 
-Notice that AtlasDB columns take the form `(row, column1, column2, value)` where `column2` is the Atlas timestamp.
-These timestamps are unique - thus, for transactional tables, no overwrites should take place apart from removing
+AtlasDB columns take the form `(row, column1, column2, value)` where `column2` is the Atlas timestamp. These timestamps
+are unique - thus, for transactional tables, no mutations to the same column should take place apart from removing
 a cell that is no longer needed (e.g. because of sweep).
 
 In the context of AtlasDB, reliance on wall-clock time is generally considered unacceptable. Thus, Atlas uses its
@@ -63,7 +63,12 @@ may prevent compactions on subsets of SSTables from dropping many legitimately d
 
 Change the timestamps at which sweep sentinels, tombstones and range tombstones are written to be a fresh timestamp
 from the timestamp service. In the case of sentinels and tombstones, a single API call to add a set of garbage
-collection sentinels or delete a set of cells makes one call to the fresh timestamp service.
+collection sentinels or delete a set of cells makes one call to the fresh timestamp service. Cell write timestamps
+are unchanged (so a write at timestamp `TS` still receives a Cassandra timestamp of `TS`).
+
+The write pattern for the metadata table is unchanged (still uses wall-clock time). Some of this is because of a
+chicken and egg problem with embedded users of the timestamp service; additionally, there are existing CLIs that
+manipulate the metadata table but don't have ready access to a timestamp service.
 
 ### Proof of Correctness/Safety
 Recall the invariants we seek to preserve:
@@ -81,9 +86,24 @@ already written to the database, a fresh timestamp `TS'` is necessarily greater 
 Statements 2 and 3 follow from the guarantees of the timestamp service.
 
 ### Migrations/Cutover
+Notice that even in the presence of values written under the old scheme, our invariants are preserved.
+Statement 1 holds because cell write timestamps haven't changed (and we can re-use the proof above).
+For statements 2 and 3, the timestamps of values we are covering would be `-1` and `deletionTimestamp + 1`;
+we know that a fresh timestamp will be at least that (since timestamps aren't given out twice).
+
+Timestamps for existing values are not changed, so a major compaction may be necessary before one begins to 
+reap the benefits of better tombstone droppability.
 
 ## Consequences
 
-- Key-value services now need a fresh timestamp for initialisation
+- Key-value services now need a fresh timestamp supplier for initialisation.
+  - An alternative approach where this was optional was considered (and if not provided we would use the legacy mode).
+    We decided to mandate providing the supplier as the benefits of better tombstone droppability are significant.
+  - The fresh timestamp supplier is unused by key value services other than Cassandra.
 - Inserting sentinels or writing tombstones/range tombstones requires one additional RPC.
-  - A memoisation approach was considered, but naïve memoisation is wrong.
+  - A memoisation approach was considered, but naïve memoisation is wrong - there is a risk where if you write a value
+    and then delete it shortly after, the memoized timestamp given to the tombstone could be less than the fresh
+    timestamp given to the write. In that case, the value remains live when it should not.
+  - A variant of the above that uses the max of the memoized timestamp and (writeTimestamp + 1) was briefly considered,
+    though we opted for not memoizing for simplicity and because these are not hot codepaths.
+    
