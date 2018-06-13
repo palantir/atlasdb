@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,11 +35,13 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.TableToSweep;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 
 public class NextTableToSweepProviderTest {
@@ -100,6 +103,32 @@ public class NextTableToSweepProviderTest {
     }
 
     @Test
+    public void calculatorReturnsMultiplePriorities_highestPriorityIsLocked_thenProviderReturnsSecondHighest()
+            throws InterruptedException {
+        givenPriority(table("table1"), 30.0);
+        givenPriority(table("table2"), 20.0);
+        givenTableIsLocked("table1");
+
+        whenGettingNextTableToSweep();
+
+        thenTableChosenIs(table("table2"));
+    }
+
+    @Test
+    public void calculatorReturnsMultiplePriorities_allLocked_thenProviderReturnsNothing()
+            throws InterruptedException {
+        givenPriority(table("table1"), 30.0);
+        givenPriority(table("table2"), 20.0);
+        givenPriority(table("table3"), 0.0);
+        givenTableIsLocked("table1");
+        givenTableIsLocked("table2");
+
+        whenGettingNextTableToSweep();
+
+        thenProviderReturnsEmpty();
+    }
+
+    @Test
     public void calculatorReturnsManyTablesWithHighestPriority_thenProviderReturnsOneOfThose() {
         givenPriority(table("table1"), 0.0);
         givenPriority(table("table2"), 30.0);
@@ -134,6 +163,18 @@ public class NextTableToSweepProviderTest {
         whenGettingNextTableToSweep();
 
         thenTableChosenIs(table("table1"));
+    }
+
+    @Test
+    public void priorityTablesAreLocked_thenProviderSelectsOtherTable() throws InterruptedException {
+        givenPriority(table("table1"), 20.0);
+        givenPriority(table("table2"), 10.0);
+        givenPriorityOverride(table("table1"));
+        givenTableIsLocked("table1");
+
+        whenGettingNextTableToSweep();
+
+        thenTableChosenIs(table("table2"));
     }
 
     @Test
@@ -173,6 +214,21 @@ public class NextTableToSweepProviderTest {
 
     private void givenBlacklisted(TableReference table) {
         blacklistTables.add(table.getQualifiedName());
+    }
+
+    private void givenTableIsLocked(String table) throws InterruptedException {
+        when(lockService.lock(any(), requestContaining(table))).thenReturn(null);
+    }
+
+    private LockRequest requestContaining(String table) {
+        return argThat(new ArgumentMatcher<LockRequest>() {
+            @Override
+            public boolean matches(Object argument) {
+                LockRequest request = (LockRequest) argument;
+                return request != null && request.getLockDescriptors().stream()
+                        .anyMatch(des -> des.getLockIdAsString().contains(table));
+            }
+        });
     }
 
     private void whenGettingNextTableToSweep() {
