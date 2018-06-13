@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.function.LongSupplier;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -45,6 +46,8 @@ public class CellValuePutter {
     private static final Function<Map.Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
             input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
+    private final LongSupplier timestampOverrideSupplier;
+
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
     private TaskRunner taskRunner;
@@ -55,17 +58,32 @@ public class CellValuePutter {
             CassandraClientPool clientPool,
             TaskRunner taskRunner,
             WrappingQueryRunner queryRunner,
-            ConsistencyLevel writeConsistency) {
+            ConsistencyLevel writeConsistency,
+            LongSupplier timestampOverrideSupplier) {
         this.config = config;
         this.clientPool = clientPool;
         this.taskRunner = taskRunner;
         this.queryRunner = queryRunner;
         this.writeConsistency = writeConsistency;
+        this.timestampOverrideSupplier = timestampOverrideSupplier;
     }
 
     void put(final String kvsMethodName,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+        put(kvsMethodName, tableRef, values, false);
+    }
+
+    void putWithOverriddenTimestamps(final String kvsMethodName,
+            final TableReference tableRef,
+            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+        put(kvsMethodName, tableRef, values, true);
+    }
+
+    private void put(final String kvsMethodName,
+            final TableReference tableRef,
+            final Iterable<Map.Entry<Cell, Value>> values,
+            boolean overwriteTimestamps) throws Exception {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
@@ -73,7 +91,12 @@ public class CellValuePutter {
                     "Atlas put " + entry.getValue().size()
                             + " cell values to " + tableRef + " on " + entry.getKey(),
                     () -> {
-                        putForSingleHost(kvsMethodName, entry.getKey(), tableRef, entry.getValue().entrySet());
+                        putForSingleHost(
+                                kvsMethodName,
+                                entry.getKey(),
+                                tableRef,
+                                entry.getValue().entrySet(),
+                                overwriteTimestamps);
                         clientPool.markWritesForTable(entry.getValue(), tableRef);
                         return null;
                     }));
@@ -84,13 +107,20 @@ public class CellValuePutter {
     private void putForSingleHost(String kvsMethodName,
             final InetSocketAddress host,
             final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+            final Iterable<Map.Entry<Cell, Value>> values,
+            boolean overrideTimestamps) throws Exception {
         clientPool.runWithRetryOnHost(host,
                 new FunctionCheckedException<CassandraClient, Void, Exception>() {
                     @Override
                     public Void apply(CassandraClient client) throws Exception {
                         int mutationBatchCount = config.mutationBatchCount();
                         int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
+                        long overrideTimestamp = Long.MIN_VALUE;
+                        if (overrideTimestamps) {
+                            // Note: The timestamp is not needed on a non-sentinel code path.
+                            overrideTimestamp = timestampOverrideSupplier.getAsLong();
+                        }
+
                         for (List<Map.Entry<Cell, Value>> partition : IterablePartitioner.partitionByCountAndBytes(
                                 values,
                                 mutationBatchCount,
@@ -100,7 +130,12 @@ public class CellValuePutter {
                             MutationMap map = new MutationMap();
                             for (Map.Entry<Cell, Value> e : partition) {
                                 Cell cell = e.getKey();
-                                Column col = CassandraKeyValueServices.createColumn(cell, e.getValue());
+                                Column col = overrideTimestamps
+                                        ? CassandraKeyValueServices.createColumnForDelete(
+                                                cell,
+                                                e.getValue(),
+                                                overrideTimestamp)
+                                        : CassandraKeyValueServices.createColumn(cell, e.getValue());
 
                                 ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
                                 colOrSup.setColumn(col);

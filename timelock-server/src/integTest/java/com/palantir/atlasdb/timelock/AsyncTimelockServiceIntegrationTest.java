@@ -309,7 +309,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void lockRequestsAreIdempotent() {
         if (isUsingSyncAdapter(cluster)) {
-            // legacy API does not support idempotence
+            // legacyModeForTestsOnly API does not support idempotence
             return;
         }
 
@@ -329,7 +329,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void waitForLockRequestsAreIdempotent() {
         if (isUsingSyncAdapter(cluster)) {
-            // legacy API does not support idempotence
+            // legacyModeForTestsOnly API does not support idempotence
             return;
         }
 

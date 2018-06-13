@@ -86,6 +86,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 rowComponent("sweep_conservative", ValueType.BLOB);
             columns();
                 column("value", "v", ValueType.VAR_LONG);
+
             // we do our own cleanup
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             conflictHandler(ConflictHandler.IGNORE_ALL);

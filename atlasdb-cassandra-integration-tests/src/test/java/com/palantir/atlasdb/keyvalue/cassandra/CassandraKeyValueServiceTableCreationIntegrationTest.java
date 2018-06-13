@@ -63,14 +63,14 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = ImmutableCassandraKeyValueServiceConfig
                 .copyOf(CassandraContainer.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(500);
-        kvs = CassandraKeyValueServiceImpl.create(
+        kvs = CassandraKeyValueServiceImpl.createForTesting(
                 quickTimeoutConfig,
                 CassandraContainer.LEADER_CONFIG);
 
         ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = ImmutableCassandraKeyValueServiceConfig
                 .copyOf(CassandraContainer.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(6 * 1000);
-        slowTimeoutKvs = CassandraKeyValueServiceImpl.create(
+        slowTimeoutKvs = CassandraKeyValueServiceImpl.createForTesting(
                 slowTimeoutConfig,
                 CassandraContainer.LEADER_CONFIG);
 

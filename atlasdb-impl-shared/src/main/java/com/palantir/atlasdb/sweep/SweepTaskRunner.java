@@ -51,8 +51,6 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.UnsafeArg;
 
-import gnu.trove.TDecorators;
-
 /**
  * Sweeps one individual table.
  */
@@ -61,10 +59,10 @@ public class SweepTaskRunner {
 
     private final KeyValueService keyValueService;
     private final SpecialTimestampsSupplier specialTimestampsSupplier;
-    private final TransactionService transactionService;
     private final SweepStrategyManager sweepStrategyManager;
     private final CellsSweeper cellsSweeper;
     private final Optional<SweepMetricsManager> metricsManager;
+    private final CommitTsCache commitTsCache;
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
@@ -92,11 +90,10 @@ public class SweepTaskRunner {
             SweepMetricsManager metricsManager) {
         this.keyValueService = keyValueService;
         this.specialTimestampsSupplier = new SpecialTimestampsSupplier(unreadableTsSupplier, immutableTsSupplier);
-        this.transactionService = transactionService;
         this.sweepStrategyManager = sweepStrategyManager;
         this.cellsSweeper = cellsSweeper;
         this.metricsManager = Optional.ofNullable(metricsManager);
-
+        this.commitTsCache = CommitTsCache.create(transactionService);
     }
 
     /**
@@ -188,7 +185,7 @@ public class SweepTaskRunner {
                 .shouldDeleteGarbageCollectionSentinels(!sweeper.shouldAddSentinels())
                 .build();
 
-        SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(transactionService, sweeper, sweepTs);
+        SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(commitTsCache, sweeper, sweepTs);
         try (ClosableIterator<List<CandidateCellForSweeping>> candidates = keyValueService.getCandidateCellsForSweeping(
                     tableRef, request)) {
             ExaminedCellLimit limit = new ExaminedCellLimit(startRow, batchConfig.maxCellTsPairsToExamine());
@@ -260,8 +257,7 @@ public class SweepTaskRunner {
             }
 
             // Taking an immutable copy is done here to allow for faster sublist extraction.
-            List<Long> currentCellTimestamps =
-                    ImmutableList.copyOf(TDecorators.wrap(cell.sortedTimestamps()));
+            List<Long> currentCellTimestamps = ImmutableList.copyOf(cell.sortedTimestamps());
 
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
                 currentBatch.putAll(cell.cell(), currentCellTimestamps);

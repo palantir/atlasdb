@@ -58,7 +58,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
 
     @Override
     public boolean canConnect(InetSocketAddress addr) {
-        return CassandraKeyValueServiceImpl.create(
+        return CassandraKeyValueServiceImpl.createForTesting(
                 (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr),
                 Optional.of(ImmutableLeaderConfig.builder()
                         .quorumSize(1)

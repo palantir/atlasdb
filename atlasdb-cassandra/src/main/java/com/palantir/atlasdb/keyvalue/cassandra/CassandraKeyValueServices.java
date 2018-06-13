@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
@@ -268,18 +267,6 @@ public final class CassandraKeyValueServices {
         return new UUID(uuid.getLong(uuid.position()), uuid.getLong(uuid.position() + 8)).toString();
     }
 
-    static String buildErrorMessage(String prefix, Map<String, Throwable> errorsByHost) {
-        StringBuilder result = new StringBuilder();
-        result.append(prefix).append("\n\n");
-        for (Map.Entry<String, Throwable> entry : errorsByHost.entrySet()) {
-            String host = entry.getKey();
-            Throwable cause = entry.getValue();
-            result.append(String.format("Error on host %s:%n%s%n%n", host, cause));
-        }
-        return result.toString();
-    }
-
-
     static String getFilteredStackTrace(String filter) {
         Exception ex = new Exception();
         StackTraceElement[] stackTrace = ex.getStackTrace();
@@ -293,13 +280,35 @@ public final class CassandraKeyValueServices {
     }
 
     static Column createColumn(Cell cell, Value value) {
+        return createColumnAtSpecificCassandraTimestamp(cell, value, value.getTimestamp());
+    }
+
+    /**
+     * Creates a {@link Column} for an Atlas tombstone.
+     * These columns have an Atlas timestamp of zero, but should not have a Cassandra timestamp of zero as that may
+     * interfere with compactions. We want these to be at least reasonably consistent with Atlas's overall logical
+     * time.
+     *
+     * In practice, usage may involve obtaining a (reasonably) fresh timestamp and using that as the timestamp for the
+     * deletion.
+     */
+    static Column createColumnForDelete(Cell cell, Value value, long cassandraTimestamp) {
+        Preconditions.checkState(
+                Arrays.equals(value.getContents(), PtBytes.EMPTY_BYTE_ARRAY),
+                "Attempted to createColumnForDelete on a non-delete value, for cell %s and value %s",
+                cell,
+                value);
+        return createColumnAtSpecificCassandraTimestamp(cell, value, cassandraTimestamp);
+    }
+
+    private static Column createColumnAtSpecificCassandraTimestamp(Cell cell, Value value, long cassandraTimestamp) {
         byte[] contents = value.getContents();
-        long timestamp = value.getTimestamp();
-        ByteBuffer colName = makeCompositeBuffer(cell.getColumnName(), timestamp);
+        long atlasTimestamp = value.getTimestamp();
+        ByteBuffer colName = makeCompositeBuffer(cell.getColumnName(), atlasTimestamp);
         Column col = new Column();
         col.setName(colName);
         col.setValue(contents);
-        col.setTimestamp(timestamp);
+        col.setTimestamp(cassandraTimestamp);
         return col;
     }
 
@@ -367,13 +376,6 @@ public final class CassandraKeyValueServices {
                 ret.put(Cell.create(row, pair.lhSide), pair.rhSide);
             }
         }
-    }
-
-    protected static int convertTtl(final long durationMillis, TimeUnit sourceTimeUnit) {
-        long ttlSeconds = TimeUnit.SECONDS.convert(durationMillis, sourceTimeUnit);
-        Preconditions.checkArgument(ttlSeconds > 0 && ttlSeconds < Integer.MAX_VALUE,
-                "Expiration time must be between 0 and ~68 years");
-        return (int) ttlSeconds;
     }
 
     public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {
