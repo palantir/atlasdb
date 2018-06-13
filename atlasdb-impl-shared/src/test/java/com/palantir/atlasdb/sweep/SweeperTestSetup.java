@@ -46,9 +46,10 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 
 public class SweeperTestSetup {
-
-    protected static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(
+    protected static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName(
             "backgroundsweeper.fasttest");
+    protected static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(
+            "backgroundsweeper.fasttest_other");
     protected static final int THREAD_INDEX = 0;
 
     protected static AdjustableSweepBatchConfigSource sweepBatchConfigSource;
@@ -78,8 +79,11 @@ public class SweeperTestSetup {
     @Before
     public void setup() {
         specificTableSweeper = getSpecificTableSweeperService();
+        backgroundSweeper = getBackgroundSweepThread(THREAD_INDEX);
+    }
 
-        backgroundSweeper = new BackgroundSweepThread(
+    protected BackgroundSweepThread getBackgroundSweepThread(int threadIndex) {
+        return new BackgroundSweepThread(
                 mock(LockService.class),
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,
@@ -89,7 +93,7 @@ public class SweeperTestSetup {
                 specificTableSweeper,
                 new SweepOutcomeMetrics(),
                 new CountDownLatch(1),
-                THREAD_INDEX);
+                threadIndex);
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {
@@ -117,7 +121,11 @@ public class SweeperTestSetup {
     }
 
     protected void setNoProgress() {
-        doReturn(Optional.empty()).when(progressStore).loadProgress(THREAD_INDEX);
+        setNoProgress(THREAD_INDEX);
+    }
+
+    protected void setNoProgress(int threadIndex) {
+        doReturn(Optional.empty()).when(progressStore).loadProgress(threadIndex);
     }
 
     protected void setProgress(SweepProgress progress) {
@@ -136,7 +144,11 @@ public class SweeperTestSetup {
     }
 
     protected void setupTaskRunner(SweepResults results) {
-        doReturn(results).when(sweepTaskRunner).run(eq(TABLE_REF), any(), any());
+        setupTaskRunner(TABLE_REF, results);
+    }
+
+    protected void setupTaskRunner(TableReference tableRef, SweepResults results) {
+        doReturn(results).when(sweepTaskRunner).run(eq(tableRef), any(), any());
     }
 
 }

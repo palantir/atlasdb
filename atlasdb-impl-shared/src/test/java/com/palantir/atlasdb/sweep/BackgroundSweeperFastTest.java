@@ -162,6 +162,46 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
+    public void testNewThreadSweepsNewTable() {
+        int otherThreadIndex = THREAD_INDEX + 1;
+        setProgress(ImmutableSweepProgress.builder()
+                .tableRef(TABLE_REF)
+                .staleValuesDeleted(3)
+                .cellTsPairsExamined(11)
+                .minimumSweptTimestamp(4567L)
+                .startRow(new byte[] {1, 2, 3})
+                .startColumn(PtBytes.toBytes("unused"))
+                .timeInMillis(10L)
+                .startTimeInMillis(20L)
+                .build());
+        setNoProgress(otherThreadIndex);
+        setupTaskRunner(OTHER_TABLE, ImmutableSweepResults.builder()
+                .staleValuesDeleted(2)
+                .cellTsPairsExamined(10)
+                .minSweptTimestamp(12345L)
+                .nextStartRow(Optional.of(new byte[] {4, 5, 6}))
+                .timeInMillis(20L)
+                .timeSweepStarted(50L)
+                .build());
+        setNextTableToSweep(OTHER_TABLE);
+
+        BackgroundSweepThread otherThread = getBackgroundSweepThread(otherThreadIndex);
+        otherThread.runOnce();
+
+        Mockito.verify(progressStore).saveProgress(eq(otherThreadIndex),
+                eq(ImmutableSweepProgress.builder()
+                        .tableRef(OTHER_TABLE)
+                        .staleValuesDeleted(2)
+                        .cellTsPairsExamined(10)
+                        .minimumSweptTimestamp(12345L)
+                        .startRow(new byte[] {4, 5, 6})
+                        .startColumn(PtBytes.toBytes("unused"))
+                        .timeInMillis(20L)
+                        .startTimeInMillis(50L)
+                        .build()));
+    }
+
+    @Test
     public void testPutZeroWriteCountAfterFreshIncompleteRun() {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
