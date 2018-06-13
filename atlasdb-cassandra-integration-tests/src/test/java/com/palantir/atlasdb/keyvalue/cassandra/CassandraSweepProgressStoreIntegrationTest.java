@@ -21,9 +21,9 @@ import org.junit.ClassRule;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.progress.SweepProgressStoreTest;
+import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
 
-public class CassandraSweepProgressStoreIntegrationTest extends SweepProgressStoreTest {
+public class CassandraSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraBackgroundSweeperIntegrationTest.class)
             .with(new CassandraContainer());
