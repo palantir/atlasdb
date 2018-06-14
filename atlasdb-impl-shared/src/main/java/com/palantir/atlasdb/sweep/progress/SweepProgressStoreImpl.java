@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 
@@ -48,6 +49,7 @@ import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = SweepProgressStore.class)
 public final class SweepProgressStoreImpl implements SweepProgressStore {
+
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepProgressStore {
         @Override
         public SweepProgressStoreImpl delegate() {
@@ -78,6 +80,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     private static final String ROW_AND_COLUMN_NAME = "s";
     private static final byte[] ROW_AND_COLUMN_NAME_BYTES = PtBytes.toCachedBytes(ROW_AND_COLUMN_NAME);
     private static final Cell CELL = Cell.create(ROW_AND_COLUMN_NAME_BYTES, ROW_AND_COLUMN_NAME_BYTES);
+    private static final byte[] FINISHED_TABLE = PtBytes.toBytes("Table finished");
 
     private static final TableMetadata SWEEP_PROGRESS_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(
@@ -141,9 +144,9 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
         }
 
         Value storedValue = Iterables.getOnlyElement(storedProgress.values());
-        if (storedValue.isEmpty()) {
+        if (isFinishedTablePlaceholder(storedValue)) {
             // Last iteration, this thread finished a table
-            return CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, new byte[0],
+            return CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, FINISHED_TABLE,
                     progressToBytes(newProgress));
         } else {
             return CheckAndSetRequest.singleCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell,
@@ -161,7 +164,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
             try {
                 CheckAndSetRequest request = CheckAndSetRequest.singleCell(
                         AtlasDbConstants.SWEEP_PROGRESS_TABLE, getCell(threadIndex),
-                        progressToBytes(oldProgress.get()), new byte[0]);
+                        progressToBytes(oldProgress.get()), FINISHED_TABLE);
                 kvs.checkAndSet(request);
             } catch (JsonProcessingException e) {
                 log.warn("Exception trying to clear sweep progress. "
@@ -190,8 +193,8 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
         }
         try {
             Value value = Iterables.getOnlyElement(result.values());
-            if (value.isEmpty()) {
-                log.info("No persisted SweepProgress information found.");
+            if (isFinishedTablePlaceholder(value)) {
+                log.debug("This thread finished a table last time around - returning empty progress object.");
                 return Optional.empty();
             }
             return Optional.of(OBJECT_MAPPER.readValue(value.getContents(), SweepProgress.class));
@@ -199,5 +202,9 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
             log.warn("Error deserializing SweepProgress object.", e);
             return Optional.empty();
         }
+    }
+
+    private static boolean isFinishedTablePlaceholder(Value value) {
+        return Arrays.equals(value.getContents(), FINISHED_TABLE);
     }
 }
