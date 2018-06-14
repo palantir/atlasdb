@@ -42,7 +42,7 @@ public final class CommitTsCache {
 
     /**
      * Loads the commit timestamps for a batch of timestamps. Potentially reduces the number of kvs accesses since it
-     * only does a single lookup for all the non-cached start timestamps.
+     * does batched lookups for non-cached start timestamps.
      */
     public Map<Long, Long> loadBatch(Collection<Long> timestamps) {
         try {
