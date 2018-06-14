@@ -31,18 +31,22 @@ import org.mockito.Mockito;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class CachedComposedSupplierTest {
-    int counter;
-    int supplierCounter;
+    long counter;
+    long supplierCounter;
+    Supplier<VersionedLong> mockVersionedSupplier;
+    Supplier<Long> testSupplier;
 
     @Before
     public void setup() {
         counter = 0;
         supplierCounter = 0;
+        mockVersionedSupplier = Mockito.mock(Supplier.class);
+        testSupplier = new CachedComposedSupplier<>(this::countingFunction, mockVersionedSupplier);
     }
 
     @Test
-    public void appliesFunctionToNull() {
-        Supplier<Integer> testSupplier = new CachedComposedSupplier<>(this::countingFunction, () -> null);
+    public void appliesFunctionToNullValue() {
+        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(null, 0));
         assertThat(counter).isEqualTo(0);
 
         assertThat(testSupplier.get()).isNull();
@@ -51,7 +55,7 @@ public class CachedComposedSupplierTest {
 
     @Test
     public void appliesFunctionOnlyOnceWhenUnderlyingSupplierIsConstant() {
-        Supplier<Integer> testSupplier = new CachedComposedSupplier<>(this::countingFunction, () -> 3);
+        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(3L, 0));
         assertThat(counter).isEqualTo(0);
 
         assertThat(testSupplier.get()).isEqualTo(6);
@@ -62,31 +66,47 @@ public class CachedComposedSupplierTest {
 
 
     @Test
-    public void appliesFunctionEachTimeGetIsInvokedAndSuppliedValueChanged() {
-        Supplier<Integer> mockSupplier = Mockito.mock(Supplier.class);
-        Supplier<Integer> testSupplier = new CachedComposedSupplier<>(this::countingFunction, mockSupplier);
-
-        when(mockSupplier.get()).thenReturn(null);
+    public void appliesFunctionEachTimeGetIsInvokedAndSuppliedVersionChanged() {
+        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(null, 0));
         assertThat(testSupplier.get()).isNull();
         assertThat(counter).isEqualTo(1);
 
-        when(mockSupplier.get()).thenReturn(3);
+        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(3L, 1));
         assertThat(testSupplier.get()).isEqualTo(6);
         assertThat(counter).isEqualTo(2);
 
-        when(mockSupplier.get()).thenReturn(8);
-        assertThat(testSupplier.get()).isEqualTo(16);
-        assertThat(testSupplier.get()).isEqualTo(16);
+        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(3L, 2));
+        assertThat(testSupplier.get()).isEqualTo(6);
+        assertThat(testSupplier.get()).isEqualTo(6);
         assertThat(counter).isEqualTo(3);
 
-        when(mockSupplier.get()).thenReturn(3);
-        assertThat(testSupplier.get()).isEqualTo(6);
+        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(8L, 3));
+        assertThat(testSupplier.get()).isEqualTo(16);
         assertThat(counter).isEqualTo(4);
     }
 
     @Test
+    public void doesNotapplyFunctionIfGetIsInvokedAndSuppliedVersionConstant() {
+        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(null, 0));
+        assertThat(testSupplier.get()).isNull();
+        assertThat(counter).isEqualTo(1);
+
+        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(3L, 0));
+        assertThat(testSupplier.get()).isNull();
+        assertThat(counter).isEqualTo(1);
+
+        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(8L, 0));
+        assertThat(testSupplier.get()).isNull();
+        assertThat(counter).isEqualTo(1);
+
+        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(3L, 1));
+        assertThat(testSupplier.get()).isEqualTo(6);
+        assertThat(counter).isEqualTo(2);
+    }
+
+    @Test
     public void appliesFunctionExactlyOncePerSuppliedValueChange() throws InterruptedException, ExecutionException {
-        Supplier<Integer> testSupplier = new CachedComposedSupplier<>(this::countingFunction, this::increasingNumber);
+        testSupplier = new CachedComposedSupplier<>(this::countingFunction, this::increasingNumber);
         ExecutorService executorService = PTExecutors.newFixedThreadPool(16);
         for (int i = 0; i < 100_000; i++) {
             executorService.submit(testSupplier::get);
@@ -98,7 +118,7 @@ public class CachedComposedSupplierTest {
         assertThat(counter).isEqualTo(1 + supplierCounter / 100);
     }
 
-    private Integer countingFunction(Integer input) {
+    private Long countingFunction(Long input) {
         counter++;
         if (input == null) {
             return null;
@@ -106,8 +126,8 @@ public class CachedComposedSupplierTest {
         return input * 2;
     }
 
-    private synchronized Integer increasingNumber() {
+    private synchronized VersionedLong increasingNumber() {
         supplierCounter++;
-        return supplierCounter / 100;
+        return VersionedLong.of(supplierCounter, supplierCounter / 100);
     }
 }

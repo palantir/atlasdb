@@ -33,7 +33,7 @@ import com.palantir.logsafe.SafeArg;
 
 public final class SweepQueue implements SweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(SweepQueue.class);
-    public static final long REFRESH_INTERVAL = TimeUnit.MINUTES.toMillis(5L);
+    private static final long REFRESH_INTERVAL = TimeUnit.MINUTES.toMillis(5L);
 
     private final SweepableCells sweepableCells;
     private final SweepableTimestamps sweepableTimestamps;

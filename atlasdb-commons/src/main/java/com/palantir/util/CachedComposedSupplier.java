@@ -27,41 +27,30 @@ import java.util.function.Supplier;
  * Intended to be used when applying the function is expensive in comparison to getting the value from the underlying
  * supplier.
  */
-public class CachedComposedSupplier<F, T> implements Supplier<T> {
-    private final Function<F, T> function;
-    private final Supplier<F> supplier;
-    private volatile F lastSupplied;
+public class CachedComposedSupplier<T> implements Supplier<T> {
+    private final Function<Long, T> function;
+    private final Supplier<VersionedLong> supplier;
+    private volatile Long lastSuppliedVersion = null;
     private volatile T cached;
-    private boolean initialized = false;
 
-    public CachedComposedSupplier(Function<F, T> function, Supplier<F> supplier) {
+    public CachedComposedSupplier(Function<Long, T> function, Supplier<VersionedLong> supplier) {
         this.function = function;
         this.supplier = supplier;
     }
 
     @Override
     public T get() {
-        initializeIfNecessary();
-        if (!Objects.equals(supplier.get(), lastSupplied)) {
+        if (!Objects.equals(supplier.get().version(), lastSuppliedVersion)) {
             recompute();
         }
         return cached;
     }
 
-    private synchronized void initializeIfNecessary() {
-        if (initialized) {
-            return;
-        }
-        lastSupplied = supplier.get();
-        cached = function.apply(lastSupplied);
-        initialized = true;
-    }
-
     private synchronized void recompute() {
-        F freshlySupplied = supplier.get();
-        if (!Objects.equals(freshlySupplied, lastSupplied)) {
-            lastSupplied = freshlySupplied;
-            cached = function.apply(lastSupplied);
+        VersionedLong freshVersion = supplier.get();
+        if (!Objects.equals(freshVersion.version(), lastSuppliedVersion)) {
+            lastSuppliedVersion = freshVersion.version();
+            cached = function.apply(freshVersion.value());
         }
     }
 }

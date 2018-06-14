@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.util;
+package com.palantir.util;
 
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,31 +23,32 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import com.codahale.metrics.Gauge;
 import com.google.common.base.Suppliers;
 
-public class AggregateRecomputingMetric implements Gauge<Long> {
+public class AggregatingVersionedSupplier implements Supplier<VersionedLong> {
     private final Function<Collection<Long>, Long> aggregator;
-    private final Supplier<Long> memoizedValue;
+    private final Supplier<VersionedLong> memoizedValue;
+    private volatile long version = 0;
 
     private final ConcurrentMap<Integer, Long> latestValues = new ConcurrentHashMap<>();
 
-    public AggregateRecomputingMetric(Function<Collection<Long>, Long> aggregator, long expirationMillis) {
+    public AggregatingVersionedSupplier(Function<Collection<Long>, Long> aggregator, long expirationMillis) {
         this.aggregator = aggregator;
         this.memoizedValue = Suppliers
                 .memoizeWithExpiration(this::recalculate, expirationMillis, TimeUnit.MILLISECONDS);
-    }
-
-    @Override
-    public Long getValue() {
-        return memoizedValue.get();
     }
 
     public void update(Integer key, Long value) {
         latestValues.put(key, value);
     }
 
-    private Long recalculate() {
-        return aggregator.apply(latestValues.values());
+    private VersionedLong recalculate() {
+        version++;
+        return VersionedLong.of(aggregator.apply(latestValues.values()), version);
+    }
+
+    @Override
+    public VersionedLong get() {
+        return memoizedValue.get();
     }
 }

@@ -149,8 +149,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         TargetedSweepMetricsTest.assertSweepTimestampConservativeEquals(getSweepTsCons());
         TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(0));
 
-        punchCurrentTimeAtTimestamp(LOW_TS);
-        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeExactlyRefreshTime();
+        punchCurrentTimeMinusMillisAtTimestamp(2000, LOW_TS);
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeWithinOneSecondOf(2000L);
     }
 
     @Test
@@ -308,8 +308,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         TargetedSweepMetricsTest.assertTombstonesPutConservativeEquals(1);
         TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(0));
 
-        punchCurrentTimeAtTimestamp(LOW_TS + 8);
-        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeExactlyRefreshTime();
+        punchCurrentTimeMinusMillisAtTimestamp(5000L, LOW_TS + 8);
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeWithinOneSecondOf(5000L);
     }
 
     @Test
@@ -341,8 +341,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         TargetedSweepMetricsTest.assertEntriesReadConservativeEquals(4);
         TargetedSweepMetricsTest.assertLastSweptTimestampConservativeEquals(maxTsForFinePartition(3));
 
-        punchCurrentTimeAtTimestamp(tsFineFour + 1L);
-        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeExactlyRefreshTime();
+        punchCurrentTimeMinusMillisAtTimestamp(0L, tsFineFour + 1L);
+        TargetedSweepMetricsTest.assertMillisSinceLastSweptConservativeWithinOneSecondOf(0L);
     }
 
     @Test
@@ -801,7 +801,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEmpty();
     }
 
-    private void punchCurrentTimeAtTimestamp(long timestamp) {
-        puncherStore.put(timestamp, System.currentTimeMillis());
+    private void punchCurrentTimeMinusMillisAtTimestamp(long minusMillis, long timestamp) {
+        puncherStore.put(timestamp, System.currentTimeMillis() - minusMillis);
     }
 }

@@ -18,8 +18,6 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static com.palantir.atlasdb.sweep.queue.SweepQueue.REFRESH_INTERVAL;
-
 import java.util.Map;
 
 import org.junit.Before;
@@ -43,14 +41,15 @@ public class TargetedSweepMetricsTest {
     private static final ShardAndStrategy CONS_ONE = ShardAndStrategy.conservative(1);
     private static final ShardAndStrategy CONS_TWO = ShardAndStrategy.conservative(2);
     private static final ShardAndStrategy THOR_ZERO = ShardAndStrategy.thorough(0);
-    private PuncherStore puncherStore;
     private long clockTime;
+    private KeyValueService kvs;
+    private PuncherStore puncherStore;
     private TargetedSweepMetrics metrics;
 
     @Before
     public void setup() {
         clockTime = 100;
-        KeyValueService kvs = new InMemoryKeyValueService(true);
+        kvs = new InMemoryKeyValueService(true);
         puncherStore = KeyValueServicePuncherStore.create(kvs, false);
         metrics = TargetedSweepMetrics.createWithClock(kvs, () -> clockTime, RECOMPUTE_MILLIS);
     }
@@ -164,30 +163,41 @@ public class TargetedSweepMetricsTest {
     }
 
     @Test
-    public void millisSinceLastSweptUpdatesAsClockUpdates() {
+    public void millisSinceLastSweptUpdatesAsClockUpdatesAfterWaiting() {
         metrics.updateProgressForShard(CONS_ZERO, 100);
-        waitForProgressToRecompute();
-
         puncherStore.put(0, 50);
         assertMillisSinceLastSweptConservativeEqualsClockTimeMinus(50);
 
         for (int i = 0; i < 10; i++) {
             clockTime = 100 + i;
+            waitForProgressToRecompute();
             assertMillisSinceLastSweptConservativeEqualsClockTimeMinus(50);
         }
     }
 
     @Test
-    public void millisSinceLastSweptDoesNotReadPuncherAgainUntilLastSweptChanges() {
+    public void millisSinceLastSweptDoesNotUpdateWithoutWaiting() {
+        metrics = TargetedSweepMetrics.createWithClock(kvs, () -> clockTime, 1_000_000);
+        metrics.updateProgressForShard(CONS_ZERO, 100);
+
+        puncherStore.put(0, 50);
+        assertMillisSinceLastSweptConservativeEquals(50L);
+
+        clockTime += 1;
+        assertMillisSinceLastSweptConservativeEquals(50L);
+
+        clockTime += 100;
+        assertMillisSinceLastSweptConservativeEquals(50L);
+    }
+
+    @Test
+    public void millisSinceLastSweptReadsPuncherAgainAfterWaiting() {
         metrics.updateProgressForShard(CONS_ZERO, 10);
-        waitForProgressToRecompute();
-
         puncherStore.put(0, 5);
-        assertMillisSinceLastSweptConservativeEqualsClockTimeMinus(5);
-        puncherStore.put(1, 10);
+
         assertMillisSinceLastSweptConservativeEqualsClockTimeMinus(5);
 
-        metrics.updateProgressForShard(CONS_ZERO, 11);
+        puncherStore.put(1, 10);
         waitForProgressToRecompute();
         assertMillisSinceLastSweptConservativeEqualsClockTimeMinus(10);
     }
@@ -219,8 +229,8 @@ public class TargetedSweepMetricsTest {
 
         assertLastSweptTimestampConservativeEquals(10);
         puncherStore.put(1, 1);
-        puncherStore.put(10, 10);
-        assertMillisSinceLastSweptConservativeEqualsClockTimeMinus(10);
+        puncherStore.put(10, 7);
+        assertMillisSinceLastSweptConservativeEqualsClockTimeMinus(7);
     }
 
     @Test
@@ -316,27 +326,6 @@ public class TargetedSweepMetricsTest {
         assertMillisSinceLastSweptThoroughEqualsClockTimeMinus(5);
     }
 
-    @Test
-    public void millisSinceLastSweptAtLeastRecomputeMillis() {
-        metrics.updateProgressForShard(CONS_ZERO, 1);
-        waitForProgressToRecompute();
-        puncherStore.put(1, clockTime - 2 * RECOMPUTE_MILLIS);
-
-        assertMillisSinceLastSweptConservativeEquals(2 * RECOMPUTE_MILLIS);
-
-        metrics.updateProgressForShard(CONS_ZERO, 2);
-        waitForProgressToRecompute();
-        puncherStore.put(2, clockTime - RECOMPUTE_MILLIS);
-
-        assertMillisSinceLastSweptConservativeEquals(RECOMPUTE_MILLIS);
-
-        metrics.updateProgressForShard(CONS_ZERO, 3);
-        waitForProgressToRecompute();
-        puncherStore.put(3, clockTime);
-
-        assertMillisSinceLastSweptConservativeEquals(RECOMPUTE_MILLIS);
-    }
-
     private static void waitForProgressToRecompute() {
         try {
             Thread.sleep(RECOMPUTE_MILLIS + 1);
@@ -377,8 +366,9 @@ public class TargetedSweepMetricsTest {
         assertThat(getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue()).isEqualTo(millis);
     }
 
-    public static void assertMillisSinceLastSweptConservativeExactlyRefreshTime() {
-        assertThat(getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue()).isEqualTo(REFRESH_INTERVAL);
+    public static void assertMillisSinceLastSweptConservativeWithinOneSecondOf(long expected) {
+        assertThat(getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue())
+                .isBetween(expected - 1000L, expected + 1000);
     }
 
     private static Gauge<Long> getGaugeConservative(String name) {

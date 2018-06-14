@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |metrics| |improved|
+         - The ``millisSinceLastSweptTs`` metric for targeted sweep now updates at the same frequency as the ``lastSweptTimestamp`` metric.
+           This will result in a much smoother graph for the former metric instead of the current sawtooth graph.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3265>`__)
+
     *    - |fixed|
          - Targeted sweep will no longer sweep cells from transactions that were committed after the sweep timestamp.
            Instead, targeted sweep will not proceed for that shard and strategy until the sweep timestamp progresses far enough.
