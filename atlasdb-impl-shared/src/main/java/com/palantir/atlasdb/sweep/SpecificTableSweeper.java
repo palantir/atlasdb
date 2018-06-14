@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
@@ -50,7 +50,7 @@ public class SpecificTableSweeper {
     private final SweepPriorityStore sweepPriorityStore;
     private final SweepProgressStore sweepProgressStore;
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
-    private final SweepMetricsManager sweepMetricsManager;
+    private final LegacySweepMetrics sweepMetrics;
     private final Clock wallClock;
 
 
@@ -62,7 +62,7 @@ public class SpecificTableSweeper {
             SweepPriorityStore sweepPriorityStore,
             SweepProgressStore sweepProgressStore,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetricsManager sweepMetricsManager,
+            LegacySweepMetrics sweepMetrics,
             Clock wallclock) {
         this.txManager = txManager;
         this.kvs = kvs;
@@ -70,7 +70,7 @@ public class SpecificTableSweeper {
         this.sweepPriorityStore = sweepPriorityStore;
         this.sweepProgressStore = sweepProgressStore;
         this.sweepPerfLogger = sweepPerfLogger;
-        this.sweepMetricsManager = sweepMetricsManager;
+        this.sweepMetrics = sweepMetrics;
         this.wallClock = wallclock;
     }
 
@@ -80,13 +80,13 @@ public class SpecificTableSweeper {
             SweepTaskRunner sweepRunner,
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetricsManager sweepMetricsManager,
+            LegacySweepMetrics sweepMetrics,
             boolean initializeAsync) {
         SweepProgressStore sweepProgressStore = SweepProgressStoreImpl.create(kvs, initializeAsync);
         SweepPriorityStore sweepPriorityStore = SweepPriorityStoreImpl.create(kvs, tableFactory, initializeAsync);
         return new SpecificTableSweeper(txManager, kvs, sweepRunner,
                 sweepPriorityStore, sweepProgressStore, sweepPerfLogger,
-                sweepMetricsManager,
+                sweepMetrics,
                 System::currentTimeMillis);
     }
 
@@ -174,7 +174,7 @@ public class SpecificTableSweeper {
     }
 
     private void processSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
-        updateMetricsOneIteration(currentIteration, tableToSweep.getTableRef());
+        updateTimeMetricsOneIteration(currentIteration.getTimeInMillis(), currentIteration.getTimeElapsedSinceStartedSweeping());
 
         SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
 
@@ -252,11 +252,11 @@ public class SpecificTableSweeper {
         }
     }
 
-    void updateMetricsOneIteration(SweepResults sweepResults, TableReference tableRef) {
-        sweepMetricsManager.updateMetrics(sweepResults, tableRef);
+    void updateTimeMetricsOneIteration(long sweepTime, long totalTimeElapsedSweeping) {
+        sweepMetrics.updateSweepTime(sweepTime, totalTimeElapsedSweeping);
     }
 
     void updateSweepErrorMetric() {
-        sweepMetricsManager.sweepError();
+        sweepMetrics.sweepError();
     }
 }

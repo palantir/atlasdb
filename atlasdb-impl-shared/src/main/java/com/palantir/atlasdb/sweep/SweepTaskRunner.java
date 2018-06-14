@@ -44,7 +44,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellLimit;
-import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -61,7 +61,7 @@ public class SweepTaskRunner {
     private final SpecialTimestampsSupplier specialTimestampsSupplier;
     private final SweepStrategyManager sweepStrategyManager;
     private final CellsSweeper cellsSweeper;
-    private final Optional<SweepMetricsManager> metricsManager;
+    private final Optional<LegacySweepMetrics> metricsManager;
     private final CommitTsCache commitTsCache;
 
     public SweepTaskRunner(
@@ -87,7 +87,7 @@ public class SweepTaskRunner {
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper,
-            SweepMetricsManager metricsManager) {
+            LegacySweepMetrics metricsManager) {
         this.keyValueService = keyValueService;
         this.specialTimestampsSupplier = new SpecialTimestampsSupplier(unreadableTsSupplier, immutableTsSupplier);
         this.sweepStrategyManager = sweepStrategyManager;
@@ -194,8 +194,6 @@ public class SweepTaskRunner {
             long totalCellTsPairsExamined = 0;
             long totalCellTsPairsDeleted = 0;
 
-            metricsManager.ifPresent(SweepMetricsManager::resetBeforeDeleteBatch);
-
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
                 BatchOfCellsToSweep batch = batchesToSweep.next();
@@ -212,7 +210,7 @@ public class SweepTaskRunner {
                 long cellsExamined = batch.numCellTsPairsExamined();
                 totalCellTsPairsExamined += cellsExamined;
 
-                metricsManager.ifPresent(manager -> manager.updateAfterDeleteBatch(cellsExamined, cellsDeleted));
+                metricsManager.ifPresent(manager -> manager.updateCellsExaminedDeleted(cellsExamined, cellsDeleted));
 
                 lastRow = batch.lastCellExamined().getRowName();
             }
