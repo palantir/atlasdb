@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -110,16 +109,16 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     public static final ExecutorService DELETE_EXECUTOR = Executors.newSingleThreadExecutor();
 
     protected Transaction startTransaction() {
-        com.google.common.base.Supplier<Long> startTimestamp = Suppliers.memoize(timestampService::getFreshTimestamp);
+        long startTimestamp = timestampService.getFreshTimestamp();
         return new SnapshotTransaction(metricsManager,
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                startTimestamp,
-                ConflictDetectionManagers.createWithNoConflictDetection(),
+                () -> startTimestamp,
+                ConflictDetectionManagers.create(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
-                0L,
+                startTimestamp,
                 Optional.empty(),
                 PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
