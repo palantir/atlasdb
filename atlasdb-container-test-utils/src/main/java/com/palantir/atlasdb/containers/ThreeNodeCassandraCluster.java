@@ -29,7 +29,6 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
@@ -102,8 +101,7 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     private static boolean canCreateCassandraKeyValueService() {
-        return CassandraKeyValueServiceImpl.create(
-                MetricsManagers.createForTests(),
+        return CassandraKeyValueServiceImpl.createForTesting(
                 KVS_CONFIG,
                 LEADER_CONFIG)
                 .isInitialized();

@@ -902,7 +902,6 @@
         "io.dropwizard:dropwizard-jackson": {
             "locked": "0.9.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard:dropwizard-configuration",
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-jersey",
@@ -2512,7 +2511,6 @@
         "io.dropwizard:dropwizard-jackson": {
             "locked": "0.9.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard:dropwizard-configuration",
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-jersey",

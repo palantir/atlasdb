@@ -24,8 +24,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraConnectionIntegrationTest {
     @ClassRule
@@ -36,20 +34,16 @@ public class CassandraConnectionIntegrationTest {
             .copyOf(CassandraContainer.KVS_CONFIG)
             .withCredentials(Optional.empty());
 
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
-
     @Test
     public void testAuthProvided() {
-        CassandraKeyValueServiceImpl.create(
-                metricsManager,
+        CassandraKeyValueServiceImpl.createForTesting(
                 CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG).close();
     }
 
     @Test
     public void testAuthMissing() {
-        CassandraKeyValueServiceImpl.create(
-                metricsManager,
+        CassandraKeyValueServiceImpl.createForTesting(
                 NO_CREDS_CKVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG).close();
     }

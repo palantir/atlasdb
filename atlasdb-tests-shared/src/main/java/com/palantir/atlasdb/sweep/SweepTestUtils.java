@@ -74,10 +74,9 @@ public final class SweepTestUtils {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitialized(
-                metricsManager, () -> true, () -> 1, 0, 0);
-        SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(metricsManager,
-                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
+        MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
+        SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
+                metricsManager, kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,

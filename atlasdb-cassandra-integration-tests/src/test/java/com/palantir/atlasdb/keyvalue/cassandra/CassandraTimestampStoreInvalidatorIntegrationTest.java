@@ -33,8 +33,6 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -47,10 +45,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     private static final long ONE_MILLION = 1_000_000;
 
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
-
-    private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
-            metricsManager,
+    private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.createForTesting(
             CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG);
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);

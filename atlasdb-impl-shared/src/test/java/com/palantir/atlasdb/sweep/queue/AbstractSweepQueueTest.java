@@ -112,7 +112,7 @@ public abstract class AbstractSweepQueueTest {
     }
 
     int writeToCellCommitted(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
-        putTimestampIntoTransactionTable(timestamp, Long.MAX_VALUE);
+        putTimestampIntoTransactionTable(timestamp, timestamp);
         return write(queueWriter, timestamp, cell, false, tableRef);
     }
 
@@ -125,8 +125,14 @@ public abstract class AbstractSweepQueueTest {
         return write(queueWriter, timestamp, DEFAULT_CELL, false, tableRef);
     }
 
+    int writeToDefaultCellCommitedAt(KvsSweepQueueWriter queueWriter, long startTs, long commitTs,
+            TableReference tableRef) {
+        putTimestampIntoTransactionTable(startTs, commitTs);
+        return write(queueWriter, startTs, DEFAULT_CELL, false, tableRef);
+    }
+
     int putTombstoneToDefaultCommitted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
-        putTimestampIntoTransactionTable(timestamp, Long.MAX_VALUE);
+        putTimestampIntoTransactionTable(timestamp, timestamp);
         return write(queueWriter, timestamp, DEFAULT_CELL, true, tableRef);
     }
 
@@ -151,7 +157,7 @@ public abstract class AbstractSweepQueueTest {
             Cell cell = getCellWithFixedHash(i);
             result.add(WriteInfo.write(tableRef, cell, ts));
         }
-        putTimestampIntoTransactionTable(ts, Long.MAX_VALUE);
+        putTimestampIntoTransactionTable(ts, ts);
         writer.enqueue(result);
         return result;
     }

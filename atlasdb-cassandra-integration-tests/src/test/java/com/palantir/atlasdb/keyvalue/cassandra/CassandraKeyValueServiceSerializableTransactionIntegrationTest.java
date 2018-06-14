@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.mockito.Mockito.mock;
+
 import org.junit.ClassRule;
 
 import com.palantir.atlasdb.containers.CassandraContainer;
@@ -22,15 +24,12 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
         extends AbstractSerializableTransactionTest {
-
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @ClassRule
     public static final Containers CONTAINERS =
@@ -39,21 +38,21 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CassandraKeyValueServiceImpl.create(
-                metricsManager,
+        return CassandraKeyValueServiceImpl.createForTesting(
                 CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG);
     }
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
-       return TargetedSweeper.createUninitialized(metricsManager, () -> true, () -> 128, 0, 0);
+       return TargetedSweeper.createUninitializedForTest(() -> 128);
     }
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
-        TargetedSweeper queue = TargetedSweeper.createUninitialized(metricsManager, () -> true, () -> 128, 0, 0);
-        queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), keyValueService);
+        TargetedSweeper queue = TargetedSweeper.createUninitializedForTest(() -> 128);
+        queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), keyValueService,
+                mock(TargetedSweepFollower.class));
         return queue;
     }
 

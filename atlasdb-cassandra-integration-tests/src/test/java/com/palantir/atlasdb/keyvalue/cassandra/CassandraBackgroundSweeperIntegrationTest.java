@@ -50,9 +50,13 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
                 ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
                     .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
+
+        // Need to ensure that C* timestamps for sentinels and deletes occur after timestamps where values were put
+        // (which is true in practice assuming timestamp service is working properly)
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 config,
-                CassandraContainer.LEADER_CONFIG);
+                CassandraContainer.LEADER_CONFIG,
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 }

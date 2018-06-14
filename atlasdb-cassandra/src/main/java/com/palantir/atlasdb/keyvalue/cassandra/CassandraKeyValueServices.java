@@ -35,6 +35,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -280,13 +281,35 @@ public final class CassandraKeyValueServices {
     }
 
     static Column createColumn(Cell cell, Value value) {
+        return createColumnAtSpecificCassandraTimestamp(cell, value, value.getTimestamp());
+    }
+
+    /**
+     * Creates a {@link Column} for an Atlas tombstone.
+     * These columns have an Atlas timestamp of zero, but should not have a Cassandra timestamp of zero as that may
+     * interfere with compactions. We want these to be at least reasonably consistent with Atlas's overall logical
+     * time.
+     *
+     * In practice, usage may involve obtaining a (reasonably) fresh timestamp and using that as the timestamp for the
+     * deletion.
+     */
+    static Column createColumnForDelete(Cell cell, Value value, long cassandraTimestamp) {
+        Preconditions.checkState(
+                Arrays.equals(value.getContents(), PtBytes.EMPTY_BYTE_ARRAY),
+                "Attempted to createColumnForDelete on a non-delete value, for cell %s and value %s",
+                cell,
+                value);
+        return createColumnAtSpecificCassandraTimestamp(cell, value, cassandraTimestamp);
+    }
+
+    private static Column createColumnAtSpecificCassandraTimestamp(Cell cell, Value value, long cassandraTimestamp) {
         byte[] contents = value.getContents();
-        long timestamp = value.getTimestamp();
-        ByteBuffer colName = makeCompositeBuffer(cell.getColumnName(), timestamp);
+        long atlasTimestamp = value.getTimestamp();
+        ByteBuffer colName = makeCompositeBuffer(cell.getColumnName(), atlasTimestamp);
         Column col = new Column();
         col.setName(colName);
         col.setValue(contents);
-        col.setTimestamp(timestamp);
+        col.setTimestamp(cassandraTimestamp);
         return col;
     }
 

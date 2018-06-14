@@ -36,6 +36,7 @@ import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -46,6 +47,9 @@ import com.palantir.atlasdb.schema.CleanupMetadataResourceImpl;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
+import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
@@ -74,6 +78,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             CheckAndSetSchema.getSchema(),
             TodoSchema.getSchema(),
             BlobSchema.getSchema());
+    private static final Follower FOLLOWER = CleanupFollower.create(ETE_SCHEMAS);
+
 
     public static void main(String[] args) throws Exception {
         new AtlasDbEteServer().run(args);
@@ -88,24 +94,26 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
-        TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
-        SerializableTransactionManager transactionManager =
-                tryToCreateTransactionManager(config, environment, taggedMetricRegistry);
-        Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(
-                transactionManager, environment.metrics(), taggedMetricRegistry));
-
-        environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager, sweepTaskRunner)));
-        environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
+        TaggedMetricRegistry taggedMetrics = new DefaultTaggedMetricRegistry();
+        SerializableTransactionManager txManager = tryToCreateTransactionManager(config, environment, taggedMetrics);
+        Supplier<SweepTaskRunner> sweepTaskRunner =
+                Suppliers.memoize(() -> getSweepTaskRunner(txManager, environment.metrics(), taggedMetrics));
+        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
+        Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
+        environment.jersey().register(new SimpleTodoResource(new TodoClient(
+                txManager,
+                sweepTaskRunner,
+                sweeperSupplier)));
+        environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(txManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
         environment.jersey().register(new CleanupMetadataResourceImpl(
-                transactionManager,
+                txManager,
                 config.getAtlasDbConfig().initializeAsync()));
     }
 
-    private SerializableTransactionManager tryToCreateTransactionManager(
-            AtlasDbEteConfiguration config, Environment environment, TaggedMetricRegistry taggedMetricRegistry)
-            throws InterruptedException {
+    private SerializableTransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config,
+            Environment environment, TaggedMetricRegistry taggedMetricRegistry) throws InterruptedException {
         if (config.getAtlasDbConfig().initializeAsync()) {
             return createTransactionManager(
                     config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), environment, taggedMetricRegistry);
@@ -130,6 +138,14 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         CleanupFollower follower = CleanupFollower.create(ETE_SCHEMAS);
         CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, noLocks, ImmutableList.of(follower));
         return new SweepTaskRunner(kvs, ts, ts, txnService, ssm, cellsSweeper);
+    }
+
+    private TargetedSweeper initializeAndGet(TargetedSweeper sweeper, SerializableTransactionManager txManager) {
+        sweeper.initialize(
+                new SpecialTimestampsSupplier(txManager::getImmutableTimestamp, txManager::getImmutableTimestamp),
+                txManager.getKeyValueService(),
+                new TargetedSweepFollower(ImmutableList.of(FOLLOWER), txManager));
+        return sweeper;
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

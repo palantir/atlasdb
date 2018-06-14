@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
@@ -36,6 +38,7 @@ import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
@@ -46,7 +49,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
-    private int minShards;
+    private final int minShards;
+    private final List<Follower> followers;
 
     private final MetricsManager metricsManager;
 
@@ -58,7 +62,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private volatile boolean isInitialized = false;
 
     private TargetedSweeper(MetricsManager metricsManager, Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
-            int conservativeThreads, int thoroughThreads) {
+            int conservativeThreads, int thoroughThreads, List<Follower> followers) {
         this.metricsManager = metricsManager;
         this.runSweep = runSweep;
         this.shardsConfig = shardsConfig;
@@ -67,24 +71,34 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         this.thoroughScheduler = new BackgroundSweepScheduler(thoroughThreads,
                 TableMetadataPersistence.SweepStrategy.THOROUGH);
         this.minShards = Math.max(conservativeThreads, thoroughThreads);
+        this.followers = followers;
     }
 
     /**
      * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
-     * {@link #initialize(SpecialTimestampsSupplier, KeyValueService)} method before any writes can be made to the
-     * sweep queue, or before sweeping.
+     * {@link #initialize(SpecialTimestampsSupplier, KeyValueService, TargetedSweepFollower)} method before any writes
+     * can be made to the sweep queue, or before sweeping.
      *
      * @param enabled live reloadable config controlling whether background threads should perform targeted sweep.
      * @param shardsConfig live reloadable config specifying the desired number of shards. Since the number of shards
      * must never be reduced, this will be ignored if the persisted number of shards is greater.
      * @param conservativeThreads number of conservative threads to use for background targeted sweep.
      * @param thoroughThreads number of thorough threads to use for background targeted sweep.
+     * @param followers follower used for sweeps, as defined by your schema.
      * @return returns an uninitialized targeted sweeper.
      */
-    public static TargetedSweeper createUninitialized(MetricsManager metricsManager,
+    public static TargetedSweeper createUninitialized(
+            MetricsManager metricsManager,
             Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
-            int conservativeThreads, int thoroughThreads) {
-        return new TargetedSweeper(metricsManager, enabled, shardsConfig, conservativeThreads, thoroughThreads);
+            int conservativeThreads, int thoroughThreads, List<Follower> followers) {
+        return new TargetedSweeper(
+                metricsManager, enabled, shardsConfig, conservativeThreads, thoroughThreads, followers);
+    }
+
+    @VisibleForTesting
+    public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
+        return createUninitialized(
+                MetricsManagers.createForTests(), () -> true, shards, 0, 0, ImmutableList.of());
     }
 
     /**
@@ -93,15 +107,16 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      *
      * @param timestamps supplier of unreadable and immutable timestamps.
      * @param kvs key value service that must be already initialized.
+     * @param follow follower used for sweeps.
      */
-    public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs) {
+    public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs, TargetedSweepFollower follow) {
         if (isInitialized) {
             return;
         }
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        queue = SweepQueue.create(metricsManager, kvs, shardsConfig, minShards);
+        queue = SweepQueue.create(metricsManager, kvs, shardsConfig, minShards, follow);
         timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
@@ -110,7 +125,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     @Override
     public void callbackInit(SerializableTransactionManager txManager) {
-        initialize(SpecialTimestampsSupplier.create(txManager), txManager.getKeyValueService());
+        initialize(SpecialTimestampsSupplier.create(txManager),
+                txManager.getKeyValueService(),
+                new TargetedSweepFollower(followers, txManager));
     }
 
     @Override

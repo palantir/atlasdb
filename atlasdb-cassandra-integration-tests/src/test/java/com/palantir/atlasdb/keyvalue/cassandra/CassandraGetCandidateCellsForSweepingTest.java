@@ -24,6 +24,7 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -46,6 +47,7 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
                 metricsManager,
                 CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG,
+                CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 Mockito.mock(Logger.class));
     }
 

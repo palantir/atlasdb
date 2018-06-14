@@ -47,6 +47,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.compact.BackgroundCompactor;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -68,6 +69,7 @@ import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
+import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -277,6 +279,7 @@ public abstract class TransactionManagers {
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier)),
                 closeables);
 
+        FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(
                         metricsManager,
@@ -284,8 +287,10 @@ public abstract class TransactionManagers {
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier),
                         config.leader(),
                         config.namespace(),
+                        Optional.empty(),
                         config.initializeAsync(),
-                        qosClient);
+                        qosClient,
+                        adapter);
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
@@ -298,6 +303,7 @@ public abstract class TransactionManagers {
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent());
+        adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
 
@@ -353,7 +359,7 @@ public abstract class TransactionManagers {
                 closeables);
 
         MultiTableSweepQueueWriter targetedSweep = initializeCloseable(
-                () -> uninitializedTargetedSweeper(metricsManager, config.targetedSweep(),
+                () -> uninitializedTargetedSweeper(metricsManager, config.targetedSweep(), follower,
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier)),
                 closeables);
 
@@ -911,16 +917,17 @@ public abstract class TransactionManagers {
     }
 
     private MultiTableSweepQueueWriter uninitializedTargetedSweeper(
-            MetricsManager metricsManager,
+                MetricsManager metricsManager,
             TargetedSweepInstallConfig config,
-            Supplier<TargetedSweepRuntimeConfig> runtime) {
+            Follower follower, Supplier<TargetedSweepRuntimeConfig> runtime) {
         if (config.enableSweepQueueWrites()) {
             return TargetedSweeper.createUninitialized(
                     metricsManager,
                     JavaSuppliers.compose(TargetedSweepRuntimeConfig::enabled, runtime),
                     JavaSuppliers.compose(TargetedSweepRuntimeConfig::shards, runtime),
                     config.conservativeThreads(),
-                    config.thoroughThreads());
+                    config.thoroughThreads(),
+                    ImmutableList.of(follower));
         }
         return MultiTableSweepQueueWriter.NO_OP;
     }

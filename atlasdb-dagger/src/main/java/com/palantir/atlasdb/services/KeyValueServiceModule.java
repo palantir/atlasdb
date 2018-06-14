@@ -54,6 +54,8 @@ public class KeyValueServiceModule {
                                                          TimestampService tss,
                                                          ServicesConfig config,
                                                          MetricsManager metricsManager) {
+        config.adapter().setTimestampService(tss);
+
         KvsProfilingLogger.setSlowLogThresholdMillis(config.atlasDbConfig().getKvsSlowLogThresholdMillis());
         KeyValueService kvs = ProfilingKeyValueService.create(rawKvs);
 

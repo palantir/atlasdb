@@ -98,9 +98,7 @@ public abstract class NodesDownTestSetup {
     }
 
     protected static CassandraKeyValueService createCassandraKvs() {
-        return CassandraKeyValueServiceImpl.create(
-                MetricsManagers.createForTests(),
-                CONFIG, ThreeNodeCassandraCluster.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.createForTesting(CONFIG, ThreeNodeCassandraCluster.LEADER_CONFIG);
     }
 
     private static void degradeCassandraCluster(List<String> nodesToKill) {
