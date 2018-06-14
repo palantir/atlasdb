@@ -42,8 +42,8 @@ import com.palantir.atlasdb.todo.generated.TodoTable;
 public class CassandraTimestampsEteTest {
     private static final Todo TODO = ImmutableTodo.of("todo");
     private static final Todo TODO_2 = ImmutableTodo.of("todo_two");
-    public static final String CASSANDRA_CONTAINER_NAME = "cassandra";
-    public static final long ID = 1L;
+    private static final String CASSANDRA_CONTAINER_NAME = "cassandra";
+    private static final long ID = 1L;
 
     private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
@@ -58,13 +58,11 @@ public class CassandraTimestampsEteTest {
     }
 
     @Test
-    public void tombstonesInOneSSTableAreCurrent() throws IOException, InterruptedException {
+    public void timestampsInOneSSTableAreCurrent() throws IOException, InterruptedException {
         long firstWriteTimestamp = todoClient.addTodoWithIdAndReturnTimestamp(ID, TODO);
         todoClient.addTodoWithIdAndReturnTimestamp(ID, TODO_2);
 
-        // Wait for targeted sweep to sweep the old value
-        Awaitility.waitAtMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-                .until(() -> todoClient.doesNotExistBeforeTimestamp(ID, firstWriteTimestamp));
+        sweepUntilNoValueExistsAtTimestamp(ID, firstWriteTimestamp);
 
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
 
@@ -78,6 +76,15 @@ public class CassandraTimestampsEteTest {
 
         assertMinimumTimestampIsAtLeast(sstableMetadata, firstWriteTimestamp);
         assertDroppableTombstoneRatioPositive(sstableMetadata);
+    }
+
+    private void sweepUntilNoValueExistsAtTimestamp(long id, long timestamp) {
+        Awaitility.waitAtMost(30, TimeUnit.SECONDS)
+                .pollInterval(1, TimeUnit.SECONDS)
+                .until(() -> {
+                        todoClient.runIterationOfTargetedSweep();
+                        return todoClient.doesNotExistBeforeTimestamp(id, timestamp);
+                });
     }
 
     private void assertMinimumTimestampIsAtLeast(String sstableMetadata, long expectedMinimum) {
