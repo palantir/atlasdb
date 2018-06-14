@@ -69,6 +69,11 @@ public enum ConflictHandler {
      */
     RETRY_ON_WRITE_WRITE_CELL,
 
+    /**
+     * Same as {@link SERIALIZABLE}, but checks for conflicts by locking cells during commit instead
+     * of locking rows. Cell locks are more fine-grained, so this will produce less contention at the expense
+     * of requiring more locks to be acquired.
+     */
     SERIALIZABLE_CELL,
 
 }

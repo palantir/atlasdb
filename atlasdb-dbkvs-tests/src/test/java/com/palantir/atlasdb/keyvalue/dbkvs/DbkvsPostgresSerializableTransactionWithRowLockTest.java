@@ -17,10 +17,10 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
+import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionWithRowLockTest;
 
-public class DbkvsPostgresSerializableTransactionTest extends
-        AbstractSerializableTransactionTest {
+public class DbkvsPostgresSerializableTransactionWithRowLockTest extends
+        AbstractSerializableTransactionWithRowLockTest {
 
     @Override
     protected KeyValueService getKeyValueService() {

@@ -34,6 +34,7 @@ import org.junit.Test;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -52,6 +53,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -61,7 +63,13 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.lock.AtlasCellLockDescriptor;
+import com.palantir.lock.AtlasRowLockDescriptor;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.TimelockService;
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
@@ -88,6 +96,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Override
     protected Transaction startTransaction() {
+        return startTransactionWithPreCommitCondition(PreCommitConditions.NO_OP);
+    }
+
+    protected Transaction startTransactionWithPreCommitCondition(PreCommitCondition preCommitCondition) {
         ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
                 TEST_TABLE,
                 ConflictHandler.SERIALIZABLE,
@@ -103,7 +115,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
                 Optional.empty(),
-                PreCommitConditions.NO_OP,
+                preCommitCondition,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -163,7 +175,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
             t2.commit();
             fail();
         } catch (TransactionSerializableConflictException e) {
-            // this is expectecd to throw because it is a write skew
+            // this is expected to throw because it is a write skew
         }
     }
 
@@ -694,6 +706,27 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         columnRangeAgain.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
         put(t1, "mutation to ensure", "conflict", "handling");
         t1.commit();
+    }
+
+    protected LockResponse getRowLock(String rowName) {
+        LockDescriptor rowLockDescriptor = AtlasRowLockDescriptor.of(
+                TEST_TABLE.getQualifiedName(),
+                PtBytes.toBytes(rowName));
+        return lock(rowLockDescriptor);
+    }
+
+    protected LockResponse getCellLock(String rowName, String colName) {
+        LockDescriptor cellLockDescriptor = AtlasCellLockDescriptor.of(
+                TEST_TABLE.getQualifiedName(),
+                PtBytes.toBytes(rowName),
+                PtBytes.toBytes(colName));
+        return lock(cellLockDescriptor);
+    }
+
+    private LockResponse lock(LockDescriptor lockDescriptor) {
+        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
+        LockRequest lockRequest = LockRequest.of(ImmutableSet.of(lockDescriptor), 5_000);
+        return timelockService.lock(lockRequest);
     }
 
     private void writeColumns() {

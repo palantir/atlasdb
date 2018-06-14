@@ -16,8 +16,15 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Map;
 import java.util.Optional;
+
+import org.junit.Test;
+import org.junit.experimental.theories.Theories;
+import org.junit.runner.RunWith;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
@@ -28,13 +35,15 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockResponse;
 
-public abstract class AbstractSerializableCellTransactionTest extends AbstractSerializableTransactionTest{
+public abstract class AbstractSerializableTransactionWithCellLockTest extends AbstractSerializableTransactionTest {
     @Override
-    protected Transaction startTransaction() {
+    protected Transaction startTransactionWithPreCommitCondition(PreCommitCondition preCommitCondition) {
         ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
                 TEST_TABLE,
                 ConflictHandler.SERIALIZABLE_CELL,
@@ -50,7 +59,7 @@ public abstract class AbstractSerializableCellTransactionTest extends AbstractSe
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
                 Optional.empty(),
-                PreCommitConditions.NO_OP,
+                preCommitCondition,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -66,5 +75,54 @@ public abstract class AbstractSerializableCellTransactionTest extends AbstractSe
                 return Maps.transformValues(map, input -> input.clone());
             }
         };
+    }
+
+    @Test
+    public void testCommitDoesNotAcquireRowLock() {
+        Transaction t0 = startTransaction();
+        put(t0, "row1", "col1", "100");
+        put(t0, "row1", "col2", "101");
+        put(t0, "row2", "col1", "102");
+        t0.commit();
+
+        Transaction t1 = startTransactionWithPreCommitCondition((ignored) -> {
+            LockResponse response = getRowLock("row1");
+            assertTrue(response.wasSuccessful());
+        });
+        put(t1, "row1", "col2", "102");
+        t1.commit();
+    }
+
+    @Test
+    public void testCommitAcquiresCellLock() {
+        Transaction t0 = startTransaction();
+        put(t0, "row1", "col1", "100");
+        put(t0, "row1", "col2", "101");
+        put(t0, "row2", "col1", "102");
+        t0.commit();
+
+        Transaction t1 = startTransactionWithPreCommitCondition((ignored) -> {
+            LockResponse response = getCellLock("row1", "col2");
+            //current lock implementation allows you to get a cell lock on a row that is already locked
+            assertFalse(response.wasSuccessful());
+        });
+        put(t1, "row1", "col2", "102");
+        t1.commit();
+    }
+
+    @Test
+    public void testCanAcquireLockOnMultipleCellsOnSameRow() {
+        Transaction t0 = startTransaction();
+        put(t0, "row1", "col1", "100");
+        put(t0, "row1", "col2", "101");
+        put(t0, "row2", "col1", "102");
+        t0.commit();
+
+        Transaction t1 = startTransactionWithPreCommitCondition((ignored) -> {
+            LockResponse response = getCellLock("row1", "col1");
+            assertTrue(response.wasSuccessful());
+        });
+        put(t1, "row1", "col2", "102");
+        t1.commit();
     }
 }

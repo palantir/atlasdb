@@ -18,10 +18,10 @@ package com.palantir.atlasdb.keyvalue;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.transaction.impl.AbstractSerializableCellTransactionTest;
+import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionWithCellLockTest;
 import com.palantir.common.concurrent.PTExecutors;
 
-public class MemorySerializableCellTransactionTest extends AbstractSerializableCellTransactionTest {
+public class MemorySerializableTransactionWithCellLockTest extends AbstractSerializableTransactionWithCellLockTest {
     @Override
     protected KeyValueService getKeyValueService() {
         return new InMemoryKeyValueService(false,
