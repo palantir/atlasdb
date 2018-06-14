@@ -30,6 +30,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.sweep.BackgroundSweepThread;
 import com.palantir.atlasdb.sweep.TableToSweep;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.lock.LockService;
@@ -100,7 +101,8 @@ public class NextTableToSweepProvider {
 
     private Optional<TableToSweep> attemptToChooseTableFromList(List<TableReference> priorityTables, String reason) {
         for (TableReference tableRefToSweep : priorityTables) {
-            SingleLockService sweepLockForTable = createLockServiceForTable(tableRefToSweep);
+            SingleLockService sweepLockForTable = SingleLockService.createNamedLockServiceForTable(
+                    lockService, BackgroundSweepThread.TABLE_LOCK_PREFIX, tableRefToSweep);
             try {
                 sweepLockForTable.lockOrRefresh();
                 if (sweepLockForTable.haveLocks()) {
@@ -117,13 +119,6 @@ public class NextTableToSweepProvider {
         }
 
         return Optional.empty();
-    }
-
-    private SingleLockService createLockServiceForTable(TableReference tableRefToSweep) {
-        String lockId = "sweep table " + tableRefToSweep.getQualifiedName();
-        return LoggingArgs.isSafe(tableRefToSweep)
-                ? SingleLockService.createSingleLockServiceWithSafeLockId(lockService, lockId)
-                : SingleLockService.createSingleLockService(lockService, lockId);
     }
 
     private Map<TableReference, Double> getTablesToBeConsideredForSweepAndScores(

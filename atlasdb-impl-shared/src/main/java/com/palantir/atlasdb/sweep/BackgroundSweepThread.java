@@ -38,8 +38,10 @@ import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-class BackgroundSweepThread implements Runnable {
+public class BackgroundSweepThread implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweepThread.class);
+
+    public static final String TABLE_LOCK_PREFIX = "sweep table";
 
     private final SweepOutcomeMetrics sweepOutcomeMetrics;
     private final SpecificTableSweeper specificTableSweeper;
@@ -228,16 +230,13 @@ class BackgroundSweepThread implements Runnable {
     }
 
     // This is needed if we've just grabbed the sweep thread lock and a previous thread was in the middle of a table
-    private void createLockForTableIfNecessary(TableReference tableReference) {
+    private void createLockForTableIfNecessary(TableReference tableRef) {
         if (lockForCurrentTable != null) {
             return;
         }
 
-        // TODO copy-pasted from NextTableToSweepProvider
-        String lockId = "sweep table " + tableReference.getQualifiedName();
-        lockForCurrentTable = LoggingArgs.isSafe(tableReference)
-                ? SingleLockService.createSingleLockServiceWithSafeLockId(lockService, lockId)
-                : SingleLockService.createSingleLockService(lockService, lockId);
+        lockForCurrentTable = SingleLockService.createNamedLockServiceForTable(
+                lockService, TABLE_LOCK_PREFIX, tableRef);
     }
 
     private boolean shouldContinueSweepingCurrentTable(
