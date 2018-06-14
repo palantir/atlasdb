@@ -58,13 +58,14 @@ public class CassandraTimestampsEteTest {
     }
 
     @Test
-    public void timestampsInOneSSTableAreCurrent() throws IOException, InterruptedException {
+    public void timestampsForRangeTombstonesAreCurrentInThoroughTables() throws IOException, InterruptedException {
         long firstWriteTimestamp = todoClient.addTodoWithIdAndReturnTimestamp(ID, TODO);
-        todoClient.addTodoWithIdAndReturnTimestamp(ID, TODO_2);
+        long secondWriteTimestamp = todoClient.addTodoWithIdAndReturnTimestamp(ID, TODO_2);
 
         sweepUntilNoValueExistsAtTimestamp(ID, firstWriteTimestamp);
 
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
+        CassandraCommands.nodetoolCompact(CASSANDRA_CONTAINER_NAME);
 
         List<String> ssTables = CassandraCommands.nodetoolGetSSTables(
                 CASSANDRA_CONTAINER_NAME,
@@ -74,7 +75,15 @@ public class CassandraTimestampsEteTest {
         String sstableMetadata = CassandraCommands.ssTableMetadata(
                 CASSANDRA_CONTAINER_NAME, Iterables.getOnlyElement(ssTables));
 
-        assertMinimumTimestampIsAtLeast(sstableMetadata, firstWriteTimestamp);
+        // Failure here implies that a range tombstone is being written at a very conservative timestamp.
+        assertMinimumTimestampIsAtLeast(sstableMetadata, secondWriteTimestamp);
+
+        // If the range tombstone is taken at a fresh timestamp, it must have timestamp at least 2 greater than
+        // the write timestamp of the second value. Failure here implies the range tombstone was not taken using
+        // a fresh timestamp.
+        assertMaximumTimestampIsAheadByAtLeast(sstableMetadata, 2);
+
+        // Failure here implies that the tombstone was dropped in the compaction, which shouldn't happen.
         assertDroppableTombstoneRatioPositive(sstableMetadata);
     }
 
@@ -88,16 +97,37 @@ public class CassandraTimestampsEteTest {
     }
 
     private void assertMinimumTimestampIsAtLeast(String sstableMetadata, long expectedMinimum) {
-        Pattern pattern = Pattern.compile("Minimum timestamp: ([0-9]*)");
+        assertThat(parseMinimumTimestamp(sstableMetadata)).isGreaterThanOrEqualTo(expectedMinimum);
+    }
+
+    private void assertMaximumTimestampIsAheadByAtLeast(String sstableMetadata, long expectedMinimumDelta) {
+        long range = parseMaximumTimestamp(sstableMetadata) - parseMinimumTimestamp(sstableMetadata);
+        assertThat(range).isGreaterThanOrEqualTo(expectedMinimumDelta);
+    }
+
+    private long parseMinimumTimestamp(String sstableMetadata) {
+        return parseNumericField("Minimum timestamp", sstableMetadata);
+    }
+
+    private long parseMaximumTimestamp(String sstableMetadata) {
+        return parseNumericField("Maximum timestamp", sstableMetadata);
+    }
+
+    private long parseNumericField(String field, String sstableMetadata) {
+        Pattern pattern = Pattern.compile(field + ": (-?[0-9]*)");
         Matcher timestampMatcher = pattern.matcher(sstableMetadata);
-        assertThat(timestampMatcher.find()).isTrue();
-        assertThat(Long.parseLong(timestampMatcher.group(1))).isGreaterThanOrEqualTo(expectedMinimum);
+        assertThat(timestampMatcher.find())
+                .as("SSTableMetadata output contains %s", field)
+                .isTrue();
+        return Long.parseLong(timestampMatcher.group(1));
     }
 
     private void assertDroppableTombstoneRatioPositive(String sstableMetadata) {
         Pattern pattern = Pattern.compile("Estimated droppable tombstones: ([0-9]*\\.[0-9]*)");
         Matcher droppableTombstoneRatioMatcher = pattern.matcher(sstableMetadata);
-        assertThat(droppableTombstoneRatioMatcher.find()).isTrue();
+        assertThat(droppableTombstoneRatioMatcher.find())
+                .as("SSTableMetadata output contains the droppable tombstone ratio")
+                .isTrue();
         assertThat(Double.parseDouble(droppableTombstoneRatioMatcher.group(1))).isGreaterThan(0);
     }
 }

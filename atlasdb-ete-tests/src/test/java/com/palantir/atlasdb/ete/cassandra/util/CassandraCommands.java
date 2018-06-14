@@ -24,20 +24,24 @@ import java.util.stream.Collectors;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 
 public class CassandraCommands {
     public static void nodetoolFlush(String containerName) throws IOException, InterruptedException {
         EteSetup.execCliCommand(containerName, "nodetool flush");
     }
 
+    public static void nodetoolCompact(String containerName) throws IOException, InterruptedException {
+        EteSetup.execCliCommand(containerName, "nodetool compact");
+    }
+
     public static List<String> nodetoolGetSSTables(String containerName,
             String keyspace,
             TableReference tableRef,
             byte[] rowKey) throws IOException, InterruptedException {
-        String query = String.format("nodetool getsstables %s %s__%s %s",
+        String query = String.format("nodetool getsstables %s %s %s",
                 keyspace,
-                tableRef.getNamespace().getName(),
-                tableRef.getTablename(),
+                CassandraKeyValueServiceImpl.internalTableName(tableRef),
                 BaseEncoding.base16().lowerCase().encode(rowKey));
         String output = EteSetup.execCliCommand(containerName, query);
 
