@@ -58,7 +58,7 @@ public abstract class TransactionTestSetup {
     protected LockClient lockClient;
     protected LockServiceImpl lockService;
 
-    protected MetricsManager metricsManager;
+    protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService keyValueService;
     protected TimestampService timestampService;
     protected TransactionService transactionService;
@@ -105,7 +105,6 @@ public abstract class TransactionTestSetup {
         transactionService = TransactionServices.createTransactionService(keyValueService);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        metricsManager = MetricsManagers.createForTests();
         txMgr = getManager();
     }
 
