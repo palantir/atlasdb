@@ -21,11 +21,11 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface VersionedLong {
-    @Nullable Long value();
+public interface VersionedType<T> {
+    @Nullable T value();
     long version();
 
-    static VersionedLong of(Long value, long version) {
-        return ImmutableVersionedLong.builder().value(value).version(version).build();
+    static <T> VersionedType<T> of(T value, long version) {
+        return ImmutableVersionedType.<T>builder().value(value).version(version).build();
     }
 }

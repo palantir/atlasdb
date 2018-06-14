@@ -22,24 +22,25 @@ import java.util.function.Supplier;
 
 /**
  * A version of composed supplier that caches the result of applying the function to the value supplied by the
- * underlying supplier. The result is recomputed only if the supplied value changes.
+ * underlying supplier of {@link VersionedType}. The result is recomputed if and only if the returned version
+ * increased since last call to get().
  *
- * Intended to be used when applying the function is expensive in comparison to getting the value from the underlying
- * supplier.
+ * Intended to be used when applying the function is expensive and the versioned type is expected to be updated
+ * less frequently than calls to {@link CachedComposedSupplier#get()}.
  */
-public class CachedComposedSupplier<T> implements Supplier<T> {
-    private final Function<Long, T> function;
-    private final Supplier<VersionedLong> supplier;
+public class CachedComposedSupplier<T, R> implements Supplier<R> {
+    private final Function<T, R> function;
+    private final Supplier<VersionedType<T>> supplier;
     private volatile Long lastSuppliedVersion = null;
-    private volatile T cached;
+    private volatile R cached;
 
-    public CachedComposedSupplier(Function<Long, T> function, Supplier<VersionedLong> supplier) {
+    public CachedComposedSupplier(Function<T, R> function, Supplier<VersionedType<T>> supplier) {
         this.function = function;
         this.supplier = supplier;
     }
 
     @Override
-    public T get() {
+    public R get() {
         if (!Objects.equals(supplier.get().version(), lastSuppliedVersion)) {
             recompute();
         }
@@ -47,7 +48,7 @@ public class CachedComposedSupplier<T> implements Supplier<T> {
     }
 
     private synchronized void recompute() {
-        VersionedLong freshVersion = supplier.get();
+        VersionedType<T> freshVersion = supplier.get();
         if (!Objects.equals(freshVersion.version(), lastSuppliedVersion)) {
             lastSuppliedVersion = freshVersion.version();
             cached = function.apply(freshVersion.value());

@@ -33,7 +33,7 @@ import com.palantir.common.concurrent.PTExecutors;
 public class CachedComposedSupplierTest {
     long counter;
     long supplierCounter;
-    Supplier<VersionedLong> mockVersionedSupplier;
+    Supplier<VersionedType<Long>> mockVersionedSupplier;
     Supplier<Long> testSupplier;
 
     @Before
@@ -46,7 +46,7 @@ public class CachedComposedSupplierTest {
 
     @Test
     public void appliesFunctionToNullValue() {
-        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(null, 0));
+        when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(null, 0));
         assertThat(counter).isEqualTo(0);
 
         assertThat(testSupplier.get()).isNull();
@@ -55,7 +55,7 @@ public class CachedComposedSupplierTest {
 
     @Test
     public void appliesFunctionOnlyOnceWhenUnderlyingSupplierIsConstant() {
-        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(3L, 0));
+        when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(3L, 0));
         assertThat(counter).isEqualTo(0);
 
         assertThat(testSupplier.get()).isEqualTo(6);
@@ -67,39 +67,39 @@ public class CachedComposedSupplierTest {
 
     @Test
     public void appliesFunctionEachTimeGetIsInvokedAndSuppliedVersionChanged() {
-        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(null, 0));
+        when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(null, 0));
         assertThat(testSupplier.get()).isNull();
         assertThat(counter).isEqualTo(1);
 
-        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(3L, 1));
+        when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(3L, 1));
         assertThat(testSupplier.get()).isEqualTo(6);
         assertThat(counter).isEqualTo(2);
 
-        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(3L, 2));
+        when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(3L, 2));
         assertThat(testSupplier.get()).isEqualTo(6);
         assertThat(testSupplier.get()).isEqualTo(6);
         assertThat(counter).isEqualTo(3);
 
-        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(8L, 3));
+        when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(8L, 3));
         assertThat(testSupplier.get()).isEqualTo(16);
         assertThat(counter).isEqualTo(4);
     }
 
     @Test
     public void doesNotapplyFunctionIfGetIsInvokedAndSuppliedVersionConstant() {
-        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(null, 0));
+        when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(null, 0));
         assertThat(testSupplier.get()).isNull();
         assertThat(counter).isEqualTo(1);
 
-        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(3L, 0));
+        when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(3L, 0));
         assertThat(testSupplier.get()).isNull();
         assertThat(counter).isEqualTo(1);
 
-        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(8L, 0));
+        when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(8L, 0));
         assertThat(testSupplier.get()).isNull();
         assertThat(counter).isEqualTo(1);
 
-        when(mockVersionedSupplier.get()).thenReturn(VersionedLong.of(3L, 1));
+        when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(3L, 1));
         assertThat(testSupplier.get()).isEqualTo(6);
         assertThat(counter).isEqualTo(2);
     }
@@ -126,8 +126,8 @@ public class CachedComposedSupplierTest {
         return input * 2;
     }
 
-    private synchronized VersionedLong increasingNumber() {
+    private synchronized VersionedType<Long> increasingNumber() {
         supplierCounter++;
-        return VersionedLong.of(supplierCounter, supplierCounter / 100);
+        return VersionedType.of(supplierCounter, supplierCounter / 100);
     }
 }

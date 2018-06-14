@@ -26,61 +26,61 @@ import org.junit.Test;
 public class AggregatingVersionedSupplierTest {
     private static final long REFRESH_MILLIS = 1L;
 
-    private AggregatingVersionedSupplier supplier;
+    private AggregatingVersionedSupplier<Long> supplier;
 
     @Before
     public void setup() {
-        supplier = new AggregatingVersionedSupplier(
+        supplier = new AggregatingVersionedSupplier<>(
                 col -> col.stream().max(Comparator.naturalOrder()).orElse(0L), REFRESH_MILLIS);
     }
 
     @Test
     public void canUpdateForNewKeys() throws InterruptedException {
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(0L, 1L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(0L, 1L));
 
         supplier.update(1, 1L);
         waitForUpdate();
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(1L, 2L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(1L, 2L));
 
         supplier.update(2, 100L);
         waitForUpdate();
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(100L, 3L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(100L, 3L));
     }
 
     @Test
     public void canUpdateForExistingKeys() throws InterruptedException {
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(0L, 1L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(0L, 1L));
 
         supplier.update(2, 100L);
         waitForUpdate();
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(100L, 2L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(100L, 2L));
 
         supplier.update(2, 10L);
         waitForUpdate();
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(10L, 3L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(10L, 3L));
     }
 
     @Test
     public void versionUpdatesForGetAfterRefreshMillis() throws InterruptedException {
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(0L, 1L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(0L, 1L));
 
         waitForUpdate();
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(0L, 2L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(0L, 2L));
 
         waitForUpdate();
         waitForUpdate();
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(0L, 3L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(0L, 3L));
     }
 
     @Test
     public void suppliedValueDoesNotChangeIfRefreshTimeHasNotPassed() {
-        supplier = new AggregatingVersionedSupplier(
+        supplier = new AggregatingVersionedSupplier<>(
                 col -> col.stream().max(Comparator.naturalOrder()).orElse(0L), 1_000_000);
 
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(0L, 1L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(0L, 1L));
 
         supplier.update(1, 1L);
-        assertThat(supplier.get()).isEqualTo(VersionedLong.of(0L, 1L));
+        assertThat(supplier.get()).isEqualTo(VersionedType.of(0L, 1L));
     }
 
     private void waitForUpdate() throws InterruptedException {

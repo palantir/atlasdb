@@ -96,7 +96,7 @@ public final class TargetedSweepMetrics {
         private final AccumulatingValueMetric tombstonesPut = new AccumulatingValueMetric();
         private final AccumulatingValueMetric abortedWritesDeleted = new AccumulatingValueMetric();
         private final CurrentValueMetric<Long> sweepTimestamp = new CurrentValueMetric<>();
-        private final AggregatingVersionedSupplier lastSweptTsSupplier;
+        private final AggregatingVersionedSupplier<Long> lastSweptTsSupplier;
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
@@ -107,7 +107,7 @@ public final class TargetedSweepMetrics {
             register(manager, AtlasDbMetricNames.ABORTED_WRITES_DELETED, abortedWritesDeleted, tag);
             register(manager, AtlasDbMetricNames.SWEEP_TS, sweepTimestamp, tag);
 
-            lastSweptTsSupplier = new AggregatingVersionedSupplier(TargetedSweepMetrics::minimum, recomputeMillis);
+            lastSweptTsSupplier = new AggregatingVersionedSupplier<>(TargetedSweepMetrics::minimum, recomputeMillis);
             Supplier<Long> millisSinceOldestEntry = new CachedComposedSupplier<>(
                     lastSweptTs -> wallClock.getTimeMillis() - tsToMillis.apply(lastSweptTs),
                     lastSweptTsSupplier);
