@@ -54,9 +54,16 @@ develop
          - Fixed an issue where ``getRowsColumnRange`` would return no results if the number of rows was more than the batch hint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3248>`__)
 
+    *    - |new|
+         - Multiple ``BackgroundSweeper`` threads can now run simultaneously.
+           To enable this, set the runtime option ``sweep/sweepThreads`` to the desired number of threads and restart any Atlas client.
+           If running multiple clients, these threads will be randomly split across them.
+           Due to the load it may place on Cassandra, this option is not recommended for Cassandra-backed installations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3257>`__)
+
     *    - |devbreak|
          - The ``BackgroundSweeper`` is no longer a ``Runnable``. Its job is now to manage ``BackgroundSweeperThread`` instances, which are ``Runnable``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/NNNN>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3257>`__)
 
 =======
 v0.89.0
