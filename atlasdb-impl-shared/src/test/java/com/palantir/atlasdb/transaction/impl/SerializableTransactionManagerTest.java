@@ -54,7 +54,7 @@ public class SerializableTransactionManagerTest {
     private AsyncInitializer mockInitializer = mock(AsyncInitializer.class);
     private Callback<TransactionManager> mockCallback = mock(Callback.class);
 
-    private SerializableTransactionManager manager;
+    private TransactionManager manager;
 
     @Before
     public void setUp() {
@@ -205,7 +205,7 @@ public class SerializableTransactionManagerTest {
         manager.getKeyValueServiceStatus();
     }
 
-    private SerializableTransactionManager getManagerWithCallback(boolean initializeAsync,
+    private TransactionManager getManagerWithCallback(boolean initializeAsync,
             Callback<TransactionManager> callBack) {
         return SerializableTransactionManager.create(
                 mockKvs,

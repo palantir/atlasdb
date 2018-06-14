@@ -361,7 +361,7 @@ public abstract class TransactionManagers {
                 LambdaCallback.of(targetedSweep::callbackInit),
                 asyncInitializationCallback()));
 
-        SerializableTransactionManager transactionManager = initializeCloseable(
+        TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
                         keyValueService,
                         lockAndTimestampServices.timelock(),

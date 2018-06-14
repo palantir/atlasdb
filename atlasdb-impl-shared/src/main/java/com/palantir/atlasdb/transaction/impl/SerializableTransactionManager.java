@@ -33,6 +33,7 @@ import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -51,7 +52,7 @@ import com.palantir.timestamp.TimestampService;
 @AutoDelegate(typeToExtend = SerializableTransactionManager.class)
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
-    public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
+    public static class InitializeCheckingWrapper implements AutoDelegate_TransactionManager {
         private final SerializableTransactionManager txManager;
         private final Supplier<Boolean> initializationPrerequisite;
         private final Callback<TransactionManager> callback;
@@ -181,18 +182,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
     }
 
-    /*
-     * This constructor is necessary for the InitializeCheckingWrapper. We initialize a dummy transaction manager and
-     * use the delegate instead.
-     */
-    // TODO(ssouza): it's hard to change the interface of STM with this.
-    // We should extract interfaces and delete this hack.
-    protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, null, () -> 1L, false, null, 1, 1,
-                MultiTableSweepQueueWriter.NO_OP);
-    }
-
-    public static SerializableTransactionManager create(KeyValueService keyValueService,
+    public static TransactionManager create(KeyValueService keyValueService,
             TimelockService timelockService,
             LockService lockService,
             TransactionService transactionService,
