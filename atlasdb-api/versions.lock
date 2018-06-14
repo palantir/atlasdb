@@ -93,6 +93,7 @@
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api"
             ]
@@ -495,6 +496,7 @@
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api"
             ]

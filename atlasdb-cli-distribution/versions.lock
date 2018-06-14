@@ -264,7 +264,6 @@
                 "com.palantir.atlasdb:atlasdb-hikari",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-jdbc",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:atlasdb-service",
