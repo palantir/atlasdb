@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
@@ -40,7 +39,7 @@ import com.palantir.exception.NotInitializedException;
  * The aggregated result is then processed: we throw an {@link AssertionError} on a TERMINAL result and throw a
  * {@link NotInitializedException} on an INDETERMINATE result.
  */
-public final class ConsistencyCheckRunner extends Callback<SerializableTransactionManager> {
+public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
     private static final Logger log = LoggerFactory.getLogger(ConsistencyCheckRunner.class);
 
@@ -58,7 +57,7 @@ public final class ConsistencyCheckRunner extends Callback<SerializableTransacti
     }
 
     @Override
-    public void init(SerializableTransactionManager resource) {
+    public void init(TransactionManager resource) {
         TransactionManagerConsistencyResult consistencyResult = checkAndAggregateResults(resource);
         processAggregatedResult(consistencyResult);
     }
@@ -87,7 +86,7 @@ public final class ConsistencyCheckRunner extends Callback<SerializableTransacti
     }
 
     @Override
-    public void cleanup(SerializableTransactionManager resource, Throwable initThrowable) {
+    public void cleanup(TransactionManager resource, Throwable initThrowable) {
         // Propagate errors, but there's no need to do cleanup as each task is responsible for that,
         // and this class assumes the tasks are independent.
         if (!(initThrowable instanceof NotInitializedException)) {

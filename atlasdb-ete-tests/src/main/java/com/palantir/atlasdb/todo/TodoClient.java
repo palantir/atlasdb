@@ -55,7 +55,6 @@ import com.palantir.atlasdb.todo.generated.LatestSnapshotTable;
 import com.palantir.atlasdb.todo.generated.SnapshotsStreamStore;
 import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.Pair;
@@ -73,7 +72,7 @@ public class TodoClient {
     public TodoClient(TransactionManager transactionManager, Supplier<SweepTaskRunner> sweepTaskRunner,
             Supplier<TargetedSweeper> targetedSweeper) {
         this.transactionManager = transactionManager;
-        this.kvs = Suppliers.memoize(((SerializableTransactionManager) transactionManager)::getKeyValueService);
+        this.kvs = Suppliers.memoize(transactionManager::getKeyValueService);
         this.sweepTaskRunner = sweepTaskRunner;
         this.targetedSweeper = targetedSweeper;
     }

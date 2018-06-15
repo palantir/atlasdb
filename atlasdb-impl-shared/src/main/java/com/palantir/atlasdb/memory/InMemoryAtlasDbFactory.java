@@ -29,9 +29,9 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -46,6 +46,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -152,7 +153,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
      * future versions.
      */
     @Deprecated
-    public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema,
+    public static TransactionManager createInMemoryTransactionManager(AtlasSchema schema,
             AtlasSchema... otherSchemas) {
 
         Set<Schema> schemas = Lists.asList(schema, otherSchemas).stream()
@@ -162,7 +163,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         return createInMemoryTransactionManagerInternal(schemas);
     }
 
-    private static SerializableTransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
+    private static TransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
         TimestampService ts = new InMemoryTimestampService();
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
 
@@ -184,7 +185,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 client,
                 ImmutableList.of(follower),
                 transactionService).buildCleaner();
-        SerializableTransactionManager ret = SerializableTransactionManager.createForTest(
+        TransactionManager ret = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
                 keyValueService,
                 ts,

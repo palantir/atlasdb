@@ -46,7 +46,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -78,7 +78,7 @@ public abstract class AbstractSweepTest {
     }
 
     protected KeyValueService kvs;
-    protected LockAwareTransactionManager txManager;
+    protected TransactionManager txManager;
     protected TransactionService txService;
     protected SweepStrategyManager ssm;
     protected PersistentLockManager persistentLockManager;

@@ -29,7 +29,7 @@ import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.async.initializer.AsyncInitializer;
-import com.palantir.atlasdb.cleaner.Cleaner;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;

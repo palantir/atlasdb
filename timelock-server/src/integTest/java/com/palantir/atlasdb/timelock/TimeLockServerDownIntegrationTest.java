@@ -29,7 +29,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class TimeLockServerDownIntegrationTest {
@@ -48,7 +48,7 @@ public class TimeLockServerDownIntegrationTest {
 
     @Test
     public void getsDependencyExceptionFromTransactionsWhenDown() {
-        SerializableTransactionManager txnManager = TimeLockTestUtils.createTransactionManager(CLUSTER);
+        TransactionManager txnManager = TimeLockTestUtils.createTransactionManager(CLUSTER);
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         // write a value

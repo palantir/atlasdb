@@ -28,8 +28,8 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
@@ -39,6 +39,7 @@ import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
+import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -127,14 +128,16 @@ import com.palantir.timestamp.TimestampService;
             throws E, TransactionFailedRetriableException {
         checkOpen();
         try {
-            RawTransaction tx = setupRunTaskWithConditionThrowOnConflict(condition);
-            return finishRunTaskWithLockThrowOnConflict(tx, transaction -> task.execute(transaction, condition));
+            TransactionAndImmutableTsLock txAndLock = setupRunTaskWithConditionThrowOnConflict(condition);
+            return finishRunTaskWithLockThrowOnConflict(txAndLock,
+                    transaction -> task.execute(transaction, condition));
         } finally {
             condition.cleanup();
         }
     }
 
-    public RawTransaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
+    @Override
+    public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
                 LockImmutableTimestampRequest.create());
         try {
@@ -145,28 +148,30 @@ import com.palantir.timestamp.TimestampService;
 
             SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
                     immutableTsLock, condition);
-            return new RawTransaction(transaction, immutableTsLock);
+            return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
         } catch (Throwable e) {
             timelockService.unlock(ImmutableSet.of(immutableTsResponse.getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
-    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
+    @Override
+    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock txAndLock,
                                                                            TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
+        SnapshotTransaction tx = (SnapshotTransaction) txAndLock.transaction();
         T result;
         try {
             result = runTaskThrowOnConflict(task, tx);
         } finally {
-            timelockService.unlock(ImmutableSet.of(tx.getImmutableTsLock()));
+            timelockService.unlock(ImmutableSet.of(txAndLock.immutableTsLock()));
         }
         if ((tx.getTransactionType() == TransactionType.AGGRESSIVE_HARD_DELETE) && !tx.isAborted()) {
             // t.getCellsToScrubImmediately() checks that t has been committed
             cleaner.scrubImmediately(this,
-                    tx.delegate().getCellsToScrubImmediately(),
-                    tx.delegate().getTimestamp(),
-                    tx.delegate().getCommitTimestamp());
+                    tx.getCellsToScrubImmediately(),
+                    tx.getTimestamp(),
+                    tx.getCommitTimestamp());
         }
         return result;
     }
@@ -201,7 +206,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
@@ -235,12 +240,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    /**
-     * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
-     * submitted throws an exception.
-     *
-     * Concurrency: If this method races with close(), then closingCallback may not be called.
-     */
+    @Override
     public void registerClosingCallback(Runnable closingCallback) {
         Preconditions.checkNotNull(closingCallback, "Cannot register a null callback.");
         closingCallbacks.add(closingCallback);
@@ -344,14 +344,17 @@ import com.palantir.timestamp.TimestampService;
         return cleaner.getUnreadableTimestamp();
     }
 
+    @Override
     public Cleaner getCleaner() {
         return cleaner;
     }
 
+    @Override
     public KeyValueService getKeyValueService() {
         return keyValueService;
     }
 
+    @Override
     public TimestampService getTimestampService() {
         return new TimelockTimestampServiceAdapter(timelockService);
     }

@@ -24,7 +24,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.factory.ImmutableTransactionManagerConsistencyResult;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
 import com.palantir.exception.NotInitializedException;
 
@@ -50,7 +50,7 @@ public class ConsistencyCheckRunnerTest {
                     .reasonForInconsistency(EXCEPTION_2)
                     .build());
 
-    private final SerializableTransactionManager mockTxMgr = mock(SerializableTransactionManager.class);
+    private final TransactionManager mockTxMgr = mock(TransactionManager.class);
 
     @Test
     public void zeroConsistencyChecksImpliesConsistency() {
