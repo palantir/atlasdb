@@ -46,9 +46,9 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 
 public class SweeperTestSetup {
-    protected static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName(
-            "backgroundsweeper.fasttest");
     protected static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(
+            "backgroundsweeper.fasttest");
+    protected static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName(
             "backgroundsweeper.fasttest_other");
     protected static final int THREAD_INDEX = 0;
 
