@@ -40,7 +40,6 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockResponse;
 
 public abstract class AbstractSerializableTransactionWithRowLockTest extends AbstractSerializableTransactionTest {
-
     @Override
     protected Transaction startTransaction() {
         return startTransactionWithPreCommitCondition(PreCommitConditions.NO_OP);
