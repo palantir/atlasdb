@@ -125,7 +125,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimestamp,
-                ConflictDetectionManagers.createWithNoConflictDetection(),
+                ConflictDetectionManagers.create(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 startTimestamp,
                 Optional.empty(),

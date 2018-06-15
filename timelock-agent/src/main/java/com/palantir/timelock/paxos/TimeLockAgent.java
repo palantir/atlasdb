@@ -162,7 +162,7 @@ public class TimeLockAgent {
     /**
      * Creates timestamp and lock services for the given client. It is expected that for each client there should
      * only be (up to) one active timestamp service, and one active lock service at any time.
-     * @param client Client namespace create of the services for
+     * @param client Client namespace to create the services for
      * @return Invalidating timestamp and lock services
      */
     private TimeLockServices createInvalidatingTimeLockServices(String client) {

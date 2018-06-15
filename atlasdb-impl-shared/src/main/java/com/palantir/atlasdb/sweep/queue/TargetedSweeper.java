@@ -96,9 +96,14 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     }
 
     @VisibleForTesting
-    public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
+    public static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager, Supplier<Integer> shards) {
         return createUninitialized(
-                MetricsManagers.createForTests(), () -> true, shards, 0, 0, ImmutableList.of());
+                metricsManager, () -> true, shards, 0, 0, ImmutableList.of());
+    }
+
+    @VisibleForTesting
+    public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
+        return createUninitializedForTest(MetricsManagers.createForTests(), shards);
     }
 
     /**

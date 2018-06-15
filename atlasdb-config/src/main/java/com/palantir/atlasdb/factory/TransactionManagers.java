@@ -904,7 +904,7 @@ public abstract class TransactionManagers {
         LockService lockService = ServiceCreator.createInstrumentedService(
                 metricsManager.getRegistry(), lock.get(), LockService.class);
         TimestampService timeService = ServiceCreator.createInstrumentedService(
-                metricsManager.getRegistry(),time.get(), TimestampService.class);
+                metricsManager.getRegistry(), time.get(), TimestampService.class);
 
         env.accept(lockService);
         env.accept(timeService);

@@ -159,7 +159,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             try {
                 return createTransactionManager(config, atlasDbRuntimeConfig, environment, taggedMetricRegistry);
             } catch (RuntimeException e) {
-                log.warn("An error occurred while trying to of transaction manager. Retrying...", e);
+                log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
             }
         }

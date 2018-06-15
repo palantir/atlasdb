@@ -18,8 +18,10 @@ package com.palantir.atlasdb.services;
 
 import javax.inject.Singleton;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 import dagger.Module;
 import dagger.Provides;
@@ -30,6 +32,6 @@ public class MetricsModule {
     @Provides
     @Singleton
     public MetricsManager metricsManager() {
-        return MetricsManagers.createForTests();
+        return MetricsManagers.of(new MetricRegistry(), new DefaultTaggedMetricRegistry());
     }
 }
