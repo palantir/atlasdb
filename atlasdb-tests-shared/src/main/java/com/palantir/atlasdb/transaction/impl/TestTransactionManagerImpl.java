@@ -125,7 +125,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimestamp,
-                ConflictDetectionManagers.create(keyValueService),
+                getConflictDetectionManager(),
                 SweepStrategyManagers.createDefault(keyValueService),
                 startTimestamp,
                 Optional.empty(),
@@ -139,7 +139,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP,
+                sweepQueueWriter,
                 deleteExecutor);
     }
 
