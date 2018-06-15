@@ -40,8 +40,13 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockResponse;
 
 public abstract class AbstractSerializableTransactionWithRowLockTest extends AbstractSerializableTransactionTest {
+
     @Override
-    protected Transaction startTransactionWithPreCommitCondition(PreCommitCondition preCommitCondition) {
+    protected Transaction startTransaction() {
+        return startTransactionWithPreCommitCondition(PreCommitConditions.NO_OP);
+    }
+
+    private Transaction startTransactionWithPreCommitCondition(PreCommitCondition preCommitCondition) {
         ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
                 TEST_TABLE,
                 ConflictHandler.SERIALIZABLE,

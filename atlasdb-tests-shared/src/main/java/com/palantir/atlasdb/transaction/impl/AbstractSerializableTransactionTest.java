@@ -53,7 +53,6 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -96,10 +95,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Override
     protected Transaction startTransaction() {
-        return startTransactionWithPreCommitCondition(PreCommitConditions.NO_OP);
-    }
-
-    protected Transaction startTransactionWithPreCommitCondition(PreCommitCondition preCommitCondition) {
         ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
                 TEST_TABLE,
                 ConflictHandler.SERIALIZABLE,
@@ -115,7 +110,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
                 Optional.empty(),
-                preCommitCondition,
+                PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,

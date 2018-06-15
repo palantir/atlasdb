@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Test;
-import org.junit.experimental.theories.Theories;
-import org.junit.runner.RunWith;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
@@ -42,8 +40,13 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockResponse;
 
 public abstract class AbstractSerializableTransactionWithCellLockTest extends AbstractSerializableTransactionTest {
+
     @Override
-    protected Transaction startTransactionWithPreCommitCondition(PreCommitCondition preCommitCondition) {
+    protected Transaction startTransaction() {
+        return startTransactionWithPreCommitCondition(PreCommitConditions.NO_OP);
+    }
+
+    private Transaction startTransactionWithPreCommitCondition(PreCommitCondition preCommitCondition) {
         ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
                 TEST_TABLE,
                 ConflictHandler.SERIALIZABLE_CELL,
