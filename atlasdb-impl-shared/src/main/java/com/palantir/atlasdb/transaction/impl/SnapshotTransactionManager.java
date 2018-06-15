@@ -268,6 +268,7 @@ import com.palantir.timestamp.TimestampService;
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
                 callback.run();
             }
+            metricsManager.deregisterMetrics();
         }
     }
 

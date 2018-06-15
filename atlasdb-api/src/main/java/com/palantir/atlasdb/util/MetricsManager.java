@@ -212,4 +212,9 @@ public class MetricsManager {
         registeredMetrics.add(name);
         return gauge;
     }
+
+    public synchronized void deregisterMetrics() {
+        registeredMetrics.forEach(metricRegistry::remove);
+        registeredMetrics.clear();
+    }
 }
