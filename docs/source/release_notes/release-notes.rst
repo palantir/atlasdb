@@ -50,6 +50,14 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Refactored the TransactionManager inheritance tree to consolidate all relevant methods into a single interface.
+           Functionally, any TransactionManager created using TransactionManagers will provide the serializable and snapshot
+           isolation guarantees provided by a SerializableTransactionManager. Constructing TransactionManagers via this class
+           should result in only a minor dev break as a result of this change. This will make it easier to transparently wrap 
+           TransactionManagers to extend their functionality.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3188>`__)
+
     *    - |fixed|
          - Targeted sweep will no longer sweep cells from transactions that were committed after the sweep timestamp.
            Instead, targeted sweep will not proceed for that shard and strategy until the sweep timestamp progresses far enough.

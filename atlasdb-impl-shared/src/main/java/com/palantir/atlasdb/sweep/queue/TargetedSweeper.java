@@ -36,7 +36,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.table.description.Schemas;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
@@ -115,7 +115,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     }
 
     @Override
-    public void callbackInit(SerializableTransactionManager txManager) {
+    public void callbackInit(TransactionManager txManager) {
         initialize(SpecialTimestampsSupplier.create(txManager),
                 txManager.getKeyValueService(),
                 new TargetedSweepFollower(followers, txManager));

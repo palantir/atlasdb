@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public final class KvsWriteBenchmark extends AbstractBenchmark {
 
@@ -33,7 +33,7 @@ public final class KvsWriteBenchmark extends AbstractBenchmark {
 
     private final KeyValueService keyValueService;
 
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
             int requestsPerClient) {
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 

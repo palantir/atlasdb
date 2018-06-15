@@ -33,16 +33,16 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.HeldLocksToken;
 
 public class RangeVisitor {
     private static final Logger log = LoggerFactory.getLogger(RangeVisitor.class);
-    private final LockAwareTransactionManager txManager;
+    private final TransactionManager txManager;
     private final TableReference tableRef;
     private byte[] startRow = new byte[0];
     private byte[] endRow = new byte[0];
@@ -52,7 +52,7 @@ public class RangeVisitor {
     private Iterable<HeldLocksToken> lockTokens = ImmutableList.of();
     private AtomicLong counter = new AtomicLong();
 
-    public RangeVisitor(LockAwareTransactionManager txManager,
+    public RangeVisitor(TransactionManager txManager,
                         TableReference tableRef) {
         this.txManager = txManager;
         this.tableRef = tableRef;

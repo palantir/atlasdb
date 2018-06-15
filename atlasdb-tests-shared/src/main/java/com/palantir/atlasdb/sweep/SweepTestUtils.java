@@ -20,8 +20,8 @@ import org.awaitility.Duration;
 
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -31,7 +31,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -51,7 +51,7 @@ import com.palantir.timestamp.TimestampService;
 public final class SweepTestUtils {
     private SweepTestUtils() {}
 
-    public static LockAwareTransactionManager setupTxManager(KeyValueService kvs) {
+    public static TransactionManager setupTxManager(KeyValueService kvs) {
         return setupTxManager(
                 kvs,
                 new InMemoryTimestampService(),
@@ -59,7 +59,7 @@ public final class SweepTestUtils {
                 TransactionServices.createTransactionService(kvs));
     }
 
-    public static SerializableTransactionManager setupTxManager(KeyValueService kvs,
+    public static TransactionManager setupTxManager(KeyValueService kvs,
             TimestampService tsService,
             SweepStrategyManager ssm,
             TransactionService txService) {
@@ -71,7 +71,7 @@ public final class SweepTestUtils {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
         MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
-        SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
+        TransactionManager txManager = SerializableTransactionManager.createForTest(
                 kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,

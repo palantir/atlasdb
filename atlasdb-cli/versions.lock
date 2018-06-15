@@ -206,7 +206,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:atlasdb-service",
@@ -237,7 +236,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:atlasdb-service",
@@ -375,8 +373,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-lock-api"
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.atlasdb:atlasdb-cassandra": {
@@ -431,12 +428,6 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "com.palantir.atlasdb:atlasdb-lock-api": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
@@ -504,8 +495,8 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-feign",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
@@ -1330,7 +1321,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:atlasdb-service",
@@ -1361,7 +1351,6 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:atlasdb-service",
@@ -1496,8 +1485,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-lock-api"
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.atlasdb:atlasdb-cassandra": {
@@ -1552,12 +1540,6 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
-            ]
-        },
-        "com.palantir.atlasdb:atlasdb-lock-api": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
@@ -1625,8 +1607,8 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-feign",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
         },

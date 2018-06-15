@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.impl;
+
+package com.palantir.atlasdb.transaction.api;
+
+import org.immutables.value.Value;
 
 import com.palantir.lock.v2.LockToken;
 
-public class RawTransaction extends ForwardingTransaction {
-    private final SnapshotTransaction delegate;
-    private final LockToken lock;
+@Value.Immutable
+public interface TransactionAndImmutableTsLock {
 
-    public RawTransaction(SnapshotTransaction delegate, LockToken lock) {
-        this.delegate = delegate;
-        this.lock = lock;
-    }
+    Transaction transaction();
 
-    @Override
-    public SnapshotTransaction delegate() {
-        return delegate;
-    }
+    LockToken immutableTsLock();
 
-    LockToken getImmutableTsLock() {
-        return lock;
+    static TransactionAndImmutableTsLock of(Transaction transaction, LockToken immutableTsLock) {
+        return ImmutableTransactionAndImmutableTsLock.builder()
+                .transaction(transaction)
+                .immutableTsLock(immutableTsLock)
+                .build();
     }
 }

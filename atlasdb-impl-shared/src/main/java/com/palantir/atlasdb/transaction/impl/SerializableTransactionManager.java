@@ -27,13 +27,15 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.Cleaner;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -50,10 +52,10 @@ import com.palantir.timestamp.TimestampService;
 @AutoDelegate(typeToExtend = SerializableTransactionManager.class)
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
-    public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
+    public static class InitializeCheckingWrapper implements AutoDelegate_TransactionManager {
         private final SerializableTransactionManager txManager;
         private final Supplier<Boolean> initializationPrerequisite;
-        private final Callback<SerializableTransactionManager> callback;
+        private final Callback<TransactionManager> callback;
 
         private State status = State.INITIALIZING;
         private Throwable callbackThrowable = null;
@@ -63,7 +65,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         InitializeCheckingWrapper(SerializableTransactionManager manager,
                 Supplier<Boolean> initializationPrerequisite,
-                Callback<SerializableTransactionManager> callBack) {
+                Callback<TransactionManager> callBack) {
             this.txManager = manager;
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callBack;
@@ -180,18 +182,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
     }
 
-    /*
-     * This constructor is necessary for the InitializeCheckingWrapper. We initialize a dummy transaction manager and
-     * use the delegate instead.
-     */
-    // TODO(ssouza): it's hard to change the interface of STM with this.
-    // We should extract interfaces and delete this hack.
-    protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, null, () -> 1L, false, null, 1, 1,
-                MultiTableSweepQueueWriter.NO_OP);
-    }
-
-    public static SerializableTransactionManager create(KeyValueService keyValueService,
+    public static TransactionManager create(KeyValueService keyValueService,
             TimelockService timelockService,
             LockService lockService,
             TransactionService transactionService,
@@ -207,7 +198,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean initializeAsync,
             Supplier<Long> timestampCacheSize,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            Callback<SerializableTransactionManager> callback) {
+            Callback<TransactionManager> callback) {
         TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
                 timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(

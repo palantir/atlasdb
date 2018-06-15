@@ -33,8 +33,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -42,7 +42,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.common.TableTasks;
 import com.palantir.atlasdb.table.common.TableTasks.DiffStats;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -60,7 +60,7 @@ import com.palantir.timestamp.TimestampService;
 public class TableTasksTest {
     private KeyValueService kvs;
     private LockServiceImpl lockService;
-    private LockAwareTransactionManager txManager;
+    private TransactionManager txManager;
 
     @Before
     public void setup() {
@@ -74,7 +74,7 @@ public class TableTasksTest {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        SerializableTransactionManager transactionManager = SerializableTransactionManager.createForTest(
+        TransactionManager transactionManager = SerializableTransactionManager.createForTest(
                 kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,

@@ -44,10 +44,10 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.compact.BackgroundCompactor;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -194,7 +194,7 @@ public abstract class TransactionManagers {
      * the TransactionManager will not become initialized and it will be closed.
      */
     @Value.Default
-    Callback<SerializableTransactionManager> asyncInitializationCallback() {
+    Callback<TransactionManager> asyncInitializationCallback() {
         return Callback.noOp();
     }
 
@@ -214,16 +214,16 @@ public abstract class TransactionManagers {
      *
      * @see TransactionManagers#createInMemory(Set)
      */
-    public static SerializableTransactionManager createInMemory(Schema schema) {
+    public static TransactionManager createInMemory(Schema schema) {
         return createInMemory(ImmutableSet.of(schema));
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} backed by an
+     * Create a {@link TransactionManager} backed by an
      * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
      * purposes only.
      */
-    public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
+    public static TransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
         return builder()
                 .config(config)
@@ -237,7 +237,7 @@ public abstract class TransactionManagers {
 
     @JsonIgnore
     @Value.Derived
-    public SerializableTransactionManager serializable() {
+    public TransactionManager serializable() {
         List<AutoCloseable> closeables = Lists.newArrayList();
 
         try {
@@ -262,7 +262,7 @@ public abstract class TransactionManagers {
         }
     }
 
-    private SerializableTransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
+    private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         AtlasDbMetrics.setMetricRegistries(globalMetricsRegistry(), globalTaggedMetricRegistry());
         final AtlasDbConfig config = config();
         checkInstallConfig(config);
@@ -356,12 +356,12 @@ public abstract class TransactionManagers {
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier)),
                 closeables);
 
-        Callback<SerializableTransactionManager> callbacks = new Callback.CallChain<>(ImmutableList.of(
+        Callback<TransactionManager> callbacks = new Callback.CallChain(ImmutableList.of(
                 timelockConsistencyCheckCallback(config, runtimeConfigSupplier.get(), lockAndTimestampServices),
                 LambdaCallback.of(targetedSweep::callbackInit),
                 asyncInitializationCallback()));
 
-        SerializableTransactionManager transactionManager = initializeCloseable(
+        TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
                         keyValueService,
                         lockAndTimestampServices.timelock(),
@@ -383,9 +383,11 @@ public abstract class TransactionManagers {
                         targetedSweep,
                         callbacks),
                 closeables);
+        TransactionManager instrumentedTransactionManager =
+                AtlasDbMetrics.instrument(TransactionManager.class, transactionManager);
 
-        transactionManager.registerClosingCallback(qosClient::close);
-        transactionManager.registerClosingCallback(lockAndTimestampServices::close);
+        instrumentedTransactionManager.registerClosingCallback(qosClient::close);
+        instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(
@@ -400,24 +402,24 @@ public abstract class TransactionManagers {
                         transactionService,
                         sweepStrategyManager,
                         follower,
-                        transactionManager,
+                        instrumentedTransactionManager,
                         persistentLockManager),
                 closeables);
         initializeCloseable(
                 initializeCompactBackgroundProcess(
                         lockAndTimestampServices,
                         keyValueService,
-                        transactionManager,
+                        instrumentedTransactionManager,
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::compact, runtimeConfigSupplier)),
                 closeables);
 
-        return transactionManager;
+        return instrumentedTransactionManager;
     }
 
     private Optional<BackgroundCompactor> initializeCompactBackgroundProcess(
             LockAndTimestampServices lockAndTimestampServices,
             KeyValueService keyValueService,
-            SerializableTransactionManager transactionManager,
+            TransactionManager transactionManager,
             Supplier<CompactorConfig> compactorConfigSupplier) {
         Optional<BackgroundCompactor> backgroundCompactorOptional = BackgroundCompactor.createAndRun(
                 transactionManager,
@@ -494,7 +496,7 @@ public abstract class TransactionManagers {
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CleanupFollower follower,
-            SerializableTransactionManager transactionManager,
+            TransactionManager transactionManager,
             PersistentLockManager persistentLockManager) {
         CellsSweeper cellsSweeper = new CellsSweeper(
                 transactionManager,
@@ -543,7 +545,7 @@ public abstract class TransactionManagers {
     private static SpecificTableSweeper initializeSweepEndpoint(
             Consumer<Object> env,
             KeyValueService kvs,
-            SerializableTransactionManager transactionManager,
+            TransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             LegacySweepMetrics sweepMetrics,
@@ -584,7 +586,7 @@ public abstract class TransactionManagers {
         return pls;
     }
 
-    private static Callback<SerializableTransactionManager> timelockConsistencyCheckCallback(
+    private static Callback<TransactionManager> timelockConsistencyCheckCallback(
             AtlasDbConfig atlasDbConfig,
             AtlasDbRuntimeConfig initialRuntimeConfig,
             LockAndTimestampServices lockAndTimestampServices) {

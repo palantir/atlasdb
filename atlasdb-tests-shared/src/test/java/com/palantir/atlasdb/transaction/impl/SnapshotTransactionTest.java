@@ -887,14 +887,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void readTransactionSucceedsIfConditionSucceeds() {
-        serializableTxManager.runTaskReadOnlyWithCondition(PreCommitConditions.NO_OP,
+        serializableTxManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP,
                 (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
     }
 
     @Test
     public void readTransactionFailsIfConditionFails() {
         try {
-            serializableTxManager.runTaskReadOnlyWithCondition(ALWAYS_FAILS_CONDITION,
+            serializableTxManager.runTaskWithConditionReadOnly(ALWAYS_FAILS_CONDITION,
                     (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
             fail();
         } catch (TransactionFailedRetriableException e) {
@@ -921,7 +921,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         });
         assertThat(counter.intValue(), is(1));
 
-        serializableTxManager.runTaskReadOnlyWithCondition(succeedsCondition,
+        serializableTxManager.runTaskWithConditionReadOnly(succeedsCondition,
                 (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
         assertThat(counter.intValue(), is(2));
     }
@@ -953,7 +953,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(counter.intValue(), is(1));
 
         try {
-            serializableTxManager.runTaskReadOnlyWithCondition(failsCondition,
+            serializableTxManager.runTaskWithConditionReadOnly(failsCondition,
                     (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
             fail();
         } catch (TransactionFailedRetriableException e) {
@@ -1208,7 +1208,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
      */
     private static SnapshotTransaction unwrapSnapshotTransaction(Transaction cachingTransaction) {
         Transaction unwrapped = ((CachingTransaction) cachingTransaction).delegate();
-        return ((RawTransaction) unwrapped).delegate();
+        return (SnapshotTransaction) unwrapped;
     }
 
 }

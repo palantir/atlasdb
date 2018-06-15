@@ -35,12 +35,12 @@ import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteBench
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteDynamicColumnsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteRowsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public class BenchmarksResource implements BenchmarksService {
 
-    private final SerializableTransactionManager txnManager;
+    private final TransactionManager txnManager;
 
     public BenchmarksResource(AtlasDbConfig config) {
         this.txnManager = TransactionManagers.builder()
