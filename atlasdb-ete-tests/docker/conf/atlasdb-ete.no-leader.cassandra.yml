@@ -27,3 +27,9 @@ atlasdb:
     autoRefreshNodes: false
   targetedSweep:
     enableSweepQueueWrites: true
+
+atlasDbRuntime:
+  sweep:
+    enabled: false
+  targetedSweep:
+    enabled: true
