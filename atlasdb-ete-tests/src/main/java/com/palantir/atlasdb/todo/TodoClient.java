@@ -156,6 +156,7 @@ public class TodoClient {
 
     public void runIterationOfTargetedSweep() {
         targetedSweeper.get().sweepNextBatch(ShardAndStrategy.conservative(0));
+        targetedSweeper.get().sweepNextBatch(ShardAndStrategy.thorough(0));
     }
 
 
