@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,19 +32,18 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.ete.cassandra.util.CassandraCommands;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.atlasdb.todo.generated.TodoTable;
+import com.palantir.atlasdb.todo.TodoSchema;
 
 public class CassandraTimestampsEteTest {
     private static final Todo TODO = ImmutableTodo.of("todo");
     private static final Todo TODO_2 = ImmutableTodo.of("todo_two");
     private static final String CASSANDRA_CONTAINER_NAME = "cassandra";
     private static final long ID = 1L;
+    private static final String NAMESPACE = "tom";
 
     private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
@@ -62,7 +62,7 @@ public class CassandraTimestampsEteTest {
         long firstWriteTimestamp = todoClient.addTodoWithIdAndReturnTimestamp(ID, TODO);
         long secondWriteTimestamp = todoClient.addTodoWithIdAndReturnTimestamp(ID, TODO_2);
 
-        sweepUntilNoValueExistsAtTimestamp(ID, firstWriteTimestamp);
+        sweepUntilNoValueExistsAtTimestamp(ID, firstWriteTimestamp, Optional.empty());
 
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
         CassandraCommands.nodetoolCompact(CASSANDRA_CONTAINER_NAME);
@@ -70,7 +70,7 @@ public class CassandraTimestampsEteTest {
         List<String> ssTables = CassandraCommands.nodetoolGetSSTables(
                 CASSANDRA_CONTAINER_NAME,
                 "atlasete",
-                TableReference.create(Namespace.DEFAULT_NAMESPACE, TodoTable.getRawTableName()),
+                TodoSchema.todoTable(),
                 ValueType.FIXED_LONG.convertFromJava(ID));
         String sstableMetadata = CassandraCommands.ssTableMetadata(
                 CASSANDRA_CONTAINER_NAME, Iterables.getOnlyElement(ssTables));
@@ -87,12 +87,42 @@ public class CassandraTimestampsEteTest {
         assertDroppableTombstoneRatioPositive(sstableMetadata);
     }
 
-    private void sweepUntilNoValueExistsAtTimestamp(long id, long timestamp) {
+    @Test
+    public void timestampsForSentinelsAndTombstonesAreCurrentInConservativeTables()
+            throws IOException, InterruptedException {
+        long firstWriteTimestamp = todoClient.addNamespacedTodoWithIdAndReturnTimestamp(ID, NAMESPACE, TODO);
+        todoClient.addNamespacedTodoWithIdAndReturnTimestamp(ID, NAMESPACE, TODO_2);
+        sweepUntilNoValueExistsAtTimestamp(ID, firstWriteTimestamp, Optional.of(NAMESPACE));
+
+        CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
+
+        List<String> ssTables = CassandraCommands.nodetoolGetSSTables(
+                CASSANDRA_CONTAINER_NAME,
+                "atlasete",
+                TodoSchema.namespacedTodoTable(),
+                ValueType.STRING.convertFromJava(NAMESPACE));
+        String sstableMetadata = CassandraCommands.ssTableMetadata(
+                CASSANDRA_CONTAINER_NAME, Iterables.getOnlyElement(ssTables));
+
+        // The table should contain the first value, and timestamps thereafter should be higher.
+        // Failure here means either that the range tombstone was written at a lower Cassandra timestamp than the
+        // original value (unlikely since we confirmed no value existed at the first write timestamp), or
+        // that the sweep sentinel was written at a lower Cassandra timestamp than the original value (and hence not
+        // a fresh timestamp).
+        assertMinimumTimestampIsAtLeast(sstableMetadata, firstWriteTimestamp);
+
+        // Failure here means that the range tombstone isn't droppable, which would be weird
+        assertDroppableTombstoneRatioPositive(sstableMetadata);
+    }
+
+    private void sweepUntilNoValueExistsAtTimestamp(long id, long timestamp, Optional<String> namespace) {
         Awaitility.waitAtMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
                 .until(() -> {
                         todoClient.runIterationOfTargetedSweep();
-                        return todoClient.doesNotExistBeforeTimestamp(id, timestamp);
+                        return namespace.isPresent()
+                                ? todoClient.namespacedTodoDoesNotExistBeforeTimestamp(id, timestamp, namespace.get())
+                                : todoClient.doesNotExistBeforeTimestamp(id, timestamp);
                 });
     }
 
