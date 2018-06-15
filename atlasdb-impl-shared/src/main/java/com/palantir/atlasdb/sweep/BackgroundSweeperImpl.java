@@ -150,20 +150,30 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         // on the daemon thread.
         shuttingDown.countDown();
 
-        // TODO what happens if one of the daemons (but not the last one) causes this to throw?
-        daemons.forEach(this::verifyInterrupted);
+        verifyDaemonsInterrupted();
         daemons = null;
     }
 
-    private void verifyInterrupted(Thread daemon) {
-        try {
-            daemon.join(MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS);
-            if (daemon.isAlive()) {
-                log.error("Background sweep thread failed to shut down");
+    private void verifyDaemonsInterrupted() {
+        int interruptedThreads = 0;
+        InterruptedException lastException = null;
+        for (Thread daemon : daemons) {
+            try {
+                daemon.join(MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS);
+                if (daemon.isAlive()) {
+                    log.error("Background sweep thread failed to shut down");
+                }
+            } catch (InterruptedException e) {
+                interruptedThreads++;
+                lastException = e;
             }
-        } catch (InterruptedException e) {
+        }
+
+        if (lastException != null) {
             Thread.currentThread().interrupt();
-            throw Throwables.rewrapAndThrowUncheckedException(e);
+            RuntimeException ex = new RuntimeException(interruptedThreads + " threads were interrupted.",
+                    lastException);
+            throw Throwables.rewrapAndThrowUncheckedException(ex);
         }
     }
 }
