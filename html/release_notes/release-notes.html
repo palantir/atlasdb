@@ -186,19 +186,27 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Refactored the TransactionManager inheritance tree to consolidate all relevant methods into a single interface.
+Functionally, any TransactionManager created using TransactionManagers will provide the serializable and snapshot
+isolation guarantees provided by a SerializableTransactionManager. Constructing TransactionManagers via this class
+should result in only a minor dev break as a result of this change. This will make it easier to transparently wrap
+TransactionManagers to extend their functionality.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3188">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Targeted sweep will no longer sweep cells from transactions that were committed after the sweep timestamp.
 Instead, targeted sweep will not proceed for that shard and strategy until the sweep timestamp progresses far enough.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3253">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Targeted sweep now also sweeps stream stores.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3240">Pull Request</a>)</p>
 <p class="last">Note that targeted sweep is considered a beta feature as it is not fully functional yet.
 Consult with the AtlasDB team if you wish to use targeted sweep in addition to, or instead of, standard sweep.</p>
 </td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">When writing to Cassandra, the internal write timestamp for writes of sweep sentinels, range tombstones and deletes to regular tables are now approximately fresh timestamps from the timestamp service, as opposed to being an arbitrary hardcoded value or related to the transaction’s start timestamp.
 This should improve Cassandra’s ability to purge droppable tombstones at compaction time, particularly in tables that see heavy volumes of overwrites and sweeping.</p>
 <p class="last">Note that this only applies if you have created your Transaction Manager through the <code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> factory.
@@ -206,31 +214,31 @@ If you are creating your transaction manager elsewhere, you should supply a suit
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3224">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">AtlasDbFactory</span></code> now takes an additional <code class="docutils literal notranslate"><span class="pre">Optional&lt;Supplier&lt;Long&gt;&gt;</span></code> parameter when creating a key-value-service.
 In general, delegating implementations should pass this parameter to the delegate; non-delegating implementations that do not use this as an input to the underlying key-value-service should pass <code class="docutils literal notranslate"><span class="pre">Optional.empty()</span></code> leaving the parameter unused.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3224">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The unbounded <code class="docutils literal notranslate"><span class="pre">CommitTsLoader</span></code> has been renamed to <code class="docutils literal notranslate"><span class="pre">CommitTsCache</span></code> and now has an eviction policy to prevent memory leaks.
 Background sweep now reuses this cache for iterations of sweep instead of recreating it every iteration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3256">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Dropwizard transitive dependencies have been removed from the <code class="docutils literal notranslate"><span class="pre">atlasdb-config</span></code> subproject.
 Usages of <code class="docutils literal notranslate"><span class="pre">AtlasDbConfigs</span></code> for config parsing still support discovering subtypes of config, as we ship AtlasDB with an implementation of Dropwizard’s <a class="reference external" href="https://github.com/dropwizard/dropwizard/blob/master/dropwizard-jackson/src/main/java/io/dropwizard/jackson/DiscoverableSubtypeResolver.java">DiscoverableSubtypeResolver</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3218">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue where <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code> would return no results if the number of rows was more than the batch hint.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3248">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Some users of AtlasDB rely on being able to abort transactions which are in progress. Until the last release of AtlasDB, this worked successfully, however this was only the case because before
 an assert could throw an AssertionError, an NPE was thrown by different code. Now, the assertion error is not thrown.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3254">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td><p class="first">Sweep metrics have been reworked based on their observed usefulness in the field.
 <code class="docutils literal notranslate"><span class="pre">tableBeingSwept</span></code> is removed, as it is observed that it is not ingested as expected. Users can use service logs to track the table being swept.
 <code class="docutils literal notranslate"><span class="pre">cellTimestampPairsExamined</span></code>, <code class="docutils literal notranslate"><span class="pre">staleValuesDeleted</span></code> and <code class="docutils literal notranslate"><span class="pre">sweepTimeSweeping</span></code> are being tracked by counters, instead of meters now. This change is done as it is observed that periodically sampled gauge readings are not useful if the frequency is lower than gauge update frequency. Now, these values will be accumulating over time. Users can take the difference of values of two successive points to track the process.
