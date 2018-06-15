@@ -218,7 +218,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void cleanUpOnInitFailure() {
-        metrics.deregisterMetrics();
         refreshPoolFuture.cancel(true);
         cassandra.getPools().forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
@@ -232,7 +231,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         refreshDaemon.shutdown();
         cassandra.getPools().forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
-        metrics.deregisterMetrics();
     }
 
     /**

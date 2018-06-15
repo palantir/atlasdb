@@ -19,7 +19,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -212,25 +211,5 @@ public class MetricsManager {
         Gauge gauge = metricRegistry.gauge(name, supplier);
         registeredMetrics.add(name);
         return gauge;
-    }
-
-    public synchronized void deregisterMetrics() {
-        registeredMetrics.forEach(metricRegistry::remove);
-        registeredMetrics.clear();
-    }
-
-    private synchronized void deregisterMetric(String fullyQualifiedMetricName) {
-        metricRegistry.remove(fullyQualifiedMetricName);
-        registeredMetrics.remove(fullyQualifiedMetricName);
-    }
-
-    public void deregisterMetricsWithPrefix(Class clazz, String prefix) {
-        // isEmpty() check required because MetricRegistry.name skips missing components.
-        // See MetricsManagerTest#doesNotDeregisterMetricsFromOtherClassesEvenIfStringPrefixesMatch.
-        String fqnPrefix = prefix.isEmpty() ? clazz.getName() + "." : MetricRegistry.name(clazz, prefix);
-        Set<String> relevantMetrics = registeredMetrics.stream()
-                .filter(metricName -> metricName.startsWith(fqnPrefix))
-                .collect(Collectors.toSet());
-        relevantMetrics.forEach(this::deregisterMetric);
     }
 }

@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static java.util.stream.Collectors.toList;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -73,36 +76,14 @@ public class CassandraClientPoolTest {
     }
 
     @Test
-    public void cassandraPoolMetricsMustBeRegisteredAndDeregisteredForTwoPools() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
-
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2"));
-
-        cassandraClientPool.removePool(HOST_1);
-        assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName("pool1")), is(false));
-        assertThatMetricsArePresent(ImmutableSet.of("pool2"));
-
-        cassandraClientPool.addPool(HOST_1);
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2"));
-    }
-
-    @Test
-    public void cassandraPoolMetricsMustBeRegisteredAndDeregisteredForThreePools() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
-
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
-
-        cassandraClientPool.removePool(HOST_2);
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool3"));
-        assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName("pool2")), is(false));
-
-        cassandraClientPool.addPool(HOST_2);
+    public void cassandraPoolMetricsMustBeRegisteredForThreePools() {
+        clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
         assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
     }
 
     private void assertThatMetricsArePresent(ImmutableSet<String> poolNames) {
-        poolNames.forEach(poolName ->
-                assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName(poolName)), is(true)));
+        assertThat(metricRegistry.getGauges().keySet()).containsAll(
+                poolNames.stream().map(this::getPoolMetricName).collect(toList()));
     }
 
     private String getPoolMetricName(String poolName) {

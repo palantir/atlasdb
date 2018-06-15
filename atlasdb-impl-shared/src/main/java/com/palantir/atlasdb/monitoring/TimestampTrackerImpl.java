@@ -55,9 +55,7 @@ public class TimestampTrackerImpl implements TimestampTracker {
         }
 
         @Override
-        protected void cleanUpOnInitFailure() {
-            TimestampTrackerImpl.this.cleanUpOnInitFailure();
-        }
+        protected void cleanUpOnInitFailure() {}
 
         @Override
         public void close() {
@@ -113,10 +111,6 @@ public class TimestampTrackerImpl implements TimestampTracker {
         registerTimestampForTracking("timestamp.unreadable", cleaner::getUnreadableTimestamp);
     }
 
-    private void cleanUpOnInitFailure() {
-        metricsManager.deregisterMetricsWithPrefix(TimestampTracker.class, "");
-    }
-
     private Gauge<Long> createCachingTimestampGauge(String shortName, Supplier<Long> supplier) {
         return new CachedGauge<Long>(clock, CACHE_INTERVAL.getSeconds(), TimeUnit.SECONDS) {
             AtomicLong upperBound = new AtomicLong(Long.MIN_VALUE);
@@ -140,9 +134,5 @@ public class TimestampTrackerImpl implements TimestampTracker {
     }
 
     @Override
-    public void close() {
-        // It is usually assumed that AtlasDB clients only have one TransactionManager open at a time,
-        // so deregistering everything starting with TimestampTracker is probably safe.
-        metricsManager.deregisterMetricsWithPrefix(TimestampTracker.class, "");
-    }
+    public void close() {}
 }

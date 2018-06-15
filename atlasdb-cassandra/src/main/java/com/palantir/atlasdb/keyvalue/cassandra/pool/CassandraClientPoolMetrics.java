@@ -37,10 +37,6 @@ public class CassandraClientPoolMetrics {
         this.aggregateMetrics = new RequestMetrics(metricsManager, null);
     }
 
-    public void deregisterMetrics() {
-        metricsManager.deregisterMetrics();
-    }
-
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
         // Keep metrics registered under CassandraClientPool.class rather than move them and potentially break things.
         metricsManager.registerMetric(

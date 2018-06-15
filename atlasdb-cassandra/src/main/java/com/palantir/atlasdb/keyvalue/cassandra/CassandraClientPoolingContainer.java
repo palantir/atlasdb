@@ -197,7 +197,6 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     @Override
     public void shutdownPooling() {
-        metricsManager.deregisterMetrics();
         clientPool.close();
     }
 
