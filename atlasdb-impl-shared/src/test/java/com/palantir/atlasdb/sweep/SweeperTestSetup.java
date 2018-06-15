@@ -121,15 +121,15 @@ public class SweeperTestSetup {
     }
 
     protected void setNoProgress() {
-        setNoProgress(THREAD_INDEX);
+        setNoProgress(TABLE_REF);
     }
 
-    protected void setNoProgress(int threadIndex) {
-        doReturn(Optional.empty()).when(progressStore).loadProgress(threadIndex);
+    protected void setNoProgress(TableReference tableRef) {
+        doReturn(Optional.empty()).when(progressStore).loadProgress(tableRef);
     }
 
     protected void setProgress(SweepProgress progress) {
-        doReturn(Optional.of(progress)).when(progressStore).loadProgress(THREAD_INDEX);
+        doReturn(Optional.of(progress)).when(progressStore).loadProgress(progress.tableRef());
     }
 
     protected void setNextTableToSweep(TableReference tableRef) {

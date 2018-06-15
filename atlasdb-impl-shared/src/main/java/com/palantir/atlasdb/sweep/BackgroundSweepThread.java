@@ -54,6 +54,7 @@ public class BackgroundSweepThread implements Runnable {
     private final LockService lockService;
     private final int threadIndex;
 
+    private Optional<TableReference> currentTable = Optional.empty();
     private SingleLockService lockForCurrentTable;
 
     BackgroundSweepThread(LockService lockService,
@@ -203,30 +204,31 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     private Optional<TableToSweep> getTableToSweep() {
-            return specificTableSweeper.getTxManager().runTaskWithRetry(
-                    tx -> {
-                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore()
-                                .loadProgress(threadIndex);
-                        SweepPriorityOverrideConfig overrideConfig = sweepPriorityOverrideConfig.get();
-                        if (progress.map(
-                                realProgress -> shouldContinueSweepingCurrentTable(realProgress, overrideConfig))
-                                .orElse(false)) {
-                            try {
-                                createLockForTableIfNecessary(progress.get().tableRef());
-                                lockForCurrentTable.lockOrRefresh();
-                                return Optional.of(TableToSweep.continueSweeping(progress.get().tableRef(),
-                                        lockForCurrentTable,
-                                        progress.get()));
-                            } catch (InterruptedException ex) {
-                                log.info("Sweep lost the lock for table {}",
-                                        LoggingArgs.tableRef(progress.get().tableRef()));
-                                // We'll fall through and choose a new table
-                            }
+        return specificTableSweeper.getTxManager().runTaskWithRetry(
+                tx -> {
+                    Optional<SweepProgress> progress = currentTable.flatMap(
+                            tableRef -> specificTableSweeper.getSweepProgressStore().loadProgress(tableRef));
+                    SweepPriorityOverrideConfig overrideConfig = sweepPriorityOverrideConfig.get();
+                    if (progress.map(
+                            realProgress -> shouldContinueSweepingCurrentTable(realProgress, overrideConfig))
+                            .orElse(false)) {
+                        try {
+                            createLockForTableIfNecessary(progress.get().tableRef());
+                            lockForCurrentTable.lockOrRefresh();
+                            return Optional.of(TableToSweep.continueSweeping(progress.get().tableRef(),
+                                    lockForCurrentTable,
+                                    progress.get()));
+                        } catch (InterruptedException ex) {
+                            log.info("Sweep lost the lock for table {}",
+                                    LoggingArgs.tableRef(progress.get().tableRef()));
+                            currentTable = Optional.empty();
+                            // We'll fall through and choose a new table
                         }
+                    }
 
-                        log.info("Sweep is choosing a new table to sweep.");
-                        return getNextTableToSweep(tx, overrideConfig);
-                    });
+                    log.info("Sweep is choosing a new table to sweep.");
+                    return getNextTableToSweep(tx, overrideConfig);
+                });
     }
 
     // This is needed if we've just grabbed the sweep thread lock and a previous thread was in the middle of a table
@@ -237,6 +239,7 @@ public class BackgroundSweepThread implements Runnable {
 
         lockForCurrentTable = SingleLockService.createNamedLockServiceForTable(
                 lockService, TABLE_LOCK_PREFIX, tableRef);
+        currentTable = Optional.of(tableRef);
     }
 
     private boolean shouldContinueSweepingCurrentTable(
@@ -254,8 +257,33 @@ public class BackgroundSweepThread implements Runnable {
                 tx,
                 specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(),
                 overrideConfig);
-        nextTableToSweep.ifPresent(tableToSweep -> lockForCurrentTable = tableToSweep.getSweepLock());
+
+        if (nextTableToSweep.isPresent()) {
+            // Check if we're resuming this table after a previous sweep
+            nextTableToSweep = augmentWithProgress(nextTableToSweep.get());
+        }
+
+        nextTableToSweep.ifPresent(this::setCurrentTable);
         return nextTableToSweep;
+    }
+
+    private Optional<TableToSweep> augmentWithProgress(TableToSweep nextTableWithoutProgress) {
+        Optional<SweepProgress> sweepProgress = specificTableSweeper.getSweepProgressStore().loadProgress(
+                nextTableWithoutProgress.getTableRef());
+
+        if (sweepProgress.isPresent()) {
+            TableToSweep nextTableWithProgress = TableToSweep.continueSweeping(nextTableWithoutProgress.getTableRef(),
+                    nextTableWithoutProgress.getSweepLock(),
+                    sweepProgress.get());
+            return Optional.of(nextTableWithProgress);
+        }
+
+        return Optional.of(nextTableWithoutProgress);
+    }
+
+    private void setCurrentTable(TableToSweep tableToSweep) {
+        currentTable = Optional.of(tableToSweep.getTableRef());
+        lockForCurrentTable = tableToSweep.getSweepLock();
     }
 
     private SweepOutcome determineCauseOfFailure(Exception originalException,
@@ -264,7 +292,7 @@ public class BackgroundSweepThread implements Runnable {
             Set<TableReference> tables = specificTableSweeper.getKvs().getAllTableNames();
 
             if (!tables.contains(tableToSweep.getTableRef())) {
-                clearSweepProgress();
+                clearSweepProgress(tableToSweep.getTableRef());
                 log.info(
                         "The table being swept by the background sweeper was dropped, moving on...");
                 return SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
@@ -283,8 +311,8 @@ public class BackgroundSweepThread implements Runnable {
         }
     }
 
-    private void clearSweepProgress() {
-        specificTableSweeper.getSweepProgressStore().clearProgress(threadIndex);
+    private void clearSweepProgress(TableReference tableRef) {
+        specificTableSweeper.getSweepProgressStore().clearProgress(tableRef);
     }
 
     private void sleepForMillis(long millis) throws InterruptedException {

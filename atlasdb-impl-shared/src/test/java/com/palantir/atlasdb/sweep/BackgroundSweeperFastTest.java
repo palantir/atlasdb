@@ -60,6 +60,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
     @Test
     public void testWritePriorityAfterSecondRunCompletesSweep() {
+        setNextTableToSweep(TABLE_REF);
         setProgress(ImmutableSweepProgress.builder()
                 .tableRef(TABLE_REF)
                 .staleValuesDeleted(3)
@@ -128,6 +129,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
     @Test
     public void testWriteProgressAfterIncompleteRunWithPreviousProgress() {
+        setNextTableToSweep(TABLE_REF);
         setProgress(ImmutableSweepProgress.builder()
                 .tableRef(TABLE_REF)
                 .staleValuesDeleted(3)
@@ -174,7 +176,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .timeInMillis(10L)
                 .startTimeInMillis(20L)
                 .build());
-        setNoProgress(otherThreadIndex);
+        setNoProgress(OTHER_TABLE);
         setupTaskRunner(OTHER_TABLE, ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
@@ -243,6 +245,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
     @Test
     public void testMetricsUseIntermediateResultsPerIteration() {
+        setNextTableToSweep(TABLE_REF);
         setProgress(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
                         .staleValuesDeleted(3)

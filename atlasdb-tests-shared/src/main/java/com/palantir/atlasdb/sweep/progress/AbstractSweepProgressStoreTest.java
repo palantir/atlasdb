@@ -32,13 +32,16 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
 
 public abstract class AbstractSweepProgressStoreTest {
+    private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
+    private static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName("qwe.rty");
+
     private static final SweepProgress PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {1, 2, 3})
             .startColumn(PtBytes.toBytes("unused"))
             .minimumSweptTimestamp(12345L)
             .staleValuesDeleted(10L)
             .cellTsPairsExamined(200L)
-            .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
+            .tableRef(TABLE)
             .timeInMillis(0L)
             .startTimeInMillis(0L)
             .build();
@@ -48,10 +51,13 @@ public abstract class AbstractSweepProgressStoreTest {
             .minimumSweptTimestamp(67890L)
             .staleValuesDeleted(11L)
             .cellTsPairsExamined(202L)
-            .tableRef(TableReference.createFromFullyQualifiedName("qwe.rty"))
+            .tableRef(OTHER_TABLE)
             .timeInMillis(1L)
             .startTimeInMillis(2L)
             .build();
+    private static final SweepProgress SECOND_PROGRESS = ImmutableSweepProgress.copyOf(OTHER_PROGRESS)
+            .withTableRef(TABLE);
+
     protected ExecutorService exec;
     private TransactionManager txManager;
     private SweepProgressStore progressStore;
@@ -73,57 +79,57 @@ public abstract class AbstractSweepProgressStoreTest {
 
     @Test
     public void testLoadEmpty() {
-        Assert.assertFalse(progressStore.loadProgress(1).isPresent());
+        Assert.assertFalse(progressStore.loadProgress(TABLE).isPresent());
     }
 
     @Test
     public void testSaveAndLoad() {
         progressStore.saveProgress(1, PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(1));
+        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(TABLE));
     }
 
     @Test
-    public void testOtherThreadsDoNotConflict() {
+    public void testOtherTablesDoNotConflict() {
         progressStore.saveProgress(1, PROGRESS);
-        Assert.assertFalse(progressStore.loadProgress(2).isPresent());
+        Assert.assertFalse(progressStore.loadProgress(OTHER_TABLE).isPresent());
 
         progressStore.saveProgress(2, OTHER_PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(1));
+        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(TABLE));
     }
 
     @Test
     public void testOverwrite() {
         progressStore.saveProgress(1, PROGRESS);
-        progressStore.saveProgress(1, OTHER_PROGRESS);
-        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(1));
+        progressStore.saveProgress(1, SECOND_PROGRESS);
+        Assert.assertEquals(Optional.of(SECOND_PROGRESS), progressStore.loadProgress(TABLE));
     }
 
     @Test
     public void testClearOne() {
         progressStore.saveProgress(1, PROGRESS);
         progressStore.saveProgress(2, OTHER_PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(1));
+        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(TABLE));
 
-        progressStore.clearProgress(1);
-        Assert.assertFalse(progressStore.loadProgress(1).isPresent());
-        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(2));
+        progressStore.clearProgress(TABLE);
+        Assert.assertFalse(progressStore.loadProgress(TABLE).isPresent());
+        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(OTHER_TABLE));
     }
 
     @Test
     public void testClearAndRewrite() {
         progressStore.saveProgress(1, PROGRESS);
-        progressStore.clearProgress(1);
-        progressStore.saveProgress(1, OTHER_PROGRESS);
+        progressStore.clearProgress(TABLE);
+        progressStore.saveProgress(1, SECOND_PROGRESS);
 
-        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(1));
+        Assert.assertEquals(Optional.of(SECOND_PROGRESS), progressStore.loadProgress(TABLE));
     }
 
     @Test
     public void testClearTwice() {
         progressStore.saveProgress(1, PROGRESS);
-        progressStore.clearProgress(1);
-        progressStore.clearProgress(1);
+        progressStore.clearProgress(TABLE);
+        progressStore.clearProgress(TABLE);
 
-        Assert.assertFalse(progressStore.loadProgress(1).isPresent());
+        Assert.assertFalse(progressStore.loadProgress(TABLE).isPresent());
     }
 }

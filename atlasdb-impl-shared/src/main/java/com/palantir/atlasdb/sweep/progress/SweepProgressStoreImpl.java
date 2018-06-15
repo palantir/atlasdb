@@ -35,6 +35,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -113,19 +114,19 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     }
 
     @Override
-    public Optional<SweepProgress> loadProgress(int threadIndex) {
-        Map<Cell, Value> entry = getStoredProgress(threadIndex);
+    public Optional<SweepProgress> loadProgress(TableReference tableRef) {
+        Map<Cell, Value> entry = getStoredProgress(tableRef);
         return hydrateProgress(entry);
     }
 
-    protected Map<Cell, Value> getStoredProgress(int threadIndex) {
-        return kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(getCell(threadIndex), 1L));
+    protected Map<Cell, Value> getStoredProgress(TableReference tableRef) {
+        return kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(getCell(tableRef), 1L));
     }
 
     @Override
     public void saveProgress(int threadIndex, SweepProgress newProgress) {
-        Cell cell = getCell(threadIndex);
-        Map<Cell, Value> entry = getStoredProgress(threadIndex);
+        Cell cell = getCell(newProgress.tableRef());
+        Map<Cell, Value> entry = getStoredProgress(newProgress.tableRef());
 
         try {
             kvs.checkAndSet(casProgressRequest(cell, entry, newProgress));
@@ -158,12 +159,12 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
      * Fully remove a single column of the sweep progress table.
      */
     @Override
-    public void clearProgress(int threadIndex) {
-        Optional<SweepProgress> oldProgress = loadProgress(threadIndex);
+    public void clearProgress(TableReference tableRef) {
+        Optional<SweepProgress> oldProgress = loadProgress(tableRef);
         if (oldProgress.isPresent()) {
             try {
                 CheckAndSetRequest request = CheckAndSetRequest.singleCell(
-                        AtlasDbConstants.SWEEP_PROGRESS_TABLE, getCell(threadIndex),
+                        AtlasDbConstants.SWEEP_PROGRESS_TABLE, getCell(tableRef),
                         progressToBytes(oldProgress.get()), FINISHED_TABLE);
                 kvs.checkAndSet(request);
             } catch (JsonProcessingException e) {
@@ -174,8 +175,8 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
 
     }
 
-    private Cell getCell(int threadIndex) {
-        return Cell.create(PtBytes.toBytes(threadIndex), ROW_AND_COLUMN_NAME_BYTES);
+    private Cell getCell(TableReference tableRef) {
+        return Cell.create(PtBytes.toBytes(tableRef.getQualifiedName()), ROW_AND_COLUMN_NAME_BYTES);
     }
 
     private void tryInitialize() {

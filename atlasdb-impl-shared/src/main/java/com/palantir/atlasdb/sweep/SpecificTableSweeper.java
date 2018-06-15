@@ -226,7 +226,7 @@ public class SpecificTableSweeper {
                 SafeArg.of("time sweeping table", cumulativeResults.getTimeInMillis()),
                 SafeArg.of("time elapsed", cumulativeResults.getTimeElapsedSinceStartedSweeping()));
         tableToSweep.getSweepLock().close();
-        sweepProgressStore.clearProgress(threadIndex);
+        sweepProgressStore.clearProgress(tableToSweep.getTableRef());
     }
 
     private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults finalSweepResults) {
