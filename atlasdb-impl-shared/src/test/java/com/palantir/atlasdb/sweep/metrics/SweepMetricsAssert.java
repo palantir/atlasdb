@@ -106,7 +106,7 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     }
 
     public void hasMillisSinceLastSweptThoroughEqualTo(long value) {
-        objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS), value);
+        objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
     }
 
     public void hasMillisSinceLastSweptThoroughLessThanOneSecond(long clockTime) {
