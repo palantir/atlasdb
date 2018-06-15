@@ -36,7 +36,7 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
    :widths: 20, 20, 40, 200
 
    ``enabled``, "Only specified in config", "true", "Whether the background sweeper should run."
-   ``sweepThreads``, "Only specified in config", "1", "The number of threads to run sweep with. Changes require a restart of any service node to take effect. Not recommended for Cassandra KVS."
+   ``sweepThreads``, "Only specified in config", "1", "The number of threads to run sweep with. Changes require a restart of any service node to take effect. Not recommended for Cassandra KVS. Note that threads will contend with each other for the backup lock on deletes."
    ``readLimit``, ``maxCellTsPairsToExamine``, "128", "Target number of (cell, timestamp) pairs to examine in a batch of sweep."
    ``candidateBatchHint``, ``candidateBatchSize``, "128", "Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
    ``deleteBatchHint``, ``deleteBatchSize``, "128", "Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance."

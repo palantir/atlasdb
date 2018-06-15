@@ -115,7 +115,7 @@ public class NextTableToSweepProviderTest {
     }
 
     @Test
-    public void calculatorReturnsMultiplePriorities_allLocked_thenProviderReturnsNothing()
+    public void calculatorReturnsMultiplePriorities_nonZeroPrioritiesLocked_thenProviderReturnsNothing()
             throws InterruptedException {
         givenPriority(table("table1"), 30.0);
         givenPriority(table("table2"), 20.0);

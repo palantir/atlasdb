@@ -85,7 +85,7 @@ public class BackgroundSweepThread implements Runnable {
             // Wait a while before starting so short lived clis don't try to sweep.
             waitUntilSpecificTableSweeperIsInitialized();
             sleepForMillis(getBackoffTimeWhenSweepHasNotRun());
-            log.info("Starting background sweeper.");
+            log.info("Starting background sweeper with thread index {}", SafeArg.of("threadIndex", threadIndex));
             while (true) {
                 // InterruptedException might be wrapped in RuntimeException (i.e. AtlasDbDependencyException),
                 // which would be caught downstream.

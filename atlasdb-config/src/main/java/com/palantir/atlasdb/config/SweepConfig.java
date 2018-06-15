@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 
@@ -97,6 +98,12 @@ public abstract class SweepConfig {
     @Value.Default
     public SweepPriorityOverrideConfig sweepPriorityOverrides() {
         return SweepPriorityOverrideConfig.defaultConfig();
+    }
+
+    @Value.Check
+    public void check() {
+        Preconditions.checkState(sweepThreads() > 0, "Must have a positive number of threads! "
+                        + "If your intention was to disable sweep, please set enabled to false.");
     }
 
     public static SweepConfig defaultSweepConfig() {
