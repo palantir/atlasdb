@@ -53,6 +53,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -106,8 +107,6 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     protected static final ExecutorService GET_RANGES_EXECUTOR =
             Executors.newFixedThreadPool(GET_RANGES_THREAD_POOL_SIZE);
 
-    public static final ExecutorService DELETE_EXECUTOR = Executors.newSingleThreadExecutor();
-
     protected Transaction startTransaction() {
         long startTimestamp = timestampService.getFreshTimestamp();
         return new SnapshotTransaction(metricsManager,
@@ -131,7 +130,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 GET_RANGES_EXECUTOR,
                 DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
-                DELETE_EXECUTOR);
+                MoreExecutors.newDirectExecutorService());
     }
 
     @Test

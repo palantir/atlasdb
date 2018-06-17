@@ -48,7 +48,6 @@ import java.util.Random;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -65,6 +64,7 @@ import org.hamcrest.Matchers;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.jmock.lib.concurrent.Synchroniser;
 import org.junit.Assert;
 import org.junit.Before;
@@ -83,6 +83,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -289,7 +290,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                deleteExecutor);
+                MoreExecutors.newDirectExecutorService());
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -355,7 +356,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                deleteExecutor);
+                MoreExecutors.newDirectExecutorService());
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
@@ -382,7 +383,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 sweepQueue,
-                deleteExecutor);
+                MoreExecutors.newDirectExecutorService());
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -833,30 +834,32 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void transactionDeletesAsyncOnRollback() throws InterruptedException {
+    public void transactionDeletesAsyncOnRollback() {
+        DeterministicScheduler executor = new DeterministicScheduler();
+        TestTransactionManager deleteTxManager = new TestTransactionManagerImpl(
+                metricsManager,
+                keyValueService,
+                timestampService,
+                lockClient,
+                lockService,
+                transactionService,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                sweepQueue,
+                executor);
+
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
                 .thenReturn(PreCommitConditions.NO_OP);
 
-        CountDownLatch blockForDelete = new CountDownLatch(1);
-        deleteExecutor.submit(() -> {
-            try {
-                blockForDelete.await();
-            } catch (InterruptedException e) {
-                fail("executor interrupted during test!");
-            }
-        });
-
-        serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
+        deleteTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
             return null;
         });
 
         verify(keyValueService, times(0)).delete(any(), any());
 
-        // Free up the deleteExecutor, and wait for it to finish
-        blockForDelete.countDown();
-        deleteExecutor.awaitTermination(1, TimeUnit.SECONDS);
+        executor.runUntilIdle();
 
         verify(keyValueService, times(1)).delete(any(), any());
     }
@@ -1052,7 +1055,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                deleteExecutor);
+                MoreExecutors.newDirectExecutorService());
 
         //simulate roll back at commit time
         transactionService.putUnlessExists(snapshot.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
@@ -1094,7 +1097,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                deleteExecutor);
+                MoreExecutors.newDirectExecutorService());
 
         //forcing to try to commit a transaction that is already committed
         transactionService.putUnlessExists(transactionTs, TransactionConstants.FAILED_COMMIT_TS);
@@ -1137,7 +1140,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                deleteExecutor);
+                MoreExecutors.newDirectExecutorService());
 
         when(timestampServiceSpy.getFreshTimestamp()).thenReturn(10000000L);
 

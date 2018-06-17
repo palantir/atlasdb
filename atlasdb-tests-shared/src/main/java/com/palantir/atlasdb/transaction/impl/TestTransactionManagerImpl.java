@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.base.Suppliers;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -95,7 +96,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
-                AbstractTransactionTest.DELETE_EXECUTOR);
+                MoreExecutors.newDirectExecutorService());
     }
 
     @Override

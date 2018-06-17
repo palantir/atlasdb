@@ -23,13 +23,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -76,7 +76,6 @@ public class AtlasDbTestCase {
     protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     protected TargetedSweeper sweepQueue;
     protected int sweepQueueShards = 128;
-    protected ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
     @BeforeClass
     public static void setupLockClient() {
@@ -125,7 +124,7 @@ public class AtlasDbTestCase {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 sweepQueue,
-                deleteExecutor);
+                MoreExecutors.newDirectExecutorService());
 
         sweepQueue.callbackInit(serializableTxManager);
         txManager = new CachingTestTransactionManager(serializableTxManager);

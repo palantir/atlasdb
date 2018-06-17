@@ -23,6 +23,7 @@ import org.junit.Before;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -119,7 +120,7 @@ public abstract class TransactionTestSetup {
                 MetricsManagers.createForTests(),
                 keyValueService, timestampService, lockClient, lockService,
                 transactionService, conflictDetectionManager, sweepStrategyManager, MultiTableSweepQueueWriter.NO_OP,
-                AbstractTransactionTest.DELETE_EXECUTOR);
+                MoreExecutors.newDirectExecutorService());
     }
 
     protected void put(Transaction txn,
