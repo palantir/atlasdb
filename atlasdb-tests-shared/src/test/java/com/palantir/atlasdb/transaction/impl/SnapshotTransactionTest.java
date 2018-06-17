@@ -65,6 +65,7 @@ import org.hamcrest.Matchers;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
+import org.jmock.lib.concurrent.Synchroniser;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -251,6 +252,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testLockAfterGet() throws Exception {
         byte[] rowName = PtBytes.toBytes("1");
         Mockery m = new Mockery();
+        m.setThreadingPolicy(new Synchroniser());
         final KeyValueService kvMock = m.mock(KeyValueService.class);
         final LockService lockMock = m.mock(LockService.class);
         LockService lock = MultiDelegateProxy.newProxyInstance(LockService.class, lockService, lockMock);
@@ -267,8 +269,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         }});
 
         SnapshotTransaction snapshot = new SnapshotTransaction(metricsManager,
-                keyValueService,
-                null,
+                kvMock,
+                new LegacyTimelockService(timestampService, lock, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> transactionTs,
