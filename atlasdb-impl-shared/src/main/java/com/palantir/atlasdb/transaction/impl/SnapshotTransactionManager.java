@@ -70,7 +70,6 @@ import com.palantir.timestamp.TimestampService;
     protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
     final ExecutorService deleteExecutor;
-    final TimestampTracker timestampTracker;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
 
@@ -89,14 +88,13 @@ import com.palantir.timestamp.TimestampService;
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
-            TimestampTracker timestampTracker,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             Supplier<Long> timestampCacheSize,
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor) {
         super(metricsManager, timestampCacheSize);
-
+        TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
@@ -111,7 +109,6 @@ import com.palantir.timestamp.TimestampService;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
-        this.timestampTracker = timestampTracker;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
@@ -259,7 +256,6 @@ import com.palantir.timestamp.TimestampService;
     public void close() {
         if (isClosed.compareAndSet(false, true)) {
             super.close();
-            timestampTracker.close();
             cleaner.close();
             keyValueService.close();
             shutdownExecutor(deleteExecutor);

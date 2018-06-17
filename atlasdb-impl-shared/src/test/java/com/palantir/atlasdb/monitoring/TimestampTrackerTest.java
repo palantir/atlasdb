@@ -46,7 +46,7 @@ public class TimestampTrackerTest {
     private static final String UNREADABLE_TIMESTAMP_NAME = "timestamp.unreadable";
     private static final String FAKE_METRIC = "metric.fake";
 
-    private static final long CACHE_INTERVAL_NANOS = TimestampTrackerImpl.CACHE_INTERVAL.toNanos();
+    private static final long CACHE_INTERVAL_NANOS = TimestampTracker.CACHE_INTERVAL.toNanos();
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final TimelockService timelockService = mock(TimelockService.class);
@@ -55,193 +55,119 @@ public class TimestampTrackerTest {
 
     @Test
     public void defaultTrackerGeneratesTimestampMetrics() {
-        try (TimestampTrackerImpl ignored = createDefaultTracker()) {
-            assertThat(metricsManager.getRegistry().getNames())
-                    .containsExactlyInAnyOrder(buildFullyQualifiedMetricName(IMMUTABLE_TIMESTAMP_NAME),
-                            buildFullyQualifiedMetricName(FRESH_TIMESTAMP_NAME),
-                            buildFullyQualifiedMetricName(UNREADABLE_TIMESTAMP_NAME));
-        }
+        createDefaultTracker();
+        assertThat(metricsManager.getRegistry().getNames())
+                .containsExactlyInAnyOrder(buildFullyQualifiedMetricName(IMMUTABLE_TIMESTAMP_NAME),
+                        buildFullyQualifiedMetricName(FRESH_TIMESTAMP_NAME),
+                        buildFullyQualifiedMetricName(UNREADABLE_TIMESTAMP_NAME));
     }
 
     @Test
     public void immutableTimestampTrackerDelegatesToTimeLock() {
-        try (TimestampTrackerImpl ignored = createDefaultTracker()) {
-            when(timelockService.getImmutableTimestamp()).thenReturn(ONE);
+        createDefaultTracker();
+        when(timelockService.getImmutableTimestamp()).thenReturn(ONE);
 
-            assertThat(getGauge(IMMUTABLE_TIMESTAMP_NAME).getValue()).isEqualTo(ONE);
+        assertThat(getGauge(IMMUTABLE_TIMESTAMP_NAME).getValue()).isEqualTo(ONE);
 
-            verify(timelockService).getImmutableTimestamp();
-            verifyNoMoreInteractions(timelockService, cleaner);
-        }
+        verify(timelockService).getImmutableTimestamp();
+        verifyNoMoreInteractions(timelockService, cleaner);
     }
 
     @Test
     public void freshTimestampTrackerDelegatesToTimeLock() {
-        try (TimestampTrackerImpl ignored = createDefaultTracker()) {
-            when(timelockService.getFreshTimestamp()).thenReturn(TEN);
+        createDefaultTracker();
+        when(timelockService.getFreshTimestamp()).thenReturn(TEN);
 
-            assertThat(getGauge(FRESH_TIMESTAMP_NAME).getValue()).isEqualTo(TEN);
+        assertThat(getGauge(FRESH_TIMESTAMP_NAME).getValue()).isEqualTo(TEN);
 
-            verify(timelockService).getFreshTimestamp();
-            verifyNoMoreInteractions(timelockService, cleaner);
-        }
+        verify(timelockService).getFreshTimestamp();
+        verifyNoMoreInteractions(timelockService, cleaner);
     }
 
     @Test
     public void unreadableTimestampTrackerDelegatesToCleaner() {
-        try (TimestampTrackerImpl ignored = createDefaultTracker()) {
-            when(cleaner.getUnreadableTimestamp()).thenReturn(FORTY_TWO);
+        createDefaultTracker();
+        when(cleaner.getUnreadableTimestamp()).thenReturn(FORTY_TWO);
 
-            assertThat(getGauge(UNREADABLE_TIMESTAMP_NAME).getValue()).isEqualTo(FORTY_TWO);
+        assertThat(getGauge(UNREADABLE_TIMESTAMP_NAME).getValue()).isEqualTo(FORTY_TWO);
 
-            verify(cleaner).getUnreadableTimestamp();
-            verifyNoMoreInteractions(timelockService, cleaner);
-        }
-    }
-
-    @Test
-    public void metricsAreDeregisteredUponClose() {
-        try (TimestampTrackerImpl tracker = createTrackerWithClock(Clock.defaultClock())) {
-            tracker.registerTimestampForTracking(FAKE_METRIC, () -> 1L);
-            assertThat(metricsManager.getRegistry().getNames())
-                    .contains(buildFullyQualifiedMetricName(FAKE_METRIC));
-        }
-
-        assertThat(metricsManager.getRegistry().getNames())
-                .doesNotContain(buildFullyQualifiedMetricName(FAKE_METRIC));
-    }
-
-    @Test
-    public void canCloseMultipleTimes() {
-        TimestampTrackerImpl tracker = createTrackerWithClock(Clock.defaultClock());
-        tracker.registerTimestampForTracking(FAKE_METRIC, () -> 1L);
-
-        tracker.close();
-        tracker.close();
-        assertThat(metricsManager.getRegistry().getNames())
-                .doesNotContain(buildFullyQualifiedMetricName(FAKE_METRIC));
+        verify(cleaner).getUnreadableTimestamp();
+        verifyNoMoreInteractions(timelockService, cleaner);
     }
 
     @Test
     public void doesNotCallSupplierOnRequestsWithinRetriggerInterval() {
-        try (TimestampTrackerImpl tracker = createTrackerWithClock(mockClock)) {
-            when(mockClock.getTick()).thenReturn(0L, 1L, 2L);
-            AtomicLong timestampValue = new AtomicLong(0L);
-            tracker.registerTimestampForTracking(FAKE_METRIC, timestampValue::incrementAndGet);
+        when(mockClock.getTick()).thenReturn(0L, 1L, 2L);
+        AtomicLong timestampValue = new AtomicLong(0L);
+        TimestampTracker.registerTimestampForTracking(
+                mockClock, metricsManager, FAKE_METRIC, timestampValue::incrementAndGet);
 
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
-        }
+        assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+        assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+        assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
     }
 
     @Test
     public void callsSupplierAgainAfterTimeElapses() {
-        try (TimestampTrackerImpl tracker = createTrackerWithClock(mockClock)) {
-            when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS - 1, CACHE_INTERVAL_NANOS + 1);
-            AtomicLong timestampValue = new AtomicLong(0L);
-            tracker.registerTimestampForTracking(FAKE_METRIC, timestampValue::incrementAndGet);
+        when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS - 1, CACHE_INTERVAL_NANOS + 1);
+        AtomicLong timestampValue = new AtomicLong(0L);
+        TimestampTracker.registerTimestampForTracking(
+                mockClock, metricsManager, FAKE_METRIC, timestampValue::incrementAndGet);
 
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(2L);
-        }
+        assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+        assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+        assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(2L);
     }
 
     @Test
     public void doesNotCallSupplierUnlessGaugeIsQueried() {
-        try (TimestampTrackerImpl tracker = createTrackerWithClock(mockClock)) {
-            when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS * 50000);
-            AtomicLong timestampValue = new AtomicLong(0L);
-            tracker.registerTimestampForTracking(FAKE_METRIC, timestampValue::incrementAndGet);
+        when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS * 50000);
+        AtomicLong timestampValue = new AtomicLong(0L);
+        TimestampTracker.registerTimestampForTracking(
+                mockClock, metricsManager, FAKE_METRIC, timestampValue::incrementAndGet);
 
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(2L);
-        }
+        assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+        assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(2L);
     }
 
     @Test
     public void timestampTrackersDoNotThrowEvenIfUnderlyingSupplierThrows() {
-        try (TimestampTrackerImpl tracker = createTrackerWithClock(mockClock)) {
-            when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS);
-            tracker.registerTimestampForTracking(FAKE_METRIC, () -> {
-                throw new IllegalArgumentException("illegal argument");
-            });
+        when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS);
+        TimestampTracker.registerTimestampForTracking(mockClock, metricsManager, FAKE_METRIC, () -> {
+            throw new IllegalArgumentException("illegal argument");
+        });
 
-            getGauge(FAKE_METRIC).getValue();
-        }
+        getGauge(FAKE_METRIC).getValue();
     }
 
     @Test
     public void timestampTrackersReturnTheLastKnownValueIfUnderlyingSupplierThrows() {
-        try (TimestampTrackerImpl tracker = createTrackerWithClock(mockClock)) {
-            when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS + 1);
-            tracker.registerTimestampForTracking(FAKE_METRIC, new Supplier<Long>() {
-                private boolean allowRequest = true;
-                @Override
-                public Long get() {
-                    Preconditions.checkArgument(allowRequest, "not allowed");
-                    allowRequest = false;
-                    return FORTY_TWO;
-                }
-            });
-
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(FORTY_TWO);
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(FORTY_TWO);
-        }
-    }
-
-    @Test
-    public void canCreateMultipleDistinctTimestampTrackers() {
         when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS + 1);
+        TimestampTracker.registerTimestampForTracking(mockClock, metricsManager, FAKE_METRIC, new Supplier<Long>() {
+            private boolean allowRequest = true;
+            @Override
+            public Long get() {
+                Preconditions.checkArgument(allowRequest, "not allowed");
+                allowRequest = false;
+                return FORTY_TWO;
+            }
+        });
 
-        try (TimestampTrackerImpl firstTracker = createTrackerWithClock(mockClock)) {
-            firstTracker.registerTimestampForTracking(FAKE_METRIC, () -> 1L);
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
-        }
-
-        try (TimestampTrackerImpl secondTracker = createTrackerWithClock(mockClock)) {
-            secondTracker.registerTimestampForTracking(FAKE_METRIC, () -> 2L);
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(2L);
-        }
-    }
-
-    @Test
-    public void cachesNotSharedAcrossDistinctTimestampTrackers() {
-        when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS - 1);
-
-        try (TimestampTrackerImpl firstTracker = createTrackerWithClock(mockClock)) {
-            firstTracker.registerTimestampForTracking(FAKE_METRIC, () -> 1L);
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
-        }
-
-        try (TimestampTrackerImpl secondTracker = createTrackerWithClock(mockClock)) {
-            secondTracker.registerTimestampForTracking(FAKE_METRIC, () -> 2L);
-
-            // If caches were shared, this would return 1L because we haven't had a cache interval yet.
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(2L);
-        }
+        assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(FORTY_TWO);
+        assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(FORTY_TWO);
     }
 
     @Test
     public void doesNotThrowIfMetricsAreAccidentallyRegisteredMultipleTimes() {
-        try (TimestampTrackerImpl firstTracker = createTrackerWithClock(mockClock);
-                TimestampTrackerImpl secondTracker = createTrackerWithClock(mockClock)) {
-            firstTracker.registerTimestampForTracking(FAKE_METRIC, () -> 1L);
-            secondTracker.registerTimestampForTracking(FAKE_METRIC, () -> 2L); // OK
+        TimestampTracker.registerTimestampForTracking(mockClock, metricsManager, FAKE_METRIC, () -> 1L);
+        TimestampTracker.registerTimestampForTracking(mockClock, metricsManager, FAKE_METRIC, () -> 2L); // OK
 
-            // No guarantees on the value, other than that it's one of them
-            assertThat(getGauge(FAKE_METRIC).getValue()).isIn(1L, 2L);
-        }
+        // No guarantees on the value, other than that it's one of them
+        assertThat(getGauge(FAKE_METRIC).getValue()).isIn(1L, 2L);
     }
 
-    private TimestampTrackerImpl createTrackerWithClock(Clock clock) {
-        return new TimestampTrackerImpl(metricsManager, clock, timelockService, cleaner);
-    }
-
-    private TimestampTrackerImpl createDefaultTracker() {
-        return (TimestampTrackerImpl) TimestampTrackerImpl.createWithDefaultTrackers(
-                metricsManager, timelockService, cleaner, false);
+    private void createDefaultTracker() {
+        TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
     }
 
     private static String buildFullyQualifiedMetricName(String shortName) {
