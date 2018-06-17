@@ -30,7 +30,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -70,7 +69,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.stubbing.Answer;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Supplier;
@@ -862,25 +860,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         executor.runUntilIdle();
 
         verify(keyValueService, times(1)).delete(any(), any());
-    }
-
-    // Simulates the case when the KVS is degraded, meaning that deletes time out
-    @Test(timeout = 5000L)
-    public void transactionRollbackIsNotDelayedBySlowDeletes() {
-        Answer throwAfterTenSeconds = ignored -> {
-            Thread.sleep(10_000L);
-            throw new RuntimeException();
-        };
-        doAnswer(throwAfterTenSeconds).when(keyValueService).delete(any(), any());
-
-        Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
-        when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION)
-                .thenReturn(PreCommitConditions.NO_OP);
-
-        serializableTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
-            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-            return null;
-        });
     }
 
     @Test
