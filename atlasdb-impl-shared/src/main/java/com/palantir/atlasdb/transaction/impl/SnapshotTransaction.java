@@ -1309,15 +1309,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         LockToken commitLocksToken = acquireLocksForCommit();
         long millisForLocks = TimeUnit.NANOSECONDS.toMillis(acquireLocksTimer.stop());
         try {
-            Timer.Context conflictsTimer = getTimer("commitCheckingForConflicts").time();
-            throwIfConflictOnCommit(commitLocksToken, transactionService);
-            long millisCheckingForConflicts = TimeUnit.NANOSECONDS.toMillis(conflictsTimer.stop());
+            long millisCheckingForConflicts =
+                    runAndGetDurationMillis(() -> throwIfConflictOnCommit(commitLocksToken, transactionService),
+                            "commitCheckingForConflicts");
 
-            sweepQueue.enqueue(writesByTable, getStartTimestamp());
+            long millisWritingToTargetedSweepQueue =
+                    runAndGetDurationMillis(() -> sweepQueue.enqueue(writesByTable, getStartTimestamp()),
+                            "writingToSweepQueue");
 
-            Timer.Context writesTimer = getTimer("commitWrite").time();
-            keyValueService.multiPut(writesByTable, getStartTimestamp());
-            long millisForWrites = TimeUnit.NANOSECONDS.toMillis(writesTimer.stop());
+            long millisForWrites = runAndGetDurationMillis(
+                    () -> keyValueService.multiPut(writesByTable, getStartTimestamp()), "commitWrite");
 
             // Now that all writes are done, get the commit timestamp
             // We must do this before we check that our locks are still valid to ensure that
@@ -1329,19 +1330,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // punch on commit so that if hard delete is the only thing happening on a system,
             // we won't block forever waiting for the unreadable timestamp to advance past the
             // scrub timestamp (same as the hard delete transaction's start timestamp)
-            Timer.Context punchTimer = getTimer("millisForPunch").time();
-            cleaner.punch(commitTimestamp);
-            long millisForPunch = TimeUnit.NANOSECONDS.toMillis(punchTimer.stop());
+            long millisForPunch = runAndGetDurationMillis(() -> cleaner.punch(commitTimestamp), "millisForPunch");
 
             throwIfReadWriteConflictForSerializable(commitTimestamp);
 
             // Verify that our locks and pre-commit conditions are still valid before we actually commit;
             // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness
-            throwIfPreCommitRequirementsNotMet(commitLocksToken, commitTimestamp);
 
-            Timer.Context commitTsTimer = getTimer("commitPutCommitTs").time();
-            putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
-            long millisForCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTsTimer.stop());
+            long millisForPreCommitLockCheck = runAndGetDurationMillis(
+                    () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken), "preCommitLockCheck");
+
+            long millisForUserPreCommitCondition = runAndGetDurationMillis(
+                    () -> preCommitCondition.throwIfConditionInvalid(commitTimestamp), "userPreCommitCondition");
+
+            long millisForCommitTs = runAndGetDurationMillis(
+                    () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService),
+                    "commitPutCommitTs");
 
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
@@ -1350,16 +1354,21 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
                 perfLogger.debug("Committed {} bytes with locks, start ts {}, commit ts {}, "
                         + "acquiring locks took {} ms, checking for conflicts took {} ms, "
-                        + "writing took {} ms, punch took {} ms, putCommitTs took {} ms, "
-                        + "total time since tx creation {} ms, tables: {}.",
+                        + "writing to the sweep queue took {} ms, "
+                        + "writing data to tables took {} ms, punch took {} ms, putCommitTs took {} ms, "
+                        + "pre-commit lock checks took {} ms, user pre-commit conditions took {} ms, "
+                        + "total time since tx creation {} ms, tables: {}, {}.",
                         SafeArg.of("numBytes", byteCount.get()),
                         SafeArg.of("startTs", getStartTimestamp()),
                         SafeArg.of("commitTs", commitTimestamp),
                         SafeArg.of("millisForLocks", millisForLocks),
                         SafeArg.of("millisCheckForConflicts", millisCheckingForConflicts),
+                        SafeArg.of("millisWritingToTargetedSweepQueue", millisWritingToTargetedSweepQueue),
                         SafeArg.of("millisForWrites", millisForWrites),
                         SafeArg.of("millisForPunch", millisForPunch),
                         SafeArg.of("millisForCommitTs", millisForCommitTs),
+                        SafeArg.of("millisForPreCommitLockCheck", millisForPreCommitLockCheck),
+                        SafeArg.of("millisForUserPreCommitCondition", millisForUserPreCommitCondition),
                         SafeArg.of("millisSinceCreation", millisSinceCreation),
                         tableRefs.safeTableRefs(),
                         tableRefs.unsafeTableRefs());
@@ -1367,6 +1376,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }
+    }
+
+    private long runAndGetDurationMillis(Runnable runnable, String timerName) {
+        Timer.Context timer = getTimer(timerName).time();
+        runnable.run();
+        return TimeUnit.NANOSECONDS.toMillis(timer.stop());
     }
 
     protected void throwIfReadWriteConflictForSerializable(long commitTimestamp) {
