@@ -51,6 +51,12 @@ develop
          - Change
 
     *    - |devbreak|
+         - AtlasDB metrics are no longer a static singleton, and are now created upon construction of relevant classes.
+           This allows internal users to construct multiple AtlasDBs and get meaningful metrics. Many constructors have
+           been broken due to this change.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3237>`__)
+
+    *    - |devbreak|
          - Refactored the TransactionManager inheritance tree to consolidate all relevant methods into a single interface.
            Functionally, any TransactionManager created using TransactionManagers will provide the serializable and snapshot
            isolation guarantees provided by a SerializableTransactionManager. Constructing TransactionManagers via this class
@@ -69,7 +75,7 @@ develop
 
            Note that targeted sweep is considered a beta feature as it is not fully functional yet.
            Consult with the AtlasDB team if you wish to use targeted sweep in addition to, or instead of, standard sweep.
-                      
+
     *    - |improved|
          - When writing to Cassandra, the internal write timestamp for writes of sweep sentinels, range tombstones and deletes to regular tables are now approximately fresh timestamps from the timestamp service, as opposed to being an arbitrary hardcoded value or related to the transaction's start timestamp.
            This should improve Cassandra's ability to purge droppable tombstones at compaction time, particularly in tables that see heavy volumes of overwrites and sweeping.
@@ -101,6 +107,11 @@ develop
          - Some users of AtlasDB rely on being able to abort transactions which are in progress. Until the last release of AtlasDB, this worked successfully, however this was only the case because before
            an assert could throw an AssertionError, an NPE was thrown by different code. Now, the assertion error is not thrown.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3254>`__)
+
+    *    - |fixed|
+         - Fixed an issue where starting an HA Oracle-backed client may fail due to constraint violation.
+           The issue occurred when multiple nodes attempted to insert the same metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3269>`__)
 
     *    - |changed| |metrics|
          - Sweep metrics have been reworked based on their observed usefulness in the field.
