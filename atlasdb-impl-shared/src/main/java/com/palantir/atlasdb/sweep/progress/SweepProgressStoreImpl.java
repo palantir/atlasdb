@@ -127,7 +127,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     }
 
     @Override
-    public void saveProgress(int threadIndex, SweepProgress newProgress) {
+    public void saveProgress(SweepProgress newProgress) {
         Cell cell = getCell(newProgress.tableRef());
         Map<Cell, Value> entry = getStoredProgress(newProgress.tableRef());
 
@@ -194,7 +194,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
         log.info("Upgrading AtlasDB's sweep progress schema - sweep of table {} will resume where it left off when "
                 + "this table is next swept, but other tables may be swept in the meantime.",
                 LoggingArgs.tableRef(legacyProgress.tableRef()));
-        saveProgress(1, legacyProgress);
+        saveProgress(legacyProgress);
         clearLegacyProgress(legacyProgress);
     }
 

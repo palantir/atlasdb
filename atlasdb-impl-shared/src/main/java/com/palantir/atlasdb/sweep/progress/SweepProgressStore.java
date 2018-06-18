@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public interface SweepProgressStore {
     void clearProgress(TableReference tableRef);
 
-    void saveProgress(int threadIndex, SweepProgress newProgress);
+    void saveProgress(SweepProgress newProgress);
 
     Optional<SweepProgress> loadProgress(TableReference tableRef);
 

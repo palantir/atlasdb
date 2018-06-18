@@ -114,12 +114,12 @@ public class SpecificTableSweeper {
         return sweepProgressStore;
     }
 
-    void runOnceAndSaveResults(int threadIndex, TableToSweep tableToSweep, SweepBatchConfig batchConfig) {
+    void runOnceAndSaveResults(TableToSweep tableToSweep, SweepBatchConfig batchConfig) {
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
 
         SweepResults results = runOneIteration(tableRef, startRow, batchConfig);
-        processSweepResults(threadIndex, tableToSweep, results);
+        processSweepResults(tableToSweep, results);
     }
 
     SweepResults runOneIteration(TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig) {
@@ -173,15 +173,15 @@ public class SpecificTableSweeper {
                 exception);
     }
 
-    private void processSweepResults(int threadIndex, TableToSweep tableToSweep, SweepResults currentIteration) {
+    private void processSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
         updateTimeMetricsOneIteration(currentIteration.getTimeInMillis(), currentIteration.getTimeElapsedSinceStartedSweeping());
 
         SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
 
         if (currentIteration.getNextStartRow().isPresent()) {
-            saveIntermediateSweepResults(threadIndex, tableToSweep, cumulativeResults);
+            saveIntermediateSweepResults(tableToSweep, cumulativeResults);
         } else {
-            processFinishedSweep(threadIndex, tableToSweep, cumulativeResults);
+            processFinishedSweep(tableToSweep, cumulativeResults);
         }
     }
 
@@ -189,7 +189,7 @@ public class SpecificTableSweeper {
         return tableToSweep.getPreviousSweepResults().accumulateWith(currentIteration);
     }
 
-    private void saveIntermediateSweepResults(int threadIndex, TableToSweep tableToSweep, SweepResults results) {
+    private void saveIntermediateSweepResults(TableToSweep tableToSweep, SweepResults results) {
         Preconditions.checkArgument(results.getNextStartRow().isPresent(),
                 "Next start row should be present when saving intermediate results!");
         txManager.runTaskWithRetry((TxTask) tx -> {
@@ -211,12 +211,12 @@ public class SpecificTableSweeper {
                     .timeInMillis(results.getTimeInMillis())
                     .startTimeInMillis(results.getTimeSweepStarted())
                     .build();
-            sweepProgressStore.saveProgress(threadIndex, newProgress);
+            sweepProgressStore.saveProgress(newProgress);
             return null;
         });
     }
 
-    private void processFinishedSweep(int threadIndex, TableToSweep tableToSweep, SweepResults cumulativeResults) {
+    private void processFinishedSweep(TableToSweep tableToSweep, SweepResults cumulativeResults) {
         saveFinalSweepResults(tableToSweep, cumulativeResults);
         log.info("Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values. Time taken "
                         + "sweeping: {} ms, time elapsed since sweep first started on this table: {} ms.",

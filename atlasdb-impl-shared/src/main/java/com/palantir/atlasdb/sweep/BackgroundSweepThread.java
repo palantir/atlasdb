@@ -190,7 +190,7 @@ public class BackgroundSweepThread implements Runnable {
 
         SweepBatchConfig batchConfig = sweepBatchConfigSource.getAdjustedSweepConfig();
         try {
-            specificTableSweeper.runOnceAndSaveResults(threadIndex, tableToSweep.get(), batchConfig);
+            specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), batchConfig);
             return SweepOutcome.SUCCESS;
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);

@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.sweep.progress;
 
-import static com.palantir.atlasdb.sweep.progress.SweepProgressStoreImpl.LEGACY_CELL;
-
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
@@ -88,30 +86,30 @@ public abstract class AbstractSweepProgressStoreTest {
 
     @Test
     public void testSaveAndLoad() {
-        progressStore.saveProgress(1, PROGRESS);
+        progressStore.saveProgress(PROGRESS);
         Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(TABLE));
     }
 
     @Test
     public void testOtherTablesDoNotConflict() {
-        progressStore.saveProgress(1, PROGRESS);
+        progressStore.saveProgress(PROGRESS);
         Assert.assertFalse(progressStore.loadProgress(OTHER_TABLE).isPresent());
 
-        progressStore.saveProgress(2, OTHER_PROGRESS);
+        progressStore.saveProgress(OTHER_PROGRESS);
         Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(TABLE));
     }
 
     @Test
     public void testOverwrite() {
-        progressStore.saveProgress(1, PROGRESS);
-        progressStore.saveProgress(1, SECOND_PROGRESS);
+        progressStore.saveProgress(PROGRESS);
+        progressStore.saveProgress(SECOND_PROGRESS);
         Assert.assertEquals(Optional.of(SECOND_PROGRESS), progressStore.loadProgress(TABLE));
     }
 
     @Test
     public void testClearOne() {
-        progressStore.saveProgress(1, PROGRESS);
-        progressStore.saveProgress(2, OTHER_PROGRESS);
+        progressStore.saveProgress(PROGRESS);
+        progressStore.saveProgress(OTHER_PROGRESS);
         Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(TABLE));
 
         progressStore.clearProgress(TABLE);
@@ -121,16 +119,16 @@ public abstract class AbstractSweepProgressStoreTest {
 
     @Test
     public void testClearAndRewrite() {
-        progressStore.saveProgress(1, PROGRESS);
+        progressStore.saveProgress(PROGRESS);
         progressStore.clearProgress(TABLE);
-        progressStore.saveProgress(1, SECOND_PROGRESS);
+        progressStore.saveProgress(SECOND_PROGRESS);
 
         Assert.assertEquals(Optional.of(SECOND_PROGRESS), progressStore.loadProgress(TABLE));
     }
 
     @Test
     public void testClearTwice() {
-        progressStore.saveProgress(1, PROGRESS);
+        progressStore.saveProgress(PROGRESS);
         progressStore.clearProgress(TABLE);
         progressStore.clearProgress(TABLE);
 
@@ -140,7 +138,8 @@ public abstract class AbstractSweepProgressStoreTest {
     @Test
     public void testReadFromOldProgress() throws JsonProcessingException {
         byte[] progressBytes = SweepProgressStoreImpl.progressToBytes(PROGRESS);
-        kvs.checkAndSet(CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, LEGACY_CELL, progressBytes));
+        kvs.checkAndSet(CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE,
+                SweepProgressStoreImpl.LEGACY_CELL, progressBytes));
 
         // Enforce initialisation, which is where we expect the legacy value to be read.
         SweepProgressStore newProgressStore = SweepProgressStoreImpl.create(kvs, false);
@@ -150,12 +149,13 @@ public abstract class AbstractSweepProgressStoreTest {
     @Test
     public void repeatedCreationDoesNotMoveProgressBackwards() throws JsonProcessingException {
         byte[] progressBytes = SweepProgressStoreImpl.progressToBytes(PROGRESS);
-        kvs.checkAndSet(CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, LEGACY_CELL, progressBytes));
+        kvs.checkAndSet(CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE,
+                SweepProgressStoreImpl.LEGACY_CELL, progressBytes));
 
         // Enforce initialisation, which is where we expect the legacy value to be read.
         SweepProgressStore newProgressStore = SweepProgressStoreImpl.create(kvs, false);
         Assert.assertEquals(Optional.of(PROGRESS), newProgressStore.loadProgress(TABLE));
-        newProgressStore.saveProgress(1, SECOND_PROGRESS);
+        newProgressStore.saveProgress(SECOND_PROGRESS);
 
         // This will fail if the legacy value is not removed by the initialisation of newProgressStore
         SweepProgressStore newerProgressStore = SweepProgressStoreImpl.create(kvs, false);
