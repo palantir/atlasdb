@@ -25,9 +25,6 @@ public interface SweepProgressStore {
 
     void saveProgress(int threadIndex, SweepProgress newProgress);
 
-    // Loads old (single-sweep) progress
-    Optional<SweepProgress> loadProgress();
-
     Optional<SweepProgress> loadProgress(TableReference tableRef);
 
     default boolean isInitialized() {

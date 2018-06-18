@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.sweep.progress;
 
+import static com.palantir.atlasdb.sweep.progress.SweepProgressStoreImpl.LEGACY_CELL;
+
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
@@ -24,11 +26,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.SweepTestUtils;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
 
 public abstract class AbstractSweepProgressStoreTest {
@@ -59,14 +63,14 @@ public abstract class AbstractSweepProgressStoreTest {
             .withTableRef(TABLE);
 
     protected ExecutorService exec;
-    private TransactionManager txManager;
+    private KeyValueService kvs;
     private SweepProgressStore progressStore;
 
     @Before
     public void setup() {
         exec = PTExecutors.newCachedThreadPool();
-        KeyValueService kvs = getKeyValueService();
-        txManager = SweepTestUtils.setupTxManager(kvs);
+        kvs = getKeyValueService();
+        SweepTestUtils.setupTxManager(kvs);
         progressStore = SweepProgressStoreImpl.create(kvs, false);
     }
 
@@ -131,5 +135,30 @@ public abstract class AbstractSweepProgressStoreTest {
         progressStore.clearProgress(TABLE);
 
         Assert.assertFalse(progressStore.loadProgress(TABLE).isPresent());
+    }
+
+    @Test
+    public void testReadFromOldProgress() throws JsonProcessingException {
+        byte[] progressBytes = SweepProgressStoreImpl.progressToBytes(PROGRESS);
+        kvs.checkAndSet(CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, LEGACY_CELL, progressBytes));
+
+        // Enforce initialisation, which is where we expect the legacy value to be read.
+        SweepProgressStore newProgressStore = SweepProgressStoreImpl.create(kvs, false);
+        Assert.assertEquals(Optional.of(PROGRESS), newProgressStore.loadProgress(TABLE));
+    }
+
+    @Test
+    public void repeatedCreationDoesNotMoveProgressBackwards() throws JsonProcessingException {
+        byte[] progressBytes = SweepProgressStoreImpl.progressToBytes(PROGRESS);
+        kvs.checkAndSet(CheckAndSetRequest.newCell(AtlasDbConstants.SWEEP_PROGRESS_TABLE, LEGACY_CELL, progressBytes));
+
+        // Enforce initialisation, which is where we expect the legacy value to be read.
+        SweepProgressStore newProgressStore = SweepProgressStoreImpl.create(kvs, false);
+        Assert.assertEquals(Optional.of(PROGRESS), newProgressStore.loadProgress(TABLE));
+        newProgressStore.saveProgress(1, SECOND_PROGRESS);
+
+        // This will fail if the legacy value is not removed by the initialisation of newProgressStore
+        SweepProgressStore newerProgressStore = SweepProgressStoreImpl.create(kvs, false);
+        Assert.assertEquals(Optional.of(SECOND_PROGRESS), newerProgressStore.loadProgress(TABLE));
     }
 }

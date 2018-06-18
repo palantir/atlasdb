@@ -26,6 +26,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -80,7 +82,9 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
 
     private static final String ROW_AND_COLUMN_NAME = "s";
     private static final byte[] ROW_AND_COLUMN_NAME_BYTES = PtBytes.toCachedBytes(ROW_AND_COLUMN_NAME);
-    private static final Cell CELL = Cell.create(ROW_AND_COLUMN_NAME_BYTES, ROW_AND_COLUMN_NAME_BYTES);
+
+    @VisibleForTesting
+    protected static final Cell LEGACY_CELL = Cell.create(ROW_AND_COLUMN_NAME_BYTES, ROW_AND_COLUMN_NAME_BYTES);
     private static final byte[] FINISHED_TABLE = PtBytes.toBytes("Table finished");
 
     private static final TableMetadata SWEEP_PROGRESS_METADATA = new TableMetadata(
@@ -107,9 +111,8 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
         return progressStore.wrapper.isInitialized() ? progressStore : progressStore.wrapper;
     }
 
-    @Override
-    public Optional<SweepProgress> loadProgress()  {
-        Map<Cell, Value> entry = kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(CELL, 1L));
+    private Optional<SweepProgress> loadLegacyProgress()  {
+        Map<Cell, Value> entry = kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(LEGACY_CELL, 1L));
         return hydrateProgress(entry);
     }
 
@@ -160,19 +163,22 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
      */
     @Override
     public void clearProgress(TableReference tableRef) {
-        Optional<SweepProgress> oldProgress = loadProgress(tableRef);
-        if (oldProgress.isPresent()) {
-            try {
-                CheckAndSetRequest request = CheckAndSetRequest.singleCell(
-                        AtlasDbConstants.SWEEP_PROGRESS_TABLE, getCell(tableRef),
-                        progressToBytes(oldProgress.get()), FINISHED_TABLE);
-                kvs.checkAndSet(request);
-            } catch (JsonProcessingException e) {
-                log.warn("Exception trying to clear sweep progress. "
-                        + "Sweep may continue examining the same range if the problem persists.", e);
-            }
-        }
+        loadProgress(tableRef).ifPresent(this::clearProgress);
+    }
 
+    private void clearProgress(SweepProgress progress) {
+        clearProgressFromCell(progress, getCell(progress.tableRef()));
+    }
+
+    private void clearProgressFromCell(SweepProgress progress, Cell cell) {
+        try {
+            CheckAndSetRequest request = CheckAndSetRequest.singleCell(
+                    AtlasDbConstants.SWEEP_PROGRESS_TABLE, cell, progressToBytes(progress), FINISHED_TABLE);
+            kvs.checkAndSet(request);
+        } catch (JsonProcessingException e) {
+            log.warn("Exception trying to clear sweep progress. "
+                    + "Sweep may continue examining the same range if the problem persists.", e);
+        }
     }
 
     private Cell getCell(TableReference tableRef) {
@@ -181,9 +187,23 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
 
     private void tryInitialize() {
         kvs.createTable(AtlasDbConstants.SWEEP_PROGRESS_TABLE, SWEEP_PROGRESS_METADATA.persistToBytes());
+        loadLegacyProgress().ifPresent(this::moveToNewSchema);
     }
 
-    private byte[] progressToBytes(SweepProgress value) throws JsonProcessingException {
+    private void moveToNewSchema(SweepProgress legacyProgress) {
+        log.info("Upgrading AtlasDB's sweep progress schema - sweep of table {} will resume where it left off when "
+                + "this table is next swept, but other tables may be swept in the meantime.",
+                LoggingArgs.tableRef(legacyProgress.tableRef()));
+        saveProgress(1, legacyProgress);
+        clearLegacyProgress(legacyProgress);
+    }
+
+    private void clearLegacyProgress(SweepProgress legacyProgress) {
+        clearProgressFromCell(legacyProgress, LEGACY_CELL);
+    }
+
+    @VisibleForTesting
+    protected static byte[] progressToBytes(SweepProgress value) throws JsonProcessingException {
         return OBJECT_MAPPER.writeValueAsBytes(value);
     }
 
