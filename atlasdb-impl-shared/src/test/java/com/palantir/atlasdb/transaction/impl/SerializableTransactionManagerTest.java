@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 
@@ -208,6 +209,7 @@ public class SerializableTransactionManagerTest {
     private TransactionManager getManagerWithCallback(boolean initializeAsync,
             Callback<TransactionManager> callBack) {
         return SerializableTransactionManager.create(
+                MetricsManagers.createForTests(),
                 mockKvs,
                 mockTimelockService,
                 null, // lockService

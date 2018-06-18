@@ -78,7 +78,8 @@ import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.util.MetricsRule;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
@@ -135,6 +136,7 @@ public class TransactionManagersTest {
     private final TimeLockMigrator migrator = mock(TimeLockMigrator.class);
     private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices = mock(
             TransactionManagers.LockAndTimestampServices.class);
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     private int availablePort;
     private TimeLockClientConfig mockClientConfig;
@@ -152,9 +154,6 @@ public class TransactionManagersTest {
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
-
-    @Rule
-    public MetricsRule metricsRule = new MetricsRule();
 
     @Before
     public void setup() throws JsonProcessingException {
@@ -352,15 +351,16 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .build();
 
+        MetricRegistry metrics = new MetricRegistry();
         TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent("test")
-                .globalMetricsRegistry(new MetricRegistry())
+                .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .build()
                 .serializable();
-        assertThat(metricsRule.metrics().getNames().stream()
+        assertThat(metrics.getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
     }
 
@@ -478,15 +478,15 @@ public class TransactionManagersTest {
     }
 
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
-        assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(0L)));
-        assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(0L)));
 
         TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
-        assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(1L)));
-        assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(1L)));
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(1L)));
+        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(1L)));
     }
 
     private void setUpForLocalServices() throws IOException {
@@ -534,6 +534,7 @@ public class TransactionManagersTest {
 
     private TransactionManagers.LockAndTimestampServices getLockAndTimestampServices() {
         return TransactionManagers.createLockAndTimestampServices(
+                metricsManager,
                 config,
                 () -> runtimeConfig,
                 environment,
@@ -559,6 +560,7 @@ public class TransactionManagersTest {
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
         TransactionManagers.LockAndTimestampServices lockAndTimestamp =
                 TransactionManagers.createLockAndTimestampServices(
+                        metricsManager,
                         config,
                         () -> runtimeConfig,
                         environment,
@@ -598,6 +600,7 @@ public class TransactionManagersTest {
     private TransactionManagers.LockAndTimestampServices createLockAndTimestampServicesForConfig(
             AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
         return TransactionManagers.createLockAndTimestampServices(
+                metricsManager,
                 atlasDbConfig,
                 () -> atlasDbRuntimeConfig,
                 environment,

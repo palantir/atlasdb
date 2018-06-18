@@ -35,9 +35,12 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(LegacyTimeLockServicesCreator.class);
     private static final LockClient LEGACY_LOCK_CLIENT = LockClient.of("legacy");
 
+    private final MetricRegistry metricRegistry;
     private final PaxosLeadershipCreator leadershipCreator;
 
-    public LegacyTimeLockServicesCreator(PaxosLeadershipCreator leadershipCreator) {
+    public LegacyTimeLockServicesCreator(MetricRegistry metricRegistry,
+            PaxosLeadershipCreator leadershipCreator) {
+        this.metricRegistry = metricRegistry;
         this.leadershipCreator = leadershipCreator;
     }
 
@@ -48,10 +51,12 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating legacy timelock service for client {}", client);
         ManagedTimestampService timestampService = instrumentInLeadershipProxy(
+                metricRegistry,
                 ManagedTimestampService.class,
                 rawTimestampServiceSupplier,
                 client);
         LockService lockService = instrumentInLeadershipProxy(
+                metricRegistry,
                 LockService.class,
                 rawLockServiceSupplier,
                 client);
@@ -59,6 +64,7 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
         // The underlying primitives are already wrapped in a leadership proxy (and must be).
         // Wrapping this means that we will make 2 paxos checks per request, which is silly.
         TimelockService legacyTimelockService = instrument(
+                metricRegistry,
                 TimelockService.class,
                 createRawLegacyTimelockService(timestampService, lockService),
                 client);
@@ -75,12 +81,14 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
         return new LegacyTimelockService(timestampService, lockService, LEGACY_LOCK_CLIENT);
     }
 
-    private <T> T instrumentInLeadershipProxy(Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {
-        return instrument(serviceClass, leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
+    private <T> T instrumentInLeadershipProxy(MetricRegistry metricRegistry,
+            Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {
+        return instrument(metricRegistry, serviceClass,
+                leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
     }
 
-    private static <T> T instrument(Class<T> serviceClass, T service, String client) {
+    private <T> T instrument(MetricRegistry metricRegistry, Class<T> serviceClass, T service, String client) {
         // TODO(nziebart): tag with the client name, when tritium supports it
-        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass));
+        return AtlasDbMetrics.instrument(metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass));
     }
 }

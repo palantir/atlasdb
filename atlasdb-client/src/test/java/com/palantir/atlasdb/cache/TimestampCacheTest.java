@@ -23,7 +23,6 @@ import static org.junit.Assert.assertThat;
 
 import java.util.SortedMap;
 
-import org.junit.Rule;
 import org.junit.Test;
 
 import com.codahale.metrics.Gauge;
@@ -32,22 +31,20 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.cache.Cache;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.MetricsRule;
 
 public class TimestampCacheTest {
     private static final String TEST_CACHE_NAME = MetricRegistry.name(TimestampCacheTest.class, "test");
 
-    @Rule
-    public MetricsRule metricsRule = new MetricsRule();
+    private final MetricRegistry metrics = new MetricRegistry();
 
     @Test
     public void cacheExposesMetrics() throws Exception {
         Cache<Long, Long> cache = TimestampCache.createCache(AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
-        AtlasDbMetrics.registerCache(cache, TEST_CACHE_NAME);
+        AtlasDbMetrics.registerCache(metrics, cache, TEST_CACHE_NAME);
 
         TimestampCache timestampCache = new TimestampCache(cache);
 
-        SortedMap<String, Gauge> gauges = metricsRule.metrics().getGauges(startsWith(TimestampCache.class.getName()));
+        SortedMap<String, Gauge> gauges = metrics.getGauges(startsWith(TimestampCache.class.getName()));
         assertThat(gauges.keySet(), hasItems(cacheMetricName("hit.count"), cacheMetricName("miss.ratio")));
 
         assertThat(timestampCache.getCommitTimestampIfPresent(1L), is(nullValue()));

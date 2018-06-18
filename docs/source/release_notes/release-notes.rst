@@ -51,6 +51,12 @@ develop
          - Change
 
     *    - |devbreak|
+         - AtlasDB metrics are no longer a static singleton, and are now created upon construction of relevant classes.
+           This allows internal users to construct multiple AtlasDBs and get meaningful metrics. Many constructors have
+           been broken due to this change.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3237>`__)
+
+    *    - |devbreak|
          - Refactored the TransactionManager inheritance tree to consolidate all relevant methods into a single interface.
            Functionally, any TransactionManager created using TransactionManagers will provide the serializable and snapshot
            isolation guarantees provided by a SerializableTransactionManager. Constructing TransactionManagers via this class

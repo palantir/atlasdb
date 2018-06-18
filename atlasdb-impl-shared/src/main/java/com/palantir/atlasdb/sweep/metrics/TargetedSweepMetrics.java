@@ -41,8 +41,8 @@ import com.palantir.util.JavaSuppliers;
 public final class TargetedSweepMetrics {
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
 
-    private TargetedSweepMetrics(Function<Long, Long> tsToMillis, Clock clock, long millis) {
-        MetricsManager metricsManager = new MetricsManager();
+    private TargetedSweepMetrics(MetricsManager metricsManager,
+                Function<Long, Long> tsToMillis, Clock clock, long millis) {
         metricsForStrategyMap = ImmutableMap.of(
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, tsToMillis, clock, millis),
@@ -50,13 +50,17 @@ public final class TargetedSweepMetrics {
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, tsToMillis, clock, millis));
     }
 
-    public static TargetedSweepMetrics create(KeyValueService kvs, long millis) {
-        return createWithClock(kvs, new SystemClock(), millis);
+    public static TargetedSweepMetrics create(MetricsManager metricsManager, KeyValueService kvs, long millis) {
+        return createWithClock(metricsManager, kvs, new SystemClock(), millis);
     }
 
-    public static TargetedSweepMetrics createWithClock(KeyValueService kvs, Clock clock, long millis) {
-        return new TargetedSweepMetrics(ts -> KeyValueServicePuncherStore.getMillisForTimestamp(kvs, ts),
-                clock, millis);
+    public static TargetedSweepMetrics createWithClock(
+            MetricsManager metricsManager, KeyValueService kvs, Clock clock, long millis) {
+        return new TargetedSweepMetrics(
+                metricsManager,
+                ts -> KeyValueServicePuncherStore.getMillisForTimestamp(kvs, ts),
+                clock,
+                millis);
     }
 
     public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes) {
@@ -91,7 +95,7 @@ public final class TargetedSweepMetrics {
         return currentValues.stream().min(Comparator.naturalOrder()).orElse(-1L);
     }
 
-    private static class MetricsForStrategy {
+    private class MetricsForStrategy {
         private final AccumulatingValueMetric enqueuedWrites = new AccumulatingValueMetric();
         private final AccumulatingValueMetric entriesRead = new AccumulatingValueMetric();
         private final AccumulatingValueMetric tombstonesPut = new AccumulatingValueMetric();
@@ -117,7 +121,7 @@ public final class TargetedSweepMetrics {
             register(manager, AtlasDbMetricNames.LAG_MILLIS, millisSinceOldestEntry, tag);
         }
 
-        private static void register(MetricsManager manager, String name, Gauge<Long> metric, Map<String, String> tag) {
+        private void register(MetricsManager manager, String name, Gauge<Long> metric, Map<String, String> tag) {
             manager.registerMetric(TargetedSweepMetrics.class, name, metric, tag);
         }
 

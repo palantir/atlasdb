@@ -18,8 +18,7 @@ package com.palantir.atlasdb.util;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +32,6 @@ import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -46,20 +44,17 @@ public class MetricsManager {
     private final MetricRegistry metricRegistry;
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final Set<String> registeredMetrics;
-    private final Function<TableReference, Boolean> isSafeToLog;
+    private final Predicate<TableReference> isSafeToLog;
 
-    public MetricsManager() {
-        this(AtlasDbMetrics.getMetricRegistry(), AtlasDbMetrics.getTaggedMetricRegistry());
-    }
-
-    @VisibleForTesting
-    MetricsManager(MetricRegistry metricRegistry, TaggedMetricRegistry taggedMetricRegistry) {
-        this(metricRegistry, taggedMetricRegistry, new HashSet<>(), LoggingArgs::isSafe);
+    public MetricsManager(MetricRegistry metricRegistry,
+            TaggedMetricRegistry taggedMetricRegistry,
+            Predicate<TableReference> isSafeToLog) {
+        this(metricRegistry, taggedMetricRegistry, new HashSet<>(), isSafeToLog);
     }
 
     @VisibleForTesting
     MetricsManager(MetricRegistry metricRegistry, TaggedMetricRegistry taggedMetricRegistry,
-            Set<String> registeredMetrics, Function<TableReference, Boolean> isSafeToLog) {
+            Set<String> registeredMetrics, Predicate<TableReference> isSafeToLog) {
         this.metricRegistry = metricRegistry;
         this.taggedMetricRegistry = taggedMetricRegistry;
         this.registeredMetrics = registeredMetrics;
@@ -141,7 +136,7 @@ public class MetricsManager {
     @VisibleForTesting
     Map<String, String> getTableNameTagFor(TableReference tableRef) {
         String tableName = tableRef.getTablename();
-        if (!isSafeToLog.apply(tableRef)) {
+        if (!isSafeToLog.test(tableRef)) {
             tableName = "unsafeTable_" + obfuscate(tableRef);
         }
 
@@ -221,20 +216,5 @@ public class MetricsManager {
     public synchronized void deregisterMetrics() {
         registeredMetrics.forEach(metricRegistry::remove);
         registeredMetrics.clear();
-    }
-
-    private synchronized void deregisterMetric(String fullyQualifiedMetricName) {
-        metricRegistry.remove(fullyQualifiedMetricName);
-        registeredMetrics.remove(fullyQualifiedMetricName);
-    }
-
-    public void deregisterMetricsWithPrefix(Class clazz, String prefix) {
-        // isEmpty() check required because MetricRegistry.name skips missing components.
-        // See MetricsManagerTest#doesNotDeregisterMetricsFromOtherClassesEvenIfStringPrefixesMatch.
-        String fqnPrefix = prefix.isEmpty() ? clazz.getName() + "." : MetricRegistry.name(clazz, prefix);
-        Set<String> relevantMetrics = registeredMetrics.stream()
-                .filter(metricName -> metricName.startsWith(fqnPrefix))
-                .collect(Collectors.toSet());
-        relevantMetrics.forEach(this::deregisterMetric);
     }
 }

@@ -29,6 +29,8 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.util.MetricsManagers;
+
 /**
  * Created by tboam on 03/11/2017.
  */
@@ -119,8 +121,9 @@ public class AdjustableSweepBatchConfigSourceTest {
     }
 
     private void configWithValues(int maxCellTsPairsToExamine, int candidateBatchSize, int deleteBatchSize) {
-        adjustableConfig = AdjustableSweepBatchConfigSource.create(() ->
-                ImmutableSweepBatchConfig.builder()
+        adjustableConfig = AdjustableSweepBatchConfigSource.create(
+                MetricsManagers.createForTests(),
+                () -> ImmutableSweepBatchConfig.builder()
                         .maxCellTsPairsToExamine(maxCellTsPairsToExamine)
                         .candidateBatchSize(candidateBatchSize)
                         .deleteBatchSize(deleteBatchSize)

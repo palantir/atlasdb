@@ -47,6 +47,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     private static final long MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS = 10_000;
 
+    private final MetricsManager metricsManager;
     private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
@@ -56,7 +57,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private final PersistentLockManager persistentLockManager;
     private final SpecificTableSweeper specificTableSweeper;
 
-    private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
+    private final SweepOutcomeMetrics sweepOutcomeMetrics;
 
     private Thread daemon;
 
@@ -64,6 +65,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     @VisibleForTesting
     BackgroundSweeperImpl(
+            MetricsManager metricsManager,
             LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
@@ -72,6 +74,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
+        this.metricsManager = metricsManager;
+        this.sweepOutcomeMetrics = new SweepOutcomeMetrics();
         this.lockService = lockService;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.sweepBatchConfigSource = sweepBatchConfigSource;
@@ -83,6 +87,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     }
 
     public static BackgroundSweeperImpl create(
+            MetricsManager metricsManager,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
@@ -93,6 +98,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
                 .create(specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
 
         return new BackgroundSweeperImpl(
+                metricsManager,
                 specificTableSweeper.getTxManager().getLockService(),
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,
@@ -353,7 +359,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     }
 
     private class SweepOutcomeMetrics {
-        private final MetricsManager metricsManager = new MetricsManager();
         private final SlidingTimeWindowReservoir reservoir;
 
         private boolean shutdown;

@@ -30,6 +30,7 @@ import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest
 
 public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
         extends AbstractSerializableTransactionTest {
+
     @ClassRule
     public static final Containers CONTAINERS =
             new Containers(CassandraKeyValueServiceSerializableTransactionIntegrationTest.class)

@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,8 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class LegacySweepMetricsTest {
     private static final long EXAMINED = 15L;
@@ -72,20 +69,13 @@ public class LegacySweepMetricsTest {
             .minSweptTimestamp(0L)
             .build();
 
-    private static MetricRegistry metricRegistry;
+    private final MetricRegistry metricRegistry = new MetricRegistry();
 
     private LegacySweepMetrics sweepMetrics;
 
     @Before
     public void setUp() {
-        sweepMetrics = new LegacySweepMetrics();
-        metricRegistry = AtlasDbMetrics.getMetricRegistry();
-    }
-
-    @After
-    public void tearDown() {
-        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(),
-                new DefaultTaggedMetricRegistry());
+        sweepMetrics = new LegacySweepMetrics(metricRegistry);
     }
 
     @Test

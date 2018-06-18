@@ -23,6 +23,7 @@ import org.junit.Before;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -40,6 +41,8 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -56,6 +59,7 @@ public abstract class TransactionTestSetup {
     protected LockClient lockClient;
     protected LockServiceImpl lockService;
 
+    protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService keyValueService;
     protected TimestampService timestampService;
     protected TransactionService transactionService;
@@ -112,9 +116,11 @@ public abstract class TransactionTestSetup {
     }
 
     protected TransactionManager getManager() {
-        return new TestTransactionManagerImpl(keyValueService, timestampService, lockClient, lockService,
+        return new TestTransactionManagerImpl(
+                MetricsManagers.createForTests(),
+                keyValueService, timestampService, lockClient, lockService,
                 transactionService, conflictDetectionManager, sweepStrategyManager, MultiTableSweepQueueWriter.NO_OP,
-                AbstractTransactionTest.DELETE_EXECUTOR);
+                MoreExecutors.newDirectExecutorService());
     }
 
     protected void put(Transaction txn,

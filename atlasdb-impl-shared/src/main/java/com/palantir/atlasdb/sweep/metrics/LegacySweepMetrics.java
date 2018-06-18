@@ -19,14 +19,11 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.CurrentValueMetric;
-import com.palantir.atlasdb.util.MetricsManager;
 
 // Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
 public class LegacySweepMetrics {
     public static final String METRIC_BASE_NAME = LegacySweepMetrics.class.getName();
-
-    private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
 
     private final Counter cellsExamined;
     private final Counter cellsDeleted;
@@ -34,7 +31,7 @@ public class LegacySweepMetrics {
     private final Counter sweepErrors;
     private final CurrentValueMetric<Long> totalTime;
 
-    public LegacySweepMetrics() {
+    public LegacySweepMetrics(MetricRegistry metricRegistry) {
         this.cellsExamined = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_EXAMINED));
         this.cellsDeleted = metricRegistry.counter(getMetricName(AtlasDbMetricNames.CELLS_SWEPT));
         this.timeSweeping = metricRegistry.counter(getMetricName(AtlasDbMetricNames.TIME_SPENT_SWEEPING));

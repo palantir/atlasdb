@@ -34,6 +34,8 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 
@@ -50,11 +52,13 @@ public class BackgroundCompactorTest {
             .compactPauseOnFailureMillis(COMPACT_PAUSE_ON_FAILURE_MILLIS)
             .build();
 
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final KeyValueService kvs = mock(KeyValueService.class);
     private final TransactionManager txManager = mock(TransactionManager.class);
     private final CompactPriorityCalculator priorityCalculator = mock(CompactPriorityCalculator.class);
 
-    private final BackgroundCompactor compactor = new BackgroundCompactor(txManager,
+    private final BackgroundCompactor compactor = new BackgroundCompactor(metricsManager,
+            txManager,
             kvs,
             mock(LockService.class),
             () -> ImmutableCompactorConfig.builder()
@@ -112,7 +116,8 @@ public class BackgroundCompactorTest {
 
     @Test
     public void passesMaintenanceHoursCorrectly() throws InterruptedException {
-        BackgroundCompactor backgroundCompactor = new BackgroundCompactor(txManager,
+        BackgroundCompactor backgroundCompactor = new BackgroundCompactor(metricsManager,
+                txManager,
                 kvs,
                 mock(LockService.class),
                 createAlternatingInMaintenanceHoursSupplier(),
@@ -131,7 +136,7 @@ public class BackgroundCompactorTest {
 
     @Test
     public void sanityTestMetrics() {
-        CompactionOutcomeMetrics metrics = new CompactionOutcomeMetrics();
+        CompactionOutcomeMetrics metrics = new CompactionOutcomeMetrics(metricsManager);
 
         metrics.registerOccurrenceOf(BackgroundCompactor.CompactionOutcome.FAILED_TO_COMPACT);
         metrics.registerOccurrenceOf(BackgroundCompactor.CompactionOutcome.SUCCESS);
@@ -144,7 +149,8 @@ public class BackgroundCompactorTest {
 
     @Test
     public void doesNotRunIfDisabled() throws InterruptedException {
-        BackgroundCompactor backgroundCompactor = new BackgroundCompactor(txManager,
+        BackgroundCompactor backgroundCompactor = new BackgroundCompactor(metricsManager,
+                txManager,
                 kvs,
                 mock(LockService.class),
                 () -> ImmutableCompactorConfig.builder().enableCompaction(false).build(),

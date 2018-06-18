@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.services;
 
-import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 import dagger.Module;
 import dagger.Provides;
 
 @Module
-public class RawKeyValueServiceModule {
+public class MetricsModule {
 
     @Provides
     @Singleton
-    @Named("rawKvs")
-    public KeyValueService provideRawKeyValueService(ServicesConfig config, MetricsManager metricsManager) {
-        return config.atlasDbSupplier(metricsManager).getKeyValueService();
+    public MetricsManager metricsManager() {
+        return MetricsManagers.of(new MetricRegistry(), new DefaultTaggedMetricRegistry());
     }
-
 }

@@ -25,30 +25,34 @@ import javax.net.ssl.SSLSocketFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
 import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 
 public class ClockSkewMonitorCreator {
+    private final MetricsManager metricsManager;
     private final Set<String> remoteServers;
     private final Optional<SSLSocketFactory> optionalSecurity;
     private final Consumer<Object> registrar;
 
     @VisibleForTesting
-    ClockSkewMonitorCreator(Set<String> remoteServers,
+    ClockSkewMonitorCreator(MetricsManager metricsManager, Set<String> remoteServers,
             Optional<SSLSocketFactory> optionalSecurity,
             Consumer<Object> registrar) {
+        this.metricsManager = metricsManager;
         this.remoteServers = remoteServers;
         this.optionalSecurity = optionalSecurity;
         this.registrar = registrar;
     }
 
-    public static ClockSkewMonitorCreator create(TimeLockInstallConfiguration install, Consumer<Object> registrar) {
+    public static ClockSkewMonitorCreator create(
+            MetricsManager metricsManager, TimeLockInstallConfiguration install, Consumer<Object> registrar) {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
         Optional<SSLSocketFactory> optionalSecurity =
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory);
 
-        return new ClockSkewMonitorCreator(remoteServers, optionalSecurity, registrar);
+        return new ClockSkewMonitorCreator(metricsManager, remoteServers, optionalSecurity, registrar);
     }
 
     public void registerClockServices() {
@@ -57,6 +61,6 @@ public class ClockSkewMonitorCreator {
     }
 
     private void runClockSkewMonitorInBackground() {
-        ClockSkewMonitor.create(remoteServers, optionalSecurity).runInBackground();
+        ClockSkewMonitor.create(metricsManager, remoteServers, optionalSecurity).runInBackground();
     }
 }
