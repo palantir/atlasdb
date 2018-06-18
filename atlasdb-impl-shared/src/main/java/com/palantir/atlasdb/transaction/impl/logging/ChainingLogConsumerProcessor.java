@@ -21,12 +21,15 @@ import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
+import com.google.common.base.Suppliers;
+
 @Value.Immutable
 public abstract class ChainingLogConsumerProcessor implements LogConsumerProcessor {
     protected abstract List<LogConsumerProcessor> processors();
 
     @Override
     public void maybeLog(Supplier<LogTemplate> logTemplateSupplier) {
-        processors().forEach(processor -> processor.maybeLog(logTemplateSupplier));
+        Supplier<LogTemplate> memoizingSupplier = Suppliers.memoize(logTemplateSupplier::get);
+        processors().forEach(processor -> processor.maybeLog(memoizingSupplier));
     }
 }

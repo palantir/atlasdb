@@ -56,7 +56,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -1361,7 +1360,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
-            logConsumerProcessor.maybeLog(Suppliers.memoize(() -> {
+            logConsumerProcessor.maybeLog(() -> {
                 SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
                 return ImmutableLogTemplate.builder().format(
                         "Committed {} bytes with locks, start ts {}, commit ts {}, "
@@ -1389,7 +1388,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                 tableRefs.safeTableRefs(),
                                 tableRefs.unsafeTableRefs())
                         .build();
-                    }));
+                    });
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }
