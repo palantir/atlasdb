@@ -24,15 +24,15 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.v2.TimelockService;
 
 public class MetricsBasedTimelockHealthCheckTest {
     private static final long METRICS_TICK_INTERVAL = TimeUnit.SECONDS.toMillis(5);
 
-    private static final TimelockHealthCheck timelockHealthCheck = new MetricsBasedTimelockHealthCheck();
+    private final MetricRegistry metricRegistry = new MetricRegistry();
+    private final TimelockHealthCheck timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricRegistry);
     private static TimelockService timelockService = mock(TimelockService.class);
 
     @Test
@@ -79,16 +79,11 @@ public class MetricsBasedTimelockHealthCheckTest {
         assertThat(timelockHealthCheck.getStatus().isHealthy()).isTrue();
     }
 
-    private static TimelockService getFreshInstrumentedTimelockService() {
-        //Remove previously set metrics
-        AtlasDbMetrics.getMetricRegistry().remove(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST);
-        AtlasDbMetrics.getMetricRegistry().remove(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST);
-
+    private TimelockService getFreshInstrumentedTimelockService() {
         timelockService = mock(TimelockService.class);
         TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
                 timelockService,
-                AtlasDbMetrics.getMetricRegistry()
-        );
+                metricRegistry);
 
         return instrumentedTimelockService;
     }

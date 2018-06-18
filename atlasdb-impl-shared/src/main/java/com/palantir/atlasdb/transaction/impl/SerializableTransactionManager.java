@@ -29,8 +29,6 @@ import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.monitoring.TimestampTracker;
-import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
@@ -38,6 +36,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
@@ -182,7 +181,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
     }
 
-    public static TransactionManager create(KeyValueService keyValueService,
+    public static TransactionManager create(MetricsManager metricsManager,
+            KeyValueService keyValueService,
             TimelockService timelockService,
             LockService lockService,
             TransactionService transactionService,
@@ -199,9 +199,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<Long> timestampCacheSize,
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback) {
-        TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
-                timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 lockService,
@@ -210,13 +209,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                timestampTracker,
                 timestampCacheSize,
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter);
+                sweepQueueWriter,
+                Executors.newSingleThreadExecutor());
 
         if (!initializeAsync) {
             callback.runWithRetry(serializableTransactionManager);
@@ -227,7 +226,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 : serializableTransactionManager;
     }
 
-    public static SerializableTransactionManager createForTest(KeyValueService keyValueService,
+    public static SerializableTransactionManager createForTest(MetricsManager metricsManager,
+            KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
             LockService lockService,
@@ -240,7 +240,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int defaultGetRangesConcurrency,
             Supplier<Long> timestampCacheSize,
             MultiTableSweepQueueWriter sweepQueue) {
-        return new SerializableTransactionManager(keyValueService,
+        return new SerializableTransactionManager(
+                metricsManager,
+                keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
                 transactionService,
@@ -248,55 +250,18 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                TimestampTrackerImpl.createNoOpTracker(),
                 timestampCacheSize,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
-                sweepQueue);
-    }
-
-    /**
-     * @deprecated Use {@link SerializableTransactionManager#create} to create this class.
-     */
-    @Deprecated
-    // Used by internal product.
-    public SerializableTransactionManager(KeyValueService keyValueService,
-            TimestampService timestampService,
-            LockClient lockClient,
-            LockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            boolean allowHiddenTableAccess,
-            TimestampTracker timestampTracker,
-            int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency,
-            Supplier<Long> timestampCacheSize) {
-        this(
-                keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                timestampTracker,
-                timestampCacheSize,
-                allowHiddenTableAccess,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP
-        );
+                sweepQueue,
+                Executors.newSingleThreadExecutor());
     }
 
     // Canonical constructor.
-    public SerializableTransactionManager(KeyValueService keyValueService,
+    public SerializableTransactionManager(MetricsManager metricsManager,
+            KeyValueService keyValueService,
             TimelockService timelockService,
             LockService lockService,
             TransactionService transactionService,
@@ -304,43 +269,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            TimestampTracker timestampTracker,
-            Supplier<Long> timestampCacheSize,
-            boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs,
-            int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency,
-            MultiTableSweepQueueWriter sweepQueueWriter) {
-        this(
-                keyValueService,
-                timelockService,
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                timestampTracker,
-                timestampCacheSize,
-                allowHiddenTableAccess,
-                lockAcquireTimeoutMs,
-                concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                sweepQueueWriter,
-                Executors.newSingleThreadExecutor()
-        );
-    }
-
-    @VisibleForTesting
-    SerializableTransactionManager(KeyValueService keyValueService,
-            TimelockService timelockService,
-            LockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            TimestampTracker timestampTracker,
             Supplier<Long> timestampCacheSize,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
@@ -349,6 +277,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor) {
         super(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 lockService,
@@ -359,7 +288,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
-                timestampTracker,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 timestampCacheSize,
@@ -374,6 +302,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
         return new SerializableTransaction(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 transactionService,

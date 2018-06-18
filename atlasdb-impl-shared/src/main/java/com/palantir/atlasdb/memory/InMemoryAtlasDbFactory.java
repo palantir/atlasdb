@@ -55,6 +55,8 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
@@ -113,6 +115,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
      */
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
+            MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
@@ -183,6 +186,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 ImmutableList.of(follower),
                 transactionService).buildCleaner();
         TransactionManager ret = SerializableTransactionManager.createForTest(
+                MetricsManagers.createForTests(),
                 keyValueService,
                 ts,
                 client,

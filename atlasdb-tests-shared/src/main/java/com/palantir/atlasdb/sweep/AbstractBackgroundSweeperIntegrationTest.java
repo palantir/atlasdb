@@ -49,6 +49,8 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
 import com.palantir.timestamp.InMemoryTimestampService;
@@ -60,6 +62,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
 
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService kvs;
     protected TransactionManager txManager;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
@@ -84,12 +87,12 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         txService = TransactionServices.createTransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
         LongSupplier tsSupplier = sweepTimestamp::get;
-        PersistentLockManager persistentLockManager = new PersistentLockManager(
+        PersistentLockManager persistentLockManager = new PersistentLockManager(metricsManager,
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
-        LegacySweepMetrics sweepMetrics = new LegacySweepMetrics();
+        LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
         specificTableSweeper = SpecificTableSweeper.create(
                 txManager,
                 kvs,
@@ -99,9 +102,10 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 sweepMetrics,
                 false);
 
-        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() -> sweepBatchConfig);
+        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(metricsManager, () -> sweepBatchConfig);
 
         backgroundSweeper = BackgroundSweeperImpl.create(
+                metricsManager,
                 sweepBatchConfigSource,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis

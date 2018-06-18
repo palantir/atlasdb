@@ -74,7 +74,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
@@ -106,9 +106,9 @@ public class SerializableTransaction extends SnapshotTransaction {
             columnRangeEndsByTable = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<Cell>> cellsRead = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
-    private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
 
-    public SerializableTransaction(KeyValueService keyValueService,
+    public SerializableTransaction(MetricsManager metricsManager,
+                                   KeyValueService keyValueService,
                                    TimelockService timelockService,
                                    TransactionService transactionService,
                                    Cleaner cleaner,
@@ -128,7 +128,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    int defaultGetRangesConcurrency,
                                    MultiTableSweepQueueWriter sweepQueue,
                                    ExecutorService deleteExecutor) {
-        super(keyValueService,
+        super(metricsManager,
+              keyValueService,
               timelockService,
               transactionService,
               cleaner,
@@ -685,6 +686,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private Transaction getReadOnlyTransaction(final long commitTs) {
         return new SnapshotTransaction(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 defaultTransactionService,
@@ -759,7 +761,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private Meter getTransactionConflictsMeter() {
         // TODO(hsaraogi): add table names as a tag
-        return metricRegistry.meter(
+        return metricsManager.getRegistry().meter(
                 MetricRegistry.name(SerializableTransaction.class, "SerializableTransactionConflict"));
     }
 }

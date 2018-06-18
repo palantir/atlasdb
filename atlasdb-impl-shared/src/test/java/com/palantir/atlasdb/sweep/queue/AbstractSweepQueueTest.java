@@ -49,6 +49,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public abstract class AbstractSweepQueueTest {
     static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");
@@ -70,6 +72,8 @@ public abstract class AbstractSweepQueueTest {
     int shardCons;
     int shardThor;
 
+    protected final MetricsManager metricsManager = MetricsManagers.createForTests();
+
     KeyValueService spiedKvs;
     SpecialTimestampsSupplier timestampsSupplier;
     WriteInfoPartitioner partitioner;
@@ -89,7 +93,7 @@ public abstract class AbstractSweepQueueTest {
         timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createTransactionService(spiedKvs);
-        metrics = TargetedSweepMetrics.create(spiedKvs, 1);
+        metrics = TargetedSweepMetrics.create(metricsManager, spiedKvs, 1);
     }
 
     static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {

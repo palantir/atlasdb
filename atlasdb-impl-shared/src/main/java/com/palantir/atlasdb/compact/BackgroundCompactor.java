@@ -32,6 +32,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
 import com.palantir.atlasdb.schema.generated.CompactTableFactory;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
@@ -48,13 +49,15 @@ public final class BackgroundCompactor implements AutoCloseable {
     private final Supplier<CompactorConfig> compactorConfigSupplier;
     private final CompactPriorityCalculator compactPriorityCalculator;
 
-    private final CompactionOutcomeMetrics compactionOutcomeMetrics = new CompactionOutcomeMetrics();
+    private final CompactionOutcomeMetrics compactionOutcomeMetrics;
 
     private Thread daemon;
 
     private final CountDownLatch shuttingDown = new CountDownLatch(1);
 
-    public static Optional<BackgroundCompactor> createAndRun(TransactionManager transactionManager,
+    public static Optional<BackgroundCompactor> createAndRun(
+            MetricsManager metricsManager,
+            TransactionManager transactionManager,
             KeyValueService keyValueService,
             LockService lockService,
             Supplier<CompactorConfig> compactorConfigSupplier) {
@@ -64,7 +67,8 @@ public final class BackgroundCompactor implements AutoCloseable {
         }
 
         CompactPriorityCalculator compactPriorityCalculator = CompactPriorityCalculator.create(transactionManager);
-        BackgroundCompactor backgroundCompactor = new BackgroundCompactor(transactionManager,
+        BackgroundCompactor backgroundCompactor = new BackgroundCompactor(metricsManager,
+                transactionManager,
                 keyValueService,
                 lockService,
                 compactorConfigSupplier,
@@ -77,11 +81,14 @@ public final class BackgroundCompactor implements AutoCloseable {
     }
 
     @VisibleForTesting
-    BackgroundCompactor(TransactionManager transactionManager,
+    BackgroundCompactor(
+            MetricsManager metricsManager,
+            TransactionManager transactionManager,
             KeyValueService keyValueService,
             LockService lockService,
             Supplier<CompactorConfig> compactorConfigSupplier,
             CompactPriorityCalculator compactPriorityCalculator) {
+        this.compactionOutcomeMetrics = new CompactionOutcomeMetrics(metricsManager);
         this.transactionManager = transactionManager;
         this.keyValueService = keyValueService;
         this.lockService = lockService;

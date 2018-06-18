@@ -51,6 +51,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(

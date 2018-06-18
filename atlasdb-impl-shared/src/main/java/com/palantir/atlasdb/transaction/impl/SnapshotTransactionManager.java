@@ -44,6 +44,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -55,6 +56,7 @@ import com.palantir.timestamp.TimestampService;
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final int NUM_RETRIES = 10;
 
+    final MetricsManager metricsManager;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
@@ -68,7 +70,6 @@ import com.palantir.timestamp.TimestampService;
     protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
     final ExecutorService deleteExecutor;
-    final TimestampTracker timestampTracker;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
 
@@ -76,6 +77,7 @@ import com.palantir.timestamp.TimestampService;
     final AtomicBoolean isClosed;
 
     protected SnapshotTransactionManager(
+            MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockService lockService,
@@ -86,14 +88,14 @@ import com.palantir.timestamp.TimestampService;
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
-            TimestampTracker timestampTracker,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             Supplier<Long> timestampCacheSize,
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor) {
-        super(timestampCacheSize);
-
+        super(metricsManager, timestampCacheSize);
+        TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
+        this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -107,7 +109,6 @@ import com.palantir.timestamp.TimestampService;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
-        this.timestampTracker = timestampTracker;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
@@ -178,6 +179,7 @@ import com.palantir.timestamp.TimestampService;
             LockToken immutableTsLock,
             PreCommitCondition condition) {
         return new SnapshotTransaction(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 transactionService,
@@ -206,6 +208,7 @@ import com.palantir.timestamp.TimestampService;
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
         SnapshotTransaction transaction = new SnapshotTransaction(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 transactionService,
@@ -253,7 +256,6 @@ import com.palantir.timestamp.TimestampService;
     public void close() {
         if (isClosed.compareAndSet(false, true)) {
             super.close();
-            timestampTracker.close();
             cleaner.close();
             keyValueService.close();
             shutdownExecutor(deleteExecutor);
@@ -262,6 +264,7 @@ import com.palantir.timestamp.TimestampService;
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
                 callback.run();
             }
+            metricsManager.deregisterMetrics();
         }
     }
 

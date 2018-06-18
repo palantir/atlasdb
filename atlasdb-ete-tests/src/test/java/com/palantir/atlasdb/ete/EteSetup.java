@@ -30,6 +30,7 @@ import org.awaitility.Duration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -201,11 +202,11 @@ public abstract class EteSetup {
                 .map(nodeName -> String.format("http://%s:%s", nodeName, port))
                 .collect(Collectors.toList());
 
-        return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, Optional.empty(), uris, clazz);
+        return AtlasDbHttpClients.createProxyWithFailover(new MetricRegistry(), NO_SSL, Optional.empty(), uris, clazz);
     }
 
     private static <T> T createClientFor(Class<T> clazz, String host, short port) {
         String uri = String.format("http://%s:%s", host, port);
-        return AtlasDbHttpClients.createProxy(NO_SSL, uri, clazz);
+        return AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, uri, clazz);
     }
 }
