@@ -54,8 +54,7 @@ import org.joda.time.format.DateTimeFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.concurrent.CachedExecutors;
 import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.db.oracle.JdbcHandler.BlobHandler;
@@ -359,10 +358,10 @@ public abstract class BasicSQL {
     private static final String selectThreadName = "SQL select statement"; //$NON-NLS-1$
     private static final String executeThreadName = "SQL execute statement"; //$NON-NLS-1$
     private static final int KEEP_SQL_THREAD_ALIVE_TIMEOUT = 3000; //3 seconds
-    private static ExecutorService service = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(selectThreadName, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
-    static ExecutorService executeService = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(executeThreadName, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
+    private static ExecutorService service = CachedExecutors.getCachedExecutorService(
+            selectThreadName, KEEP_SQL_THREAD_ALIVE_TIMEOUT);
+    static ExecutorService executeService = CachedExecutors.getCachedExecutorService(
+            executeThreadName, KEEP_SQL_THREAD_ALIVE_TIMEOUT);
 
     protected static enum AutoClose {
         TRUE, FALSE;
