@@ -234,12 +234,10 @@ public class BackgroundSweepThread implements Runnable {
 
     // This is needed if we've just grabbed the sweep thread lock and a previous thread was in the middle of a table
     private void createLockForTableIfNecessary(SweepProgress progress) {
-        if (currentTable.isPresent() && currentTable.get().getTableRef().equals(progress.tableRef())) {
-            return;
+        if (currentTable.isPresent() && !currentTable.get().getTableRef().equals(progress.tableRef())) {
+            // If currentTableToSweep is present, we're stopping the current table due to a new override. Release the lock
+            currentTable.ifPresent(tableToSweep -> tableToSweep.getSweepLock().close());
         }
-
-        // If currentTableToSweep is present, we're stopping the current table due to a new override. Release the lock
-        currentTable.ifPresent(tableToSweep -> tableToSweep.getSweepLock().close());
 
         TableReference tableRef = progress.tableRef();
         SingleLockService singleLockService = SingleLockService.createNamedLockServiceForTable(
@@ -266,9 +264,9 @@ public class BackgroundSweepThread implements Runnable {
         if (nextTableToSweep.isPresent()) {
             // Check if we're resuming this table after a previous sweep
             nextTableToSweep = augmentWithProgress(nextTableToSweep.get());
+            currentTable = nextTableToSweep;
         }
 
-        currentTable = nextTableToSweep;
         return nextTableToSweep;
     }
 
