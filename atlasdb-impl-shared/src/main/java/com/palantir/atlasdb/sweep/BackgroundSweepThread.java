@@ -54,8 +54,7 @@ public class BackgroundSweepThread implements Runnable {
     private final LockService lockService;
     private final int threadIndex;
 
-    private Optional<TableReference> currentTable = Optional.empty();
-    private SingleLockService lockForCurrentTable;
+    private Optional<TableToSweep> currentTable = Optional.empty();
 
     BackgroundSweepThread(LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
@@ -207,17 +206,15 @@ public class BackgroundSweepThread implements Runnable {
         return specificTableSweeper.getTxManager().runTaskWithRetry(
                 tx -> {
                     Optional<SweepProgress> progress = currentTable.flatMap(
-                            tableRef -> specificTableSweeper.getSweepProgressStore().loadProgress(tableRef));
+                            tableToSweep -> specificTableSweeper.getSweepProgressStore().loadProgress(
+                                    tableToSweep.getTableRef()));
                     SweepPriorityOverrideConfig overrideConfig = sweepPriorityOverrideConfig.get();
                     if (progress.map(
                             realProgress -> shouldContinueSweepingCurrentTable(realProgress, overrideConfig))
                             .orElse(false)) {
                         try {
-                            createLockForTableIfNecessary(progress.get().tableRef());
-                            lockForCurrentTable.lockOrRefresh();
-                            return Optional.of(TableToSweep.continueSweeping(progress.get().tableRef(),
-                                    lockForCurrentTable,
-                                    progress.get()));
+                            createLockForTableIfNecessary(progress.get());
+                            return currentTable;
                         } catch (InterruptedException ex) {
                             log.info("Sweep lost the lock for table {}",
                                     LoggingArgs.tableRef(progress.get().tableRef()));
@@ -232,14 +229,19 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     // This is needed if we've just grabbed the sweep thread lock and a previous thread was in the middle of a table
-    private void createLockForTableIfNecessary(TableReference tableRef) {
-        if (lockForCurrentTable != null) {
+    private void createLockForTableIfNecessary(SweepProgress progress) throws InterruptedException {
+        if (currentTable.isPresent() && currentTable.get().getTableRef().equals(progress.tableRef())) {
             return;
         }
 
-        lockForCurrentTable = SingleLockService.createNamedLockServiceForTable(
+        // If currentTableToSweep is present, we're stopping the current table due to a new override. Release the lock
+        currentTable.ifPresent(tableToSweep -> tableToSweep.getSweepLock().close());
+
+        TableReference tableRef = progress.tableRef();
+        SingleLockService singleLockService = SingleLockService.createNamedLockServiceForTable(
                 lockService, TABLE_LOCK_PREFIX, tableRef);
-        currentTable = Optional.of(tableRef);
+        singleLockService.lockOrRefresh();
+        currentTable = Optional.of(TableToSweep.continueSweeping(tableRef, singleLockService, progress));
     }
 
     private boolean shouldContinueSweepingCurrentTable(
@@ -263,7 +265,7 @@ public class BackgroundSweepThread implements Runnable {
             nextTableToSweep = augmentWithProgress(nextTableToSweep.get());
         }
 
-        nextTableToSweep.ifPresent(this::setCurrentTable);
+        currentTable = nextTableToSweep;
         return nextTableToSweep;
     }
 
@@ -279,11 +281,6 @@ public class BackgroundSweepThread implements Runnable {
         }
 
         return Optional.of(nextTableWithoutProgress);
-    }
-
-    private void setCurrentTable(TableToSweep tableToSweep) {
-        currentTable = Optional.of(tableToSweep.getTableRef());
-        lockForCurrentTable = tableToSweep.getSweepLock();
     }
 
     private SweepOutcome determineCauseOfFailure(Exception originalException,
