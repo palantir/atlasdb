@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -215,7 +214,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                Executors.newSingleThreadExecutor());
+                PTExecutors.newSingleThreadExecutor(true));
 
         if (!initializeAsync) {
             callback.runWithRetry(serializableTransactionManager);
@@ -256,10 +255,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                Executors.newSingleThreadExecutor());
+                PTExecutors.newSingleThreadExecutor(true));
     }
 
-    // Canonical constructor.
     public SerializableTransactionManager(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,

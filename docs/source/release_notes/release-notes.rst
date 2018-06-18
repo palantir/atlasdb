@@ -69,6 +69,10 @@ develop
            Instead, targeted sweep will not proceed for that shard and strategy until the sweep timestamp progresses far enough.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3253>`__)
 
+    *    - |fixed|
+         - The delete executor now uses daemon threads, so is less likely to cause failure to shutdown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3271>`__)
+
     *    - |new| |improved|
          - Targeted sweep now also sweeps stream stores.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3240>`__)

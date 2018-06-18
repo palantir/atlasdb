@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.services.test;
 
-import java.util.concurrent.Executors;
-
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -38,6 +36,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
@@ -114,7 +113,7 @@ public class TestTransactionManagerModule {
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
-                Executors.newSingleThreadExecutor());
+                PTExecutors.newSingleThreadExecutor(true));
     }
 
 }
