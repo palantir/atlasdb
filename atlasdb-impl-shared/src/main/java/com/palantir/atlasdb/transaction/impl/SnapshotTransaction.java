@@ -56,6 +56,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -1312,6 +1313,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
+        Timer.Context commitStageTimer = getTimer("commitStage").time();
+
         Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
         LockToken commitLocksToken = acquireLocksForCommit();
         long millisForLocks = TimeUnit.NANOSECONDS.toMillis(acquireLocksTimer.stop());
@@ -1354,37 +1357,39 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService),
                     "commitPutCommitTs");
 
+            long millisForCommitStage = TimeUnit.NANOSECONDS.toMillis(commitStageTimer.stop());
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
-            logConsumerProcessor.maybeLog(
-                    () -> {
-                        SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
-                        return ImmutableLogTemplate.builder().format(
-                                "Committed {} bytes with locks, start ts {}, commit ts {}, "
-                                        + "acquiring locks took {} ms, checking for conflicts took {} ms, "
-                                        + "writing to the sweep queue took {} ms, "
-                                        + "writing data took {} ms, punch took {} ms, putCommitTs took {} ms, "
-                                        + "pre-commit lock checks took {} ms, user pre-commit conditions took {} ms, "
-                                        + "total time since tx creation {} ms, tables: {}, {}.")
-                                .arguments(
-                                        SafeArg.of("numBytes", byteCount.get()),
-                                        SafeArg.of("startTs", getStartTimestamp()),
-                                        SafeArg.of("commitTs", commitTimestamp),
-                                        SafeArg.of("millisForLocks", millisForLocks),
-                                        SafeArg.of("millisCheckForConflicts", millisCheckingForConflicts),
-                                        SafeArg.of("millisWritingToTargetedSweepQueue",
-                                                millisWritingToTargetedSweepQueue),
-                                        SafeArg.of("millisForWrites", millisForWrites),
-                                        SafeArg.of("millisForPunch", millisForPunch),
-                                        SafeArg.of("millisForCommitTs", millisForCommitTs),
-                                        SafeArg.of("millisForPreCommitLockCheck", millisForPreCommitLockCheck),
-                                        SafeArg.of("millisForUserPreCommitCondition", millisForUserPreCommitCondition),
-                                        SafeArg.of("millisSinceCreation", millisSinceCreation),
-                                        tableRefs.safeTableRefs(),
-                                        tableRefs.unsafeTableRefs())
-                                .build();
-                    });
+            logConsumerProcessor.maybeLog(Suppliers.memoize(() -> {
+                SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
+                return ImmutableLogTemplate.builder().format(
+                        "Committed {} bytes with locks, start ts {}, commit ts {}, "
+                                + "acquiring locks took {} ms, checking for conflicts took {} ms, "
+                                + "writing to the sweep queue took {} ms, "
+                                + "writing data took {} ms, punch took {} ms, putCommitTs took {} ms, "
+                                + "pre-commit lock checks took {} ms, user pre-commit conditions took {} ms, "
+                                + "total time spent committing writes was {} ms, "
+                                + "total time since tx creation {} ms, tables: {}, {}.")
+                        .arguments(
+                                SafeArg.of("numBytes", byteCount.get()),
+                                SafeArg.of("startTs", getStartTimestamp()),
+                                SafeArg.of("commitTs", commitTimestamp),
+                                SafeArg.of("millisForLocks", millisForLocks),
+                                SafeArg.of("millisCheckForConflicts", millisCheckingForConflicts),
+                                SafeArg.of("millisWritingToTargetedSweepQueue",
+                                        millisWritingToTargetedSweepQueue),
+                                SafeArg.of("millisForWrites", millisForWrites),
+                                SafeArg.of("millisForPunch", millisForPunch),
+                                SafeArg.of("millisForCommitTs", millisForCommitTs),
+                                SafeArg.of("millisForPreCommitLockCheck", millisForPreCommitLockCheck),
+                                SafeArg.of("millisForUserPreCommitCondition", millisForUserPreCommitCondition),
+                                SafeArg.of("millisForCommitStage", millisForCommitStage),
+                                SafeArg.of("millisSinceCreation", millisSinceCreation),
+                                tableRefs.safeTableRefs(),
+                                tableRefs.unsafeTableRefs())
+                        .build();
+                    }));
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }
