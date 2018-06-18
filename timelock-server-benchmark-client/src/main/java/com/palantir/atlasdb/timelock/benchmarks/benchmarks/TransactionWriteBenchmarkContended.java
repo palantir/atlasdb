@@ -28,7 +28,6 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTable
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializableTable;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializableTable.BlobsSerializableRow;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 public final class TransactionWriteBenchmarkContended extends AbstractBenchmark {
 
@@ -42,7 +41,7 @@ public final class TransactionWriteBenchmarkContended extends AbstractBenchmark 
             RandomBytes.ofLength(16), RandomBytes.ofLength(16));
 
     // TODO(gmaretic): currently does not work for requestsPerClient > 1 since we never update originalValuesByKey
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
             int requestsPerClient) {
         return new TransactionWriteBenchmarkContended(txnManager, numClients, requestsPerClient).execute();
     }

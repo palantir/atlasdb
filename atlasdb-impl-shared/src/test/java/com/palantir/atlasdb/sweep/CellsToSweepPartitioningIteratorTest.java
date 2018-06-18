@@ -17,6 +17,7 @@ package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
@@ -27,9 +28,6 @@ import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
-
-import gnu.trove.list.TLongList;
-import gnu.trove.list.array.TLongArrayList;
 
 public class CellsToSweepPartitioningIteratorTest {
     @Test(expected = IllegalArgumentException.class)
@@ -155,8 +153,8 @@ public class CellsToSweepPartitioningIteratorTest {
     }
 
     private static CellToSweep cellWithThreeTimestamps(int row, int col) {
-        TLongList tss = new TLongArrayList();
-        for (int t = 0; t < 3; ++t) {
+        List<Long> tss = new ArrayList<>();
+        for (long t = 0; t < 3; ++t) {
             tss.add(1000 + t);
         }
         return ImmutableCellToSweep.builder()

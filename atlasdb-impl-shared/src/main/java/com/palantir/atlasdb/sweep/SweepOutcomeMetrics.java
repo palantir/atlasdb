@@ -24,13 +24,12 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.MetricsManager;
 
 class SweepOutcomeMetrics {
-    private final MetricsManager metricsManager = new MetricsManager();
     private final SlidingTimeWindowReservoir reservoir;
 
     private boolean shutdown;
     private boolean fatal;
 
-    SweepOutcomeMetrics() {
+    SweepOutcomeMetrics(MetricsManager metricsManager) {
         Arrays.stream(SweepOutcome.values()).forEach(outcome ->
                 metricsManager.registerOrAddToMetric(BackgroundSweeperImpl.class, "outcome",
                         () -> getOutcomeCount(outcome), ImmutableMap.of("status", outcome.name())));

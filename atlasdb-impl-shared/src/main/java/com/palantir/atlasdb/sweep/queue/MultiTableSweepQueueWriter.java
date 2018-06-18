@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 /**
  * Adds {@link WriteInfo}s to a global queue to be swept.
@@ -48,7 +48,7 @@ public interface MultiTableSweepQueueWriter extends AutoCloseable {
      *
      * @param txManager the transaction manager performing the callback
      */
-    default void callbackInit(SerializableTransactionManager txManager) {
+    default void callbackInit(TransactionManager txManager) {
         // noop
     }
 

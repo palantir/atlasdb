@@ -118,7 +118,7 @@ class CassandraTableDropper {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
 
-        new CellDeleter(clientPool, wrappingQueryRunner, deleteConsistency).delete(
-                AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
+        new CellDeleter(clientPool, wrappingQueryRunner, deleteConsistency, unused -> System.currentTimeMillis())
+                .delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
     }
 }

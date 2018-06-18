@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockRequest;
@@ -40,7 +40,7 @@ public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
     private final List<LockDescriptor> lockDescriptors;
     private final AtomicLong counter = new AtomicLong(0);
 
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
             int requestsPerClient, int numDistinctLocks) {
         return new LockAndUnlockContendedBenchmark(txnManager.getTimelockService(), numClients, requestsPerClient,
                 numDistinctLocks).execute();

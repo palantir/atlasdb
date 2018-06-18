@@ -20,32 +20,31 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.timelock.lock.LockEvents.RequestInfo;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
 
 public final class LockLog {
 
-    private static volatile Supplier<Long> slowLockThresholdMillis = () -> 10_000L;
-    private static final LockEvents events = new LockEvents(AtlasDbMetrics.getMetricRegistry());
+    private final LockEvents events;
+    private final Supplier<Long> thresholdMillis;
 
-    private LockLog() { }
-
-    public static void setSlowLockThresholdMillis(Supplier<Long> thresholdMillis) {
-        slowLockThresholdMillis = thresholdMillis;
+    public LockLog(MetricRegistry metricRegistry, Supplier<Long> thresholdMillis) {
+        events = new LockEvents(metricRegistry);
+        this.thresholdMillis = thresholdMillis;
     }
 
-    public static void registerRequest(LockRequest request, AsyncResult<?> result) {
+    public void registerRequest(LockRequest request, AsyncResult<?> result) {
         registerRequest(RequestInfo.of(request), result);
     }
 
-    public static void registerRequest(WaitForLocksRequest request, AsyncResult<?> result) {
+    public void registerRequest(WaitForLocksRequest request, AsyncResult<?> result) {
         registerRequest(RequestInfo.of(request), result);
     }
 
-    private static void registerRequest(RequestInfo requestInfo, AsyncResult<?> result) {
+    private void registerRequest(RequestInfo requestInfo, AsyncResult<?> result) {
         if (result.isComplete()) {
             requestComplete(requestInfo, result, 0L);
             return;
@@ -58,13 +57,13 @@ public final class LockLog {
         });
     }
 
-    private static void requestComplete(
+    private void requestComplete(
             RequestInfo requestInfo,
             AsyncResult<?> result,
             long blockingTimeMillis) {
         events.requestComplete(blockingTimeMillis);
 
-        if (blockingTimeMillis == 0 || blockingTimeMillis < slowLockThresholdMillis.get()) {
+        if (blockingTimeMillis == 0 || blockingTimeMillis < thresholdMillis.get()) {
             return;
         }
 
@@ -75,7 +74,7 @@ public final class LockLog {
         }
     }
 
-    public static void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors) {
+    public void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors) {
         events.lockExpired(requestId, lockDescriptors);
     }
 

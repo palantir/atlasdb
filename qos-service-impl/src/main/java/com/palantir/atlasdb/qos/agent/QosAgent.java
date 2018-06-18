@@ -24,17 +24,22 @@ import com.palantir.atlasdb.qos.config.QosServiceInstallConfig;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
 import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
+import com.palantir.atlasdb.util.MetricsManager;
 
 public class QosAgent {
+    private final MetricsManager metricsManager;
     private final Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier;
     private final QosServiceInstallConfig installConfig;
     private ScheduledExecutorService managedMetricsLoaderExecutor;
     private final Consumer<Object> registrar;
 
-    public QosAgent(Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier,
+    public QosAgent(
+            MetricsManager metricsManager,
+            Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier,
             QosServiceInstallConfig installConfig,
             ScheduledExecutorService managedMetricsLoaderExecutor,
             Consumer<Object> registrar) {
+        this.metricsManager = metricsManager;
         this.runtimeConfigSupplier = runtimeConfigSupplier;
         this.installConfig = installConfig;
         this.managedMetricsLoaderExecutor = managedMetricsLoaderExecutor;
@@ -45,7 +50,7 @@ public class QosAgent {
         QosClientConfigLoader qosClientConfigLoader = QosClientConfigLoader.create(
                 () -> runtimeConfigSupplier.get().clientLimits());
         ClientLimitMultiplier clientLimitMultiplier = createClientLimitMultiplier();
-        registrar.accept(new QosResource(qosClientConfigLoader, clientLimitMultiplier));
+        registrar.accept(new QosResource(metricsManager, qosClientConfigLoader, clientLimitMultiplier));
     }
 
     private ClientLimitMultiplier createClientLimitMultiplier() {

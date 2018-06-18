@@ -29,7 +29,7 @@ public class QosMetrics {
 
     private static final Logger log = LoggerFactory.getLogger(QosMetrics.class);
 
-    private final MetricsManager metricsManager = new MetricsManager();
+    private final MetricsManager metricsManager;
 
     private final Meter readRequestCount;
     private final Meter bytesRead;
@@ -47,7 +47,9 @@ public class QosMetrics {
     private final Meter backoffTime;
     private final Meter throttleExceptions;
 
-    public QosMetrics() {
+    public QosMetrics(MetricsManager metricsManager) {
+        this.metricsManager = metricsManager;
+
         readRequestCount = metricsManager.registerOrGetMeter(QosMetrics.class, "numReadRequests");
         bytesRead = metricsManager.registerOrGetMeter(QosMetrics.class, "bytesRead");
         readTime = metricsManager.registerOrGetMeter(QosMetrics.class, "readTime");

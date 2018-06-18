@@ -23,13 +23,13 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public final class KvsPutUnlessExistsBenchmark extends AbstractBenchmark {
 
     private final KeyValueService keyValueService;
 
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
             int requestsPerClient) {
         return new KvsPutUnlessExistsBenchmark(txnManager.getKeyValueService(), numClients, requestsPerClient)
                 .execute();

@@ -28,6 +28,7 @@ import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -50,7 +51,8 @@ public class HeldLocksTest {
         when(timer.isExpired()).thenReturn(false);
         lockA.lock(REQUEST_ID);
         lockB.lock(REQUEST_ID);
-        heldLocks = new HeldLocks(ImmutableList.of(lockA, lockB), REQUEST_ID, timer);
+        heldLocks = new HeldLocks(new LockLog(new MetricRegistry(), () -> 2L),
+                ImmutableList.of(lockA, lockB), REQUEST_ID, timer);
     }
 
     @Test

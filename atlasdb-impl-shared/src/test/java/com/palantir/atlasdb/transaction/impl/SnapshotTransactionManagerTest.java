@@ -32,10 +32,11 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.Cleaner;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
@@ -47,9 +48,11 @@ public class SnapshotTransactionManagerTest {
     private final Cleaner cleaner = mock(Cleaner.class);
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
+            metricsManager,
             keyValueService,
             new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
                     LockClient.of("lock")),
@@ -61,7 +64,6 @@ public class SnapshotTransactionManagerTest {
             cleaner,
             false,
             () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-            TimestampTrackerImpl.createNoOpTracker(),
             TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
@@ -94,6 +96,7 @@ public class SnapshotTransactionManagerTest {
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
+                metricsManager,
                 keyValueService,
                 new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
                         LockClient.of("lock")),
@@ -105,7 +108,6 @@ public class SnapshotTransactionManagerTest {
                 cleaner,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                TimestampTrackerImpl.createNoOpTracker(),
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,

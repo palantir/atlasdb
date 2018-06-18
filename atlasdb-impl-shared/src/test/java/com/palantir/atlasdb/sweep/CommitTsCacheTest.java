@@ -18,33 +18,37 @@ package com.palantir.atlasdb.sweep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyList;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
 
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
-import gnu.trove.set.TLongSet;
-import gnu.trove.set.hash.TLongHashSet;
-
-public class CommitTsLoaderTest {
+public class CommitTsCacheTest {
     private static final Long VALID_START_TIMESTAMP = 100L;
     private static final Long VALID_COMMIT_TIMESTAMP = 200L;
     private static final Long ROLLBACK_TIMESTAMP = -1L;
     private static final Long NO_TIMESTAMP = null;
 
     private final TransactionService mockTransactionService = mock(TransactionService.class);
-    private final CommitTsLoader loader = CommitTsLoader.create(mockTransactionService, new TLongHashSet());
+    private final CommitTsCache loader = CommitTsCache.create(mockTransactionService);
 
     @Test
     public void loadShouldReturnTheValidTimestamp() throws Exception {
@@ -109,10 +113,45 @@ public class CommitTsLoaderTest {
             return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
         }).when(mockTransactionService).get(any());
 
-        TLongSet initialTimestamps = new TLongHashSet();
-        initialTimestamps.addAll(LongStream.range(0, valuesToInsert).boxed().collect(Collectors.toList()));
+        Set<Long> initialTimestamps = LongStream.range(0, valuesToInsert).boxed().collect(Collectors.toSet());
 
-        CommitTsLoader loader = CommitTsLoader.create(mockTransactionService, initialTimestamps);
+        loader.loadBatch(initialTimestamps);
         assertThat(loader.load(valuesToInsert - 1)).isEqualTo(valuesToInsert - 1);
+    }
+
+    @Test
+    public void onlyRequestNonCachedTimestamps() throws Exception {
+        Set<Long> initialTimestamps = LongStream.range(0L, 20L).boxed().collect(Collectors.toSet());
+        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation, initialTimestamps))
+                .when(mockTransactionService).get(any());
+
+        loader.loadBatch(initialTimestamps);
+        assertThat(loader.load(19L)).isEqualTo(19L);
+
+        Set<Long> moreTimestamps = LongStream.range(10L, 30L).boxed().collect(Collectors.toSet());
+        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation,
+                Sets.difference(moreTimestamps, initialTimestamps)))
+                .when(mockTransactionService).get(any());
+
+        loader.loadBatch(moreTimestamps);
+        assertThat(loader.load(27L)).isEqualTo(27L);
+
+        Set<Long> evenMoreTimestamps = LongStream.range(7L, 50L).boxed().collect(Collectors.toSet());
+        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation,
+                Sets.difference(evenMoreTimestamps, Sets.union(initialTimestamps, moreTimestamps))))
+                .when(mockTransactionService).get(any());
+
+        loader.loadBatch(evenMoreTimestamps);
+        assertThat(loader.load(3L)).isEqualTo(3L);
+        assertThat(loader.load(37L)).isEqualTo(37L);
+        verify(mockTransactionService, times(3)).get(anyList());
+        verifyNoMoreInteractions(mockTransactionService);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<Long, Long> assertRequestedTimestampsAndMapIdentity(InvocationOnMock invocation, Collection<Long> expected) {
+        Collection<Long> timestamps = ((Collection<Long>) invocation.getArguments()[0]);
+        assertThat(timestamps).containsExactlyElementsOf(expected);
+        return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
     }
 }

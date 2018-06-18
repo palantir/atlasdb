@@ -142,10 +142,11 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Test
     public void testWriteProgressAndPriorityNotUpdatedAfterSweepRunsSuccessfully_butMetricsAre() {
         sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3}));
-        ArgumentCaptor<SweepResults> argumentCaptor = ArgumentCaptor.forClass(SweepResults.class);
+        ArgumentCaptor<Long> sweepTime = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> totalTimeElapsed = ArgumentCaptor.forClass(Long.class);
 
-        Mockito.verify(sweepMetricsManager, times(1)).updateMetrics(argumentCaptor.capture(), eq(TABLE_REF));
-        verifyExpectedArgument(argumentCaptor.getValue());
+        Mockito.verify(sweepMetrics, times(1)).updateSweepTime(sweepTime.capture(), totalTimeElapsed.capture());
+        verifyExpectedArgument(sweepTime.getValue(), totalTimeElapsed.getValue());
     }
 
     @Test
@@ -183,16 +184,11 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         verifyNoMoreInteractions(sweepTaskRunner);
     }
 
-    private void verifyExpectedArgument(SweepResults observedResult) {
-        assertThat(observedResult.getTimeSweepStarted())
-                .isGreaterThanOrEqualTo(RESULTS_NO_MORE_TO_SWEEP.getTimeSweepStarted());
-        assertThat(observedResult.getTimeSweepStarted())
-                .isLessThanOrEqualTo(RESULTS_NO_MORE_TO_SWEEP.getTimeSweepStarted() + 5000L);
-        assertThat(RESULTS_NO_MORE_TO_SWEEP)
-                .isEqualTo(SweepResults.builder()
-                        .from(observedResult)
-                        .timeSweepStarted(RESULTS_NO_MORE_TO_SWEEP.getTimeSweepStarted())
-                        .build());
+    private void verifyExpectedArgument(long sweepTime, long totalTimeElapsed) {
+        assertThat(RESULTS_NO_MORE_TO_SWEEP.getTimeInMillis()).isEqualTo(sweepTime);
+        assertThat(totalTimeElapsed).isBetween(
+                RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping() - 1000L,
+                RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping());
     }
 
     private String encodeStartRow(byte[] rowBytes) {

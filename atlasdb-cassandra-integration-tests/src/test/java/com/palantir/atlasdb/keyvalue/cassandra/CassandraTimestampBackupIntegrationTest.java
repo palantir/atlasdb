@@ -47,7 +47,7 @@ public class CassandraTimestampBackupIntegrationTest {
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
+    private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.createForTesting(
             CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG);
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);

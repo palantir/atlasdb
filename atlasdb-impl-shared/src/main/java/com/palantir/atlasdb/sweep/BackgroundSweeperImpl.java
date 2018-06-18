@@ -26,6 +26,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 
@@ -48,9 +49,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private final Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig;
     private final PersistentLockManager persistentLockManager;
     private final SpecificTableSweeper specificTableSweeper;
-    private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
+    private final SweepOutcomeMetrics sweepOutcomeMetrics;
 
     private BackgroundSweeperImpl(
+            MetricsManager metricsManager,
             LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
@@ -60,6 +62,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
+        this.sweepOutcomeMetrics = new SweepOutcomeMetrics(metricsManager);
         this.lockService = lockService;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.sweepBatchConfigSource = sweepBatchConfigSource;
@@ -72,6 +75,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     }
 
     public static BackgroundSweeperImpl create(
+            MetricsManager metricsManager,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Integer> sweepThreads,
@@ -85,6 +89,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
                         specificTableSweeper.getSweepPriorityStore());
 
         return new BackgroundSweeperImpl(
+                metricsManager,
                 specificTableSweeper.getTxManager().getLockService(),
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,

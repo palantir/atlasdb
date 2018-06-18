@@ -36,6 +36,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.util.MetricsManager;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
     private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
@@ -44,10 +45,11 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     final TimestampCache timestampValidationReadCache;
     private volatile boolean closed = false;
 
-    private static final TimelockHealthCheck timelockHealthCheck = new MetricsBasedTimelockHealthCheck();
+    private final TimelockHealthCheck timelockHealthCheck;
 
-    AbstractTransactionManager(Supplier<Long> timestampCacheSize) {
-        this.timestampValidationReadCache = new TimestampCache(timestampCacheSize);
+    AbstractTransactionManager(MetricsManager metricsManager, Supplier<Long> timestampCacheSize) {
+        this.timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricsManager.getRegistry());
+        this.timestampValidationReadCache = new TimestampCache(metricsManager.getRegistry(), timestampCacheSize);
     }
 
     protected static void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {
