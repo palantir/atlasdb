@@ -28,6 +28,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StreamTableDefinitionBuilder {
+    public static final String METADATA_COLUMN_SHORT_NAME = "md";
+    public static final String VALUE_COLUMN_SHORT_NAME = "v";
 
     private final StreamTableType streamTableType;
     private final String prefix;
@@ -141,7 +143,7 @@ public class StreamTableDefinitionBuilder {
                     hashFirstNRowComponents(min(numberOfComponentsHashed, 1));
                     rowComponent("id", idType);
                 columns();
-                    column("metadata", "md", StreamPersistence.StreamMetadata.class);
+                    column("metadata", METADATA_COLUMN_SHORT_NAME, StreamPersistence.StreamMetadata.class);
 
                 maxValueSize(64);
                 conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED);
@@ -165,7 +167,7 @@ public class StreamTableDefinitionBuilder {
                     rowComponent("id",              idType);
                     rowComponent("block_id",        ValueType.VAR_LONG);
                 columns();
-                    column("value", "v",            ValueType.BLOB);
+                    column("value", VALUE_COLUMN_SHORT_NAME,            ValueType.BLOB);
 
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(GenericStreamStore.BLOCK_SIZE_IN_BYTES);

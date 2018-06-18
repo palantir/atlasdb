@@ -91,4 +91,17 @@ public class StreamTableTypeTest {
         assertThat(indexTableFromValueTable).isNotEqualTo(valueTable);
         assertEquals(expectedIndexTable, indexTableFromValueTable);
     }
+
+    @Test
+    public void getTableReferenceWorksWithTableWithNamespace() {
+        assertThat(StreamTableType.VALUE.getTableReference(TEST_NAMESPACE, TEST_TABLE))
+                .isEqualTo(TableReference.create(TEST_NAMESPACE, StreamTableType.VALUE.getTableName(TEST_TABLE)));
+    }
+
+    @Test
+    public void getTableReferenceWorksWithTableWithoutNamespace() {
+        assertThat(StreamTableType.VALUE.getTableReference(Namespace.EMPTY_NAMESPACE, TEST_TABLE))
+                .isEqualTo(TableReference.create(Namespace.EMPTY_NAMESPACE,
+                        StreamTableType.VALUE.getTableName(TEST_TABLE)));
+    }
 }
