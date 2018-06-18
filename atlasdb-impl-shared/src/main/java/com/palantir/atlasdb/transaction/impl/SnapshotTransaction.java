@@ -113,6 +113,11 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.logging.ImmutableChainingLogConsumerProcessor;
+import com.palantir.atlasdb.transaction.impl.logging.ImmutableLogTemplate;
+import com.palantir.atlasdb.transaction.impl.logging.LogConsumerProcessor;
+import com.palantir.atlasdb.transaction.impl.logging.PredicateBackedLogConsumerProcessor;
+import com.palantir.atlasdb.transaction.impl.logging.RateLimitedBooleanSupplier;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
@@ -216,6 +221,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected volatile boolean hasReads;
 
     private final Timer.Context transactionTimerContext;
+
+    private final LogConsumerProcessor logConsumerProcessor = createDefaultPerfLogger();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -1350,29 +1357,34 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
-            if (perfLogger.isDebugEnabled()) {
-                SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
-                perfLogger.debug("Committed {} bytes with locks, start ts {}, commit ts {}, "
-                        + "acquiring locks took {} ms, checking for conflicts took {} ms, "
-                        + "writing to the sweep queue took {} ms, "
-                        + "writing data to tables took {} ms, punch took {} ms, putCommitTs took {} ms, "
-                        + "pre-commit lock checks took {} ms, user pre-commit conditions took {} ms, "
-                        + "total time since tx creation {} ms, tables: {}, {}.",
-                        SafeArg.of("numBytes", byteCount.get()),
-                        SafeArg.of("startTs", getStartTimestamp()),
-                        SafeArg.of("commitTs", commitTimestamp),
-                        SafeArg.of("millisForLocks", millisForLocks),
-                        SafeArg.of("millisCheckForConflicts", millisCheckingForConflicts),
-                        SafeArg.of("millisWritingToTargetedSweepQueue", millisWritingToTargetedSweepQueue),
-                        SafeArg.of("millisForWrites", millisForWrites),
-                        SafeArg.of("millisForPunch", millisForPunch),
-                        SafeArg.of("millisForCommitTs", millisForCommitTs),
-                        SafeArg.of("millisForPreCommitLockCheck", millisForPreCommitLockCheck),
-                        SafeArg.of("millisForUserPreCommitCondition", millisForUserPreCommitCondition),
-                        SafeArg.of("millisSinceCreation", millisSinceCreation),
-                        tableRefs.safeTableRefs(),
-                        tableRefs.unsafeTableRefs());
-            }
+            logConsumerProcessor.maybeLog(
+                    () -> {
+                        SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
+                        return ImmutableLogTemplate.builder().format(
+                                "Committed {} bytes with locks, start ts {}, commit ts {}, "
+                                        + "acquiring locks took {} ms, checking for conflicts took {} ms, "
+                                        + "writing to the sweep queue took {} ms, "
+                                        + "writing data took {} ms, punch took {} ms, putCommitTs took {} ms, "
+                                        + "pre-commit lock checks took {} ms, user pre-commit conditions took {} ms, "
+                                        + "total time since tx creation {} ms, tables: {}, {}.")
+                                .arguments(
+                                        SafeArg.of("numBytes", byteCount.get()),
+                                        SafeArg.of("startTs", getStartTimestamp()),
+                                        SafeArg.of("commitTs", commitTimestamp),
+                                        SafeArg.of("millisForLocks", millisForLocks),
+                                        SafeArg.of("millisCheckForConflicts", millisCheckingForConflicts),
+                                        SafeArg.of("millisWritingToTargetedSweepQueue",
+                                                millisWritingToTargetedSweepQueue),
+                                        SafeArg.of("millisForWrites", millisForWrites),
+                                        SafeArg.of("millisForPunch", millisForPunch),
+                                        SafeArg.of("millisForCommitTs", millisForCommitTs),
+                                        SafeArg.of("millisForPreCommitLockCheck", millisForPreCommitLockCheck),
+                                        SafeArg.of("millisForUserPreCommitCondition", millisForUserPreCommitCondition),
+                                        SafeArg.of("millisSinceCreation", millisSinceCreation),
+                                        tableRefs.safeTableRefs(),
+                                        tableRefs.unsafeTableRefs())
+                                .build();
+                    });
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }
@@ -2024,6 +2036,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return metricsManager.registerOrGetMeter(SnapshotTransaction.class, name);
     }
 
+    private LogConsumerProcessor createDefaultPerfLogger() {
+        return ImmutableChainingLogConsumerProcessor.builder()
+                .addProcessors(PredicateBackedLogConsumerProcessor.create(
+                        perfLogger::debug, perfLogger::isDebugEnabled))
+                .addProcessors(PredicateBackedLogConsumerProcessor.create(
+                        log::info, RateLimitedBooleanSupplier.create(5.0)))
+                .build();
+    }
 }
 
 
