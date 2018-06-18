@@ -214,6 +214,10 @@ public class BackgroundSweepThread implements Runnable {
                             .orElse(false)) {
                         try {
                             createLockForTableIfNecessary(progress.get());
+                            if (currentTable.isPresent()) {
+                                //noinspection ConstantConditions // class runs in a single thread, so this is fine
+                                currentTable.get().refreshLock();
+                            }
                             return currentTable;
                         } catch (InterruptedException ex) {
                             log.info("Sweep lost the lock for table {}",
@@ -229,7 +233,7 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     // This is needed if we've just grabbed the sweep thread lock and a previous thread was in the middle of a table
-    private void createLockForTableIfNecessary(SweepProgress progress) throws InterruptedException {
+    private void createLockForTableIfNecessary(SweepProgress progress) {
         if (currentTable.isPresent() && currentTable.get().getTableRef().equals(progress.tableRef())) {
             return;
         }
@@ -240,7 +244,6 @@ public class BackgroundSweepThread implements Runnable {
         TableReference tableRef = progress.tableRef();
         SingleLockService singleLockService = SingleLockService.createNamedLockServiceForTable(
                 lockService, TABLE_LOCK_PREFIX, tableRef);
-        singleLockService.lockOrRefresh();
         currentTable = Optional.of(TableToSweep.continueSweeping(tableRef, singleLockService, progress));
     }
 

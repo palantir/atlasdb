@@ -55,6 +55,10 @@ public final class TableToSweep {
         return sweepLock;
     }
 
+    public void refreshLock() throws InterruptedException {
+        sweepLock.lockOrRefresh();
+    }
+
     boolean hasPreviousProgress() {
         return hasPreviousProgress;
     }
