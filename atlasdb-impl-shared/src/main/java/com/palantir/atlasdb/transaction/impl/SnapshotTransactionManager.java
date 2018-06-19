@@ -36,7 +36,6 @@ import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.lock.SimpleTransactionLockManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
@@ -168,7 +167,7 @@ import java.util.concurrent.atomic.AtomicLong;
             result = runTaskThrowOnConflict(task, tx);
         } finally {
             postTaskContext = postTaskTimer.time();
-            timelockService.unlock(ImmutableSet.of(txAndLock.immutableTsLock()));
+            tx.unlockLocksIfComplete();
         }
         scrubForAggressiveHardDelete(tx);
         postTaskContext.stop();
@@ -211,8 +210,7 @@ import java.util.concurrent.atomic.AtomicLong;
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                deleteExecutor,
-                SimpleTransactionLockManager.conservative(timelockService, Optional.of(immutableTsLock)));
+                deleteExecutor);
     }
 
     @Override
@@ -241,8 +239,7 @@ import java.util.concurrent.atomic.AtomicLong;
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                deleteExecutor,
-                SimpleTransactionLockManager.conservative(timelockService, Optional.empty()));
+                deleteExecutor);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));

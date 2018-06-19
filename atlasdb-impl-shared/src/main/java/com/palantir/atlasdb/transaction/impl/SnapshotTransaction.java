@@ -84,6 +84,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockManager;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.lock.SimpleTransactionLockManager;
 import com.palantir.atlasdb.transaction.impl.logging.ImmutableChainingLogConsumerProcessor;
 import com.palantir.atlasdb.transaction.impl.logging.ImmutableLogTemplate;
 import com.palantir.atlasdb.transaction.impl.logging.LogConsumerProcessor;
@@ -248,8 +249,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                ExecutorService getRangesExecutor,
                                int defaultGetRangesConcurrency,
                                MultiTableSweepQueueWriter sweepQueue,
-                               ExecutorService deleteExecutor,
-                               TransactionLockManager transactionLockManager) {
+                               ExecutorService deleteExecutor) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -273,7 +273,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepQueue = sweepQueue;
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
-        this.transactionLockManager = transactionLockManager;
+        this.transactionLockManager = SimpleTransactionLockManager.conservative(timelockService,
+                immutableTimestampLock);
     }
 
     @Override
@@ -1819,6 +1820,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
         }
+    }
+
+    public void unlockLocksIfComplete() {
+        State txState = state.get();
+        Preconditions.checkState(txState == State.COMMITTED || txState == State.ABORTED || txState == State.FAILED,
+                "Cannot unlock locks if the transaction was in state %s", txState);
+        transactionLockManager.releaseLocks();
     }
 
     ///////////////////////////////////////////////////////////////////////////

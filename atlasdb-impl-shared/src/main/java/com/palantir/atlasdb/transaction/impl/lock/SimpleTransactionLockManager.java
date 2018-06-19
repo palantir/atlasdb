@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl.lock;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.transaction.api.TransactionLockManager;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -29,8 +30,8 @@ import java.util.function.BooleanSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SimpleTransactionLockReleaser implements TransactionLockReleaser {
-    private static final Logger log = LoggerFactory.getLogger(SimpleTransactionLockReleaser.class);
+public class SimpleTransactionLockManager implements TransactionLockManager {
+    private static final Logger log = LoggerFactory.getLogger(SimpleTransactionLockManager.class);
 
     private final TimelockService timelockService;
     private final BooleanSupplier conservative;
@@ -38,13 +39,17 @@ public class SimpleTransactionLockReleaser implements TransactionLockReleaser {
     private Optional<LockToken> immutableTimestampToken;
     private Optional<LockToken> transactionRowLockToken;
 
-    private SimpleTransactionLockReleaser(TimelockService timelockService, BooleanSupplier conservative) {
+    private SimpleTransactionLockManager(TimelockService timelockService,
+            Optional<LockToken> immutableTimestampToken,
+            BooleanSupplier conservative) {
         this.timelockService = timelockService;
+        this.immutableTimestampToken = immutableTimestampToken;
         this.conservative = conservative;
     }
 
-    public static TransactionLockReleaser conservative(TimelockService timelockService) {
-        return new SimpleTransactionLockReleaser(timelockService, () -> true);
+    public static TransactionLockManager conservative(TimelockService timelockService,
+            Optional<LockToken> immutableTimestampToken) {
+        return new SimpleTransactionLockManager(timelockService, immutableTimestampToken, () -> true);
     }
 
     @Override
