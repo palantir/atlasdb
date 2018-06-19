@@ -102,9 +102,10 @@ public final class OracleDdlTable implements DbDdlTable {
             createOverflowTable();
         }
 
-        insertIgnoringConstraintViolation(needsOverflow,
-                "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)"
-        );
+        conns.get().insertOneUnregisteredQuery(
+                "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
+                tableRef.getQualifiedName(),
+                needsOverflow ? TableValueStyle.OVERFLOW.getId() : TableValueStyle.RAW.getId());
     }
 
     private void createTable(boolean needsOverflow) {
@@ -236,20 +237,6 @@ public final class OracleDdlTable implements DbDdlTable {
                     + " of oracle. The minimum supported version is {}"
                     + ". If you absolutely need to use an older version of oracle,"
                     + " please contact Palantir support for assistance.", version, MIN_ORACLE_VERSION);
-        }
-    }
-
-    private void insertIgnoringConstraintViolation(boolean needsOverflow, String sql) {
-        try {
-            conns.get().insertOneUnregisteredQuery(
-                    sql,
-                    tableRef.getQualifiedName(),
-                    needsOverflow ? TableValueStyle.OVERFLOW.getId() : TableValueStyle.RAW.getId());
-        } catch (PalantirSqlException e) {
-            if (!e.getMessage().contains(OracleErrorConstants.ORACLE_CONSTRAINT_VIOLATION_ERROR)) {
-                log.error("Error occurred trying to execute the Oracle query {}.", sql, e);
-                throw e;
-            }
         }
     }
 
