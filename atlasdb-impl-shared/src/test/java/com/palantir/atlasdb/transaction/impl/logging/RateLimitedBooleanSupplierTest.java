@@ -26,6 +26,7 @@ import org.junit.Test;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 
+@SuppressWarnings("ReturnValueIgnored") // We just care about whether the supplier is invoked, not its return value.
 public class RateLimitedBooleanSupplierTest {
     @Test
     public void firstReturnedValueShouldBeTrue() {
