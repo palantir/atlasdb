@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -21,7 +22,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
@@ -206,7 +206,7 @@ public final class DataStreamHashAidxTable implements
                 return false;
             }
             DataStreamHashAidxRow other = (DataStreamHashAidxRow) obj;
-            return Objects.equal(hash, other.hash);
+            return Objects.equals(hash, other.hash);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -298,7 +298,7 @@ public final class DataStreamHashAidxTable implements
                 return false;
             }
             DataStreamHashAidxColumn other = (DataStreamHashAidxColumn) obj;
-            return Objects.equal(streamId, other.streamId);
+            return Objects.equals(streamId, other.streamId);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -742,5 +742,5 @@ public final class DataStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ucMDeXaO3xHImMNYqW8X4A==";
+    static String __CLASS_HASH = "qlMGE04avGWoWcqnMpEujQ==";
 }
