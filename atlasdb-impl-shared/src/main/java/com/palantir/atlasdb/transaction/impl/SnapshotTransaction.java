@@ -1333,8 +1333,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // We must do this before we check that our locks are still valid to ensure that
             // other transactions that will hold these locks are sure to have start
             // timestamps after our commit timestamp.
+            Timer.Context commitTimestampTimer = getTimer("getCommitTimestamp").time();
             long commitTimestamp = timelockService.getFreshTimestamp();
             commitTsForScrubbing = commitTimestamp;
+            long millisForGetCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTimestampTimer.stop());
 
             // punch on commit so that if hard delete is the only thing happening on a system,
             // we won't block forever waiting for the unreadable timestamp to advance past the
@@ -1352,7 +1354,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             long millisForUserPreCommitCondition = runAndGetDurationMillis(
                     () -> preCommitCondition.throwIfConditionInvalid(commitTimestamp), "userPreCommitCondition");
 
-            long millisForCommitTs = runAndGetDurationMillis(
+            long millisForPutCommitTs = runAndGetDurationMillis(
                     () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService),
                     "commitPutCommitTs");
 
@@ -1360,13 +1362,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
+            updateNonPutOverheadMetrics(millisWritingToTargetedSweepQueue, millisForWrites, millisForCommitStage);
             logConsumerProcessor.maybeLog(() -> {
                 SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
                 return ImmutableLogTemplate.builder().format(
                         "Committed {} bytes with locks, start ts {}, commit ts {}, "
                                 + "acquiring locks took {} ms, checking for conflicts took {} ms, "
                                 + "writing to the sweep queue took {} ms, "
-                                + "writing data took {} ms, punch took {} ms, putCommitTs took {} ms, "
+                                + "writing data took {} ms, "
+                                + "getting the commit timestamp took {} ms,"
+                                + "punch took {} ms, putCommitTs took {} ms, "
                                 + "pre-commit lock checks took {} ms, user pre-commit conditions took {} ms, "
                                 + "total time spent committing writes was {} ms, "
                                 + "total time since tx creation {} ms, tables: {}, {}.")
@@ -1379,8 +1384,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                 SafeArg.of("millisWritingToTargetedSweepQueue",
                                         millisWritingToTargetedSweepQueue),
                                 SafeArg.of("millisForWrites", millisForWrites),
+                                SafeArg.of("millisForGetCommitTs", millisForGetCommitTs),
                                 SafeArg.of("millisForPunch", millisForPunch),
-                                SafeArg.of("millisForCommitTs", millisForCommitTs),
+                                SafeArg.of("millisForPutCommitTs", millisForPutCommitTs),
                                 SafeArg.of("millisForPreCommitLockCheck", millisForPreCommitLockCheck),
                                 SafeArg.of("millisForUserPreCommitCondition", millisForUserPreCommitCondition),
                                 SafeArg.of("millisForCommitStage", millisForCommitStage),
@@ -1392,6 +1398,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }
+    }
+
+    private void updateNonPutOverheadMetrics(long millisWritingToTargetedSweepQueue, long millisForWrites,
+            long millisForCommitStage) {
+        long nonPutOverhead = millisForCommitStage - millisForWrites - millisWritingToTargetedSweepQueue;
+        getTimer("nonPutOverhead").update(nonPutOverhead, TimeUnit.MILLISECONDS);
+
+        // Dropwizard Metrics doesn't support histograms of double yet, so using longs as a workaround
+        getHistogram("nonPutOverheadMillionths").update(
+                Math.round(1_000_000. * nonPutOverhead / millisForCommitStage));
     }
 
     private long runAndGetDurationMillis(Runnable runnable, String timerName) {
