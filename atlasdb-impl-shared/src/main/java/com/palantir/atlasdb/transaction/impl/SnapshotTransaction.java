@@ -15,36 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import javax.annotation.Nullable;
-
-import org.apache.commons.lang3.Validate;
-import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
@@ -111,6 +81,7 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellCon
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
+import com.palantir.atlasdb.transaction.api.TransactionLockManager;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.ImmutableChainingLogConsumerProcessor;
@@ -137,7 +108,6 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -146,6 +116,33 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
+import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -223,6 +220,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Timer.Context transactionTimerContext;
 
     private final LogConsumerProcessor logConsumerProcessor = createDefaultPerfLogger();
+    private final TransactionLockManager transactionLockManager;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -250,7 +248,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                ExecutorService getRangesExecutor,
                                int defaultGetRangesConcurrency,
                                MultiTableSweepQueueWriter sweepQueue,
-                               ExecutorService deleteExecutor) {
+                               ExecutorService deleteExecutor,
+                               TransactionLockManager transactionLockManager) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -274,6 +273,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepQueue = sweepQueue;
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
+        this.transactionLockManager = transactionLockManager;
     }
 
     @Override
@@ -1312,12 +1312,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        Timer.Context commitStageTimer = getTimer("commitStage").time();
-
-        Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
-        LockToken commitLocksToken = acquireLocksForCommit();
-        long microsForLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
         try {
+            Timer.Context commitStageTimer = getTimer("commitStage").time();
+
+            Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
+            LockToken commitLocksToken = acquireLocksForCommit();
+            long microsForLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
+
             long microsCheckingForConflicts =
                     runAndGetDurationMicros(() -> throwIfConflictOnCommit(commitLocksToken, transactionService),
                             "commitCheckingForConflicts");
@@ -1351,7 +1352,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness
 
             long microsForPreCommitLockCheck = runAndGetDurationMicros(
-                    () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken), "preCommitLockCheck");
+                    transactionLockManager::checkAndMaybeReleaseLocksBeforeCommit, "preCommitLockCheck");
 
             long microsForUserPreCommitCondition = runAndGetDurationMicros(
                     () -> preCommitCondition.throwIfConditionInvalid(commitTimestamp), "userPreCommitCondition");
@@ -1399,7 +1400,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .build();
                     });
         } finally {
-            timelockService.unlock(ImmutableSet.of(commitLocksToken));
+            transactionLockManager.releaseLocks();
         }
     }
 
@@ -1737,8 +1738,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
 
         LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMs);
-        LockResponse lockResponse = timelockService.lock(request);
-        if (!lockResponse.wasSuccessful()) {
+        Optional<LockToken> token = transactionLockManager.acquireTransactionLock(request);
+        if (!token.isPresent()) {
             log.error("Timed out waiting while acquiring commit locks. Request id was {}. Timeout was {} ms. "
                             + "First ten required locks were {}.",
                     SafeArg.of("requestId", request.getRequestId()),
@@ -1746,7 +1747,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
-        return lockResponse.getToken();
+        return token.get();
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {

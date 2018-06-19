@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.lock;
+package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import java.util.Optional;
 
-public interface TransactionLockReleaser {
+public interface TransactionLockManager {
     Optional<LockToken> acquireTransactionLock(LockRequest lockRequest);
 
     void checkAndMaybeReleaseLocksBeforeCommit();
