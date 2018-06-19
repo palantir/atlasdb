@@ -1343,7 +1343,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // scrub timestamp (same as the hard delete transaction's start timestamp)
             long millisForPunch = runAndGetDurationMillis(() -> cleaner.punch(commitTimestamp), "millisForPunch");
 
-            throwIfReadWriteConflictForSerializable(commitTimestamp);
+            long millisForReadWriteConflictCheck = runAndGetDurationMillis(
+                    () -> throwIfReadWriteConflictForSerializable(commitTimestamp),
+                    "readWriteConflictCheck");
 
             // Verify that our locks and pre-commit conditions are still valid before we actually commit;
             // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness
@@ -1370,8 +1372,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                 + "acquiring locks took {} ms, checking for conflicts took {} ms, "
                                 + "writing to the sweep queue took {} ms, "
                                 + "writing data took {} ms, "
-                                + "getting the commit timestamp took {} ms,"
-                                + "punch took {} ms, putCommitTs took {} ms, "
+                                + "getting the commit timestamp took {} ms, punch took {} ms, "
+                                + "serializable r/w conflict check took {} ms, putCommitTs took {} ms, "
                                 + "pre-commit lock checks took {} ms, user pre-commit conditions took {} ms, "
                                 + "total time spent committing writes was {} ms, "
                                 + "total time since tx creation {} ms, tables: {}, {}.")
@@ -1386,6 +1388,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                 SafeArg.of("millisForWrites", millisForWrites),
                                 SafeArg.of("millisForGetCommitTs", millisForGetCommitTs),
                                 SafeArg.of("millisForPunch", millisForPunch),
+                                SafeArg.of("millisForReadWriteConflictCheck", millisForReadWriteConflictCheck),
                                 SafeArg.of("millisForPutCommitTs", millisForPutCommitTs),
                                 SafeArg.of("millisForPreCommitLockCheck", millisForPreCommitLockCheck),
                                 SafeArg.of("millisForUserPreCommitCondition", millisForUserPreCommitCondition),
