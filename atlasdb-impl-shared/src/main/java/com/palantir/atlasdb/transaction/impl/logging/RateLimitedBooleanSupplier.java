@@ -27,7 +27,17 @@ public class RateLimitedBooleanSupplier implements BooleanSupplier {
         this.rateLimiter = rateLimiter;
     }
 
+    /**
+     * Creates a {@link BooleanSupplier} that returns true at most once every secondsBetweenTrues seconds (in terms
+     * of wall-clock time). The first returned value should always be true.
+     *
+     * @param secondsBetweenTrues number of seconds between 'true' responses.
+     * @return boolean supplier following the aforementioned rules.
+     */
     public static BooleanSupplier create(double secondsBetweenTrues) {
+        if (secondsBetweenTrues == 0.0) {
+            return () -> true;
+        }
         return new RateLimitedBooleanSupplier(RateLimiter.create(1.0 / secondsBetweenTrues));
     }
 
