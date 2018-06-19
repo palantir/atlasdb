@@ -270,7 +270,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private RowColumnRangeIterator getWithColumnRangeAll(Iterable<byte[]> rows) {
-        return getRowsColumnRange(rows, SweepQueueUtils.ALL_COLUMNS, SweepQueueUtils.MAX_CELLS_DEDICATED);
+        return getRowsColumnRange(rows, SweepQueueUtils.ALL_COLUMNS, SweepQueueUtils.SWEEP_BATCH_SIZE);
     }
 
     private WriteInfo getWriteInfo(long timestamp, Value value) {
