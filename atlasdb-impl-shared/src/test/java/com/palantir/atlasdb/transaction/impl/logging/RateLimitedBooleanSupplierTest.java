@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.impl.logging;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
@@ -45,5 +46,18 @@ public class RateLimitedBooleanSupplierTest {
         booleanSupplier.getAsBoolean();
         Uninterruptibles.sleepUninterruptibly(1_500, TimeUnit.MILLISECONDS);
         assertThat(booleanSupplier.getAsBoolean()).isTrue();
+    }
+
+    @Test
+    public void shouldAlwaysReturnTrueIfCreatedWithNoLimit() {
+        BooleanSupplier booleanSupplier = RateLimitedBooleanSupplier.create(0);
+        for (int i = 0; i < 100; i++) {
+            assertThat(booleanSupplier.getAsBoolean()).isTrue();
+        }
+    }
+
+    @Test
+    public void shouldThrowIfCreatedWithNegativeLimit() {
+        assertThatThrownBy(() -> RateLimitedBooleanSupplier.create(-5)).isInstanceOf(IllegalArgumentException.class);
     }
 }
