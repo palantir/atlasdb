@@ -60,6 +60,10 @@ develop
            These logs will help the Atlas team better understand which parts of committing transactions may be slow, so that we can improve on it.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3273>`__)
 
+    *    - |improved| |metrics|
+         - AtlasDB now publishes timers tracking time taken to setup a transaction task before it is run, and time taken to tear down the task after it is done before runTaskWith* returns.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3281>`__)
+
     *    - |devbreak|
          - AtlasDB metrics are no longer a static singleton, and are now created upon construction of relevant classes.
            This allows internal users to construct multiple AtlasDBs and get meaningful metrics. Many constructors have
