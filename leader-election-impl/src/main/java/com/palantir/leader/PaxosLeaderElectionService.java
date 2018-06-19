@@ -50,6 +50,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Safe;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
@@ -139,6 +141,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
             switch (currentState.status()) {
                 case LEADING:
+                    log.info("Successfully became leader!");
                     return currentState.confirmedToken().get();
                 case NO_QUORUM:
                     // If we don't have quorum we should just retry our calls.
@@ -165,6 +168,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
+        log.debug("Waited for [{}] ms before proposing leadership", SafeArg.of("waitTimeMs", backoffTime));
         Thread.sleep(backoffTime);
 
         proposeLeadershipAfter(currentState.greatestLearnedValue());
@@ -373,6 +377,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     private void proposeLeadershipAfter(Optional<PaxosValue> value) {
         lock.lock();
         try {
+            log.debug("Proposing leadership with value [{}]", SafeArg.of("paxosValue", value));
             if (!isLatestRound(value)) {
                 // This means that new data has come in so we shouldn't propose leadership.
                 // We do this check in a lock to ensure concurrent callers to blockOnBecomingLeader behaves correctly.
