@@ -137,7 +137,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private void onGainedLeadership(LeadershipToken leadershipToken)  {
         // We are now the leader, we should create a delegate so we can service calls
         T delegate = null;
-        while (delegate == null) {
+        while (delegate == null && !isClosed) {
             try {
                 delegate = delegateSupplier.get();
             } catch (ResourceClosedException e) {
