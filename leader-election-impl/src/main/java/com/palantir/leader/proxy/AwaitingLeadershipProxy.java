@@ -143,6 +143,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             } catch (ResourceClosedException e) {
                 log.info("Leadership gained, but the supplier was closed. Not retrying - cleaning up...", e);
                 close();
+                return;
             } catch (Throwable t) {
                 log.error("problem creating delegate", t);
                 if (isClosed) {
