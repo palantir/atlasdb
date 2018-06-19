@@ -388,7 +388,7 @@ import com.palantir.timestamp.TimestampService;
         Timer.Context timer = getTimer(timerName).time();
         try {
             T response = operation.call();
-            timer.stop();
+            timer.stop(); // By design, we only want to consider time for operations that were successful.
             return response;
         } catch (Exception e) {
             Throwables.throwIfInstance(e, RuntimeException.class);
