@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - We now page with a smaller batch size when looking at the sweepable cells.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3271>`__)
+
     *    - |devbreak|
          - AtlasDB metrics are no longer a static singleton, and are now created upon construction of relevant classes.
            This allows internal users to construct multiple AtlasDBs and get meaningful metrics. Many constructors have
