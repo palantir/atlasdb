@@ -1406,7 +1406,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void updateNonPutOverheadMetrics(long microsWritingToTargetedSweepQueue, long microsForWrites,
             long microsForCommitStage) {
         long nonPutOverhead = microsForCommitStage - microsForWrites - microsWritingToTargetedSweepQueue;
-        getTimer("nonPutOverhead").update(nonPutOverhead, TimeUnit.MILLISECONDS);
+        getTimer("nonPutOverhead").update(nonPutOverhead, TimeUnit.MICROSECONDS);
 
         // Dropwizard Metrics doesn't support histograms of double yet, so using longs as a workaround
         getHistogram("nonPutOverheadMillionths").update(
