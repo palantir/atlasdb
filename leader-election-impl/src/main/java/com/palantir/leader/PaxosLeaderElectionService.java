@@ -118,6 +118,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             if (isLastConfirmedLeader(greatestLearned)) {
                 StillLeadingStatus leadingStatus = isStillLeading(token);
                 if (leadingStatus == StillLeadingStatus.LEADING) {
+                    log.info("Successfully became leader!");
                     return token;
                 } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {
                     leaderLog.warn("The most recent known information says this server is the leader, but there is no quorum right now");
@@ -138,6 +139,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             }
 
             long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
+            log.debug("Waited for [{}] ms before proposing leadership", backoffTime);
             Thread.sleep(backoffTime);
 
             proposeLeadership(token);
@@ -328,6 +330,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         try {
             PaxosValue value = knowledge.getGreatestLearnedValue();
 
+            log.debug("Proposing leadership with value [{}]", value);
             LeadershipToken expectedToken = genTokenFromValue(value);
             if (!expectedToken.sameAs(token)) {
                 // This means that new data has come in so we shouldn't propose leadership.
