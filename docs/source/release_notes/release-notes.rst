@@ -50,6 +50,16 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |metrics|
+         - We now publish metrics for more individual stages of the commit stage in a SnapshotTransaction.
+           We also now publish metrics for the total non-KVS overhead - both the absolute time involved as well as a ratio of this to the total time spent in the commit stage.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3273>`__)
+
+    *    - |new| |logs|
+         - Snapshot transactions now, up to once every 5 real-time seconds, log an overview of how long each step in the commit phase took.
+           These logs will help the Atlas team better understand which parts of committing transactions may be slow, so that we can improve on it.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3273>`__)
+
     *    - |devbreak|
          - AtlasDB metrics are no longer a static singleton, and are now created upon construction of relevant classes.
            This allows internal users to construct multiple AtlasDBs and get meaningful metrics. Many constructors have

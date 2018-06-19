@@ -1407,7 +1407,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         // Dropwizard Metrics doesn't support histograms of double yet, so using longs as a workaround
         getHistogram("nonPutOverheadMillionths").update(
-                Math.round(1_000_000. * nonPutOverhead / millisForCommitStage));
+                Math.round((1_000_000. * nonPutOverhead) / millisForCommitStage));
     }
 
     private long runAndGetDurationMillis(Runnable runnable, String timerName) {
