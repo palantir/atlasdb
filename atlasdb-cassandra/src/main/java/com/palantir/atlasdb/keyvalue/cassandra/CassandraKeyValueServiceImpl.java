@@ -1552,9 +1552,19 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        // This can be turned into not-a-full-table-scan if someone makes an upgrade task
-        // that makes sure we only write the metadata keys based on lowercased table names
+        // try and get with a single-key lookup
+        String lowerCaseTableName = tableRef.getQualifiedName().toLowerCase();
+        Map<Cell, Value> rows = getRows(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableSet.of(lowerCaseTableName.getBytes()),
+                ColumnSelection.all(),
+                Long.MAX_VALUE);
 
+        if (!rows.isEmpty()) {
+            return Iterables.getOnlyElement(rows.values()).getContents();
+        }
+
+        // if unsuccessful with fast code-path, we need to check if this table exists but was written at a key
+        // before we started enforcing only writing lower-case canonicalised versions of keys
         java.util.Optional<Entry<TableReference, byte[]>> match =
                 getMetadataForTables().entrySet().stream().filter(
                         entry -> matchingIgnoreCase(entry.getKey(), tableRef))
@@ -1566,6 +1576,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } else {
             log.debug("Found table metadata for {} at matching name {}", LoggingArgs.tableRef(tableRef),
                     LoggingArgs.tableRef("matchingTable", match.get().getKey()));
+
+            // rewrite this row with the key we initially expected, so we don't have to do this again
+            putMetadataAndMaybeAlterTables(
+                    false,
+                    ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), match.get().getValue()),
+                    ImmutableSet.of());
             return match.get().getValue();
         }
     }

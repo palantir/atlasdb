@@ -315,12 +315,12 @@ public final class CassandraKeyValueServices {
 
     static Cell getMetadataCell(TableReference tableRef) {
         // would have preferred an explicit charset, but thrift uses default internally
-        return Cell.create(tableReferenceToBytes(tableRef), "m".getBytes(StandardCharsets.UTF_8));
+        return Cell.create(lowerCaseTableReferenceToBytes(tableRef), "m".getBytes(StandardCharsets.UTF_8));
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
-    private static byte[] tableReferenceToBytes(TableReference tableRef) {
-        return tableRef.getQualifiedName().getBytes(Charset.defaultCharset());
+    private static byte[] lowerCaseTableReferenceToBytes(TableReference tableRef) {
+        return tableRef.getQualifiedName().toLowerCase().getBytes(Charset.defaultCharset());
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")

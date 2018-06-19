@@ -131,6 +131,10 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3244>`__)
 
+    *    - |improved|
+         - Startup and schema change performance improved for Cassandra users with large numbers of tables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3278>`__)
+
 =======
 v0.89.0
 =======
