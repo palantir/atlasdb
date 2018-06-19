@@ -52,7 +52,7 @@ develop
 
     *    - |fixed|
          - We now page with a smaller batch size when looking at the sweepable cells.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3271>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3283>`__)
 
     *    - |devbreak|
          - AtlasDB metrics are no longer a static singleton, and are now created upon construction of relevant classes.
