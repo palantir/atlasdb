@@ -113,6 +113,9 @@
                 "com.palantir.atlasdb:leader-election-api-protobufs"
             ]
         },
+        "com.mchange:mchange-commons-java": {
+            "locked": "0.2.10"
+        },
         "com.palantir.atlasdb:atlasdb-commons": {
             "project": true,
             "transitive": [
@@ -348,6 +351,9 @@
             "transitive": [
                 "com.palantir.atlasdb:leader-election-api-protobufs"
             ]
+        },
+        "com.mchange:mchange-commons-java": {
+            "locked": "0.2.10"
         },
         "com.palantir.atlasdb:atlasdb-commons": {
             "project": true,

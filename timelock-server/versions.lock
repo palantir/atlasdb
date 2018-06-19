@@ -317,6 +317,12 @@
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
+        "com.mchange:mchange-commons-java": {
+            "locked": "0.2.10",
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
         "com.netflix.feign:feign-core": {
             "locked": "8.17.0",
             "transitive": [
@@ -1802,16 +1808,11 @@
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
-        "com.mchange:c3p0": {
-            "locked": "0.9.5.1",
-            "transitive": [
-                "com.palantir.atlasdb:commons-db"
-            ]
-        },
         "com.mchange:mchange-commons-java": {
             "locked": "0.2.10",
             "transitive": [
-                "com.mchange:c3p0"
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
+                "com.palantir.atlasdb:leader-election-impl"
             ]
         },
         "com.netflix.feign:feign-core": {

@@ -116,16 +116,6 @@
                 "com.google.guava:guava"
             ]
         },
-        "com.mchange:c3p0": {
-            "locked": "0.9.5.1",
-            "requested": "0.9.5.1"
-        },
-        "com.mchange:mchange-commons-java": {
-            "locked": "0.2.10",
-            "transitive": [
-                "com.mchange:c3p0"
-            ]
-        },
         "com.palantir.atlasdb:atlasdb-commons": {
             "project": true,
             "transitive": [
@@ -374,16 +364,6 @@
             "locked": "1.1",
             "transitive": [
                 "com.google.guava:guava"
-            ]
-        },
-        "com.mchange:c3p0": {
-            "locked": "0.9.5.1",
-            "requested": "0.9.5.1"
-        },
-        "com.mchange:mchange-commons-java": {
-            "locked": "0.2.10",
-            "transitive": [
-                "com.mchange:c3p0"
             ]
         },
         "com.palantir.atlasdb:atlasdb-commons": {

@@ -229,16 +229,10 @@
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
-        "com.mchange:c3p0": {
-            "locked": "0.9.5.1",
-            "transitive": [
-                "com.palantir.atlasdb:commons-db"
-            ]
-        },
         "com.mchange:mchange-commons-java": {
             "locked": "0.2.10",
             "transitive": [
-                "com.mchange:c3p0"
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
             ]
         },
         "com.netflix.feign:feign-core": {
@@ -1111,16 +1105,10 @@
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
-        "com.mchange:c3p0": {
-            "locked": "0.9.5.1",
-            "transitive": [
-                "com.palantir.atlasdb:commons-db"
-            ]
-        },
         "com.mchange:mchange-commons-java": {
             "locked": "0.2.10",
             "transitive": [
-                "com.mchange:c3p0"
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
             ]
         },
         "com.netflix.feign:feign-core": {
