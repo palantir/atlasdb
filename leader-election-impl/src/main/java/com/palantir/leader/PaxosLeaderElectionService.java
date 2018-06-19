@@ -168,7 +168,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
-        log.debug("Waited for [{}] ms before proposing leadership", SafeArg.of("waitTimeMs", backoffTime));
+        log.debug("Waiting for [{}] ms before proposing leadership", SafeArg.of("waitTimeMs", backoffTime));
         Thread.sleep(backoffTime);
 
         proposeLeadershipAfter(currentState.greatestLearnedValue());
