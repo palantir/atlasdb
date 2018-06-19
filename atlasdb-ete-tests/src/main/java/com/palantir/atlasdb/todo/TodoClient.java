@@ -52,6 +52,7 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.generated.LatestSnapshotTable;
+import com.palantir.atlasdb.todo.generated.NamespacedTodoTable;
 import com.palantir.atlasdb.todo.generated.SnapshotsStreamStore;
 import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -155,6 +156,7 @@ public class TodoClient {
 
     public void runIterationOfTargetedSweep() {
         targetedSweeper.get().sweepNextBatch(ShardAndStrategy.conservative(0));
+        targetedSweeper.get().sweepNextBatch(ShardAndStrategy.thorough(0));
     }
 
 
@@ -214,5 +216,21 @@ public class TodoClient {
     public void truncate() {
         Schemas.truncateTablesAndIndexes(TodoSchema.getSchema(), kvs.get());
         Schemas.truncateTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs.get());
+    }
+
+    public long addNamespacedTodoWithIdAndReturnTimestamp(long id, String namespace, Todo todo) {
+        return transactionManager.runTaskWithRetry(tx -> {
+            TodoSchemaTableFactory.of().getNamespacedTodoTable(tx).put(
+                    NamespacedTodoTable.NamespacedTodoRow.of(namespace),
+                    NamespacedTodoTable.NamespacedTodoColumnValue.of(
+                            NamespacedTodoTable.NamespacedTodoColumn.of(id),
+                            todo.text()));
+            return tx.getTimestamp();
+        });
+    }
+
+    public boolean namespacedTodoDoesNotExistBeforeTimestamp(long id, long timestamp, String namespace) {
+        return kvs.get().get(TodoSchema.namespacedTodoTable(),
+                ImmutableMap.of(Cell.create(PtBytes.toBytes(namespace), PtBytes.toBytes(id)), timestamp + 1)).isEmpty();
     }
 }
