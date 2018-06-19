@@ -35,6 +35,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.net.HostAndPort;
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.mchange.v2.util.ResourceClosedException;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService;
@@ -139,6 +140,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         while (delegate == null) {
             try {
                 delegate = delegateSupplier.get();
+            } catch (ResourceClosedException e) {
+                log.info("Leadership gained, but the supplier was closed. Not retrying - cleaning up...", e);
+                close();
             } catch (Throwable t) {
                 log.error("problem creating delegate", t);
                 if (isClosed) {
@@ -175,9 +179,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         final LeadershipToken leadershipToken = getLeadershipToken();
 
         if (method.getName().equals("close") && args.length == 0) {
-            isClosed = true;
-            executor.shutdownNow();
-            clearDelegate();
+            close();
             return null;
         }
 
@@ -216,6 +218,12 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             }
             throw e.getTargetException();
         }
+    }
+
+    private void close() {
+        isClosed = true;
+        executor.shutdownNow();
+        clearDelegate();
     }
 
     @VisibleForTesting

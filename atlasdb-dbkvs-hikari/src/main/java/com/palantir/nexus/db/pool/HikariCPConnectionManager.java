@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.mchange.v2.util.ResourceClosedException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -177,7 +178,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     return stateLocal.dataSourcePool;
 
                 case CLOSED:
-                    throw new SQLException("Hikari connection pool already closed!", stateLocal.closeTrace);
+                    throw new ResourceClosedException("Hikari connection pool already closed!", stateLocal.closeTrace);
             }
 
             // fall throughs are spins

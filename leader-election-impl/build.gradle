@@ -9,9 +9,10 @@ dependencies {
   compile group: "com.google.protobuf", name: "protobuf-java"
   compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
   compile group: "commons-io", name: "commons-io"
+  compile group: 'com.mchange', name: 'mchange-commons-java'
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile group: 'com.palantir.remoting3', name: 'tracing'
-  
+
   processor group: 'org.immutables', name: 'value'
 
   testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {

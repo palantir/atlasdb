@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Leadership election threads will no longer get stuck trying to create a delegate if delegate creation throws a ``ResourceClosedException``.
+           Previously, this occurred when TransactionManager creation failed, because the leadership election thread can not practically be shut down.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3xxx>`__)
+
     *    - |devbreak|
          - AtlasDB metrics are no longer a static singleton, and are now created upon construction of relevant classes.
            This allows internal users to construct multiple AtlasDBs and get meaningful metrics. Many constructors have
@@ -60,7 +65,7 @@ develop
          - Refactored the TransactionManager inheritance tree to consolidate all relevant methods into a single interface.
            Functionally, any TransactionManager created using TransactionManagers will provide the serializable and snapshot
            isolation guarantees provided by a SerializableTransactionManager. Constructing TransactionManagers via this class
-           should result in only a minor dev break as a result of this change. This will make it easier to transparently wrap 
+           should result in only a minor dev break as a result of this change. This will make it easier to transparently wrap
            TransactionManagers to extend their functionality.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3188>`__)
 
