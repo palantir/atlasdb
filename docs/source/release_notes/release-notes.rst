@@ -146,8 +146,8 @@ v0.90.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3218>`__)
 
     *    - |devbreak|
-         - ``AtlasDbFactory`` now takes an additional ``Optional<Supplier<Long>>`` parameter when creating a key-value-service.
-           In general, delegating implementations should pass this parameter to the delegate; non-delegating implementations that do not use this as an input to the underlying key-value-service should pass ``Optional.empty()`` leaving the parameter unused.
+         - ``AtlasDbFactory`` now takes an additional ``LongSupplier`` parameter when creating a key-value-service that is intended to be a source of fresh timestamps from the timestamp service.
+           Please contact the AtlasDB team if you are uncertain what should be passed here.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3224>`__)
 
     *    - |improved|
