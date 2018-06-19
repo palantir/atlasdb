@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -206,7 +206,7 @@ public final class UserPhotosStreamIdxTable implements
                 return false;
             }
             UserPhotosStreamIdxRow other = (UserPhotosStreamIdxRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -742,5 +742,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6uR8DHOxSQr5Iv2DcBzIdQ==";
+    static String __CLASS_HASH = "ukLlDl5FsdnHPvAjx9GFdw==";
 }
