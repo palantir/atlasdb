@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,7 +62,7 @@ public class CassandraTimestampsEteTest {
         long firstWriteTimestamp = todoClient.addTodoWithIdAndReturnTimestamp(ID, TODO);
         long secondWriteTimestamp = todoClient.addTodoWithIdAndReturnTimestamp(ID, TODO_2);
 
-        sweepUntilNoValueExistsAtTimestamp(ID, firstWriteTimestamp, Optional.empty());
+        sweepUntilNoValueExistsAtTimestamp(ID, firstWriteTimestamp);
 
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
         CassandraCommands.nodetoolCompact(CASSANDRA_CONTAINER_NAME);
@@ -92,7 +92,7 @@ public class CassandraTimestampsEteTest {
             throws IOException, InterruptedException {
         long firstWriteTimestamp = todoClient.addNamespacedTodoWithIdAndReturnTimestamp(ID, NAMESPACE, TODO);
         todoClient.addNamespacedTodoWithIdAndReturnTimestamp(ID, NAMESPACE, TODO_2);
-        sweepUntilNoValueExistsAtTimestamp(ID, firstWriteTimestamp, Optional.of(NAMESPACE));
+        sweepuntilNoValueExistsForNamespaceAtTimestamp(ID, firstWriteTimestamp, NAMESPACE);
 
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
 
@@ -111,18 +111,26 @@ public class CassandraTimestampsEteTest {
         // a fresh timestamp).
         assertMinimumTimestampIsAtLeast(sstableMetadata, firstWriteTimestamp);
 
-        // Failure here means that the range tombstone isn't droppable, which would be weird
+        // Failure here means that the range tombstone was already dropped, which shouldn't happen (gc_grace will
+        // prevent it from being removed)
         assertDroppableTombstoneRatioPositive(sstableMetadata);
     }
 
-    private void sweepUntilNoValueExistsAtTimestamp(long id, long timestamp, Optional<String> namespace) {
+    private void sweepUntilNoValueExistsAtTimestamp(long id, long timestamp) {
+        sweepUntilConditionSatisfied(() -> todoClient.doesNotExistBeforeTimestamp(id, timestamp));
+    }
+
+    private void sweepuntilNoValueExistsForNamespaceAtTimestamp(long id, long timestamp, String namespace) {
+        sweepUntilConditionSatisfied(
+                () -> todoClient.namespacedTodoDoesNotExistBeforeTimestamp(id, timestamp, namespace));
+    }
+
+    private void sweepUntilConditionSatisfied(BooleanSupplier predicate) {
         Awaitility.waitAtMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
                 .until(() -> {
-                        todoClient.runIterationOfTargetedSweep();
-                        return namespace.isPresent()
-                                ? todoClient.namespacedTodoDoesNotExistBeforeTimestamp(id, timestamp, namespace.get())
-                                : todoClient.doesNotExistBeforeTimestamp(id, timestamp);
+                    todoClient.runIterationOfTargetedSweep();
+                    return predicate.getAsBoolean();
                 });
     }
 
