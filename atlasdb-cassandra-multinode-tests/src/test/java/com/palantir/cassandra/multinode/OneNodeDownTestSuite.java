@@ -38,7 +38,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockReleasingRule;
 public final class OneNodeDownTestSuite extends NodesDownTestSetup {
 
     @ClassRule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
+    public static final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
             createCassandraKvs(), CONFIG);
 
     @ClassRule
