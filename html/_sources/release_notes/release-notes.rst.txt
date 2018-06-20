@@ -51,6 +51,11 @@ develop
          - Change
 
     *    - |fixed|
+         - We now page with a smaller batch size when looking at the sweepable cells.
+           We also batch targeted sweep deletes in smaller batches.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3283>`__)
+
+    *    - |fixed|
          - Fixed an issue in targeted sweep where reading from the sweep queue when there are more than the specified batch size entries can cause some entries to be skipped.
            This is unlikely to have affected anyone because the default batch size used was very large.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3284>`__)
