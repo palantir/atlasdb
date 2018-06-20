@@ -3,6 +3,11 @@
 Reverse Migration
 =================
 
+.. warn::
+
+   Many Atlas clients switched to using TimeLock by default many versions after it was reasonable to use Atlas with TimeLock.
+   If you are on this page because you were directed to it by an error stating "This can happen if you attempt to run AtlasDB without a timelock block after having previously migrated to the TimeLock server", then please add :ref:`configure your service<timelock-client-configuration>` to use TimeLock rather than attempting a reverse migration.
+
 .. danger::
 
    Improperly executing reverse migration from external timestamp and lock services can result in
