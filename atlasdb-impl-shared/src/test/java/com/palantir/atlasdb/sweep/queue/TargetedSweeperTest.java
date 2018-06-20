@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
@@ -224,7 +225,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void conservativeSweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
-        long lastWriteTs = TS_FINE_GRANULARITY - 1;
+        long lastWriteTs = SWEEP_BATCH_SIZE - 1;
         for (long i = 0; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_CONS, i);
         }
@@ -236,7 +237,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void thoroughSweepDeletesAllButLatestWithSingleDeleteAllTimestampsIncludingSentinels() {
-        long lastWriteTs = TS_FINE_GRANULARITY - 1;
+        long lastWriteTs = SWEEP_BATCH_SIZE - 1;
         for (long i = 0; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_THOR, i);
         }
