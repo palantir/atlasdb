@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -206,7 +206,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
                 return false;
             }
             TestHashComponentsStreamHashAidxRow other = (TestHashComponentsStreamHashAidxRow) obj;
-            return Objects.equal(hash, other.hash);
+            return Objects.equals(hash, other.hash);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -298,7 +298,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
                 return false;
             }
             TestHashComponentsStreamHashAidxColumn other = (TestHashComponentsStreamHashAidxColumn) obj;
-            return Objects.equal(streamId, other.streamId);
+            return Objects.equals(streamId, other.streamId);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -742,5 +742,5 @@ public final class TestHashComponentsStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lUM1vDkJ6ut7msUTfZ0uAA==";
+    static String __CLASS_HASH = "z7A9cMbt+PFD5iMoH0auow==";
 }

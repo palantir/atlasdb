@@ -50,9 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    - |improved| |metrics|
-         - AtlasDB now publishes timers tracking time taken to setup a transaction task before it is run, and time taken to tear down the task after it is done before runTaskWith* returns.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3281>`__)
+    *    - |fixed|
+         - Fixed an issue in targeted sweep where reading from the sweep queue when there are more than the specified batch size entries can cause some entries to be skipped.
+           This is unlikely to have affected anyone because the default batch size used was very large.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3284>`__)
 
     *    - |devbreak|
          - AtlasDB metrics are no longer a static singleton, and are now created upon construction of relevant classes.
@@ -134,6 +135,10 @@ develop
               - ``sweepError``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3244>`__)
+
+    *    - |improved| |metrics|
+         - AtlasDB now publishes timers tracking time taken to setup a transaction task before it is run, and time taken to tear down the task after it is done before runTaskWith* returns.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3281>`__)
 
 =======
 v0.89.0

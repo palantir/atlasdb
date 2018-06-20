@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -379,7 +379,7 @@ public final class AllValueTypesTestTable implements
                 return false;
             }
             AllValueTypesTestRow other = (AllValueTypesTestRow) obj;
-            return Objects.equal(component0, other.component0) && Objects.equal(component1, other.component1) && Objects.equal(component2, other.component2) && Objects.equal(component3, other.component3) && Objects.equal(component4, other.component4) && Objects.equal(component5, other.component5) && Arrays.equals(component8, other.component8) && Objects.equal(component9, other.component9) && Objects.equal(component10, other.component10) && Arrays.equals(blobComponent, other.blobComponent);
+            return Objects.equals(component0, other.component0) && Objects.equals(component1, other.component1) && Objects.equals(component2, other.component2) && Objects.equals(component3, other.component3) && Objects.equals(component4, other.component4) && Objects.equals(component5, other.component5) && Arrays.equals(component8, other.component8) && Objects.equals(component9, other.component9) && Objects.equals(component10, other.component10) && Arrays.equals(blobComponent, other.blobComponent);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -2253,5 +2253,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "m62HNZyLfiSwGJe89IYpsg==";
+    static String __CLASS_HASH = "FKayZbE3gaKlW4+Xx6ZX1A==";
 }
