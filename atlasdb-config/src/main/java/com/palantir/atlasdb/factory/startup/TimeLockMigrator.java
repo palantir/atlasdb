@@ -21,10 +21,11 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.timestamp.AuthedTimestampManagementService;
 import com.palantir.timestamp.AuthDecoratedTimestampManagementService;
+import com.palantir.timestamp.AuthedTimestampManagementService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tokens.auth.AuthHeader;
@@ -45,21 +46,25 @@ public class TimeLockMigrator extends AsyncInitializer {
     }
 
     public static TimeLockMigrator create(
+            MetricsManager metricsManager,
             ServerListConfig serverListConfig,
             Supplier<AuthHeader> authHeaderSupplier,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
-        return create(() -> serverListConfig, authHeaderSupplier, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(metricsManager, () -> serverListConfig, authHeaderSupplier, invalidator,
+                userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimeLockMigrator create(
+            MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
             Supplier<AuthHeader> authHeaderSupplier,
             TimestampStoreInvalidator invalidator,
             String userAgent,
             boolean initializeAsync) {
         TimestampManagementService remoteTimestampManagementService =
-                createRemoteManagementService(serverListConfigSupplier, userAgent, authHeaderSupplier);
+                createRemoteManagementService(
+                        metricsManager, serverListConfigSupplier, userAgent, authHeaderSupplier);
         return new TimeLockMigrator(invalidator, remoteTimestampManagementService, initializeAsync);
     }
 
@@ -82,12 +87,12 @@ public class TimeLockMigrator extends AsyncInitializer {
     }
 
     private static TimestampManagementService createRemoteManagementService(
+            MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfig,
             String userAgent,
             Supplier<AuthHeader> authHeaderSupplier) {
-
         AuthedTimestampManagementService authedTimestampManagementService =
-                new ServiceCreator<>(AuthedTimestampManagementService.class, userAgent).applyDynamic(serverListConfig);
+                new ServiceCreator<>(metricsManager, AuthedTimestampManagementService.class, userAgent).applyDynamic(serverListConfig);
         return new AuthDecoratedTimestampManagementService(authedTimestampManagementService, authHeaderSupplier);
     }
 

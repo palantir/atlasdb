@@ -52,10 +52,11 @@ public class PersistentLockManager implements AutoCloseable {
     @GuardedBy("this")
     private boolean isShutDown = false;
 
-    public PersistentLockManager(PersistentLockService persistentLockService, long persistentLockRetryWaitMillis) {
+    public PersistentLockManager(MetricsManager metricsManager,
+            PersistentLockService persistentLockService, long persistentLockRetryWaitMillis) {
         this.persistentLockService = persistentLockService;
         this.persistentLockRetryWaitMillis = persistentLockRetryWaitMillis;
-        this.metricsManager = new MetricsManager();
+        this.metricsManager = metricsManager;
         this.lockFailureMeter = metricsManager.registerOrGetMeter(this.getClass(), null, ACQUIRE_FAILURE_METRIC_NAME);
         this.lockId = null;
     }

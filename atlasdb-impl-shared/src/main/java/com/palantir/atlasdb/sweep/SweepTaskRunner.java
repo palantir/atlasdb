@@ -44,14 +44,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellLimit;
-import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.UnsafeArg;
-
-import gnu.trove.TDecorators;
 
 /**
  * Sweeps one individual table.
@@ -61,10 +59,10 @@ public class SweepTaskRunner {
 
     private final KeyValueService keyValueService;
     private final SpecialTimestampsSupplier specialTimestampsSupplier;
-    private final TransactionService transactionService;
     private final SweepStrategyManager sweepStrategyManager;
     private final CellsSweeper cellsSweeper;
-    private final Optional<SweepMetricsManager> metricsManager;
+    private final Optional<LegacySweepMetrics> metricsManager;
+    private final CommitTsCache commitTsCache;
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
@@ -89,14 +87,13 @@ public class SweepTaskRunner {
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper,
-            SweepMetricsManager metricsManager) {
+            LegacySweepMetrics metricsManager) {
         this.keyValueService = keyValueService;
         this.specialTimestampsSupplier = new SpecialTimestampsSupplier(unreadableTsSupplier, immutableTsSupplier);
-        this.transactionService = transactionService;
         this.sweepStrategyManager = sweepStrategyManager;
         this.cellsSweeper = cellsSweeper;
         this.metricsManager = Optional.ofNullable(metricsManager);
-
+        this.commitTsCache = CommitTsCache.create(transactionService);
     }
 
     /**
@@ -188,7 +185,7 @@ public class SweepTaskRunner {
                 .shouldDeleteGarbageCollectionSentinels(!sweeper.shouldAddSentinels())
                 .build();
 
-        SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(transactionService, sweeper, sweepTs);
+        SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(commitTsCache, sweeper, sweepTs);
         try (ClosableIterator<List<CandidateCellForSweeping>> candidates = keyValueService.getCandidateCellsForSweeping(
                     tableRef, request)) {
             ExaminedCellLimit limit = new ExaminedCellLimit(startRow, batchConfig.maxCellTsPairsToExamine());
@@ -196,8 +193,6 @@ public class SweepTaskRunner {
                         candidates, batchConfig, sweepableCellFilter, limit);
             long totalCellTsPairsExamined = 0;
             long totalCellTsPairsDeleted = 0;
-
-            metricsManager.ifPresent(SweepMetricsManager::resetBeforeDeleteBatch);
 
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
@@ -215,7 +210,7 @@ public class SweepTaskRunner {
                 long cellsExamined = batch.numCellTsPairsExamined();
                 totalCellTsPairsExamined += cellsExamined;
 
-                metricsManager.ifPresent(manager -> manager.updateAfterDeleteBatch(cellsExamined, cellsDeleted));
+                metricsManager.ifPresent(manager -> manager.updateCellsExaminedDeleted(cellsExamined, cellsDeleted));
 
                 lastRow = batch.lastCellExamined().getRowName();
             }
@@ -260,8 +255,7 @@ public class SweepTaskRunner {
             }
 
             // Taking an immutable copy is done here to allow for faster sublist extraction.
-            List<Long> currentCellTimestamps =
-                    ImmutableList.copyOf(TDecorators.wrap(cell.sortedTimestamps()));
+            List<Long> currentCellTimestamps = ImmutableList.copyOf(cell.sortedTimestamps());
 
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
                 currentBatch.putAll(cell.cell(), currentCellTimestamps);

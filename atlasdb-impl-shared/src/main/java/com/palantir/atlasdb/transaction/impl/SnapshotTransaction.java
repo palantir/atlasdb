@@ -48,7 +48,6 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
@@ -57,7 +56,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -80,8 +78,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -183,7 +180,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     final TransactionService defaultTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
-    private static final MetricsManager metricsManager = new MetricsManager();
+    protected final MetricsManager metricsManager;
 
     private final MultiTableSweepQueueWriter sweepQueue;
 
@@ -218,14 +215,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected volatile boolean hasReads;
 
-    private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
+    private final Timer.Context transactionTimerContext;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
      *                           grab a read lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
-    /* package */ SnapshotTransaction(KeyValueService keyValueService,
+    /* package */ SnapshotTransaction(
+                               MetricsManager metricsManager,
+                               KeyValueService keyValueService,
                                TimelockService timelockService,
                                TransactionService transactionService,
                                Cleaner cleaner,
@@ -245,6 +244,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                int defaultGetRangesConcurrency,
                                MultiTableSweepQueueWriter sweepQueue,
                                ExecutorService deleteExecutor) {
+        this.metricsManager = metricsManager;
+        this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -264,79 +265,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = sweepQueue;
-        this.deleteExecutor = deleteExecutor;
-        this.hasReads = false;
-    }
-
-    // TEST ONLY
-    @VisibleForTesting
-    SnapshotTransaction(KeyValueService keyValueService,
-                        TimelockService timelockService,
-                        TransactionService transactionService,
-                        Cleaner cleaner,
-                        long startTimeStamp,
-                        ConflictDetectionManager conflictDetectionManager,
-                        AtlasDbConstraintCheckingMode constraintCheckingMode,
-                        TransactionReadSentinelBehavior readSentinelBehavior,
-                        TimestampCache timestampValidationReadCache,
-                        ExecutorService getRangesExecutor,
-                        int defaultGetRangesConcurrency,
-                        MultiTableSweepQueueWriter sweepQueue,
-                        ExecutorService deleteExecutor) {
-        this.keyValueService = keyValueService;
-        this.timelockService = timelockService;
-        this.defaultTransactionService = transactionService;
-        this.cleaner = cleaner;
-        this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = conflictDetectionManager;
-        this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        this.immutableTimestamp = 0;
-        this.immutableTimestampLock = Optional.empty();
-        this.preCommitCondition = PreCommitConditions.NO_OP;
-        this.constraintCheckingMode = constraintCheckingMode;
-        this.transactionReadTimeoutMillis = null;
-        this.readSentinelBehavior = readSentinelBehavior;
-        this.allowHiddenTableAccess = false;
-        this.timestampValidationReadCache = timestampValidationReadCache;
-        this.lockAcquireTimeoutMs = AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
-        this.getRangesExecutor = getRangesExecutor;
-        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
-        this.sweepQueue = sweepQueue;
-        this.deleteExecutor = deleteExecutor;
-        this.hasReads = false;
-    }
-
-    protected SnapshotTransaction(KeyValueService keyValueService,
-                                  TransactionService transactionService,
-                                  TimelockService timelockService,
-                                  long startTimeStamp,
-                                  AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                  TransactionReadSentinelBehavior readSentinelBehavior,
-                                  boolean allowHiddenTableAccess,
-                                  TimestampCache timestampValidationReadCache,
-                                  long lockAcquireTimeoutMs,
-                                  ExecutorService getRangesExecutor,
-                                  int defaultGetRangesConcurrency,
-                                  ExecutorService deleteExecutor) {
-        this.keyValueService = keyValueService;
-        this.defaultTransactionService = transactionService;
-        this.cleaner = NoOpCleaner.INSTANCE;
-        this.timelockService = timelockService;
-        this.startTimestamp = Suppliers.ofInstance(startTimeStamp);
-        this.conflictDetectionManager = ConflictDetectionManagers.createWithNoConflictDetection();
-        this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        this.immutableTimestamp = startTimeStamp;
-        this.immutableTimestampLock = Optional.empty();
-        this.preCommitCondition = PreCommitConditions.NO_OP;
-        this.constraintCheckingMode = constraintCheckingMode;
-        this.transactionReadTimeoutMillis = null;
-        this.readSentinelBehavior = readSentinelBehavior;
-        this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.timestampValidationReadCache = timestampValidationReadCache;
-        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
-        this.getRangesExecutor = getRangesExecutor;
-        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
-        this.sweepQueue = MultiTableSweepQueueWriter.NO_OP;
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
     }
@@ -919,7 +847,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return RowResults.filterDeletedColumnsAndEmptyRows(mergeIterators);
     }
 
-    private static List<Entry<Cell, byte[]>> mergeInLocalWrites(
+    private List<Entry<Cell, byte[]>> mergeInLocalWrites(
             Iterator<Entry<Cell, byte[]>> postFilterIterator,
             Iterator<Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
@@ -932,7 +860,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return postFilterEmptyValues(mergeIterators);
     }
 
-    private static List<Entry<Cell, byte[]>> postFilterEmptyValues(
+    private List<Entry<Cell, byte[]>> postFilterEmptyValues(
             Iterator<Entry<Cell, byte[]>> mergeIterators) {
         List<Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
         Predicate<Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value.IS_EMPTY),
@@ -1970,10 +1898,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
             } else {
-                AssertUtils.assertAndLog(log, false, "BUG: Someone tried to roll back our transaction but"
-                        + " our locks were still valid; this is not allowed."
-                        + " Held immutable timestamp lock: " + immutableTimestampLock
-                        + "; held commit locks: " + commitLocksToken);
+                log.warn("Possible bug: Someone rolled back our transaction but"
+                        + " our locks were still valid; Atlas code is not allowed to do this, though others can.",
+                        SafeArg.of("immutableTimestampLock", immutableTimestampLock),
+                        SafeArg.of("commitLocksToken", commitLocksToken));
             }
         } catch (TransactionFailedException e1) {
             throw e1;
@@ -2076,7 +2004,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return getMeter("SnapshotTransactionConflict");
     }
 
-    private static Meter getMeter(String name) {
+    private Meter getMeter(String name) {
         // TODO(hsaraogi): add table names as a tag
         return metricsManager.registerOrGetMeter(SnapshotTransaction.class, name);
     }

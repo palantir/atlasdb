@@ -19,17 +19,16 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.UUID;
 
 import com.google.common.base.Supplier;
-import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
-public abstract class AbstractConditionAwareTransactionManager extends AbstractTransactionManager
-        implements ConditionAwareTransactionManager {
+public abstract class AbstractConditionAwareTransactionManager extends AbstractTransactionManager {
 
     protected static final PreCommitCondition NO_OP_CONDITION = new PreCommitCondition() {
         @Override
@@ -39,8 +38,8 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
         public void cleanup() {}
     };
 
-    AbstractConditionAwareTransactionManager(Supplier<Long> timestampCacheSize) {
-        super(timestampCacheSize);
+    AbstractConditionAwareTransactionManager(MetricsManager metricsManager, Supplier<Long> timestampCacheSize) {
+        super(metricsManager, timestampCacheSize);
     }
 
     @Override
@@ -99,6 +98,6 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskReadOnlyWithCondition(NO_OP_CONDITION, (transaction, condition) -> task.execute(transaction));
+        return runTaskWithConditionReadOnly(NO_OP_CONDITION, (transaction, condition) -> task.execute(transaction));
     }
 }

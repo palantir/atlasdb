@@ -14,12 +14,7 @@ AtlasDB has a variety of options for maximal flexibility.
 Sweeping
 ========
 
-A Sweeper will run in the background and remove data that is no longer
-needed. It does this by waiting until any read-only transaction would be
-timed out. This is found in
-``Cleaner.getTransactionReadTimeoutMillis()`` and defaults to 24 hours.
-The sweeper does a range scan on each table and cleans up old stuff it
-finds.
+Please consult the :ref:`Sweep documentation <sweep>` for more details on sweep.
 
 Sentinel Values
 ---------------
@@ -44,7 +39,7 @@ Sweep Strategies
 SweepStrategy.NOTHING
 ---------------------
 
-This disables sweeping for this table.
+This disables sweeping for this table (including for manual sweep).
 
 SweepStrategy.CONSERVATIVE
 --------------------------

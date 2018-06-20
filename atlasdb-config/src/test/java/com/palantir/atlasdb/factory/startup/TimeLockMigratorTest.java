@@ -48,6 +48,7 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -96,7 +97,9 @@ public class TimeLockMigratorTest {
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), () -> null, invalidator, USER_AGENT);
+                TimeLockMigrator.create(
+                        MetricsManagers.createForTests(),
+                        timelockConfig.toNamespacedServerList(), () -> null, invalidator, USER_AGENT);
         migrator.migrate();
 
         wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
@@ -109,7 +112,9 @@ public class TimeLockMigratorTest {
         wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withStatus(500)));
 
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), () -> null, invalidator, USER_AGENT);
+                TimeLockMigrator.create(
+                        MetricsManagers.createForTests(),
+                        timelockConfig.toNamespacedServerList(), () -> null, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(AtlasDbDependencyException.class);
         verify(invalidator, never()).backupAndInvalidate();
     }
@@ -119,7 +124,9 @@ public class TimeLockMigratorTest {
         when(invalidator.backupAndInvalidate()).thenThrow(new IllegalStateException());
 
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), () -> null, invalidator, USER_AGENT);
+                TimeLockMigrator.create(
+                        MetricsManagers.createForTests(),
+                        timelockConfig.toNamespacedServerList(), () -> null, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
         wireMockRule.verify(0, postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
     }
@@ -140,7 +147,9 @@ public class TimeLockMigratorTest {
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(() -> timelockConfig.toNamespacedServerList(), () -> null, invalidator, USER_AGENT, true);
+                TimeLockMigrator.create(
+                        MetricsManagers.createForTests(),
+                        () -> timelockConfig.toNamespacedServerList(), () -> null, invalidator, USER_AGENT, true);
         migrator.migrate();
 
         Awaitility.await()
@@ -169,7 +178,9 @@ public class TimeLockMigratorTest {
 
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(() -> timelockConfig.toNamespacedServerList(), () -> null, invalidator, USER_AGENT, true);
+                TimeLockMigrator.create(
+                        MetricsManagers.createForTests(),
+                        () -> timelockConfig.toNamespacedServerList(), () -> null, invalidator, USER_AGENT, true);
         migrator.migrate();
 
         Awaitility.await()

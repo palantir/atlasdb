@@ -19,6 +19,7 @@ package com.palantir.atlasdb.http;
 import java.util.List;
 import java.util.Set;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.StringLockDescriptor;
@@ -34,8 +35,8 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
         this.timelockService = timelockService;
     }
 
-    public static AsyncLockClient create(List<String> hosts) {
-        return new AsyncLockClient(TimelockUtils.createClient(hosts, TimelockService.class));
+    public static AsyncLockClient create(MetricRegistry metricRegistry, List<String> hosts) {
+        return new AsyncLockClient(TimelockUtils.createClient(metricRegistry, hosts, TimelockService.class));
     }
 
     @Override

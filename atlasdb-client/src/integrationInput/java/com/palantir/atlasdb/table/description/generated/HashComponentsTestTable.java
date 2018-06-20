@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -249,7 +249,7 @@ public final class HashComponentsTestTable implements
                 return false;
             }
             HashComponentsTestRow other = (HashComponentsTestRow) obj;
-            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(component1, other.component1) && Objects.equal(component2, other.component2);
+            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(component1, other.component1) && Objects.equals(component2, other.component2);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -775,5 +775,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "N0r8rTta9qcxehzWbQu7MQ==";
+    static String __CLASS_HASH = "ZhLggIl3pmPr+p4Pgpmu1A==";
 }

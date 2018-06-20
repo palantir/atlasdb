@@ -124,64 +124,6 @@ public class MetricsManagerTest {
     }
 
     @Test
-    public void deregistersAllMetrics() {
-        metricsManager.registerMetric(LIST_CLASS, RUNTIME, GAUGE);
-        metricsManager.deregisterMetrics();
-
-        assertThat(registry.getNames()).isEmpty();
-    }
-
-    @Test
-    public void deregistersMetricsWithSpecificPrefix() {
-        metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
-        metricsManager.registerMetric(LIST_CLASS, ERROR_OOM, GAUGE);
-        metricsManager.registerMetric(LIST_CLASS, RUNTIME, GAUGE);
-
-        metricsManager.deregisterMetricsWithPrefix(LIST_CLASS, ERROR_PREFIX);
-
-        assertThat(registry.getNames()).containsExactly(MetricRegistry.name(LIST_CLASS, RUNTIME));
-    }
-
-    @Test
-    public void deregistersAllMetricsForClassIfDeregisteringWithEmptyPrefix() {
-        metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
-        metricsManager.registerMetric(LIST_CLASS, ERROR_OOM, GAUGE);
-        metricsManager.registerMetric(LIST_CLASS, RUNTIME, GAUGE);
-
-        metricsManager.deregisterMetricsWithPrefix(LIST_CLASS, "");
-        assertThat(registry.getNames()).isEmpty();
-    }
-
-    @Test
-    public void doesNotDeregisterMetricsThatAreRegisteredExternally() {
-        metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
-        registry.register(MetricRegistry.name(LIST_CLASS, ERROR_OOM), GAUGE);
-
-        metricsManager.deregisterMetrics();
-        assertThat(registry.getNames()).containsExactly(MetricRegistry.name(LIST_CLASS, ERROR_OOM));
-    }
-
-    @Test
-    public void doesNotDeregisterMetricsThatWereRegisteredExternallyIfDeregisteringWithPrefix() {
-        metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
-        registry.register(MetricRegistry.name(LIST_CLASS, ERROR_OOM), GAUGE);
-
-        metricsManager.deregisterMetricsWithPrefix(LIST_CLASS, ERROR_PREFIX);
-        assertThat(registry.getNames()).containsExactly(MetricRegistry.name(LIST_CLASS, ERROR_OOM));
-    }
-
-    @Test
-    public void doesNotDeregisterMetricsFromOtherClassesEvenIfStringPrefixesMatch() {
-        metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE); // java.util.List.error.outofbounds
-        metricsManager.registerMetric(LIST_ITERATOR_CLASS, ERROR_OOM, GAUGE); // java.util.ListIterator.error.oom
-
-        metricsManager.deregisterMetricsWithPrefix(LIST_CLASS, "");
-
-        assertThat(registry.getNames()).containsExactly(MetricRegistry.name(LIST_ITERATOR_CLASS, ERROR_OOM));
-    }
-
-
-    @Test
     public void registerOrGetMeterMeterRegistersTheFullyQualifiedClassNameMetric() {
         metricsManager.registerOrGetMeter(LIST_CLASS, ERROR_OUT_OF_BOUNDS);
 

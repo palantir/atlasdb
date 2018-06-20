@@ -30,7 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
@@ -48,13 +48,16 @@ public final class ClockSkewMonitor {
     private final ScheduledExecutorService executorService;
     private final ReversalDetectingClockService localClockService;
 
-    public static ClockSkewMonitor create(Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity) {
+    public static ClockSkewMonitor create(MetricsManager metricsManager,
+            Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity) {
         Map<String, ClockService> clocksByServer = Maps.toMap(
                 remoteServers,
-                (remoteServer) -> AtlasDbHttpClients.createProxy(optionalSecurity, remoteServer, ClockService.class));
+                (remoteServer) -> AtlasDbHttpClients.createProxy(metricsManager.getRegistry(),
+                        optionalSecurity, remoteServer, ClockService.class));
+
         return new ClockSkewMonitor(
                 clocksByServer,
-                new ClockSkewEvents(AtlasDbMetrics.getMetricRegistry()),
+                new ClockSkewEvents(metricsManager.getRegistry()),
                 PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("clock-skew-monitor", true)),
                 new ClockServiceImpl());
     }

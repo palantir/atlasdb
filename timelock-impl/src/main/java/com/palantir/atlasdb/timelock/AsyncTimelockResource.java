@@ -44,9 +44,11 @@ import com.palantir.timestamp.TimestampRange;
 @Produces(MediaType.APPLICATION_JSON)
 public class AsyncTimelockResource {
 
+    private final LockLog lockLog;
     private final AsyncTimelockService timelock;
 
-    public AsyncTimelockResource(AsyncTimelockService timelock) {
+    public AsyncTimelockResource(LockLog lockLog, AsyncTimelockService timelock) {
+        this.lockLog = lockLog;
         this.timelock = timelock;
     }
 
@@ -78,7 +80,7 @@ public class AsyncTimelockResource {
     @Path("lock")
     public void lock(@Suspended final AsyncResponse response, LockRequest request) {
         AsyncResult<LockToken> result = timelock.lock(request);
-        LockLog.registerRequest(request, result);
+        lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
                 response.resume(result.getError());
@@ -94,7 +96,7 @@ public class AsyncTimelockResource {
     @Path("await-locks")
     public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
         AsyncResult<Void> result = timelock.waitForLocks(request);
-        LockLog.registerRequest(request, result);
+        lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
                 response.resume(result.getError());

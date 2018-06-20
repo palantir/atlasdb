@@ -114,7 +114,6 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
@@ -134,7 +133,6 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
@@ -240,8 +238,7 @@
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-lock-api"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client": {
@@ -262,9 +259,6 @@
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-client"
             ]
-        },
-        "com.palantir.atlasdb:atlasdb-lock-api": {
-            "project": true
         },
         "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
             "project": true
@@ -290,7 +284,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-lock-api",
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
@@ -496,6 +490,7 @@
         "com.palantir.tritium:tritium-registry": {
             "locked": "0.9.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting3:okhttp-clients"
             ]
@@ -779,7 +774,6 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
@@ -799,7 +793,6 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-executors",
@@ -905,8 +898,7 @@
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-lock-api"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client": {
@@ -927,9 +919,6 @@
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-client"
             ]
-        },
-        "com.palantir.atlasdb:atlasdb-lock-api": {
-            "project": true
         },
         "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
             "project": true
@@ -955,7 +944,7 @@
         "com.palantir.atlasdb:lock-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-lock-api",
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
@@ -1161,6 +1150,7 @@
         "com.palantir.tritium:tritium-registry": {
             "locked": "0.9.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting3:okhttp-clients"
             ]

@@ -25,12 +25,11 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.MetricsManager;
 
 class CompactionOutcomeMetrics {
-    private final MetricsManager metricsManager = new MetricsManager();
     private final SlidingTimeWindowReservoir reservoir;
 
     private boolean shutdown;
 
-    CompactionOutcomeMetrics() {
+    CompactionOutcomeMetrics(MetricsManager metricsManager) {
         Arrays.stream(BackgroundCompactor.CompactionOutcome.values()).forEach(outcome ->
                 metricsManager.registerOrAddToMetric(BackgroundCompactor.class, "outcome",
                         () -> getOutcomeCount(outcome), ImmutableMap.of("status", outcome.name())));

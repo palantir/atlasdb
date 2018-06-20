@@ -38,10 +38,12 @@ public final class AdjustableSweepBatchConfigSource {
         this.rawSweepBatchConfig = rawSweepBatchConfig;
     }
 
-    public static AdjustableSweepBatchConfigSource create(Supplier<SweepBatchConfig> rawSweepBatchConfig) {
+    public static AdjustableSweepBatchConfigSource create(
+            MetricsManager metricsManager,
+            Supplier<SweepBatchConfig> rawSweepBatchConfig) {
         AdjustableSweepBatchConfigSource configSource = new AdjustableSweepBatchConfigSource(rawSweepBatchConfig);
 
-        new MetricsManager().registerMetric(AdjustableSweepBatchConfigSource.class, "batchSizeMultiplier",
+        metricsManager.registerMetric(AdjustableSweepBatchConfigSource.class, "batchSizeMultiplier",
                 () -> getBatchSizeMultiplier());
 
         return configSource;

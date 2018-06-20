@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionWrapper;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 
@@ -24,7 +24,7 @@ public class ThreadLocalWrappingTransactionManager extends WrappingTransactionMa
     private final ExecutorInheritableThreadLocal<TransactionWrapper> wrapper;
 
     public ThreadLocalWrappingTransactionManager(
-            LockAwareTransactionManager delegate,
+            TransactionManager delegate,
             ExecutorInheritableThreadLocal<TransactionWrapper> wrapper) {
         super(delegate);
         this.wrapper = wrapper;

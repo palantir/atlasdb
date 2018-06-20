@@ -49,6 +49,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public abstract class AbstractSweepQueueTest {
     static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");
@@ -70,6 +72,8 @@ public abstract class AbstractSweepQueueTest {
     int shardCons;
     int shardThor;
 
+    protected final MetricsManager metricsManager = MetricsManagers.createForTests();
+
     KeyValueService spiedKvs;
     SpecialTimestampsSupplier timestampsSupplier;
     WriteInfoPartitioner partitioner;
@@ -89,7 +93,7 @@ public abstract class AbstractSweepQueueTest {
         timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createTransactionService(spiedKvs);
-        metrics = TargetedSweepMetrics.create(spiedKvs, 1);
+        metrics = TargetedSweepMetrics.create(metricsManager, spiedKvs, 1);
     }
 
     static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {
@@ -111,7 +115,7 @@ public abstract class AbstractSweepQueueTest {
     }
 
     int writeToCellCommitted(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
-        putTimestampIntoTransactionTable(timestamp, Long.MAX_VALUE);
+        putTimestampIntoTransactionTable(timestamp, timestamp);
         return write(queueWriter, timestamp, cell, false, tableRef);
     }
 
@@ -124,8 +128,14 @@ public abstract class AbstractSweepQueueTest {
         return write(queueWriter, timestamp, DEFAULT_CELL, false, tableRef);
     }
 
+    int writeToDefaultCellCommitedAt(KvsSweepQueueWriter queueWriter, long startTs, long commitTs,
+            TableReference tableRef) {
+        putTimestampIntoTransactionTable(startTs, commitTs);
+        return write(queueWriter, startTs, DEFAULT_CELL, false, tableRef);
+    }
+
     int putTombstoneToDefaultCommitted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
-        putTimestampIntoTransactionTable(timestamp, Long.MAX_VALUE);
+        putTimestampIntoTransactionTable(timestamp, timestamp);
         return write(queueWriter, timestamp, DEFAULT_CELL, true, tableRef);
     }
 
@@ -150,7 +160,7 @@ public abstract class AbstractSweepQueueTest {
             Cell cell = getCellWithFixedHash(i);
             result.add(WriteInfo.write(tableRef, cell, ts));
         }
-        putTimestampIntoTransactionTable(ts, Long.MAX_VALUE);
+        putTimestampIntoTransactionTable(ts, ts);
         writer.enqueue(result);
         return result;
     }

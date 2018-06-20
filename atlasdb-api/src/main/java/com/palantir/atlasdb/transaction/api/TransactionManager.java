@@ -15,7 +15,15 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.google.common.base.Supplier;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockService;
+import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampService;
 
 public interface TransactionManager extends AutoCloseable {
     /**
@@ -108,6 +116,107 @@ public interface TransactionManager extends AutoCloseable {
     <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E;
 
     /**
+     * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)} but it will
+     * acquire locks right before the transaction is created and release them after the task is complete.
+     * <p>
+     * The created transaction will not commit successfully if these locks are invalid by the time commit is run.
+     *
+     * @param lockSupplier supplier for the lock request
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+
+    /**
+     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}
+     * but it will also ensure that the existing lock tokens passed are still valid before committing.
+     *
+     * @param lockTokens lock tokens to acquire while transaction executes
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Iterable<HeldLocksToken> lockTokens,
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+
+    /**
+     * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
+     * will not commit successfully if these locks are invalid by the time commit is run.
+     *
+     * @param lockTokens lock tokens to refresh while transaction executes
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
+            Iterable<HeldLocksToken> lockTokens,
+            LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
+
+    /**
+     * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)}, but it will
+     * acquire a {@link PreCommitCondition} right before the transaction is created and check it
+     * immediately before the transaction commits.
+     * <p>
+     * The created transaction will not commit successfully if the check fails.
+     *
+     * @param conditionSupplier supplier for the condition
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+            Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
+
+    /**
+     * This method is basically the same as {@link #runTaskThrowOnConflict(TransactionTask)}, but it takes
+     * a {@link PreCommitCondition} and checks it immediately before the transaction commits.
+     * <p>
+     * The created transaction will not commit successfully if the check fails.
+     *
+     * @param condition condition associated with the transaction
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
+            C condition, ConditionAwareTransactionTask<T, C, E> task)
+            throws E, TransactionFailedRetriableException;
+
+    /**
+     * This method is basically the same as {@link #runTaskReadOnly(TransactionTask)}, but it takes
+     * a {@link PreCommitCondition} and checks it for validity before executing reads.
+     * <p>
+     * The created transaction will fail if the check is no longer valid after fetching the read
+     * timestamp.
+     *
+     * @param condition condition associated with the transaction
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E;
+
+    /**
      * Most AtlasDB TransactionManagers will provide {@link Transaction} objects that have less than full
      * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp
      * and an open transaction can only read values that were committed before its start timestamp.
@@ -124,6 +233,42 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     long getImmutableTimestamp();
+
+    /**
+     * Returns the lock service used by this transaction manager.
+     *
+     * @return the lock service for this transaction manager
+     */
+    LockService getLockService();
+
+    /**
+     * Returns the timelock service used by this transaction manager.
+     *
+     * @return the timelock service for this transaction manager
+     */
+    TimelockService getTimelockService();
+
+    /**
+     * Returns the timestamp service used by this transaction manager.
+     *
+     * @return the timestamp service for this transaction manager
+     */
+    TimestampService getTimestampService();
+
+    /**
+     * Returns the cleaner used by this transaction manager.
+     *
+     * @return the cleaner for this transaction manager
+     */
+    Cleaner getCleaner();
+
+    /**
+     * Returns the KVS used by this transaction manager. In general, this should not be used by clients, as
+     * direct reads and writes to the KVS will bypass the Atlas transaction protocol.
+     *
+     * @return the key value service for this transaction manager
+     */
+    KeyValueService getKeyValueService();
 
     /**
      * Provides a {@link KeyValueServiceStatus}, indicating the current availability of the key value store.
@@ -170,6 +315,52 @@ public interface TransactionManager extends AutoCloseable {
      */
     void clearTimestampCache();
 
+    /**
+     * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
+     * submitted throws an exception.
+     *
+     * Concurrency: If this method races with close(), then closingCallback may not be called.
+     */
+    void registerClosingCallback(Runnable closingCallback);
+
+    /**
+     * This method can be used for direct control of a transaction's life cycle. For example, if the work done in
+     * the transaction is interactive and cannot be expressed as a {@link TransactionTask} ahead of time, this method
+     * allows for a long lived transaction object. For the any data read or written to the transaction to be valid,
+     * the transaction must be committed, preferably by calling
+     * {@link #finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock, TransactionTask)} to also perform
+     * additional cleanup.
+     *
+     * @deprecated Similar functionality will exist, but this method is likely to change in the future
+     *
+     * @return the transaction and associated immutable timestamp lock for the task
+     */
+    @Deprecated
+    TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
+
+    /**
+     * Runs a provided task, commits the transaction, and performs cleanup associated with a transaction created by
+     * {@link #setupRunTaskWithConditionThrowOnConflict(PreCommitCondition)}. If no further work needs to be done with
+     * the transaction, a no-op task can be passed in.
+     *
+     * @deprecated Similar functionality will exist, but this method is likely to change in the future
+     *
+     * @return value returned by the task
+     */
+    @Deprecated
+    <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
+            TransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException;
+
+    /**
+     * Frees resources used by this TransactionManager, and invokes any callbacks registered to run on close.
+     * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
+     *
+     * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
+     * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
+     * guaranteed to be executed (because we use a synchronized list) as long as no exceptions arise. If an exception
+     * arises, then no guarantees are made with regard to subsequent callbacks being executed.
+     */
     @Override
     void close();
 }

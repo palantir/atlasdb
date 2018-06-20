@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -60,6 +61,7 @@ public class TestProxies {
     public <T> T singleNode(Class<T> serviceInterface, String uri) {
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
                 Optional.of(SSL_SOCKET_FACTORY),
                 uri,
                 serviceInterface,
@@ -73,6 +75,7 @@ public class TestProxies {
     public <T> T failover(Class<T> serviceInterface, List<String> uris) {
         List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
+                new MetricRegistry(),
                 Optional.of(SSL_SOCKET_FACTORY),
                 uris,
                 serviceInterface,

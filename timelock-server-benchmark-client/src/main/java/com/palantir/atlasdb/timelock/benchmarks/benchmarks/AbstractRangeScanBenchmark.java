@@ -35,7 +35,7 @@ import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.MetadataTable;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 /**
  * A base class for implementing range scan benchmarks. A primary function of this class is to store metadata
@@ -49,7 +49,7 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final SerializableTransactionManager txnManager;
+    private final TransactionManager txnManager;
 
     private static final int MAX_BYTES_PER_WRITE = (int) (10_000_000 * 0.9);
 
@@ -60,7 +60,7 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
     protected final int batchSize;
 
     public AbstractRangeScanBenchmark(int numClients, int requestsPerClient,
-            SerializableTransactionManager txnManager, int dataSize, int numRows) {
+            TransactionManager txnManager, int dataSize, int numRows) {
         super(numClients, requestsPerClient);
         this.txnManager = txnManager;
         this.dataSize = dataSize;

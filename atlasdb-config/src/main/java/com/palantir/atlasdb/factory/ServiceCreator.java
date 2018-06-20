@@ -34,15 +34,20 @@ import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.remoting.api.config.service.ProxyConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 
 public class ServiceCreator<T> implements Function<ServerListConfig, T> {
+    private final MetricsManager metricsManager;
     private final Class<T> serviceClass;
     private final String userAgent;
 
-    public ServiceCreator(Class<T> serviceClass, String userAgent) {
+    public ServiceCreator(MetricsManager metricsManager,
+            Class<T> serviceClass,
+            String userAgent) {
+        this.metricsManager = metricsManager;
         this.serviceClass = serviceClass;
         this.userAgent = userAgent;
     }
@@ -54,9 +59,10 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
 
     // Semi-horrible, but given that we create ServiceCreators explicitly and I'd rather not API break our
     // implementation of Function, leaving this here for now.
-    public T applyDynamic(Supplier<ServerListConfig> serverListConfig) {
+    public T applyDynamic(Supplier<ServerListConfig> input) {
         return createService(
-                serverListConfig,
+                metricsManager,
+                input,
                 SslSocketFactories::createSslSocketFactory,
                 ServiceCreator::createProxySelector,
                 serviceClass,
@@ -71,17 +77,20 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     }
 
     private static <T> T createService(
+            MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
             java.util.function.Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
             java.util.function.Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
-        return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(serverListConfigSupplier,
-                sslSocketFactoryCreator, proxySelectorCreator, type, userAgent);
+        return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
+                metricsManager.getRegistry(),
+                serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent);
     }
 
-    public static <T> T createInstrumentedService(T service, Class<T> serviceClass) {
+    public static <T> T createInstrumentedService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {
         return AtlasDbMetrics.instrument(
+                metricRegistry,
                 serviceClass,
                 service,
                 MetricRegistry.name(serviceClass));

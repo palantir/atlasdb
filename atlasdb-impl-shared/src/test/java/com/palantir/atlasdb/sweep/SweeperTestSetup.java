@@ -32,15 +32,17 @@ import org.mockito.stubbing.Answer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockService;
 
 public class SweeperTestSetup {
@@ -50,6 +52,7 @@ public class SweeperTestSetup {
 
     protected static AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
+    private static final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected SpecificTableSweeper specificTableSweeper;
     protected BackgroundSweeperImpl backgroundSweeper;
     protected KeyValueService kvs = mock(KeyValueService.class);
@@ -58,7 +61,7 @@ public class SweeperTestSetup {
     private NextTableToSweepProvider nextTableToSweepProvider = mock(NextTableToSweepProvider.class);
     protected SweepTaskRunner sweepTaskRunner = mock(SweepTaskRunner.class);
     private boolean sweepEnabled = true;
-    protected SweepMetricsManager sweepMetricsManager = mock(SweepMetricsManager.class);
+    protected LegacySweepMetrics sweepMetrics = mock(LegacySweepMetrics.class);
     protected long currentTimeMillis = 1000200300L;
 
     @BeforeClass
@@ -69,7 +72,7 @@ public class SweeperTestSetup {
                 .maxCellTsPairsToExamine(1000)
                 .build();
 
-        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() -> sweepBatchConfig);
+        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(metricsManager, () -> sweepBatchConfig);
     }
 
     @Before
@@ -77,6 +80,7 @@ public class SweeperTestSetup {
         specificTableSweeper = getSpecificTableSweeperService();
 
         backgroundSweeper = new BackgroundSweeperImpl(
+                metricsManager,
                 mock(LockService.class),
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,
@@ -95,12 +99,12 @@ public class SweeperTestSetup {
                 priorityStore,
                 progressStore,
                 mock(BackgroundSweeperPerformanceLogger.class),
-                sweepMetricsManager,
+                sweepMetrics,
                 () -> currentTimeMillis);
     }
 
-    public static LockAwareTransactionManager mockTxManager() {
-        LockAwareTransactionManager txManager = mock(LockAwareTransactionManager.class);
+    public static TransactionManager mockTxManager() {
+        TransactionManager txManager = mock(TransactionManager.class);
         Answer runTaskAnswer = inv -> {
             Object[] args = inv.getArguments();
             TransactionTask<?, ?> task = (TransactionTask<?, ?>) args[0];

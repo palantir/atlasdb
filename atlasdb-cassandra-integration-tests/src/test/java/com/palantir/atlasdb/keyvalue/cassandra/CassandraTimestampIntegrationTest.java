@@ -36,7 +36,7 @@ public class CassandraTimestampIntegrationTest {
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
+    private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.createForTesting(
             CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG);
 
