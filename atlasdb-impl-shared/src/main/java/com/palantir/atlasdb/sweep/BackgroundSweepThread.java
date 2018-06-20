@@ -239,10 +239,15 @@ public class BackgroundSweepThread implements Runnable {
             currentTable.ifPresent(tableToSweep -> tableToSweep.getSweepLock().close());
         }
 
-        TableReference tableRef = progress.tableRef();
-        SingleLockService singleLockService = SingleLockService.createNamedLockServiceForTable(
-                lockService, TABLE_LOCK_PREFIX, tableRef);
-        currentTable = Optional.of(TableToSweep.continueSweeping(tableRef, singleLockService, progress));
+        if (currentTable.isPresent()) {
+            //noinspection ConstantConditions
+            currentTable.get().setProgress(progress);
+        } else {
+            TableReference tableRef = progress.tableRef();
+            SingleLockService singleLockService = SingleLockService.createNamedLockServiceForTable(
+                    lockService, TABLE_LOCK_PREFIX, tableRef);
+            currentTable = Optional.of(TableToSweep.continueSweeping(tableRef, singleLockService, progress));
+        }
     }
 
     private boolean shouldContinueSweepingCurrentTable(

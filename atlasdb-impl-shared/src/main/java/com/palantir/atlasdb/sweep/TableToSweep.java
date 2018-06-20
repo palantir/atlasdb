@@ -27,8 +27,8 @@ import com.palantir.lock.SingleLockService;
 public final class TableToSweep {
     private final TableReference tableRef;
     private final SingleLockService sweepLock;
-    private final boolean hasPreviousProgress;
-    private final SweepResults previousResults;
+    private boolean hasPreviousProgress;
+    private SweepResults previousResults;
 
     public static TableToSweep newTable(TableReference tableRef, SingleLockService sweepLockForTable) {
         return new TableToSweep(tableRef, sweepLockForTable, Optional.empty());
@@ -69,5 +69,10 @@ public final class TableToSweep {
 
     SweepResults getPreviousSweepResults() {
         return previousResults;
+    }
+
+    public void setProgress(SweepProgress progress) {
+        this.hasPreviousProgress = true;
+        this.previousResults = progress.getPreviousResults();
     }
 }
