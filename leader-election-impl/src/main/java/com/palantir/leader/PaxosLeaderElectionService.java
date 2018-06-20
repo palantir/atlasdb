@@ -50,7 +50,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
-import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptor;

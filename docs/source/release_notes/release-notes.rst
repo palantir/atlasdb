@@ -131,8 +131,8 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3244>`__)
 
-    *    - |improved|
-         - Added logging for leadership election code,
+    *    - |improved| |logs|
+         - Added logging for leadership election code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3275>`__)
 
 =======
