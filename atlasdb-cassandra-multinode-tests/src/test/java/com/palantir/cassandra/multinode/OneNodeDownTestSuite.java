@@ -17,12 +17,14 @@ package com.palantir.cassandra.multinode;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
+import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockReleasingRule;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -34,6 +36,10 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
         OneNodeDownNodeAvailabilityTest.class
         })
 public final class OneNodeDownTestSuite extends NodesDownTestSetup {
+
+    @ClassRule
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
+            createCassandraKvs(), CONFIG);
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(NodesDownTestSetup.class)
