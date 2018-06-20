@@ -30,22 +30,24 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class TargetedSweepMetricsTest {
+    private static final long RECOMPUTE_MILLIS = 10;
     private static final ShardAndStrategy CONS_ZERO = ShardAndStrategy.conservative(0);
     private static final ShardAndStrategy CONS_ONE = ShardAndStrategy.conservative(1);
     private static final ShardAndStrategy CONS_TWO = ShardAndStrategy.conservative(2);
     private static final ShardAndStrategy THOR_ZERO = ShardAndStrategy.thorough(0);
-    private static final MetricsManager metricsManager =
-            MetricsManagers.createForTests();
-    private PuncherStore puncherStore;
+
+    private static final MetricsManager metricsManager = MetricsManagers.createForTests();
     private long clockTime;
+    private KeyValueService kvs;
+    private PuncherStore puncherStore;
     private TargetedSweepMetrics metrics;
 
     @Before
     public void setup() {
         clockTime = 100;
-        KeyValueService kvs = new InMemoryKeyValueService(true);
+        kvs = new InMemoryKeyValueService(true);
         puncherStore = KeyValueServicePuncherStore.create(kvs, false);
-        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, 1);
+        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, RECOMPUTE_MILLIS);
     }
 
     @Test
@@ -157,63 +159,72 @@ public class TargetedSweepMetricsTest {
     }
 
     @Test
-    public void millisSinceLastSweptUpdatesAsClockUpdates() {
+    public void millisSinceLastSweptUpdatesAsClockUpdatesAfterWaiting() {
         metrics.updateProgressForShard(CONS_ZERO, 100);
-        waitForProgressToRecompute();
-
         puncherStore.put(0, 50);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 50);
 
         for (int i = 0; i < 10; i++) {
-            clockTime = i;
+            clockTime = 100 + i;
+            waitForProgressToRecompute();
             assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 50);
         }
     }
 
     @Test
-    public void millisSinceLastSweptDoesNotReadPuncherAgainUntilLastSweptChanges() {
+    public void millisSinceLastSweptDoesNotUpdateWithoutWaiting() {
+        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, 1_000_000);
         metrics.updateProgressForShard(CONS_ZERO, 100);
-        waitForProgressToRecompute();
 
         puncherStore.put(0, 50);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 50);
-        puncherStore.put(1, 100);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 50);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(50L);
 
-        metrics.updateProgressForShard(CONS_ZERO, 101);
+        clockTime += 1;
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(50L);
+
+        clockTime += 100;
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(50L);
+    }
+
+    @Test
+    public void millisSinceLastSweptReadsPuncherAgainAfterWaiting() {
+        metrics.updateProgressForShard(CONS_ZERO, 10);
+        puncherStore.put(0, 5);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 5);
+        puncherStore.put(1, 10);
         waitForProgressToRecompute();
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 100);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 10);
     }
 
     @Test
     public void lastSweptGoesDownIfNewInformationBecomesAvailable() {
-        metrics.updateProgressForShard(CONS_ZERO, 999);
+        metrics.updateProgressForShard(CONS_ZERO, 9);
         waitForProgressToRecompute();
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(999);
-        puncherStore.put(999, 999);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 999);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(9);
+        puncherStore.put(9, 9);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 9);
 
-        metrics.updateProgressForShard(CONS_ONE, 200);
+        metrics.updateProgressForShard(CONS_ONE, 2);
         waitForProgressToRecompute();
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(200);
-        puncherStore.put(200, 200);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 200);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(2);
+        puncherStore.put(2, 2);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 2);
     }
 
     @Test
     public void lastSweptIncreasesWhenSmallestShardIncreases() {
-        metrics.updateProgressForShard(CONS_ZERO, 100);
+        metrics.updateProgressForShard(CONS_ZERO, 10);
         metrics.updateProgressForShard(CONS_ONE, 1);
         metrics.updateProgressForShard(CONS_TWO, 1000);
         waitForProgressToRecompute();
 
-        metrics.updateProgressForShard(CONS_ONE, 150);
+        metrics.updateProgressForShard(CONS_ONE, 15);
         waitForProgressToRecompute();
 
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(100);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(10);
         puncherStore.put(1, 1);
-        puncherStore.put(100, 100);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 100);
+        puncherStore.put(10, 7);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 7);
     }
 
     @Test
@@ -311,7 +322,7 @@ public class TargetedSweepMetricsTest {
 
     private static void waitForProgressToRecompute() {
         try {
-            Thread.sleep(2);
+            Thread.sleep(RECOMPUTE_MILLIS + 1);
         } catch (InterruptedException e) {
             throw new RuntimeException("Sad times");
         }
