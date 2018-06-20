@@ -254,7 +254,8 @@ class CassandraRequestExceptionHandler {
 
         @Override
         public boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts) {
-            return isFastFailoverException(ex) || numberOfAttempts >= maxTriesSameHost;
+            return isFastFailoverException(ex) || isIndicativeOfCassandraLoad(ex)
+                    || numberOfAttempts >= maxTriesSameHost;
         }
     }
 
