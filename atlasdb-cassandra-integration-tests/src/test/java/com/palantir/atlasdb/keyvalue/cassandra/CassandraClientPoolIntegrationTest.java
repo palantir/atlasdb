@@ -39,9 +39,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class CassandraClientPoolIntegrationTest {
@@ -51,12 +54,17 @@ public class CassandraClientPoolIntegrationTest {
     private static final int MODIFIED_REPLICATION_FACTOR = CassandraContainer.KVS_CONFIG.replicationFactor() + 1;
 
     private Blacklist blacklist = new Blacklist(CassandraContainer.KVS_CONFIG);
-    private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(
+
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+
+    private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
             CassandraContainer.KVS_CONFIG, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
 
     private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
+            metricsManager,
             CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG,
+            CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
             clientPool);
 
 

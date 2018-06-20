@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.CASResult;
@@ -58,7 +59,7 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
     private final Cassandra.Client client;
-    private volatile boolean isValid;
+    private volatile AtomicReference<Throwable> invalidated = new AtomicReference<>();
 
     //Client is considered to be invalid if a blacklisted exception is thrown.
     private static final Set<Class> BLACKLISTED_EXCEPTIONS =
@@ -66,12 +67,11 @@ public class CassandraClientImpl implements CassandraClient {
 
     public CassandraClientImpl(Cassandra.Client client) {
         this.client = client;
-        this.isValid = true;
     }
 
     @Override
     public boolean isValid() {
-        return this.isValid;
+        return this.invalidated.get() == null;
     }
 
     @Override
@@ -282,16 +282,21 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     private void updateIsValid(Exception e) {
-        boolean blacklisted = BLACKLISTED_EXCEPTIONS.stream()
-                .anyMatch(b -> b.isInstance(e));
-        if (blacklisted) {
-            this.isValid = false;
+        if (invalidated.get() != null) {
+            return;
+        }
+        for (Class b : BLACKLISTED_EXCEPTIONS) {
+            if (b.isInstance(e)) {
+                invalidated.compareAndSet(null, new Throwable("Client invalidated here.", e));
+                return;
+            }
         }
     }
 
     private void checkIfValidClient() {
-        if (!isValid) {
-            throw new IllegalStateException("Method execution on invalid client");
+        Throwable localInvalidated = invalidated.get();
+        if (localInvalidated != null) {
+            throw new IllegalStateException("Method execution on invalid client", localInvalidated);
         }
     }
 }

@@ -15,16 +15,20 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TestRule;
 
+import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
+import com.palantir.timestamp.TimestampManagementService;
 
 @ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
@@ -32,14 +36,31 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceTransactionIntegrationTest.class)
             .with(new CassandraContainer());
 
+    // This constant exists so that fresh timestamps are always greater than the write timestamps of values used in the
+    // test.
+    private static final long ONE_BILLION = 1_000_000_000;
+
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
+
+    @Before
+    public void advanceTimestamp() {
+        ((TimestampManagementService) timestampService).fastForwardTimestamp(ONE_BILLION);
+    }
 
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 CassandraContainer.KVS_CONFIG,
-                CassandraContainer.LEADER_CONFIG);
+                CassandraContainer.LEADER_CONFIG,
+                CassandraMutationTimestampProviders.singleLongSupplierBacked(
+                        () -> {
+                            if (timestampService == null) {
+                                throw new NotInitializedException("timestamp service");
+                            }
+                            return timestampService.getFreshTimestamp();
+                        }));
     }
 
     @Override

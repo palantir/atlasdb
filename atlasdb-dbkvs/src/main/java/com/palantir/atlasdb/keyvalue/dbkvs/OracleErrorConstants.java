@@ -20,6 +20,7 @@ public final class OracleErrorConstants {
         //utility class
     }
 
+    public static final String ORACLE_CONSTRAINT_VIOLATION_ERROR = "ORA-00001";
     public static final String ORACLE_ALREADY_EXISTS_ERROR = "ORA-00955";
     public static final String ORACLE_NOT_EXISTS_ERROR = "ORA-00942";
 }

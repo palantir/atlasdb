@@ -25,7 +25,8 @@ import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -48,7 +49,6 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         MetricRegistry metricRegistry = SharedMetricRegistries
                 .getOrCreate("AtlasDbTest" + UUID.randomUUID().toString());
         TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
-        AtlasDbMetrics.setMetricRegistries(metricRegistry, taggedMetricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
@@ -60,9 +60,11 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         environment.getObjectMapper().registerModule(new Jdk8Module());
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
 
+        MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry());
         CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
         TimeLockAgent.create(
+                metricsManager,
                 combined.install(),
                 combined::runtime, // this won't actually live reload
                 combined.deprecated(),

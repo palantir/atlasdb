@@ -72,7 +72,7 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -87,9 +87,14 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.google.code.findbugs:annotations",
                 "com.google.guava:guava",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:commons-proxy"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -233,15 +238,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.7",
+            "locked": "2.9",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
-            ]
-        },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
             ]
         },
         "net.jpountz.lz4:lz4": {
@@ -365,7 +364,7 @@
                 "com.palantir.remoting3:tracing"
             ]
         },
-        "com.google.code.findbugs:annotations": {
+        "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
@@ -380,9 +379,14 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.google.code.findbugs:annotations",
                 "com.google.guava:guava",
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-annotations",
+                "com.palantir.atlasdb:commons-api",
+                "com.palantir.atlasdb:commons-db",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:commons-proxy"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -526,15 +530,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.7",
+            "locked": "2.9",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
-            ]
-        },
-        "net.jcip:jcip-annotations": {
-            "locked": "1.0",
-            "transitive": [
-                "com.google.code.findbugs:annotations"
             ]
         },
         "net.jpountz.lz4:lz4": {

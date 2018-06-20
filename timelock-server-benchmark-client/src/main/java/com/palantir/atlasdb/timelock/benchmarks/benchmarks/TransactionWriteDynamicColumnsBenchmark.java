@@ -25,11 +25,10 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumn
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsRow;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 public final class TransactionWriteDynamicColumnsBenchmark extends AbstractWriteTransactionBenchmark {
 
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
             int requestsPerClient, int numRows, int dataSize) {
         return new TransactionWriteDynamicColumnsBenchmark(txnManager, numClients, requestsPerClient, numRows,
                 dataSize).execute();

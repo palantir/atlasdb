@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb;
 
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -28,15 +28,15 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
-import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
@@ -50,7 +50,8 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.MetricsRule;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
@@ -63,9 +64,7 @@ public class AtlasDbTestCase {
     protected static LockClient lockClient;
     protected static LockService lockService;
 
-    @Rule
-    public MetricsRule metricsRule = new MetricsRule();
-
+    protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected StatsTrackingKeyValueService keyValueServiceWithStats;
     protected TrackingKeyValueService keyValueService;
     protected TimestampService timestampService;
@@ -75,9 +74,8 @@ public class AtlasDbTestCase {
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
     protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
-    protected MultiTableSweepQueueWriter sweepQueue = mock(MultiTableSweepQueueWriter.class);
-    // default methods make mockito confusing, so we delegate just the important method to the mock
-    protected MultiTableSweepQueueWriter wrappingSweepQueue = (table, writes) -> sweepQueue.enqueue(table, writes);
+    protected TargetedSweeper sweepQueue;
+    protected int sweepQueueShards = 128;
 
     @BeforeClass
     public static void setupLockClient() {
@@ -108,13 +106,16 @@ public class AtlasDbTestCase {
         timestampService = new InMemoryTimestampService();
         KeyValueService kvs = getBaseKeyValueService();
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
-        keyValueService = new TrackingKeyValueService(keyValueServiceWithStats);
+        keyValueService = spy(new TrackingKeyValueService(keyValueServiceWithStats));
         TransactionTables.createTables(kvs);
         transactionService = TransactionServices.createTransactionService(kvs);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
+        sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
+
         serializableTxManager = new TestTransactionManagerImpl(
+                metricsManager,
                 keyValueService,
                 timestampService,
                 lockClient,
@@ -122,7 +123,10 @@ public class AtlasDbTestCase {
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                wrappingSweepQueue);
+                sweepQueue,
+                MoreExecutors.newDirectExecutorService());
+
+        sweepQueue.callbackInit(serializableTxManager);
         txManager = new CachingTestTransactionManager(serializableTxManager);
     }
 
@@ -131,7 +135,7 @@ public class AtlasDbTestCase {
                 PTExecutors.newNamedThreadFactory(true));
         InMemoryKeyValueService inMemoryKvs = new InMemoryKeyValueService(false, executor);
         KeyValueService tracingKvs = TracingKeyValueService.create(inMemoryKvs);
-        return AtlasDbMetrics.instrument(KeyValueService.class, tracingKvs);
+        return AtlasDbMetrics.instrument(metricsManager.getRegistry(), KeyValueService.class, tracingKvs);
     }
 
     @After
@@ -149,7 +153,7 @@ public class AtlasDbTestCase {
     }
 
     protected void setConstraintCheckingMode(AtlasDbConstraintCheckingMode mode) {
-        txManager = new TestTransactionManagerImpl(keyValueService,
+        txManager = new TestTransactionManagerImpl(metricsManager, keyValueService,
                 timestampService, lockClient, lockService, transactionService, mode);
     }
 

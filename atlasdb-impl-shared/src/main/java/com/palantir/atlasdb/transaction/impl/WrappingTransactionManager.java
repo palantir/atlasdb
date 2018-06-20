@@ -16,31 +16,46 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.base.Supplier;
-import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
+import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
-import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
-import com.palantir.lock.v2.TimelockService;
+import com.palantir.processors.AutoDelegate;
 
-public abstract class WrappingTransactionManager extends ForwardingLockAwareTransactionManager {
-    private final LockAwareTransactionManager delegate;
+@AutoDelegate(typeToExtend = TransactionManager.class)
+public abstract class WrappingTransactionManager implements AutoDelegate_TransactionManager {
+    private final TransactionManager delegate;
 
-    public WrappingTransactionManager(LockAwareTransactionManager delegate) {
+    public WrappingTransactionManager(TransactionManager delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    protected LockAwareTransactionManager delegate() {
+    public TransactionManager delegate() {
         return delegate;
     }
 
     protected abstract Transaction wrap(Transaction transaction);
+
+    private <T, E extends Exception> TransactionTask<T, E> wrapTask(TransactionTask<T, E> task) {
+        return transaction -> task.execute(wrap(transaction));
+    }
+
+    private <T, E extends Exception> LockAwareTransactionTask<T, E> wrapTask(LockAwareTransactionTask<T, E> task) {
+        return (transaction, locks) -> task.execute(wrap(transaction), locks);
+    }
+
+    private <T, C extends PreCommitCondition, E extends Exception> ConditionAwareTransactionTask<T, C, E>
+            wrapTask(ConditionAwareTransactionTask<T, C, E> task) {
+        return (transaction, condition) -> task.execute(wrap(transaction), condition);
+    }
 
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
@@ -54,41 +69,8 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     }
 
     @Override
-    public long getImmutableTimestamp() {
-        return delegate().getImmutableTimestamp();
-    }
-
-    @Override
-    public KeyValueServiceStatus getKeyValueServiceStatus() {
-        return delegate().getKeyValueServiceStatus();
-    }
-
-    @Override
-    public TimelockServiceStatus getTimelockServiceStatus() {
-        return delegate().getTimelockServiceStatus();
-    }
-
-    @Override
-    public long getUnreadableTimestamp() {
-        return delegate().getUnreadableTimestamp();
-    }
-
-    @Override
-    public LockService getLockService() {
-        return delegate.getLockService();
-    }
-
-    @Override
-    public TimelockService getTimelockService() {
-        return delegate.getTimelockService();
-    }
-
-    private <T, E extends Exception> TransactionTask<T, E> wrapTask(TransactionTask<T, E> task) {
-        return transaction -> task.execute(wrap(transaction));
-    }
-
-    private <T, E extends Exception> LockAwareTransactionTask<T, E> wrapTask(LockAwareTransactionTask<T, E> task) {
-        return (transaction, locks) -> task.execute(wrap(transaction), locks);
+    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
+        return delegate().runTaskReadOnly(wrapTask(task));
     }
 
     @Override
@@ -117,12 +99,26 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     }
 
     @Override
-    public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return delegate().runTaskReadOnly(wrapTask(task));
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+            Supplier<C> conditionSupplier,
+            ConditionAwareTransactionTask<T, C, E> task)
+            throws E {
+        return delegate().runTaskWithConditionWithRetry(conditionSupplier, wrapTask(task));
     }
 
     @Override
-    public void close() {
-        delegate().close();
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
+            C condition,
+            ConditionAwareTransactionTask<T, C, E> task)
+            throws E, TransactionFailedRetriableException {
+        return delegate().runTaskWithConditionThrowOnConflict(condition, wrapTask(task));
+    }
+
+    @Override
+    public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+            C condition,
+            ConditionAwareTransactionTask<T, C, E> task)
+            throws E {
+        return delegate().runTaskWithConditionReadOnly(condition, wrapTask(task));
     }
 }

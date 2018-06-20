@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -51,6 +53,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -58,6 +61,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -81,7 +85,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
-import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -90,6 +93,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     protected final TimestampCache timestampCache = new TimestampCache(
+            new MetricRegistry(),
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected boolean supportsReverse() {
         return true;
@@ -104,23 +108,29 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             Executors.newFixedThreadPool(GET_RANGES_THREAD_POOL_SIZE);
 
     protected Transaction startTransaction() {
-        return new SnapshotTransaction(
+        long startTimestamp = timestampService.getFreshTimestamp();
+        return new SnapshotTransaction(metricsManager,
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                timestampService.getFreshTimestamp(),
-                TestConflictDetectionManagers.createWithStaticConflictDetection(ImmutableMap.of(
-                        TEST_TABLE,
-                        ConflictHandler.RETRY_ON_WRITE_WRITE,
-                        TransactionConstants.TRANSACTION_TABLE,
-                        ConflictHandler.IGNORE_ALL)),
+                () -> startTimestamp,
+                ConflictDetectionManagers.create(keyValueService),
+                SweepStrategyManagers.createDefault(keyValueService),
+                startTimestamp,
+                Optional.empty(),
+                PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                false,
                 timestampCache,
+                // never actually used, since timelockService is null
+                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 GET_RANGES_EXECUTOR,
                 DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                MoreExecutors.newDirectExecutorService());
     }
 
     @Test
@@ -178,7 +188,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         assertThatThrownBy(() ->
                 keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
                         ImmutableMap.of(cell, "v2".getBytes())))
-                .isInstanceOf(AtlasDbDependencyException.class);
+                .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
     @Test

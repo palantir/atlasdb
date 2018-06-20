@@ -48,6 +48,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -68,7 +69,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -83,8 +83,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     private final boolean createTablesAutomatically;
 
     public InMemoryKeyValueService(boolean createTablesAutomatically) {
-        this(createTablesAutomatically,
-                PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true)));
+        this(createTablesAutomatically, MoreExecutors.newDirectExecutorService());
     }
 
     public InMemoryKeyValueService(boolean createTablesAutomatically,
@@ -376,6 +375,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp) {
+        valuesByTable.forEach((tableRef, values) -> put(tableRef, values, timestamp));
+    }
+
+    @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
         putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), false);
     }
@@ -481,6 +485,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     public void dropTable(TableReference tableRef) {
         tables.remove(tableRef);
         tableMetadata.remove(tableRef);
+    }
+
+    @Override
+    public void truncateTables(final Set<TableReference> tableRefs) {
+        tableRefs.forEach(this::truncateTable);
     }
 
     @Override

@@ -21,7 +21,9 @@ import java.lang.reflect.Proxy;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
+import com.google.common.base.Suppliers;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -35,23 +37,29 @@ import com.palantir.exception.PalantirInterruptedException;
  *
  */
 public final class InterruptibleProxy implements DelegatingInvocationHandler {
+    private static final Supplier<ExecutorService> defaultExecutor = Suppliers.memoize(() ->
+            PTExecutors.newCachedThreadPool(new NamedThreadFactory(
+                    "Interruptible Proxy", true /* isDaemon */ )));
 
-    private final CancelDelegate cancel;
+    public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, CancelDelegate cancel) {
+        return newProxyInstance(interfaceClass, delegate, cancel, defaultExecutor.get());
+    }
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate,
-            CancelDelegate cancel) {
+            CancelDelegate cancel, ExecutorService executor) {
         return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-                new Class<?>[] {interfaceClass}, new InterruptibleProxy(delegate, cancel));
+                new Class<?>[] {interfaceClass}, new InterruptibleProxy(delegate, cancel, executor));
     }
 
     private final Object delegate;
-    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory("Interruptible Proxy", true /* isDaemon */ ));
+    private final CancelDelegate cancel;
+    private final ExecutorService executor;
 
-    private InterruptibleProxy(Object delegate, CancelDelegate cancel) {
+    private InterruptibleProxy(Object delegate, CancelDelegate cancel, ExecutorService executor) {
         this.delegate = delegate;
         this.cancel = cancel;
+        this.executor = executor;
     }
 
     @Override

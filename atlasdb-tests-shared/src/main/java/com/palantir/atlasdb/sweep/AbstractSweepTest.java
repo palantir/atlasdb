@@ -43,15 +43,15 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
-import com.palantir.atlasdb.sweep.queue.test.InMemorySweepQueue;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -78,7 +78,7 @@ public abstract class AbstractSweepTest {
     }
 
     protected KeyValueService kvs;
-    protected LockAwareTransactionManager txManager;
+    protected TransactionManager txManager;
     protected TransactionService txService;
     protected SweepStrategyManager ssm;
     protected PersistentLockManager persistentLockManager;
@@ -100,9 +100,9 @@ public abstract class AbstractSweepTest {
         txService = TransactionServices.createTransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
         persistentLockManager = new PersistentLockManager(
+                MetricsManagers.createForTests(),
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
-        InMemorySweepQueue.clear();
     }
 
     @After
@@ -498,7 +498,6 @@ public abstract class AbstractSweepTest {
         Map<Cell, byte[]> writes = ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8));
         kvs.put(tableRef, writes, ts);
         putTimestampIntoTransactionTable(ts);
-        InMemorySweepQueue.writer().enqueue(tableRef, writes, ts);
     }
 
     private void putTimestampIntoTransactionTable(long ts) {

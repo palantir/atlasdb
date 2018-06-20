@@ -21,6 +21,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.table.description.OptionalType;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 public class TodoSchema implements AtlasSchema {
     private static final Schema INDEX_TEST_SCHEMA = generateSchema();
     private static final String TODO_TABLE = "todo";
+    private static final String NAMESPACED_TODO_TABLE = "namespacedTodo";
     private static final String TEXT_COLUMN = "text";
     private static final String LATEST_STREAM_TABLE = "latest_snapshot";
     private static final String STREAM_TABLE = "snapshots";
@@ -47,6 +49,18 @@ public class TodoSchema implements AtlasSchema {
                 rowComponent("id", ValueType.FIXED_LONG);
                 columns();
                 column(TEXT_COLUMN, "t", ValueType.STRING);
+
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
+            }
+        });
+
+        schema.addTableDefinition(NAMESPACED_TODO_TABLE, new TableDefinition() {{
+                rowName();
+                rowComponent("namespace", ValueType.STRING);
+                dynamicColumns();
+                columnComponent("todoId", ValueType.FIXED_LONG);
+                value(ValueType.STRING);
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
             }
         });
 
@@ -73,6 +87,10 @@ public class TodoSchema implements AtlasSchema {
 
     public static TableReference todoTable() {
         return TableReference.create(Namespace.DEFAULT_NAMESPACE, TODO_TABLE);
+    }
+
+    public static TableReference namespacedTodoTable() {
+        return TableReference.create(Namespace.DEFAULT_NAMESPACE, NAMESPACED_TODO_TABLE);
     }
 
     public static void main(String[] args) throws Exception {

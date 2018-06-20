@@ -36,14 +36,14 @@ public class CassandraConnectionIntegrationTest {
 
     @Test
     public void testAuthProvided() {
-        CassandraKeyValueServiceImpl.create(
+        CassandraKeyValueServiceImpl.createForTesting(
                 CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG).close();
     }
 
     @Test
     public void testAuthMissing() {
-        CassandraKeyValueServiceImpl.create(
+        CassandraKeyValueServiceImpl.createForTesting(
                 NO_CREDS_CKVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG).close();
     }

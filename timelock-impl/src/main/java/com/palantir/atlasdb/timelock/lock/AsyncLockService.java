@@ -42,12 +42,13 @@ public class AsyncLockService implements Closeable {
     private final ImmutableTimestampTracker immutableTsTracker;
 
     public static AsyncLockService createDefault(
+            LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
             ScheduledExecutorService timeoutExecutor) {
         return new AsyncLockService(
                 new LockCollection(),
                 new ImmutableTimestampTracker(),
-                new LockAcquirer(timeoutExecutor),
+                new LockAcquirer(lockLog, timeoutExecutor),
                 new HeldLocksCollection(),
                 new AwaitedLocksCollection(),
                 reaperExecutor);

@@ -20,7 +20,6 @@ import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.console.AtlasConsoleJoins
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
 import com.palantir.atlasdb.console.exceptions.IllegalConsoleCommandException
-import com.palantir.atlasdb.console.exceptions.InvalidTableException
 import groovy.transform.CompileStatic
 
 @CompileStatic

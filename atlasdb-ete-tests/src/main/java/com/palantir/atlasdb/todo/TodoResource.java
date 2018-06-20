@@ -22,9 +22,11 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Path("/todos")
 public interface TodoResource {
@@ -33,10 +35,21 @@ public interface TodoResource {
     @Consumes(MediaType.APPLICATION_JSON)
     void addTodo(Todo todo);
 
+    @POST
+    @Path("/addWithId")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    long addTodoWithIdAndReturnTimestamp(@QueryParam("id") long id, Todo todo);
+
     @GET
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
     List<Todo> getTodoList();
+
+    @GET
+    @Path("/doesNotExistBeforeTimestamp")
+    @Produces(MediaType.APPLICATION_JSON)
+    boolean doesNotExistBeforeTimestamp(@QueryParam("id") long id, @QueryParam("timestamp") long timestamp);
 
     @GET
     @Path("/healthcheck")
@@ -48,6 +61,10 @@ public interface TodoResource {
     void storeSnapshot(String snapshot);
 
     @POST
+    @Path("/targeted-sweep")
+    void runIterationOfTargetedSweep();
+
+    @POST
     @Path("/sweep-snapshot-indices")
     @Produces(MediaType.APPLICATION_JSON)
     SweepResults sweepSnapshotIndices();
@@ -56,4 +73,38 @@ public interface TodoResource {
     @Path("/sweep-snapshot-values")
     @Produces(MediaType.APPLICATION_JSON)
     SweepResults sweepSnapshotValues();
+
+    @POST
+    @Path("cells-deleted")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    long numberOfCellsDeleted(TableReference tableRef);
+
+    @POST
+    @Path("cells-deleted-and-swept")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    long numberOfCellsDeletedAndSwept(TableReference tableRef);
+
+    @POST
+    @Path("truncate-tables")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void truncate();
+
+    @POST
+    @Path("/namespaced")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    long addNamespacedTodoWithIdAndReturnTimestamp(
+            @QueryParam("id") long id,
+            @QueryParam("namespace") String namespace,
+            Todo todo);
+
+    @GET
+    @Path("/namespacedDoesNotExistBeforeTimestamp")
+    @Produces(MediaType.APPLICATION_JSON)
+    boolean namespacedTodoDoesNotExistBeforeTimestamp(
+            @QueryParam("id") long id,
+            @QueryParam("timestamp") long timestamp,
+            @QueryParam("namespace") String namespace);
 }

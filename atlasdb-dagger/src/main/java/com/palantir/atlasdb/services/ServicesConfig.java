@@ -26,8 +26,10 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
+import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.util.MetricsManager;
 
 @Value.Immutable
 public abstract class ServicesConfig {
@@ -37,14 +39,22 @@ public abstract class ServicesConfig {
     public abstract AtlasDbRuntimeConfig atlasDbRuntimeConfig();
 
     @Value.Derived
-    public ServiceDiscoveringAtlasSupplier atlasDbSupplier() {
+    public FreshTimestampSupplierAdapter adapter() {
+        return new FreshTimestampSupplierAdapter();
+    }
+
+    @Value.Derived
+    public ServiceDiscoveringAtlasSupplier atlasDbSupplier(MetricsManager metrics) {
         return new ServiceDiscoveringAtlasSupplier(
+                metrics,
                 atlasDbConfig().keyValueService(),
                 () -> atlasDbRuntimeConfig().keyValueService(),
                 atlasDbConfig().leader(),
                 atlasDbConfig().namespace(),
+                Optional.empty(),
                 atlasDbConfig().initializeAsync(),
-                FakeQosClient.INSTANCE);
+                FakeQosClient.INSTANCE,
+                adapter());
     }
 
     @Value.Default

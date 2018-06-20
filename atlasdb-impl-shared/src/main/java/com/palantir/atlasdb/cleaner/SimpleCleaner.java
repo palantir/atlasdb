@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;

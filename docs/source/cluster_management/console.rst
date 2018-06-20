@@ -17,17 +17,6 @@ scripts as needed to obtain the information you are interested in. There
 is a lot of functionality built into this interface and you are able to
 perform both safe and destructive (read dangerous) operations.
 
-Getting Started
-===============
-
-To start AtlasDB console via the AtlasDB Dropwizard bundle, you should run a command like the following:
-
-.. code-block:: bash
-
-    ./service/bin/<service> atlasdb console var/conf/<service>.yml
-
-To exit the console, you can type ``:exit`` or enter ctrl + c.
-
 Using Groovy in AtlasDB Console
 ===============================
 

@@ -31,15 +31,17 @@ import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
-import com.palantir.atlasdb.util.JavaSuppliers;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import com.palantir.util.JavaSuppliers;
 
 public class PaxosLeadershipCreator {
+    private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
     private final Supplier<PaxosRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
@@ -48,9 +50,11 @@ public class PaxosLeadershipCreator {
     private LeaderElectionService leaderElectionService;
 
     public PaxosLeadershipCreator(
+            MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             Consumer<Object> registrar) {
+        this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime);
         this.registrar = registrar;
@@ -64,6 +68,7 @@ public class PaxosLeadershipCreator {
         Set<String> paxosSubresourceUris = PaxosTimeLockUriUtils.getLeaderPaxosUris(remoteServers);
 
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createInstrumentedLocalServices(
+                metricsManager,
                 leaderConfig,
                 JavaSuppliers.compose(getLeaderRuntimeConfig, runtime),
                 ImmutableRemotePaxosServerSpec.builder()

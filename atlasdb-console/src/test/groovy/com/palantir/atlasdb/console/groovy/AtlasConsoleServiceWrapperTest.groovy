@@ -1,18 +1,15 @@
 package com.palantir.atlasdb.console.groovy
 
-import com.palantir.atlasdb.console.AtlasConsoleService
-import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
-
 import static groovy.test.GroovyAssert.assertEquals
 import static groovy.test.GroovyAssert.shouldFail
 
+import com.palantir.atlasdb.api.TransactionToken
+import com.palantir.atlasdb.console.AtlasConsoleService
+import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
+import groovy.json.JsonSlurper
 import org.gmock.WithGMock
 import org.junit.Before
 import org.junit.Test
-
-import com.palantir.atlasdb.api.TransactionToken
-
-import groovy.json.JsonSlurper
 
 @WithGMock
 class AtlasConsoleServiceWrapperTest {
