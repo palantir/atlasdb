@@ -8,11 +8,11 @@
             [jepsen.os.debian :as debian]
             [jepsen.util :refer [timeout]]
             [knossos.history :as history])
+    (:import com.codahale.metrics.MetricRegistry)
     (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
     (:import com.palantir.atlasdb.http.JepsenLockClient)
     (:import com.palantir.atlasdb.http.SynchronousLockClient)
-    (:import com.palantir.atlasdb.http.AsyncLockClient)
-    (:import com.codahale.metrics.MetricRegistry))
+    (:import com.palantir.atlasdb.http.AsyncLockClient))
 
 (def lock-names ["alpha" "bravo" "charlie" "delta"])
 
