@@ -123,6 +123,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void gainLeadershipBlocking() {
+        log.debug("Block until gained leadership");
         try {
             LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
             onGainedLeadership(leadershipToken);
@@ -134,6 +135,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void onGainedLeadership(LeadershipToken leadershipToken)  {
+        log.debug("Gained leadership, getting delegate to start serving calls");
         // We are now the leader, we should create a delegate so we can service calls
         T delegate = null;
         while (delegate == null) {
@@ -175,6 +177,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         final LeadershipToken leadershipToken = getLeadershipToken();
 
         if (method.getName().equals("close") && args.length == 0) {
+            log.debug("Closing leadership proxy");
             isClosed = true;
             executor.shutdownNow();
             clearDelegate();

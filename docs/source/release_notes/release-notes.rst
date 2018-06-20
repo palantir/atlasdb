@@ -59,6 +59,10 @@ develop
          - AtlasDB now publishes timers tracking time taken to setup a transaction task before it is run, and time taken to tear down the task after it is done before runTaskWith* returns.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3281>`__)
 
+    *    - |improved| |logs|
+         - Added logging for leadership election code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3275>`__)
+
 =======
 v0.91.0
 =======
