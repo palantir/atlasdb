@@ -19,11 +19,11 @@ package com.palantir.atlasdb.sweep.queue;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,8 +31,10 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.PeekingIterator;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -137,23 +139,37 @@ public class SweepableCells extends KvsSweepQueueWriter {
             long sweepTs) {
         SweepableCellsTable.SweepableCellsRow row = computeRow(partitionFine, shardStrategy);
         RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, sweepTs);
-        Multimap<Long, WriteInfo> writesByStartTs = getBatchOfWrites(row, resultIterator);
+        PeekingIterator<Map.Entry<Cell, Value>> peekingResultIterator = Iterators.peekingIterator(resultIterator);
+        Multimap<Long, WriteInfo> writesByStartTs = getBatchOfWrites(row, peekingResultIterator);
         maybeMetrics.ifPresent(metrics -> metrics.updateEntriesRead(shardStrategy, writesByStartTs.size()));
         log.info("Read {} entries from the sweep queue.", SafeArg.of("number", writesByStartTs.size()));
         TimestampsToSweep tsToSweep = getTimestampsToSweepDescendingAndCleanupAborted(shardStrategy,
                 minTsExclusive, sweepTs, writesByStartTs);
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
-        long lastSweptTs = getLastSweptTs(tsToSweep, resultIterator, partitionFine, sweepTs);
+        long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, sweepTs);
         return SweepBatch.of(writes, lastSweptTs);
     }
 
     private Multimap<Long, WriteInfo> getBatchOfWrites(SweepableCellsTable.SweepableCellsRow row,
-            RowColumnRangeIterator resultIterator) {
+            PeekingIterator<Map.Entry<Cell, Value>> resultIterator) {
         Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
         while (resultIterator.hasNext() && writesByStartTs.size() < SweepQueueUtils.SWEEP_BATCH_SIZE) {
             Map.Entry<Cell, Value> entry = resultIterator.next();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
             writesByStartTs.putAll(getTimestamp(row, col), getWrites(row, col, entry.getValue()));
+        }
+        // there may be entries remaining with the same start timestamp as the last processed one. If that is the case
+        // we want to include these ones as well. This is OK since there are at most MAX_CELLS_GENERIC - 1 of them.
+        while (resultIterator.hasNext()) {
+            Map.Entry<Cell, Value> entry = resultIterator.peek();
+            SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
+            long timestamp = getTimestamp(row, col);
+            if (writesByStartTs.containsKey(timestamp)) {
+                writesByStartTs.putAll(timestamp, getWrites(row, col, entry.getValue()));
+                resultIterator.next();
+            } else {
+                break;
+            }
         }
         return writesByStartTs;
     }
@@ -161,7 +177,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     private RowColumnRangeIterator getRowColumnRange(SweepableCellsTable.SweepableCellsRow row, long partitionFine,
             long minTsExclusive, long maxTsExclusive) {
         return getRowsColumnRange(ImmutableList.of(row.persistToBytes()),
-                columnsBetween(minTsExclusive + 1, maxTsExclusive, partitionFine), SweepQueueUtils.SWEEP_BATCH_SIZE);
+                columnsBetween(minTsExclusive + 1, maxTsExclusive, partitionFine), SweepQueueUtils.BATCH_SIZE_KVS);
     }
 
     private TimestampsToSweep getTimestampsToSweepDescendingAndCleanupAborted(ShardAndStrategy shardStrategy,
@@ -210,7 +226,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         return writesToSweepFor.values();
     }
 
-    private long getLastSweptTs(TimestampsToSweep startTsCommitted, RowColumnRangeIterator resultIterator,
+    private long getLastSweptTs(TimestampsToSweep startTsCommitted, Iterator<Map.Entry<Cell, Value>> resultIterator,
             long partitionFine, long maxTsExclusive) {
         if (startTsCommitted.processedAll() && exhaustedAllColumns(resultIterator)) {
             return lastGuaranteedSwept(partitionFine, maxTsExclusive);
@@ -270,14 +286,14 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private RowColumnRangeIterator getWithColumnRangeAll(Iterable<byte[]> rows) {
-        return getRowsColumnRange(rows, SweepQueueUtils.ALL_COLUMNS, SweepQueueUtils.SWEEP_BATCH_SIZE);
+        return getRowsColumnRange(rows, SweepQueueUtils.ALL_COLUMNS, SweepQueueUtils.BATCH_SIZE_KVS);
     }
 
     private WriteInfo getWriteInfo(long timestamp, Value value) {
         return WriteInfo.of(SweepableCellsTable.SweepableCellsColumnValue.hydrateValue(value.getContents()), timestamp);
     }
 
-    private boolean exhaustedAllColumns(RowColumnRangeIterator resultIterator) {
+    private boolean exhaustedAllColumns(Iterator<Map.Entry<Cell, Value>> resultIterator) {
         return !resultIterator.hasNext();
     }
 

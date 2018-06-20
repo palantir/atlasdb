@@ -16,13 +16,13 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -30,11 +30,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.BATCH_SIZE_KVS;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_GENERIC;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_COARSE_GRANULARITY;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_FINE_GRANULARITY;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFinePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
@@ -83,7 +88,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    public void callingEnqueueAndSweepOnUnitializedSweeperThrows() {
+    public void callingEnqueueAndSweepOnUninitializedSweeperThrows() {
         TargetedSweeper uninitializedSweeper = TargetedSweeper.createUninitializedForTest(null);
         assertThatThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
                 .isInstanceOf(NotInitializedException.class)
@@ -225,7 +230,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void conservativeSweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
-        long lastWriteTs = SWEEP_BATCH_SIZE - 1;
+        long lastWriteTs = TS_FINE_GRANULARITY - 1;
         for (long i = 0; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_CONS, i);
         }
@@ -237,7 +242,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void thoroughSweepDeletesAllButLatestWithSingleDeleteAllTimestampsIncludingSentinels() {
-        long lastWriteTs = SWEEP_BATCH_SIZE - 1;
+        long lastWriteTs = TS_FINE_GRANULARITY - 1;
         for (long i = 0; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_THOR, i);
         }
@@ -692,6 +697,82 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsValue(TABLE_CONS, 1500L, 950L);
     }
 
+    @Test
+    public void batchIncludesAllWritesWithTheSameTimestampAndDoesNotSkipOrRepeatAnyWritesInNextIteration() {
+        TargetedSweeper sweeperConservative = getSingleShardSweeper();
+
+        int relativePrime = MAX_CELLS_GENERIC - 1;
+        // this assertion verifies that the test checks what we want. If it fails, change the value of relativePrime
+        assertThat(SWEEP_BATCH_SIZE % relativePrime).isNotEqualTo(0);
+
+        int minTsToReachBatchSize = (SWEEP_BATCH_SIZE - 1) / relativePrime + 1;
+
+        commitTransactionsWithWritesIntoUniqueCells(minTsToReachBatchSize + 1, relativePrime, sweeperConservative);
+
+        // first iteration of sweep should include all writes corresponding to timestamp 999 + minCellsToReachBatchSize,
+        // since deletes are batched, we do not specify the number of calls to delete
+        sweeperConservative.sweepNextBatch(ShardAndStrategy.conservative(0));
+        ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
+        verify(spiedKvs, atLeast(1)).deleteAllTimestamps(eq(TABLE_CONS), map.capture(), eq(false));
+        assertThat(map.getAllValues().stream().map(Map::size).mapToInt(x -> x).sum())
+                .isEqualTo(minTsToReachBatchSize * relativePrime);
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(0)))
+                .isEqualTo(1000 + minTsToReachBatchSize - 1);
+
+        //second iteration should only contain writes corresponding to timestamp 1000 + minCellsToReachBatchSize
+        sweeperConservative.sweepNextBatch(ShardAndStrategy.conservative(0));
+        verify(spiedKvs, atLeast(2)).deleteAllTimestamps(eq(TABLE_CONS), map.capture(), eq(false));
+        assertThat(map.getValue().size()).isEqualTo(relativePrime);
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(0)))
+                .isEqualTo(maxTsForFinePartition(0));
+    }
+
+    @Test
+    public void doNotMissSingleWriteInNextIteration() {
+        TargetedSweeper sweeperConservative = getSingleShardSweeper();
+
+        int minTsToReachBatchSize = (SWEEP_BATCH_SIZE - 1) / MAX_CELLS_GENERIC + 1;
+
+        commitTransactionsWithWritesIntoUniqueCells(minTsToReachBatchSize, MAX_CELLS_GENERIC, sweeperConservative);
+        // put one additional transaction with a single write after
+        putTimestampIntoTransactionTable(1000 + minTsToReachBatchSize, 1000 + minTsToReachBatchSize);
+        Cell cell = Cell.create(PtBytes.toBytes(1000 + minTsToReachBatchSize), PtBytes.toBytes(0));
+        sweeperConservative.enqueue(ImmutableList.of(WriteInfo.write(TABLE_CONS, cell, 1000 + minTsToReachBatchSize)));
+
+        // first iteration of sweep should include all but one of the writes, since deletes are batched, we do not
+        // specify the number of calls to delete
+        sweeperConservative.sweepNextBatch(ShardAndStrategy.conservative(0));
+        ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
+        verify(spiedKvs, atLeast(1)).deleteAllTimestamps(eq(TABLE_CONS), map.capture(), eq(false));
+        assertThat(map.getAllValues().stream().map(Map::size).mapToInt(x -> x).sum())
+                .isEqualTo(SWEEP_BATCH_SIZE);
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(0)))
+                .isEqualTo(1000 + minTsToReachBatchSize - 1);
+
+        // second iteration of sweep should contain the remaining write
+        sweeperConservative.sweepNextBatch(ShardAndStrategy.conservative(0));
+        verify(spiedKvs, atLeast(2)).deleteAllTimestamps(eq(TABLE_CONS), map.capture(), eq(false));
+        assertThat(map.getValue().size()).isEqualTo(1);
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(0)))
+                .isEqualTo(maxTsForFinePartition(0));
+    }
+
+    @Test
+    public void deletesGetBatched() {
+        TargetedSweeper sweeperConservative = getSingleShardSweeper();
+
+        int numberOfTimestamps = 5 * BATCH_SIZE_KVS / MAX_CELLS_GENERIC + 1;
+
+        commitTransactionsWithWritesIntoUniqueCells(numberOfTimestamps, MAX_CELLS_GENERIC, sweeperConservative);
+        sweeperConservative.sweepNextBatch(ShardAndStrategy.conservative(0));
+        ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
+        verify(spiedKvs, times(6)).deleteAllTimestamps(eq(TABLE_CONS), map.capture(), eq(false));
+        assertThat(map.getAllValues().stream().map(Map::size).mapToInt(x -> x).sum())
+                .isEqualTo(5 * BATCH_SIZE_KVS + MAX_CELLS_GENERIC);
+        assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(0)))
+                .isEqualTo(maxTsForFinePartition(0));
+    }
+
     private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int sweepIterations) {
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp - 10);
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp - 5);
@@ -813,5 +894,23 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private void punchCurrentTimeAtTimestamp(long timestamp) {
         puncherStore.put(timestamp, System.currentTimeMillis());
+    }
+
+    private void commitTransactionsWithWritesIntoUniqueCells(int transactions, int writes, TargetedSweeper sweeper) {
+        for (int i = 1000; i < 1000 + transactions; i++) {
+            putTimestampIntoTransactionTable(i, i);
+            List<WriteInfo> writeInfos = new ArrayList<>();
+            for (int j = 0; j < writes; j++) {
+                Cell cell = Cell.create(PtBytes.toBytes(i), PtBytes.toBytes(j));
+                writeInfos.add(WriteInfo.write(TABLE_CONS, cell, i));
+            }
+            sweeper.enqueue(writeInfos);
+        }
+    }
+
+    private TargetedSweeper getSingleShardSweeper() {
+        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
+        sweeper.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
+        return sweeper;
     }
 }

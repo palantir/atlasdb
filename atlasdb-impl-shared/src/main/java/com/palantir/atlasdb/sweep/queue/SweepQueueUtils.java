@@ -34,7 +34,8 @@ public final class SweepQueueUtils {
     public static final long TS_FINE_GRANULARITY = 50_000L;
     public static final int MAX_CELLS_GENERIC = 50;
     public static final int MAX_CELLS_DEDICATED = 100_000;
-    public static final int SWEEP_BATCH_SIZE = 1000;
+    public static final int SWEEP_BATCH_SIZE = MAX_CELLS_DEDICATED;
+    public static final int BATCH_SIZE_KVS = 1000;
     public static final long READ_TS = 1L;
     public static final long WRITE_TS = 0L;
     public static final long INITIAL_TIMESTAMP = -1L;
