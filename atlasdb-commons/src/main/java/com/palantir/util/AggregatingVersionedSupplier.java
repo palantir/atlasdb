@@ -26,9 +26,11 @@ import java.util.function.Supplier;
 import com.google.common.base.Suppliers;
 
 public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T>> {
+    public static final long UNINITIALIZED_VERSION = 0L;
+
     private final Function<Collection<T>, T> aggregator;
     private final Supplier<VersionedType<T>> memoizedValue;
-    private volatile long version = 0;
+    private volatile long version = UNINITIALIZED_VERSION;
 
     private final ConcurrentMap<Integer, T> latestValues = new ConcurrentHashMap<>();
 

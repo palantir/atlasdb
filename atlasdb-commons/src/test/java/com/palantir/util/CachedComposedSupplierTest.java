@@ -31,10 +31,10 @@ import org.mockito.Mockito;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class CachedComposedSupplierTest {
-    long counter;
-    long supplierCounter;
-    Supplier<VersionedType<Long>> mockVersionedSupplier;
-    Supplier<Long> testSupplier;
+    private long counter;
+    private long supplierCounter;
+    private Supplier<VersionedType<Long>> mockVersionedSupplier;
+    private Supplier<Long> testSupplier;
 
     @Before
     public void setup() {
@@ -86,7 +86,7 @@ public class CachedComposedSupplierTest {
     }
 
     @Test
-    public void doesNotapplyFunctionIfGetIsInvokedAndSuppliedVersionConstant() {
+    public void doesNotApplyFunctionIfGetIsInvokedAndSuppliedVersionConstant() {
         when(mockVersionedSupplier.get()).thenReturn(VersionedType.of(null, 0));
         assertThat(testSupplier.get()).isNull();
         assertThat(counter).isEqualTo(1);

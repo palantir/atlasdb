@@ -32,7 +32,7 @@ public class CachedComposedSupplier<T, R> implements Supplier<R> {
     private final Function<T, R> function;
     private final Supplier<VersionedType<T>> supplier;
     private volatile Long lastSuppliedVersion = null;
-    private volatile R cached;
+    private R cached;
 
     public CachedComposedSupplier(Function<T, R> function, Supplier<VersionedType<T>> supplier) {
         this.function = function;
@@ -50,8 +50,8 @@ public class CachedComposedSupplier<T, R> implements Supplier<R> {
     private synchronized void recompute() {
         VersionedType<T> freshVersion = supplier.get();
         if (!Objects.equals(freshVersion.version(), lastSuppliedVersion)) {
-            lastSuppliedVersion = freshVersion.version();
             cached = function.apply(freshVersion.value());
+            lastSuppliedVersion = freshVersion.version();
         }
     }
 }
