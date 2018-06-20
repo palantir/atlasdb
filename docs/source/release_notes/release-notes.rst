@@ -32,7 +32,7 @@ Changelog
   :hidden:
 
 =======
-v0.61.3
+v0.61.9
 =======
 
 .. replace this with the release date
@@ -44,6 +44,15 @@ v0.61.3
     *    - Type
          - Change
 
+    *    - |improved|
+         - Added logging for leadership election code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3275>`__)
+
+=======
+v0.61.3
+=======
+
+.. replace this with the release date
     *    - |improved|
          - Sweep progress is now persisted as a blob.
            This allows us to use check and set to avoid versioning the entries in the sweep progress table.
