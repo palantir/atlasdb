@@ -55,6 +55,10 @@ develop
            This is unlikely to have affected anyone because the default batch size used was very large.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3284>`__)
 
+    *    - |improved| |logs|
+         - Added logging for leadership election code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3275>`__)
+
 =======
 v0.91.0
 =======
