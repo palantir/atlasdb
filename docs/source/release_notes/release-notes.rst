@@ -71,7 +71,7 @@ develop
     *    - |fixed|
          - Cassandra retry messages now log bounds on attempts correctly.
            Previously, they would log the supplier of these bounds (instead of the actual bounds, which users are more likely to be interested in).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/nnnn>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3291>`__)
 
 
 =======
