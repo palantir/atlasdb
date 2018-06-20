@@ -59,6 +59,11 @@ develop
          - Snapshot transactions now, up to once every 5 real-time seconds, log an overview of how long each step in the commit phase took.
            These logs will help the Atlas team better understand which parts of committing transactions may be slow, so that we can improve on it.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3273>`__)
+           
+    *    - |metrics| |improved|
+         - The ``millisSinceLastSweptTs`` metric for targeted sweep now updates at the same frequency as the ``lastSweptTimestamp`` metric.
+           This will result in a much smoother graph for the former metric instead of the current sawtooth graph.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3265>`__)
 
     *    - |fixed|
          - We now page with a smaller batch size when looking at the sweepable cells.

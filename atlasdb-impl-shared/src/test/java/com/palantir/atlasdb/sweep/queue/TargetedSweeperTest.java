@@ -159,8 +159,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(
                 maxTsForFinePartition(0));
 
-        punchCurrentTimeAtTimestamp(LOW_TS);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeLessThanOneSecond();
+        punchCurrentTimeMinusMillisAtTimestamp(2000, LOW_TS);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeWithinOneSecondOf(2000L);
     }
 
     @Test
@@ -319,8 +319,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(
                 maxTsForFinePartition(0));
 
-        punchCurrentTimeAtTimestamp(LOW_TS + 8);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeLessThanOneSecond();
+        punchCurrentTimeMinusMillisAtTimestamp(5000L, LOW_TS + 8);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeWithinOneSecondOf(5000L);
     }
 
     @Test
@@ -352,8 +352,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(3));
 
-        punchCurrentTimeAtTimestamp(tsFineFour + 1L);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeLessThanOneSecond();
+        punchCurrentTimeMinusMillisAtTimestamp(0L, tsFineFour + 1L);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeWithinOneSecondOf(0L);
     }
 
     @Test
@@ -892,8 +892,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEmpty();
     }
 
-    private void punchCurrentTimeAtTimestamp(long timestamp) {
-        puncherStore.put(timestamp, System.currentTimeMillis());
+    private void punchCurrentTimeMinusMillisAtTimestamp(long minusMillis, long timestamp) {
+        puncherStore.put(timestamp, System.currentTimeMillis() - minusMillis);
     }
 
     private void commitTransactionsWithWritesIntoUniqueCells(int transactions, int writes, TargetedSweeper sweeper) {
