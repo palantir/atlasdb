@@ -68,6 +68,12 @@ develop
          - Added logging for leadership election code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3275>`__)
 
+    *    - |fixed|
+         - Cassandra retry messages now log bounds on attempts correctly.
+           Previously, they would log the supplier of these bounds (instead of the actual bounds, which users are more likely to be interested in).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/nnnn>`__)
+
+
 =======
 v0.91.0
 =======
