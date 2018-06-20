@@ -90,5 +90,15 @@ public class SimpleTodoResource implements TodoResource {
     public void truncate() {
         atlas.truncate();
     }
+
+    @Override
+    public long addNamespacedTodoWithIdAndReturnTimestamp(long id, String namespace, Todo todo) {
+        return atlas.addNamespacedTodoWithIdAndReturnTimestamp(id, namespace, todo);
+    }
+
+    @Override
+    public boolean namespacedTodoDoesNotExistBeforeTimestamp(long id, long timestamp, String namespace) {
+        return atlas.namespacedTodoDoesNotExistBeforeTimestamp(id, timestamp, namespace);
+    }
 }
 
