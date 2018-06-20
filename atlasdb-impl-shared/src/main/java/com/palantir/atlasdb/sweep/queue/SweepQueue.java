@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 
 public final class SweepQueue implements SweepQueueWriter {
@@ -55,9 +56,9 @@ public final class SweepQueue implements SweepQueueWriter {
         this.metrics = metrics;
     }
 
-    public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig, int minShards,
-            TargetedSweepFollower follower) {
-        TargetedSweepMetrics metrics = TargetedSweepMetrics.create(kvs, REFRESH_INTERVAL);
+    public static SweepQueue create(MetricsManager metricsManager, KeyValueService kvs, Supplier<Integer> shardsConfig,
+            int minShards, TargetedSweepFollower follower) {
+        TargetedSweepMetrics metrics = TargetedSweepMetrics.create(metricsManager, kvs, REFRESH_INTERVAL);
         ShardProgress progress = new ShardProgress(kvs);
         progress.updateNumberOfShards(minShards);
         Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, REFRESH_INTERVAL);
@@ -110,8 +111,9 @@ public final class SweepQueue implements SweepQueueWriter {
             return;
         }
 
-        log.debug("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept timestamp"
-                + " for this shard and strategy was {}.", SafeArg.of("shardStrategy", shardStrategy.toText()),
+        log.debug("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept "
+                        + "timestamp for this shard and strategy was {}.",
+                SafeArg.of("shardStrategy", shardStrategy.toText()),
                 SafeArg.of("sweepTs", sweepTs), SafeArg.of("lastSweptTs", lastSweptTs));
 
         SweepBatch sweepBatch = getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);

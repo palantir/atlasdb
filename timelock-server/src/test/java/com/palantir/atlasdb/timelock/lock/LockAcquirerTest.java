@@ -37,6 +37,7 @@ import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -56,7 +57,7 @@ public class LockAcquirerTest {
     private final ExclusiveLock lockB = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
     private final ExclusiveLock lockC = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
 
-    private final LockAcquirer lockAcquirer = new LockAcquirer(executor);
+    private final LockAcquirer lockAcquirer = new LockAcquirer(new LockLog(new MetricRegistry(), () -> 2L), executor);
 
     @Test
     public void acquiresLocksInOrder() {

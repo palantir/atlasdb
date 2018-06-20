@@ -18,6 +18,7 @@ package com.palantir.atlasdb.services;
 import javax.inject.Singleton;
 
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
@@ -31,14 +32,16 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
-    public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(ServicesConfig config) {
+    public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(
+            MetricsManager metricsManager, ServicesConfig config) {
         return TransactionManagers.createLockAndTimestampServicesForCli(
+                metricsManager,
                 config.atlasDbConfig(),
                 config::atlasDbRuntimeConfig,
                 resource -> { },
                 LockServiceImpl::create,
-                () -> config.atlasDbSupplier().getTimestampService(),
-                config.atlasDbSupplier().getTimestampStoreInvalidator(),
+                () -> config.atlasDbSupplier(metricsManager).getTimestampService(),
+                config.atlasDbSupplier(metricsManager).getTimestampStoreInvalidator(),
                 "cli");
     }
 

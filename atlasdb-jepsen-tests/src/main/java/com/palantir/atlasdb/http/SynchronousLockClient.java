@@ -18,6 +18,7 @@ package com.palantir.atlasdb.http;
 import java.util.List;
 import java.util.Set;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Sets;
@@ -36,8 +37,8 @@ public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken>
         this.lockService = lockService;
     }
 
-    public static JepsenLockClient<LockRefreshToken> create(List<String> hosts) {
-        return new SynchronousLockClient(TimelockUtils.createClient(hosts, LockService.class));
+    public static JepsenLockClient<LockRefreshToken> create(MetricRegistry metricRegistry, List<String> hosts) {
+        return new SynchronousLockClient(TimelockUtils.createClient(metricRegistry, hosts, LockService.class));
     }
 
     @Override

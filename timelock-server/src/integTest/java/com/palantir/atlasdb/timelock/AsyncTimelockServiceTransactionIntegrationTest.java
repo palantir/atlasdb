@@ -43,7 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
@@ -60,7 +60,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
             .build();
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
-    private final SerializableTransactionManager txnManager;
+    private final TransactionManager txnManager;
 
     public AsyncTimelockServiceTransactionIntegrationTest(TestableTimelockCluster cluster) {
         super(cluster);

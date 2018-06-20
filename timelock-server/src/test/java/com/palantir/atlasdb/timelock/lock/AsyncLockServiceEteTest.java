@@ -33,6 +33,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.time.Clock;
@@ -64,7 +65,9 @@ public class AsyncLockServiceEteTest {
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),
-            new LockAcquirer(Executors.newSingleThreadScheduledExecutor()),
+            new LockAcquirer(
+                    new LockLog(new MetricRegistry(), () -> 2L),
+                    Executors.newSingleThreadScheduledExecutor()),
             new HeldLocksCollection(),
             new AwaitedLocksCollection(),
             executor);

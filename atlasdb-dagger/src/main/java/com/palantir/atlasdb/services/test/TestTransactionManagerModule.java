@@ -21,14 +21,13 @@ import javax.inject.Singleton;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -36,6 +35,8 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
@@ -87,7 +88,8 @@ public class TestTransactionManagerModule {
 
     @Provides
     @Singleton
-    public SerializableTransactionManager provideTransactionManager(ServicesConfig config,
+    public SerializableTransactionManager provideTransactionManager(MetricsManager metricsManager,
+                                                                    ServicesConfig config,
                                                                     @Named("kvs") KeyValueService kvs,
                                                                     TransactionManagers.LockAndTimestampServices lts,
                                                                     LockClient lockClient,
@@ -96,6 +98,7 @@ public class TestTransactionManagerModule {
                                                                     SweepStrategyManager sweepStrategyManager,
                                                                     Cleaner cleaner) {
         return new SerializableTransactionManager(
+                metricsManager,
                 kvs,
                 lts.timelock(),
                 lts.lock(),
@@ -104,13 +107,13 @@ public class TestTransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                TimestampTrackerImpl.createNoOpTracker(),
                 () -> config.atlasDbRuntimeConfig().getTimestampCacheSize(),
                 config.allowAccessToHiddenTables(),
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                PTExecutors.newSingleThreadExecutor(true));
     }
 
 }

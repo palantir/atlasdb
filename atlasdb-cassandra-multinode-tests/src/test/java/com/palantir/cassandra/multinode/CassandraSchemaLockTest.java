@@ -85,8 +85,7 @@ public class CassandraSchemaLockTest {
             assertTrue(executorService.awaitTermination(4, TimeUnit.MINUTES));
         }
 
-        CassandraKeyValueService kvs =
-                CassandraKeyValueServiceImpl.createForTesting(config, Optional.empty());
+        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config, Optional.empty());
         assertThat(kvs.getAllTableNames(), hasItem(table1));
 
         assertThat(new File(CONTAINERS.getLogDirectory()),

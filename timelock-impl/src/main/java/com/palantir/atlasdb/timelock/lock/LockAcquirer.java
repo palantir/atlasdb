@@ -31,16 +31,18 @@ public class LockAcquirer {
 
     private static final Logger log = LoggerFactory.getLogger(LockAcquirer.class);
 
+    private final LockLog lockLog;
     private final ScheduledExecutorService timeoutExecutor;
 
-    public LockAcquirer(ScheduledExecutorService timeoutExecutor) {
+    public LockAcquirer(LockLog lockLog,
+            ScheduledExecutorService timeoutExecutor) {
+        this.lockLog = lockLog;
         this.timeoutExecutor = timeoutExecutor;
     }
 
     public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
         return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId)).execute()
-                .map(ignored -> new HeldLocks(locks.get(), requestId));
-
+                .map(ignored -> new HeldLocks(lockLog, locks.get(), requestId));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {

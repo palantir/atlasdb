@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static org.assertj.core.data.Percentage.withPercentage;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 
@@ -198,7 +199,16 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF);
+
+        ArgumentCaptor<Long> sweepTime = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> totalTimeElapsed = ArgumentCaptor.forClass(Long.class);
+        Mockito.verify(sweepMetrics).updateSweepTime(
+                sweepTime.capture(),
+                totalTimeElapsed.capture());
+
+        Assertions.assertThat(intermediateResults.getTimeInMillis()).isEqualTo(sweepTime.getValue());
+        Assertions.assertThat(intermediateResults.getTimeElapsedSinceStartedSweeping())
+                .isCloseTo(totalTimeElapsed.getValue(), withPercentage(5d));
     }
 
     @Test
@@ -224,6 +234,15 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF);
+
+        ArgumentCaptor<Long> sweepTime = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> totalTimeElapsed = ArgumentCaptor.forClass(Long.class);
+        Mockito.verify(sweepMetrics).updateSweepTime(
+                sweepTime.capture(),
+                totalTimeElapsed.capture());
+
+        Assertions.assertThat(intermediateResults.getTimeInMillis()).isEqualTo(sweepTime.getValue());
+        Assertions.assertThat(intermediateResults.getTimeElapsedSinceStartedSweeping())
+                .isCloseTo(totalTimeElapsed.getValue(), withPercentage(5d));
     }
 }

@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -208,7 +208,7 @@ public final class DataTable implements
                 return false;
             }
             DataRow other = (DataRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -950,7 +950,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index1IdxRow other = (Index1IdxRow) obj;
-                return Objects.equal(value, other.value);
+                return Objects.equals(value, other.value);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1095,7 +1095,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index1IdxColumn other = (Index1IdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1657,7 +1657,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index2IdxRow other = (Index2IdxRow) obj;
-                return Objects.equal(value, other.value) && Objects.equal(id, other.id);
+                return Objects.equals(value, other.value) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2310,7 +2310,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index3IdxRow other = (Index3IdxRow) obj;
-                return Objects.equal(value, other.value);
+                return Objects.equals(value, other.value);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2983,7 +2983,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index4IdxRow other = (Index4IdxRow) obj;
-                return Objects.equal(value1, other.value1) && Objects.equal(value2, other.value2);
+                return Objects.equals(value1, other.value1) && Objects.equals(value2, other.value2);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -3598,5 +3598,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "x1VLSlvGrbiHfQq/rupNww==";
+    static String __CLASS_HASH = "am52K64Gej3IAHTMaJ2/kQ==";
 }

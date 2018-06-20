@@ -38,6 +38,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
@@ -51,14 +52,15 @@ public class KeyValueServiceModule {
     @Named("kvs")
     public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs,
                                                          TimestampService tss,
-                                                         ServicesConfig config) {
+                                                         ServicesConfig config,
+                                                         MetricsManager metricsManager) {
         config.adapter().setTimestampService(tss);
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.atlasDbConfig().getKvsSlowLogThresholdMillis());
         KeyValueService kvs = ProfilingKeyValueService.create(rawKvs);
 
         kvs = TracingKeyValueService.create(kvs);
-        kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs);
+        kvs = AtlasDbMetrics.instrument(metricsManager.getRegistry(), KeyValueService.class, kvs);
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         SweepConfig sweepConfig = config.atlasDbRuntimeConfig().sweep();

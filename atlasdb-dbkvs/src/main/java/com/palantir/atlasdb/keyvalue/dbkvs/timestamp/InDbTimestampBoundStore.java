@@ -57,7 +57,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     private Long currentLimit = null;
 
     /**
-     * Use only if you have already initialized the timestamo table. This exists for legacy support.
+     * Use only if you have already initialized the timestamp table. This exists for legacy support.
      */
     public InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
         this(connManager, timestampTable, EMPTY_TABLE_PREFIX);

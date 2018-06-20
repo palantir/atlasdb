@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Lists;
 
 public final class TimelockUtils {
@@ -29,17 +30,18 @@ public final class TimelockUtils {
     private TimelockUtils() {
     }
 
-    public static <T> T createClient(List<String> hosts, Class<T> type) {
+    public static <T> T createClient(MetricRegistry metricRegistry, List<String> hosts, Class<T> type) {
         List<String> endpointUris = hostnamesToEndpointUris(hosts);
-        return createFromUris(endpointUris, type);
+        return createFromUris(metricRegistry, endpointUris, type);
     }
 
     private static List<String> hostnamesToEndpointUris(List<String> hosts) {
         return Lists.transform(hosts, host -> String.format("http://%s:%d/%s", host, PORT, NAMESPACE));
     }
 
-    private static <T> T createFromUris(List<String> endpointUris, Class<T> type) {
+    private static <T> T createFromUris(MetricRegistry metricRegistry, List<String> endpointUris, Class<T> type) {
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
+                metricRegistry,
                 Optional.<SSLSocketFactory>empty(),
                 Optional.empty(),
                 endpointUris,

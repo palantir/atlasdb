@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -232,7 +232,7 @@ public final class StreamTestWithHashStreamValueTable implements
                 return false;
             }
             StreamTestWithHashStreamValueRow other = (StreamTestWithHashStreamValueRow) obj;
-            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(id, other.id) && Objects.equal(blockId, other.blockId);
+            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(id, other.id) && Objects.equals(blockId, other.blockId);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -709,5 +709,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "a5h4Wt77pKGNzadQqGcK4A==";
+    static String __CLASS_HASH = "H9s9oYltnwIo26sFEYi7KA==";
 }

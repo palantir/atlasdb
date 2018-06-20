@@ -48,6 +48,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -126,6 +127,7 @@ public class PaxosTimeLockServerIntegrationTest {
     @BeforeClass
     public static void waitForClusterToStabilize() {
         PingableLeader leader = AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
                 Optional.of(TestProxies.SSL_SOCKET_FACTORY),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
                 PingableLeader.class);
@@ -496,6 +498,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
                 Optional.of(TestProxies.SSL_SOCKET_FACTORY),
                 getRootUriForClient(client),
                 clazz,

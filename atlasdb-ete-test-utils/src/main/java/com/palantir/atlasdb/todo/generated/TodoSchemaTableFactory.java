@@ -46,6 +46,11 @@ public final class TodoSchemaTableFactory {
         return LatestSnapshotTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
+    public NamespacedTodoTable getNamespacedTodoTable(Transaction t,
+            NamespacedTodoTable.NamespacedTodoTrigger... triggers) {
+        return NamespacedTodoTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public SnapshotsStreamHashAidxTable getSnapshotsStreamHashAidxTable(Transaction t,
             SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxTrigger... triggers) {
         return SnapshotsStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
@@ -70,12 +75,17 @@ public final class TodoSchemaTableFactory {
         return TodoTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends LatestSnapshotTable.LatestSnapshotTrigger, SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxTrigger, SnapshotsStreamIdxTable.SnapshotsStreamIdxTrigger, SnapshotsStreamMetadataTable.SnapshotsStreamMetadataTrigger, SnapshotsStreamValueTable.SnapshotsStreamValueTrigger, TodoTable.TodoTrigger {
+    public interface SharedTriggers extends LatestSnapshotTable.LatestSnapshotTrigger, NamespacedTodoTable.NamespacedTodoTrigger, SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxTrigger, SnapshotsStreamIdxTable.SnapshotsStreamIdxTrigger, SnapshotsStreamMetadataTable.SnapshotsStreamMetadataTrigger, SnapshotsStreamValueTable.SnapshotsStreamValueTrigger, TodoTable.TodoTrigger {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
         public void putLatestSnapshot(Multimap<LatestSnapshotTable.LatestSnapshotRow, ? extends LatestSnapshotTable.LatestSnapshotNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putNamespacedTodo(Multimap<NamespacedTodoTable.NamespacedTodoRow, ? extends NamespacedTodoTable.NamespacedTodoColumnValue> newRows) {
             // do nothing
         }
 

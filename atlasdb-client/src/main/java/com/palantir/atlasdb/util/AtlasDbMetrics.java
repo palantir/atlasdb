@@ -17,7 +17,6 @@ package com.palantir.atlasdb.util;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -25,81 +24,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.SharedMetricRegistries;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
 import com.palantir.tritium.event.log.LoggingLevel;
 import com.palantir.tritium.event.metrics.MetricsInvocationEventHandler;
 import com.palantir.tritium.metrics.MetricRegistries;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.tritium.proxy.Instrumentation;
 
 public final class AtlasDbMetrics {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbMetrics.class);
 
-    @VisibleForTesting
-    static final String DEFAULT_REGISTRY_NAME = "AtlasDb";
-
-    @VisibleForTesting
-    static final AtomicReference<MetricRegistry> metrics = new AtomicReference<>(null);
-
-    @VisibleForTesting
-    static final AtomicReference<TaggedMetricRegistry> taggedMetrics = new AtomicReference<>(null);
-
     private AtlasDbMetrics() {}
 
-    public static synchronized void setMetricRegistries(MetricRegistry metricRegistry,
-            TaggedMetricRegistry taggedMetricRegistry) {
-        if (metricRegistry != metrics.get()) {
-            log.warn("The MetricsRegistry was re-set to a different value: the previous registry will be ignored"
-                    + " and metrics may be lost.");
-        }
-        if (taggedMetricRegistry != taggedMetrics.get()) {
-            log.warn("The TaggedMetricsRegistry was re-set to a different value: the previous registry will be ignored"
-                    + " and metrics may be lost.");
-        }
-
-        metrics.set(Preconditions.checkNotNull(metricRegistry, "Metric registry cannot be null"));
-        taggedMetrics.set(Preconditions.checkNotNull(taggedMetricRegistry, "Tagged Metric registry cannot be null"));
+    public static <T, U extends T> T instrument(
+            MetricRegistry metricRegistry, Class<T> serviceInterface, U service) {
+        return instrument(metricRegistry, serviceInterface, service, serviceInterface.getName());
     }
 
-    // Using this means that all atlasdb clients will report to the same registry, which may give confusing stats
-    public static MetricRegistry getMetricRegistry() {
-        return metrics.updateAndGet(registry -> {
-            if (registry == null) {
-                return createDefaultMetrics();
-            }
-            return registry;
-        });
-    }
-
-    public static TaggedMetricRegistry getTaggedMetricRegistry() {
-        return taggedMetrics.updateAndGet(registry -> {
-            if (registry == null) {
-                return DefaultTaggedMetricRegistry.getDefault();
-            }
-            return registry;
-        });
-    }
-
-    private static MetricRegistry createDefaultMetrics() {
-        MetricRegistry registry = SharedMetricRegistries.getOrCreate(DEFAULT_REGISTRY_NAME);
-        log.warn("Metric Registry was not set, setting to shared default registry name of "
-                + DEFAULT_REGISTRY_NAME);
-        return registry;
-    }
-
-    public static <T, U extends T> T instrument(Class<T> serviceInterface, U service) {
-        return instrument(serviceInterface, service, serviceInterface.getName());
-    }
-
-    public static <T, U extends T> T instrument(Class<T> serviceInterface, U service, String name) {
+    public static <T, U extends T> T instrument(
+            MetricRegistry metricRegistry, Class<T> serviceInterface, U service, String name) {
         return Instrumentation.builder(serviceInterface, service)
-                .withHandler(new MetricsInvocationEventHandler(getMetricRegistry(), name))
+                .withHandler(new MetricsInvocationEventHandler(metricRegistry, name))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,
@@ -108,12 +55,13 @@ public final class AtlasDbMetrics {
     }
 
     public static <T, U extends T> T instrumentWithTaggedMetrics(
+            TaggedMetricRegistry taggedMetrics,
             Class<T> serviceInterface,
             U service,
             String name,
             Function<InvocationContext, Map<String, String>> tagFunction) {
         return Instrumentation.builder(serviceInterface, service)
-                .withHandler(new TaggedMetricsInvocationEventHandler(getTaggedMetricRegistry(), name, tagFunction))
+                .withHandler(new TaggedMetricsInvocationEventHandler(taggedMetrics, name, tagFunction))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,
@@ -121,8 +69,7 @@ public final class AtlasDbMetrics {
                 .build();
     }
 
-    public static void registerCache(Cache<?, ?> cache, String metricsPrefix) {
-        MetricRegistry metricRegistry = getMetricRegistry();
+    public static void registerCache(MetricRegistry metricRegistry, Cache<?, ?> cache, String metricsPrefix) {
         Set<String> existingMetrics = metricRegistry.getMetrics().keySet().stream()
                 .filter(name -> name.startsWith(metricsPrefix))
                 .collect(Collectors.toSet());

@@ -82,6 +82,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     @ClassRule
@@ -89,6 +91,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             .with(new CassandraContainer());
 
     private final Logger logger = mock(Logger.class);
+
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
 
@@ -122,6 +126,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
         // Mutation provider is needed, because deletes/sentinels are to be written after writes
         return CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 config,
                 CassandraContainer.LEADER_CONFIG,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),

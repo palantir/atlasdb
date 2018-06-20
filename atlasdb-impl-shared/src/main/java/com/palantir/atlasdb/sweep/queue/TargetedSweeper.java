@@ -36,7 +36,9 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.table.description.Schemas;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
@@ -50,6 +52,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private final int minShards;
     private final List<Follower> followers;
 
+    private final MetricsManager metricsManager;
+
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
     private BackgroundSweepScheduler conservativeScheduler;
@@ -57,8 +61,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     private volatile boolean isInitialized = false;
 
-    private TargetedSweeper(Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
+    private TargetedSweeper(MetricsManager metricsManager, Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
             int conservativeThreads, int thoroughThreads, List<Follower> followers) {
+        this.metricsManager = metricsManager;
         this.runSweep = runSweep;
         this.shardsConfig = shardsConfig;
         this.conservativeScheduler = new BackgroundSweepScheduler(conservativeThreads,
@@ -82,14 +87,23 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * @param followers follower used for sweeps, as defined by your schema.
      * @return returns an uninitialized targeted sweeper.
      */
-    public static TargetedSweeper createUninitialized(Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
+    public static TargetedSweeper createUninitialized(
+            MetricsManager metricsManager,
+            Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
             int conservativeThreads, int thoroughThreads, List<Follower> followers) {
-        return new TargetedSweeper(enabled, shardsConfig, conservativeThreads, thoroughThreads, followers);
+        return new TargetedSweeper(
+                metricsManager, enabled, shardsConfig, conservativeThreads, thoroughThreads, followers);
+    }
+
+    @VisibleForTesting
+    public static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager, Supplier<Integer> shards) {
+        return createUninitialized(
+                metricsManager, () -> true, shards, 0, 0, ImmutableList.of());
     }
 
     @VisibleForTesting
     public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
-        return createUninitialized(() -> true, shards, 0, 0, ImmutableList.of());
+        return createUninitializedForTest(MetricsManagers.createForTests(), shards);
     }
 
     /**
@@ -107,7 +121,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        queue = SweepQueue.create(kvs, shardsConfig, minShards, follow);
+        queue = SweepQueue.create(metricsManager, kvs, shardsConfig, minShards, follow);
         timestampsSupplier = timestamps;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
@@ -115,7 +129,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     }
 
     @Override
-    public void callbackInit(SerializableTransactionManager txManager) {
+    public void callbackInit(TransactionManager txManager) {
         initialize(SpecialTimestampsSupplier.create(txManager),
                 txManager.getKeyValueService(),
                 new TargetedSweepFollower(followers, txManager));
