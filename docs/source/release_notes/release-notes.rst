@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed an issue in targeted sweep where reading from the sweep queue when there are more than the specified batch size entries can cause some entries to be skipped.
+           This is unlikely to have affected anyone because the default batch size used was very large.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3284>`__)
+
     *    - |devbreak|
          - AtlasDB metrics are no longer a static singleton, and are now created upon construction of relevant classes.
            This allows internal users to construct multiple AtlasDBs and get meaningful metrics. Many constructors have
