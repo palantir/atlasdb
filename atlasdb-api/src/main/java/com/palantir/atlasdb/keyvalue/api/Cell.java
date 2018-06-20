@@ -65,7 +65,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
         try {
             Preconditions.checkArgument(
                     name.length <= MAX_NAME_LENGTH,
-                    "name must be no longer than {}.",
+                    "name must be no longer than %s.",
                     MAX_NAME_LENGTH);
         } catch (IllegalArgumentException e) {
             log.error("Cell name length exceeded. Name must be no longer than {}. "
