@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -208,7 +208,7 @@ public final class UserProfileTable implements
                 return false;
             }
             UserProfileRow other = (UserProfileRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -1329,7 +1329,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 CookiesIdxRow other = (CookiesIdxRow) obj;
-                return Objects.equal(cookie, other.cookie);
+                return Objects.equals(cookie, other.cookie);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1474,7 +1474,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 CookiesIdxColumn other = (CookiesIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2015,7 +2015,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 CreatedIdxRow other = (CreatedIdxRow) obj;
-                return Objects.equal(time, other.time);
+                return Objects.equals(time, other.time);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2160,7 +2160,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 CreatedIdxColumn other = (CreatedIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2701,7 +2701,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 UserBirthdaysIdxRow other = (UserBirthdaysIdxRow) obj;
-                return Objects.equal(birthday, other.birthday);
+                return Objects.equals(birthday, other.birthday);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2846,7 +2846,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 UserBirthdaysIdxColumn other = (UserBirthdaysIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -3349,5 +3349,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2l6vERmYIdNq6v0h//tMEw==";
+    static String __CLASS_HASH = "WNNRujDdISZR1guCBdOk3g==";
 }

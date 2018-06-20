@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -208,7 +208,7 @@ public final class SnapshotsStreamMetadataTable implements
                 return false;
             }
             SnapshotsStreamMetadataRow other = (SnapshotsStreamMetadataRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -707,5 +707,5 @@ public final class SnapshotsStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Clu6ft0rCGarQTmWAid/hA==";
+    static String __CLASS_HASH = "hvWVuHH/IrtQNLF+hv4oNQ==";
 }

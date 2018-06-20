@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Fixed an issue in targeted sweep where reading from the sweep queue when there are more than the specified batch size entries can cause some entries to be skipped.
+           This is unlikely to have affected anyone because the default batch size used was very large.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3284>`__)
 
 =======
 v0.91.0
@@ -159,8 +161,6 @@ v0.90.0
          - Some users of AtlasDB rely on being able to abort transactions which are in progress. Until the last release of AtlasDB, this worked successfully, however this was only the case because before
            an assert could throw an AssertionError, an NPE was thrown by different code. Now, the assertion error is not thrown.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3254>`__)
-
-
 
 =======
 v0.89.0

@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -208,7 +208,7 @@ public final class TwoColumnsTable implements
                 return false;
             }
             TwoColumnsRow other = (TwoColumnsRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -980,7 +980,7 @@ public final class TwoColumnsTable implements
                     return false;
                 }
                 FooToIdCondIdxRow other = (FooToIdCondIdxRow) obj;
-                return Objects.equal(foo, other.foo);
+                return Objects.equals(foo, other.foo);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1125,7 +1125,7 @@ public final class TwoColumnsTable implements
                     return false;
                 }
                 FooToIdCondIdxColumn other = (FooToIdCondIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1626,7 +1626,7 @@ public final class TwoColumnsTable implements
                     return false;
                 }
                 FooToIdIdxRow other = (FooToIdIdxRow) obj;
-                return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(foo, other.foo);
+                return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(foo, other.foo);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1772,7 +1772,7 @@ public final class TwoColumnsTable implements
                     return false;
                 }
                 FooToIdIdxColumn other = (FooToIdIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2222,5 +2222,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "rbO2fCJIg3E2QBd6AuiYKg==";
+    static String __CLASS_HASH = "UMjhKkoloz/KxD02p3ykSA==";
 }
