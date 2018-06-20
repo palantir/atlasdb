@@ -177,7 +177,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     private RowColumnRangeIterator getRowColumnRange(SweepableCellsTable.SweepableCellsRow row, long partitionFine,
             long minTsExclusive, long maxTsExclusive) {
         return getRowsColumnRange(ImmutableList.of(row.persistToBytes()),
-                columnsBetween(minTsExclusive + 1, maxTsExclusive, partitionFine), SweepQueueUtils.MAX_CELLS_DEDICATED);
+                columnsBetween(minTsExclusive + 1, maxTsExclusive, partitionFine), SweepQueueUtils.BATCH_SIZE_KVS);
     }
 
     private TimestampsToSweep getTimestampsToSweepDescendingAndCleanupAborted(ShardAndStrategy shardStrategy,
@@ -286,7 +286,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private RowColumnRangeIterator getWithColumnRangeAll(Iterable<byte[]> rows) {
-        return getRowsColumnRange(rows, SweepQueueUtils.ALL_COLUMNS, SweepQueueUtils.MAX_CELLS_DEDICATED);
+        return getRowsColumnRange(rows, SweepQueueUtils.ALL_COLUMNS, SweepQueueUtils.BATCH_SIZE_KVS);
     }
 
     private WriteInfo getWriteInfo(long timestamp, Value value) {
