@@ -158,6 +158,8 @@ public class SweepableCells extends KvsSweepQueueWriter {
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
             writesByStartTs.putAll(getTimestamp(row, col), getWrites(row, col, entry.getValue()));
         }
+        // there may be entries remaining with the same start timestamp as the last processed one. If that is the case
+        // we want to include these ones as well. This is OK since there are at most MAX_CELLS_GENERIC - 1 of them.
         while (resultIterator.hasNext()) {
             Map.Entry<Cell, Value> entry = resultIterator.peek();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
