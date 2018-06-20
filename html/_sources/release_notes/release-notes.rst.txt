@@ -60,6 +60,10 @@ develop
            This is unlikely to have affected anyone because the default batch size used was very large.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3284>`__)
 
+    *    - |improved| |metrics|
+         - AtlasDB now publishes timers tracking time taken to setup a transaction task before it is run, and time taken to tear down the task after it is done before runTaskWith* returns.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3281>`__)
+
     *    - |improved| |logs|
          - Added logging for leadership election code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3275>`__)

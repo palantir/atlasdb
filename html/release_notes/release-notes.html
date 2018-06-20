@@ -196,7 +196,11 @@ We also batch targeted sweep deletes in smaller batches.
 This is unlikely to have affected anyone because the default batch size used was very large.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3284">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td>AtlasDB now publishes timers tracking time taken to setup a transaction task before it is run, and time taken to tear down the task after it is done before runTaskWith* returns.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3281">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>Added logging for leadership election code.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3275">Pull Request</a>)</td>
 </tr>
