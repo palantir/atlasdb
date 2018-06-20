@@ -1,5 +1,5 @@
 (ns jepsen.atlasdb.lock
-  (:require [jepsen.atlasdb.timelock :as timelock]
+    (:require [jepsen.atlasdb.timelock :as timelock]
             [jepsen.checker :as checker]
             [jepsen.client :as client]
             [jepsen.generator :as gen]
@@ -8,10 +8,11 @@
             [jepsen.os.debian :as debian]
             [jepsen.util :refer [timeout]]
             [knossos.history :as history])
-  (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
-  (:import com.palantir.atlasdb.http.JepsenLockClient)
-  (:import com.palantir.atlasdb.http.SynchronousLockClient)
-  (:import com.palantir.atlasdb.http.AsyncLockClient))
+    (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
+    (:import com.palantir.atlasdb.http.JepsenLockClient)
+    (:import com.palantir.atlasdb.http.SynchronousLockClient)
+    (:import com.palantir.atlasdb.http.AsyncLockClient)
+    (:import com.codahale.metrics.MetricRegistry))
 
 (def lock-names ["alpha" "bravo" "charlie" "delta"])
 
@@ -140,9 +141,9 @@
     :checker checker))
 
 (defn sync-lock-test
-  [nem]
-    (lock-test nem (fn [] (SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5")))))
+      [nem]
+      (lock-test nem (fn [] (SynchronousLockClient/create (MetricRegistry.) '("n1" "n2" "n3" "n4" "n5")))))
 
 (defn async-lock-test
-  [nem]
-    (lock-test nem (fn [] (AsyncLockClient/create '("n1" "n2" "n3" "n4" "n5")))))
+      [nem]
+      (lock-test nem (fn [] (AsyncLockClient/create (MetricRegistry.) '("n1" "n2" "n3" "n4" "n5")))))
