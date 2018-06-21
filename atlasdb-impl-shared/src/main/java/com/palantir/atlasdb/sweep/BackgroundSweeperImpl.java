@@ -29,6 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
@@ -150,8 +151,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
-                log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
-
+                logOutcome(outcome);
                 updateBatchSize(outcome);
                 updateMetrics(outcome);
 
@@ -173,6 +173,22 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
                     + "asynchronous initialization, these tables are being initialized asynchronously. Background "
                     + "sweeper will start once the initialization is complete.");
             sleepForMillis(getBackoffTimeWhenSweepHasNotRun());
+        }
+    }
+
+    private void logOutcome(SweepOutcome outcome) {
+        if (outcome.equals(SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS)) {
+            log.info("Sweep iteration finished with outcome: {}. This means that sweep is running elsewhere. "
+                            + "If the lock was in fact leaked, then it should expire within {} seconds (this can be "
+                            + "overridden by defaultLockTimeoutSeconds in config), after which "
+                            + "time one node should be able to grab the lock. "
+                            + "If all nodes in an HA setup report this outcome for longer than expected, "
+                            + "then another cluster may be connecting to the same Cassandra keyspace.",
+                    SafeArg.of("sweepOutcome", outcome),
+                    SafeArg.of("defaultLockTimeoutSeconds", AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS)
+                    );
+        } else {
+            log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
         }
     }
 
