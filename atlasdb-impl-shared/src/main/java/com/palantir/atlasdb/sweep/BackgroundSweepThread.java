@@ -107,11 +107,13 @@ public class BackgroundSweepThread implements Runnable {
         } catch (InterruptedException e) {
             log.warn(
                     "Shutting down background sweeper. Please restart the service to rerun background sweep.");
+            currentTable.ifPresent(table -> table.getSweepLock().close());
             sweepOutcomeMetrics.registerOccurrenceOf(
                     SweepOutcome.SHUTDOWN);
         } catch (Throwable t) {
             log.error("BackgroundSweeper failed fatally and will not rerun until restarted: {}",
                     UnsafeArg.of("message", t.getMessage()), t);
+            currentTable.ifPresent(table -> table.getSweepLock().close());
             sweepOutcomeMetrics.registerOccurrenceOf(
                     SweepOutcome.FATAL);
         }
@@ -154,6 +156,7 @@ public class BackgroundSweepThread implements Runnable {
         }
 
         log.debug("Skipping sweep because it is currently disabled.");
+        currentTable.ifPresent(table -> table.getSweepLock().close());
         return SweepOutcome.DISABLED;
     }
 
@@ -164,6 +167,7 @@ public class BackgroundSweepThread implements Runnable {
                 return runOnce();
             } else {
                 log.debug("Skipping sweep because sweep is running elsewhere.");
+                currentTable.ifPresent(table -> table.getSweepLock().close());
                 return SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
             }
         } catch (RuntimeException e) {
@@ -289,27 +293,24 @@ public class BackgroundSweepThread implements Runnable {
         return Optional.of(nextTableWithoutProgress);
     }
 
-    private SweepOutcome determineCauseOfFailure(Exception originalException,
-            TableToSweep tableToSweep) {
+    private SweepOutcome determineCauseOfFailure(Exception originalException, TableToSweep tableToSweep) {
         try {
             Set<TableReference> tables = specificTableSweeper.getKvs().getAllTableNames();
 
             if (!tables.contains(tableToSweep.getTableRef())) {
                 clearSweepProgress(tableToSweep.getTableRef());
-                log.info(
-                        "The table being swept by the background sweeper was dropped, moving on...");
+                log.info("The table being swept by the background sweeper was dropped, moving on...");
+                tableToSweep.getSweepLock().close();
                 return SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
             }
 
-            log.warn(
-                    "The background sweep job failed unexpectedly; will retry with a lower batch size...",
+            log.warn("The background sweep job failed unexpectedly; will retry with a lower batch size...",
                     originalException);
             return SweepOutcome.ERROR;
 
         } catch (RuntimeException newE) {
             log.error("Sweep failed", originalException);
-            log.error("Failed to check whether the table being swept was dropped. Retrying...",
-                    newE);
+            log.error("Failed to check whether the table being swept was dropped. Retrying...", newE);
             return SweepOutcome.ERROR;
         }
     }
