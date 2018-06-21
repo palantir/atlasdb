@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - We now page with a smaller batch size when looking at the sweepable cells.
+           We also batch targeted sweep deletes in smaller batches.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3283>`__)
+
     *    - |improved| |metrics|
          - We now publish metrics for more individual stages of the commit stage in a SnapshotTransaction.
            We also now publish metrics for the total non-KVS overhead - both the absolute time involved as well as a ratio of this to the total time spent in the commit stage.
