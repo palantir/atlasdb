@@ -178,7 +178,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private void logOutcome(SweepOutcome outcome) {
         if (outcome.equals(SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS)) {
             log.info("Sweep iteration finished with outcome: {}. This means that sweep is running elsewhere. "
-                            + "If all nodes in an HA setup report this outcome, "
+                            + "If the lock was in fact leaked, then it should expire within one hour, after which "
+                            + "time one node should be able to grab the lock. "
+                            + "If all nodes in an HA setup report this outcome for more than an hour, "
                             + "then another cluster may be connecting to the same Cassandra keyspace.",
                     SafeArg.of("sweepOutcome", outcome));
         } else {
