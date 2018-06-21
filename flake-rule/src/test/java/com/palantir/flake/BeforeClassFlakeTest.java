@@ -23,7 +23,7 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-@ShouldRetry(numAttempts = 3)
+@ShouldRetry(numAttempts = 2)
 public class BeforeClassFlakeTest {
     private static AtomicBoolean succeed = new AtomicBoolean(false);
 
