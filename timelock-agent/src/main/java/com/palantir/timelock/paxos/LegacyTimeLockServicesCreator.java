@@ -80,11 +80,10 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private <T> T instrumentInLeadershipProxy(Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {
-        return instrument(metricRegistry, serviceClass,
-                leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
+        return instrument(serviceClass, leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
     }
 
-    private <T> T instrument(MetricRegistry metricRegistry, Class<T> serviceClass, T service, String client) {
+    private <T> T instrument(Class<T> serviceClass, T service, String client) {
         // TODO(nziebart): tag with the client name, when tritium supports it
         return AtlasDbMetrics.instrument(metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass));
     }
