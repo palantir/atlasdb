@@ -109,9 +109,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
         for (int idx = 1; idx <= numThreads; idx++) {
             BackgroundSweepThread backgroundSweepThread = new BackgroundSweepThread(lockService,
-                    nextTableToSweepProvider,
-                    sweepBatchConfigSource, isSweepEnabled, sweepPauseMillis, sweepPriorityOverrideConfig,
-                    specificTableSweeper, sweepOutcomeMetrics, shuttingDown, idx);
+                    nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled, sweepPauseMillis,
+                    sweepPriorityOverrideConfig, specificTableSweeper, sweepOutcomeMetrics, shuttingDown, idx);
 
             Thread daemon = new Thread(backgroundSweepThread);
             daemon.setDaemon(true);
