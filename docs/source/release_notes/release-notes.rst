@@ -50,6 +50,16 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |metrics|
+         - We now publish metrics for more individual stages of the commit stage in a SnapshotTransaction.
+           We also now publish metrics for the total non-KVS overhead - both the absolute time involved as well as a ratio of this to the total time spent in the commit stage.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3273>`__)
+
+    *    - |new| |logs|
+         - Snapshot transactions now, up to once every 5 real-time seconds, log an overview of how long each step in the commit phase took.
+           These logs will help the Atlas team better understand which parts of committing transactions may be slow, so that we can improve on it.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3273>`__)
+           
     *    - |metrics| |improved|
          - The ``millisSinceLastSweptTs`` metric for targeted sweep now updates at the same frequency as the ``lastSweptTimestamp`` metric.
            This will result in a much smoother graph for the former metric instead of the current sawtooth graph.
@@ -72,6 +82,12 @@ develop
     *    - |improved| |logs|
          - Added logging for leadership election code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3275>`__)
+
+    *    - |fixed|
+         - Cassandra retry messages now log bounds on attempts correctly.
+           Previously, they would log the supplier of these bounds (instead of the actual bounds, which users are more likely to be interested in).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3291>`__)
+
 
 =======
 v0.91.0

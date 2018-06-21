@@ -113,6 +113,11 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.logging.ImmutableChainingLogConsumerProcessor;
+import com.palantir.atlasdb.transaction.impl.logging.ImmutableLogTemplate;
+import com.palantir.atlasdb.transaction.impl.logging.LogConsumerProcessor;
+import com.palantir.atlasdb.transaction.impl.logging.PredicateBackedLogConsumerProcessor;
+import com.palantir.atlasdb.transaction.impl.logging.RateLimitedBooleanSupplier;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
@@ -216,6 +221,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected volatile boolean hasReads;
 
     private final Timer.Context transactionTimerContext;
+
+    private final LogConsumerProcessor logConsumerProcessor = createDefaultPerfLogger();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -1305,68 +1312,111 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
+        Timer.Context commitStageTimer = getTimer("commitStage").time();
+
         Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
         LockToken commitLocksToken = acquireLocksForCommit();
-        long millisForLocks = TimeUnit.NANOSECONDS.toMillis(acquireLocksTimer.stop());
+        long microsForLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
         try {
-            Timer.Context conflictsTimer = getTimer("commitCheckingForConflicts").time();
-            throwIfConflictOnCommit(commitLocksToken, transactionService);
-            long millisCheckingForConflicts = TimeUnit.NANOSECONDS.toMillis(conflictsTimer.stop());
+            long microsCheckingForConflicts =
+                    runAndGetDurationMicros(() -> throwIfConflictOnCommit(commitLocksToken, transactionService),
+                            "commitCheckingForConflicts");
 
-            sweepQueue.enqueue(writesByTable, getStartTimestamp());
+            long microsWritingToTargetedSweepQueue =
+                    runAndGetDurationMicros(() -> sweepQueue.enqueue(writesByTable, getStartTimestamp()),
+                            "writingToSweepQueue");
 
-            Timer.Context writesTimer = getTimer("commitWrite").time();
-            keyValueService.multiPut(writesByTable, getStartTimestamp());
-            long millisForWrites = TimeUnit.NANOSECONDS.toMillis(writesTimer.stop());
+            long microsForWrites = runAndGetDurationMicros(
+                    () -> keyValueService.multiPut(writesByTable, getStartTimestamp()), "commitWrite");
 
             // Now that all writes are done, get the commit timestamp
             // We must do this before we check that our locks are still valid to ensure that
             // other transactions that will hold these locks are sure to have start
             // timestamps after our commit timestamp.
+            Timer.Context commitTimestampTimer = getTimer("getCommitTimestamp").time();
             long commitTimestamp = timelockService.getFreshTimestamp();
             commitTsForScrubbing = commitTimestamp;
+            long microsForGetCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTimestampTimer.stop());
 
             // punch on commit so that if hard delete is the only thing happening on a system,
             // we won't block forever waiting for the unreadable timestamp to advance past the
             // scrub timestamp (same as the hard delete transaction's start timestamp)
-            Timer.Context punchTimer = getTimer("millisForPunch").time();
-            cleaner.punch(commitTimestamp);
-            long millisForPunch = TimeUnit.NANOSECONDS.toMillis(punchTimer.stop());
+            long microsForPunch = runAndGetDurationMicros(() -> cleaner.punch(commitTimestamp), "microsForPunch");
 
-            throwIfReadWriteConflictForSerializable(commitTimestamp);
+            long microsForReadWriteConflictCheck = runAndGetDurationMicros(
+                    () -> throwIfReadWriteConflictForSerializable(commitTimestamp),
+                    "readWriteConflictCheck");
 
             // Verify that our locks and pre-commit conditions are still valid before we actually commit;
             // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness
-            throwIfPreCommitRequirementsNotMet(commitLocksToken, commitTimestamp);
 
-            Timer.Context commitTsTimer = getTimer("commitPutCommitTs").time();
-            putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
-            long millisForCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTsTimer.stop());
+            long microsForPreCommitLockCheck = runAndGetDurationMicros(
+                    () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken), "preCommitLockCheck");
 
-            long millisSinceCreation = System.currentTimeMillis() - timeCreated;
-            getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
+            long microsForUserPreCommitCondition = runAndGetDurationMicros(
+                    () -> preCommitCondition.throwIfConditionInvalid(commitTimestamp), "userPreCommitCondition");
+
+            long microsForPutCommitTs = runAndGetDurationMicros(
+                    () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService),
+                    "commitPutCommitTs");
+
+            long microsForCommitStage = TimeUnit.NANOSECONDS.toMicros(commitStageTimer.stop());
+            long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
+            getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
-            if (perfLogger.isDebugEnabled()) {
+            updateNonPutOverheadMetrics(microsWritingToTargetedSweepQueue, microsForWrites, microsForCommitStage);
+            logConsumerProcessor.maybeLog(() -> {
                 SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
-                perfLogger.debug("Committed {} bytes with locks, start ts {}, commit ts {}, "
-                        + "acquiring locks took {} ms, checking for conflicts took {} ms, "
-                        + "writing took {} ms, punch took {} ms, putCommitTs took {} ms, "
-                        + "total time since tx creation {} ms, tables: {}.",
-                        SafeArg.of("numBytes", byteCount.get()),
-                        SafeArg.of("startTs", getStartTimestamp()),
-                        SafeArg.of("commitTs", commitTimestamp),
-                        SafeArg.of("millisForLocks", millisForLocks),
-                        SafeArg.of("millisCheckForConflicts", millisCheckingForConflicts),
-                        SafeArg.of("millisForWrites", millisForWrites),
-                        SafeArg.of("millisForPunch", millisForPunch),
-                        SafeArg.of("millisForCommitTs", millisForCommitTs),
-                        SafeArg.of("millisSinceCreation", millisSinceCreation),
-                        tableRefs.safeTableRefs(),
-                        tableRefs.unsafeTableRefs());
-            }
+                return ImmutableLogTemplate.builder().format(
+                        "Committed {} bytes with locks, start ts {}, commit ts {}, "
+                                + "acquiring locks took {} us, checking for conflicts took {} us, "
+                                + "writing to the sweep queue took {} us, "
+                                + "writing data took {} us, "
+                                + "getting the commit timestamp took {} us, punch took {} us, "
+                                + "serializable r/w conflict check took {} us, putCommitTs took {} us, "
+                                + "pre-commit lock checks took {} us, user pre-commit conditions took {} us, "
+                                + "total time spent committing writes was {} us, "
+                                + "total time since tx creation {} us, tables: {}, {}.")
+                        .arguments(
+                                SafeArg.of("numBytes", byteCount.get()),
+                                SafeArg.of("startTs", getStartTimestamp()),
+                                SafeArg.of("commitTs", commitTimestamp),
+                                SafeArg.of("microsForLocks", microsForLocks),
+                                SafeArg.of("microsCheckForConflicts", microsCheckingForConflicts),
+                                SafeArg.of("microsWritingToTargetedSweepQueue",
+                                        microsWritingToTargetedSweepQueue),
+                                SafeArg.of("microsForWrites", microsForWrites),
+                                SafeArg.of("microsForGetCommitTs", microsForGetCommitTs),
+                                SafeArg.of("microsForPunch", microsForPunch),
+                                SafeArg.of("microsForReadWriteConflictCheck", microsForReadWriteConflictCheck),
+                                SafeArg.of("microsForPutCommitTs", microsForPutCommitTs),
+                                SafeArg.of("microsForPreCommitLockCheck", microsForPreCommitLockCheck),
+                                SafeArg.of("microsForUserPreCommitCondition", microsForUserPreCommitCondition),
+                                SafeArg.of("microsForCommitStage", microsForCommitStage),
+                                SafeArg.of("microsSinceCreation", microsSinceCreation),
+                                tableRefs.safeTableRefs(),
+                                tableRefs.unsafeTableRefs())
+                        .build();
+                    });
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }
+    }
+
+    private void updateNonPutOverheadMetrics(long microsWritingToTargetedSweepQueue, long microsForWrites,
+            long microsForCommitStage) {
+        long nonPutOverhead = microsForCommitStage - microsForWrites - microsWritingToTargetedSweepQueue;
+        getTimer("nonPutOverhead").update(nonPutOverhead, TimeUnit.MICROSECONDS);
+
+        // Dropwizard Metrics doesn't support histograms of double yet, so using longs as a workaround
+        getHistogram("nonPutOverheadMillionths").update(
+                Math.round((1_000_000. * nonPutOverhead) / microsForCommitStage));
+    }
+
+    private long runAndGetDurationMicros(Runnable runnable, String timerName) {
+        Timer.Context timer = getTimer(timerName).time();
+        runnable.run();
+        return TimeUnit.NANOSECONDS.toMicros(timer.stop());
     }
 
     protected void throwIfReadWriteConflictForSerializable(long commitTimestamp) {
@@ -2009,6 +2059,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return metricsManager.registerOrGetMeter(SnapshotTransaction.class, name);
     }
 
+    private LogConsumerProcessor createDefaultPerfLogger() {
+        return ImmutableChainingLogConsumerProcessor.builder()
+                .addProcessors(PredicateBackedLogConsumerProcessor.create(
+                        perfLogger::debug, perfLogger::isDebugEnabled))
+                .addProcessors(PredicateBackedLogConsumerProcessor.create(
+                        log::info, RateLimitedBooleanSupplier.create(5.0)))
+                .build();
+    }
 }
 
 
