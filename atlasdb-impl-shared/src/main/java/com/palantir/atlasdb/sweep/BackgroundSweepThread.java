@@ -107,13 +107,13 @@ public class BackgroundSweepThread implements Runnable {
         } catch (InterruptedException e) {
             log.warn(
                     "Shutting down background sweeper. Please restart the service to rerun background sweep.");
-            currentTable.ifPresent(table -> table.getSweepLock().close());
+            closeTableLockIfHeld();
             sweepOutcomeMetrics.registerOccurrenceOf(
                     SweepOutcome.SHUTDOWN);
         } catch (Throwable t) {
             log.error("BackgroundSweeper failed fatally and will not rerun until restarted: {}",
                     UnsafeArg.of("message", t.getMessage()), t);
-            currentTable.ifPresent(table -> table.getSweepLock().close());
+            closeTableLockIfHeld();
             sweepOutcomeMetrics.registerOccurrenceOf(
                     SweepOutcome.FATAL);
         }
@@ -156,7 +156,7 @@ public class BackgroundSweepThread implements Runnable {
         }
 
         log.debug("Skipping sweep because it is currently disabled.");
-        currentTable.ifPresent(table -> table.getSweepLock().close());
+        closeTableLockIfHeld();
         return SweepOutcome.DISABLED;
     }
 
@@ -167,7 +167,7 @@ public class BackgroundSweepThread implements Runnable {
                 return runOnce();
             } else {
                 log.debug("Skipping sweep because sweep is running elsewhere.");
-                currentTable.ifPresent(table -> table.getSweepLock().close());
+                closeTableLockIfHeld();
                 return SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
             }
         } catch (RuntimeException e) {
@@ -226,12 +226,14 @@ public class BackgroundSweepThread implements Runnable {
                         } catch (InterruptedException ex) {
                             log.info("Sweep lost the lock for table {}",
                                     LoggingArgs.tableRef(progress.get().tableRef()));
+                            closeTableLockIfHeld();
                             currentTable = Optional.empty();
                             // We'll fall through and choose a new table
                         }
                     }
 
                     log.info("Sweep is choosing a new table to sweep.");
+                    closeTableLockIfHeld();
                     return getNextTableToSweep(tx, overrideConfig);
                 });
     }
@@ -328,5 +330,9 @@ public class BackgroundSweepThread implements Runnable {
     @VisibleForTesting
     SingleLockService createSweepLocks() {
         return SingleLockService.createSingleLockServiceWithSafeLockId(lockService, "atlas sweep " + threadIndex);
+    }
+
+    private void closeTableLockIfHeld() {
+        currentTable.ifPresent(table -> table.getSweepLock().close());
     }
 }
