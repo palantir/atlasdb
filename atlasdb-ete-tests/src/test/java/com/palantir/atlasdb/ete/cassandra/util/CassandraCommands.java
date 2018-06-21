@@ -39,7 +39,7 @@ public final class CassandraCommands {
         EteSetup.execCliCommand(containerName, "nodetool compact");
     }
 
-    public static List<String> nodetoolGetSSTables(String containerName,
+    public static List<String> nodetoolGetSsTables(String containerName,
             String keyspace,
             TableReference tableRef,
             byte[] rowKey) throws IOException, InterruptedException {

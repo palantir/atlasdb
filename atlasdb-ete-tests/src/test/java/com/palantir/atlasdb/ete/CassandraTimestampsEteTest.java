@@ -67,7 +67,7 @@ public class CassandraTimestampsEteTest {
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
         CassandraCommands.nodetoolCompact(CASSANDRA_CONTAINER_NAME);
 
-        List<String> ssTables = CassandraCommands.nodetoolGetSSTables(
+        List<String> ssTables = CassandraCommands.nodetoolGetSsTables(
                 CASSANDRA_CONTAINER_NAME,
                 "atlasete",
                 TodoSchema.todoTable(),
@@ -96,7 +96,7 @@ public class CassandraTimestampsEteTest {
 
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
 
-        List<String> ssTables = CassandraCommands.nodetoolGetSSTables(
+        List<String> ssTables = CassandraCommands.nodetoolGetSsTables(
                 CASSANDRA_CONTAINER_NAME,
                 "atlasete",
                 TodoSchema.namespacedTodoTable(),
