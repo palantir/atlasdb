@@ -71,9 +71,30 @@ public interface TimelockService {
     @Path("refresh-locks")
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
+    /**
+     * Releases locks associated with the set of {@link LockToken}s provided.
+     * The set of tokens returned are the tokens for which the associated locks were unlocked in this call.
+     * It is possible that a token that was provided is NOT in the returned set (e.g. if it expired).
+     * However, in this case it is guaranteed that that token is no longer valid.
+     *
+     * @param tokens Tokens for which associated locks should be unlocked.
+     * @return Tokens for which associated locks were unlocked.
+     */
     @POST
     @Path("unlock")
     Set<LockToken> unlock(Set<LockToken> tokens);
+
+    /**
+     * A version of {@link TimelockService#unlock(Set)} where one does not need to know whether the locks associated
+     * with the provided tokens were successfully unlocked or not.
+     *
+     * In some implementations, this may be more performant than a standard unlock.
+     *
+     * @param tokens Tokens for which associated locks should be unlocked.
+     */
+    default void tryUnlock(Set<LockToken> tokens) {
+        unlock(tokens);
+    }
 
     @POST
     @Path("current-time-millis")
