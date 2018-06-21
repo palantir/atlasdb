@@ -186,40 +186,44 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>We now consider only one row at a time when getting rows from the KVS with sweepable cells.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3302">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>We now publish metrics for more individual stages of the commit stage in a SnapshotTransaction.
 We also now publish metrics for the total non-KVS overhead - both the absolute time involved as well as a ratio of this to the total time spent in the commit stage.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3273">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>Snapshot transactions now, up to once every 5 real-time seconds, log an overview of how long each step in the commit phase took.
 These logs will help the Atlas team better understand which parts of committing transactions may be slow, so that we can improve on it.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3273">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The <code class="docutils literal notranslate"><span class="pre">millisSinceLastSweptTs</span></code> metric for targeted sweep now updates at the same frequency as the <code class="docutils literal notranslate"><span class="pre">lastSweptTimestamp</span></code> metric.
 This will result in a much smoother graph for the former metric instead of the current sawtooth graph.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3265">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>We now page with a smaller batch size when looking at the sweepable cells.
 We also batch targeted sweep deletes in smaller batches.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3283">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue in targeted sweep where reading from the sweep queue when there are more than the specified batch size entries can cause some entries to be skipped.
 This is unlikely to have affected anyone because the default batch size used was very large.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3284">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>AtlasDB now publishes timers tracking time taken to setup a transaction task before it is run, and time taken to tear down the task after it is done before runTaskWith* returns.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3281">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>Added logging for leadership election code.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3275">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Cassandra retry messages now log bounds on attempts correctly.
 Previously, they would log the supplier of these bounds (instead of the actual bounds, which users are more likely to be interested in).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3291">Pull Request</a>)</td>
