@@ -17,12 +17,14 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.codahale.metrics.Timer;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -125,7 +127,8 @@ import com.palantir.timestamp.TimestampService;
             throws E, TransactionFailedRetriableException {
         checkOpen();
         try {
-            TransactionAndImmutableTsLock txAndLock = setupRunTaskWithConditionThrowOnConflict(condition);
+            TransactionAndImmutableTsLock txAndLock =
+                    runTimed(() -> setupRunTaskWithConditionThrowOnConflict(condition), "setupTask");
             return finishRunTaskWithLockThrowOnConflict(txAndLock,
                     transaction -> task.execute(transaction, condition));
         } finally {
@@ -156,13 +159,23 @@ import com.palantir.timestamp.TimestampService;
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock txAndLock,
                                                                            TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
+        Timer postTaskTimer = getTimer("finishTask");
+        Timer.Context postTaskContext;
+
         SnapshotTransaction tx = (SnapshotTransaction) txAndLock.transaction();
         T result;
         try {
             result = runTaskThrowOnConflict(task, tx);
         } finally {
+            postTaskContext = postTaskTimer.time();
             timelockService.unlock(ImmutableSet.of(txAndLock.immutableTsLock()));
         }
+        scrubForAggressiveHardDelete(tx);
+        postTaskContext.stop();
+        return result;
+    }
+
+    private void scrubForAggressiveHardDelete(SnapshotTransaction tx) {
         if ((tx.getTransactionType() == TransactionType.AGGRESSIVE_HARD_DELETE) && !tx.isAborted()) {
             // t.getCellsToScrubImmediately() checks that t has been committed
             cleaner.scrubImmediately(this,
@@ -170,7 +183,6 @@ import com.palantir.timestamp.TimestampService;
                     tx.getTimestamp(),
                     tx.getCommitTimestamp());
         }
-        return result;
     }
 
     protected SnapshotTransaction createTransaction(
@@ -372,4 +384,19 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
+    private <T> T runTimed(Callable<T> operation, String timerName) {
+        Timer.Context timer = getTimer(timerName).time();
+        try {
+            T response = operation.call();
+            timer.stop(); // By design, we only want to consider time for operations that were successful.
+            return response;
+        } catch (Exception e) {
+            Throwables.throwIfInstance(e, RuntimeException.class);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Timer getTimer(String name) {
+        return metricsManager.registerOrGetTimer(SnapshotTransactionManager.class, name);
+    }
 }

@@ -76,9 +76,9 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
     }
 
-    public void hasMillisSinceLastSweptConservativeLessThanOneSecond() {
+    public void hasMillisSinceLastSweptConservativeWithinOneSecondOf(long expected) {
         comparables.assertIsBetween(info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue(),
-                0L, 1000L, true, false);
+                expected - 1000L, expected + 1000, true, false);
     }
 
     public void hasEnqueuedWritesThoroughEqualTo(long value) {
@@ -107,11 +107,6 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
 
     public void hasMillisSinceLastSweptThoroughEqualTo(long value) {
         objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
-    }
-
-    public void hasMillisSinceLastSweptThoroughLessThanOneSecond(long clockTime) {
-        comparables.assertIsBetween(info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue(),
-                0L, 1000L, true, false);
     }
 
     private Gauge<Long> getGaugeConservative(String name) {

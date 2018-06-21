@@ -6,6 +6,7 @@ apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 dependencies {
     compile project(':atlasdb-api')
     compile project(':atlasdb-cassandra')
+    compile project(":flake-rule")
 
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'

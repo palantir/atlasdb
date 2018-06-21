@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -208,7 +208,7 @@ public final class RangeScanTestTable implements
                 return false;
             }
             RangeScanTestRow other = (RangeScanTestRow) obj;
-            return Objects.equal(component1, other.component1);
+            return Objects.equals(component1, other.component1);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -732,5 +732,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "uM9vE+quytC6Gzz3VgTqZQ==";
+    static String __CLASS_HASH = "4Ueuy0y856/ejfFWhWZDqQ==";
 }
