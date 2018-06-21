@@ -168,12 +168,12 @@ public class ServiceDiscoveringAtlasSupplier {
         }
     }
 
-    private AtlasDbFactory createAtlasFactoryOfCorrectType(KeyValueServiceConfig config) {
+    private AtlasDbFactory createAtlasFactoryOfCorrectType(KeyValueServiceConfig kvsConfig) {
         return StreamSupport.stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                        "No atlas provider for KeyValueService type " + config.type() + " could be found."
+                        "No atlas provider for KeyValueService type " + kvsConfig.type() + " could be found."
                                 + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
     }

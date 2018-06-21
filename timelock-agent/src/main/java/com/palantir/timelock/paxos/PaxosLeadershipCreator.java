@@ -115,8 +115,8 @@ public class PaxosLeadershipCreator {
     }
 
     private Function<PaxosRuntimeConfiguration, LeaderRuntimeConfig> getLeaderRuntimeConfig =
-            runtime -> ImmutableLeaderRuntimeConfig.builder()
-                    .onlyLogOnQuorumFailure(runtime.onlyLogOnQuorumFailure())
+            config -> ImmutableLeaderRuntimeConfig.builder()
+                    .onlyLogOnQuorumFailure(config.onlyLogOnQuorumFailure())
                     .build();
 
     public Supplier<LeaderPingHealthCheck> getHealthCheck() {

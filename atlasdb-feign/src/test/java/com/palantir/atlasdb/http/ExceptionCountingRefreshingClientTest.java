@@ -135,10 +135,10 @@ public class ExceptionCountingRefreshingClientTest {
         verify(client, times(numberOfExecutions)).execute(request, options);
     }
 
-    private void callExecute(Client client, int numberOfExecutions) throws IOException {
+    private void callExecute(Client refreshingClient, int numberOfExecutions) throws IOException {
         for (int i = 0; i < numberOfExecutions; i++) {
             try {
-                client.execute(request, options);
+                refreshingClient.execute(request, options);
             } catch (RuntimeException e) {
                 // ignored - TODO(gsheasby): Should check exception content
             }

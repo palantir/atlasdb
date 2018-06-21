@@ -51,12 +51,10 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating legacy timelock service for client {}", client);
         ManagedTimestampService timestampService = instrumentInLeadershipProxy(
-                metricRegistry,
                 ManagedTimestampService.class,
                 rawTimestampServiceSupplier,
                 client);
         LockService lockService = instrumentInLeadershipProxy(
-                metricRegistry,
                 LockService.class,
                 rawLockServiceSupplier,
                 client);
@@ -81,8 +79,7 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
         return new LegacyTimelockService(timestampService, lockService, LEGACY_LOCK_CLIENT);
     }
 
-    private <T> T instrumentInLeadershipProxy(MetricRegistry metricRegistry,
-            Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {
+    private <T> T instrumentInLeadershipProxy(Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {
         return instrument(metricRegistry, serviceClass,
                 leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
     }
