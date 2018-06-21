@@ -111,8 +111,10 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellCon
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
+import com.palantir.atlasdb.transaction.api.TransactionLockManager;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.lock.SimpleTransactionLockManager;
 import com.palantir.atlasdb.transaction.impl.logging.ImmutableChainingLogConsumerProcessor;
 import com.palantir.atlasdb.transaction.impl.logging.ImmutableLogTemplate;
 import com.palantir.atlasdb.transaction.impl.logging.LogConsumerProcessor;
@@ -137,7 +139,6 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -223,6 +224,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Timer.Context transactionTimerContext;
 
     private final LogConsumerProcessor logConsumerProcessor = createDefaultPerfLogger();
+    private final TransactionLockManager transactionLockManager;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -274,6 +276,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepQueue = sweepQueue;
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
+        this.transactionLockManager = SimpleTransactionLockManager.conservative(timelockService,
+                immutableTimestampLock);
     }
 
     @Override
@@ -1312,12 +1316,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        Timer.Context commitStageTimer = getTimer("commitStage").time();
-
-        Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
-        LockToken commitLocksToken = acquireLocksForCommit();
-        long microsForLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
         try {
+            Timer.Context commitStageTimer = getTimer("commitStage").time();
+
+            Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
+            LockToken commitLocksToken = acquireLocksForCommit();
+            long microsForLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
+
             long microsCheckingForConflicts =
                     runAndGetDurationMicros(() -> throwIfConflictOnCommit(commitLocksToken, transactionService),
                             "commitCheckingForConflicts");
@@ -1351,7 +1356,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness
 
             long microsForPreCommitLockCheck = runAndGetDurationMicros(
-                    () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken), "preCommitLockCheck");
+                    transactionLockManager::checkAndMaybeReleaseLocksBeforeCommit, "preCommitLockCheck");
 
             long microsForUserPreCommitCondition = runAndGetDurationMicros(
                     () -> preCommitCondition.throwIfConditionInvalid(commitTimestamp), "userPreCommitCondition");
@@ -1399,7 +1404,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .build();
                     });
         } finally {
-            timelockService.unlock(ImmutableSet.of(commitLocksToken));
+            transactionLockManager.releaseLocks();
         }
     }
 
@@ -1737,8 +1742,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
 
         LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMs);
-        LockResponse lockResponse = timelockService.lock(request);
-        if (!lockResponse.wasSuccessful()) {
+        Optional<LockToken> token = transactionLockManager.acquireTransactionLock(request);
+        if (!token.isPresent()) {
             log.error("Timed out waiting while acquiring commit locks. Request id was {}. Timeout was {} ms. "
                             + "First ten required locks were {}.",
                     SafeArg.of("requestId", request.getRequestId()),
@@ -1746,7 +1751,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
-        return lockResponse.getToken();
+        return token.get();
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {
@@ -1818,6 +1823,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
         }
+    }
+
+    public void unlockLocksIfComplete() {
+        State txState = state.get();
+        Preconditions.checkState(txState == State.COMMITTED || txState == State.ABORTED || txState == State.FAILED,
+                "Cannot unlock locks if the transaction was in state %s", txState);
+        transactionLockManager.releaseLocks();
     }
 
     ///////////////////////////////////////////////////////////////////////////

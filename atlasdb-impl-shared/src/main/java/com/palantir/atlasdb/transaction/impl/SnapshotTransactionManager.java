@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.codahale.metrics.Timer;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -54,6 +45,14 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final int NUM_RETRIES = 10;
@@ -168,7 +167,7 @@ import com.palantir.timestamp.TimestampService;
             result = runTaskThrowOnConflict(task, tx);
         } finally {
             postTaskContext = postTaskTimer.time();
-            timelockService.unlock(ImmutableSet.of(txAndLock.immutableTsLock()));
+            tx.unlockLocksIfComplete();
         }
         scrubForAggressiveHardDelete(tx);
         postTaskContext.stop();
