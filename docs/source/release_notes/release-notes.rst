@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - We now consider only one row at a time when getting rows from the KVS with sweepable cells.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3302>`__)
+
     *    - |improved| |metrics|
          - We now publish metrics for more individual stages of the commit stage in a SnapshotTransaction.
            We also now publish metrics for the total non-KVS overhead - both the absolute time involved as well as a ratio of this to the total time spent in the commit stage.
