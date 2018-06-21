@@ -217,11 +217,8 @@ public class BackgroundSweepThread implements Runnable {
                             realProgress -> shouldContinueSweepingCurrentTable(realProgress, overrideConfig))
                             .orElse(false)) {
                         try {
-                            createLockForTableIfNecessary(progress.get());
-                            if (currentTable.isPresent()) {
-                                //noinspection ConstantConditions // class runs in a single thread, so this is fine
-                                currentTable.get().refreshLock();
-                            }
+                            // If we're here, currentTable exists and we're going to sweep it again this iteration
+                            updateProgressAndRefreshLock(progress.get());
                             return currentTable;
                         } catch (InterruptedException ex) {
                             log.info("Sweep lost the lock for table {}",
@@ -238,22 +235,10 @@ public class BackgroundSweepThread implements Runnable {
                 });
     }
 
-    // This is needed if we've just grabbed the sweep thread lock and a previous thread was in the middle of a table
-    private void createLockForTableIfNecessary(SweepProgress progress) {
-        if (currentTable.isPresent() && !currentTable.get().getTableRef().equals(progress.tableRef())) {
-            // If currentTableToSweep is present, we're stopping the current table due to a new override. Release the lock
-            currentTable.ifPresent(tableToSweep -> tableToSweep.getSweepLock().close());
-        }
-
-        if (currentTable.isPresent()) {
-            //noinspection ConstantConditions
-            currentTable.get().setProgress(progress);
-        } else {
-            TableReference tableRef = progress.tableRef();
-            SingleLockService singleLockService = SingleLockService.createNamedLockServiceForTable(
-                    lockService, TABLE_LOCK_PREFIX, tableRef);
-            currentTable = Optional.of(TableToSweep.continueSweeping(tableRef, singleLockService, progress));
-        }
+    @SuppressWarnings("ConstantConditions") // class runs in a single thread, so this is fine
+    private void updateProgressAndRefreshLock(SweepProgress progress) throws InterruptedException {
+        currentTable.get().setProgress(progress);
+        currentTable.get().refreshLock();
     }
 
     private boolean shouldContinueSweepingCurrentTable(
