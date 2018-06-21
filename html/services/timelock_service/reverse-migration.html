@@ -182,6 +182,11 @@
             
   <div class="section" id="reverse-migration">
 <span id="timelock-reverse-migration"></span><h1>Reverse Migration<a class="headerlink" href="#reverse-migration" title="Permalink to this headline">¶</a></h1>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Many Atlas clients switched to using TimeLock by default many versions after it was reasonable to use Atlas with TimeLock.
+If you are on this page because you were directed to it by an error stating “This can happen if you attempt to run AtlasDB without a timelock block after having previously migrated to the TimeLock server”, then please <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">configure your service</span></a> to use TimeLock rather than attempting a reverse migration.</p>
+</div>
 <div class="admonition danger">
 <p class="first admonition-title">Danger</p>
 <p class="last">Improperly executing reverse migration from external timestamp and lock services can result in
