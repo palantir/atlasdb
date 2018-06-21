@@ -49,6 +49,19 @@ public class PersistentLockManager implements AutoCloseable {
     @GuardedBy("this")
     PersistentLockId lockId;
 
+    /* This is used to prevent the following error case:
+     * 1. Sweep thread 1 grabs the lock for deleting stuff
+     * 2. Sweep thread 2 grabs the lock for deleting stuff
+     * 3. Sweep thread 1 releases the lock
+     * 4. A backup starts
+     * 5. Sweep thread 2 releases the lock
+     *
+     * A backup taken between steps 4 and 5 is not guaranteed to be consistent, because sweep may be deleting data
+     * that it relies on.
+     */
+    @GuardedBy("this")
+    int referenceCount = 0;
+
     @GuardedBy("this")
     private boolean isShutDown = false;
 
@@ -90,6 +103,7 @@ public class PersistentLockManager implements AutoCloseable {
 
         try {
             lockId = persistentLockService.acquireBackupLock("Sweep");
+            referenceCount++;
             log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lockId", lockId));
             return true;
         } catch (CheckAndSetException e) {
@@ -102,11 +116,13 @@ public class PersistentLockManager implements AutoCloseable {
                         SafeArg.of("actualEntry", actualEntry));
                 if (lockId != null && actualEntry.instanceId().equals(lockId.value())) {
                     // We tried to acquire while already holding the lock. Welp - but we still have the lock.
+                    referenceCount++;
                     log.info("Attempted to acquire the a new lock when we already held a lock."
                             + " The acquire failed, but our lock is still valid, so we still hold the lock.");
                     return true;
                 } else {
                     // In this case, some other process holds the lock. Therefore, we don't hold the lock.
+                    referenceCount = 0;
                     lockId = null;
                 }
             }
@@ -130,15 +146,21 @@ public class PersistentLockManager implements AutoCloseable {
             return;
         }
 
-        log.info("Releasing persistent lock {}", SafeArg.of("lockId", lockId));
-        try {
-            persistentLockService.releaseBackupLock(lockId);
-            lockId = null;
-        } catch (CheckAndSetException e) {
-            log.error("Failed to release persistent lock {}. The lock must have been released from under us. "
-                            + "Future sweeps should correctly be able to re-acquire the lock.",
-                    SafeArg.of("lockId", lockId), e);
-            lockId = null;
+        referenceCount--;
+        if (referenceCount <= 0) {
+            log.info("Releasing persistent lock {}", SafeArg.of("lockId", lockId));
+            try {
+                persistentLockService.releaseBackupLock(lockId);
+                lockId = null;
+            } catch (CheckAndSetException e) {
+                log.error("Failed to release persistent lock {}. The lock must have been released from under us. "
+                                + "Future sweeps should correctly be able to re-acquire the lock.",
+                        SafeArg.of("lockId", lockId), e);
+                lockId = null;
+            }
+        } else {
+            log.info("Not releasing the persistent lock, because {} threads still hold it.",
+                    SafeArg.of("numLockHolders", referenceCount));
         }
     }
 
