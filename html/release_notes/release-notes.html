@@ -219,6 +219,11 @@ This is unlikely to have affected anyone because the default batch size used was
 <td>Added logging for leadership election code.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3275">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Cassandra retry messages now log bounds on attempts correctly.
+Previously, they would log the supplier of these bounds (instead of the actual bounds, which users are more likely to be interested in).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3291">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
