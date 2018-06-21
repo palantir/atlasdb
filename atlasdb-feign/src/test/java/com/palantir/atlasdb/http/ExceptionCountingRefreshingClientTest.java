@@ -139,7 +139,9 @@ public class ExceptionCountingRefreshingClientTest {
         for (int i = 0; i < numberOfExecutions; i++) {
             try {
                 client.execute(request, options);
-            } catch (RuntimeException e) {}
+            } catch (RuntimeException e) {
+                // ignored - TODO(gsheasby): Should check exception content
+            }
         }
     }
 }
