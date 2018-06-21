@@ -67,7 +67,8 @@ public final class AtlasDbConfigs {
         return getConfig(node, configRoot, clazz);
     }
 
-    public static <T> T loadFromString(String fileContents, @Nullable String configRoot, Class<T> clazz) throws IOException {
+    public static <T> T loadFromString(String fileContents, @Nullable String configRoot, Class<T> clazz)
+            throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(fileContents);
         return getConfig(node, configRoot, clazz);
     }
