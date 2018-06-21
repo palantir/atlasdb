@@ -150,8 +150,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
-                log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
-
+                logOutcome(outcome);
                 updateBatchSize(outcome);
                 updateMetrics(outcome);
 
@@ -173,6 +172,17 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
                     + "asynchronous initialization, these tables are being initialized asynchronously. Background "
                     + "sweeper will start once the initialization is complete.");
             sleepForMillis(getBackoffTimeWhenSweepHasNotRun());
+        }
+    }
+
+    private void logOutcome(SweepOutcome outcome) {
+        if (outcome.equals(SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS)) {
+            log.info("Sweep iteration finished with outcome: {}. This means that sweep is running elsewhere. "
+                            + "If all nodes in an HA setup report this outcome, "
+                            + "then another cluster may be connecting to the same Cassandra keyspace.",
+                    SafeArg.of("sweepOutcome", outcome));
+        } else {
+            log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
         }
     }
 
