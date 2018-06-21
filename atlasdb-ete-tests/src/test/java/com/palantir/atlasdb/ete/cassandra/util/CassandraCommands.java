@@ -27,6 +27,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 
 public class CassandraCommands {
+    private CassandraCommands() {
+        // Utility class
+    }
+
     public static void nodetoolFlush(String containerName) throws IOException, InterruptedException {
         EteSetup.execCliCommand(containerName, "nodetool flush");
     }
