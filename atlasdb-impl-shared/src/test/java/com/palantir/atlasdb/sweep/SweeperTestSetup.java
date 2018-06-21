@@ -67,6 +67,7 @@ public class SweeperTestSetup {
     private boolean sweepEnabled = true;
     protected LegacySweepMetrics sweepMetrics = mock(LegacySweepMetrics.class);
     protected long currentTimeMillis = 1000200300L;
+    protected SweepPriorityOverrideConfig overrideConfig;
 
     @BeforeClass
     public static void initialiseConfig() {
@@ -83,6 +84,7 @@ public class SweeperTestSetup {
     public void setup() {
         specificTableSweeper = getSpecificTableSweeperService();
         backgroundSweeper = getBackgroundSweepThread(THREAD_INDEX);
+        overrideConfig = SweepPriorityOverrideConfig.defaultConfig();
     }
 
     protected BackgroundSweepThread getBackgroundSweepThread(int threadIndex) {
@@ -92,7 +94,7 @@ public class SweeperTestSetup {
                 sweepBatchConfigSource,
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
-                SweepPriorityOverrideConfig::defaultConfig,
+                () -> overrideConfig,
                 specificTableSweeper,
                 new SweepOutcomeMetrics(metricsManager),
                 new CountDownLatch(1),
