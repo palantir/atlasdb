@@ -16,19 +16,22 @@
 
 package com.palantir.lock.client;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 
 /**
  * The ExecutorService provided here should have sufficiently many threads to unlock locks from write transactions
@@ -48,11 +51,19 @@ public class AsyncTimeLockUnlocker {
     private final ScheduledExecutorService scheduledExecutorService;
 
     private final AtomicBoolean available = new AtomicBoolean(true);
-    private final AtomicReference<Set<LockToken>> outstandingLockTokens = new AtomicReference<>(ImmutableSet.of());
+    private final AtomicReference<Set<LockToken>> outstandingLockTokens;
 
-    public AsyncTimeLockUnlocker(TimelockService timelockService, ScheduledExecutorService scheduledExecutorService) {
+    AsyncTimeLockUnlocker(TimelockService timelockService, ScheduledExecutorService scheduledExecutorService) {
+        this(timelockService, scheduledExecutorService, new AtomicReference<>(ImmutableSet.of()));
+    }
+
+    @VisibleForTesting
+    AsyncTimeLockUnlocker(TimelockService timelockService,
+            ScheduledExecutorService scheduledExecutorService,
+            AtomicReference<Set<LockToken>> outstandingLockTokens) {
         this.timelockService = timelockService;
         this.scheduledExecutorService = scheduledExecutorService;
+        this.outstandingLockTokens = outstandingLockTokens;
         schedulePeriodicKickJob();
     }
 
