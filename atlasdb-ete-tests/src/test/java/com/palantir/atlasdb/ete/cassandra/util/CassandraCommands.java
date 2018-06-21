@@ -26,7 +26,7 @@ import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 
-public class CassandraCommands {
+public final class CassandraCommands {
     private CassandraCommands() {
         // Utility class
     }

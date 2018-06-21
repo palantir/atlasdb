@@ -79,7 +79,7 @@ public class ExceptionCountingRefreshingClientTest {
         int numberOfExecutions = EXCEPTION_COUNT_BEFORE_REFRESH + 1;
         callExecute(refreshingClient, numberOfExecutions);
 
-        verify(clientSupplier, times((numberOfExecutions / EXCEPTION_COUNT_BEFORE_REFRESH + 1))).get();
+        verify(clientSupplier, times(numberOfExecutions / EXCEPTION_COUNT_BEFORE_REFRESH + 1)).get();
         verify(client, times(numberOfExecutions)).execute(request, options);
         verifyNoMoreInteractions(clientSupplier, client);
     }
@@ -94,7 +94,7 @@ public class ExceptionCountingRefreshingClientTest {
         int numberOfExecutions = EXCEPTION_COUNT_BEFORE_REFRESH + 1;
         callExecute(refreshingClient, numberOfExecutions);
 
-        verify(clientSupplier, times((numberOfExecutions / EXCEPTION_COUNT_BEFORE_REFRESH + 1))).get();
+        verify(clientSupplier, times(numberOfExecutions / EXCEPTION_COUNT_BEFORE_REFRESH + 1)).get();
         verify(client, times(numberOfExecutions)).execute(request, options);
         verifyNoMoreInteractions(clientSupplier, client);
     }
