@@ -82,7 +82,7 @@ public class PersistentLockManager implements AutoCloseable {
     public synchronized void shutdown() {
         log.info("Shutting down...");
         isShutDown = true;
-        if (lockId != null) {
+        while (lockId != null) {
             releasePersistentLock();
         }
         log.info("Shutdown completed!");

@@ -133,6 +133,15 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    public void afterAcquiringTwiceAndShuttingDownWeDoNotHaveTheLock() {
+        manager.acquirePersistentLockWithRetry();
+        manager.acquirePersistentLockWithRetry();
+        manager.shutdown();
+
+        assertThat(manager.lockId, nullValue());
+    }
+
+    @Test
     public void releaseWithoutAcquireIsNoOp() {
         manager.releasePersistentLock();
 
