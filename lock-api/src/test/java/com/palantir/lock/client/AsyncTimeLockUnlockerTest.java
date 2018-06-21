@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -40,6 +41,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.v2.LockToken;
@@ -52,8 +54,9 @@ public class AsyncTimeLockUnlockerTest {
     private List<LockToken> unlockedTokens;
 
     private TimelockService timelockService = mock(TimelockService.class);
-    private AsyncTimeLockUnlocker unlocker
-            = new AsyncTimeLockUnlocker(timelockService, PTExecutors.newSingleThreadScheduledExecutor());
+    private AtomicReference<Set<LockToken>> outstandingTokens = new AtomicReference<>(Sets.newConcurrentHashSet());
+    private AsyncTimeLockUnlocker unlocker = new AsyncTimeLockUnlocker(
+            timelockService, PTExecutors.newSingleThreadScheduledExecutor(), outstandingTokens);
 
     @Before
     public void setUp() {
@@ -77,10 +80,8 @@ public class AsyncTimeLockUnlockerTest {
         setupTokenCollectingTimeLock();
 
         tokenList.forEach(token -> unlocker.enqueue(ImmutableSet.of(token)));
-        Uninterruptibles.sleepUninterruptibly(4, TimeUnit.SECONDS);
 
         verifyTryUnlockAttemptedAtLeastOnce();
-        assertThat(unlockedTokens).hasSameElementsAs(tokenList);
         assertAllTokensEventuallyUnlocked();
     }
 
@@ -115,6 +116,13 @@ public class AsyncTimeLockUnlockerTest {
         verifyTryUnlockAttemptedAtLeastOnce();
         assertAllTokensEventuallyUnlocked();
         assertThat(concurrentlyInvoked.get()).as("TimeLock was, at some point, called concurrently").isFalse();
+    }
+
+    @Test
+    public void clearsOutTokensEvenIfTheyDoNotKickOffUnlockJob() {
+        setupTokenCollectingTimeLock();
+        outstandingTokens.getAndAccumulate(ImmutableSet.copyOf(tokenList), Sets::union);
+        assertAllTokensEventuallyUnlocked();
     }
 
     private static List<LockToken> createLockTokenList(int size) {
