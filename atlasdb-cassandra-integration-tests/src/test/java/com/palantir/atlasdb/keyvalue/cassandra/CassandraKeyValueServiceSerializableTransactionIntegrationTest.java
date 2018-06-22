@@ -46,7 +46,7 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
-       return TargetedSweeper.createUninitializedForTest(() -> 128);
+        return TargetedSweeper.createUninitializedForTest(() -> 128);
     }
 
     @Override

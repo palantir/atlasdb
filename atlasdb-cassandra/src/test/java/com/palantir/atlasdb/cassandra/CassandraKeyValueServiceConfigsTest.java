@@ -46,6 +46,7 @@ public class CassandraKeyValueServiceConfigsTest {
                     .keyspace(KEYSPACE)
                     .replicationFactor(1)
                     .build();
+
     @Test
     public void canDeserialize() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()

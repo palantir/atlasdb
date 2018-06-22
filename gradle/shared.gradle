@@ -22,11 +22,6 @@ repositories {
     }
 }
 
-checkstyle {
-    toolVersion = libVersions.checkstyle
-    configFile rootProject.file('config/checkstyle/checkstyle.xml')
-}
-
 jar {
     manifest {
         attributes(

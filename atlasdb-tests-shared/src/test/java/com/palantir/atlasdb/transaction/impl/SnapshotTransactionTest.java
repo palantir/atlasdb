@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import static java.util.Collections.singleton;
-
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
@@ -1085,7 +1083,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         assertThatExceptionOfType(TransactionCommitFailedException.class).isThrownBy(snapshot::commit);
 
-        timelockService.unlock(singleton(res.getLock()));
+        timelockService.unlock(Collections.singleton(res.getLock()));
     }
 
     @Test
@@ -1129,7 +1127,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
         snapshot.commit();
 
-        timelockService.unlock(singleton(res.getLock()));
+        timelockService.unlock(Collections.singleton(res.getLock()));
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {

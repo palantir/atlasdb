@@ -55,6 +55,59 @@ develop
            This avoids multiple hosts doing the same sweeps.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
 
+=======
+v0.92.2
+=======
+
+22 June 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - With targeted sweep, we now only call timelock once per set of range tombstones we leave, rather than once per cell.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3305>`__)
+
+=======
+v0.92.1
+=======
+
+21 June 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - We now consider only one row at a time when getting rows from the KVS with sweepable cells.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3302>`__)
+
+    *    - |fixed|
+         - Cassandra retry messages now log bounds on attempts correctly.
+           Previously, they would log the supplier of these bounds (instead of the actual bounds, which users are more likely to be interested in).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3291>`__)
+
+=======
+v0.92.0
+=======
+
+20 June 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+>>>>>>> 874f68c24a450c3321b8c7b2a29e8db08f4bd19b
+
     *    - |improved| |metrics|
          - We now publish metrics for more individual stages of the commit stage in a SnapshotTransaction.
            We also now publish metrics for the total non-KVS overhead - both the absolute time involved as well as a ratio of this to the total time spent in the commit stage.
@@ -87,12 +140,6 @@ develop
     *    - |improved| |logs|
          - Added logging for leadership election code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3275>`__)
-
-    *    - |fixed|
-         - Cassandra retry messages now log bounds on attempts correctly.
-           Previously, they would log the supplier of these bounds (instead of the actual bounds, which users are more likely to be interested in).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3291>`__)
-
 
 =======
 v0.91.0

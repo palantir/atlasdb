@@ -22,7 +22,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Prefer this to {@link javax.annotation.concurrent.Immutable} because it has runtime retention
+ * Prefer this to {@link javax.annotation.concurrent.Immutable} because it has runtime retention.
  * @author carrino
  */
 @Documented
