@@ -54,7 +54,7 @@ public class CommitProfileProcessorTest {
     }
 
     @Test
-    public void overheadEqualsZeroIfKvsWriteEqualsCommitTime() {
+    public void overheadEqualsZeroIfKvsWriteTimeEqualsCommitTime() {
         givenTotalCommitTimeIs(100L);
         givenKvsWriteTimeIs(100L);
 
@@ -103,6 +103,54 @@ public class CommitProfileProcessorTest {
 
         thenNonPutOverheadIs(0L);
         thenNonPutOverheadCanBeCalculated();
+    }
+
+    @Test
+    public void resilientToVerySmallOverheads() {
+        givenTotalCommitTimeIs(2_000_000L);
+        givenKvsWriteTimeIs(1_999_999L);
+        givenPostCommitOverheadIs(0L);
+
+        whenComputingDerivedMetrics();
+
+        thenNonPutOverheadIs(1L);
+        thenNonPutOverheadMillionthsIsVeryCloseTo(1L);
+    }
+
+    @Test
+    public void resilientToVeryLargeOverheadsDuringCommit() {
+        givenTotalCommitTimeIs(2_000_000L);
+        givenKvsWriteTimeIs(1L);
+        givenPostCommitOverheadIs(0L);
+
+        whenComputingDerivedMetrics();
+
+        thenNonPutOverheadIs(1_999_999L);
+        thenNonPutOverheadMillionthsIsVeryCloseTo(999_999L);
+    }
+
+    @Test
+    public void resilientToVeryLargeOverheadsAfterCommit() {
+        givenTotalCommitTimeIs(1L);
+        givenKvsWriteTimeIs(1L);
+        givenPostCommitOverheadIs(1_999_999L);
+
+        whenComputingDerivedMetrics();
+
+        thenNonPutOverheadIs(1_999_999L);
+        thenNonPutOverheadMillionthsIsVeryCloseTo(999_999L);
+    }
+
+    @Test
+    public void resilientToVerySlowCommit() {
+        givenTotalCommitTimeIs(Long.MAX_VALUE / 2);
+        givenKvsWriteTimeIs(7L);
+        givenPostCommitOverheadIs(Long.MAX_VALUE / 2 + 1);
+
+        whenComputingDerivedMetrics();
+
+        thenNonPutOverheadIs(Long.MAX_VALUE - 7L);
+        thenNonPutOverheadMillionthsIsVeryCloseTo(1_000_000L);
     }
 
     private void givenTotalCommitTimeIs(long totalTime) {
