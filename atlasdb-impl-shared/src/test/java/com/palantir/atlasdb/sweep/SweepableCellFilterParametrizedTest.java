@@ -83,17 +83,17 @@ public class SweepableCellFilterParametrizedTest {
     @Before
     @SuppressWarnings("unchecked")
     public void setup() {
-            Map<Long, Long> startTsToCommitTs = new HashMap<>();
-            COMMITTED_BEFORE.forEach(startTs -> startTsToCommitTs.put(startTs, startTs));
-            COMMITTED_AFTER.forEach(startTs -> startTsToCommitTs.put(startTs, startTs + SWEEP_TS));
-            ABORTED_TS.forEach(startTs -> startTsToCommitTs.put(startTs, TransactionConstants.FAILED_COMMIT_TS));
-            startTsToCommitTs.put(LAST_TS, status.commitTs);
-            when(mockTransactionService.get(anyCollection())).thenReturn(startTsToCommitTs);
-            candidate = ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
-                    .cell(SINGLE_CELL)
-                    .sortedTimestamps(ImmutableList.sortedCopyOf(startTsToCommitTs.keySet()))
-                    .isLatestValueEmpty(lastIsTombstone)
-                    .build());
+        Map<Long, Long> startTsToCommitTs = new HashMap<>();
+        COMMITTED_BEFORE.forEach(startTs -> startTsToCommitTs.put(startTs, startTs));
+        COMMITTED_AFTER.forEach(startTs -> startTsToCommitTs.put(startTs, startTs + SWEEP_TS));
+        ABORTED_TS.forEach(startTs -> startTsToCommitTs.put(startTs, TransactionConstants.FAILED_COMMIT_TS));
+        startTsToCommitTs.put(LAST_TS, status.commitTs);
+        when(mockTransactionService.get(anyCollection())).thenReturn(startTsToCommitTs);
+        candidate = ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
+                .cell(SINGLE_CELL)
+                .sortedTimestamps(ImmutableList.sortedCopyOf(startTsToCommitTs.keySet()))
+                .isLatestValueEmpty(lastIsTombstone)
+                .build());
     }
 
     /**
