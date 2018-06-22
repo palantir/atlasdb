@@ -57,6 +57,9 @@ public final class TargetedSweeperLock {
     }
 
     public void unlock() {
-        lockRefreshToken.ifPresent(lockService::unlock);
+        lockRefreshToken.ifPresent(token -> {
+            lockService.unlock(token);
+            lockRefreshToken = Optional.empty();
+        });
     }
 }

@@ -31,7 +31,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS;
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.BATCH_SIZE_KVS;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_GENERIC;
@@ -59,6 +58,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -122,8 +122,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void enqueueUpdatesNumberOfShards() {
-        assertThat(DEFAULT_SWEEP_QUEUE_SHARDS).isLessThan(DEFAULT_SHARDS);
-        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SWEEP_QUEUE_SHARDS);
+        assertThat(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS).isLessThan(DEFAULT_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS);
     }
