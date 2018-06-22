@@ -38,6 +38,7 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_FINE_GRANULARI
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFinePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 
+import com.palantir.lock.LockService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +80,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void setup() {
         super.setup();
         mockFollower = mock(TargetedSweepFollower.class);
-        sweepQueue.initialize(timestampsSupplier, spiedKvs, mockFollower);
+        sweepQueue.initialize(timestampsSupplier, mock(LockService.class), spiedKvs, mockFollower);
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
@@ -103,7 +104,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         KeyValueService uninitializedKvs = mock(KeyValueService.class);
         when(uninitializedKvs.isInitialized()).thenReturn(false);
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(null);
-        assertThatThrownBy(() -> sweeper.initialize(null, uninitializedKvs, mock(TargetedSweepFollower.class)))
+        assertThatThrownBy(() -> sweeper.initialize(null, mock(LockService.class), uninitializedKvs, mock(TargetedSweepFollower.class)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -113,12 +114,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         TargetedSweeper sweeperConservative = TargetedSweeper
                 .createUninitialized(MetricsManagers.createForTests(), null, null, DEFAULT_SHARDS + 5, 0, ImmutableList.of());
-        sweeperConservative.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
+        sweeperConservative.initialize(timestampsSupplier, mock(LockService.class), spiedKvs, mock(TargetedSweepFollower.class));
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 5);
 
         TargetedSweeper sweeperThorough = TargetedSweeper
                 .createUninitialized(MetricsManagers.createForTests(), null, null, 0, DEFAULT_SHARDS + 10, ImmutableList.of());
-        sweeperThorough.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
+        sweeperThorough.initialize(timestampsSupplier, mock(LockService.class), spiedKvs, mock(TargetedSweepFollower.class));
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 10);
     }
 
@@ -910,7 +911,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private TargetedSweeper getSingleShardSweeper() {
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
-        sweeper.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
+        sweeper.initialize(timestampsSupplier, mock(LockService.class), spiedKvs, mock(TargetedSweepFollower.class));
         return sweeper;
     }
 }

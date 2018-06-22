@@ -140,9 +140,9 @@ public final class SweepQueue implements SweepQueueWriter {
     }
 
     /**
-     * Returns number modulo the most recently known number of shards.
+     * Returns the most recently known number of shards.
      */
-    public int modShards(long number) {
-        return (int) (number % numShards.get());
+    public int getNumShards() {
+        return numShards.get();
     }
 }

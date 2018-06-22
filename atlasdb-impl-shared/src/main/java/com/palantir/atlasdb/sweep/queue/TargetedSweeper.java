@@ -16,9 +16,10 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.math.IntMath;
+import com.palantir.lock.LockService;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -51,8 +52,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private final Supplier<Integer> shardsConfig;
     private final int minShards;
     private final List<Follower> followers;
-
     private final MetricsManager metricsManager;
+    private LockService lockService;
 
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
@@ -76,8 +77,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     /**
      * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
-     * {@link #initialize(SpecialTimestampsSupplier, KeyValueService, TargetedSweepFollower)} method before any writes
-     * can be made to the sweep queue, or before sweeping.
+     * {@link #initialize(SpecialTimestampsSupplier, LockService, KeyValueService, TargetedSweepFollower)} method
+     * before any writes can be made to the sweep queue, or before sweeping.
      *
      * @param enabled live reloadable config controlling whether background threads should perform targeted sweep.
      * @param shardsConfig live reloadable config specifying the desired number of shards. Since the number of shards
@@ -87,18 +88,14 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * @param followers follower used for sweeps, as defined by your schema.
      * @return returns an uninitialized targeted sweeper.
      */
-    public static TargetedSweeper createUninitialized(
-            MetricsManager metricsManager,
-            Supplier<Boolean> enabled, Supplier<Integer> shardsConfig,
-            int conservativeThreads, int thoroughThreads, List<Follower> followers) {
-        return new TargetedSweeper(
-                metricsManager, enabled, shardsConfig, conservativeThreads, thoroughThreads, followers);
+    public static TargetedSweeper createUninitialized(MetricsManager metrics, Supplier<Boolean> enabled,
+            Supplier<Integer> shardsConfig, int conservativeThreads, int thoroughThreads, List<Follower> followers) {
+        return new TargetedSweeper(metrics, enabled, shardsConfig, conservativeThreads, thoroughThreads, followers);
     }
 
     @VisibleForTesting
     public static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager, Supplier<Integer> shards) {
-        return createUninitialized(
-                metricsManager, () -> true, shards, 0, 0, ImmutableList.of());
+        return createUninitialized(metricsManager, () -> true, shards, 0, 0, ImmutableList.of());
     }
 
     @VisibleForTesting
@@ -111,18 +108,20 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * once the kvs is ready.
      *
      * @param timestamps supplier of unreadable and immutable timestamps.
+     * @param lock LockService to use for synchronizing iterations of sweep on different nodes
      * @param kvs key value service that must be already initialized.
-     * @param follow follower used for sweeps.
+     * @param follower followers used for sweeps.
      */
-    public void initialize(SpecialTimestampsSupplier timestamps, KeyValueService kvs, TargetedSweepFollower follow) {
+    public void initialize(SpecialTimestampsSupplier timestamps, LockService lock, KeyValueService kvs, TargetedSweepFollower follower) {
         if (isInitialized) {
             return;
         }
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        queue = SweepQueue.create(metricsManager, kvs, shardsConfig, minShards, follow);
+        queue = SweepQueue.create(metricsManager, kvs, shardsConfig, minShards, follower);
         timestampsSupplier = timestamps;
+        lockService = lock;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
         isInitialized = true;
@@ -131,6 +130,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     @Override
     public void callbackInit(TransactionManager txManager) {
         initialize(SpecialTimestampsSupplier.create(txManager),
+                txManager.getLockService(),
                 txManager.getKeyValueService(),
                 new TargetedSweepFollower(followers, txManager));
     }
@@ -173,7 +173,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         private final int numThreads;
         private final TableMetadataPersistence.SweepStrategy sweepStrategy;
         private final AtomicLong counter = new AtomicLong(0);
-        private final Set<Integer> shardsBeingSwept = new ConcurrentSkipListSet<>();
 
         private ScheduledExecutorService executorService;
 
@@ -193,31 +192,39 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         }
 
         private void runOneIteration() {
-            ShardAndStrategy shardStrategy = ShardAndStrategy.of(lockNextShardToSweep(), sweepStrategy);
+            Optional<TargetedSweeperLock> maybeLock = Optional.empty();
             try {
-                sweepNextBatch(shardStrategy);
+                maybeLock = tryToAcquireLockForNextShardAndStrategy();
+                maybeLock.ifPresent(lock -> sweepNextBatch(lock.getShardAndStrategy()));
             } catch (Throwable th) {
-                log.warn("Targeted sweep for {} failed and will be retried later.",
-                        SafeArg.of("shardStrategy", shardStrategy.toText()), th);
+                if (maybeLock.isPresent()) {
+                    log.warn("Targeted sweep for {} failed and will be retried later.",
+                            SafeArg.of("shardStrategy", maybeLock.get().getShardAndStrategy().toText()), th);
+                } else {
+                    log.warn("Targeted sweep for sweep strategy {} failed and will be retried later.",
+                            SafeArg.of("sweepStrategy", sweepStrategy), th);
+                }
             } finally {
-                unlockShard(shardStrategy.shard());
+                maybeLock.ifPresent(TargetedSweeperLock::unlock);
             }
         }
 
-        private int lockNextShardToSweep() {
-            int nextShardCandidate = getShardAndIncrement();
-            while (!shardsBeingSwept.add(nextShardCandidate)) {
-                nextShardCandidate = getShardAndIncrement();
+        private Optional<TargetedSweeperLock> tryToAcquireLockForNextShardAndStrategy() throws InterruptedException {
+            for (int i = 0; i < queue.getNumShards(); i++) {
+                int nextShardCandidate = getShardAndIncrement();
+                TargetedSweeperLock lock = TargetedSweeperLock.acquire(nextShardCandidate, sweepStrategy, lockService);
+                if (lock.isHeld()) {
+                    return Optional.of(lock);
+                }
             }
-            return nextShardCandidate;
+            log.info("There are no candidates for this iteration of targeted sweep as all shards for sweep strategy {} "
+                    + "are currently being swept by other threads. You may consider increasing the number of shards, "
+                    + "or reducing the number of threads.", SafeArg.of("sweepStrategy", sweepStrategy));
+            return Optional.empty();
         }
 
         private int getShardAndIncrement() {
-            return queue.modShards(counter.getAndIncrement());
-        }
-
-        private void unlockShard(int shard) {
-            shardsBeingSwept.remove(shard);
+            return (int) (counter.getAndIncrement() % queue.getNumShards());
         }
 
         @Override

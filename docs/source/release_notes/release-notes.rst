@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Targeted sweep now uses timelock locks to synchronize background threads on multiple hosts.
+           This avoids multiple hosts doing the same sweeps.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
     *    - |improved| |metrics|
          - We now publish metrics for more individual stages of the commit stage in a SnapshotTransaction.
            We also now publish metrics for the total non-KVS overhead - both the absolute time involved as well as a ratio of this to the total time spent in the commit stage.
