@@ -21,7 +21,7 @@ import java.lang.annotation.RetentionPolicy;
 
 /**
  * Marks a server call cancelable - the server call can now throw interrupted exceptions on the client,
- * and interrupting on the client will propagate to the server
+ * and interrupting on the client will propagate to the server.
  *
  * @author kbrainard
  */
