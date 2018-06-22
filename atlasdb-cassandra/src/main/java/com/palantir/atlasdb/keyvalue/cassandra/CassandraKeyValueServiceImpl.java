@@ -1764,6 +1764,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
                 clientPool, maxTimestampExclusiveByCell.entrySet());
 
+        // this is required by the interface of the CassandraMutationTimestampProvider, although it exists for tests
         long maxTimestampForAllCells = maxTimestampExclusiveByCell.values().stream().mapToLong(x -> x).max().getAsLong();
         long rangeTombstoneCassandraTimestamp =
                 mutationTimestampProvider.getRangeTombstoneTimestamp(maxTimestampForAllCells);
