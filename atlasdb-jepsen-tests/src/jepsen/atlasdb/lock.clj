@@ -8,6 +8,7 @@
             [jepsen.os.debian :as debian]
             [jepsen.util :refer [timeout]]
             [knossos.history :as history])
+  (:import com.codahale.metrics.MetricRegistry)
   (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
   (:import com.palantir.atlasdb.http.JepsenLockClient)
   (:import com.palantir.atlasdb.http.SynchronousLockClient)
@@ -141,8 +142,8 @@
 
 (defn sync-lock-test
   [nem]
-    (lock-test nem (fn [] (SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5")))))
+    (lock-test nem (fn [] (SynchronousLockClient/create (MetricRegistry.) '("n1" "n2" "n3" "n4" "n5")))))
 
 (defn async-lock-test
   [nem]
-    (lock-test nem (fn [] (AsyncLockClient/create '("n1" "n2" "n3" "n4" "n5")))))
+    (lock-test nem (fn [] (AsyncLockClient/create (MetricRegistry.) '("n1" "n2" "n3" "n4" "n5")))))
