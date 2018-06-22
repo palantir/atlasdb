@@ -1765,9 +1765,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 clientPool, maxTimestampExclusiveByCell.entrySet());
 
         // this is required by the interface of the CassandraMutationTimestampProvider, although it exists for tests
-        long maxTimestampForAllCells = maxTimestampExclusiveByCell.values().stream().mapToLong(x -> x).max().getAsLong();
+        long maxTimestampAllCells = maxTimestampExclusiveByCell.values().stream().mapToLong(x -> x).max().getAsLong();
         long rangeTombstoneCassandraTimestamp =
-                mutationTimestampProvider.getRangeTombstoneTimestamp(maxTimestampForAllCells);
+                mutationTimestampProvider.getRangeTombstoneTimestamp(maxTimestampAllCells);
         for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
             deleteAllTimestampsOnSingleHost(
                     tableRef,

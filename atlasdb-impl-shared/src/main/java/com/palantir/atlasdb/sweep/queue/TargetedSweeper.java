@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import com.google.common.math.IntMath;
-import com.palantir.lock.LockService;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,6 +41,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
@@ -50,7 +49,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
-    private final int minShards;
     private final List<Follower> followers;
     private final MetricsManager metricsManager;
     private LockService lockService;
@@ -71,7 +69,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
         this.thoroughScheduler = new BackgroundSweepScheduler(thoroughThreads,
                 TableMetadataPersistence.SweepStrategy.THOROUGH);
-        this.minShards = Math.max(conservativeThreads, thoroughThreads);
         this.followers = followers;
     }
 
@@ -119,7 +116,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        queue = SweepQueue.create(metricsManager, kvs, shardsConfig, minShards, follower);
+        queue = SweepQueue.create(metricsManager, kvs, shardsConfig, follower);
         timestampsSupplier = timestamps;
         lockService = lock;
         conservativeScheduler.scheduleBackgroundThreads();
