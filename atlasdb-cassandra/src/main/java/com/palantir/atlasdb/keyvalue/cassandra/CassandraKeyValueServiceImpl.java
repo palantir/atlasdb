@@ -386,8 +386,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void tryInitialize() {
-        boolean supportsCas = !config.scyllaDb()
-                && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+        boolean supportsCas = clientPool.runWithRetry(
+                CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
         schemaMutationLock = new SchemaMutationLock(
                 supportsCas,
