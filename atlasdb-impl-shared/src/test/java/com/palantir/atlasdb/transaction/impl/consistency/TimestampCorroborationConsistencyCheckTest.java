@@ -28,8 +28,8 @@ import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class TimestampCorroborationConsistencyCheckTest {
-    private final RuntimeException EXCEPTION = new IllegalStateException("bad");
-    private final ToLongFunction<TransactionManager> EXCEPTION_THROWER = unused -> {
+    private static final RuntimeException EXCEPTION = new IllegalStateException("bad");
+    private static final ToLongFunction<TransactionManager> EXCEPTION_THROWER = unused -> {
         throw EXCEPTION;
     };
 

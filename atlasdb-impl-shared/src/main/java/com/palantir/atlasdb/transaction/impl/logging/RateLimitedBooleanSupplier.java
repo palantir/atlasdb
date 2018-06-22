@@ -20,7 +20,7 @@ import java.util.function.BooleanSupplier;
 
 import com.google.common.util.concurrent.RateLimiter;
 
-public class RateLimitedBooleanSupplier implements BooleanSupplier {
+public final class RateLimitedBooleanSupplier implements BooleanSupplier {
     private final RateLimiter rateLimiter;
 
     private RateLimitedBooleanSupplier(RateLimiter rateLimiter) {
@@ -32,7 +32,7 @@ public class RateLimitedBooleanSupplier implements BooleanSupplier {
      * of wall-clock time). The first returned value should always be true.
      *
      * @param secondsBetweenTrues number of seconds between 'true' responses.
-     * @return boolean supplier following the aforementioned rules.
+     * @return boolean supplier following the aforementioned rules
      */
     public static BooleanSupplier create(double secondsBetweenTrues) {
         if (secondsBetweenTrues == 0.0) {

@@ -1980,8 +1980,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         constraintsByTableName.put(tableRef, table);
     }
 
-    /** the similarly-named-and-intentioned useTable method is only called on writes,
-     *  this one is more comprehensive and covers read paths as well
+    /** The similarly-named-and-intentioned useTable method is only called on writes.
+     *  This one is more comprehensive and covers read paths as well
      * (necessary because we wish to get the sweep strategies of tables in read-only transactions)
      */
     private void markTableAsInvolvedInThisTransaction(TableReference tableRef) {
