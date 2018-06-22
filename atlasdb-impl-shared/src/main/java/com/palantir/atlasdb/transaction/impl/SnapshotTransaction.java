@@ -223,7 +223,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private final Timer.Context transactionTimerContext;
 
-    private final CommitProfileProcessor profilingLogger = createDefaultCommitProfileProcessor();
+    private final CommitProfileProcessor profileProcessor = createDefaultCommitProfileProcessor();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -1385,7 +1385,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         } finally {
             long microsForPostCommitUnlock = runAndReportTimeAndGetDurationMicros(
                     () -> timelockService.unlock(ImmutableSet.of(commitLocksToken)), "postCommitUnlock");
-            optionalProfile.ifPresent(profile -> profilingLogger.consumeProfilingData(profile,
+            
+            // We only care about detailed profiling for successful transactions
+            optionalProfile.ifPresent(profile -> profileProcessor.consumeProfilingData(
+                    profile,
                     writesByTable.keySet(),
                     byteCount.get(),
                     microsForPostCommitUnlock));

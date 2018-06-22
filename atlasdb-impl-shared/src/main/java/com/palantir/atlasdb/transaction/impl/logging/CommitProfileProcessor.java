@@ -84,7 +84,7 @@ public class CommitProfileProcessor {
                                     profile.verifyUserPreCommitConditionMicros()),
                             SafeArg.of("microsForCommitStage", profile.totalCommitStageMicros()),
                             SafeArg.of("microsForPostCommitOverhead", postCommitOverhead),
-                            SafeArg.of("microsSinceCreation", profile.totalTimeSinceTransactionCreation()),
+                            SafeArg.of("microsSinceCreation", profile.totalTimeSinceTransactionCreationMicros()),
                             tableRefs.safeTableRefs(),
                             tableRefs.unsafeTableRefs())
                     .build();

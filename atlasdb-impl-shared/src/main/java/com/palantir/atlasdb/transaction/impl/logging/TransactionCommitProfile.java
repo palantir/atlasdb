@@ -32,7 +32,7 @@ public interface TransactionCommitProfile {
     long putCommitTimestampMicros();
 
     long totalCommitStageMicros();
-    long totalTimeSinceTransactionCreation();
+    long totalTimeSinceTransactionCreationMicros();
 
     long startTimestamp();
     long commitTimestamp();
