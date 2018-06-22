@@ -54,6 +54,11 @@ develop
          - Cassandra deleteRows now avoids reading any information in the case that we delete the whole row.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3312>`__)
 
+    *    - |userbreak|
+         - The ``scyllaDb`` option in Cassandra KVS config has been removed.
+           Please contact the AtlasDB team if you deploy AtlasDB with scyllaDb (this was never supported).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3312>`__)
+
     *    -
          -
 
@@ -118,7 +123,7 @@ v0.92.0
          - Snapshot transactions now, up to once every 5 real-time seconds, log an overview of how long each step in the commit phase took.
            These logs will help the Atlas team better understand which parts of committing transactions may be slow, so that we can improve on it.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3273>`__)
-           
+
     *    - |metrics| |improved|
          - The ``millisSinceLastSweptTs`` metric for targeted sweep now updates at the same frequency as the ``lastSweptTimestamp`` metric.
            This will result in a much smoother graph for the former metric instead of the current sawtooth graph.
@@ -165,7 +170,7 @@ v0.91.0
          - Refactored the TransactionManager inheritance tree to consolidate all relevant methods into a single interface.
            Functionally, any TransactionManager created using TransactionManagers will provide the serializable and snapshot
            isolation guarantees provided by a SerializableTransactionManager. Constructing TransactionManagers via this class
-           should result in only a minor dev break as a result of this change. This will make it easier to transparently wrap 
+           should result in only a minor dev break as a result of this change. This will make it easier to transparently wrap
            TransactionManagers to extend their functionality.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3188>`__)
 
