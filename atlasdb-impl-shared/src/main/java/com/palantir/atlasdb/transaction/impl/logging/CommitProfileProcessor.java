@@ -62,8 +62,8 @@ public class CommitProfileProcessor {
                             + "getting the commit timestamp took {} μs, punch took {} μs, "
                             + "serializable r/w conflict check took {} μs, putCommitTs took {} μs, "
                             + "pre-commit lock checks took {} μs, user pre-commit conditions took {} μs, "
-                            + "total time spent committing writes was {} μs,"
-                            + "post-commit intra-transaction cleanup took {} μs,"
+                            + "total time spent committing writes was {} μs, "
+                            + "post-commit intra-transaction cleanup took {} μs, "
                             + "total time since tx creation {} μs, tables: {}, {}.")
                     .arguments(
                             SafeArg.of("numBytes", byteCount),
