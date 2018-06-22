@@ -50,14 +50,60 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+=======
+v0.92.2
+=======
+
+22 June 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
-         - With targeted sweep, We now only call timelock once per set of range tombstones we leave,
-           rather than once per cell.
+         - With targeted sweep, we now only call timelock once per set of range tombstones we leave, rather than once per cell.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3305>`__)
+
+=======
+v0.92.1
+=======
+
+21 June 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - We now consider only one row at a time when getting rows from the KVS with sweepable cells.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3302>`__)
+
+    *    - |fixed|
+         - Cassandra retry messages now log bounds on attempts correctly.
+           Previously, they would log the supplier of these bounds (instead of the actual bounds, which users are more likely to be interested in).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3291>`__)
+
+=======
+v0.92.0
+=======
+
+20 June 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |improved| |metrics|
          - We now publish metrics for more individual stages of the commit stage in a SnapshotTransaction.
@@ -91,12 +137,6 @@ develop
     *    - |improved| |logs|
          - Added logging for leadership election code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3275>`__)
-
-    *    - |fixed|
-         - Cassandra retry messages now log bounds on attempts correctly.
-           Previously, they would log the supplier of these bounds (instead of the actual bounds, which users are more likely to be interested in).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3291>`__)
-
 
 =======
 v0.91.0
