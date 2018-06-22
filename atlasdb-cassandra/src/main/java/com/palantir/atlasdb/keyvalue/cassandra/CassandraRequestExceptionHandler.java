@@ -254,7 +254,15 @@ class CassandraRequestExceptionHandler {
 
         @Override
         public boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts) {
-            return isFastFailoverException(ex) || numberOfAttempts >= maxTriesSameHost;
+            if (isFastFailoverException(ex) || isIndicativeOfCassandraLoad(ex)) {
+                log.info(EXCEPTION_CAUSED_RETRY_ON_DIFFERENT_HOST_MSG,
+                        SafeArg.of("exceptionClass", ex.getClass().getTypeName()));
+                return true;
+            } else if (numberOfAttempts >= maxTriesSameHost) {
+                log.info(MAX_RETRY_EXCEEDED_RETRY_ON_DIFFERENT_HOST_MSG);
+                return true;
+            }
+            return false;
         }
     }
 
@@ -274,8 +282,20 @@ class CassandraRequestExceptionHandler {
 
         @Override
         public boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts) {
-            return isFastFailoverException(ex) || isIndicativeOfCassandraLoad(ex)
-                    || numberOfAttempts >= maxTriesSameHost;
+            if (isFastFailoverException(ex) || isIndicativeOfCassandraLoad(ex)) {
+                log.info(EXCEPTION_CAUSED_RETRY_ON_DIFFERENT_HOST_MSG,
+                        SafeArg.of("exceptionClass", ex.getClass().getTypeName()));
+                return true;
+            } else if (numberOfAttempts >= maxTriesSameHost) {
+                log.info(MAX_RETRY_EXCEEDED_RETRY_ON_DIFFERENT_HOST_MSG);
+                return true;
+            }
+            return false;
         }
     }
+
+    private static final String EXCEPTION_CAUSED_RETRY_ON_DIFFERENT_HOST_MSG =
+            "Request will be retried on a different host because current host has thrown the exception: {}";
+    private static final String MAX_RETRY_EXCEEDED_RETRY_ON_DIFFERENT_HOST_MSG =
+            "Request will be retried on a different host as maximum retries on same host is exceeded.";
 }

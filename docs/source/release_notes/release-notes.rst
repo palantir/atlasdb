@@ -97,6 +97,9 @@ develop
            Previously, they would log the supplier of these bounds (instead of the actual bounds, which users are more likely to be interested in).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3291>`__)
 
+    *    - |changed|
+         - Default Cassandra exception handler logic is changed. Previously, requests were retried on the same host if failed with an exception indicating Cassandra load; now those will be retried on a random different host.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3288>`__)
 
 =======
 v0.91.0

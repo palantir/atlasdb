@@ -154,9 +154,9 @@ public class CassandraRequestExceptionHandlerTest {
     }
 
     @Test
-    public void cassandraLoadExceptionRetriesOnSameHostDefault() {
+    public void cassandraLoadExceptionRetriesOnDifferentHostWithoutRetryingDefault() {
         for (Exception ex : INDICATIVE_OF_CASSANDRA_LOAD_EXCEPTIONS) {
-            assertFalse(handlerDefault.shouldRetryOnDifferentHost(ex, 0, handlerDefault.getStrategy()));
+            assertTrue(handlerDefault.shouldRetryOnDifferentHost(ex, 0, handlerDefault.getStrategy()));
         }
     }
 
