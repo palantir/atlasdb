@@ -1362,7 +1362,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService),
                     "commitPutCommitTs");
 
-            long microsForCommitStage = TimeUnit.NANOSECONDS.toMicros(commitStageTimer.stop());
             long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
             getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
@@ -1378,14 +1377,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     .verifyPreCommitLockCheckMicros(microsForPreCommitLockCheck)
                     .verifyUserPreCommitConditionMicros(microsForUserPreCommitCondition)
                     .putCommitTimestampMicros(microsForPutCommitTs)
-                    .totalCommitStageMicros(microsForCommitStage)
-                    .totalTimeSinceTransactionCreation(microsSinceCreation)
                     .commitTimestamp(commitTimestamp)
                     .build());
         } finally {
             long microsForPostCommitUnlock = runAndReportTimeAndGetDurationMicros(
                     () -> timelockService.unlock(ImmutableSet.of(commitLocksToken)), "postCommitUnlock");
-            
+
             // We only care about detailed profiling for successful transactions
             optionalProfile.ifPresent(profile -> profileProcessor.consumeProfilingData(
                     profile,

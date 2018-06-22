@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
@@ -98,15 +99,20 @@ public class CommitProfileProcessor {
                 getNonPutOverheadMillionths(profile, postCommitOverhead, nonPutOverhead));
     }
 
-    private long getNonPutOverheadMillionths(
+    @VisibleForTesting
+    static long getNonPutOverhead(TransactionCommitProfile profile, long postCommitOverhead) {
+        return profile.totalCommitStageMicros() - profile.keyValueServiceWriteMicros() + postCommitOverhead;
+    }
+
+    @VisibleForTesting
+    static long getNonPutOverheadMillionths(
             TransactionCommitProfile profile,
             long postCommitOverhead,
             long nonPutOverhead) {
         long totalRelevantTime = profile.totalCommitStageMicros() + postCommitOverhead;
+        if (totalRelevantTime == 0) {
+            return 0;
+        }
         return Math.round(1_000_000. * nonPutOverhead / totalRelevantTime);
-    }
-
-    private long getNonPutOverhead(TransactionCommitProfile profile, long postCommitOverhead) {
-        return profile.totalCommitStageMicros() - profile.keyValueServiceWriteMicros() + postCommitOverhead;
     }
 }
