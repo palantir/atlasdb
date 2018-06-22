@@ -1399,7 +1399,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .build();
                     });
         } finally {
-            timelockService.unlock(ImmutableSet.of(commitLocksToken));
+            timelockService.tryUnlock(ImmutableSet.of(commitLocksToken));
         }
     }
 

@@ -34,9 +34,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 
 /**
- * The ExecutorService provided here should have sufficiently many threads to unlock locks from write transactions
- * that may be ongoing in parallel. These locks are released asynchronously so that user code can get back to
- * servicing requests while we do cleanup.
+ * Releases lock tokens from a {@link TimelockService} asynchronously.
  *
  * There is another layer of retrying below us (at the HTTP client level) for external timelock users.
  * Also, in the event we fail to unlock (e.g. because of a connection issue), locks will eventually time-out.
@@ -67,12 +65,19 @@ public class AsyncTimeLockUnlocker {
         schedulePeriodicKickJob();
     }
 
+    /**
+     * Adds all provided lock tokens to a queue to eventually be scheduled for unlocking.
+     * Locks in the queue are unlocked asynchronously, and users must not depend on these locks being unlocked /
+     * available for other users immediately.
+     *
+     * @param tokens Lock tokens to schedule an unlock for.
+     */
     public void enqueue(Set<LockToken> tokens) {
         outstandingLockTokens.getAndAccumulate(tokens, Sets::union);
-        scheduleIfNoTaskScheduled();
+        scheduleIfNoTaskRunning();
     }
 
-    private void scheduleIfNoTaskScheduled() {
+    private void scheduleIfNoTaskRunning() {
         if (available.compareAndSet(true, false)) {
             try {
                 scheduledExecutorService.submit(this::unlockOutstanding);
@@ -104,6 +109,6 @@ public class AsyncTimeLockUnlocker {
         // Under high continuous volume of transactions, this job is not important.
         // Also, it won't affect correctness as it is basically doing an empty-set enqueue.
         scheduledExecutorService.scheduleAtFixedRate(
-                this::scheduleIfNoTaskScheduled, 0, KICK_JOB_INTERVAL.getSeconds(), TimeUnit.SECONDS);
+                this::scheduleIfNoTaskRunning, 0, KICK_JOB_INTERVAL.getSeconds(), TimeUnit.SECONDS);
     }
 }
