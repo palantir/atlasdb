@@ -26,6 +26,7 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
+@SuppressWarnings("checkstyle:FinalClass") // Used for mocking
 public class SingleLockService implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(SingleLockService.class);
 

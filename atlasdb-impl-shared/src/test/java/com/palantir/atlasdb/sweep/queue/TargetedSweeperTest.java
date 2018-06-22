@@ -112,12 +112,14 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(progress.getNumberOfShards()).isLessThanOrEqualTo(DEFAULT_SHARDS);
 
         TargetedSweeper sweeperConservative = TargetedSweeper
-                .createUninitialized(MetricsManagers.createForTests(), null, null, DEFAULT_SHARDS + 5, 0, ImmutableList.of());
+                .createUninitialized(MetricsManagers.createForTests(), null, null, DEFAULT_SHARDS + 5, 0,
+                        ImmutableList.of());
         sweeperConservative.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 5);
 
         TargetedSweeper sweeperThorough = TargetedSweeper
-                .createUninitialized(MetricsManagers.createForTests(), null, null, 0, DEFAULT_SHARDS + 10, ImmutableList.of());
+                .createUninitialized(MetricsManagers.createForTests(), null, null, 0, DEFAULT_SHARDS + 10,
+                        ImmutableList.of());
         sweeperThorough.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 10);
     }

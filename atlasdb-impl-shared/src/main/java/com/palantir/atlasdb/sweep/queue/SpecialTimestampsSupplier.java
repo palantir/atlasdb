@@ -18,14 +18,12 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.function.LongSupplier;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class SpecialTimestampsSupplier {
     private final LongSupplier unreadableTsSupplier;
     private final LongSupplier immutableTsSupplier;
 
-    @VisibleForTesting
     public SpecialTimestampsSupplier(LongSupplier unreadableTsSupplier, LongSupplier immutableTsSupplier) {
         this.unreadableTsSupplier = unreadableTsSupplier;
         this.immutableTsSupplier = immutableTsSupplier;

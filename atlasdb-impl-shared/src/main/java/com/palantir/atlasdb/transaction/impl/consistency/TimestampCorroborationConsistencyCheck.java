@@ -86,10 +86,10 @@ public abstract class TimestampCorroborationConsistencyCheck implements Transact
                 .build();
     }
 
-    private TransactionManagerConsistencyResult indeterminateResultForException(Exception e) {
+    private TransactionManagerConsistencyResult indeterminateResultForException(Exception ex) {
         return ImmutableTransactionManagerConsistencyResult.builder()
                 .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.INDETERMINATE)
-                .reasonForInconsistency(e)
+                .reasonForInconsistency(ex)
                 .build();
     }
 

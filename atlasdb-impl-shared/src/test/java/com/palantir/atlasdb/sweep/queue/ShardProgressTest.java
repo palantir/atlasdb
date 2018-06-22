@@ -24,14 +24,11 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS;
-import static com.palantir.atlasdb.AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.INITIAL_TIMESTAMP;
-
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -40,6 +37,8 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 
 public class ShardProgressTest {
+    private static final long INITIAL_TIMESTAMP = SweepQueueUtils.INITIAL_TIMESTAMP;
+
     private ShardProgress progress;
 
     private static final ShardAndStrategy CONSERVATIVE_TEN = ShardAndStrategy.conservative(10);
@@ -55,7 +54,7 @@ public class ShardProgressTest {
 
     @Test
     public void canReadInitialNumberOfShards() {
-        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SWEEP_QUEUE_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
     }
 
     @Test
@@ -67,7 +66,7 @@ public class ShardProgressTest {
     @Test
     public void cannotUpdateNumberOfShardsToZero() {
         progress.updateNumberOfShards(0);
-        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SWEEP_QUEUE_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
     }
 
     @Test
@@ -79,13 +78,13 @@ public class ShardProgressTest {
 
     @Test
     public void canIncreaseNumberOfShardsToMax() {
-        progress.updateNumberOfShards(MAX_SWEEP_QUEUE_SHARDS);
-        assertThat(progress.getNumberOfShards()).isEqualTo(MAX_SWEEP_QUEUE_SHARDS);
+        progress.updateNumberOfShards(AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS);
     }
 
     @Test
     public void increasingNumberOfShardsAboveMaxThrows() {
-        assertThatThrownBy(() -> progress.updateNumberOfShards(MAX_SWEEP_QUEUE_SHARDS + 1))
+        assertThatThrownBy(() -> progress.updateNumberOfShards(AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS + 1))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -133,7 +132,7 @@ public class ShardProgressTest {
 
     @Test
     public void updatingTimestampsDoesNotAffectShardsAndViceVersa() {
-        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SWEEP_QUEUE_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
         assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
 
