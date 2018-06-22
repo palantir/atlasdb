@@ -310,6 +310,9 @@ v0.89.0
          - Increased PTExecutors default thread timeout from 100 milliseconds to 5 seconds to avoid recreating threads unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3208>`__)
 
+    *    - |improved|
+         - Moved CancelableServerCall annotation to commons-annotations from atlasdb-commons.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3311>`__)
 =======
 v0.88.0
 =======

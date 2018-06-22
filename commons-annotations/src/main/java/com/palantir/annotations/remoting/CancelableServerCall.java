@@ -27,5 +27,5 @@ import java.lang.annotation.RetentionPolicy;
  */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CancelableServerCall {
-    //marker interface used in spring
+    //marker interface
 }
