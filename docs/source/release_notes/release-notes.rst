@@ -107,7 +107,6 @@ v0.92.0
 
     *    - Type
          - Change
->>>>>>> 874f68c24a450c3321b8c7b2a29e8db08f4bd19b
 
     *    - |improved| |metrics|
          - We now publish metrics for more individual stages of the commit stage in a SnapshotTransaction.
