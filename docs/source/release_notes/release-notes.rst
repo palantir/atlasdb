@@ -50,7 +50,7 @@ develop
     *    - Type
          - Change
 
-    *    - |improved|
+    *    - |improved| |metrics|
          - Snapshot Transaction metrics now track the post-commit step of unlocking the transaction row locks.
            Also, the ``nonPutOverhead`` and ``nonPutOverheadMillionths`` metrics now account for this step as well.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3307>`__)
