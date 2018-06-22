@@ -102,7 +102,7 @@ public class CommitProfileProcessorTest {
         whenComputingDerivedMetrics();
 
         thenNonPutOverheadIs(0L);
-        thenNonPutOverheadCanBeCalculated();
+        thenNonPutOverheadHasAReasonableValue();
     }
 
     @Test
@@ -178,7 +178,7 @@ public class CommitProfileProcessorTest {
                 .isCloseTo(expectedNonPutOverheadMillionths, within(1L));
     }
 
-    private void thenNonPutOverheadCanBeCalculated() {
+    private void thenNonPutOverheadHasAReasonableValue() {
         assertThat(getNonPutOverheadMillionths(profile, postCommitOverhead)).isBetween(0L, 1_000_000L);
     }
 

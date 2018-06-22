@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Snapshot Transaction metrics now track the post-commit step of unlocking the transaction row locks.
+           Also, the ``nonPutOverhead`` and ``nonPutOverheadMillionths`` metrics now account for this step as well.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3307>`__)
+
     *    - |fixed|
          - With targeted sweep, We now only call timelock once per set of range tombstones we leave,
            rather than once per cell.
