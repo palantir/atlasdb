@@ -1378,6 +1378,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     .verifyUserPreCommitConditionMicros(microsForUserPreCommitCondition)
                     .putCommitTimestampMicros(microsForPutCommitTs)
                     .commitTimestamp(commitTimestamp)
+                    .totalCommitStageMicros(TimeUnit.NANOSECONDS.toMicros(commitStageTimer.stop()))
+                    .totalTimeSinceTransactionCreationMicros(microsSinceCreation)
                     .build());
         } finally {
             long microsForPostCommitUnlock = runAndReportTimeAndGetDurationMicros(
