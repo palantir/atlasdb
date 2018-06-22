@@ -112,13 +112,13 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.impl.logging.ImmutableChainingLogConsumerProcessor;
-import com.palantir.atlasdb.transaction.impl.logging.ImmutableLogTemplate;
-import com.palantir.atlasdb.transaction.impl.logging.ImmutableSnapshotTransactionProfile;
+import com.palantir.atlasdb.transaction.impl.logging.ImmutableTransactionCommitProfile;
 import com.palantir.atlasdb.transaction.impl.logging.LogConsumerProcessor;
 import com.palantir.atlasdb.transaction.impl.logging.PredicateBackedLogConsumerProcessor;
 import com.palantir.atlasdb.transaction.impl.logging.RateLimitedBooleanSupplier;
-import com.palantir.atlasdb.transaction.impl.logging.SnapshotTransactionProfile;
+import com.palantir.atlasdb.transaction.impl.logging.TransactionCommitProfile;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
@@ -223,7 +223,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private final Timer.Context transactionTimerContext;
 
-    private final LogConsumerProcessor logConsumerProcessor = createDefaultPerfLogger();
+    private final CommitProfileProcessor profilingLogger = createDefaultCommitProfileProcessor();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -1313,7 +1313,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        Optional<SnapshotTransactionProfile> optionalProfile = Optional.empty();
+        Optional<TransactionCommitProfile> optionalProfile = Optional.empty();
         Timer.Context commitStageTimer = getTimer("commitStage").time();
 
         Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
@@ -1366,9 +1366,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
             getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
-            updateNonPutOverheadMetrics(microsWritingToTargetedSweepQueue, microsForWrites, microsForCommitStage);
-
-            optionalProfile = Optional.of(ImmutableSnapshotTransactionProfile.builder()
+            optionalProfile = Optional.of(ImmutableTransactionCommitProfile.builder()
+                    .startTimestamp(getTimestamp())
                     .acquireRowLocksMicros(microsForRowLocks)
                     .conflictCheckMicros(microsCheckingForConflicts)
                     .writingToSweepQueueMicros(microsWritingToTargetedSweepQueue)
@@ -1383,64 +1382,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     .totalTimeSinceTransactionCreation(microsSinceCreation)
                     .commitTimestamp(commitTimestamp)
                     .build());
-
         } finally {
-            runAndReportTimeAndGetDurationMicros(() -> timelockService.unlock(ImmutableSet.of(commitLocksToken)),
-                    "postCommitUnlock");
-
-            optionalProfile.ifPresent(profile -> logConsumerProcessor.maybeLog(
-                    () -> {
-                        LoggingArgs.SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(
-                                writesByTable.keySet());
-                        return ImmutableLogTemplate.builder().format(
-                                "Committed {} bytes with locks, start ts {}, commit ts {}, "
-                                        + "acquiring locks took {} μs, checking for conflicts took {} μs, "
-                                        + "writing to the sweep queue took {} μs, "
-                                        + "writing data took {} μs, "
-                                        + "getting the commit timestamp took {} μs, punch took {} μs, "
-                                        + "serializable r/w conflict check took {} μs, putCommitTs took {} μs, "
-                                        + "pre-commit lock checks took {} μs, user pre-commit conditions took {} μs, "
-                                        + "total time spent committing writes was {} μs, "
-                                        + "total time since tx creation {} μs, tables: {}, {}.")
-                                .arguments(
-                                        SafeArg.of("numBytes", byteCount.get()),
-                                        SafeArg.of("startTs", getStartTimestamp()),
-                                        SafeArg.of("commitTs", profile.commitTimestamp()),
-                                        SafeArg.of("microsForLocks", profile.acquireRowLocksMicros()),
-                                        SafeArg.of("microsCheckForConflicts", profile.conflictCheckMicros()),
-                                        SafeArg.of("microsWritingToTargetedSweepQueue",
-                                                profile.writingToSweepQueueMicros()),
-                                        SafeArg.of("microsForWrites", profile.keyValueServiceWriteMicros()),
-                                        SafeArg.of("microsForGetCommitTs", profile.getCommitTimestampMicros()),
-                                        SafeArg.of("microsForPunch", profile.punchMicros()),
-                                        SafeArg.of("microsForReadWriteConflictCheck",
-                                                profile.readWriteConflictCheckMicros()),
-                                        SafeArg.of("microsForPutCommitTs", profile.putCommitTimestampMicros()),
-                                        SafeArg.of("microsForPreCommitLockCheck",
-                                                profile.verifyPreCommitLockCheckMicros()),
-                                        SafeArg.of("microsForUserPreCommitCondition",
-                                                profile.verifyUserPreCommitConditionMicros()),
-                                        SafeArg.of("microsForCommitStage", profile.totalCommitStageMicros()),
-                                        SafeArg.of("microsSinceCreation", profile.totalTimeSinceTransactionCreation()),
-                                        tableRefs.safeTableRefs(),
-                                        tableRefs.unsafeTableRefs())
-                                .build();
-                            }
-            ));
-
-            // We only want to log this in the event of a success.
-//            logOutcome.ifPresent(logConsumerProcessor::maybeLog);
+            long microsForPostCommitUnlock = runAndReportTimeAndGetDurationMicros(
+                    () -> timelockService.unlock(ImmutableSet.of(commitLocksToken)), "postCommitUnlock");
+            optionalProfile.ifPresent(profile -> profilingLogger.consumeProfilingData(profile,
+                    writesByTable.keySet(),
+                    byteCount.get(),
+                    microsForPostCommitUnlock));
         }
-    }
-
-    private void updateNonPutOverheadMetrics(long microsWritingToTargetedSweepQueue, long microsForWrites,
-            long microsForCommitStage) {
-        long nonPutOverhead = microsForCommitStage - microsForWrites - microsWritingToTargetedSweepQueue;
-        getTimer("nonPutOverhead").update(nonPutOverhead, TimeUnit.MICROSECONDS);
-
-        // Dropwizard Metrics doesn't support histograms of double yet, so using longs as a workaround
-        getHistogram("nonPutOverheadMillionths").update(
-                Math.round((1_000_000. * nonPutOverhead) / microsForCommitStage));
     }
 
     private long runAndReportTimeAndGetDurationMicros(Runnable runnable, String timerName) {
@@ -2087,6 +2036,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private Meter getMeter(String name) {
         // TODO(hsaraogi): add table names as a tag
         return metricsManager.registerOrGetMeter(SnapshotTransaction.class, name);
+    }
+
+    private CommitProfileProcessor createDefaultCommitProfileProcessor() {
+        return new CommitProfileProcessor(createDefaultPerfLogger(),
+                () -> getTimer("nonPutOverhead"),
+                () -> getHistogram("nonPutOverheadMillionths"));
     }
 
     private LogConsumerProcessor createDefaultPerfLogger() {

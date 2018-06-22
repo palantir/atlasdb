@@ -19,7 +19,7 @@ package com.palantir.atlasdb.transaction.impl.logging;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface SnapshotTransactionProfile {
+public interface TransactionCommitProfile {
     long acquireRowLocksMicros();
     long conflictCheckMicros();
     long writingToSweepQueueMicros();
@@ -34,21 +34,6 @@ public interface SnapshotTransactionProfile {
     long totalCommitStageMicros();
     long totalTimeSinceTransactionCreation();
 
+    long startTimestamp();
     long commitTimestamp();
-
-    @Value.Lazy
-    default long nonPutOverhead() {
-        return totalCommitStageMicros() - keyValueServiceWriteMicros();
-    }
-
-    /**
-     * Returns an estimate of the proportion of time spent outside of the primary key value service write.
-     *
-     * This exists as a hack because Dropwizard Histograms do not support double values.
-     * This is written in this way (doing division first) for precision.
-     */
-    @Value.Lazy
-    default long nonPutOverheadMillionths() {
-        return Math.round(1_000_000. * (((double) nonPutOverhead()) / totalCommitStageMicros()));
-    }
 }
