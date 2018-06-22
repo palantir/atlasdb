@@ -62,7 +62,6 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
         // The underlying primitives are already wrapped in a leadership proxy (and must be).
         // Wrapping this means that we will make 2 paxos checks per request, which is silly.
         TimelockService legacyTimelockService = instrument(
-                metricRegistry,
                 TimelockService.class,
                 createRawLegacyTimelockService(timestampService, lockService),
                 client);
