@@ -1757,10 +1757,24 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
             boolean deleteSentinels) {
+        if (maxTimestampExclusiveByCell.isEmpty()) {
+            return;
+        }
+
         Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
                 clientPool, maxTimestampExclusiveByCell.entrySet());
+
+        // this is required by the interface of the CassandraMutationTimestampProvider, although it exists for tests
+        long maxTimestampForAllCells = maxTimestampExclusiveByCell.values().stream().mapToLong(x -> x).max().getAsLong();
+        long rangeTombstoneCassandraTimestamp =
+                mutationTimestampProvider.getRangeTombstoneTimestamp(maxTimestampForAllCells);
         for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
-            deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue(), deleteSentinels);
+            deleteAllTimestampsOnSingleHost(
+                    tableRef,
+                    entry.getKey(),
+                    entry.getValue(),
+                    deleteSentinels,
+                    rangeTombstoneCassandraTimestamp);
         }
     }
 
@@ -1768,7 +1782,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             TableReference tableRef,
             InetSocketAddress host,
             Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
+            boolean deleteSentinels,
+            long rangeTombstoneCassandraTs) {
         if (maxTimestampExclusiveByCell.isEmpty()) {
             return;
         }
@@ -1778,7 +1793,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 @Override
                 public Void apply(CassandraClient client) throws Exception {
-                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef, deleteSentinels);
+                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef,
+                            deleteSentinels, rangeTombstoneCassandraTs);
                     return null;
                 }
 
@@ -1797,11 +1813,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void insertRangeTombstones(CassandraClient client, Map<Cell, Long> maxTimestampExclusiveByCell,
-            TableReference tableRef, boolean deleteSentinel) throws TException {
+            TableReference tableRef, boolean deleteSentinel, long rangeTombstoneCassandraTs) throws TException {
         MutationMap mutationMap = new MutationMap();
 
         maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
-            Mutation mutation = getMutation(cell, maxTimestampExclusive, deleteSentinel);
+            Mutation mutation = getMutation(cell, maxTimestampExclusive, deleteSentinel, rangeTombstoneCassandraTs);
 
             mutationMap.addMutationForCell(cell, tableRef, mutation);
         });
@@ -1810,15 +1826,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 deleteConsistency);
     }
 
-    private Mutation getMutation(Cell cell, long maxTimestampExclusive, boolean deleteSentinel) {
+    private Mutation getMutation(Cell cell, long maxTimestampExclusive,
+            boolean deleteSentinel, long rangeTombstoneCassandraTimestamp) {
         if (deleteSentinel) {
             return Mutations.rangeTombstoneIncludingSentinelForColumn(cell.getColumnName(), maxTimestampExclusive,
-                    mutationTimestampProvider.getRangeTombstoneTimestamp(maxTimestampExclusive));
+                    rangeTombstoneCassandraTimestamp);
         }
         return Mutations.rangeTombstoneForColumn(
                 cell.getColumnName(),
                 maxTimestampExclusive,
-                mutationTimestampProvider.getRangeTombstoneTimestamp(maxTimestampExclusive));
+                rangeTombstoneCassandraTimestamp);
     }
 
     /**

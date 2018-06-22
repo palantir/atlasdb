@@ -51,6 +51,11 @@ develop
          - Change
 
     *    - |fixed|
+         - With targeted sweep, We now only call timelock once per set of range tombstones we leave,
+           rather than once per cell.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3305>`__)
+
+    *    - |fixed|
          - We now consider only one row at a time when getting rows from the KVS with sweepable cells.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3302>`__)
 
