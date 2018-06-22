@@ -1369,14 +1369,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
                 return ImmutableLogTemplate.builder().format(
                         "Committed {} bytes with locks, start ts {}, commit ts {}, "
-                                + "acquiring locks took {} us, checking for conflicts took {} us, "
-                                + "writing to the sweep queue took {} us, "
-                                + "writing data took {} us, "
-                                + "getting the commit timestamp took {} us, punch took {} us, "
-                                + "serializable r/w conflict check took {} us, putCommitTs took {} us, "
-                                + "pre-commit lock checks took {} us, user pre-commit conditions took {} us, "
-                                + "total time spent committing writes was {} us, "
-                                + "total time since tx creation {} us, tables: {}, {}.")
+                                + "acquiring locks took {} μs, checking for conflicts took {} μs, "
+                                + "writing to the sweep queue took {} μs, "
+                                + "writing data took {} μs, "
+                                + "getting the commit timestamp took {} μs, punch took {} μs, "
+                                + "serializable r/w conflict check took {} μs, putCommitTs took {} μs, "
+                                + "pre-commit lock checks took {} μs, user pre-commit conditions took {} μs, "
+                                + "total time spent committing writes was {} μs, "
+                                + "total time since tx creation {} μs, tables: {}, {}.")
                         .arguments(
                                 SafeArg.of("numBytes", byteCount.get()),
                                 SafeArg.of("startTs", getStartTimestamp()),
