@@ -91,6 +91,10 @@ develop
          - Atlas Console tables now have a join() method.  See ``help("join")`` in Atlas Console for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1814>`__)
 
+    *    - |improved|
+         - Added logging for leadership election code,
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3294>`__)
+
 =======
 v0.38.0
 =======
