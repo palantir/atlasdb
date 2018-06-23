@@ -16,16 +16,41 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.math.BigInteger;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 
 public class TargetedSweeperLockTest {
     private LockService mockLockService = mock(LockService.class);
 
-//    @Test
-//    public void canLock
+    @Test
+    public void successfulLockAndUnlock() throws InterruptedException {
+        when(mockLockService.lock(any(), any()))
+                .thenReturn(new LockRefreshToken(BigInteger.TEN, 10L));
+        TargetedSweeperLock conservative = TargetedSweeperLock
+                .acquire(1, TableMetadataPersistence.SweepStrategy.CONSERVATIVE, mockLockService);
+        assertThat(conservative.isHeld()).isTrue();
+        assertThat(conservative.getShardAndStrategy()).isEqualTo(ShardAndStrategy.conservative(1));
+
+        conservative.unlock();
+        assertThat(conservative.isHeld()).isFalse();
+    }
+
+    @Test
+    public void unsuccessfulLock() throws InterruptedException {
+        when(mockLockService.lock(any(), any())).thenReturn(null);
+        TargetedSweeperLock thorough = TargetedSweeperLock
+                .acquire(2, TableMetadataPersistence.SweepStrategy.THOROUGH, mockLockService);
+        assertThat(thorough.isHeld()).isFalse();
+        assertThat(thorough.getShardAndStrategy()).isEqualTo(ShardAndStrategy.thorough(2));
+    }
 }
