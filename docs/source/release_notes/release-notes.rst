@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Cassandra deleteRows now avoids reading any information in the case that we delete the whole row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3312>`__)
+
     *    -
          -
 

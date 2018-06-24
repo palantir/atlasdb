@@ -131,6 +131,20 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
+    public void remove(String kvsMethodName, TableReference tableRef,
+            byte[] row, long timestamp, ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        String internalTableName = AbstractKeyValueService.internalTableName(tableRef);
+        ColumnPath columnPath = new ColumnPath();
+        columnPath.setColumn_family(internalTableName);
+        executeHandlingExceptions(() -> client.remove(
+                ByteBuffer.wrap(row),
+                columnPath,
+                timestamp,
+                consistency_level));
+    }
+
+    @Override
     public TProtocol getOutputProtocol() {
         return executeMethodWithoutException(() -> client.getOutputProtocol());
     }
