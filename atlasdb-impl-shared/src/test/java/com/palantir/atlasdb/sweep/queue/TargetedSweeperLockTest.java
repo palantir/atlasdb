@@ -37,7 +37,7 @@ public class TargetedSweeperLockTest {
         when(mockLockService.lock(any(), any()))
                 .thenReturn(new LockRefreshToken(BigInteger.TEN, 10L));
         TargetedSweeperLock conservative = TargetedSweeperLock
-                .acquire(1, TableMetadataPersistence.SweepStrategy.CONSERVATIVE, mockLockService);
+                .tryAcquire(1, TableMetadataPersistence.SweepStrategy.CONSERVATIVE, mockLockService);
         assertThat(conservative.isHeld()).isTrue();
         assertThat(conservative.getShardAndStrategy()).isEqualTo(ShardAndStrategy.conservative(1));
 
@@ -49,7 +49,7 @@ public class TargetedSweeperLockTest {
     public void unsuccessfulLock() throws InterruptedException {
         when(mockLockService.lock(any(), any())).thenReturn(null);
         TargetedSweeperLock thorough = TargetedSweeperLock
-                .acquire(2, TableMetadataPersistence.SweepStrategy.THOROUGH, mockLockService);
+                .tryAcquire(2, TableMetadataPersistence.SweepStrategy.THOROUGH, mockLockService);
         assertThat(thorough.isHeld()).isFalse();
         assertThat(thorough.getShardAndStrategy()).isEqualTo(ShardAndStrategy.thorough(2));
     }

@@ -22,6 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,10 +52,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     private final Supplier<Integer> shardsConfig;
     private final List<Follower> followers;
     private final MetricsManager metricsManager;
-    private LockService lockService;
 
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
+    private LockService lockService;
     private BackgroundSweepScheduler conservativeScheduler;
     private BackgroundSweepScheduler thoroughScheduler;
 
@@ -83,7 +84,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * @param conservativeThreads number of conservative threads to use for background targeted sweep.
      * @param thoroughThreads number of thorough threads to use for background targeted sweep.
      * @param followers follower used for sweeps, as defined by your schema.
-     * @return returns an uninitialized targeted sweeper.
+     * @return returns an uninitialized targeted sweeper
      */
     public static TargetedSweeper createUninitialized(MetricsManager metrics, Supplier<Boolean> enabled,
             Supplier<Integer> shardsConfig, int conservativeThreads, int thoroughThreads, List<Follower> followers) {
@@ -91,11 +92,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     }
 
     @VisibleForTesting
-    public static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager, Supplier<Integer> shards) {
+    static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager, Supplier<Integer> shards) {
         return createUninitialized(metricsManager, () -> true, shards, 0, 0, ImmutableList.of());
     }
 
-    @VisibleForTesting
     public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
         return createUninitializedForTest(MetricsManagers.createForTests(), shards);
     }
@@ -109,7 +109,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * @param kvs key value service that must be already initialized.
      * @param follower followers used for sweeps.
      */
-    public void initialize(SpecialTimestampsSupplier timestamps, LockService lock, KeyValueService kvs, TargetedSweepFollower follower) {
+    public void initialize(SpecialTimestampsSupplier timestamps, LockService lock, KeyValueService kvs,
+            TargetedSweepFollower follower) {
         if (isInitialized) {
             return;
         }
@@ -144,6 +145,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      *
      * @param shardStrategy shard and strategy to use
      */
+    @SuppressWarnings("checkstyle:RegexpMultiline") // Suppress VisibleForTesting warning
     @VisibleForTesting
     public void sweepNextBatch(ShardAndStrategy shardStrategy) {
         assertInitialized();
@@ -207,17 +209,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         }
 
         private Optional<TargetedSweeperLock> tryToAcquireLockForNextShardAndStrategy() throws InterruptedException {
-            for (int i = 0; i < queue.getNumShards(); i++) {
-                int nextShardCandidate = getShardAndIncrement();
-                TargetedSweeperLock lock = TargetedSweeperLock.acquire(nextShardCandidate, sweepStrategy, lockService);
-                if (lock.isHeld()) {
-                    return Optional.of(lock);
-                }
-            }
-            log.info("There are no candidates for this iteration of targeted sweep as all shards for sweep strategy {} "
-                    + "are currently being swept by other threads. You may consider increasing the number of shards, "
-                    + "or reducing the number of threads.", SafeArg.of("sweepStrategy", sweepStrategy));
-            return Optional.empty();
+            return IntStream.range(0, queue.getNumShards())
+                    .map(ignore -> getShardAndIncrement())
+                    .mapToObj(shard -> TargetedSweeperLock.tryAcquireUnchecked(shard, sweepStrategy, lockService))
+                    .filter(TargetedSweeperLock::isHeld)
+                    .findFirst();
         }
 
         private int getShardAndIncrement() {
