@@ -53,7 +53,7 @@ develop
     *    - |userbreak|
          - The ``scyllaDb`` option in Cassandra KVS config has been removed.
            Please contact the AtlasDB team if you deploy AtlasDB with scyllaDb (this was never supported).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3312>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3313>`__)
 
 =======
 v0.92.2
