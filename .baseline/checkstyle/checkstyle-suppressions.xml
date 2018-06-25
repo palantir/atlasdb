@@ -8,6 +8,7 @@
  for your changes to take effect in its Checkstyle integration. -->
 <suppressions>
     <!-- Suppress test classes -->
+    <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="AvoidStaticImport" />
     <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="Javadoc*" />
     <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="VariableDeclarationUsageDistance" />
     <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="VisibilityModifier" />
@@ -40,7 +41,4 @@
     <suppress files="lock-impl/*" checks="." />
     <suppress files="examples/profile-client-protobufs/*" checks="." />
     <suppress files="timestamp-impl/*" checks="." />
-
-    <!-- This one is temporarily ignored (82 errors) -->
-    <suppress files="atlasdb-impl-shared/*" checks="." />
 </suppressions>

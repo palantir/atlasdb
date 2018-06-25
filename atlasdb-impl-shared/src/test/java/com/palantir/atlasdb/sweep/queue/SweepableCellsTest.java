@@ -327,7 +327,8 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         assertThat(conservativeBatch.writes()).isEmpty();
 
         assertDeletedNumber(TABLE_CONS, MAX_CELLS_DEDICATED + 1);
-        SweepMetricsAssert.assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(MAX_CELLS_DEDICATED + 1);
+        SweepMetricsAssert.assertThat(metricsManager)
+                .hasAbortedWritesDeletedConservativeEquals(MAX_CELLS_DEDICATED + 1);
     }
 
     @Test

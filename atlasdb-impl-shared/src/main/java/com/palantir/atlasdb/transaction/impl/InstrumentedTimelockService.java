@@ -97,9 +97,9 @@ public class InstrumentedTimelockService implements TimelockService {
 
     private <T> T executeWithRecord(Supplier<T> method) {
         try {
-            T t = method.get();
+            T result = method.get();
             success.mark();
-            return t;
+            return result;
         } catch (Exception e) {
             fail.mark();
             throw e;

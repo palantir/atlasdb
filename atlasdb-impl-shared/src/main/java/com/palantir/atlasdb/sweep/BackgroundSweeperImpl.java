@@ -186,7 +186,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
                             + "then another cluster may be connecting to the same Cassandra keyspace.",
                     SafeArg.of("sweepOutcome", outcome),
                     SafeArg.of("defaultLockTimeoutSeconds", AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS)
-                    );
+            );
         } else {
             log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
         }

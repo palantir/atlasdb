@@ -78,27 +78,27 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                                ExecutorService getRangesExecutor,
                                int defaultGetRangesConcurrency) {
         super(metricsManager,
-              keyValueService,
+                keyValueService,
                 null,
-              transactionService,
-              NoOpCleaner.INSTANCE,
-              () -> startTimeStamp,
-              ConflictDetectionManagers.createWithNoConflictDetection(),
-              SweepStrategyManagers.createDefault(keyValueService),
-              startTimeStamp,
-              Optional.empty(),
-              PreCommitConditions.NO_OP,
-              constraintCheckingMode,
-              null,
-              readSentinelBehavior,
-              allowHiddenTableAccess,
-              timestampCache,
-              // never actually used, since timelockService is null
-              AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-              getRangesExecutor,
-              defaultGetRangesConcurrency,
-              MultiTableSweepQueueWriter.NO_OP,
-              IGNORING_EXECUTOR);
+                transactionService,
+                NoOpCleaner.INSTANCE,
+                () -> startTimeStamp,
+                ConflictDetectionManagers.createWithNoConflictDetection(),
+                SweepStrategyManagers.createDefault(keyValueService),
+                startTimeStamp,
+                Optional.empty(),
+                PreCommitConditions.NO_OP,
+                constraintCheckingMode,
+                null,
+                readSentinelBehavior,
+                allowHiddenTableAccess,
+                timestampCache,
+                // never actually used, since timelockService is null
+                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                MultiTableSweepQueueWriter.NO_OP,
+                IGNORING_EXECUTOR);
     }
 
     @Override

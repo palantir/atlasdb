@@ -33,6 +33,7 @@ public class ChainingLogConsumerProcessorTest {
     private static final LogConsumerProcessor DUPLICATING_PROCESSOR = templateSupplier ->
             assertThat(templateSupplier.get()).isEqualTo(templateSupplier.get());
 
+    @SuppressWarnings("checkstyle:WhitespaceAround")
     private static final LogConsumerProcessor SWALLOWING_PROCESSOR = unused -> {};
 
     @SuppressWarnings("unchecked") // Mocking
