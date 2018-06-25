@@ -87,7 +87,7 @@ v0.93.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3313>`__)
 
     *    - |fixed| |logs|
-         - Fixed a bug where Cassandra client pool was erroneously logging host removal from blacklist.
+         - Fixed a bug where Cassandra client pool was erroneously logging host removal from blacklist, even the host was not blacklisted in the first place.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3314>`__)
 
 =======
