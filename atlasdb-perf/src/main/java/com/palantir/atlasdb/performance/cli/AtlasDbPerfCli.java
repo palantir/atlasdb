@@ -71,7 +71,7 @@ public class AtlasDbPerfCli {
     private Set<String> tests;
 
     @Option(name = {"-b", "--backend"}, description = "Backing KVS stores to use. (e.g. POSTGRES or CASSANDRA)"
-            + " Defaults to all backends if not specified.")
+            + " Defaults to all backends apart from the in-memory KVS if not specified.")
     private Set<String> backends;
 
     @Option(name = {"--db-uri"}, description = "Docker uri (e.g. POSTGRES@[phost:pport] or CASSANDRA@[chost:cport])."
@@ -114,8 +114,11 @@ public class AtlasDbPerfCli {
         } else {
             Set<String> backends = cli.backends != null
                     ? cli.backends
-                    : KeyValueServiceInstrumentation.getBackends();
+                    : KeyValueServiceInstrumentation.getBackends().stream()
+                            .filter(backend -> !backend.equals("MEMORY"))
+                            .collect(Collectors.toSet());
             try (DatabasesContainer container = startupDatabase(backends)) {
+                System.out.println("runjmh");
                 runJmh(cli,
                         container.getDockerizedDatabases()
                                 .stream()
@@ -173,10 +176,17 @@ public class AtlasDbPerfCli {
     }
 
     private static DatabasesContainer startupDatabase(Set<String> backends) {
-        return DatabasesContainer.startup(
-                backends.stream()
-                        .map(KeyValueServiceInstrumentation::forDatabase)
-                        .collect(Collectors.toList()));
+        try {
+            return DatabasesContainer.startup(
+                    backends.stream()
+                            .map(KeyValueServiceInstrumentation::forDatabase)
+                            .collect(Collectors.toList()));
+        } catch (Throwable t) {
+            log.error("blablabla", t);
+            throw new RuntimeException(t);
+        } finally {
+            System.out.println("Database container setup");
+        }
     }
 
     private static List<DockerizedDatabaseUri> getDockerUris(AtlasDbPerfCli cli) {

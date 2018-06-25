@@ -16,14 +16,8 @@
 package com.palantir.atlasdb.performance.backend;
 
 import java.net.InetSocketAddress;
-import java.util.Optional;
 
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.config.ImmutableLeaderConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
@@ -34,33 +28,35 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
 
     @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
-        return ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(addr)
-                .poolSize(20)
-                .keyspace("atlasdb")
-                .credentials(ImmutableCassandraCredentialsConfig.builder()
-                        .username("cassandra")
-                        .password("cassandra")
-                        .build())
-                .ssl(false)
-                .replicationFactor(1)
-                .mutationBatchCount(10000)
-                .mutationBatchSizeBytes(10000000)
-                .fetchBatchCount(1000)
-                .autoRefreshNodes(false)
-                .build();
+//        return ImmutableCassandraKeyValueServiceConfig.builder()
+//                .addServers(addr)
+//                .poolSize(20)
+//                .keyspace("atlasdb")
+//                .credentials(ImmutableCassandraCredentialsConfig.builder()
+//                        .username("cassandra")
+//                        .password("cassandra")
+//                        .build())
+//                .ssl(false)
+//                .replicationFactor(1)
+//                .mutationBatchCount(10000)
+//                .mutationBatchSizeBytes(10000000)
+//                .fetchBatchCount(1000)
+//                .autoRefreshNodes(false)
+//                .build();
+        return new InMemoryAtlasDbConfig();
     }
 
     @Override
     public boolean canConnect(InetSocketAddress addr) {
-        return CassandraKeyValueServiceImpl.createForTesting(
-                (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr),
-                Optional.of(ImmutableLeaderConfig.builder()
-                        .quorumSize(1)
-                        .localServer(addr.getHostString())
-                        .leaders(ImmutableSet.of(addr.getHostString()))
-                        .build()))
-                .isInitialized();
+        return true;
+//        return CassandraKeyValueServiceImpl.createForTesting(
+//                (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr),
+//                Optional.of(ImmutableLeaderConfig.builder()
+//                        .quorumSize(1)
+//                        .localServer(addr.getHostString())
+//                        .leaders(ImmutableSet.of(addr.getHostString()))
+//                        .build()))
+//                .isInitialized();
     }
 
     @Override

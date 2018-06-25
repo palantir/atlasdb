@@ -35,7 +35,7 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 /**
- * State class for creating a single Atlas table with one wide row.
+ * State class for creating a single Atlas table with multiple wide rows.
  */
 @State(Scope.Benchmark)
 public class WideRowsTable {
