@@ -1320,9 +1320,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         LockToken commitLocksToken = acquireLocksForCommit();
         long microsForRowLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
         try {
-            long microsCheckingForConflicts =
-                    runAndReportTimeAndGetDurationMicros(() -> throwIfConflictOnCommit(commitLocksToken, transactionService),
-                            "commitCheckingForConflicts");
+            long microsCheckingForConflicts = runAndReportTimeAndGetDurationMicros(
+                    () -> throwIfConflictOnCommit(commitLocksToken, transactionService),
+                    "commitCheckingForConflicts");
 
             long microsWritingToTargetedSweepQueue =
                     runAndReportTimeAndGetDurationMicros(() -> sweepQueue.enqueue(writesByTable, getStartTimestamp()),
@@ -1343,7 +1343,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // punch on commit so that if hard delete is the only thing happening on a system,
             // we won't block forever waiting for the unreadable timestamp to advance past the
             // scrub timestamp (same as the hard delete transaction's start timestamp)
-            long microsForPunch = runAndReportTimeAndGetDurationMicros(() -> cleaner.punch(commitTimestamp), "microsForPunch");
+            long microsForPunch = runAndReportTimeAndGetDurationMicros(
+                    () -> cleaner.punch(commitTimestamp),
+                    "microsForPunch");
 
             long microsForReadWriteConflictCheck = runAndReportTimeAndGetDurationMicros(
                     () -> throwIfReadWriteConflictForSerializable(commitTimestamp),
