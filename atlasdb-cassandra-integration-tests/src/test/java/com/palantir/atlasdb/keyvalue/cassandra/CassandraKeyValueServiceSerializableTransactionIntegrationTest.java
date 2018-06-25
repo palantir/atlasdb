@@ -27,6 +27,7 @@ import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
+import com.palantir.lock.v2.TimelockService;
 
 public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
         extends AbstractSerializableTransactionTest {
@@ -51,7 +52,7 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
         TargetedSweeper queue = TargetedSweeper.createUninitializedForTest(() -> 128);
-        queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), keyValueService,
+        queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), mock(TimelockService.class), keyValueService,
                 mock(TargetedSweepFollower.class));
         return queue;
     }
