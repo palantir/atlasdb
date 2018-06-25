@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |metrics|
+         - Snapshot Transaction metrics now track the post-commit step of unlocking the transaction row locks.
+           Also, the ``nonPutOverhead`` and ``nonPutOverheadMillionths`` metrics now account for this step as well.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3307>`__)
+
     *    - |improved|
          - Targeted sweep now uses timelock locks to synchronize background threads on multiple hosts.
            This avoids multiple hosts doing the same sweeps.
@@ -64,9 +69,6 @@ develop
          - The ``scyllaDb`` option in Cassandra KVS config has been removed.
            Please contact the AtlasDB team if you deploy AtlasDB with scyllaDb (this was never supported).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3313>`__)
-
-    *    -
-         -
 
 =======
 v0.92.2
