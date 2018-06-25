@@ -38,6 +38,11 @@ public final class CassandraMutationTimestampProviders {
             }
 
             @Override
+            public long getRemoveTimestamp() {
+                throw new UnsupportedOperationException("Can't be implemented");
+            }
+
+            @Override
             public LongUnaryOperator getDeletionTimestampOperatorForBatchDelete() {
                 return deletionTimestamp -> deletionTimestamp + 1;
             }
@@ -54,6 +59,11 @@ public final class CassandraMutationTimestampProviders {
         return new CassandraMutationTimestampProvider() {
             @Override
             public long getSweepSentinelWriteTimestamp() {
+                return longSupplier.getAsLong();
+            }
+
+            @Override
+            public long getRemoveTimestamp() {
                 return longSupplier.getAsLong();
             }
 
