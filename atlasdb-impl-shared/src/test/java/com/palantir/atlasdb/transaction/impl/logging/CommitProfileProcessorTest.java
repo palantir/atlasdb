@@ -153,16 +153,16 @@ public class CommitProfileProcessorTest {
         thenNonPutOverheadMillionthsIsVeryCloseTo(1_000_000L);
     }
 
-    private void givenTotalCommitTimeIs(long totalTime) {
-        this.totalTime = totalTime;
+    private void givenTotalCommitTimeIs(long commitTime) {
+        this.totalTime = commitTime;
     }
 
-    private void givenKvsWriteTimeIs(long kvsWriteTime) {
-        this.kvsWriteTime = kvsWriteTime;
+    private void givenKvsWriteTimeIs(long writeTime) {
+        this.kvsWriteTime = writeTime;
     }
 
-    private void givenPostCommitOverheadIs(long postCommitOverhead) {
-        this.postCommitOverhead = postCommitOverhead;
+    private void givenPostCommitOverheadIs(long overhead) {
+        this.postCommitOverhead = overhead;
     }
 
     private void whenComputingDerivedMetrics() {
