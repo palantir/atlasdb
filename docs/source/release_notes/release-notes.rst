@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Targeted sweep now uses timelock locks to synchronize background threads on multiple hosts.
+           This avoids multiple hosts doing the same sweeps.
+           Targeted sweep also no longer forcibly sets the number of shards to at least the number of threads.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3310>`__)
+
     *    - |fixed|
          - Cassandra deleteRows now avoids reading any information in the case that we delete the whole row.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3312>`__)
