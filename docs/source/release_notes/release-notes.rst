@@ -56,6 +56,13 @@ develop
            Targeted sweep also no longer forcibly sets the number of shards to at least the number of threads.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3310>`__)
 
+    *    - |fixed|
+         - Cassandra deleteRows now avoids reading any information in the case that we delete the whole row.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3312>`__)
+
+    *    -
+         -
+
 =======
 v0.92.2
 =======

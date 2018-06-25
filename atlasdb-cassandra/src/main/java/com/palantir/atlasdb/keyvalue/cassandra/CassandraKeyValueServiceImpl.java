@@ -1749,9 +1749,30 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 super.deleteRange(tableRef, range);
             }
+        } else if (isForSingleRow(range.getStartInclusive(), range.getEndExclusive())) {
+            try {
+                long timestamp = mutationTimestampProvider.getRemoveTimestamp();
+                byte[] row = range.getStartInclusive();
+                clientPool.runWithRetry(client -> {
+                    client.remove("deleteRange", tableRef, row, timestamp, deleteConsistency);
+                    return null;
+                });
+            } catch (UnavailableException e) {
+                throw new InsufficientConsistencyException(
+                        "Deleting requires all Cassandra nodes to be up and available.", e);
+            } catch (TException e) {
+                throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            }
         } else {
             super.deleteRange(tableRef, range);
         }
+    }
+
+    private static boolean isForSingleRow(byte[] startInclusive, byte[] endExclusive) {
+        if (startInclusive.length == 0 || endExclusive.length == 0) {
+            return false;
+        }
+        return Arrays.equals(endExclusive, RangeRequests.nextLexicographicName(startInclusive));
     }
 
     @Override

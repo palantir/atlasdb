@@ -92,6 +92,10 @@ public final class ThriftQueryWeighers {
         return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getApproximateSizeOfMutationMap(mutationMap));
     }
 
+    static QosClient.QueryWeigher<Void> remove(byte[] row) {
+        return writeWeigher(1, () -> (long) row.length);
+    }
+
     private static <T> QosClient.QueryWeigher<T> readWeigherWithZeroEstimate(Function<T, Long> bytesRead,
             Function<T, Integer> numRows,
             int numberOfQueriedRows) {
