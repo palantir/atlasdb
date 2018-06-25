@@ -186,23 +186,25 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td>Snapshot Transaction metrics now track the post-commit step of unlocking the transaction row locks.
+Also, the <code class="docutils literal notranslate"><span class="pre">nonPutOverhead</span></code> and <code class="docutils literal notranslate"><span class="pre">nonPutOverheadMillionths</span></code> metrics now account for this step as well.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3307">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Targeted sweep now uses timelock locks to synchronize background threads on multiple hosts.
 This avoids multiple hosts doing the same sweeps.
 Targeted sweep also no longer forcibly sets the number of shards to at least the number of threads.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3310">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Cassandra deleteRows now avoids reading any information in the case that we delete the whole row.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3312">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>The <code class="docutils literal notranslate"><span class="pre">scyllaDb</span></code> option in Cassandra KVS config has been removed.
 Please contact the AtlasDB team if you deploy AtlasDB with scyllaDb (this was never supported).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3313">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td>&#160;</td>
-<td>&#160;</td>
 </tr>
 </tbody>
 </table>
