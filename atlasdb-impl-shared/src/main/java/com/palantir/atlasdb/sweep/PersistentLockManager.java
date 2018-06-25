@@ -117,7 +117,7 @@ public class PersistentLockManager implements AutoCloseable {
                 if (lockId != null && actualEntry.instanceId().equals(lockId.value())) {
                     // We tried to acquire while already holding the lock. Welp - but we still have the lock.
                     referenceCount++;
-                    log.info("Attempted to acquire the a new lock when we already held a lock."
+                    log.info("Attempted to acquire a new lock when we already held a lock."
                             + " The acquire failed, but our lock is still valid, so we still hold the lock.");
                     return true;
                 } else {
