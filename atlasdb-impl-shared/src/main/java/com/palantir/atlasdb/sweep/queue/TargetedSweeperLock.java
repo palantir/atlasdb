@@ -41,7 +41,8 @@ public final class TargetedSweeperLock {
             TimelockService timeLock) {
         ShardAndStrategy shardStrategy = ShardAndStrategy.of(shard, strategy);
         LockDescriptor lock = StringLockDescriptor.of(shardStrategy.toText());
-        LockRequest request = LockRequest.of(ImmutableSet.of(lock), 500L);
+        // We do not want the timeout to be too low to avoid a race condition where we give up too soon
+        LockRequest request = LockRequest.of(ImmutableSet.of(lock), 100L);
         return timeLock.lock(request)
                 .getTokenOrEmpty()
                 .map(lockToken -> new TargetedSweeperLock(shardStrategy, timeLock, lockToken));
