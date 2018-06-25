@@ -438,17 +438,17 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
-        return delegate().getClusterAvailabilityStatus();
-    }
-
-    @Override
     public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         try {
             delegate().compactInternally(tableMapper.getMappedTableName(tableRef), inMaintenanceMode);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    @Override
+    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        return delegate().getClusterAvailabilityStatus();
     }
 
     @Override

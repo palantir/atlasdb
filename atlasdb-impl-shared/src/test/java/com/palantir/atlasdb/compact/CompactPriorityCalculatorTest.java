@@ -73,7 +73,8 @@ public class CompactPriorityCalculatorTest {
     public void canReturnTableEvenIfItWasCompactedAfterTheLastSweep() {
         // TABLE_1 was compacted too recently, chooses randomly one compacted over one hour ago
         when(sweepHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 4L, TABLE_2, 3L));
-        when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, System.currentTimeMillis(), TABLE_2, 5L));
+        when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1,
+                System.currentTimeMillis(), TABLE_2, 5L));
 
         Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
         assertThat(table).isEqualTo(Optional.of(TABLE_2));
@@ -84,7 +85,7 @@ public class CompactPriorityCalculatorTest {
         // Returns empty when all tables were swept and then compacted, and each compact time is the past hour
         Long currentTime = System.currentTimeMillis();
         when(sweepHistoryProvider.getHistory(mockTx))
-                .thenReturn(ImmutableMap.of(TABLE_1, currentTime - 5, TABLE_2, currentTime - 4 ));
+                .thenReturn(ImmutableMap.of(TABLE_1, currentTime - 5, TABLE_2, currentTime - 4));
         when(compactionHistoryProvider.getHistory(mockTx))
                 .thenReturn(ImmutableMap.of(TABLE_1, currentTime  - 1, TABLE_2, currentTime - 2));
 

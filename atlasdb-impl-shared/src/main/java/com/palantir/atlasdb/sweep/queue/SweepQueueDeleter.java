@@ -47,14 +47,15 @@ public class SweepQueueDeleter {
      */
     public void sweep(Collection<WriteInfo> writes, Sweeper sweeper) {
         Map<TableReference, Map<Cell, Long>> maxTimestampByCell = writesPerTable(writes, sweeper);
-        for (Map.Entry<TableReference, Map<Cell, Long>> entry: maxTimestampByCell.entrySet()) {
+        for (Map.Entry<TableReference, Map<Cell, Long>> entry : maxTimestampByCell.entrySet()) {
             Iterables.partition(entry.getValue().keySet(), SweepQueueUtils.BATCH_SIZE_KVS)
                     .forEach(cells -> {
                         Map<Cell, Long> maxTimestampByCellPartition = cells.stream()
                                 .collect(Collectors.toMap(Function.identity(), entry.getValue()::get));
                         follower.run(entry.getKey(), maxTimestampByCellPartition.keySet());
                         if (sweeper.shouldAddSentinels()) {
-                            kvs.addGarbageCollectionSentinelValues(entry.getKey(), maxTimestampByCellPartition.keySet());
+                            kvs.addGarbageCollectionSentinelValues(entry.getKey(),
+                                    maxTimestampByCellPartition.keySet());
                             kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition, false);
                         } else {
                             kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition, true);
