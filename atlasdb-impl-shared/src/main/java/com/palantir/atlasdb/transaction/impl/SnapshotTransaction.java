@@ -442,17 +442,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 //                return post.entrySet().iterator();
 
                 // IMPL 2
-//                List<Map.Entry<Cell, byte[]>> list = new ArrayList<>();
-//                getWithPostFiltering(tableRef, raw, list, Value.GET_VALUE);
-//                batchIterator.markNumResultsNotDeleted(list.size());
-//                list.sort(Comparator.comparing(Entry::getKey));
-//                return list.iterator();
+                List<Map.Entry<Cell, byte[]>> list = new ArrayList<>();
+                getWithPostFiltering(tableRef, raw, list, Value.GET_VALUE);
+                batchIterator.markNumResultsNotDeleted(list.size());
+                list.sort(Comparator.comparing(Entry::getKey));
+                return list.iterator();
 
                 // IMPL 3
-                AtomicInteger ai = new AtomicInteger();
-                Iterable<Map.Entry<Cell, byte[]>> iterable = getWithPostFiltering3(tableRef, raw, Value.GET_VALUE, ai);
-                batchIterator.markNumResultsNotDeleted(ai.get());
-                return iterable.iterator();
+//                AtomicInteger ai = new AtomicInteger();
+//                Iterable<Map.Entry<Cell, byte[]>> iterable = getWithPostFiltering3(tableRef, raw, Value.GET_VALUE, ai);
+//                batchIterator.markNumResultsNotDeleted(ai.get());
+//                return iterable.iterator();
             }
         };
         return Iterators.concat(postFilteredBatches);
