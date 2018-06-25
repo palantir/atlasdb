@@ -48,7 +48,7 @@ public final class TimestampTracker {
         registerTimestampForTracking(clock, metricsManager, "timestamp.fresh", timeLockService::getFreshTimestamp);
         registerTimestampForTracking(
                 clock, metricsManager, "timestamp.immutable", timeLockService::getImmutableTimestamp);
-        registerTimestampForTracking(clock, metricsManager,"timestamp.unreadable", cleaner::getUnreadableTimestamp);
+        registerTimestampForTracking(clock, metricsManager, "timestamp.unreadable", cleaner::getUnreadableTimestamp);
     }
 
     @VisibleForTesting

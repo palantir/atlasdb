@@ -48,7 +48,7 @@ public abstract class TargetedSweepMetadata implements Persistable {
                 MAX_DEDICATED_ROWS, dedicatedRowNumber());
     }
     public static final Hydrator<TargetedSweepMetadata> BYTES_HYDRATOR = input ->
-        ImmutableTargetedSweepMetadata.builder()
+            ImmutableTargetedSweepMetadata.builder()
                 .conservative((input[0] & SWEEP_STRATEGY_MASK) != 0)
                 .dedicatedRow((input[0] & USE_DEDICATED_ROWS_MASK) != 0)
                 .shard((input[0] << 2 | (input[1] & BYTE_MASK) >> 6) & BYTE_MASK)

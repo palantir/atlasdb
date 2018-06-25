@@ -85,7 +85,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * @param conservativeThreads number of conservative threads to use for background targeted sweep.
      * @param thoroughThreads number of thorough threads to use for background targeted sweep.
      * @param followers follower used for sweeps, as defined by your schema.
-     * @return returns an uninitialized targeted sweeper.
+     * @return returns an uninitialized targeted sweeper
      */
     public static TargetedSweeper createUninitialized(
             MetricsManager metricsManager,
@@ -96,12 +96,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     }
 
     @VisibleForTesting
-    public static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager, Supplier<Integer> shards) {
+    static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager, Supplier<Integer> shards) {
         return createUninitialized(
                 metricsManager, () -> true, shards, 0, 0, ImmutableList.of());
     }
 
-    @VisibleForTesting
     public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
         return createUninitializedForTest(MetricsManagers.createForTests(), shards);
     }
@@ -147,6 +146,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      *
      * @param shardStrategy shard and strategy to use
      */
+    @SuppressWarnings("checkstyle:RegexpMultiline") // Suppress VisibleForTesting warning
     @VisibleForTesting
     public void sweepNextBatch(ShardAndStrategy shardStrategy) {
         assertInitialized();

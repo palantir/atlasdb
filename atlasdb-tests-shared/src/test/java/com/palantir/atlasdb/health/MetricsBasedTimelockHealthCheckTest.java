@@ -58,7 +58,7 @@ public class MetricsBasedTimelockHealthCheckTest {
     }
 
     @Test
-    public void timlockIsUnhealthyAfterOneSuccessMultipleFailures() {
+    public void timelockIsUnhealthyAfterOneSuccessMultipleFailures() {
         TimelockService instrumentedTimelockService = getFreshInstrumentedTimelockService();
         when(timelockService.getFreshTimestamp()).thenReturn(0L).thenThrow(new RuntimeException());
 
@@ -69,7 +69,7 @@ public class MetricsBasedTimelockHealthCheckTest {
     }
 
     @Test
-    public void timlockIsHealthyAfterOneFailureMultipleSuccesses() {
+    public void timelockIsHealthyAfterOneFailureMultipleSuccesses() {
         TimelockService instrumentedTimelockService = getFreshInstrumentedTimelockService();
         when(timelockService.getFreshTimestamp()).thenThrow(new RuntimeException()).thenReturn(0L);
 
@@ -88,11 +88,12 @@ public class MetricsBasedTimelockHealthCheckTest {
         return instrumentedTimelockService;
     }
 
-    private static void tryGetFreshTimestamp(TimelockService timelockService, int repetition) {
-        for (int i=0; i<repetition; i++) {
+    private static void tryGetFreshTimestamp(TimelockService service, int repetition) {
+        for (int i = 0; i < repetition; i++) {
             try {
-                timelockService.getFreshTimestamp();
+                service.getFreshTimestamp();
             } catch (RuntimeException e) {
+                // ignored - TODO(gsheasby): should assert exception message
             }
         }
     }
@@ -100,6 +101,8 @@ public class MetricsBasedTimelockHealthCheckTest {
     private static void waitForClockTick() {
         try {
             Thread.sleep(METRICS_TICK_INTERVAL);
-        } catch (InterruptedException e) {}
+        } catch (InterruptedException e) {
+            // ignored - TODO(gsheasby): should assert exception message
+        }
     }
 }

@@ -174,7 +174,8 @@ public class SpecificTableSweeper {
     }
 
     private void processSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
-        updateTimeMetricsOneIteration(currentIteration.getTimeInMillis(), currentIteration.getTimeElapsedSinceStartedSweeping());
+        updateTimeMetricsOneIteration(currentIteration.getTimeInMillis(),
+                currentIteration.getTimeElapsedSinceStartedSweeping());
 
         SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
 

@@ -25,7 +25,7 @@ import com.google.common.base.Suppliers;
 
 /**
  * Invokes the list of {@link ChainingLogConsumerProcessor#processors()} in order.
- * Guaranteed to invoke the provided {@link Supplier<LogTemplate>} not more than once, even if processors
+ * Guaranteed to invoke the provided {@link Supplier&lt;LogTemplate&gt;} not more than once, even if processors
  * call get() on the Supplier multiple times.
  *
  * Behaviour is not defined if any of the processors throw.

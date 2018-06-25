@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static java.util.stream.Collectors.toList;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
@@ -35,6 +33,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -83,7 +82,7 @@ public class CassandraClientPoolTest {
 
     private void assertThatMetricsArePresent(ImmutableSet<String> poolNames) {
         assertThat(metricRegistry.getGauges().keySet()).containsAll(
-                poolNames.stream().map(this::getPoolMetricName).collect(toList()));
+                poolNames.stream().map(this::getPoolMetricName).collect(Collectors.toList()));
     }
 
     private String getPoolMetricName(String poolName) {
