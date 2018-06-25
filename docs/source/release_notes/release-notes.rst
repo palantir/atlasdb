@@ -70,6 +70,10 @@ develop
            Please contact the AtlasDB team if you deploy AtlasDB with scyllaDb (this was never supported).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3313>`__)
 
+    *    - |fixed| |logs|
+         - Fixed a bug where Cassandra client pool was erroneously logging host removal from blacklist.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3314>`__)
+
 =======
 v0.92.2
 =======
