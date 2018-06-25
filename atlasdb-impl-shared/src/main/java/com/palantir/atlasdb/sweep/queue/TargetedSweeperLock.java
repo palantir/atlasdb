@@ -18,48 +18,33 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Optional;
 
-import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.common.base.Throwables;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 
 public final class TargetedSweeperLock {
     private final ShardAndStrategy shardStrategy;
-    private final LockService lockService;
-    private Optional<LockRefreshToken> lockRefreshToken;
+    private final TimelockService timeLock;
+    private final LockToken lockToken;
 
-    private TargetedSweeperLock(ShardAndStrategy shardStrategy, LockService lockService, LockRefreshToken token) {
+    private TargetedSweeperLock(ShardAndStrategy shardStrategy, TimelockService timeLock, LockToken lockToken) {
         this.shardStrategy = shardStrategy;
-        this.lockService = lockService;
-        this.lockRefreshToken = Optional.ofNullable(token);
+        this.timeLock = timeLock;
+        this.lockToken = lockToken;
     }
 
-    public static TargetedSweeperLock tryAcquireUnchecked(int shard, TableMetadataPersistence.SweepStrategy strategy,
-            LockService lockService) {
-        try {
-            return tryAcquire(shard, strategy, lockService);
-        } catch (InterruptedException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
-    }
-
-    public static TargetedSweeperLock tryAcquire(int shard, TableMetadataPersistence.SweepStrategy strategy,
-            LockService lockService) throws InterruptedException {
+    public static Optional<TargetedSweeperLock> tryAcquire(int shard, TableMetadataPersistence.SweepStrategy strategy,
+            TimelockService timeLock) {
         ShardAndStrategy shardStrategy = ShardAndStrategy.of(shard, strategy);
         LockDescriptor lock = StringLockDescriptor.of(shardStrategy.toText());
-        LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
-        LockRefreshToken token = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
-        return new TargetedSweeperLock(shardStrategy, lockService, token);
-    }
-
-    public boolean isHeld() {
-        return lockRefreshToken.isPresent();
+        LockRequest request = LockRequest.of(ImmutableSet.of(lock), 2000L);
+        return timeLock.lock(request)
+                .getTokenOrEmpty()
+                .map(lockToken -> new TargetedSweeperLock(shardStrategy, timeLock, lockToken));
     }
 
     public ShardAndStrategy getShardAndStrategy() {
@@ -67,9 +52,6 @@ public final class TargetedSweeperLock {
     }
 
     public void unlock() {
-        lockRefreshToken.ifPresent(token -> {
-            lockService.unlock(token);
-            lockRefreshToken = Optional.empty();
-        });
+        timeLock.unlock(ImmutableSet.of(lockToken));
     }
 }

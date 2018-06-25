@@ -42,7 +42,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.lock.LockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
@@ -55,7 +55,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
-    private LockService lockService;
+    private TimelockService timeLock;
     private BackgroundSweepScheduler conservativeScheduler;
     private BackgroundSweepScheduler thoroughScheduler;
 
@@ -75,7 +75,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     /**
      * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
-     * {@link #initialize(SpecialTimestampsSupplier, LockService, KeyValueService, TargetedSweepFollower)} method
+     * {@link #initialize(SpecialTimestampsSupplier, TimelockService, KeyValueService, TargetedSweepFollower)} method
      * before any writes can be made to the sweep queue, or before sweeping.
      *
      * @param enabled live reloadable config controlling whether background threads should perform targeted sweep.
@@ -103,13 +103,12 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     /**
      * This method initializes all the resources necessary for the targeted sweeper. This method should only be called
      * once the kvs is ready.
-     *
-     * @param timestamps supplier of unreadable and immutable timestamps.
-     * @param lock LockService to use for synchronizing iterations of sweep on different nodes
+     *  @param timestamps supplier of unreadable and immutable timestamps.
+     * @param timelockService TimeLockService to use for synchronizing iterations of sweep on different nodes
      * @param kvs key value service that must be already initialized.
      * @param follower followers used for sweeps.
      */
-    public void initialize(SpecialTimestampsSupplier timestamps, LockService lock, KeyValueService kvs,
+    public void initialize(SpecialTimestampsSupplier timestamps, TimelockService timelockService, KeyValueService kvs,
             TargetedSweepFollower follower) {
         if (isInitialized) {
             return;
@@ -119,7 +118,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         queue = SweepQueue.create(metricsManager, kvs, shardsConfig, follower);
         timestampsSupplier = timestamps;
-        lockService = lock;
+        timeLock = timelockService;
         conservativeScheduler.scheduleBackgroundThreads();
         thoroughScheduler.scheduleBackgroundThreads();
         isInitialized = true;
@@ -128,7 +127,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     @Override
     public void callbackInit(TransactionManager txManager) {
         initialize(SpecialTimestampsSupplier.create(txManager),
-                txManager.getLockService(),
+                txManager.getTimelockService(),
                 txManager.getKeyValueService(),
                 new TargetedSweepFollower(followers, txManager));
     }
@@ -211,8 +210,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         private Optional<TargetedSweeperLock> tryToAcquireLockForNextShardAndStrategy() throws InterruptedException {
             return IntStream.range(0, queue.getNumShards())
                     .map(ignore -> getShardAndIncrement())
-                    .mapToObj(shard -> TargetedSweeperLock.tryAcquireUnchecked(shard, sweepStrategy, lockService))
-                    .filter(TargetedSweeperLock::isHeld)
+                    .mapToObj(shard -> TargetedSweeperLock.tryAcquire(shard, sweepStrategy, timeLock))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
                     .findFirst();
         }
 

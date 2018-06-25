@@ -40,11 +40,12 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_FINE_GRANULARI
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFinePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -56,6 +57,7 @@ import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -67,12 +69,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
-import com.palantir.lock.LockWithMode;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 
 public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private static final long LOW_TS = 10L;
@@ -91,7 +92,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void setup() {
         super.setup();
         mockFollower = mock(TargetedSweepFollower.class);
-        sweepQueue.initialize(timestampsSupplier, mock(LockService.class), spiedKvs, mockFollower);
+        sweepQueue.initialize(timestampsSupplier, mock(TimelockService.class), spiedKvs, mockFollower);
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
@@ -115,8 +116,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         KeyValueService uninitializedKvs = mock(KeyValueService.class);
         when(uninitializedKvs.isInitialized()).thenReturn(false);
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(null);
-        assertThatThrownBy(() ->
-                sweeper.initialize(null, mock(LockService.class), uninitializedKvs, mock(TargetedSweepFollower.class)))
+        assertThatThrownBy(() -> sweeper
+                .initialize(null, mock(TimelockService.class), uninitializedKvs, mock(TargetedSweepFollower.class)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -784,35 +785,45 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         int shards = 128;
         int sweepers = 8;
         int threads = shards / sweepers;
-        LockService stickyLockService = createStickyLockService();
+        TimelockService stickyLockService = createStickyLockService();
         createAndInitializeSweepersAndWaitForOneBackgroundIteration(sweepers, shards, threads, stickyLockService);
 
         for (int i = 0; i < shards; i++) {
             assertProgressUpdatedToTimestamp(maxTsForFinePartition(tsPartitionFine(unreadableTs - 1)), i);
-            verify(stickyLockService, times(1)).unlock(new LockRefreshToken(BigInteger.valueOf(i), 1L));
+            verify(stickyLockService, times(1)).unlock(ImmutableSet.of(LockToken.of(new UUID(i, 0L))));
         }
+
+        // minimum: all threads on one host succeed, then on another, etc:
+        // threads + threads * 2 + ...  + threads * swepers
+        verify(stickyLockService, atLeast(threads * sweepers * (sweepers - 1) / 2))
+                .lock(any(LockRequest.class));
+        // maximum: all but one succeed on each host, and only then those succeed:
+        // shards + shards - 1 + ... + shards - (sweepers - 1)
+        verify(stickyLockService, atMost(sweepers * shards - sweepers * (sweepers - 1) / 2))
+                .lock(any(LockRequest.class));
     }
 
     @Test
     public void extraSweepersGiveUpAfterFailingToAcquireEnoughTimes() throws InterruptedException {
-        int shards = 8;
-        int sweepers = 2;
-        int threads = shards / sweepers + 1;
-        LockService stickyLockService = createStickyLockService();
+        int shards = 16;
+        int sweepers = 4;
+        int threads = shards / (sweepers / 2);
+        TimelockService stickyLockService = createStickyLockService();
         createAndInitializeSweepersAndWaitForOneBackgroundIteration(sweepers, shards, threads, stickyLockService);
 
-        // We issue between 2 * shards - shards/sweepers and 2 * shards - 1 lock requests to acquire all locks, and then
-        // an additional 2 * shards requests by the unlucky threads that have been unable to get a lock
         ArgumentCaptor<LockRequest> captor = ArgumentCaptor.forClass(LockRequest.class);
-        verify(stickyLockService, atLeast(2 * shards - shards / sweepers + 2 * shards))
-                .lock(eq(LockClient.ANONYMOUS.getClientId()), any(LockRequest.class));
-        verify(stickyLockService, atMost(2 * shards - 1 + 2 * shards))
-                .lock(eq(LockClient.ANONYMOUS.getClientId()), captor.capture());
+        // minimum: as in the example above, but we have extra threads
+        // threads + ... + threads * (shards / threads) + shards * (threads * sweepers - shards)
+        verify(stickyLockService, atLeast(shards * (shards / threads + 1) / 2 + shards * (threads * sweepers - shards)))
+                .lock(any(LockRequest.class));
+        // maximum: as in the example above, but we have extra threads
+        // shards + shards - 1 + ... + shards - (sweepers - 1) + shards * (threads * sweepers - shards)
+        verify(stickyLockService, atMost(shards * ((threads + 1) * sweepers - shards) - sweepers * (sweepers - 1) / 2))
+                .lock(captor.capture());
 
         Set<String> requestedLockIds = captor.getAllValues().stream()
-                .map(LockRequest::getLocks)
-                .map(list -> list.get(0))
-                .map(LockWithMode::getLockDescriptor)
+                .map(LockRequest::getLockDescriptors)
+                .map(Iterables::getOnlyElement)
                 .map(LockDescriptor::getLockIdAsString)
                 .collect(Collectors.toSet());
 
@@ -961,7 +972,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private TargetedSweeper getSingleShardSweeper() {
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
-        sweeper.initialize(timestampsSupplier, mock(LockService.class), spiedKvs, mock(TargetedSweepFollower.class));
+        sweeper.initialize(
+                timestampsSupplier, mock(TimelockService.class), spiedKvs, mock(TargetedSweepFollower.class));
         return sweeper;
     }
 
@@ -969,24 +981,24 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
      * Creates a mock of a LockService that only gives out a lock once per unique request and never releases it, even
      * if unlock is called. The returned tokens are monotonically increasing in the tokenId.
      */
-    private LockService createStickyLockService() throws InterruptedException {
+    private TimelockService createStickyLockService() throws InterruptedException {
         AtomicLong lockToken = new AtomicLong(0);
 
-        ConcurrentHashSet<LockRequest> requestedLocks = new ConcurrentHashSet<>();
-        LockService stickyLockService = mock(LockService.class);
+        Set<LockDescriptor> requestedLocks = new ConcurrentHashSet<>();
+        TimelockService stickyLockService = mock(TimelockService.class);
         doAnswer((invocation) -> {
-            LockRequest request = (LockRequest) invocation.getArguments()[1];
-            if (requestedLocks.add(request)) {
-                return new LockRefreshToken(BigInteger.valueOf(lockToken.getAndIncrement()), 1L);
+            LockRequest request = (LockRequest) invocation.getArguments()[0];
+            if (requestedLocks.add(Iterables.getOnlyElement(request.getLockDescriptors()))) {
+                return (LockResponse) () -> Optional.of(LockToken.of(new UUID(lockToken.getAndIncrement(), 0L)));
             } else {
-                return null;
+                return (LockResponse) Optional::empty;
             }
-        }).when(stickyLockService).lock(any(), any());
+        }).when(stickyLockService).lock(any());
         return stickyLockService;
     }
 
     private void createAndInitializeSweepersAndWaitForOneBackgroundIteration(int sweepers, int shards, int threads,
-            LockService stickyLockService) throws InterruptedException {
+            TimelockService stickyLockService) throws InterruptedException {
         for (int i = 0; i < sweepers; i++) {
             TargetedSweeper
                     .createUninitialized(metricsManager, () -> true, () -> shards, threads, 0, ImmutableList.of())

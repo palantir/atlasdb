@@ -19,38 +19,50 @@ package com.palantir.atlasdb.sweep.queue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.math.BigInteger;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockService;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 
 public class TargetedSweeperLockTest {
-    private LockService mockLockService = mock(LockService.class);
+    private TimelockService mockLockService = mock(TimelockService.class);
 
     @Test
     public void successfulLockAndUnlock() throws InterruptedException {
-        when(mockLockService.lock(any(), any()))
-                .thenReturn(new LockRefreshToken(BigInteger.TEN, 10L));
-        TargetedSweeperLock conservative = TargetedSweeperLock
+        LockToken lockToken = LockToken.of(UUID.randomUUID());
+        when(mockLockService.lock(any()))
+                .thenReturn(() -> Optional.of(lockToken));
+        Optional<TargetedSweeperLock> maybeLock = TargetedSweeperLock
                 .tryAcquire(1, TableMetadataPersistence.SweepStrategy.CONSERVATIVE, mockLockService);
-        assertThat(conservative.isHeld()).isTrue();
-        assertThat(conservative.getShardAndStrategy()).isEqualTo(ShardAndStrategy.conservative(1));
 
-        conservative.unlock();
-        assertThat(conservative.isHeld()).isFalse();
+        assertThat(maybeLock).isPresent();
+        TargetedSweeperLock lock = maybeLock.get();
+        assertThat(lock.getShardAndStrategy()).isEqualTo(ShardAndStrategy.conservative(1));
+
+        lock.unlock();
+        verify(mockLockService, times(1)).unlock(ImmutableSet.of(lockToken));
+        verify(mockLockService, times(1)).lock(any());
+        verifyNoMoreInteractions(mockLockService);
     }
 
     @Test
     public void unsuccessfulLock() throws InterruptedException {
-        when(mockLockService.lock(any(), any())).thenReturn(null);
-        TargetedSweeperLock thorough = TargetedSweeperLock
+        when(mockLockService.lock(any())).thenReturn(() -> Optional.empty());
+        Optional<TargetedSweeperLock> maybeLock = TargetedSweeperLock
                 .tryAcquire(2, TableMetadataPersistence.SweepStrategy.THOROUGH, mockLockService);
-        assertThat(thorough.isHeld()).isFalse();
-        assertThat(thorough.getShardAndStrategy()).isEqualTo(ShardAndStrategy.thorough(2));
+
+        assertThat(maybeLock).isNotPresent();
+        verify(mockLockService, times(1)).lock(any());
+        verifyNoMoreInteractions(mockLockService);
     }
 }

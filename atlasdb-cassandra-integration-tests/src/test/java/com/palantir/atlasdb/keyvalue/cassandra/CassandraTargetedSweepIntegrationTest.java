@@ -42,7 +42,7 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.LockService;
+import com.palantir.lock.v2.TimelockService;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
@@ -63,7 +63,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
         super.setup();
 
         sweepQueue = TargetedSweeper.createUninitializedForTest(() -> 1);
-        sweepQueue.initialize(timestampsSupplier, mock(LockService.class), kvs, mock(TargetedSweepFollower.class));
+        sweepQueue.initialize(timestampsSupplier, mock(TimelockService.class), kvs, mock(TargetedSweepFollower.class));
     }
 
     @Override
