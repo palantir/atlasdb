@@ -103,7 +103,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     /**
      * This method initializes all the resources necessary for the targeted sweeper. This method should only be called
      * once the kvs is ready.
-     *  @param timestamps supplier of unreadable and immutable timestamps.
+     * @param timestamps supplier of unreadable and immutable timestamps.
      * @param timelockService TimeLockService to use for synchronizing iterations of sweep on different nodes
      * @param kvs key value service that must be already initialized.
      * @param follower followers used for sweeps.
@@ -207,7 +207,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
             }
         }
 
-        private Optional<TargetedSweeperLock> tryToAcquireLockForNextShardAndStrategy() throws InterruptedException {
+        private Optional<TargetedSweeperLock> tryToAcquireLockForNextShardAndStrategy() {
             return IntStream.range(0, queue.getNumShards())
                     .map(ignore -> getShardAndIncrement())
                     .mapToObj(shard -> TargetedSweeperLock.tryAcquire(shard, sweepStrategy, timeLock))
