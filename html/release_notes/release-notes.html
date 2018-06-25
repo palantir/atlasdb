@@ -186,6 +186,26 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-93-0">
+<h2>v0.93.0<a class="headerlink" href="#v0-93-0" title="Permalink to this headline">¶</a></h2>
+<p>25 June 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>Snapshot Transaction metrics now track the post-commit step of unlocking the transaction row locks.
 Also, the <code class="docutils literal notranslate"><span class="pre">nonPutOverhead</span></code> and <code class="docutils literal notranslate"><span class="pre">nonPutOverheadMillionths</span></code> metrics now account for this step as well.
@@ -205,6 +225,10 @@ Targeted sweep also no longer forcibly sets the number of shards to at least the
 <td>The <code class="docutils literal notranslate"><span class="pre">scyllaDb</span></code> option in Cassandra KVS config has been removed.
 Please contact the AtlasDB team if you deploy AtlasDB with scyllaDb (this was never supported).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3313">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>Fixed a bug where Cassandra client pool was erroneously logging host removal from blacklist, even the host was not blacklisted in the first place.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3314">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
