@@ -50,6 +50,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+=======
+v0.93.0
+=======
+
+25 June 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved| |metrics|
          - Snapshot Transaction metrics now track the post-commit step of unlocking the transaction row locks.
            Also, the ``nonPutOverhead`` and ``nonPutOverheadMillionths`` metrics now account for this step as well.
@@ -71,7 +87,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3313>`__)
 
     *    - |fixed| |logs|
-         - Fixed a bug where Cassandra client pool was erroneously logging host removal from blacklist.
+         - Fixed a bug where Cassandra client pool was erroneously logging host removal from blacklist, even the host was not blacklisted in the first place.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3314>`__)
 
 =======
