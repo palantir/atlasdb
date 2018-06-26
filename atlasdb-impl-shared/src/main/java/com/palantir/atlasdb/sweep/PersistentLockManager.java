@@ -60,7 +60,7 @@ public class PersistentLockManager implements AutoCloseable {
      * that it relies on.
      */
     @GuardedBy("this")
-    int referenceCount = 0;
+    volatile int referenceCount = 0;
 
     @GuardedBy("this")
     private boolean isShutDown = false;
