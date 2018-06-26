@@ -50,8 +50,12 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Snapshot transaction ``getRowsColumnRange`` performance has been improved by using a ``List`` and sorting it at the end.
+           We previously used a ``SortedSet`` which would incur overhead in rebalancing the underlying red-black tree as the data was already mostly sorted.
+           We have seen a 10 percent speedup for reading all columns from a wide row (50,000 columns).
+           We have also seen an 8 percent speedup for reading 50,000 columns from a wide row, where a random 2 percent of these rows are from uncommitted transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/NNNN>`__)
 
 =======
 v0.93.0
