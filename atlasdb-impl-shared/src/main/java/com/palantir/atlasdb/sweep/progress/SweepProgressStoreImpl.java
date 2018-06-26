@@ -84,7 +84,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     private static final byte[] ROW_AND_COLUMN_NAME_BYTES = PtBytes.toCachedBytes(ROW_AND_COLUMN_NAME);
 
     @VisibleForTesting
-    protected static final Cell LEGACY_CELL = Cell.create(ROW_AND_COLUMN_NAME_BYTES, ROW_AND_COLUMN_NAME_BYTES);
+    static final Cell LEGACY_CELL = Cell.create(ROW_AND_COLUMN_NAME_BYTES, ROW_AND_COLUMN_NAME_BYTES);
     private static final byte[] FINISHED_TABLE = PtBytes.toBytes("Table finished");
 
     private static final TableMetadata SWEEP_PROGRESS_METADATA = new TableMetadata(
@@ -203,7 +203,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     }
 
     @VisibleForTesting
-    protected static byte[] progressToBytes(SweepProgress value) throws JsonProcessingException {
+    static byte[] progressToBytes(SweepProgress value) throws JsonProcessingException {
         return OBJECT_MAPPER.writeValueAsBytes(value);
     }
 
