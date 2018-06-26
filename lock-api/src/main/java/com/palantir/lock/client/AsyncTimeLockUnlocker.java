@@ -19,7 +19,6 @@ package com.palantir.lock.client;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.slf4j.Logger;
@@ -51,7 +50,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
     private final AtomicBoolean unlockIsScheduled = new AtomicBoolean(false);
 
     // Fairness incurs a performance penalty but we do not want to starve the actual unlocking process.
-    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
+    private final VisibleReadWriteLock readWriteLock = new VisibleReadWriteLock(new ReentrantReadWriteLock(true));
 
     private Set<LockToken> outstandingLockTokens = Sets.newConcurrentHashSet();
 
@@ -69,11 +68,11 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
      */
     public void enqueue(Set<LockToken> tokens) {
         // addAll() can run safely in parallel because the set is a concurrent set.
-        readWriteLock.readLock().lock();
+        readWriteLock.readLock();
         try {
             outstandingLockTokens.addAll(tokens);
         } finally {
-            readWriteLock.readLock().unlock();
+            readWriteLock.readUnlock();
         }
 
         if (unlockIsScheduled.compareAndSet(false, true)) {
@@ -86,6 +85,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
 
         Set<LockToken> toUnlock = getOutstandingLockTokenSnapshot();
         if (toUnlock.isEmpty()) {
+            log.info("Not unlocking, because we don't believe there are any tokens to unlock.");
             return;
         }
 
@@ -104,12 +104,12 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
         Set<LockToken> toUnlock;
         Set<LockToken> newSet = Sets.newConcurrentHashSet();
 
-        readWriteLock.writeLock().lock();
+        readWriteLock.writeLock();
         try {
             toUnlock = outstandingLockTokens;
             outstandingLockTokens = newSet;
         } finally {
-            readWriteLock.writeLock().unlock();
+            readWriteLock.writeUnlock();
         }
 
         return toUnlock;
