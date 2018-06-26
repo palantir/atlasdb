@@ -2084,7 +2084,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // uninstantiable
         }
 
-        public static <T> PostFilteringPopulator mapBasedPopulator(
+        static <T> PostFilteringPopulator mapBasedPopulator(
                 SnapshotTransaction tx,
                 Map<Cell, T> outputMap,
                 Function<Value, T> valueTransformer) {
@@ -2137,7 +2137,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             };
         }
 
-        public static <T> PostFilteringPopulator listBasedPopulator(
+        static <T> PostFilteringPopulator listBasedPopulator(
                 SnapshotTransaction tx,
                 List<Map.Entry<Cell, T>> outputList,
                 Function<Value, T> valueTransformer) {
