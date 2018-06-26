@@ -83,6 +83,7 @@ public final class AtlasDbConstants {
 
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
+            TransactionConstants.TRANSACTION_TABLE_V2,
             PUNCH_TABLE,
             OLD_SCRUB_TABLE,
             SCRUB_TABLE,
