@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.apache.commons.lang.ArrayUtils;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -84,7 +85,8 @@ public class SimpleV2TransactionService implements TransactionService {
                 ImmutableMap.of(key, value));
     }
 
-    private long getTimestampFromCell(Cell cell) {
+    @VisibleForTesting
+    long getTimestampFromCell(Cell cell) {
         byte[] rowBytes = cell.getRowName();
         ArrayUtils.reverse(rowBytes);
         long rowComponent = (Long) ValueType.VAR_LONG.convertToJava(rowBytes, 0);
@@ -92,10 +94,11 @@ public class SimpleV2TransactionService implements TransactionService {
         byte[] colBytes = cell.getColumnName();
         long colComponent = (Long) ValueType.VAR_LONG.convertToJava(colBytes, 0);
 
-        return (rowComponent / 256) * 100_000_000 + (colComponent) * 256 + rowComponent;
+        return (rowComponent / 256) * 100_000_000 + (colComponent) * 256 + rowComponent % 256;
     }
 
-    private Cell getTransactionCell(long startTimestamp) {
+    @VisibleForTesting
+    Cell getTransactionCell(long startTimestamp) {
         // A long is 9 bytes at most; four of them makes 36 bytes.
         // If we have 256 rows per 100M, then one is safely below 1M dynamic column keys, and a row is bounded at 14M.
         long row = (startTimestamp / 100_000_000) * 256 + (startTimestamp % 100_000_000) % 256;
