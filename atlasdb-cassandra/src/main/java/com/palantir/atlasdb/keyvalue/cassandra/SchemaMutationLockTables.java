@@ -105,8 +105,7 @@ public class SchemaMutationLockTables {
                 SafeArg.of("internalTableName", internalTableName),
                 SafeArg.of("cfId", uuid));
 
-        clientPool.runWithRetry(client ->
-        {
+        clientPool.runWithRetry(client -> {
             try {
                 client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM);
 

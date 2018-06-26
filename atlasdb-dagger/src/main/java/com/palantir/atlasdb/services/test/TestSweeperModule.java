@@ -69,9 +69,9 @@ public class TestSweeperModule {
     public PersistentLockManager providePersistentLockManager(MetricsManager metricsManager,
             @Named("kvs") KeyValueService kvs,
             ServicesConfig config) {
-        PersistentLockService persistentLockService = kvs.supportsCheckAndSet() ?
-                KvsBackedPersistentLockService.create(kvs, config.atlasDbConfig().initializeAsync()) :
-                new NoOpPersistentLockService();
+        PersistentLockService persistentLockService = kvs.supportsCheckAndSet()
+                ? KvsBackedPersistentLockService.create(kvs, config.atlasDbConfig().initializeAsync())
+                : new NoOpPersistentLockService();
         return new PersistentLockManager(
                 metricsManager,
                 persistentLockService,

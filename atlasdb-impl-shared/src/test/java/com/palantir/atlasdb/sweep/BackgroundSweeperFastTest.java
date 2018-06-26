@@ -15,13 +15,13 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import static org.assertj.core.data.Percentage.withPercentage;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 
 import java.util.Optional;
 
 import org.assertj.core.api.Assertions;
+import org.assertj.core.data.Percentage;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -362,7 +362,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         Assertions.assertThat(intermediateResults.getTimeInMillis()).isEqualTo(sweepTime.getValue());
         Assertions.assertThat(intermediateResults.getTimeElapsedSinceStartedSweeping())
-                .isCloseTo(totalTimeElapsed.getValue(), withPercentage(5d));
+                .isCloseTo(totalTimeElapsed.getValue(), Percentage.withPercentage(5d));
     }
 
     @Test
@@ -398,6 +398,6 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         Assertions.assertThat(intermediateResults.getTimeInMillis()).isEqualTo(sweepTime.getValue());
         Assertions.assertThat(intermediateResults.getTimeElapsedSinceStartedSweeping())
-                .isCloseTo(totalTimeElapsed.getValue(), withPercentage(5d));
+                .isCloseTo(totalTimeElapsed.getValue(), Percentage.withPercentage(5d));
     }
 }

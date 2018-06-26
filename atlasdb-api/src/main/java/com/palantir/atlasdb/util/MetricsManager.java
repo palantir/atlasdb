@@ -101,6 +101,10 @@ public class MetricsManager {
         taggedMetricRegistry.gauge(metricToAdd, gauge);
     }
 
+    public void registerMetric(Class clazz, String metricName, Metric metric) {
+        registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
+    }
+
     public static void main(String[] args) {
         MetricName metricToAdd = MetricName.builder()
                 .safeName(MetricRegistry.name(MetricsManager.class, "test"))
@@ -145,10 +149,6 @@ public class MetricsManager {
 
     private String obfuscate(TableReference tableRef) {
         return Sha256Hash.computeHash(tableRef.getTablename().getBytes()).serializeToHexString().substring(0, 16);
-    }
-
-    public void registerMetric(Class clazz, String metricName, Metric metric) {
-        registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
     }
 
     private synchronized void registerMetricWithFqn(String fullyQualifiedMetricName, Metric metric) {
@@ -203,7 +203,8 @@ public class MetricsManager {
         return meter;
     }
 
-    public Gauge registerOrGetGauge(Class clazz, String metricPrefix, String metricName, MetricRegistry.MetricSupplier<Gauge> supplier) {
+    public Gauge registerOrGetGauge(Class clazz, String metricPrefix, String metricName,
+            MetricRegistry.MetricSupplier<Gauge> supplier) {
         return registerOrGetGauge(MetricRegistry.name(clazz, metricPrefix, metricName), supplier);
     }
 

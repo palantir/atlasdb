@@ -100,7 +100,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
 
     private static final long STARTING_ATLAS_TIMESTAMP = 10_000_000;
-  
+
     private byte[] tableMetadata = new TableDefinition() {
         {
             rowName();
@@ -116,6 +116,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             cachePriority(TableMetadataPersistence.CachePriority.COLD);
         }
     }.toTableMetadata().persistToBytes();
+
     public static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
 
     @Override

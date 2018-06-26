@@ -49,7 +49,7 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     }
 
     public void hasEnqueuedWritesConservativeEqualTo(long value) {
-       objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
+        objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
     }
 
     public void hasEntriesReadConservativeEqualTo(long value) {
