@@ -114,7 +114,112 @@ public class AsyncTimeLockUnlockerTest {
         assertAllTokensEventuallyUnlocked();
         assertThat(concurrentlyInvoked.get()).as("TimeLock was, at some point, called concurrently").isFalse();
     }
+    @Test(timeout = 2_000)
+    public void enqueueDoesNotBlock2() {
+        doAnswer(invocation -> {
+            Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
+            return null;
+        }).when(timelockService).tryUnlock(any());
 
+        unlocker.enqueue(ImmutableSet.copyOf(tokenList));
+        // If enqueue blocked till unlock completed, this test would fail after 2 seconds
+    }
+
+    @Test
+    public void enqueueingTokensEnqueuedSinglyAllEventuallyCaptured2() {
+        setupTokenCollectingTimeLock();
+
+        tokenList.forEach(token -> unlocker.enqueue(ImmutableSet.of(token)));
+
+        verifyTryUnlockAttemptedAtLeastOnce();
+        assertAllTokensEventuallyUnlocked();
+    }
+
+    @Test
+    public void enqueueingTokensEnqueuedInGroupsAllEventuallyCaptured2() {
+        setupTokenCollectingTimeLock();
+
+        Iterables.partition(tokenList, 7).forEach(tokens -> unlocker.enqueue(ImmutableSet.copyOf(tokens)));
+
+        verifyTryUnlockAttemptedAtLeastOnce();
+        assertAllTokensEventuallyUnlocked();
+    }
+
+    @SuppressWarnings("unchecked") // Mock invocation known to be correct
+    @Test
+    public void noParallelCallsMadeFromTimelockPointOfView2() {
+        AtomicBoolean timelockInUse = new AtomicBoolean(false);
+        AtomicBoolean concurrentlyInvoked = new AtomicBoolean(false);
+
+        doAnswer(invocation -> {
+            if (timelockInUse.get()) {
+                concurrentlyInvoked.set(true);
+            }
+            timelockInUse.set(true);
+            unlockedTokens.addAll((Set<LockToken>) invocation.getArguments()[0]);
+            timelockInUse.set(false);
+            return null;
+        }).when(timelockService).tryUnlock(any());
+
+        tokenList.forEach(token -> unlocker.enqueue(ImmutableSet.of(token)));
+
+        verifyTryUnlockAttemptedAtLeastOnce();
+        assertAllTokensEventuallyUnlocked();
+        assertThat(concurrentlyInvoked.get()).as("TimeLock was, at some point, called concurrently").isFalse();
+    }
+    @Test(timeout = 2_000)
+    public void enqueueDoesNotBlock3() {
+        doAnswer(invocation -> {
+            Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
+            return null;
+        }).when(timelockService).tryUnlock(any());
+
+        unlocker.enqueue(ImmutableSet.copyOf(tokenList));
+        // If enqueue blocked till unlock completed, this test would fail after 2 seconds
+    }
+
+    @Test
+    public void enqueueingTokensEnqueuedSinglyAllEventuallyCaptured3() {
+        setupTokenCollectingTimeLock();
+
+        tokenList.forEach(token -> unlocker.enqueue(ImmutableSet.of(token)));
+
+        verifyTryUnlockAttemptedAtLeastOnce();
+        assertAllTokensEventuallyUnlocked();
+    }
+
+    @Test
+    public void enqueueingTokensEnqueuedInGroupsAllEventuallyCaptured3() {
+        setupTokenCollectingTimeLock();
+
+        Iterables.partition(tokenList, 7).forEach(tokens -> unlocker.enqueue(ImmutableSet.copyOf(tokens)));
+
+        verifyTryUnlockAttemptedAtLeastOnce();
+        assertAllTokensEventuallyUnlocked();
+    }
+
+    @SuppressWarnings("unchecked") // Mock invocation known to be correct
+    @Test
+    public void noParallelCallsMadeFromTimelockPointOfView3() {
+        AtomicBoolean timelockInUse = new AtomicBoolean(false);
+        AtomicBoolean concurrentlyInvoked = new AtomicBoolean(false);
+
+        doAnswer(invocation -> {
+            if (timelockInUse.get()) {
+                concurrentlyInvoked.set(true);
+            }
+            timelockInUse.set(true);
+            unlockedTokens.addAll((Set<LockToken>) invocation.getArguments()[0]);
+            timelockInUse.set(false);
+            return null;
+        }).when(timelockService).tryUnlock(any());
+
+        tokenList.forEach(token -> unlocker.enqueue(ImmutableSet.of(token)));
+
+        verifyTryUnlockAttemptedAtLeastOnce();
+        assertAllTokensEventuallyUnlocked();
+        assertThat(concurrentlyInvoked.get()).as("TimeLock was, at some point, called concurrently").isFalse();
+    }
     private static List<LockToken> createLockTokenList(int size) {
         return IntStream.range(0, size)
                 .boxed()
