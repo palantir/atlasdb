@@ -23,6 +23,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
@@ -35,6 +36,7 @@ public class TransactionConstants {
     private TransactionConstants() {/* */}
 
     public static final TableReference TRANSACTION_TABLE = TableReference.createWithEmptyNamespace("_transactions");
+    public static final TableReference TRANSACTION_TABLE_V2 = TableReference.createWithEmptyNamespace("_transactions2");
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;
@@ -62,4 +64,17 @@ public class TransactionConstants {
             ConflictHandler.IGNORE_ALL,
             TableMetadataPersistence.LogSafety.SAFE);
 
+    public static final TableMetadata TRANSACTION_TABLE_V2_METADATA = new TableMetadata(
+            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
+                    .componentName("row")
+                    .type(ValueType.BLOB)
+                    .build())),
+            new ColumnMetadataDescription(
+                    new DynamicColumnDescription(
+                            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
+                            .componentName("col")
+                            .build())),
+                            ColumnValueDescription.forType(ValueType.VAR_LONG))),
+            ConflictHandler.IGNORE_ALL,
+            TableMetadataPersistence.LogSafety.SAFE);
 }
