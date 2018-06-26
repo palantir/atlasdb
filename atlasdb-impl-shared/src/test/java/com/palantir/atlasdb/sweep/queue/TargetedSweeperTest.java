@@ -816,7 +816,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         // threads + ... + threads * (shards / threads) + shards * (threads * sweepers - shards)
         verify(stickyLockService, atLeast(shards * (shards / threads + 1) / 2 + shards * (threads * sweepers - shards)))
                 .lock(any(LockRequest.class));
-        // maximum: oen would think that it is
+        // maximum: one would think that it is
         // shards + shards - 1 + ... + shards - (sweepers - 1) + shards * (threads * sweepers - shards)
         // but actually the logic is much more complicated since threads from the same sweeper can loop back and hit a
         // race condition with each other, so we go with the more conservative upper bound
