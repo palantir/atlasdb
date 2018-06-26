@@ -27,11 +27,6 @@ public final class SimpleTransactionService extends AbstractKeyValueServiceBacke
         this.keyValueService = keyValueService;
     }
 
-    // The maximum key-value store timestamp (exclusive) at which data is stored
-    // in transaction table.
-    // All entries in transaction table are stored with timestamp 0
-    private static final long MAX_TIMESTAMP = 1L;
-
     @Override
     public KeyValueService getKeyValueService() {
         return keyValueService;
