@@ -21,6 +21,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
@@ -82,5 +83,12 @@ public class SimpleV2TransactionService extends AbstractKeyValueServiceBackedTra
     @Override
     public long decodeValueAsTimestamp(byte[] value) {
         return TransactionConstants.getTimestampForValue(value);
+    }
+
+    public static void main(String[] args) {
+        SimpleV2TransactionService tx = new SimpleV2TransactionService(new InMemoryKeyValueService(false));
+        System.out.println(tx.encodeTimestampAsCell(1));
+        System.out.println(tx.encodeTimestampAsCell(PARTITIONING_QUANTUM + 1));
+        System.out.println(tx.encodeTimestampAsCell(1000000001));
     }
 }

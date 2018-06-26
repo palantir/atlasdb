@@ -102,7 +102,10 @@ public abstract class TransactionTestSetup {
                 TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes(),
                 TransactionConstants.TRANSACTION_TABLE_V2,
                 TransactionConstants.TRANSACTION_TABLE_V2_METADATA.persistToBytes()));
-        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
+        keyValueService.truncateTables(
+                ImmutableSet.of(TEST_TABLE,
+                        TransactionConstants.TRANSACTION_TABLE,
+                        TransactionConstants.TRANSACTION_TABLE_V2));
         timestampService = new InMemoryTimestampService();
 
         transactionService = TransactionServices.createTransactionService(keyValueService);

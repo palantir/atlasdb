@@ -95,6 +95,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TEST_TABLE,
                 ConflictHandler.SERIALIZABLE,
                 TransactionConstants.TRANSACTION_TABLE,
+                ConflictHandler.IGNORE_ALL,
+                TransactionConstants.TRANSACTION_TABLE_V2,
                 ConflictHandler.IGNORE_ALL);
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
