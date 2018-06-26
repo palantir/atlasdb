@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -327,7 +326,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // We don't need to do work postFiltering if we have a write locally.
         rawResults.keySet().removeAll(result.keySet());
 
-        SortedMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, result);
+        SortedMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, ImmutableMap.builder());
         long getRowsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
@@ -435,10 +434,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
-                SortedMap<Cell, byte[]> post = new TreeMap<>();
+                ImmutableSortedMap.Builder<Cell, byte[]> post = ImmutableSortedMap.naturalOrder();
                 getWithPostFiltering(tableRef, raw, post, Value.GET_VALUE);
-                batchIterator.markNumResultsNotDeleted(post.keySet().size());
-                return post.entrySet().iterator();
+                SortedMap<Cell, byte[]> postFiltered = post.build();
+                batchIterator.markNumResultsNotDeleted(postFiltered.size());
+                return postFiltered.entrySet().iterator();
             }
         };
         return Iterators.concat(postFilteredBatches);
@@ -508,14 +508,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 getStartTimestamp()));
 
         validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
-        return filterRowResults(tableRef, rawResults, Maps.newHashMap());
+        return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
     }
 
     private SortedMap<byte[], RowResult<byte[]>> filterRowResults(TableReference tableRef,
                                                                   Map<Cell, Value> rawResults,
-                                                                  Map<Cell, byte[]> result) {
+                                                                  ImmutableMap.Builder<Cell, byte[]> result) {
         getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
-        Map<Cell, byte[]> filterDeletedValues = Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
+        Map<Cell, byte[]> filterDeletedValues = Maps.filterValues(result.build(), Predicates.not(Value.IS_EMPTY));
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
     }
 
@@ -592,11 +592,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * this will be included here and needs to be filtered out.
      */
     private Map<Cell, byte[]> getFromKeyValueService(TableReference tableRef, Set<Cell> cells) {
-        Map<Cell, byte[]> result = Maps.newHashMap();
+        ImmutableMap.Builder<Cell, byte[]> result = ImmutableMap.builderWithExpectedSize(cells.size());
         Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
         Map<Cell, Value> rawResults = keyValueService.get(tableRef, toRead);
         getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
-        return result;
+        return result.build();
     }
 
     private static byte[] getNextStartRowName(
@@ -998,9 +998,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
-        SortedMap<Cell, T> postFilter = Maps.newTreeMap();
+        ImmutableSortedMap.Builder<Cell, T> postFilter = ImmutableSortedMap.naturalOrder();
         getWithPostFiltering(tableRef, rawResults, postFilter, transformer);
-        return postFilter;
+        return postFilter.build();
     }
 
     private int estimateSize(List<RowResult<Value>> rangeRows) {
@@ -1013,7 +1013,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private <T> void getWithPostFiltering(TableReference tableRef,
                                           Map<Cell, Value> rawResults,
-                                          @Output Map<Cell, T> results,
+                                          @Output ImmutableMap.Builder<Cell, T> results,
                                           Function<Value, T> transformer) {
         long bytes = 0;
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
@@ -1051,8 +1051,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             remainingResultsToPostfilter = getWithPostFilteringInternal(
                     tableRef, remainingResultsToPostfilter, results, transformer);
         }
-
-        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(results.size());
     }
 
     /**
@@ -1061,12 +1059,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     private <T> Map<Cell, Value> getWithPostFilteringInternal(TableReference tableRef,
             Map<Cell, Value> rawResults,
-            @Output Map<Cell, T> results,
+            @Output ImmutableMap.Builder<Cell, T> results,
             Function<Value, T> transformer) {
         Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
         Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
+
+        int found = 0;
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
@@ -1106,11 +1106,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
+                        found++;
                         results.put(key, transformer.apply(value));
                     }
                 }
             }
         }
+
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(found);
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
