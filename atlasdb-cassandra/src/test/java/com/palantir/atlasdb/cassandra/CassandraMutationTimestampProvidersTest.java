@@ -78,6 +78,6 @@ public class CassandraMutationTimestampProvidersTest {
     public void supplierBackedProviderQueriesSupplierForRangeTombstoneTimestamps() {
         assertThat(supplierBackedProvider.getRangeTombstoneTimestamp(3141592)).isEqualTo(1);
         assertThat(supplierBackedProvider.getRangeTombstoneTimestamp(0)).isEqualTo(2);
-        assertThat(supplierBackedProvider.getRangeTombstoneTimestamp(1L<<60)).isEqualTo(3);
+        assertThat(supplierBackedProvider.getRangeTombstoneTimestamp(1L << 60)).isEqualTo(3);
     }
 }

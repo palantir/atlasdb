@@ -392,9 +392,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
             try {
                 V response = runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
-                log.info("Added host {} back into the pool after receiving a successful response",
-                        SafeArg.of("host", CassandraLogHelper.host(hostPool.getHost())));
-                blacklist.remove(hostPool.getHost()); // successful request -> can un-blacklist
+                removeFromBlacklistAfterResponse(hostPool.getHost());
                 return response;
             } catch (Exception ex) {
                 exceptionHandler.handleExceptionFromRequest(req, hostPool.getHost(), ex);
@@ -428,10 +426,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedHost);
         V response = runWithPooledResourceRecordingMetrics(hostPool, fn);
-        log.info("Added host {} back into the pool after receiving a successful response",
-                SafeArg.of("host", CassandraLogHelper.host(specifiedHost)));
-        blacklist.remove(specifiedHost);
+        removeFromBlacklistAfterResponse(specifiedHost);
         return response;
+    }
+
+    private void removeFromBlacklistAfterResponse(InetSocketAddress host) {
+        if (blacklist.contains(host)) {
+            blacklist.remove(host);
+            log.info("Added host {} back into the pool after receiving a successful response",
+                    SafeArg.of("host", CassandraLogHelper.host(host)));
+        }
     }
 
     private <V, K extends Exception> V runWithPooledResourceRecordingMetrics(

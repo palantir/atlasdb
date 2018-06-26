@@ -43,7 +43,8 @@ public final class StartupIndependenceUtils {
     }
 
     public static void randomizeNamespace() throws IOException, InterruptedException {
-        EteSetup.execCliCommandNoTty("sed -i 's/namespace: .*/namespace: " + UUID.randomUUID().toString().replace("-", "_")
+        EteSetup.execCliCommandNoTty("sed -i 's/namespace: .*/namespace: "
+                + UUID.randomUUID().toString().replace("-", "_")
                 + "/' var/conf/atlasdb-ete.yml");
     }
 

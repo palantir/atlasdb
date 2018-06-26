@@ -385,30 +385,6 @@ public final class DbKvs extends AbstractKeyValueService {
         return entry -> Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length;
     }
 
-    private void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, boolean idempotent) {
-        Iterable<List<Entry<Cell, byte[]>>> batches = IterablePartitioner.partitionByCountAndBytes(
-                values.entrySet(),
-                config.mutationBatchCount(),
-                config.mutationBatchSizeBytes(),
-                tableRef,
-                getByteSizingFunction());
-
-        runReadWrite(tableRef, (readTable, writeTable) -> {
-            for (List<Entry<Cell, byte[]>> batch : batches) {
-                try {
-                    writeTable.put(batch, timestamp);
-                } catch (KeyAlreadyExistsException e) {
-                    if (idempotent) {
-                        putIfNotUpdate(readTable, writeTable, tableRef, batch, timestamp, e);
-                    } else {
-                        throw e;
-                    }
-                }
-            }
-            return null;
-        });
-    }
-
     /* (non-Javadoc)
      * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
      */
@@ -463,6 +439,30 @@ public final class DbKvs extends AbstractKeyValueService {
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp)
             throws KeyAlreadyExistsException {
         put(tableRef, values, timestamp, true);
+    }
+
+    private void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, boolean idempotent) {
+        Iterable<List<Entry<Cell, byte[]>>> batches = IterablePartitioner.partitionByCountAndBytes(
+                values.entrySet(),
+                config.mutationBatchCount(),
+                config.mutationBatchSizeBytes(),
+                tableRef,
+                getByteSizingFunction());
+
+        runReadWrite(tableRef, (readTable, writeTable) -> {
+            for (List<Entry<Cell, byte[]>> batch : batches) {
+                try {
+                    writeTable.put(batch, timestamp);
+                } catch (KeyAlreadyExistsException e) {
+                    if (idempotent) {
+                        putIfNotUpdate(readTable, writeTable, tableRef, batch, timestamp, e);
+                    } else {
+                        throw e;
+                    }
+                }
+            }
+            return null;
+        });
     }
 
     private void putIfNotUpdate(

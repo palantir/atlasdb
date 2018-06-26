@@ -14,15 +14,26 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.config;
+package com.palantir.atlasdb.transaction.impl.logging;
 
 import org.immutables.value.Value;
 
 @Value.Immutable
-public abstract class LeaderRuntimeConfig {
+public interface TransactionCommitProfile {
+    long acquireRowLocksMicros();
+    long conflictCheckMicros();
+    long writingToSweepQueueMicros();
+    long keyValueServiceWriteMicros();
+    long getCommitTimestampMicros();
+    long punchMicros();
+    long readWriteConflictCheckMicros();
+    long verifyPreCommitLockCheckMicros();
+    long verifyUserPreCommitConditionMicros();
+    long putCommitTimestampMicros();
 
-    @Value.Default
-    public boolean onlyLogOnQuorumFailure() {
-        return true;
-    }
+    long totalCommitStageMicros();
+    long totalTimeSinceTransactionCreationMicros();
+
+    long startTimestamp();
+    long commitTimestamp();
 }
