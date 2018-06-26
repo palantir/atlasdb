@@ -1,11 +1,11 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://opensource.org/licenses/BSD-3-Clause
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -103,7 +103,7 @@ public class AsyncTimeLockUnlockerTest {
                 concurrentlyInvoked.set(true);
             }
             timelockInUse.set(true);
-            unlockedTokens.addAll(((Set<LockToken>) invocation.getArguments()[0]));
+            unlockedTokens.addAll((Set<LockToken>) invocation.getArguments()[0]);
             timelockInUse.set(false);
             return null;
         }).when(timelockService).tryUnlock(any());
@@ -125,7 +125,7 @@ public class AsyncTimeLockUnlockerTest {
     @SuppressWarnings("unchecked") // Mock invocation known to be correct
     private void setupTokenCollectingTimeLock() {
         doAnswer(invocation -> {
-            unlockedTokens.addAll(((Set<LockToken>) invocation.getArguments()[0]));
+            unlockedTokens.addAll((Set<LockToken>) invocation.getArguments()[0]);
             return null;
         }).when(timelockService).tryUnlock(any());
     }

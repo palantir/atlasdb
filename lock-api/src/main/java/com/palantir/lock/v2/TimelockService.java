@@ -78,7 +78,7 @@ public interface TimelockService {
      * However, in this case it is guaranteed that that token is no longer valid.
      *
      * @param tokens Tokens for which associated locks should be unlocked.
-     * @return Tokens for which associated locks were unlocked.
+     * @return Tokens for which associated locks were unlocked
      */
     @POST
     @Path("unlock")
