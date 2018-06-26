@@ -34,6 +34,8 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.performance.benchmarks.table.HeavilyScatteredUncommittedValueWideRowTable;
+import com.palantir.atlasdb.performance.benchmarks.table.LightlyScatteredUncommittedValueWideRowTable;
+import com.palantir.atlasdb.performance.benchmarks.table.ModeratelyWideRowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 
 @State(Scope.Benchmark)
@@ -61,35 +63,35 @@ public class TransactionGetRowsColumnRangeBenchmarks {
 //        });
 //    }
 
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
-//    @Measurement(time = 80, timeUnit = TimeUnit.SECONDS)
-//    public Object getAllColumnsSingleBigRowWithUncommitted_LightlyScattered(
-//            LightlyScatteredUncommittedValueWideRowTable table,
-//            Blackhole blackhole) {
-//        return table.getTransactionManager().runTaskWithRetry(tx -> {
-//            Iterator<Map.Entry<Cell, byte[]>> iter = tx.getRowsColumnRange(
-//                    table.getTableRef(),
-//                    Collections.singleton(Tables.ROW_BYTES.array()),
-//                    new ColumnRangeSelection(null, null),
-//                    10000);
-//
-//            int count = 0;
-//            while (iter.hasNext()) {
-//                blackhole.consume(iter.next());
-//                ++count;
-//            }
-//            Preconditions.checkState(count == table.getTotalNumColumns(),
-//                    "Should be %s columns, but was: %s", table.getTotalNumColumns());
-//            return count;
-//        });
-//    }
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 80, timeUnit = TimeUnit.SECONDS)
+    public Object getAllColumnsSingleBigRowWithUncommitted_LightlyScattered(
+            LightlyScatteredUncommittedValueWideRowTable table,
+            Blackhole blackhole) {
+        return table.getTransactionManager().runTaskWithRetry(tx -> {
+            Iterator<Map.Entry<Cell, byte[]>> iter = tx.getRowsColumnRange(
+                    table.getTableRef(),
+                    Collections.singleton(Tables.ROW_BYTES.array()),
+                    new ColumnRangeSelection(null, null),
+                    10000);
+
+            int count = 0;
+            while (iter.hasNext()) {
+                blackhole.consume(iter.next());
+                ++count;
+            }
+            Preconditions.checkState(count == table.getTotalNumColumns(),
+                    "Should be %s columns, but was: %s", table.getTotalNumColumns());
+            return count;
+        });
+    }
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 7, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 80, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsSingleBigRowWithUncommitted_HeavilyScattered(
             HeavilyScatteredUncommittedValueWideRowTable table,
             Blackhole blackhole) {
@@ -110,34 +112,34 @@ public class TransactionGetRowsColumnRangeBenchmarks {
             }
             Preconditions.checkState(count == table.getTotalNumColumns(),
                     "Should be %s columns, but was: %s", table.getTotalNumColumns());
-            for (int i = 1; i < count; i++) {
-                Preconditions.checkState(cells.get(i - 1).compareTo(cells.get(i)) < 0,
-                        "Must be sorted but wasn't! %s %s", cells.get(i-1), cells.get(i));
-            }
+//            for (int i = 1; i < count; i++) {
+//                Preconditions.checkState(cells.get(i - 1).compareTo(cells.get(i)) < 0,
+//                        "Must be sorted but wasn't! %s %s", cells.get(i-1), cells.get(i));
+//            }
 
             return count;
         });
     }
-//
-//    @Benchmark
-//    @Threads(1)
-//    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
-//    @Measurement(time = 80, timeUnit = TimeUnit.SECONDS)
-//    public Object getAllColumnsSemiBigRow(ModeratelyWideRowTable table, Blackhole blackhole) {
-//        return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-//            Iterator<Map.Entry<Cell, byte[]>> iter = txn.getRowsColumnRange(
-//                    table.getTableRef(),
-//                    Collections.singleton(Tables.ROW_BYTES.array()),
-//                    new ColumnRangeSelection(null, null),
-//                    10000);
-//            int count = 0;
-//            while (iter.hasNext()) {
-//                blackhole.consume(iter.next());
-//                ++count;
-//            }
-//            Preconditions.checkState(count == table.getNumCols(),
-//                    "Should be %s columns, but were: %s", table.getNumCols(), count);
-//            return count;
-//        });
-//    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 80, timeUnit = TimeUnit.SECONDS)
+    public Object getAllColumnsSemiBigRow(ModeratelyWideRowTable table, Blackhole blackhole) {
+        return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            Iterator<Map.Entry<Cell, byte[]>> iter = txn.getRowsColumnRange(
+                    table.getTableRef(),
+                    Collections.singleton(Tables.ROW_BYTES.array()),
+                    new ColumnRangeSelection(null, null),
+                    10000);
+            int count = 0;
+            while (iter.hasNext()) {
+                blackhole.consume(iter.next());
+                ++count;
+            }
+            Preconditions.checkState(count == table.getNumCols(),
+                    "Should be %s columns, but were: %s", table.getNumCols(), count);
+            return count;
+        });
+    }
 }
