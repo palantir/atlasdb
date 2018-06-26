@@ -24,28 +24,29 @@ import java.util.concurrent.locks.ReadWriteLock;
 public class VisibleReadWriteLock {
     private final ReadWriteLock readWriteLock;
     private volatile int counter = 0;
+    private int enforcer = 1;
 
     public VisibleReadWriteLock(ReadWriteLock readWriteLock) {
         this.readWriteLock = readWriteLock;
     }
 
     public void readLock() {
-        int local = counter;
+        enforcer = counter;
         readWriteLock.readLock().lock();
     }
 
     public void readUnlock() {
-        counter = 1;
+        counter = enforcer;
         readWriteLock.readLock().unlock();
     }
 
     public void writeLock() {
-        int local = counter;
+        enforcer = counter;
         readWriteLock.writeLock().lock();
     }
 
     public void writeUnlock() {
-        counter = 0;
+        counter = enforcer;
         readWriteLock.writeLock().unlock();
     }
 }
