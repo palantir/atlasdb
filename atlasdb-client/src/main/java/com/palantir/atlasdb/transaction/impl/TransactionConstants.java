@@ -72,8 +72,9 @@ public class TransactionConstants {
             new ColumnMetadataDescription(
                     new DynamicColumnDescription(
                             NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
-                            .componentName("col")
-                            .build())),
+                                    .componentName("col")
+                                    .type(ValueType.BLOB)
+                                    .build())),
                             ColumnValueDescription.forType(ValueType.VAR_LONG))),
             ConflictHandler.IGNORE_ALL,
             TableMetadataPersistence.LogSafety.SAFE);

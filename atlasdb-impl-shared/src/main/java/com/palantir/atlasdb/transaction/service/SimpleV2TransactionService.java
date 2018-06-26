@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.service;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -70,7 +70,7 @@ public class SimpleV2TransactionService extends AbstractKeyValueServiceBackedTra
         long colComponent = (Long) ValueType.VAR_LONG.convertToJava(colBytes, 0);
 
         return (rowComponent / ROWS_PER_QUANTUM) * PARTITIONING_QUANTUM
-                + (colComponent) * ROWS_PER_QUANTUM
+                + colComponent * ROWS_PER_QUANTUM
                 + rowComponent % ROWS_PER_QUANTUM;
     }
 
