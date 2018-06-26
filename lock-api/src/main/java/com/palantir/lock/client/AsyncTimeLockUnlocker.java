@@ -16,18 +16,15 @@
 
 package com.palantir.lock.client;
 
-import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
@@ -39,59 +36,59 @@ import com.palantir.logsafe.SafeArg;
  * There is another layer of retrying below us (at the HTTP client level) for external timelock users.
  * Also, in the event we fail to unlock (e.g. because of a connection issue), locks will eventually time-out.
  * Thus not retrying is reasonably safe (as long as we can guarantee that the lock won't otherwise be refreshed).
+ *
+ * Concurrency: We want to guarantee that a token T that is enqueued is included in some call to unlockOutstanding.
+ * If T can pass the compareAndSet, then T itself is scheduled. If T does not, that means there is some other
+ * thread that has scheduled the task, but the task has not retrieved the reference to the set of tokens to be
+ * unlocked (because it re-sets unlockIsScheduled to true first, before extracting the reference to the set).
  */
 public class AsyncTimeLockUnlocker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockUnlocker.class);
 
-    private static final Duration KICK_JOB_INTERVAL = Duration.ofSeconds(1);
-
     private final TimelockService timelockService;
     private final ScheduledExecutorService scheduledExecutorService;
 
-    private final AtomicBoolean available = new AtomicBoolean(true);
-    private final AtomicReference<Set<LockToken>> outstandingLockTokens;
+    private final AtomicBoolean unlockIsScheduled = new AtomicBoolean(false);
+
+    // Fairness incurs a performance penalty but we do not want to starve the actual unlocking process.
+    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
+
+    private Set<LockToken> outstandingLockTokens = Sets.newConcurrentHashSet();
 
     AsyncTimeLockUnlocker(TimelockService timelockService, ScheduledExecutorService scheduledExecutorService) {
-        this(timelockService, scheduledExecutorService, new AtomicReference<>(ImmutableSet.of()));
-    }
-
-    @VisibleForTesting
-    AsyncTimeLockUnlocker(TimelockService timelockService,
-            ScheduledExecutorService scheduledExecutorService,
-            AtomicReference<Set<LockToken>> outstandingLockTokens) {
         this.timelockService = timelockService;
         this.scheduledExecutorService = scheduledExecutorService;
-        this.outstandingLockTokens = outstandingLockTokens;
-        schedulePeriodicKickJob();
     }
 
     /**
      * Adds all provided lock tokens to a queue to eventually be scheduled for unlocking.
      * Locks in the queue are unlocked asynchronously, and users must not depend on these locks being unlocked /
-     * available for other users immediately.
+     * unlockIsScheduled for other users immediately.
      *
      * @param tokens Lock tokens to schedule an unlock for.
      */
     public void enqueue(Set<LockToken> tokens) {
-        outstandingLockTokens.getAndAccumulate(tokens, Sets::union);
-        scheduleIfNoTaskRunning();
-    }
+        // addAll() can run safely in parallel because the set is a concurrent set.
+        readWriteLock.readLock().lock();
+        try {
+            outstandingLockTokens.addAll(tokens);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
 
-    private void scheduleIfNoTaskRunning() {
-        if (available.compareAndSet(true, false)) {
-            try {
-                scheduledExecutorService.submit(this::unlockOutstanding);
-            } finally {
-                available.set(true);
-            }
+        if (unlockIsScheduled.compareAndSet(false, true)) {
+            scheduledExecutorService.submit(this::unlockOutstanding);
         }
     }
 
     private void unlockOutstanding() {
-        Set<LockToken> toUnlock = outstandingLockTokens.getAndSet(ImmutableSet.of());
+        unlockIsScheduled.set(false);
+
+        Set<LockToken> toUnlock = getOutstandingLockTokenSnapshot();
         if (toUnlock.isEmpty()) {
             return;
         }
+
         try {
             timelockService.tryUnlock(toUnlock);
         } catch (Throwable t) {
@@ -102,14 +99,20 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
         }
     }
 
-    private void schedulePeriodicKickJob() {
-        // This exists to handle a specific race, where transaction A adds itself to outstandingLockTokens
-        // but an already running task in transaction B has read the tokens and is trying to unlock, and
-        // then no transactions follow - the tokens registered by A will not unlock.
-        // Under high continuous volume of transactions, this job is not important.
-        // Also, it won't affect correctness as it is basically doing an empty-set enqueue.
-        scheduledExecutorService.scheduleAtFixedRate(
-                this::scheduleIfNoTaskRunning, 0, KICK_JOB_INTERVAL.getSeconds(), TimeUnit.SECONDS);
+    private Set<LockToken> getOutstandingLockTokenSnapshot() {
+        // Ensure that we acquire the lock for as short as possible (i.e. only 2 writes)
+        Set<LockToken> toUnlock;
+        Set<LockToken> newSet = Sets.newConcurrentHashSet();
+
+        readWriteLock.writeLock().lock();
+        try {
+            toUnlock = outstandingLockTokens;
+            outstandingLockTokens = newSet;
+        } finally {
+            readWriteLock.writeLock().unlock();
+        }
+
+        return toUnlock;
     }
 
     @Override
