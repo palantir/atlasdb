@@ -52,7 +52,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
     // Fairness incurs a performance penalty but we do not want to starve the actual unlocking process.
     private final VisibleReadWriteLock readWriteLock = new VisibleReadWriteLock(new ReentrantReadWriteLock(true));
 
-    private Set<LockToken> outstandingLockTokens = Sets.newConcurrentHashSet();
+    private volatile Set<LockToken> outstandingLockTokens = Sets.newConcurrentHashSet();
 
     AsyncTimeLockUnlocker(TimelockService timelockService, ScheduledExecutorService scheduledExecutorService) {
         this.timelockService = timelockService;
@@ -71,6 +71,9 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
         readWriteLock.readLock();
         try {
             outstandingLockTokens.addAll(tokens);
+
+            // what? well, we need to flush our addAll
+            outstandingLockTokens = outstandingLockTokens;
         } finally {
             readWriteLock.readUnlock();
         }

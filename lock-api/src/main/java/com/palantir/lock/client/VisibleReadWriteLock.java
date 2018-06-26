@@ -31,22 +31,18 @@ public class VisibleReadWriteLock {
     }
 
     public void readLock() {
-        enforcer = counter;
         readWriteLock.readLock().lock();
     }
 
     public void readUnlock() {
-        counter = enforcer;
         readWriteLock.readLock().unlock();
     }
 
     public void writeLock() {
-        enforcer = counter;
         readWriteLock.writeLock().lock();
     }
 
     public void writeUnlock() {
-        counter = enforcer;
         readWriteLock.writeLock().unlock();
     }
 }
