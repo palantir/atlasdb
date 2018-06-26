@@ -25,6 +25,9 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class SimpleV2TransactionService extends AbstractKeyValueServiceBackedTransactionService {
+    private static final long PARTITIONING_QUANTUM = 100_000_000;
+    private static final long ROWS_PER_QUANTUM = 256;
+
     private final KeyValueService keyValueService;
 
     public SimpleV2TransactionService(KeyValueService keyValueService) {
@@ -45,8 +48,9 @@ public class SimpleV2TransactionService extends AbstractKeyValueServiceBackedTra
     public Cell encodeTimestampAsCell(long startTimestamp) {
         // A long is 9 bytes at most; four of them makes 36 bytes.
         // If we have 256 rows per 100M, then one is safely below 1M dynamic column keys, and a row is bounded at 14M.
-        long row = (startTimestamp / 100_000_000) * 256 + (startTimestamp % 100_000_000) % 256;
-        long col = (startTimestamp % 100_000_000) / 256;
+        long row = (startTimestamp / PARTITIONING_QUANTUM) * ROWS_PER_QUANTUM
+                + (startTimestamp % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM;
+        long col = (startTimestamp % PARTITIONING_QUANTUM) / ROWS_PER_QUANTUM;
 
         // Compression, but we want reverse order
         byte[] rowBytes = ValueType.VAR_LONG.convertFromJava(row);
@@ -65,7 +69,9 @@ public class SimpleV2TransactionService extends AbstractKeyValueServiceBackedTra
         byte[] colBytes = cell.getColumnName();
         long colComponent = (Long) ValueType.VAR_LONG.convertToJava(colBytes, 0);
 
-        return (rowComponent / 256) * 100_000_000 + (colComponent) * 256 + rowComponent % 256;
+        return (rowComponent / ROWS_PER_QUANTUM) * PARTITIONING_QUANTUM
+                + (colComponent) * ROWS_PER_QUANTUM
+                + rowComponent % ROWS_PER_QUANTUM;
     }
 
     @Override
