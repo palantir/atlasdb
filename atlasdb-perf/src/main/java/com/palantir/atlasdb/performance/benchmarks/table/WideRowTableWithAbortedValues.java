@@ -49,6 +49,10 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
         return getNumColsCommitted() + getNumColsCommittedAndNewerUncommitted() + getNumColsUncommitted();
     }
 
+    public int getNumReadableCols() {
+        return getNumColsCommitted() + getNumColsCommittedAndNewerUncommitted();
+    }
+
     public abstract boolean isPersistent();
 
     public Map<Cell, Long> getFirstCellAtMaxTimestampAsMap() {
