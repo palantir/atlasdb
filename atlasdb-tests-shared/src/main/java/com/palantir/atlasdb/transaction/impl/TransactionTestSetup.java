@@ -99,7 +99,9 @@ public abstract class TransactionTestSetup {
                         false,
                         TableMetadataPersistence.LogSafety.UNSAFE).persistToBytes(),
                 TransactionConstants.TRANSACTION_TABLE,
-                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
+                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes(),
+                TransactionConstants.TRANSACTION_TABLE_V2,
+                TransactionConstants.TRANSACTION_TABLE_V2_METADATA.persistToBytes()));
         keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
         timestampService = new InMemoryTimestampService();
 
