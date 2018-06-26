@@ -40,7 +40,7 @@ import com.palantir.logsafe.SafeArg;
  * Also, in the event we fail to unlock (e.g. because of a connection issue), locks will eventually time-out.
  * Thus not retrying is reasonably safe (as long as we can guarantee that the lock won't otherwise be refreshed).
  */
-public class AsyncTimeLockUnlocker {
+public class AsyncTimeLockUnlocker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockUnlocker.class);
 
     private static final Duration KICK_JOB_INTERVAL = Duration.ofSeconds(1);
@@ -110,5 +110,10 @@ public class AsyncTimeLockUnlocker {
         // Also, it won't affect correctness as it is basically doing an empty-set enqueue.
         scheduledExecutorService.scheduleAtFixedRate(
                 this::scheduleIfNoTaskRunning, 0, KICK_JOB_INTERVAL.getSeconds(), TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void close() {
+        scheduledExecutorService.shutdown();
     }
 }

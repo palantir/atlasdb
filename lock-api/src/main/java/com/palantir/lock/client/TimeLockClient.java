@@ -140,6 +140,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public void close() {
         lockRefresher.close();
+        asyncUnlocker.close();
     }
 
     private static ScheduledExecutorService createSingleThreadScheduledExecutor(String operation) {
