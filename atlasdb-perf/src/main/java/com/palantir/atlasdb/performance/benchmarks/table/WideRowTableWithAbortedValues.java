@@ -37,7 +37,7 @@ import com.palantir.util.crypto.Sha256Hash;
  * columns which have committed versions, but have newer uncommitted versions on top.
  */
 public abstract class WideRowTableWithAbortedValues extends WideRowTable {
-    public final byte[] DUMMY_VALUE = PtBytes.toBytes("dummy");
+    public static final byte[] DUMMY_VALUE = PtBytes.toBytes("dummy");
 
     public abstract int getNumColsCommitted();
     public abstract int getNumColsCommittedAndNewerUncommitted();
