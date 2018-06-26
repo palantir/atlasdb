@@ -30,12 +30,12 @@ public class HeavilyScatteredUncommittedValueWideRowTable extends UncommittedVal
 
     @Override
     public long numColumnsWithoutUncommittedValues() {
-        return 80;
+        return 40000;
     }
 
     @Override
     public long numColumnsWithUncommittedValues() {
-        return 20;
+        return 10000;
     }
 
     @Override

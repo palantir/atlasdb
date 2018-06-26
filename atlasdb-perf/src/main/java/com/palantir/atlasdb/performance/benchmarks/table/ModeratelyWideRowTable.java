@@ -29,7 +29,7 @@ public class ModeratelyWideRowTable extends WideRowTable {
 
     @Override
     public int getNumCols() {
-        return 100;
+        return 50000;
     }
 
     @Override

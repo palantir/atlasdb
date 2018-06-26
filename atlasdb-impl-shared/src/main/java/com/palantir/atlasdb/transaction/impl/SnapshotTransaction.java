@@ -455,14 +455,20 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 //                batchIterator.markNumResultsNotDeleted(ai.get());
 //                return iterable.iterator();
 
-                // IMPL 4
-                List<Map.Entry<Cell, byte[]>> list = new ArrayList<>();
-                getWithPostFiltering4(tableRef, raw, (cell, data) -> list.add(Maps.immutableEntry(cell, data)),
-                        Value.GET_VALUE);
+//                // IMPL 4
+//                List<Map.Entry<Cell, byte[]>> list = new ArrayList<>();
+//                getWithPostFiltering4(tableRef, raw, (cell, data) -> list.add(Maps.immutableEntry(cell, data)),
+//                        Value.GET_VALUE);
+//                batchIterator.markNumResultsNotDeleted(list.size());
+//                list.sort(Comparator.comparing(Entry::getKey));
+//                return list.iterator();
 
-                batchIterator.markNumResultsNotDeleted(list.size());
-                list.sort(Comparator.comparing(Entry::getKey));
-                return list.iterator();
+                // IMPL 5
+                ImmutableSortedMap.Builder<Cell, byte[]> post = ImmutableSortedMap.naturalOrder();
+                getWithPostFiltering5(tableRef, raw, post, Value.GET_VALUE);
+                SortedMap<Cell, byte[]> postFiltered = post.build();
+                batchIterator.markNumResultsNotDeleted(postFiltered.size());
+                return postFiltered.entrySet().iterator();
             }
         };
         return Iterators.concat(postFilteredBatches);
@@ -1436,6 +1442,125 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         } finally {
             getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(elems);
+        }
+    }
+
+    private <T> void getWithPostFiltering5(TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            @Output ImmutableMap.Builder<Cell, T> results,
+            Function<Value, T> transformer) {
+        long bytes = 0;
+        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
+            bytes += e.getValue().getContents().length + Cells.getApproxSizeOfCell(e.getKey());
+        }
+        if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
+            log.warn("A single get had quite a few bytes: {} for table {}. The number of results was {}. "
+                            + "Enable debug logging for more information.",
+                    SafeArg.of("numBytes", bytes),
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("numResults", rawResults.size()));
+            if (log.isDebugEnabled()) {
+                log.debug("The first 10 results of your request were {}.",
+                        UnsafeArg.of("results", Iterables.limit(rawResults.entrySet(), 10)),
+                        new RuntimeException("This exception and stack trace are provided for debugging purposes."));
+            }
+            getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ).update(bytes);
+        }
+        // TODO(hsaraogi): add table names as a tag
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ).mark(rawResults.size());
+
+        if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
+            Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
+            // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
+            // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
+            // this case is hit when reading a hidden table from console
+            for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
+                results.put(e.getKey(), transformer.apply(e.getValue()));
+            }
+            return;
+        }
+        int found = 0;
+
+        Map<Cell, Value> remainingResultsToPostfilter = rawResults;
+        while (!remainingResultsToPostfilter.isEmpty()) {
+            found++;
+            remainingResultsToPostfilter = getWithPostFilteringInternal5(
+                    tableRef, remainingResultsToPostfilter, results, transformer);
+        }
+
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(found);
+    }
+
+    /**
+     * This will return all the keys that still need to be postFiltered.  It will output properly
+     * postFiltered keys to the results output param.
+     */
+    private <T> Map<Cell, Value> getWithPostFilteringInternal5(TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            @Output ImmutableMap.Builder<Cell, T> results,
+            Function<Value, T> transformer) {
+        Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
+        Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
+        Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
+        Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
+        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
+            Cell key = e.getKey();
+            Value value = e.getValue();
+
+            if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
+                getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS).mark();
+                // This means that this transaction started too long ago. When we do garbage collection,
+                // we clean up old values, and this transaction started at a timestamp before the garbage collection.
+                switch (getReadSentinelBehavior()) {
+                    case IGNORE:
+                        break;
+                    case THROW_EXCEPTION:
+                        throw new TransactionFailedRetriableException("Tried to read a value that has been deleted. "
+                                + " This can be caused by hard delete transactions using the type "
+                                + TransactionType.AGGRESSIVE_HARD_DELETE
+                                + ". It can also be caused by transactions taking too long, or"
+                                + " its locks expired. Retrying it should work.");
+                    default:
+                        throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
+                }
+            } else {
+                Long theirCommitTimestamp = commitTimestamps.get(value.getTimestamp());
+                if (theirCommitTimestamp == null || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
+                    keysToReload.put(key, value.getTimestamp());
+                    if (shouldDeleteAndRollback()) {
+                        // This is from a failed transaction so we can roll it back and then reload it.
+                        keysToDelete.put(key, value.getTimestamp());
+                        getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS).mark();
+                    }
+                } else if (theirCommitTimestamp > getStartTimestamp()) {
+                    // The value's commit timestamp is after our start timestamp.
+                    // This means the value is from a transaction which committed
+                    // after our transaction began. We need to try reading at an
+                    // earlier timestamp.
+                    keysToReload.put(key, value.getTimestamp());
+                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS).mark();
+                } else {
+                    // The value has a commit timestamp less than our start timestamp, and is visible and valid.
+                    if (value.getContents().length != 0) {
+                        results.put(key, transformer.apply(value));
+                    }
+                }
+            }
+        }
+
+        if (!keysToDelete.isEmpty()) {
+            // if we can't roll back the failed transactions, we should just try again
+            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
+                return rawResults;
+            }
+        }
+
+        if (!keysToReload.isEmpty()) {
+            Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
+            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+            return nextRawResults;
+        } else {
+            return ImmutableMap.of();
         }
     }
 
