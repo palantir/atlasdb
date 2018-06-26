@@ -17,11 +17,19 @@
 package com.palantir.atlasdb.performance.benchmarks.table;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.util.crypto.Sha256Hash;
 
 /**
  * State class for creating a single Atlas table with one wide row.
@@ -29,6 +37,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
  * columns which have committed versions, but have newer uncommitted versions on top.
  */
 public abstract class WideRowTableWithAbortedValues extends WideRowTable {
+    public final byte[] DUMMY_VALUE = PtBytes.toBytes("dummy");
+
     public abstract int getNumColsCommitted();
     public abstract int getNumColsCommittedAndNewerUncommitted();
     public abstract int getNumColsUncommitted();
@@ -41,25 +51,76 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
 
     public abstract boolean isPersistent();
 
+    public Map<Cell, Long> getFirstCellAtMaxTimestampAsMap() {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    public Set<Cell> getFirstCellAsSet() {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
     @Override
     protected void storeData() {
+        // Write committed values.
+        writeCommittedValues();
+        writeUncommittedValues();
+    }
+
+    private void writeCommittedValues() {
+        List<Cell> committedCells = getCells(getNumColsCommitted(), CellType.COMMITTED);
+        List<Cell> committedWithNewerUncommitted
+                = getCells(getNumColsCommittedAndNewerUncommitted(), CellType.COMMITTED_AND_NEWER_UNCOMMITTED);
+
         services.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> values = Maps.newHashMap();
             allCellsAtMaxTimestamp = Maps.newHashMap();
-            firstCellAtMaxTimestamp = Maps.newHashMap();
-            firstCellAtMaxTimestamp.put(cell(0), Long.MAX_VALUE);
-            for (int i = 0; i < getNumCols(); i++) {
-                Cell curCell = cell(i);
-                values.put(curCell, Ints.toByteArray(i));
-                allCellsAtMaxTimestamp.put(curCell, Long.MAX_VALUE);
+            for (Cell cell : Iterables.concat(committedCells, committedWithNewerUncommitted)) {
+                allCellsAtMaxTimestamp.put(cell, Long.MAX_VALUE);
+                values.put(cell, DUMMY_VALUE);
             }
             txn.put(this.tableRef, values);
             return null;
         });
     }
 
-    private Cell cell(int index) {
-        return Cell.create(Tables.ROW_BYTES.array(), ("col_" + index).getBytes(StandardCharsets.UTF_8));
+    private void writeUncommittedValues() {
+        IntStream.range(0, getNumUncommittedValues())
+                .forEach(unused -> writeOneVersionOfUncommittedValues());
+    }
+
+    private void writeOneVersionOfUncommittedValues() {
+        List<Cell> committedWithNewerUncommitted
+                = getCells(getNumColsCommittedAndNewerUncommitted(), CellType.COMMITTED_AND_NEWER_UNCOMMITTED);
+        List<Cell> uncommitted = getCells(getNumColsUncommitted(), CellType.UNCOMMITTED);
+
+
+        Map<Cell, byte[]> values = Maps.newHashMap();
+        for (Cell cell : Iterables.concat(committedWithNewerUncommitted, uncommitted)) {
+            values.put(cell, DUMMY_VALUE);
+        }
+
+        // Simulate getting a timestamp, writing the values, but not putting into the tx table
+        long freshTimestamp = services.getTransactionManager().getTimestampService().getFreshTimestamp();
+        services.getKeyValueService().multiPut(ImmutableMap.of(tableRef, values), freshTimestamp);
+    }
+
+    private List<Cell> getCells(int numCells, CellType cellType) {
+        return IntStream.range(0, numCells)
+                .boxed()
+                .map(index -> cell(index, cellType))
+                .collect(Collectors.toList());
+    }
+
+    private Cell cell(int index, CellType cellType) {
+        return Cell.create(Tables.ROW_BYTES.array(), getColumnName(index, cellType));
+    }
+
+    private byte[] getColumnName(int index, CellType cellType) {
+        // Prepend a hash of the column name, to ensure an even distribution of the various cell types.
+        String prefix = cellType.name();
+        byte[] unhashedCellName = (prefix + index).getBytes(StandardCharsets.UTF_8);
+        byte[] hash = Sha256Hash.computeHash(unhashedCellName).getBytes();
+        return EncodingUtils.add(hash, unhashedCellName);
     }
 
     private enum CellType {
