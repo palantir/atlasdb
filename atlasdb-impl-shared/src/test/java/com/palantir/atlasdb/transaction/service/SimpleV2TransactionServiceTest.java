@@ -18,21 +18,43 @@ package com.palantir.atlasdb.transaction.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class SimpleV2TransactionServiceTest {
     @Test
-    public void t() {
-        SimpleV2TransactionService s = new SimpleV2TransactionService(new InMemoryKeyValueService(false));
+    public void decodeOnEncodeIsAnIdentityFunction() {
+        SimpleV2TransactionService service = new SimpleV2TransactionService(new InMemoryKeyValueService(false));
         for (int i = 0; i < 1000; i++) {
-            long x = Math.abs(ThreadLocalRandom.current().nextLong());
-            Cell c = s.getTransactionCell(x);
-            assertThat(s.getTimestampFromCell(c)).isEqualTo(x);
+            long testNumber = Math.abs(ThreadLocalRandom.current().nextLong());
+            Cell cell = service.encodeTimestampAsCell(testNumber);
+            assertThat(service.decodeCellAsTimestamp(cell)).isEqualTo(testNumber);
         }
+    }
+
+    @Test
+    public void uniformlyPartitionsValues() {
+        SimpleV2TransactionService service = new SimpleV2TransactionService(new InMemoryKeyValueService(false));
+        List<Cell> cellList = Lists.newArrayList();
+        for (int i = 0; i < 256 * 256; i++) {
+            Cell cell = service.encodeTimestampAsCell(i);
+            cellList.add(cell);
+        }
+        Map<Byte, Integer> leadingByteCounts = cellList.stream()
+                .collect(Collectors.groupingBy(cell -> cell.getRowName()[0]))
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().size()));
+
+        assertThat(leadingByteCounts.size()).isEqualTo(256);
+        assertThat(leadingByteCounts.values()).containsOnly(256);
     }
 }

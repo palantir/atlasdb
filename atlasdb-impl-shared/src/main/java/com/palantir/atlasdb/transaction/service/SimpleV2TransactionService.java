@@ -16,89 +16,33 @@
 
 package com.palantir.atlasdb.transaction.service;
 
-import java.util.Map;
-
 import org.apache.commons.lang.ArrayUtils;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-public class SimpleV2TransactionService implements TransactionService {
+public class SimpleV2TransactionService extends AbstractKeyValueServiceBackedTransactionService {
     private final KeyValueService keyValueService;
 
     public SimpleV2TransactionService(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;
     }
 
-    // The maximum key-value store timestamp (exclusive) at which data is stored
-    // in transaction table.
-    // All entries in transaction table are stored with timestamp 0
-    private static final long MAX_TIMESTAMP = 1L;
-
     @Override
-    public Long get(long startTimestamp) {
-        Cell cell = getTransactionCell(startTimestamp);
-        Map<Cell, Value> returnMap = keyValueService.get(
-                TransactionConstants.TRANSACTION_TABLE_V2,
-                ImmutableMap.of(cell, MAX_TIMESTAMP));
-        if (returnMap.containsKey(cell)) {
-            return TransactionConstants.getTimestampForValue(returnMap
-                    .get(cell).getContents());
-        } else {
-            return null;
-        }
+    public KeyValueService getKeyValueService() {
+        return keyValueService;
     }
 
     @Override
-    public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        Map<Cell, Long> startTsMap = Maps.newHashMap();
-        for (Long startTimestamp : startTimestamps) {
-            Cell cell = getTransactionCell(startTimestamp);
-            startTsMap.put(cell, MAX_TIMESTAMP);
-        }
-
-        Map<Cell, Value> rawResults = keyValueService.get(
-                TransactionConstants.TRANSACTION_TABLE_V2, startTsMap);
-        Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults
-                .size());
-        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-            long startTs = getTimestampFromCell(e.getKey());
-            long commitTs = TransactionConstants.getTimestampForValue(e.getValue().getContents());
-            result.put(startTs, commitTs);
-        }
-
-        return result;
+    public TableReference getTableReference() {
+        return TransactionConstants.TRANSACTION_TABLE_V2;
     }
 
     @Override
-    public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        Cell key = getTransactionCell(startTimestamp);
-        byte[] value = TransactionConstants.getValueForTimestamp(commitTimestamp);
-        keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
-                ImmutableMap.of(key, value));
-    }
-
-    @VisibleForTesting
-    long getTimestampFromCell(Cell cell) {
-        byte[] rowBytes = cell.getRowName();
-        ArrayUtils.reverse(rowBytes);
-        long rowComponent = (Long) ValueType.VAR_LONG.convertToJava(rowBytes, 0);
-
-        byte[] colBytes = cell.getColumnName();
-        long colComponent = (Long) ValueType.VAR_LONG.convertToJava(colBytes, 0);
-
-        return (rowComponent / 256) * 100_000_000 + (colComponent) * 256 + rowComponent % 256;
-    }
-
-    @VisibleForTesting
-    Cell getTransactionCell(long startTimestamp) {
+    public Cell encodeTimestampAsCell(long startTimestamp) {
         // A long is 9 bytes at most; four of them makes 36 bytes.
         // If we have 256 rows per 100M, then one is safely below 1M dynamic column keys, and a row is bounded at 14M.
         long row = (startTimestamp / 100_000_000) * 256 + (startTimestamp % 100_000_000) % 256;
@@ -110,5 +54,27 @@ public class SimpleV2TransactionService implements TransactionService {
 
         byte[] colBytes = ValueType.VAR_LONG.convertFromJava(col);
         return Cell.create(rowBytes, colBytes);
+    }
+
+    @Override
+    public long decodeCellAsTimestamp(Cell cell) {
+        byte[] rowBytes = cell.getRowName();
+        ArrayUtils.reverse(rowBytes);
+        long rowComponent = (Long) ValueType.VAR_LONG.convertToJava(rowBytes, 0);
+
+        byte[] colBytes = cell.getColumnName();
+        long colComponent = (Long) ValueType.VAR_LONG.convertToJava(colBytes, 0);
+
+        return (rowComponent / 256) * 100_000_000 + (colComponent) * 256 + rowComponent % 256;
+    }
+
+    @Override
+    public byte[] encodeTimestampAsValue(long startTimestamp) {
+        return TransactionConstants.getValueForTimestamp(startTimestamp);
+    }
+
+    @Override
+    public long decodeValueAsTimestamp(byte[] value) {
+        return TransactionConstants.getTimestampForValue(value);
     }
 }
