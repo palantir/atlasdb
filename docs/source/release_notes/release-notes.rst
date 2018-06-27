@@ -61,7 +61,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3303>`__)
 
     *    - |fixed|
-         - Snapshot transactions now write detailed profiling logs of the form ``Committed {} bytes with locks...`` only once every 5 seconds.
+         - Snapshot transactions now write detailed profiling logs of the form ``Committed {} bytes with locks...`` only once every 5 seconds per ``TransactionManager`` used.
            Previously, they were written on every transaction.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/33>`__)
 
