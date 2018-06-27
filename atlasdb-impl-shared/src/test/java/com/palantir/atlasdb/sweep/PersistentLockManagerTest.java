@@ -114,6 +114,37 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    @GuardedBy("manager")
+    public void afterAcquiringTwiceAndReleasingOnceWeStillHaveTheLock() {
+        manager.acquirePersistentLockWithRetry();
+        manager.acquirePersistentLockWithRetry();
+        manager.releasePersistentLock();
+
+        assertThat(manager.lockId, is(mockLockId));
+    }
+
+    @Test
+    @GuardedBy("manager")
+    public void afterAcquiringTwiceAndReleasingTwiceWeDoNotHaveTheLock() {
+        manager.acquirePersistentLockWithRetry();
+        manager.acquirePersistentLockWithRetry();
+        manager.releasePersistentLock();
+        manager.releasePersistentLock();
+
+        assertThat(manager.lockId, nullValue());
+    }
+
+    @Test
+    @GuardedBy("manager")
+    public void afterAcquiringTwiceAndShuttingDownWeDoNotHaveTheLock() {
+        manager.acquirePersistentLockWithRetry();
+        manager.acquirePersistentLockWithRetry();
+        manager.shutdown();
+
+        assertThat(manager.lockId, nullValue());
+    }
+
+    @Test
     public void releaseWithoutAcquireIsNoOp() {
         manager.releasePersistentLock();
 

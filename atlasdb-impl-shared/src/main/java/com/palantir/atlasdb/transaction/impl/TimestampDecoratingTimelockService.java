@@ -16,20 +16,14 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Set;
-
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
-public class TimestampDecoratingTimelockService implements TimelockService {
+@AutoDelegate(typeToExtend = TimelockService.class)
+public class TimestampDecoratingTimelockService implements AutoDelegate_TimelockService {
     private final TimelockService delegate;
     private final TimestampService decoratedTimestamps;
 
@@ -54,37 +48,7 @@ public class TimestampDecoratingTimelockService implements TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
-        return delegate.lockImmutableTimestamp(request);
-    }
-
-    @Override
-    public long getImmutableTimestamp() {
-        return delegate.getImmutableTimestamp();
-    }
-
-    @Override
-    public LockResponse lock(LockRequest request) {
-        return delegate.lock(request);
-    }
-
-    @Override
-    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return delegate.waitForLocks(request);
-    }
-
-    @Override
-    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return delegate.refreshLockLeases(tokens);
-    }
-
-    @Override
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return delegate.unlock(tokens);
-    }
-
-    @Override
-    public long currentTimeMillis() {
-        return delegate.currentTimeMillis();
+    public TimelockService delegate() {
+        return delegate;
     }
 }

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -44,17 +45,20 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockService;
+import com.palantir.lock.SingleLockService;
 
 public class SweeperTestSetup {
-
     protected static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(
             "backgroundsweeper.fasttest");
+    protected static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName(
+            "backgroundsweeper.fasttest_other");
+    protected static final int THREAD_INDEX = 0;
 
     protected static AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
     private static final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected SpecificTableSweeper specificTableSweeper;
-    protected BackgroundSweeperImpl backgroundSweeper;
+    protected BackgroundSweepThread backgroundSweeper;
     protected KeyValueService kvs = mock(KeyValueService.class);
     protected SweepProgressStore progressStore = mock(SweepProgressStore.class);
     protected SweepPriorityStore priorityStore = mock(SweepPriorityStore.class);
@@ -63,6 +67,7 @@ public class SweeperTestSetup {
     private boolean sweepEnabled = true;
     protected LegacySweepMetrics sweepMetrics = mock(LegacySweepMetrics.class);
     protected long currentTimeMillis = 1000200300L;
+    protected SweepPriorityOverrideConfig overrideConfig;
 
     @BeforeClass
     public static void initialiseConfig() {
@@ -78,17 +83,22 @@ public class SweeperTestSetup {
     @Before
     public void setup() {
         specificTableSweeper = getSpecificTableSweeperService();
+        backgroundSweeper = getBackgroundSweepThread(THREAD_INDEX);
+        overrideConfig = SweepPriorityOverrideConfig.defaultConfig();
+    }
 
-        backgroundSweeper = new BackgroundSweeperImpl(
-                metricsManager,
+    protected BackgroundSweepThread getBackgroundSweepThread(int threadIndex) {
+        return new BackgroundSweepThread(
                 mock(LockService.class),
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
-                SweepPriorityOverrideConfig::defaultConfig,
-                mock(PersistentLockManager.class),
-                specificTableSweeper);
+                () -> overrideConfig,
+                specificTableSweeper,
+                new SweepOutcomeMetrics(metricsManager),
+                new CountDownLatch(1),
+                threadIndex);
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {
@@ -116,20 +126,34 @@ public class SweeperTestSetup {
     }
 
     protected void setNoProgress() {
-        doReturn(Optional.empty()).when(progressStore).loadProgress();
+        setNoProgress(TABLE_REF);
+    }
+
+    protected void setNoProgress(TableReference tableRef) {
+        doReturn(Optional.empty()).when(progressStore).loadProgress(tableRef);
     }
 
     protected void setProgress(SweepProgress progress) {
-        doReturn(Optional.of(progress)).when(progressStore).loadProgress();
+        doReturn(Optional.of(progress)).when(progressStore).loadProgress(progress.tableRef());
     }
 
     protected void setNextTableToSweep(TableReference tableRef) {
-        doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider).getNextTableToSweep(any(), anyLong());
-        doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider).getNextTableToSweep(any(), anyLong(), any());
+        doReturn(Optional.of(getTableToSweep(tableRef))).when(nextTableToSweepProvider).getNextTableToSweep(any(),
+                anyLong());
+        doReturn(Optional.of(getTableToSweep(tableRef))).when(nextTableToSweepProvider).getNextTableToSweep(any(),
+                anyLong(), any());
+    }
+
+    private TableToSweep getTableToSweep(TableReference tableRef) {
+        return TableToSweep.newTable(tableRef, mock(SingleLockService.class));
     }
 
     protected void setupTaskRunner(SweepResults results) {
-        doReturn(results).when(sweepTaskRunner).run(eq(TABLE_REF), any(), any());
+        setupTaskRunner(TABLE_REF, results);
+    }
+
+    protected void setupTaskRunner(TableReference tableRef, SweepResults results) {
+        doReturn(results).when(sweepTaskRunner).run(eq(tableRef), any(), any());
     }
 
 }
