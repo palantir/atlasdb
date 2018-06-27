@@ -34,6 +34,7 @@ import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
+import org.awaitility.core.ThrowingRunnable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -131,14 +132,20 @@ public class AsyncTimeLockUnlockerTest {
     }
 
     private void verifyTryUnlockAttemptedAtLeastOnce() {
-        verify(timelockService, atLeastOnce()).tryUnlock(any());
-        verifyNoMoreInteractions(timelockService);
+        assertConditionEventuallyTrue(() -> {
+            verify(timelockService, atLeastOnce()).tryUnlock(any());
+            verifyNoMoreInteractions(timelockService);
+        });
     }
 
     private void assertAllTokensEventuallyUnlocked() {
+        assertConditionEventuallyTrue(() -> assertThat(unlockedTokens).hasSameElementsAs(tokenList));
+    }
+
+    private void assertConditionEventuallyTrue(ThrowingRunnable throwingRunnable) {
         Awaitility.await()
                 .atMost(Duration.TEN_SECONDS)
-                .pollInterval(Duration.FIVE_HUNDRED_MILLISECONDS)
-                .untilAsserted(() -> assertThat(unlockedTokens).hasSameElementsAs(tokenList));
+                .pollInterval(Duration.ONE_HUNDRED_MILLISECONDS)
+                .untilAsserted(throwingRunnable);
     }
 }
