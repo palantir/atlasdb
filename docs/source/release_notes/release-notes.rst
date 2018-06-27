@@ -51,11 +51,16 @@ develop
          - Change
 
     *    - |improved|
-         - Snapshot transaction ``getRowsColumnRange`` performance has been improved by using a ``List`` and sorting it at the end.
+         - Snapshot transaction ``getRowsColumnRange`` performance has been improved by using an ``ImmutableSortedMap.Builder`` and constructing the map at the end.
            We previously used a ``SortedSet`` which would incur overhead in rebalancing the underlying red-black tree as the data was already mostly sorted.
-           We have seen a 10 percent speedup for reading all columns from a wide row (50,000 columns).
-           We have also seen an 8 percent speedup for reading 50,000 columns from a wide row, where a random 2 percent of these rows are from uncommitted transactions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/NNNN>`__)
+           We have seen a 7 percent speedup for reading all columns from a wide row (50,000 columns).
+           We have also seen a 6 percent speedup for reading 50,000 columns from a wide row, where a random 2 percent of these rows are from uncommitted transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3319>`__)
+
+    *    - |devbreak|
+         - Snapshot transactions now return immutable maps when calling ``getRows`` and ``getRowsColumnRange``.
+           These used to return mutable maps - please make a copy of the map if you need it to be mutable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3319>`__)
 
 =======
 v0.93.0
