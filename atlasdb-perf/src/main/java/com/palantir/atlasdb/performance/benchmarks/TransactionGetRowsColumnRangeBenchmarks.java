@@ -55,7 +55,7 @@ public class TransactionGetRowsColumnRangeBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public void getAllColumnsModeratelyWideRow(
             ModeratelyWideRowTable table,
             Blackhole blackhole) {
@@ -67,7 +67,7 @@ public class TransactionGetRowsColumnRangeBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public void getAllColumnsModeratelyWideRowWithSomeUncommitted(
             CleanModeratelyWideRowTable table,
             Blackhole blackhole) {
@@ -79,7 +79,7 @@ public class TransactionGetRowsColumnRangeBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public void getAllColumnsModeratelyWideRowWithManyUncommitted(
             DirtyModeratelyWideRowTable table,
             Blackhole blackhole) {
