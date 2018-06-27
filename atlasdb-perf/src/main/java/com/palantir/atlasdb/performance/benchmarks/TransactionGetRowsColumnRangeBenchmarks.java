@@ -46,50 +46,50 @@ public class TransactionGetRowsColumnRangeBenchmarks {
     @Threads(1)
     @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
-    public Object getAllColumnsSingleBigRow(VeryWideRowTable table, Blackhole blackhole) {
-        return getAllRowsAndAssert(table, blackhole,
+    public void getAllColumnsSingleBigRow(VeryWideRowTable table, Blackhole blackhole) {
+        getAllRowsAndAssert(table, blackhole,
                 count -> Preconditions.checkState(count == table.getNumCols(),
                         "Should be %s columns, but was: %s", table.getNumCols(), count));
     }
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
-    public Object getAllColumnsModeratelyWideRow(
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 20, timeUnit = TimeUnit.SECONDS)
+    public void getAllColumnsModeratelyWideRow(
             ModeratelyWideRowTable table,
             Blackhole blackhole) {
-        return getAllRowsAndAssert(table, blackhole,
+        getAllRowsAndAssert(table, blackhole,
                 count -> Preconditions.checkState(count == table.getNumCols(),
                         "Should be %s columns, but was: %s", table.getNumCols(), count));
     }
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
-    public Object getAllColumnsModeratelyWideRowWithSomeUncommitted(
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 20, timeUnit = TimeUnit.SECONDS)
+    public void getAllColumnsModeratelyWideRowWithSomeUncommitted(
             CleanModeratelyWideRowTable table,
             Blackhole blackhole) {
-        return getAllRowsAndAssert(table, blackhole,
+        getAllRowsAndAssert(table, blackhole,
                 count -> Preconditions.checkState(count == table.getNumReadableCols(),
                         "Should be %s columns, but was: %s", table.getNumReadableCols(), count));
     }
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
-    public Object getAllColumnsModeratelyWideRowWithManyUncommitted(
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 20, timeUnit = TimeUnit.SECONDS)
+    public void getAllColumnsModeratelyWideRowWithManyUncommitted(
             DirtyModeratelyWideRowTable table,
             Blackhole blackhole) {
-        return getAllRowsAndAssert(table, blackhole,
+        getAllRowsAndAssert(table, blackhole,
                 count -> Preconditions.checkState(count == table.getNumReadableCols(),
                         "Should be %s columns, but was: %s", table.getNumReadableCols(), count));
     }
 
-    private Object getAllRowsAndAssert(WideRowTable table, Blackhole blackhole, Consumer<Integer> assertion) {
-        return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+    private void getAllRowsAndAssert(WideRowTable table, Blackhole blackhole, Consumer<Integer> assertion) {
+        int rowsRead = table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Iterator<Map.Entry<Cell, byte[]>> iter = txn.getRowsColumnRange(
                     table.getTableRef(),
                     Collections.singleton(Tables.ROW_BYTES.array()),
@@ -102,5 +102,6 @@ public class TransactionGetRowsColumnRangeBenchmarks {
             }
             return count;
         });
+        assertion.accept(rowsRead);
     }
 }
