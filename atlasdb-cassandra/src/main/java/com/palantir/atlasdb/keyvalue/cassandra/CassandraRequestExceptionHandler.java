@@ -70,12 +70,13 @@ class CassandraRequestExceptionHandler {
 
         req.triedOnHost(hostTried);
         int numberOfAttempts = req.getNumberOfAttempts();
+        int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(hostTried);
 
         if (numberOfAttempts >= maxTriesTotal.get()) {
             logAndThrowException(numberOfAttempts, ex);
         }
 
-        if (shouldBlacklist(ex, numberOfAttempts)) {
+        if (shouldBlacklist(ex, numberOfAttemptsOnHost)) {
             blacklist.add(hostTried);
         }
 
