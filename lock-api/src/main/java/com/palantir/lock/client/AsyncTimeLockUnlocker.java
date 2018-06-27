@@ -55,7 +55,6 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
     private final ReentrantLock rl = new ReentrantLock(true);
 
     private Set<LockToken> outstandingLockTokens = Sets.newConcurrentHashSet();
-    private volatile int visibilitySignal = 0;
 
     AsyncTimeLockUnlocker(TimelockService timelockService, ScheduledExecutorService scheduledExecutorService) {
         this.timelockService = timelockService;
@@ -71,7 +70,6 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
      */
     public void enqueue(Set<LockToken> tokens) {
         // addAll() can run safely in parallel because the set is a concurrent set.
-//        readWriteLock.readLock();
         rl.lock();
         try {
             outstandingLockTokens.addAll(tokens);
@@ -80,6 +78,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
         }
 
         if (unlockIsScheduled.compareAndSet(false, true)) {
+            System.out.println("scheduling unlock");
             scheduledExecutorService.submit(this::unlockOutstanding);
         }
     }
@@ -89,7 +88,9 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
 
         Set<LockToken> toUnlock = getOutstandingLockTokenSnapshot();
         log.info("Now unlocking {} many lock tokens", SafeArg.of("size", toUnlock.size()));
+        System.out.println("unlocking " + toUnlock);
         if (toUnlock.isEmpty()) {
+            System.out.println("not unlocking because we believe 0");
             log.info("Not unlocking, because we don't believe there are any tokens to unlock.");
             return;
         }
@@ -110,7 +111,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
         Set<LockToken> newSet = Sets.newConcurrentHashSet();
         rl.lock();
         try {
-            System.out.println(visibilitySignal);
+            System.out.println("swap refs");
             toUnlock = outstandingLockTokens;
             outstandingLockTokens = newSet;
         } finally {
