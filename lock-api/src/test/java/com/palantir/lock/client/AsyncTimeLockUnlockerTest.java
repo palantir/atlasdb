@@ -51,14 +51,15 @@ public class AsyncTimeLockUnlockerTest {
     private List<LockToken> tokenList;
     private List<LockToken> unlockedTokens;
 
-    private TimelockService timelockService = mock(TimelockService.class);
-    private AsyncTimeLockUnlocker unlocker = new AsyncTimeLockUnlocker(
-            timelockService, PTExecutors.newSingleThreadScheduledExecutor());
+    private TimelockService timelockService;
+    private AsyncTimeLockUnlocker unlocker;
 
     @Before
     public void setUp() {
         tokenList = createLockTokenList(ONE_THOUSAND);
         unlockedTokens = Lists.newArrayList();
+        timelockService = mock(TimelockService.class);
+        unlocker = new AsyncTimeLockUnlocker(timelockService, PTExecutors.newSingleThreadScheduledExecutor());
     }
 
     @Test(timeout = 2_000)
