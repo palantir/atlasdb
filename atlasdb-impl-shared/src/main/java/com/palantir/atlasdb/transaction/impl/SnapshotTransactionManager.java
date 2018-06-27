@@ -150,7 +150,7 @@ import com.palantir.timestamp.TimestampService;
                     immutableTsLock, condition);
             return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
         } catch (Throwable e) {
-            timelockService.unlock(ImmutableSet.of(immutableTsResponse.getLock()));
+            timelockService.tryUnlock(ImmutableSet.of(immutableTsResponse.getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
@@ -168,7 +168,7 @@ import com.palantir.timestamp.TimestampService;
             result = runTaskThrowOnConflict(task, tx);
         } finally {
             postTaskContext = postTaskTimer.time();
-            timelockService.unlock(ImmutableSet.of(txAndLock.immutableTsLock()));
+            timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
         }
         scrubForAggressiveHardDelete(tx);
         postTaskContext.stop();

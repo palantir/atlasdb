@@ -1385,7 +1385,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     .build());
         } finally {
             long microsForPostCommitUnlock = runAndReportTimeAndGetDurationMicros(
-                    () -> timelockService.unlock(ImmutableSet.of(commitLocksToken)), "postCommitUnlock");
+                    () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)), "postCommitUnlock");
 
             // We only care about detailed profiling for successful transactions
             optionalProfile.ifPresent(profile -> profileProcessor.consumeProfilingData(
