@@ -114,6 +114,7 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    @GuardedBy("manager")
     public void afterAcquiringTwiceAndReleasingOnceWeStillHaveTheLock() {
         manager.acquirePersistentLockWithRetry();
         manager.acquirePersistentLockWithRetry();
@@ -123,6 +124,7 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    @GuardedBy("manager")
     public void afterAcquiringTwiceAndReleasingTwiceWeDoNotHaveTheLock() {
         manager.acquirePersistentLockWithRetry();
         manager.acquirePersistentLockWithRetry();
@@ -133,6 +135,7 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    @GuardedBy("manager")
     public void afterAcquiringTwiceAndShuttingDownWeDoNotHaveTheLock() {
         manager.acquirePersistentLockWithRetry();
         manager.acquirePersistentLockWithRetry();
