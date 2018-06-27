@@ -19,6 +19,7 @@ package com.palantir.lock.client;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.slf4j.Logger;
@@ -51,6 +52,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
 
     // Fairness incurs a performance penalty but we do not want to starve the actual unlocking process.
     private final VisibleReadWriteLock readWriteLock = new VisibleReadWriteLock(new ReentrantReadWriteLock(true));
+    private final ReentrantLock rl = new ReentrantLock(true);
 
     private Set<LockToken> outstandingLockTokens = Sets.newConcurrentHashSet();
     private volatile int visibilitySignal = 0;
@@ -69,12 +71,12 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
      */
     public void enqueue(Set<LockToken> tokens) {
         // addAll() can run safely in parallel because the set is a concurrent set.
-        readWriteLock.readLock();
+//        readWriteLock.readLock();
+        rl.lock();
         try {
             outstandingLockTokens.addAll(tokens);
-            visibilitySignal = 1;
         } finally {
-            readWriteLock.readUnlock();
+            rl.unlock();
         }
 
         if (unlockIsScheduled.compareAndSet(false, true)) {
@@ -86,6 +88,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
         unlockIsScheduled.set(false);
 
         Set<LockToken> toUnlock = getOutstandingLockTokenSnapshot();
+        log.info("Now unlocking {} many lock tokens", SafeArg.of("size", toUnlock.size());
         if (toUnlock.isEmpty()) {
             log.info("Not unlocking, because we don't believe there are any tokens to unlock.");
             return;
@@ -105,15 +108,13 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
         // Ensure that we acquire the lock for as short as possible (i.e. only 2 writes)
         Set<LockToken> toUnlock;
         Set<LockToken> newSet = Sets.newConcurrentHashSet();
-        int local = 0;
-
-        readWriteLock.writeLock();
+        rl.lock();
         try {
             System.out.println(visibilitySignal);
             toUnlock = outstandingLockTokens;
             outstandingLockTokens = newSet;
         } finally {
-            readWriteLock.writeUnlock();
+            rl.unlock();
         }
 
         return toUnlock;
