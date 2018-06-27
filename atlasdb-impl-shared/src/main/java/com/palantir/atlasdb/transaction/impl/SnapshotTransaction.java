@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -422,7 +422,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 keyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
         BatchSizeIncreasingIterator<Map.Entry<Cell, Value>> batchIterator = new BatchSizeIncreasingIterator<>(
                 batchProvider, columnRangeSelection.getBatchHint(), ClosableIterators.wrap(rawIterator));
-
         Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFilteredBatches =
                 new AbstractIterator<Iterator<Map.Entry<Cell, byte[]>>>() {
             @Override
@@ -437,17 +436,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
-                List<Map.Entry<Cell, byte[]>> postFiltered = new ArrayList<>();
-                getWithPostFiltering(
-                        tableRef,
-                        raw,
-                        PostFilteringPopulators.listBasedPopulator(
-                                SnapshotTransaction.this,
-                                postFiltered,
-                                Value.GET_VALUE));
-                postFiltered.sort(Comparator.comparing(Entry::getKey));
-                batchIterator.markNumResultsNotDeleted(postFiltered.size());
-                return postFiltered.iterator();
+                SortedMap<Cell, byte[]> post = new TreeMap<>();
+                getWithPostFiltering(tableRef, raw, post, Value.GET_VALUE);
+                batchIterator.markNumResultsNotDeleted(post.keySet().size());
+                return post.entrySet().iterator();
             }
         };
         return Iterators.concat(postFilteredBatches);
@@ -523,8 +515,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private SortedMap<byte[], RowResult<byte[]>> filterRowResults(TableReference tableRef,
                                                                   Map<Cell, Value> rawResults,
                                                                   Map<Cell, byte[]> result) {
-        getWithPostFiltering(
-                tableRef, rawResults, PostFilteringPopulators.mapBasedPopulator(this, result, Value.GET_VALUE));
+        getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
         Map<Cell, byte[]> filterDeletedValues = Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
     }
@@ -605,8 +596,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, byte[]> result = Maps.newHashMap();
         Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
         Map<Cell, Value> rawResults = keyValueService.get(tableRef, toRead);
-        getWithPostFiltering(
-                tableRef, rawResults, PostFilteringPopulators.mapBasedPopulator(this, result, Value.GET_VALUE));
+        getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
         return result;
     }
 
@@ -1010,10 +1000,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         SortedMap<Cell, T> postFilter = Maps.newTreeMap();
-        getWithPostFiltering(
-                tableRef,
-                rawResults,
-                PostFilteringPopulators.mapBasedPopulator(this, postFilter, transformer));
+        getWithPostFiltering(tableRef, rawResults, postFilter, transformer);
         return postFilter;
     }
 
@@ -1025,34 +1012,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return estimatedSize;
     }
 
-    private void getWithPostFiltering(TableReference tableRef,
+    private <T> void getWithPostFiltering(TableReference tableRef,
                                           Map<Cell, Value> rawResults,
-                                          PostFilteringPopulator populator) {
-        countBytesAndLogIfLarge(tableRef, rawResults);
-        // TODO(hsaraogi): add table names as a tag
-        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ).mark(rawResults.size());
-
-        if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
-            Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
-            // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
-            // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
-            // this case is hit when reading a hidden table from console
-            populator.passthroughResults(rawResults);
-            return;
-        }
-
-        Map<Cell, Value> remainingResultsToPostfilter = rawResults;
-        while (!remainingResultsToPostfilter.isEmpty()) {
-            remainingResultsToPostfilter = getWithPostFilteringInternal(
-                    tableRef, remainingResultsToPostfilter, populator);
-        }
-
-        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(populator.size());
-    }
-
-    private void countBytesAndLogIfLarge(TableReference tableRef, Map<Cell, Value> rawResults) {
+                                          @Output Map<Cell, T> results,
+                                          Function<Value, T> transformer) {
         long bytes = 0;
-        for (Entry<Cell, Value> e : rawResults.entrySet()) {
+        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             bytes += e.getValue().getContents().length + Cells.getApproxSizeOfCell(e.getKey());
         }
         if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
@@ -1068,20 +1033,85 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ).update(bytes);
         }
+        // TODO(hsaraogi): add table names as a tag
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ).mark(rawResults.size());
+
+        if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
+            Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
+            // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
+            // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
+            // this case is hit when reading a hidden table from console
+            for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
+                results.put(e.getKey(), transformer.apply(e.getValue()));
+            }
+            return;
+        }
+
+        Map<Cell, Value> remainingResultsToPostfilter = rawResults;
+        while (!remainingResultsToPostfilter.isEmpty()) {
+            remainingResultsToPostfilter = getWithPostFilteringInternal(
+                    tableRef, remainingResultsToPostfilter, results, transformer);
+        }
+
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(results.size());
     }
 
     /**
      * This will return all the keys that still need to be postFiltered.  It will output properly
      * postFiltered keys to the results output param.
      */
-    private Map<Cell, Value> getWithPostFilteringInternal(TableReference tableRef,
+    private <T> Map<Cell, Value> getWithPostFilteringInternal(TableReference tableRef,
             Map<Cell, Value> rawResults,
-            PostFilteringPopulator populator) {
+            @Output Map<Cell, T> results,
+            Function<Value, T> transformer) {
         Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
         Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
-        populator.postfilterResults(rawResults, commitTimestamps, keysToReload, keysToDelete);
+        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
+            Cell key = e.getKey();
+            Value value = e.getValue();
+
+            if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
+                getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS).mark();
+                // This means that this transaction started too long ago. When we do garbage collection,
+                // we clean up old values, and this transaction started at a timestamp before the garbage collection.
+                switch (getReadSentinelBehavior()) {
+                    case IGNORE:
+                        break;
+                    case THROW_EXCEPTION:
+                        throw new TransactionFailedRetriableException("Tried to read a value that has been deleted. "
+                                + " This can be caused by hard delete transactions using the type "
+                                + TransactionType.AGGRESSIVE_HARD_DELETE
+                                + ". It can also be caused by transactions taking too long, or"
+                                + " its locks expired. Retrying it should work.");
+                    default:
+                        throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
+                }
+            } else {
+                Long theirCommitTimestamp = commitTimestamps.get(value.getTimestamp());
+                if (theirCommitTimestamp == null || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
+                    keysToReload.put(key, value.getTimestamp());
+                    if (shouldDeleteAndRollback()) {
+                        // This is from a failed transaction so we can roll it back and then reload it.
+                        keysToDelete.put(key, value.getTimestamp());
+                        getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS).mark();
+                    }
+                } else if (theirCommitTimestamp > getStartTimestamp()) {
+                    // The value's commit timestamp is after our start timestamp.
+                    // This means the value is from a transaction which committed
+                    // after our transaction began. We need to try reading at an
+                    // earlier timestamp.
+                    keysToReload.put(key, value.getTimestamp());
+                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS).mark();
+                } else {
+                    // The value has a commit timestamp less than our start timestamp, and is visible and valid.
+                    if (value.getContents().length != 0) {
+                        results.put(key, transformer.apply(value));
+                    }
+                }
+            }
+        }
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
@@ -1096,39 +1126,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return nextRawResults;
         } else {
             return ImmutableMap.of();
-        }
-    }
-
-    private void markKeyForDeletionAndReloading(@Output Map<Cell, Long> keysToReload,
-            @Output Map<Cell, Long> keysToDelete, Cell key, Value value) {
-        keysToReload.put(key, value.getTimestamp());
-        if (shouldDeleteAndRollback()) {
-            // This is from a failed transaction so we can roll it back and then reload it.
-            keysToDelete.put(key, value.getTimestamp());
-            getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS).mark();
-        }
-    }
-
-    private void markKeyForReloading(@Output Map<Cell, Long> keysToReload, Cell key, Value value) {
-        keysToReload.put(key, value.getTimestamp());
-        getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS).mark();
-    }
-
-    private void handleReadSentinelsInPostfilter() {
-        getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS).mark();
-        // This means that this transaction started too long ago. When we do garbage collection,
-        // we clean up old values, and this transaction started at a timestamp before the garbage collection.
-        switch (getReadSentinelBehavior()) {
-            case IGNORE:
-                break;
-            case THROW_EXCEPTION:
-                throw new TransactionFailedRetriableException("Tried to read a value that has been deleted. "
-                        + " This can be caused by hard delete transactions using the type "
-                        + TransactionType.AGGRESSIVE_HARD_DELETE
-                        + ". It can also be caused by transactions taking too long, or"
-                        + " its locks expired. Retrying it should work.");
-            default:
-                throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
         }
     }
 
@@ -2058,134 +2055,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 .addProcessors(PredicateBackedLogConsumerProcessor.create(
                         log::info, RateLimitedBooleanSupplier.create(5.0)))
                 .build();
-    }
-
-    private interface PostFilteringPopulator {
-        void passthroughResults(Map<Cell, Value> rawResults);
-        void postfilterResults(
-                Map<Cell, Value> rawResults,
-                Map<Long, Long> commitTimestamps,
-                @Output Map<Cell, Long> keysToReload,
-                @Output Map<Cell, Long> keysToDelete);
-        int size();
-    }
-
-    /**
-     * A {@link PostFilteringPopulator} populates results from post-filtering.
-     *
-     * The classes obviously look obscenely duplicated especially when a simple {@link java.util.function.BiConsumer}
-     * would address the need to have different ways of writing to a {@link Map} or a simple {@link List}.
-     *
-     * However, this is an extremely hot code-path, and we have found the overhead of a function call on a per-cell
-     * basis can be significant in benchmarks.
-     */
-    private static final class PostFilteringPopulators {
-        private PostFilteringPopulators() {
-            // uninstantiable
-        }
-
-        static <T> PostFilteringPopulator mapBasedPopulator(
-                SnapshotTransaction tx,
-                Map<Cell, T> outputMap,
-                Function<Value, T> valueTransformer) {
-            return new PostFilteringPopulator() {
-                @Override
-                public void passthroughResults(Map<Cell, Value> rawResults) {
-                    for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
-                        outputMap.put(entry.getKey(), valueTransformer.apply(entry.getValue()));
-                    }
-                }
-
-                @Override
-                public void postfilterResults(
-                        Map<Cell, Value> rawResults,
-                        Map<Long, Long> commitTimestamps,
-                        @Output Map<Cell, Long> keysToReload,
-                        @Output Map<Cell, Long> keysToDelete) {
-                    for (Entry<Cell, Value> e : rawResults.entrySet()) {
-                        Cell key = e.getKey();
-                        Value value = e.getValue();
-
-                        if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
-                            tx.handleReadSentinelsInPostfilter();
-                        } else {
-                            Long theirCommitTimestamp = commitTimestamps.get(value.getTimestamp());
-
-                            if (theirCommitTimestamp == null
-                                    || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-                                tx.markKeyForDeletionAndReloading(keysToReload, keysToDelete, key, value);
-                            } else if (theirCommitTimestamp > tx.getStartTimestamp()) {
-                                // The value's commit timestamp is after our start timestamp. This means the value is
-                                // from a transaction which committed after our transaction began. We need to try
-                                // reading at an earlier timestamp.
-                                tx.markKeyForReloading(keysToReload, key, value);
-                            } else {
-                                // The value has a commit timestamp less than our start timestamp, and is visible and
-                                // valid.
-                                if (value.getContents().length != 0) {
-                                    outputMap.put(key, valueTransformer.apply(value));
-                                }
-                            }
-                        }
-                    }
-                }
-
-                @Override
-                public int size() {
-                    return outputMap.size();
-                }
-            };
-        }
-
-        static <T> PostFilteringPopulator listBasedPopulator(
-                SnapshotTransaction tx,
-                List<Map.Entry<Cell, T>> outputList,
-                Function<Value, T> valueTransformer) {
-            return new PostFilteringPopulator() {
-                @Override
-                public void passthroughResults(Map<Cell, Value> rawResults) {
-                    for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
-                        outputList.add(Maps.immutableEntry(entry.getKey(), valueTransformer.apply(entry.getValue())));
-                    }
-                }
-
-                @Override
-                public void postfilterResults(Map<Cell, Value> rawResults, Map<Long, Long> commitTimestamps,
-                        @Output Map<Cell, Long> keysToReload, @Output Map<Cell, Long> keysToDelete) {
-                    for (Entry<Cell, Value> e : rawResults.entrySet()) {
-                        Cell key = e.getKey();
-                        Value value = e.getValue();
-
-                        if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
-                            tx.handleReadSentinelsInPostfilter();
-                        } else {
-                            Long theirCommitTimestamp = commitTimestamps.get(value.getTimestamp());
-
-                            if (theirCommitTimestamp == null
-                                    || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-                                tx.markKeyForDeletionAndReloading(keysToReload, keysToDelete, key, value);
-                            } else if (theirCommitTimestamp > tx.getStartTimestamp()) {
-                                // The value's commit timestamp is after our start timestamp. This means the value is
-                                // from a transaction which committed after our transaction began. We need to try
-                                // reading at an earlier timestamp.
-                                tx.markKeyForReloading(keysToReload, key, value);
-                            } else {
-                                // The value has a commit timestamp less than our start timestamp, and is visible and
-                                // valid.
-                                if (value.getContents().length != 0) {
-                                    outputList.add(Maps.immutableEntry(key, valueTransformer.apply(value)));
-                                }
-                            }
-                        }
-                    }
-                }
-
-                @Override
-                public int size() {
-                    return outputList.size();
-                }
-            };
-        }
     }
 }
 
