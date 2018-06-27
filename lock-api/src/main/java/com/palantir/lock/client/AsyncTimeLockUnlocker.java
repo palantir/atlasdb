@@ -88,7 +88,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
         unlockIsScheduled.set(false);
 
         Set<LockToken> toUnlock = getOutstandingLockTokenSnapshot();
-        log.info("Now unlocking {} many lock tokens", SafeArg.of("size", toUnlock.size());
+        log.info("Now unlocking {} many lock tokens", SafeArg.of("size", toUnlock.size()));
         if (toUnlock.isEmpty()) {
             log.info("Not unlocking, because we don't believe there are any tokens to unlock.");
             return;
