@@ -315,7 +315,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
         hasReads = true;
-        Map<Cell, byte[]> result = Maps.newHashMap();
+        ImmutableMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults = Maps.newHashMap(
                 keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
@@ -326,9 +326,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         // We don't need to do work postFiltering if we have a write locally.
-        rawResults.keySet().removeAll(result.keySet());
+        rawResults.keySet().removeAll(result.build().keySet());
 
-        SortedMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, ImmutableMap.builder());
+        SortedMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, result);
         long getRowsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
@@ -526,8 +526,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * <p>
      * If an empty value was written as a delete, this will also be included in the map.
      */
-    private void extractLocalWritesForRow(@Output Map<Cell, byte[]> result,
-            SortedMap<Cell, byte[]> writes, byte[] row, ColumnSelection columnSelection) {
+    private void extractLocalWritesForRow(
+            @Output ImmutableMap.Builder<Cell, byte[]> result,
+            SortedMap<Cell, byte[]> writes,
+            byte[] row,
+            ColumnSelection columnSelection) {
         Cell lowCell = Cells.createSmallestCellForRow(row);
         Iterator<Entry<Cell, byte[]>> it = writes.tailMap(lowCell).entrySet().iterator();
         while (it.hasNext()) {
