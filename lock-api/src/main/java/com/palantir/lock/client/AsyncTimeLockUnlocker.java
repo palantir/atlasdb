@@ -40,7 +40,7 @@ import com.palantir.logsafe.SafeArg;
  * Concurrency: We want to guarantee that a token T that is enqueued is included in some call to unlockOutstanding.
  * If T can pass the compareAndSet, then T itself is scheduled. If T does not, that means there is some other
  * thread that has scheduled the task, but the task has not retrieved the reference to the set of tokens to be
- * unlocked (because it re-sets unlockIsScheduled to true first, before extracting the reference to the set).
+ * unlocked (because it re-sets unlockIsScheduled to false first, before extracting the reference to the set).
  */
 public class AsyncTimeLockUnlocker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockUnlocker.class);
@@ -63,7 +63,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
     /**
      * Adds all provided lock tokens to a queue to eventually be scheduled for unlocking.
      * Locks in the queue are unlocked asynchronously, and users must not depend on these locks being unlocked /
-     * unlockIsScheduled for other users immediately.
+     * available for other users immediately.
      *
      * @param tokens Lock tokens to schedule an unlock for.
      */
