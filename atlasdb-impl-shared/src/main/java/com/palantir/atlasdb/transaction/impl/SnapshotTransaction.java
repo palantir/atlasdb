@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -1048,10 +1049,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         Map<Cell, Value> remainingResultsToPostfilter = rawResults;
+        AtomicInteger resultCount = new AtomicInteger();
         while (!remainingResultsToPostfilter.isEmpty()) {
             remainingResultsToPostfilter = getWithPostFilteringInternal(
-                    tableRef, remainingResultsToPostfilter, results, transformer);
+                    tableRef, remainingResultsToPostfilter, results, resultCount, transformer);
         }
+
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(resultCount.get());
     }
 
     /**
@@ -1061,6 +1065,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private <T> Map<Cell, Value> getWithPostFilteringInternal(TableReference tableRef,
             Map<Cell, Value> rawResults,
             @Output ImmutableMap.Builder<Cell, T> results,
+            @Output AtomicInteger count,
             Function<Value, T> transformer) {
         Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
         Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
@@ -1113,8 +1118,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 }
             }
         }
-
-        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(found);
+        count.set(found);
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
