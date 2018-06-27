@@ -277,7 +277,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
         this.shouldProfile = shouldProfile;
-        this.profileProcessor = createDefaultCommitProfileProcessor(shouldProfile);
+        this.profileProcessor = createDefaultCommitProfileProcessor();
     }
 
     @Override
@@ -2045,13 +2045,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return metricsManager.registerOrGetMeter(SnapshotTransaction.class, name);
     }
 
-    private CommitProfileProcessor createDefaultCommitProfileProcessor(BooleanSupplier shouldProfile) {
-        return new CommitProfileProcessor(createDefaultPerfLogger(shouldProfile),
+    private CommitProfileProcessor createDefaultCommitProfileProcessor() {
+        return new CommitProfileProcessor(createDefaultPerfLogger(),
                 () -> getTimer("nonPutOverhead"),
                 () -> getHistogram("nonPutOverheadMillionths"));
     }
 
-    private LogConsumerProcessor createDefaultPerfLogger(BooleanSupplier shouldProfile) {
+    private LogConsumerProcessor createDefaultPerfLogger() {
         return ImmutableChainingLogConsumerProcessor.builder()
                 .addProcessors(PredicateBackedLogConsumerProcessor.create(
                         perfLogger::debug, perfLogger::isDebugEnabled))
