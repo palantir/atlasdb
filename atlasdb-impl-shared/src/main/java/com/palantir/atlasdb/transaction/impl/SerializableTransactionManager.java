@@ -320,7 +320,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                deleteExecutor);
+                deleteExecutor,
+                profilingRateLimiter);
     }
 
     @VisibleForTesting

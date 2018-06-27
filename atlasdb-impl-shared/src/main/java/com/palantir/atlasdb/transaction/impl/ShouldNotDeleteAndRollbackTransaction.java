@@ -98,7 +98,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                IGNORING_EXECUTOR);
+                IGNORING_EXECUTOR,
+                () -> false);
     }
 
     @Override

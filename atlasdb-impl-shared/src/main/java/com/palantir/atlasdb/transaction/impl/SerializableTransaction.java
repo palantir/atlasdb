@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BooleanSupplier;
 
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -127,7 +128,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    ExecutorService getRangesExecutor,
                                    int defaultGetRangesConcurrency,
                                    MultiTableSweepQueueWriter sweepQueue,
-                                   ExecutorService deleteExecutor) {
+                                   ExecutorService deleteExecutor,
+                                   BooleanSupplier shouldProfile) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -148,7 +150,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               getRangesExecutor,
               defaultGetRangesConcurrency,
               sweepQueue,
-              deleteExecutor);
+              deleteExecutor,
+              shouldProfile);
     }
 
     @Override
@@ -706,7 +709,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                deleteExecutor) {
+                deleteExecutor,
+                shouldProfile) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

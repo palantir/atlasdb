@@ -117,7 +117,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
-                MoreExecutors.newDirectExecutorService()) {
+                MoreExecutors.newDirectExecutorService(),
+                () -> false) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());

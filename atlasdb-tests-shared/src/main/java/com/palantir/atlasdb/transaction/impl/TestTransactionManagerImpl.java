@@ -138,7 +138,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                deleteExecutor);
+                deleteExecutor,
+                () -> false);
     }
 
     @Override

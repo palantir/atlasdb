@@ -286,7 +286,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                () -> false);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -352,7 +353,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                () -> false);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
@@ -1032,7 +1034,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                () -> false);
 
         //simulate roll back at commit time
         transactionService.putUnlessExists(snapshot.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
@@ -1074,7 +1077,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                () -> false);
 
         //forcing to try to commit a transaction that is already committed
         transactionService.putUnlessExists(transactionTs, TransactionConstants.FAILED_COMMIT_TS);
@@ -1117,7 +1121,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                () -> false);
 
         when(timestampServiceSpy.getFreshTimestamp()).thenReturn(10000000L);
 

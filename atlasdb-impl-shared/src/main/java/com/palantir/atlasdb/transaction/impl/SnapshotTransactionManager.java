@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 
 import com.codahale.metrics.Timer;
 import com.google.common.base.Preconditions;
@@ -45,6 +46,7 @@ import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.logging.RateLimitedBooleanSupplier;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
@@ -77,6 +79,8 @@ import com.palantir.timestamp.TimestampService;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
+
+    final BooleanSupplier profilingRateLimiter;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -114,6 +118,7 @@ import com.palantir.timestamp.TimestampService;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
+        this.profilingRateLimiter = RateLimitedBooleanSupplier.create(5.0);
     }
 
     @Override
@@ -211,7 +216,8 @@ import com.palantir.timestamp.TimestampService;
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                deleteExecutor);
+                deleteExecutor,
+                profilingRateLimiter);
     }
 
     @Override
@@ -240,7 +246,8 @@ import com.palantir.timestamp.TimestampService;
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                deleteExecutor);
+                deleteExecutor,
+                profilingRateLimiter);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));
