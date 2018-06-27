@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.sweep;
 
-public class NoOpBackgroundSweeper implements BackgroundSweeper {
-    @Override
-    public void runInBackground() {
-        // do nothing
-    }
-
-    @Override
-    public void shutdown() {
-        // do nothing
-    }
+public enum SweepOutcome {
+    SUCCESS, NOTHING_TO_SWEEP, DISABLED, UNABLE_TO_ACQUIRE_LOCKS,
+    NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR,
+    SHUTDOWN, FATAL
 }
