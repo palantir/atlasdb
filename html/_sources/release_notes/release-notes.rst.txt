@@ -50,8 +50,15 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Write transactions now unlock their row locks and immutable timestamp locks asynchronously after committing.
+           This saves an estimated two TimeLock round-trips of latency when committing a transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3303>`__)
+
+    *    - |new|
+         - AtlasDB clients now batch calls to unlock row locks and immutable timestamp locks across transactions.
+           This should reduce request volumes on TimeLock Server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3303>`__)
 
 =======
 v0.93.0
