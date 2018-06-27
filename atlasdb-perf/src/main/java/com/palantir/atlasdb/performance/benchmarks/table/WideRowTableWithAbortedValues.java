@@ -39,11 +39,33 @@ import com.palantir.util.crypto.Sha256Hash;
 public abstract class WideRowTableWithAbortedValues extends WideRowTable {
     public static final byte[] DUMMY_VALUE = PtBytes.toBytes("dummy");
 
+    /**
+     * Number of columns to write a single committed value to.
+     */
     public abstract int getNumColsCommitted();
+
+    /**
+     * Number of columns to write a single committed value and then multiple uncommitted values at a higher timestamp
+     * to.
+     */
     public abstract int getNumColsCommittedAndNewerUncommitted();
+
+    /**
+     * Number of columns to write multiple uncommitted values to.
+     */
     public abstract int getNumColsUncommitted();
 
-    public abstract int getNumUncommittedValues();
+    /**
+     * Write this number many uncommitted values on top of columns that were uncommitted, and columns that
+     * were committed but should have newer committed values. These values are guaranteed to be written at
+     * distinct timestamps greater than timestamps committed values were written at.
+     *
+     * For example, if we have a column A where we want committed and newer uncommitted values and a column B
+     * where we want uncommitted values, and this parameter is set to 3, then column A will have four writes
+     * (timestamps T1 < T2 < T3 < T4) and column B will have three (timestamps T5 < T6 < T7).
+     * The only timestamp that will actually correspond to a valid commit is T1.
+     */
+    public abstract int getNumUncommittedValuesPerCell();
 
     public int getNumCols() {
         return getNumColsCommitted() + getNumColsCommittedAndNewerUncommitted() + getNumColsUncommitted();
@@ -88,7 +110,7 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
     }
 
     private void writeUncommittedValues() {
-        IntStream.range(0, getNumUncommittedValues())
+        IntStream.range(0, getNumUncommittedValuesPerCell())
                 .forEach(unused -> writeOneVersionOfUncommittedValues());
     }
 

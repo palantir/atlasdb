@@ -39,7 +39,7 @@ public class CleanModeratelyWideRowTable extends WideRowTableWithAbortedValues {
     }
 
     @Override
-    public int getNumUncommittedValues() {
+    public int getNumUncommittedValuesPerCell() {
         return 1;
     }
 
