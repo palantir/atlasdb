@@ -22,21 +22,41 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
+import com.palantir.lock.SingleLockService;
 
 public final class TableToSweep {
     private final TableReference tableRef;
-    private final boolean hasPreviousProgress;
-    private final SweepResults previousResults;
+    private final SingleLockService sweepLock;
+    private boolean hasPreviousProgress;
+    private SweepResults previousResults;
 
-    TableToSweep(TableReference tableRef, Optional<SweepProgress> progress) {
+    public static TableToSweep newTable(TableReference tableRef, SingleLockService sweepLockForTable) {
+        return new TableToSweep(tableRef, sweepLockForTable, Optional.empty());
+    }
+
+    public static TableToSweep continueSweeping(TableReference tableRef, SingleLockService sweepLock,
+            SweepProgress progress) {
+        return new TableToSweep(tableRef, sweepLock, Optional.of(progress));
+    }
+
+    private TableToSweep(TableReference tableRef, SingleLockService sweepLock, Optional<SweepProgress> progress) {
         this.tableRef = tableRef;
+        this.sweepLock = sweepLock;
         this.hasPreviousProgress = progress.isPresent();
         this.previousResults = progress.map(SweepProgress::getPreviousResults)
                 .orElse(SweepResults.createEmptySweepResultWithMoreToSweep());
     }
 
-    TableReference getTableRef() {
+    public TableReference getTableRef() {
         return tableRef;
+    }
+
+    public SingleLockService getSweepLock() {
+        return sweepLock;
+    }
+
+    public void refreshLock() throws InterruptedException {
+        sweepLock.lockOrRefresh();
     }
 
     boolean hasPreviousProgress() {
@@ -49,5 +69,10 @@ public final class TableToSweep {
 
     SweepResults getPreviousSweepResults() {
         return previousResults;
+    }
+
+    public void setProgress(SweepProgress progress) {
+        this.hasPreviousProgress = true;
+        this.previousResults = progress.getPreviousResults();
     }
 }
