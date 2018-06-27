@@ -109,7 +109,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
 
         readWriteLock.writeLock();
         try {
-            local = visibilitySignal;
+            System.out.println(visibilitySignal);
             toUnlock = outstandingLockTokens;
             outstandingLockTokens = newSet;
         } finally {
