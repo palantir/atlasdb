@@ -709,14 +709,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t1.commit();
     }
 
-    protected LockResponse getRowLock(String rowName) {
+    protected LockResponse acquireRowLock(String rowName) {
         LockDescriptor rowLockDescriptor = AtlasRowLockDescriptor.of(
                 TEST_TABLE.getQualifiedName(),
                 PtBytes.toBytes(rowName));
         return lock(rowLockDescriptor);
     }
 
-    protected LockResponse getCellLock(String rowName, String colName) {
+    protected LockResponse acquireCellLock(String rowName, String colName) {
         LockDescriptor cellLockDescriptor = AtlasCellLockDescriptor.of(
                 TEST_TABLE.getQualifiedName(),
                 PtBytes.toBytes(rowName),

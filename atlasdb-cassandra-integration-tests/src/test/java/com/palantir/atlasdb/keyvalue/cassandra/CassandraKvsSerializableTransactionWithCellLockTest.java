@@ -34,7 +34,7 @@ public class CassandraKvsSerializableTransactionWithCellLockTest
         extends AbstractSerializableTransactionWithCellLockTest {
     @ClassRule
     public static final Containers CONTAINERS =
-            new Containers(CassandraKvsSerializableTransactionWithRowLockTest.class)
+            new Containers(CassandraKvsSerializableTransactionWithCellLockTest.class)
                     .with(new CassandraContainer());
 
     @Override

@@ -25,6 +25,6 @@ public class MemorySerializableTransactionWithCellLockTest extends AbstractSeria
     @Override
     protected KeyValueService getKeyValueService() {
         return new InMemoryKeyValueService(false,
-                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(false )));
+                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(false)));
     }
 }

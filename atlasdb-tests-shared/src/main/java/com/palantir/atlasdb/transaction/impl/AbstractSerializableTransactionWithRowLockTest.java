@@ -86,34 +86,22 @@ public abstract class AbstractSerializableTransactionWithRowLockTest extends Abs
 
     @Test
     public void testSerializableDoesAcquireRowLock() {
-        Transaction t0 = startTransaction();
-        put(t0, "row1", "col1", "100");
-        put(t0, "row1", "col2", "101");
-        put(t0, "row2", "col1", "102");
-        t0.commit();
-
-        Transaction t1 = startTransactionWithPreCommitCondition((ignored) -> {
-            LockResponse response = getRowLock("row1");
+        Transaction transaction = startTransactionWithPreCommitCondition((ignored) -> {
+            LockResponse response = acquireRowLock("row1");
             assertFalse(response.wasSuccessful());
         });
-        put(t1, "row1", "col2", "102");
-        t1.commit();
+        put(transaction, "row1", "col2", "102");
+        transaction.commit();
     }
 
     @Test
     public void testSerializableDoesNotAcquireCellLock() {
-        Transaction t0 = startTransaction();
-        put(t0, "row1", "col1", "100");
-        put(t0, "row1", "col2", "101");
-        put(t0, "row2", "col1", "102");
-        t0.commit();
-
-        Transaction t1 = startTransactionWithPreCommitCondition((ignored) -> {
-            LockResponse response = getCellLock("row1", "col2");
+        Transaction transaction = startTransactionWithPreCommitCondition((ignored) -> {
+            LockResponse response = acquireCellLock("row1", "col2");
             //current lock implementation allows you to get a cell lock on a row that is already locked
             assertTrue(response.wasSuccessful());
         });
-        put(t1, "row1", "col2", "102");
-        t1.commit();
+        put(transaction, "row1", "col2", "102");
+        transaction.commit();
     }
 }
