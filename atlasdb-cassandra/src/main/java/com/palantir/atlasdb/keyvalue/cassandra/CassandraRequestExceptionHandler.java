@@ -153,6 +153,7 @@ class CassandraRequestExceptionHandler {
         try {
             Thread.sleep(backOffPeriod);
         } catch (InterruptedException i) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(i);
         }
     }
