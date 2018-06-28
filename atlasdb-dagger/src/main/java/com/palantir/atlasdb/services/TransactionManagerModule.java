@@ -37,6 +37,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.v2.TimelockService;
 
@@ -108,7 +109,8 @@ public class TransactionManagerModule {
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
-                Executors.newSingleThreadExecutor());
+                Executors.newSingleThreadExecutor(
+                        new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)));
     }
 
 }
