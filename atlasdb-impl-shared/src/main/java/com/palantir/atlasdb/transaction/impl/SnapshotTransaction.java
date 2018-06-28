@@ -1487,7 +1487,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                 LockToken commitLocksToken,
                                                 TransactionService transactionService)
             throws TransactionConflictException {
-        if (writes.isEmpty() || conflictHandler == ConflictHandler.IGNORE_ALL) {
+        if (writes.isEmpty() || !conflictHandler.checkWriteWriteConflicts()) {
             return;
         }
         Set<CellConflict> spanningWrites = Sets.newHashSet();
@@ -1504,10 +1504,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (conflictHandler == ConflictHandler.RETRY_ON_VALUE_CHANGED) {
             throwIfValueChangedConflict(tableRef, writes, spanningWrites, dominatingWrites, commitLocksToken);
-        } else if (conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE
-                || conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL
-                || conflictHandler == ConflictHandler.SERIALIZABLE
-                || conflictHandler == ConflictHandler.SERIALIZABLE_CELL) {
+        } else if (conflictHandler.checkWriteWriteConflicts()) {
             if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
                 getTransactionConflictsMeter().mark();
                 throw TransactionConflictException.create(tableRef, getStartTimestamp(), spanningWrites,
@@ -1744,8 +1741,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 continue;
             }
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
-            if (conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL
-                    || conflictHandler == ConflictHandler.SERIALIZABLE_CELL) {
+            if (conflictHandler.lockCellsForConflicts()) {
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
                     result.add(
                             AtlasCellLockDescriptor.of(
@@ -1753,7 +1749,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                     cell.getRowName(),
                                     cell.getColumnName()));
                 }
-            } else if (conflictHandler != ConflictHandler.IGNORE_ALL) {
+            } else if (conflictHandler.lockRowsForConflicts()) {
                 Cell lastCell = null;
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
                     if (lastCell == null || !Arrays.equals(lastCell.getRowName(), cell.getRowName())) {

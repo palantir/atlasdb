@@ -313,8 +313,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         // If the metadata is null, we assume that the conflict handler is not SERIALIZABLE.
         // In that case the transaction will fail on commit if it has writes.
         ConflictHandler conflictHandler = conflictDetectionManager.get(table);
-        return conflictHandler == ConflictHandler.SERIALIZABLE
-                || conflictHandler == ConflictHandler.SERIALIZABLE_CELL;
+        return conflictHandler.checkReadWriteConflicts();
     }
 
     /**
