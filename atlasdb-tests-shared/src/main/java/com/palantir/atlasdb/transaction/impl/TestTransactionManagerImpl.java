@@ -32,6 +32,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
@@ -139,7 +140,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                () -> false);
+                CommitProfileProcessor.createNonLogging(metricsManager));
     }
 
     @Override

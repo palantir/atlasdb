@@ -18,27 +18,41 @@ package com.palantir.atlasdb.transaction.impl.logging;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.transaction.impl.SnapshotTransaction;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 
 public class CommitProfileProcessor {
+    private static final Logger log = LoggerFactory.getLogger(CommitProfileProcessor.class);
+    private static final Logger perfLogger = LoggerFactory.getLogger("dualschema.perf");
+
+    private static final double DEFAULT_RATE_LIMIT = 5.0;
+
+    private final MetricsManager metricsManager;
     private final LogConsumerProcessor logSink;
-    private final Supplier<Timer> nonPutOverheadTimerSupplier;
-    private final Supplier<Histogram> nonPutOverheadMillionthsHistogramSupplier;
 
     public CommitProfileProcessor(
-            LogConsumerProcessor logSink,
-            Supplier<Timer> nonPutOverheadTimerSupplier,
-            Supplier<Histogram> nonPutOverheadMillionthsHistogramSupplier) {
+            MetricsManager metricsManager,
+            LogConsumerProcessor logSink) {
+        this.metricsManager = metricsManager;
         this.logSink = logSink;
-        this.nonPutOverheadTimerSupplier = nonPutOverheadTimerSupplier;
-        this.nonPutOverheadMillionthsHistogramSupplier = nonPutOverheadMillionthsHistogramSupplier;
+    }
+
+    public static CommitProfileProcessor createDefault(MetricsManager metricsManager) {
+        return new CommitProfileProcessor(metricsManager, createDefaultPerfLogger());
+    }
+
+    public static CommitProfileProcessor createNonLogging(MetricsManager metricsManager) {
+        return new CommitProfileProcessor(metricsManager, LogConsumerProcessor.NO_OP);
     }
 
     public void consumeProfilingData(
@@ -94,8 +108,8 @@ public class CommitProfileProcessor {
 
     private void updateNonPutOverheadMetrics(TransactionCommitProfile profile, long postCommitOverhead) {
         long nonPutOverhead = getNonPutOverhead(profile, postCommitOverhead);
-        nonPutOverheadTimerSupplier.get().update(nonPutOverhead, TimeUnit.MICROSECONDS);
-        nonPutOverheadMillionthsHistogramSupplier.get().update(
+        getTimer("nonPutOverhead").update(nonPutOverhead, TimeUnit.MICROSECONDS);
+        getHistogram("nonPutOverheadMillionths").update(
                 getNonPutOverheadMillionths(profile, postCommitOverhead, nonPutOverhead));
     }
 
@@ -114,5 +128,26 @@ public class CommitProfileProcessor {
             return 0;
         }
         return Math.round(1_000_000. * nonPutOverhead / totalRelevantTime);
+    }
+
+    // The choice of SnapshotTransaction here is intentional, as we want to preserve continuity of metrics and also
+    // because a CommitProfileProcessor is profiling a SnapshotTransaction.
+    private Timer getTimer(String name) {
+        return metricsManager.registerOrGetTimer(SnapshotTransaction.class, name);
+    }
+
+    // The choice of SnapshotTransaction here is intentional, as we want to preserve continuity of metrics and also
+    // because a CommitProfileProcessor is profiling a SnapshotTransaction.
+    private Histogram getHistogram(String name) {
+        return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
+    }
+
+    private static LogConsumerProcessor createDefaultPerfLogger() {
+        return ImmutableChainingLogConsumerProcessor.builder()
+                .addProcessors(PredicateBackedLogConsumerProcessor.create(
+                        perfLogger::debug, perfLogger::isDebugEnabled))
+                .addProcessors(PredicateBackedLogConsumerProcessor.create(
+                        log::info, RateLimitedBooleanSupplier.create(DEFAULT_RATE_LIMIT)))
+                .build();
     }
 }

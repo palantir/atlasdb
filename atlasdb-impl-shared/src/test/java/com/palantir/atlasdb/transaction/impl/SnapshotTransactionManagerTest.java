@@ -177,8 +177,6 @@ public class SnapshotTransactionManagerTest {
                 UUID.randomUUID()), PreCommitConditions.NO_OP);
         SnapshotTransaction tx2 = snapshotTransactionManager.createTransaction(1, () -> 2L, LockToken.of(
                 UUID.randomUUID()), PreCommitConditions.NO_OP);
-        assertThat(tx1.shouldProfile).isSameAs(tx2.shouldProfile);
-        assertThat(tx1.shouldProfile.getAsBoolean()).isTrue();
-        assertThat(tx2.shouldProfile.getAsBoolean()).isFalse();
+        assertThat(tx1.commitProfileProcessor).isSameAs(tx2.commitProfileProcessor);
     }
 }

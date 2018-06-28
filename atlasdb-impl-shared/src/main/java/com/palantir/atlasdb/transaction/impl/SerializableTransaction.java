@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BooleanSupplier;
 
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -74,6 +73,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
@@ -129,7 +129,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    int defaultGetRangesConcurrency,
                                    MultiTableSweepQueueWriter sweepQueue,
                                    ExecutorService deleteExecutor,
-                                   BooleanSupplier shouldProfile) {
+                                   CommitProfileProcessor commitProfileProcessor) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -151,7 +151,7 @@ public class SerializableTransaction extends SnapshotTransaction {
               defaultGetRangesConcurrency,
               sweepQueue,
               deleteExecutor,
-              shouldProfile);
+              commitProfileProcessor);
     }
 
     @Override
@@ -710,7 +710,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
-                shouldProfile) {
+                commitProfileProcessor) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

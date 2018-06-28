@@ -321,7 +321,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                profilingRateLimiter);
+                commitProfileProcessor);
     }
 
     @VisibleForTesting
