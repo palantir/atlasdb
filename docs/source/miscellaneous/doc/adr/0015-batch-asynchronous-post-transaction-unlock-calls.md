@@ -125,10 +125,17 @@ to refresh *before* it is put on the unlock queue.
 ### Improvements
 
 - Transactions no longer need to wait for their immutable timestamp lock and row/cell write locks to be unlocked
-  before returning. We anticipate this will save about two RPCs to the lock service from a user-code perspective.
+  before returning. We anticipate this will make transactions faster (from a user-code perspective) by two
+  round-trips to the lock service. In many deployments, the lock service is a remote TimeLock server, meaning that
+  we save two network calls.
 - Transactions can now succeed even if there were problems when unlocking locks after the transaction committed.
-- Load on the TimeLock server will be reduced.
+- Load on the TimeLock server will be reduced, as fewer unlock calls need to be made (though each call is larger and
+  the total number of tokens is still the same, constant overheads e.g. of the transport layer will be reduced). 
 
 ### Drawbacks
 
-Transactions may hold row locks for an average of half
+- Transactions may hold row locks for an average of half a round-trip time between an AtlasDB client and TimeLock
+  longer. This is partially mitigated by TimeLock load being lower (feeding in to performance improvement across
+  multiple calls in the transaction protocol).
+- One background thread is allocated to unlock the locks where needed, which may incur some overhead in deployments
+  with small hardware.
