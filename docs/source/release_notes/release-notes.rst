@@ -65,6 +65,11 @@ develop
            Previously, they were written on every transaction.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3326>`__)
 
+    *    - |fixed|
+         - AtlasDB Benchmarks, CLIs and Console now shutdown properly under certain read patterns.
+           Previously, if these tools needed to delete a value that a failed transaction had written, the delete executor was never closed, thereby preventing an orderly JVM shutdown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3328>`__)
+
 =======
 v0.93.0
 =======
