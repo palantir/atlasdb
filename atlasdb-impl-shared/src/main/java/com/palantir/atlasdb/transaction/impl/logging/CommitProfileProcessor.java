@@ -40,7 +40,7 @@ public class CommitProfileProcessor {
     private final MetricsManager metricsManager;
     private final LogConsumerProcessor logSink;
 
-    public CommitProfileProcessor(
+    private CommitProfileProcessor(
             MetricsManager metricsManager,
             LogConsumerProcessor logSink) {
         this.metricsManager = metricsManager;
