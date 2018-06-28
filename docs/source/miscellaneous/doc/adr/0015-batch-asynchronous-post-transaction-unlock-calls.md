@@ -62,7 +62,44 @@ unlocking tokens - it is the only network call involved).
 
 ### Concurrency Model
 
-We use a read-write lock...
+It is essential that adding an element to the set of outstanding tokens is efficient; yet, we also need to ensure that 
+no token is left behind (at least indefinitely). We thus guard the concurrent set by a lock that permits both exclusive 
+and shared modes of access.
+
+Transactions that enqueue lock tokens to be unlocked perform the following steps:
+
+1. Acquire the set lock in shared mode.
+2. Read a reference to the set of tokens to be unlocked.
+3. Add lock tokens to the set of tokens to be unlocked.
+4. Release the set lock.
+5. If no task is scheduled, then schedule a task by setting a 'task scheduled' boolean flag. 
+   This uses compare-and-set, so only one task will be scheduled while no task is running.
+
+For this to be safe, the set used must be a concurrent set. 
+
+The task that unlocks tokens in the set performs the following steps:
+
+1. Un-set the task scheduled flag.
+2. Acquire the set lock in exclusive mode.
+3. Read a reference to the set of tokens to be unlocked.
+4. Write the set reference to point to a new set. 
+5. Release the set lock.
+6. Unlock all tokens in the set read in step 3.
+
+This model is trivially _safe_, in that no token that wasn't enqueued can ever be unlocked, since all tokens that can
+ever become unlocked must have been added in step 3 of enqueueing, and unlocking a lock token is idempotent modulo
+a UUID clash.
+
+More interestingly, we can guarantee _liveness_ - every token that was enqueued will be unlocked in the absence of
+thread death. If an enqueue has a successful compare-and-set in step 5, then the token must be in the set
+(and is visible, because we synchronize on the set lock). If an enqueue does _not_ have a successful compare-and-set,
+then some thread must already be scheduled to perform the unlock, and once it does the token must be in the relevant
+set (again, because we synchronize on the set lock).
+
+### TimeLock Failures
+
+In some embodiments, the lock service is provided by a TimeLock server that can
+
 
 ## Consequences
 
