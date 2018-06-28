@@ -144,13 +144,14 @@ class CassandraRequestExceptionHandler {
             return;
         }
 
+        long backOffPeriod = strategy.getBackoffPeriod(req.getNumberOfAttemptsOnHost(hostTried));
         log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                 UnsafeArg.of("queryString", req.getFunction().toString()),
-                SafeArg.of("sleepDuration", strategy.getBackoffPeriod(req.getNumberOfAttempts())),
+                SafeArg.of("sleepDuration", backOffPeriod),
                 SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
 
         try {
-            Thread.sleep(strategy.getBackoffPeriod(req.getNumberOfAttempts()));
+            Thread.sleep(backOffPeriod);
         } catch (InterruptedException i) {
             throw new RuntimeException(i);
         }
@@ -163,8 +164,8 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
             InetSocketAddress hostTried, Exception ex, RequestExceptionHandlerStrategy strategy) {
-        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttempts(), strategy)) {
-            log.info("Retrying with on a different host a query intended for host {}.",
+        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(hostTried), strategy)) {
+            log.info("Retrying a query intended for host {} on a different host.",
                     SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
             req.giveUpOnPreferredHost();
         }
@@ -234,6 +235,12 @@ class CassandraRequestExceptionHandler {
     interface RequestExceptionHandlerStrategy {
         boolean shouldBackoff(Exception ex);
         long getBackoffPeriod(int numberOfAttempts);
+
+        /**
+         * Exceptions that cause a host to be blacklisted shouldn't be retried on another host. As number of
+         * retries are recorded per request, and we want the number of retries on that specific host to exceed a
+         * determined value before blacklisting.
+         */
         boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts);
     }
 

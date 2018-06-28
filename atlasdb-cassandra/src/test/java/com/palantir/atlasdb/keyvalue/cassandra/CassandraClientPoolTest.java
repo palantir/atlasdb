@@ -257,9 +257,8 @@ public class CassandraClientPoolTest {
                     stubbing.thenReturn("Response");
                 }
             } catch (Exception ex) {
-                Throwables.throwIfUnchecked(ex);
+                throw new RuntimeException(ex);
             }
-
             cassandraClientPool.getCurrentPools().put(address, container);
         }
     }
