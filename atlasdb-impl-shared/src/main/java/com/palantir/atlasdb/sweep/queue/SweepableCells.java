@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -160,6 +159,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
             long startTs = getTimestamp(row, col);
             if (knownToBeCommittedAfterSweepTs(startTs, sweepTs)) {
                 writesByStartTs.put(startTs, getWriteInfo(startTs, entry.getValue()));
+                // at this point we know any writes with a greater start timestamp will be filtered out, so we stop
                 return writesByStartTs;
             }
             writesByStartTs.putAll(startTs, getWrites(row, col, entry.getValue()));
@@ -288,8 +288,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private boolean knownToBeCommittedAfterSweepTs(long startTs, long sweepTs) {
-        Optional<Long> commitTsIfCached = commitTsCache.loadIfCached(startTs);
-        return commitTsIfCached.isPresent() && commitTsIfCached.get() >= sweepTs;
+        return commitTsCache.loadIfCached(startTs).map(commitTs -> commitTs >= sweepTs).orElse(false);
     }
 
     private int writeIndexToNumberOfDedicatedRows(long writeIndex) {
