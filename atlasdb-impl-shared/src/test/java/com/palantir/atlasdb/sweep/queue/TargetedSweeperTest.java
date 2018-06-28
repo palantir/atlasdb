@@ -60,6 +60,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.math.IntMath;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
@@ -471,14 +472,14 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // last swept timestamp: 2 * TS_FINE_GRANULARITY - 1
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSweepableCellsHasNoEntriesBeforeTimestamp(LOW_TS + 1);
+        assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
         assertSweepableCellsHasEntryForTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
 
         // last swept timestamp: largestBeforeSweepTs
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSweepableCellsHasNoEntriesBeforeTimestamp(LOW_TS + 1);
-        assertSweepableCellsHasNoEntriesBeforeTimestamp(tsSecondPartitionFine);
+        assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
+        assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
     }
 
@@ -705,6 +706,68 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
+    public void stopReadingEarlyWhenEncounteringEntryKnownToBeCommittedAfterSweepTs() {
+        immutableTs = 100L;
+
+        enqueueWriteCommitted(TABLE_CONS, 10);
+        enqueueWriteCommitedAt(TABLE_CONS, 30, 150);
+
+        putTimestampIntoTransactionTable(50, 200);
+        Map<Integer, Integer> largeWriteDistribution = enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(100, 50);
+        int writesInDedicated = largeWriteDistribution.get(CONS_SHARD);
+
+        enqueueWriteUncommitted(TABLE_CONS, 70);
+        enqueueWriteCommitted(TABLE_CONS, 90);
+
+        // first iteration reads all before giving up
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated);
+
+        // we read one entry and give up
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 1);
+
+        immutableTs = 170;
+
+        // we read one good entry and then a reference to bad entries and give up
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 3);
+
+        immutableTs = 250;
+
+        // we now read all to the end
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 3 + writesInDedicated + 2);
+    }
+
+    @Test
+    public void stopReadingEarlyInOtherShardWhenEncounteringEntryKnownToBeCommittedAfterSweepTs() {
+        immutableTs = 100L;
+
+        putTimestampIntoTransactionTable(50, 200);
+        Map<Integer, Integer> largeWriteDistribution = enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(100, 50);
+        int writesInDedicated = largeWriteDistribution.get(CONS_SHARD);
+        int otherShard = IntMath.mod(CONS_SHARD + 1, DEFAULT_SHARDS);
+        int writesInOther = largeWriteDistribution.get(otherShard);
+
+        assertThat(writesInOther).isGreaterThan(0);
+
+        // first iteration reads all before giving up
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated);
+
+        // we read a reference to bad entries and give up
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(otherShard));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated + 1);
+
+        immutableTs = 250;
+
+        // we now read all to the end
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(otherShard));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated + 1 + writesInOther);
+    }
+
+    @Test
     public void batchIncludesAllWritesWithTheSameTimestampAndDoesNotSkipOrRepeatAnyWritesInNextIteration() {
         TargetedSweeper sweeperConservative = getSingleShardSweeper();
 
@@ -917,15 +980,16 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(readFromDefaultCell(tableRef, readTs)).isEmpty();
     }
 
+    // this implicitly assumes the entry was not committed after the timestamp
     private void assertSweepableCellsHasEntryForTimestamp(long timestamp) {
         SweepBatch batch = sweepableCells.getBatchForPartition(
                 ShardAndStrategy.conservative(CONS_SHARD), tsPartitionFine(timestamp), -1L, timestamp + 1);
         assertThat(batch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, timestamp));
     }
 
-    private void assertSweepableCellsHasNoEntriesBeforeTimestamp(long timestamp) {
+    private void assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(long timestamp) {
         SweepBatch batch = sweepableCells.getBatchForPartition(
-                ShardAndStrategy.conservative(CONS_SHARD), tsPartitionFine(timestamp), -1L, timestamp + 1);
+                ShardAndStrategy.conservative(CONS_SHARD), tsPartitionFine(timestamp), -1L, Long.MAX_VALUE);
         assertThat(batch.writes()).isEmpty();
     }
 
@@ -1010,5 +1074,25 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private void waitUntilBackgroundSweepRunsOneIteration() throws InterruptedException {
         Thread.sleep(3_000);
+    }
+
+    private Map<Integer, Integer> enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(long threshold, long startTs) {
+        List<WriteInfo> writeInfos = new ArrayList<>();
+        int counter = 0;
+        while (writeInfos.stream().filter(write -> write.toShard(DEFAULT_SHARDS) == CONS_SHARD).count() < threshold) {
+            writeInfos.addAll(generateHundredWrites(counter++, startTs));
+        }
+        sweepQueue.enqueue(writeInfos);
+        return writeInfos.stream()
+                .collect(Collectors.toMap(write -> write.toShard(DEFAULT_SHARDS), write -> 1, (fst, snd) -> fst + snd));
+    }
+
+    private List<WriteInfo> generateHundredWrites(int startCol, long startTs) {
+        List<WriteInfo> writeInfos = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            writeInfos.add(WriteInfo.write(TABLE_CONS,
+                    Cell.create(DEFAULT_CELL.getRowName(), PtBytes.toBytes(startCol * 100 + i)), startTs));
+        }
+        return writeInfos;
     }
 }

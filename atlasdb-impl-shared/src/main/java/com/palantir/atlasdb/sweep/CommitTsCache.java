@@ -17,6 +17,7 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import com.google.common.cache.CacheBuilder;
@@ -34,6 +35,10 @@ public final class CommitTsCache {
 
     public static CommitTsCache create(TransactionService transactionService) {
         return new CommitTsCache(transactionService, ONE_MILLION);
+    }
+
+    public Optional<Long> loadIfCached(long startTs) {
+        return Optional.ofNullable(cache.getIfPresent(startTs));
     }
 
     public long load(long startTs) {

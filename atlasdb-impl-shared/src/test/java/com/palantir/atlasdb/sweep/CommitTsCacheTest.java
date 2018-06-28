@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -39,12 +40,13 @@ import org.mockito.invocation.InvocationOnMock;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public class CommitTsCacheTest {
     private static final Long VALID_START_TIMESTAMP = 100L;
     private static final Long VALID_COMMIT_TIMESTAMP = 200L;
-    private static final Long ROLLBACK_TIMESTAMP = -1L;
+    private static final Long ROLLBACK_TIMESTAMP = TransactionConstants.FAILED_COMMIT_TS;
     private static final Long NO_TIMESTAMP = null;
 
     private final TransactionService mockTransactionService = mock(TransactionService.class);
@@ -146,6 +148,34 @@ public class CommitTsCacheTest {
         assertThat(loader.load(37L)).isEqualTo(37L);
         verify(mockTransactionService, times(3)).get(anyList());
         verifyNoMoreInteractions(mockTransactionService);
+    }
+
+    @Test
+    public void loadIfCachedReturnsEmptyWhenNotCached() {
+        when(mockTransactionService.get(VALID_START_TIMESTAMP)).thenReturn(VALID_COMMIT_TIMESTAMP);
+        assertThat(loader.loadIfCached(VALID_START_TIMESTAMP)).isEmpty();
+        verifyNoMoreInteractions(mockTransactionService);
+    }
+
+    @Test
+    public void loadIfCachedReturnsWhenCached() {
+        when(mockTransactionService.get(VALID_START_TIMESTAMP)).thenReturn(VALID_COMMIT_TIMESTAMP);
+        when(mockTransactionService.get(VALID_START_TIMESTAMP + 1)).thenReturn(ROLLBACK_TIMESTAMP);
+        assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(VALID_COMMIT_TIMESTAMP);
+        assertThat(loader.load(VALID_START_TIMESTAMP + 1)).isEqualTo(ROLLBACK_TIMESTAMP);
+        verify(mockTransactionService, times(2)).get(anyLong());
+
+        assertThat(loader.loadIfCached(VALID_START_TIMESTAMP)).contains(VALID_COMMIT_TIMESTAMP);
+        assertThat(loader.loadIfCached(VALID_START_TIMESTAMP + 1)).contains(ROLLBACK_TIMESTAMP);
+        verifyNoMoreInteractions(mockTransactionService);
+    }
+
+    @Test
+    public void loadIfCachedDoesNotAbortTransactionsAndCorrectlyGetsAbortedTransactions() {
+        when(mockTransactionService.get(anyLong())).thenReturn(null);
+        assertThat(loader.loadIfCached(VALID_START_TIMESTAMP)).isEmpty();
+        assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
+        assertThat(loader.loadIfCached(VALID_START_TIMESTAMP)).contains(ROLLBACK_TIMESTAMP);
     }
 
     @SuppressWarnings("unchecked")
