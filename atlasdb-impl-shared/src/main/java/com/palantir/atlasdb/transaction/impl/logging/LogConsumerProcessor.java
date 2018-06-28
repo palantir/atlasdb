@@ -19,5 +19,9 @@ package com.palantir.atlasdb.transaction.impl.logging;
 import java.util.function.Supplier;
 
 public interface LogConsumerProcessor {
+    LogConsumerProcessor NO_OP = unused -> {
+        // no op
+    };
+
     void maybeLog(Supplier<LogTemplate> logTemplateSupplier);
 }

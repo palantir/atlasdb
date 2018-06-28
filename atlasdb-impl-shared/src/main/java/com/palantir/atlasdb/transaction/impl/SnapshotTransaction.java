@@ -113,11 +113,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
-import com.palantir.atlasdb.transaction.impl.logging.ImmutableChainingLogConsumerProcessor;
 import com.palantir.atlasdb.transaction.impl.logging.ImmutableTransactionCommitProfile;
-import com.palantir.atlasdb.transaction.impl.logging.LogConsumerProcessor;
-import com.palantir.atlasdb.transaction.impl.logging.PredicateBackedLogConsumerProcessor;
-import com.palantir.atlasdb.transaction.impl.logging.RateLimitedBooleanSupplier;
 import com.palantir.atlasdb.transaction.impl.logging.TransactionCommitProfile;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -222,8 +218,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected volatile boolean hasReads;
 
     private final Timer.Context transactionTimerContext;
-
-    private final CommitProfileProcessor profileProcessor = createDefaultCommitProfileProcessor();
+    protected final CommitProfileProcessor commitProfileProcessor;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -251,7 +246,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                ExecutorService getRangesExecutor,
                                int defaultGetRangesConcurrency,
                                MultiTableSweepQueueWriter sweepQueue,
-                               ExecutorService deleteExecutor) {
+                               ExecutorService deleteExecutor,
+                               CommitProfileProcessor commitProfileProcessor) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -275,6 +271,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepQueue = sweepQueue;
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
+        this.commitProfileProcessor = commitProfileProcessor;
     }
 
     @Override
@@ -1388,7 +1385,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)), "postCommitUnlock");
 
             // We only care about detailed profiling for successful transactions
-            optionalProfile.ifPresent(profile -> profileProcessor.consumeProfilingData(
+            optionalProfile.ifPresent(profile -> commitProfileProcessor.consumeProfilingData(
                     profile,
                     writesByTable.keySet(),
                     byteCount.get(),
@@ -2041,21 +2038,4 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // TODO(hsaraogi): add table names as a tag
         return metricsManager.registerOrGetMeter(SnapshotTransaction.class, name);
     }
-
-    private CommitProfileProcessor createDefaultCommitProfileProcessor() {
-        return new CommitProfileProcessor(createDefaultPerfLogger(),
-                () -> getTimer("nonPutOverhead"),
-                () -> getHistogram("nonPutOverheadMillionths"));
-    }
-
-    private LogConsumerProcessor createDefaultPerfLogger() {
-        return ImmutableChainingLogConsumerProcessor.builder()
-                .addProcessors(PredicateBackedLogConsumerProcessor.create(
-                        perfLogger::debug, perfLogger::isDebugEnabled))
-                .addProcessors(PredicateBackedLogConsumerProcessor.create(
-                        log::info, RateLimitedBooleanSupplier.create(5.0)))
-                .build();
-    }
 }
-
-
