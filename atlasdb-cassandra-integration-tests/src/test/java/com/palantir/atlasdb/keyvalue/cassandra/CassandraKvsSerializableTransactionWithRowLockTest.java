@@ -27,6 +27,7 @@ import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionWithRowLockTest;
+import com.palantir.lock.v2.TimelockService;
 
 public class CassandraKvsSerializableTransactionWithRowLockTest
         extends AbstractSerializableTransactionWithRowLockTest {
