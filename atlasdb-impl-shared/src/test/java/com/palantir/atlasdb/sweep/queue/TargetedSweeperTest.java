@@ -631,14 +631,14 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
 
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(17);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(17L);
         assertThat(metricsManager).hasSweepTimestampThoroughEqualTo(40);
 
         immutableTs = 5;
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
 
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(5);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(5L);
         assertThat(metricsManager).hasSweepTimestampThoroughEqualTo(5);
     }
 
