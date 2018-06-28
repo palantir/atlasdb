@@ -27,12 +27,13 @@ the performance of certain read query patterns); releasing row and cell locks al
 update these to proceed.
 
 Currently, these locks are released synchronously and separately after a transaction commits. Thus, there is an
-overhead of two RPCs on the lock service between a transaction successfully committing and control being returned to 
+overhead of two lock service calls between a transaction successfully committing and control being returned to 
 the user.
 
 Correctness of the transaction protocol is not compromised even if these locks are not released (though an effort
-should be made to release them for performance reasons); consider that it is permissible for an AtlasDB client to
-crash after performing `putUnlessExists` into the transactions table.
+should be made to release them for performance reasons). Consider that it is permissible for an AtlasDB client to
+crash after performing `putUnlessExists` into the transactions table, in which case the transaction is considered
+committed.
 
 ## Decision
 
@@ -104,6 +105,9 @@ thread death. If an enqueue has a successful compare-and-set in step 5, then the
 (and is visible, because we synchronize on the set lock). If an enqueue does _not_ have a successful compare-and-set,
 then some thread must already be scheduled to perform the unlock, and once it does the token must be in the relevant
 set (and again must be visible, because we synchronize on the set lock).
+
+To avoid issues with starving unlocks, we use a fair lock scheme. This may have lower throughput than an unfair lock,
+but we deemed it necessary as 'readers' (committing transactions) far exceed 'writers' (the unlocking thread).
 
 ### TimeLock Failures
 
