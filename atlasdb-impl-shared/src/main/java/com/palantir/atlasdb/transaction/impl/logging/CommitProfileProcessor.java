@@ -31,7 +31,7 @@ import com.palantir.atlasdb.transaction.impl.SnapshotTransaction;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 
-public class CommitProfileProcessor {
+public final class CommitProfileProcessor {
     private static final Logger log = LoggerFactory.getLogger(CommitProfileProcessor.class);
     private static final Logger perfLogger = LoggerFactory.getLogger("dualschema.perf");
 
