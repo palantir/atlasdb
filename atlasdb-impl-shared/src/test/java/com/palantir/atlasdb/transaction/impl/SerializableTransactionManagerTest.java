@@ -38,10 +38,12 @@ import org.junit.Test;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.Cleaner;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 
@@ -51,9 +53,9 @@ public class SerializableTransactionManagerTest {
     private TimelockService mockTimelockService = mock(TimelockService.class);
     private Cleaner mockCleaner = mock(Cleaner.class);
     private AsyncInitializer mockInitializer = mock(AsyncInitializer.class);
-    private Callback<SerializableTransactionManager> mockCallback = mock(Callback.class);
+    private Callback<TransactionManager> mockCallback = mock(Callback.class);
 
-    private SerializableTransactionManager manager;
+    private TransactionManager manager;
 
     @Before
     public void setUp() {
@@ -204,9 +206,10 @@ public class SerializableTransactionManagerTest {
         manager.getKeyValueServiceStatus();
     }
 
-    private SerializableTransactionManager getManagerWithCallback(boolean initializeAsync,
-            Callback<SerializableTransactionManager> callBack) {
+    private TransactionManager getManagerWithCallback(boolean initializeAsync,
+            Callback<TransactionManager> callBack) {
         return SerializableTransactionManager.create(
+                MetricsManagers.createForTests(),
                 mockKvs,
                 mockTimelockService,
                 null, // lockService
@@ -253,7 +256,7 @@ public class SerializableTransactionManagerTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    private static class ClusterAvailabilityStatusBlockingCallback extends Callback<SerializableTransactionManager> {
+    private static class ClusterAvailabilityStatusBlockingCallback extends Callback<TransactionManager> {
         private volatile boolean invoked = false;
         private volatile boolean block = true;
 
@@ -266,7 +269,7 @@ public class SerializableTransactionManagerTest {
         }
 
         @Override
-        public void init(SerializableTransactionManager transactionManager) {
+        public void init(TransactionManager transactionManager) {
             invoked = true;
             transactionManager.getKeyValueServiceStatus();
             if (block) {
@@ -275,7 +278,7 @@ public class SerializableTransactionManagerTest {
         }
 
         @Override
-        public void cleanup(SerializableTransactionManager transactionManager, Throwable initException) {
+        public void cleanup(TransactionManager transactionManager, Throwable initException) {
             try {
                 Thread.sleep(500L);
             } catch (InterruptedException e) {

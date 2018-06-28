@@ -26,6 +26,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposal;
@@ -53,7 +54,7 @@ public class PaxosResourceTest {
     @Before
     public void setUp() throws IOException {
         logDirectory = TEMPORARY_FOLDER.newFolder();
-        paxosResource = PaxosResource.create(logDirectory.getPath());
+        paxosResource = PaxosResource.create(new MetricRegistry(), logDirectory.getPath());
     }
 
     @Test

@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public class ClockSkewMonitorCreatorTest {
     private final Consumer<Object> registrar = mock(Consumer.class);
@@ -34,7 +35,7 @@ public class ClockSkewMonitorCreatorTest {
     @Test
     public void registersClockServiceImpl() {
         ClockSkewMonitorCreator clockSkewMonitorCreator = new ClockSkewMonitorCreator(
-                ImmutableSet.of("foo:1"),
+                MetricsManagers.createForTests(), ImmutableSet.of("foo:1"),
                 Optional.empty(),
                 registrar);
         clockSkewMonitorCreator.registerClockServices();

@@ -118,8 +118,9 @@ public class ShardProgress {
     private long increaseValueFromToAtLeast(ShardAndStrategy shardAndStrategy, long oldVal, long newVal) {
         byte[] colValNew = SweepShardProgressTable.Value.of(newVal).persistValue();
 
-        while (oldVal < newVal) {
-            CheckAndSetRequest casRequest = createRequest(shardAndStrategy, oldVal, colValNew);
+        long currentValue = oldVal;
+        while (currentValue < newVal) {
+            CheckAndSetRequest casRequest = createRequest(shardAndStrategy, currentValue, colValNew);
             try {
                 kvs.checkAndSet(casRequest);
                 return newVal;
@@ -128,10 +129,10 @@ public class ShardProgress {
                         + "value changed under us.",
                         SafeArg.of("old value", oldVal),
                         SafeArg.of("new value", newVal));
-                oldVal = updateOrRethrowIfNoChange(shardAndStrategy, oldVal, e);
+                currentValue = updateOrRethrowIfNoChange(shardAndStrategy, currentValue, e);
             }
         }
-        return oldVal;
+        return currentValue;
     }
 
     private long updateOrRethrowIfNoChange(ShardAndStrategy shardAndStrategy, long oldVal, CheckAndSetException ex) {

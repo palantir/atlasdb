@@ -57,7 +57,8 @@ public class ExternalLocksCondition implements AdvisoryLocksCondition {
             List<HeldLocksToken> expiredHeldLocks = lockTokens.stream()
                     .filter(token -> expiredLocks.contains(token.getLockRefreshToken()))
                     .collect(Collectors.toList());
-            log.warn("External lock service locks were no longer valid", UnsafeArg.of("invalidLocks", expiredHeldLocks));
+            log.warn("External lock service locks were no longer valid", UnsafeArg.of("invalidLocks",
+                    expiredHeldLocks));
             throw new TransactionLockTimeoutNonRetriableException("Provided external lock tokens expired. "
                     + "Retry is not possible. Locks: "
                     + expiredHeldLocks);

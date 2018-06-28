@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -42,8 +43,10 @@ public interface AtlasDbFactory {
     String getType();
 
     default KeyValueService createRawKeyValueService(
-            KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        return createRawKeyValueService(config,
+            MetricsManager metricsManager, KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+        return createRawKeyValueService(
+                metricsManager,
+                config,
                 Optional::empty,
                 leaderConfig,
                 Optional.empty(),
@@ -68,6 +71,7 @@ public interface AtlasDbFactory {
      * @return The requested KeyValueService instance
      */
     KeyValueService createRawKeyValueService(
+            MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,

@@ -49,12 +49,15 @@ import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 import net.jcip.annotations.GuardedBy;
 
 public class PersistentLockManagerTest {
     private static final PersistentLockId FIRST_LOCK_ID = PersistentLockId.fromString("2-4-6-0-1");
 
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private PersistentLockService mockPls = mock(PersistentLockService.class);
     private PersistentLockId mockLockId = mock(PersistentLockId.class);
     private ExecutorService executor = Executors.newCachedThreadPool();
@@ -65,7 +68,7 @@ public class PersistentLockManagerTest {
     public void setUp() {
         when(mockPls.acquireBackupLock(anyString())).thenReturn(mockLockId);
 
-        manager = new PersistentLockManager(mockPls, 1);
+        manager = new PersistentLockManager(metricsManager, mockPls, 1);
     }
 
     @Test
@@ -108,6 +111,37 @@ public class PersistentLockManagerTest {
 
         assertThat(manager.lockId, nullValue());
         verify(mockPls, times(1)).releaseBackupLock(mockLockId);
+    }
+
+    @Test
+    @GuardedBy("manager")
+    public void afterAcquiringTwiceAndReleasingOnceWeStillHaveTheLock() {
+        manager.acquirePersistentLockWithRetry();
+        manager.acquirePersistentLockWithRetry();
+        manager.releasePersistentLock();
+
+        assertThat(manager.lockId, is(mockLockId));
+    }
+
+    @Test
+    @GuardedBy("manager")
+    public void afterAcquiringTwiceAndReleasingTwiceWeDoNotHaveTheLock() {
+        manager.acquirePersistentLockWithRetry();
+        manager.acquirePersistentLockWithRetry();
+        manager.releasePersistentLock();
+        manager.releasePersistentLock();
+
+        assertThat(manager.lockId, nullValue());
+    }
+
+    @Test
+    @GuardedBy("manager")
+    public void afterAcquiringTwiceAndShuttingDownWeDoNotHaveTheLock() {
+        manager.acquirePersistentLockWithRetry();
+        manager.acquirePersistentLockWithRetry();
+        manager.shutdown();
+
+        assertThat(manager.lockId, nullValue());
     }
 
     @Test
@@ -253,7 +287,8 @@ public class PersistentLockManagerTest {
 
     @Test
     public void noOpPersistentLockDoesNotThrow() {
-        PersistentLockManager noOpManager = new PersistentLockManager(new NoOpPersistentLockService(), 0L);
+        PersistentLockManager noOpManager = new PersistentLockManager(
+                metricsManager, new NoOpPersistentLockService(), 0L);
         assertTrue("NoOpPersistentLockService should return true when acquiring lock",
                 noOpManager.tryAcquirePersistentLock());
         noOpManager.releasePersistentLock();
@@ -261,7 +296,8 @@ public class PersistentLockManagerTest {
 
     @Test
     public void noOpPersistentLockCanLockTwice() {
-        PersistentLockManager noOpManager = new PersistentLockManager(new NoOpPersistentLockService(), 0L);
+        PersistentLockManager noOpManager = new PersistentLockManager(
+                metricsManager, new NoOpPersistentLockService(), 0L);
         assertTrue("NoOpPersistentLockService should return true when acquiring lock",
                 noOpManager.tryAcquirePersistentLock());
         assertTrue("NoOpPersistentLockService should return true when acquiring lock for the second time",

@@ -29,11 +29,12 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 
 public final class SweepQueue implements SweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(SweepQueue.class);
-    private static final long FIVE_MINUTES = TimeUnit.MINUTES.toMillis(5L);
+    private static final long REFRESH_INTERVAL = TimeUnit.MINUTES.toMillis(5L);
 
     private final SweepableCells sweepableCells;
     private final SweepableTimestamps sweepableTimestamps;
@@ -55,12 +56,11 @@ public final class SweepQueue implements SweepQueueWriter {
         this.metrics = metrics;
     }
 
-    public static SweepQueue create(KeyValueService kvs, Supplier<Integer> shardsConfig, int minShards,
+    public static SweepQueue create(MetricsManager metricsManager, KeyValueService kvs, Supplier<Integer> shardsConfig,
             TargetedSweepFollower follower) {
-        TargetedSweepMetrics metrics = TargetedSweepMetrics.create(kvs, FIVE_MINUTES);
+        TargetedSweepMetrics metrics = TargetedSweepMetrics.create(metricsManager, kvs, REFRESH_INTERVAL);
         ShardProgress progress = new ShardProgress(kvs);
-        progress.updateNumberOfShards(minShards);
-        Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, FIVE_MINUTES);
+        Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, REFRESH_INTERVAL);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
@@ -110,8 +110,9 @@ public final class SweepQueue implements SweepQueueWriter {
             return;
         }
 
-        log.debug("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept timestamp"
-                + " for this shard and strategy was {}.", SafeArg.of("shardStrategy", shardStrategy.toText()),
+        log.debug("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept "
+                        + "timestamp for this shard and strategy was {}.",
+                SafeArg.of("shardStrategy", shardStrategy.toText()),
                 SafeArg.of("sweepTs", sweepTs), SafeArg.of("lastSweptTs", lastSweptTs));
 
         SweepBatch sweepBatch = getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
@@ -138,9 +139,9 @@ public final class SweepQueue implements SweepQueueWriter {
     }
 
     /**
-     * Returns number modulo the most recently known number of shards.
+     * Returns the most recently known number of shards.
      */
-    public int modShards(long number) {
-        return (int) (number % numShards.get());
+    public int getNumShards() {
+        return numShards.get();
     }
 }

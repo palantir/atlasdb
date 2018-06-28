@@ -25,16 +25,16 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable.KvRowsRow;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable.KvRowsRowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public final class RangeScanRowsBenchmark extends AbstractRangeScanBenchmark {
 
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
             int requestsPerClient, int dataSize, int numRows) {
         return new RangeScanRowsBenchmark(txnManager, numClients, requestsPerClient, dataSize, numRows).execute();
     }
 
-    private RangeScanRowsBenchmark(SerializableTransactionManager txnManager, int numClients, int requestsPerClient,
+    private RangeScanRowsBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient,
             int dataSize, int numRows) {
         super(numClients, requestsPerClient, txnManager, dataSize, numRows);
     }

@@ -82,6 +82,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     @ClassRule
@@ -90,13 +92,15 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private final Logger logger = mock(Logger.class);
 
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
 
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
     private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
 
     private static final long STARTING_ATLAS_TIMESTAMP = 10_000_000;
-  
+
     private byte[] tableMetadata = new TableDefinition() {
         {
             rowName();
@@ -112,6 +116,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             cachePriority(TableMetadataPersistence.CachePriority.COLD);
         }
     }.toTableMetadata().persistToBytes();
+
     public static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
 
     @Override
@@ -122,6 +127,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
         // Mutation provider is needed, because deletes/sentinels are to be written after writes
         return CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 config,
                 CassandraContainer.LEADER_CONFIG,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),

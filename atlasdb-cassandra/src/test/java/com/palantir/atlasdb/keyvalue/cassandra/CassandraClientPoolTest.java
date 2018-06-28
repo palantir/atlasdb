@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -32,6 +33,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +44,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
@@ -58,15 +60,12 @@ public class CassandraClientPoolTest {
     private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
     private static final InetSocketAddress HOST_3 = new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT);
 
-    private MetricRegistry metricRegistry;
+    private final MetricRegistry metricRegistry = new MetricRegistry();
     private CassandraKeyValueServiceConfig config;
     private Blacklist blacklist;
 
     @Before
     public void setup() {
-        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), new DefaultTaggedMetricRegistry());
-        this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
-
         config = mock(CassandraKeyValueServiceConfig.class);
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
@@ -76,36 +75,14 @@ public class CassandraClientPoolTest {
     }
 
     @Test
-    public void cassandraPoolMetricsMustBeRegisteredAndDeregisteredForTwoPools() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
-
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2"));
-
-        cassandraClientPool.removePool(HOST_1);
-        assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName("pool1")), is(false));
-        assertThatMetricsArePresent(ImmutableSet.of("pool2"));
-
-        cassandraClientPool.addPool(HOST_1);
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2"));
-    }
-
-    @Test
-    public void cassandraPoolMetricsMustBeRegisteredAndDeregisteredForThreePools() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
-
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
-
-        cassandraClientPool.removePool(HOST_2);
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool3"));
-        assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName("pool2")), is(false));
-
-        cassandraClientPool.addPool(HOST_2);
+    public void cassandraPoolMetricsMustBeRegisteredForThreePools() {
+        clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
         assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
     }
 
     private void assertThatMetricsArePresent(ImmutableSet<String> poolNames) {
-        poolNames.forEach(poolName ->
-                assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName(poolName)), is(true)));
+        assertThat(metricRegistry.getGauges().keySet()).containsAll(
+                poolNames.stream().map(this::getPoolMetricName).collect(Collectors.toList()));
     }
 
     private String getPoolMetricName(String poolName) {
@@ -249,7 +226,9 @@ public class CassandraClientPoolTest {
         when(config.servers()).thenReturn(servers);
 
         CassandraClientPoolImpl cassandraClientPool =
-                CassandraClientPoolImpl.createImplForTest(config,
+                CassandraClientPoolImpl.createImplForTest(
+                        MetricsManagers.of(metricRegistry, new DefaultTaggedMetricRegistry()),
+                        config,
                         CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                         blacklist);
 

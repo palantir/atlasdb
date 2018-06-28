@@ -16,19 +16,24 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Streams;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 
 public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
@@ -71,7 +76,17 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
     abstract Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes);
 
     RowColumnRangeIterator getRowsColumnRange(Iterable<byte[]> rows, ColumnRangeSelection columnRange, int batchSize) {
-        return kvs.getRowsColumnRange(tableRef, rows, columnRange, batchSize, SweepQueueUtils.READ_TS);
+        return new LocalRowColumnRangeIterator(Streams.stream(rows)
+                .flatMap(row -> getBatchForRow(row, columnRange, batchSize))
+                .flatMap(Streams::stream)
+                .iterator());
+    }
+
+    private Stream<RowColumnRangeIterator> getBatchForRow(byte[] row, ColumnRangeSelection columnRange, int batchSize) {
+        return kvs.getRowsColumnRange(
+                tableRef, Collections.singleton(row),
+                BatchColumnRangeSelection.create(columnRange, batchSize),
+                SweepQueueUtils.READ_TS).values().stream();
     }
 
     void deleteRange(RangeRequest request) {

@@ -32,7 +32,7 @@ import dagger.Component;
 
 @Singleton
 @Component(modules = { ServicesConfigModule.class, KeyValueServiceModule.class, RawKeyValueServiceModule.class,
-        LockAndTimestampModule.class, SweeperModule.class, TransactionManagerModule.class })
+        LockAndTimestampModule.class, MetricsModule.class, SweeperModule.class, TransactionManagerModule.class })
 public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract AtlasDbConfig getAtlasDbConfig();
@@ -56,6 +56,6 @@ public abstract class AtlasDbServices implements AutoCloseable {
 
     @Override
     public void close() {
-        getKeyValueService().close();
+        getTransactionManager().close();
     }
 }

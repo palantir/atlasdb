@@ -72,10 +72,15 @@ class RowColumnRangeExtractor {
     private final Map<byte[], Column> rowsToLastCompositeColumns = Maps.newHashMap();
     private final Map<byte[], Integer> rowsToRawColumnCount = Maps.newHashMap();
     private final Set<byte[]> emptyRows = Sets.newHashSet();
-    private final MetricsManager metricsManager = new MetricsManager();
-    private final Meter notLatestVisibleValueCellFilterMeter = metricsManager.registerOrGetMeter(
-            RowColumnRangeExtractor.class,
-            AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
+    private final MetricsManager metricsManager;
+    private final Meter notLatestVisibleValueCellFilterMeter;
+
+    RowColumnRangeExtractor(MetricsManager metricsManager) {
+        this.metricsManager = metricsManager;
+        notLatestVisibleValueCellFilterMeter = metricsManager.registerOrGetMeter(
+                RowColumnRangeExtractor.class,
+                AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
+    }
 
     public void extractResults(Iterable<byte[]> canonicalRows,
                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,

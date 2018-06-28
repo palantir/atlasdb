@@ -35,9 +35,12 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(LegacyTimeLockServicesCreator.class);
     private static final LockClient LEGACY_LOCK_CLIENT = LockClient.of("legacy");
 
+    private final MetricRegistry metricRegistry;
     private final PaxosLeadershipCreator leadershipCreator;
 
-    public LegacyTimeLockServicesCreator(PaxosLeadershipCreator leadershipCreator) {
+    public LegacyTimeLockServicesCreator(MetricRegistry metricRegistry,
+            PaxosLeadershipCreator leadershipCreator) {
+        this.metricRegistry = metricRegistry;
         this.leadershipCreator = leadershipCreator;
     }
 
@@ -79,8 +82,8 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
         return instrument(serviceClass, leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
     }
 
-    private static <T> T instrument(Class<T> serviceClass, T service, String client) {
+    private <T> T instrument(Class<T> serviceClass, T service, String client) {
         // TODO(nziebart): tag with the client name, when tritium supports it
-        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass));
+        return AtlasDbMetrics.instrument(metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass));
     }
 }

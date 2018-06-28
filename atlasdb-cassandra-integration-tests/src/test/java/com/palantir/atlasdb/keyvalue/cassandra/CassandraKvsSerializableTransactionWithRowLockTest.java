@@ -30,6 +30,7 @@ import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionWith
 
 public class CassandraKvsSerializableTransactionWithRowLockTest
         extends AbstractSerializableTransactionWithRowLockTest {
+
     @ClassRule
     public static final Containers CONTAINERS =
             new Containers(CassandraKvsSerializableTransactionWithRowLockTest.class)
@@ -44,13 +45,13 @@ public class CassandraKvsSerializableTransactionWithRowLockTest
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
-       return TargetedSweeper.createUninitializedForTest(() -> 128);
+        return TargetedSweeper.createUninitializedForTest(() -> 128);
     }
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
         TargetedSweeper queue = TargetedSweeper.createUninitializedForTest(() -> 128);
-        queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), keyValueService,
+        queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), mock(TimelockService.class), keyValueService,
                 mock(TargetedSweepFollower.class));
         return queue;
     }

@@ -22,18 +22,20 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.util.MetricsManager;
 
 class ValueExtractor extends ResultsExtractor<Value> {
     private final Map<Cell, Value> collector;
     private final Meter notLatestVisibleValueCellFilterMeter =
             getNotlatestVisibleValueCellFilterMeter(ValueExtractor.class);
 
-    ValueExtractor(Map<Cell, Value> collector) {
+    ValueExtractor(MetricsManager metricsManager, Map<Cell, Value> collector) {
+        super(metricsManager);
         this.collector = collector;
     }
 
-    static ValueExtractor create() {
-        return new ValueExtractor(Maps.newHashMap());
+    static ValueExtractor create(MetricsManager metricsManager) {
+        return new ValueExtractor(metricsManager, Maps.newHashMap());
     }
 
     @Override
