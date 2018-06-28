@@ -90,8 +90,8 @@ public final class TargetedSweepMetrics {
         return metricsForStrategyMap.get(shardStrategy.strategy());
     }
 
-    private static long minimum(Collection<Long> currentValues) {
-        return currentValues.stream().min(Comparator.naturalOrder()).orElse(-1L);
+    private static Long minimum(Collection<Long> currentValues) {
+        return currentValues.stream().min(Comparator.naturalOrder()).orElse(null);
     }
 
     private static final class MetricsForStrategy {
@@ -112,16 +112,23 @@ public final class TargetedSweepMetrics {
             register(manager, AtlasDbMetricNames.SWEEP_TS, sweepTimestamp, tag);
 
             lastSweptTsSupplier = new AggregatingVersionedSupplier<>(TargetedSweepMetrics::minimum, recomputeMillis);
-            Supplier<Long> millisSinceOldestEntry = new CachedComposedSupplier<>(
-                    lastSweptTs -> wallClock.getTimeMillis() - tsToMillis.apply(lastSweptTs),
+            Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
+                    lastSweptTs -> estimateMillisSinceTs(lastSweptTs, wallClock, tsToMillis),
                     lastSweptTsSupplier);
 
             register(manager, AtlasDbMetricNames.LAST_SWEPT_TS, () -> lastSweptTsSupplier.get().value(), tag);
-            register(manager, AtlasDbMetricNames.LAG_MILLIS, millisSinceOldestEntry::get, tag);
+            register(manager, AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get, tag);
         }
 
         private void register(MetricsManager manager, String name, Gauge<Long> metric, Map<String, String> tag) {
             manager.registerMetric(TargetedSweepMetrics.class, name, metric, tag);
+        }
+
+        private static Long estimateMillisSinceTs(Long timestamp, Clock clock, Function<Long, Long> tsToMillis) {
+            if (timestamp == null) {
+                return null;
+            }
+            return clock.getTimeMillis() - tsToMillis.apply(timestamp);
         }
 
         private void updateEnqueuedWrites(long writes) {
