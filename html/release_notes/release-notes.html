@@ -211,6 +211,10 @@ Previously, they were written on every transaction.
 Previously, if these tools needed to delete a value that a failed transaction had written, the delete executor was never closed, thereby preventing an orderly JVM shutdown.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3328">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug in C* retry logic where number of retries over all the hosts were used as number of retries on a single host, which may cause unexpected blacklisting behaviour.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3323">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

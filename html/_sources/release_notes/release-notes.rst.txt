@@ -75,6 +75,10 @@ develop
            Previously, if these tools needed to delete a value that a failed transaction had written, the delete executor was never closed, thereby preventing an orderly JVM shutdown.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3328>`__)
 
+    *    - |fixed|
+         - Fixed a bug in C* retry logic where number of retries over all the hosts were used as number of retries on a single host, which may cause unexpected blacklisting behaviour.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3323>`__)
+
 =======
 v0.93.0
 =======
