@@ -56,6 +56,6 @@ public abstract class AtlasDbServices implements AutoCloseable {
 
     @Override
     public void close() {
-        getKeyValueService().close();
+        getTransactionManager().close();
     }
 }
