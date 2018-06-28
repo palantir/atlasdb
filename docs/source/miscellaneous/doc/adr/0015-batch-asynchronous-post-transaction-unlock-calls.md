@@ -60,11 +60,20 @@ In our implementation of solution 2, we use a single-threaded executor. This mea
 latency we incur is about 0.5 RPCs on the lock service (assuming that that makes up a majority of time spent in
 unlocking tokens - it is the only network call involved).
 
+### tryUnlock() API
+
+`TimelockService` now exposes a `tryUnlock()` API, which functions much like a regular `unlock()` except that the user
+does not need to wait for the operation to complete. This API is only exposed in Java (not over HTTP).
+
+This is implemented as a new default method on the `TimelockService` that delegates to `unlock()`; usefully, remote
+Feign proxies calling `tryUnlock()` will make an RPC for standard `unlock()`. This also gives us backwards
+compatiblity; a new AtlasDB/TimeLock client can talk to an old TimeLock server that has no knowledge of this endpoint.
+
 ### Concurrency Model
 
 It is essential that adding an element to the set of outstanding tokens is efficient; yet, we also need to ensure that 
-no token is left behind (at least indefinitely). We thus guard the concurrent set by a lock that permits both exclusive 
-and shared modes of access.
+no token is left behind (at least indefinitely). We thus guard the concurrent set by a (Java) lock that permits both 
+exclusive and shared modes of access.
 
 Transactions that enqueue lock tokens to be unlocked perform the following steps:
 
@@ -94,18 +103,31 @@ More interestingly, we can guarantee _liveness_ - every token that was enqueued 
 thread death. If an enqueue has a successful compare-and-set in step 5, then the token must be in the set
 (and is visible, because we synchronize on the set lock). If an enqueue does _not_ have a successful compare-and-set,
 then some thread must already be scheduled to perform the unlock, and once it does the token must be in the relevant
-set (again, because we synchronize on the set lock).
+set (and again must be visible, because we synchronize on the set lock).
 
 ### TimeLock Failures
 
-In some embodiments, the lock service is provided by a TimeLock server that can
+In some embodiments, the lock service is provided by a remote TimeLock server that may fail requests. There is retry 
+logic at the transport layer underneath us.
 
+Previously, running a transaction task would throw an exception if unlocking row locks or the immutable timestamp
+failed; we now allow user code to proceed and only emit diagnostic logs indicating that the unlock operation failed.
+This is a safe change, as throwing would not make the locks become available again, and user code cannot safely
+assume that locks used by a transaction are free after it commits (since another thread may well have acquired them). 
+
+In practice, locks will be released after a timeout if they are not refreshed by a client. This means that not
+retrying unlocks is safe, as long as we do not continue to attempt to refresh the lock. AtlasDB clients automatically
+refresh locks they acquire; we ensure that a token being unlocked is synchronously removed from the set of locks
+to refresh *before* it is put on the unlock queue.
 
 ## Consequences
 
 ### Improvements
 
-Transactions no longer need to wait ...
+- Transactions no longer need to wait for their immutable timestamp lock and row/cell write locks to be unlocked
+  before returning. We anticipate this will save about two RPCs to the lock service from a user-code perspective.
+- Transactions can now succeed even if there were problems when unlocking locks after the transaction committed.
+- Load on the TimeLock server will be reduced.
 
 ### Drawbacks
 
