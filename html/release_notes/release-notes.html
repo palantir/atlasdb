@@ -196,6 +196,11 @@ This saves an estimated two TimeLock round-trips of latency when committing a tr
 This should reduce request volumes on TimeLock Server.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3303">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB Benchmarks, CLIs and Console now shutdown properly under certain read patterns.
+Previously, if these tools needed to delete a value that a failed transaction had written, the delete executor was never closed, thereby preventing an orderly JVM shutdown.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3328">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -446,6 +451,17 @@ Please contact the AtlasDB team if you are uncertain what should be passed here.
 <td>The unbounded <code class="docutils literal notranslate"><span class="pre">CommitTsLoader</span></code> has been renamed to <code class="docutils literal notranslate"><span class="pre">CommitTsCache</span></code> and now has an eviction policy to prevent memory leaks.
 Background sweep now reuses this cache for iterations of sweep instead of recreating it every iteration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3256">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Multiple <code class="docutils literal notranslate"><span class="pre">BackgroundSweeper</span></code> threads can now run simultaneously.
+To enable this, set the runtime option <code class="docutils literal notranslate"><span class="pre">sweep/sweepThreads</span></code> to the desired number of threads and restart any Atlas client.
+If running multiple clients, these threads will be randomly split across them.
+Due to the load it may place on Cassandra, this option is not recommended for Cassandra-backed installations.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3257">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The <code class="docutils literal notranslate"><span class="pre">BackgroundSweeper</span></code> is no longer a <code class="docutils literal notranslate"><span class="pre">Runnable</span></code>. Its job is now to manage <code class="docutils literal notranslate"><span class="pre">BackgroundSweeperThread</span></code> instances, which are <code class="docutils literal notranslate"><span class="pre">Runnable</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3257">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Some users of AtlasDB rely on being able to abort transactions which are in progress. Until the last release of AtlasDB, this worked successfully, however this was only the case because before

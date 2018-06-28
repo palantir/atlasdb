@@ -226,27 +226,32 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
 <td>true</td>
 <td>Whether the background sweeper should run.</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">readLimit</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">sweepThreads</span></code></td>
+<td>Only specified in config</td>
+<td>1</td>
+<td>The number of threads to run sweep with. Changes require a restart of any service node to take effect. Not recommended for Cassandra KVS. Note that threads will contend with each other for the backup lock on deletes.</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">readLimit</span></code></td>
 <td><code class="docutils literal notranslate"><span class="pre">maxCellTsPairsToExamine</span></code></td>
 <td>128</td>
 <td>Target number of (cell, timestamp) pairs to examine in a batch of sweep.</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code></td>
 <td><code class="docutils literal notranslate"><span class="pre">candidateBatchSize</span></code></td>
 <td>128</td>
 <td>Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance.</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">deleteBatchHint</span></code></td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">deleteBatchHint</span></code></td>
 <td><code class="docutils literal notranslate"><span class="pre">deleteBatchSize</span></code></td>
 <td>128</td>
 <td>Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance.</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">pauseMillis</span></code></td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">pauseMillis</span></code></td>
 <td>Only specified in config</td>
 <td>5000 ms</td>
 <td>Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours.</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">sweepPriorityOverrides</span></code></td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">sweepPriorityOverrides</span></code></td>
 <td>Only specified in config</td>
 <td>No overrides</td>
 <td>Fully-qualified names of tables that Sweep should prioritise particularly highly, or ignore completely. Please see <a class="reference internal" href="#priority-overrides">Priority Overrides</a> for more details.</td>
@@ -283,7 +288,7 @@ If subsequent KVS round-trips are successful, the value of <code class="docutils
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">Specifying <code class="docutils literal notranslate"><span class="pre">priorityTables</span></code> can be useful for influencing sweep’s behaviour in the short run.
-However, if any tables are specified as <code class="docutils literal notranslate"><span class="pre">priorityTables</span></code> then no other tables will ever be swept, meaning that old versions of cells for those tables will accumulate.
+However, if any tables are specified as <code class="docutils literal notranslate"><span class="pre">priorityTables</span></code>, and the number of priority tables is at least <code class="docutils literal notranslate"><span class="pre">sweepThreads</span></code>, then no other tables will ever be swept, meaning that old versions of cells for those tables will accumulate.
 It is not intended for priority tables to be specified in a steady state, generally speaking.</p>
 </div>
 <p>There may be situations in which the background sweeper’s heuristics for selecting tables to sweep may not satisfy one’s requirements.
