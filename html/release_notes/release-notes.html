@@ -187,16 +187,21 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Targeted sweep now stops reading from the sweep queue immediately if it encounters an entry known to be committed after the sweep timestamp.
+Previously, we would read an entire batch before checking commit timestamps so that lookups can be batched, but this is not necessary if the commit timestamp is cached from a previous iteration.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3325">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Write transactions now unlock their row locks and immutable timestamp locks asynchronously after committing.
 This saves an estimated two TimeLock round-trips of latency when committing a transaction.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3303">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB clients now batch calls to unlock row locks and immutable timestamp locks across transactions.
 This should reduce request volumes on TimeLock Server.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3303">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB Benchmarks, CLIs and Console now shutdown properly under certain read patterns.
 Previously, if these tools needed to delete a value that a failed transaction had written, the delete executor was never closed, thereby preventing an orderly JVM shutdown.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3328">Pull Request</a>)</td>
