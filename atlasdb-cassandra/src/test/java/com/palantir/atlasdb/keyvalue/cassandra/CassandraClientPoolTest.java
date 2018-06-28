@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -35,9 +36,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.cassandra.thrift.InvalidRequestException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.stubbing.OngoingStubbing;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Throwables;
@@ -195,6 +198,69 @@ public class CassandraClientPoolTest {
 
         runNoopWithRetryOnHost(HOST_2, cassandraClientPool);
         assertThat(blacklist.contains(HOST_1), is(false));
+    }
+
+    @Test
+    public void attemptsShouldBeCountedPerHost() {
+        CassandraClientPoolImpl cassandraClientPool =
+                CassandraClientPoolImpl.createImplForTest(
+                        MetricsManagers.of(metricRegistry, new DefaultTaggedMetricRegistry()),
+                        config,
+                        CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
+                        blacklist);
+
+        host(HOST_1).throwsException(new SocketTimeoutException())
+                .throwsException(new InvalidRequestException())
+                .continuesToThrow()
+                .inPool(cassandraClientPool);
+
+        host(HOST_2).throwsException(new SocketTimeoutException())
+                .inPool(cassandraClientPool);
+
+        runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
+        assertThat(blacklist.contains(HOST_2), is(false));
+    }
+
+    private HostBuilder host(InetSocketAddress address) {
+        return new HostBuilder(address);
+    }
+
+    class HostBuilder {
+        private InetSocketAddress address;
+        private List<Exception> exceptions = new LinkedList<>();
+        private boolean returnsValue = true;
+
+        HostBuilder(InetSocketAddress address) {
+            this.address = address;
+        }
+
+        HostBuilder throwsException(Exception ex) {
+            exceptions.add(ex);
+            return this;
+        }
+
+        HostBuilder continuesToThrow() {
+            returnsValue = false;
+            return this;
+        }
+
+        void inPool(CassandraClientPool cassandraClientPool) {
+            CassandraClientPoolingContainer container = mock(CassandraClientPoolingContainer.class);
+            when(container.getHost()).thenReturn(address);
+            try {
+                OngoingStubbing<Object> stubbing = when(container.runWithPooledResource(
+                        Mockito.<FunctionCheckedException<CassandraClient, Object, Exception>>any()));
+                for (Exception ex : exceptions) {
+                    stubbing = stubbing.thenThrow(ex);
+                }
+                if (returnsValue) {
+                    stubbing.thenReturn("Response");
+                }
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+            cassandraClientPool.getCurrentPools().put(address, container);
+        }
     }
 
     private void verifyNumberOfAttemptsOnHost(InetSocketAddress host,
