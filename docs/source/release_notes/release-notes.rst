@@ -63,6 +63,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3319>`__)
 
     *    - |improved|
+         - Targeted sweep now stops reading from the sweep queue immediately if it encounters an entry known to be committed after the sweep timestamp.
+           Previously, we would read an entire batch before checking commit timestamps so that lookups can be batched, but this is not necessary if the commit timestamp is cached from a previous iteration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3325>`__)
+
+    *    - |improved|
          - Write transactions now unlock their row locks and immutable timestamp locks asynchronously after committing.
            This saves an estimated two TimeLock round-trips of latency when committing a transaction.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3303>`__)
@@ -71,6 +76,20 @@ develop
          - AtlasDB clients now batch calls to unlock row locks and immutable timestamp locks across transactions.
            This should reduce request volumes on TimeLock Server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3303>`__)
+
+    *    - |fixed|
+         - Snapshot transactions now write detailed profiling logs of the form ``Committed {} bytes with locks...`` only once every 5 seconds per ``TransactionManager`` used.
+           Previously, they were written on every transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3326>`__)
+
+    *    - |fixed|
+         - AtlasDB Benchmarks, CLIs and Console now shutdown properly under certain read patterns.
+           Previously, if these tools needed to delete a value that a failed transaction had written, the delete executor was never closed, thereby preventing an orderly JVM shutdown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3328>`__)
+
+    *    - |fixed|
+         - Fixed a bug in C* retry logic where number of retries over all the hosts were used as number of retries on a single host, which may cause unexpected blacklisting behaviour.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3323>`__)
 
 =======
 v0.93.0

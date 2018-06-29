@@ -140,7 +140,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         SweepableCellsTable.SweepableCellsRow row = computeRow(partitionFine, shardStrategy);
         RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, sweepTs);
         PeekingIterator<Map.Entry<Cell, Value>> peekingResultIterator = Iterators.peekingIterator(resultIterator);
-        Multimap<Long, WriteInfo> writesByStartTs = getBatchOfWrites(row, peekingResultIterator);
+        Multimap<Long, WriteInfo> writesByStartTs = getBatchOfWrites(row, peekingResultIterator, sweepTs);
         maybeMetrics.ifPresent(metrics -> metrics.updateEntriesRead(shardStrategy, writesByStartTs.size()));
         log.info("Read {} entries from the sweep queue.", SafeArg.of("number", writesByStartTs.size()));
         TimestampsToSweep tsToSweep = getTimestampsToSweepDescendingAndCleanupAborted(shardStrategy,
@@ -151,12 +151,18 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     private Multimap<Long, WriteInfo> getBatchOfWrites(SweepableCellsTable.SweepableCellsRow row,
-            PeekingIterator<Map.Entry<Cell, Value>> resultIterator) {
+            PeekingIterator<Map.Entry<Cell, Value>> resultIterator, long sweepTs) {
         Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
         while (resultIterator.hasNext() && writesByStartTs.size() < SweepQueueUtils.SWEEP_BATCH_SIZE) {
             Map.Entry<Cell, Value> entry = resultIterator.next();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
-            writesByStartTs.putAll(getTimestamp(row, col), getWrites(row, col, entry.getValue()));
+            long startTs = getTimestamp(row, col);
+            if (knownToBeCommittedAfterSweepTs(startTs, sweepTs)) {
+                writesByStartTs.put(startTs, getWriteInfo(startTs, entry.getValue()));
+                // at this point we know any writes with a greater start timestamp will be filtered out, so we stop
+                return writesByStartTs;
+            }
+            writesByStartTs.putAll(startTs, getWrites(row, col, entry.getValue()));
         }
         // there may be entries remaining with the same start timestamp as the last processed one. If that is the case
         // we want to include these ones as well. This is OK since there are at most MAX_CELLS_GENERIC - 1 of them.
@@ -279,6 +285,10 @@ public class SweepableCells extends KvsSweepQueueWriter {
 
     private long getTimestamp(SweepableCellsTable.SweepableCellsRow row, SweepableCellsTable.SweepableCellsColumn col) {
         return row.getTimestampPartition() * SweepQueueUtils.TS_FINE_GRANULARITY + col.getTimestampModulus();
+    }
+
+    private boolean knownToBeCommittedAfterSweepTs(long startTs, long sweepTs) {
+        return commitTsCache.loadIfCached(startTs).map(commitTs -> commitTs >= sweepTs).orElse(false);
     }
 
     private int writeIndexToNumberOfDedicatedRows(long writeIndex) {
