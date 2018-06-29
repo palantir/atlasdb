@@ -21,7 +21,7 @@ jobs:
           root: .
           paths: [ . ]
 
-  compileErrorProne:
+  compile-errorprone:
     docker:
       - image: circleci/openjdk:8-jdk-browsers
     steps:
@@ -121,11 +121,22 @@ workflows:
       - compile:
           filters: { tags: { only: /.*/ } }
 
+      - compile-errorprone:
+          filters: { tags: { only: /.*/ } }
+
       - unit-test:
           requires: [ compile ]
           filters: { tags: { only: /.*/ } }
 
-      - check:
+      - cassandra-integration-tests:
+          requires: [ compile ]
+          filters: { tags: { only: /.*/ } }
+
+      - ete-tests:
+          requires: [ compile ]
+          filters: { tags: { only: /.*/ } }
+
+      - startup-independence-and-friends:
           requires: [ compile ]
           filters: { tags: { only: /.*/ } }
 
