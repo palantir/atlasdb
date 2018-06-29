@@ -208,7 +208,15 @@ workflows:
           requires: [ compile ]
           filters: { tags: { only: /.*/ } }
 
+      - cassandra-integration-long-tests:
+          requires: [ compile ]
+          filters: { tags: { only: /.*/ } }
+
       - ete-tests:
+          requires: [ compile ]
+          filters: { tags: { only: /.*/ } }
+
+      - ete-tests-long-test:
           requires: [ compile ]
           filters: { tags: { only: /.*/ } }
 
