@@ -51,26 +51,7 @@ workflows:
       - compile:
           filters: { tags: { only: /.*/ } }
 
-      - compile-errorprone:
-          filters: { tags: { only: /.*/ } }
-
-      - unit-test:
-          requires: [ compile ]
-          filters: { tags: { only: /.*/ } }
-
-      - cassandra-integration-tests:
-          requires: [ compile ]
-          filters: { tags: { only: /.*/ } }
-
-      - ete-tests:
-          requires: [ compile ]
-          filters: { tags: { only: /.*/ } }
-
-      - dbkvs-benchmarking:
-          requires: [ compile ]
-          filters: { tags: { only: /.*/ } }
-
-      - startup-independence-and-friends:
+      - atlas-tests:
           requires: [ compile ]
           filters: { tags: { only: /.*/ } }
 
