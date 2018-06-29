@@ -1,77 +1,141 @@
 version: 2
 
 jobs:
-  build:
-    machine:
-      java:
-        version:
-          openjdk8
-      environment:
-        _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
-        TERM: dumb
-      post: # install-docker.sh and starting Docker depend on environment variables to deduce whether they're running on external or internal CircleCI, which are not visible in 'pre'.
-        - ./scripts/circle-ci/install-docker.sh:
-            pwd: $CIRCLE_PROJECT_REPONAME
-        - sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m`
-        - sudo chmod +x /usr/local/bin/docker-compose
-        - docker info >/dev/null 2>&1 || sudo service docker start
-
+  compile:
+    docker:
+      - image: circleci/openjdk:8-jdk-browsers
+    resource_class: medium+
     steps:
       - checkout
-      - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
+      - restore_cache: { key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}' }
+      - restore_cache: { key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}' }
+      - run: ./gradlew --parallel --stacktrace resolveConfigurations
+      - save_cache:
+          key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}'
+          paths: [ ~/.gradle/wrapper ]
+      - save_cache:
+          key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}'
+          paths: [ ~/.gradle/caches ]
+      - run: ./gradlew --parallel --stacktrace classes testClasses
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+
+  check:
+    docker:
+      - image: circleci/openjdk:8-jdk-browsers
+    resource_class: small
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache: { key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}' }
+      - restore_cache: { key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}' }
+      - run: ./gradlew --parallel --stacktrace --continue check -x test
       - run:
-          command: ./scripts/circle-ci/pull-all-images.sh
-          background: true
+          command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
+          when: always
+      - store_test_results: { path: ~/junit }
+      - store_artifacts: { path: ~/artifacts }
+
+  unit-test:
+    docker:
+      - image: circleci/openjdk:8-jdk-browsers
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache: { key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}' }
+      - restore_cache: { key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}' }
+      - run: ./gradlew --parallel --stacktrace --continue test
       - run:
-          command: ./scripts/circle-ci/stop-services.sh
-          background: true
+          command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
+          when: always
+      - store_test_results: { path: ~/junit }
+      - store_artifacts: { path: ~/artifacts }
 
-    dependencies:
-      pre:
-        - ./scripts/circle-ci/download-moreutils.sh
-      override:
-        - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
-        - scripts/circle-ci/pr-changelog-status-check.sh
+workflows:
+  version: 2
+  build:
+    jobs:
+      - compile:
+          filters: { tags: { only: /.*/ } }
 
-    test:
-      pre:
-        - ./scripts/circle-ci/track-memory-usage.sh:
-            background: true
-            parallel: true
-      override:
-        - ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
-            parallel: true
-            timeout: 600
-      post:
-        - ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
-        - mkdir -p $CIRCLE_TEST_REPORTS/junit/:
-            parallel: true
-        - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;:
-            parallel: true
-        - mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs:
-            parallel: true
-        - "if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi":
-            parallel: true
-        - find . -type d -regex ".*/build/reports/checkstyle" | sed 's#\./\(\(.*\)/build/reports/checkstyle\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/checkstyle/\2#' | bash:
-            parallel: true
-        - find . -type d -regex ".*/build/reports/findbugs" | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash:
-            parallel: true
-        - rsync -uav "build/reports/profile" "$CIRCLE_ARTIFACTS/":
-            parallel: true
-        - mkdir -p $CIRCLE_ARTIFACTS/heapdumps:
-            parallel: true
-        - find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;:
-            parallel: true
+      - unit-test:
+          requires: [ compile ]
+          filters: { tags: { only: /.*/ } }
 
-    deployment:
-      publish-docs:
-        branch: develop
-        owner: atlasdb
-        commands:
-          - ./scripts/circle-ci/publish-github-page.sh                                    # This command publishes the external docs.
-          - curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH # This command publishes the internal docs.
-      bintray:
-        tag: /[0-9]+(\.[0-9]+){2}(-alpha|-beta|-rc[0-9]+)?(\+[0-9]{3})?/
-        owner: atlasdb # Use 'atlasdb' for publishing from internal circle and 'palantir' for publishing from external circle
-        commands:
-          - ./gradlew bintrayUpload -x check
+      - check:
+          requires: [ compile ]
+          filters: { tags: { only: /.*/ } }
+
+#  build:
+#    machine:
+#      java:
+#        version:
+#          openjdk8
+#      environment:
+#        _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+#        TERM: dumb
+#      post: # install-docker.sh and starting Docker depend on environment variables to deduce whether they're running on external or internal CircleCI, which are not visible in 'pre'.
+#        - ./scripts/circle-ci/install-docker.sh:
+#            pwd: $CIRCLE_PROJECT_REPONAME
+#        - sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m`
+#        - sudo chmod +x /usr/local/bin/docker-compose
+#        - docker info >/dev/null 2>&1 || sudo service docker start
+#
+#    steps:
+#      - checkout
+#      - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
+#      - run:
+#          command: ./scripts/circle-ci/pull-all-images.sh
+#          background: true
+#      - run:
+#          command: ./scripts/circle-ci/stop-services.sh
+#          background: true
+#
+#    dependencies:
+#      pre:
+#        - ./scripts/circle-ci/download-moreutils.sh
+#      override:
+#        - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
+#        - scripts/circle-ci/pr-changelog-status-check.sh
+#
+#    test:
+#      pre:
+#        - ./scripts/circle-ci/track-memory-usage.sh:
+#            background: true
+#            parallel: true
+#      override:
+#        - ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
+#            parallel: true
+#            timeout: 600
+#      post:
+#        - ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
+#        - mkdir -p $CIRCLE_TEST_REPORTS/junit/:
+#            parallel: true
+#        - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;:
+#            parallel: true
+#        - mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs:
+#            parallel: true
+#        - "if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi":
+#            parallel: true
+#        - find . -type d -regex ".*/build/reports/checkstyle" | sed 's#\./\(\(.*\)/build/reports/checkstyle\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/checkstyle/\2#' | bash:
+#            parallel: true
+#        - find . -type d -regex ".*/build/reports/findbugs" | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash:
+#            parallel: true
+#        - rsync -uav "build/reports/profile" "$CIRCLE_ARTIFACTS/":
+#            parallel: true
+#        - mkdir -p $CIRCLE_ARTIFACTS/heapdumps:
+#            parallel: true
+#        - find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;:
+#            parallel: true
+#
+#    deployment:
+#      publish-docs:
+#        branch: develop
+#        owner: atlasdb
+#        commands:
+#          - ./scripts/circle-ci/publish-github-page.sh                                    # This command publishes the external docs.
+#          - curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH # This command publishes the internal docs.
+#      bintray:
+#        tag: /[0-9]+(\.[0-9]+){2}(-alpha|-beta|-rc[0-9]+)?(\+[0-9]{3})?/
+#        owner: atlasdb # Use 'atlasdb' for publishing from internal circle and 'palantir' for publishing from external circle
+#        commands:
+#          - ./gradlew bintrayUpload -x check
