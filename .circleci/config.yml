@@ -35,6 +35,10 @@ jobs:
           when: always
       - setup_remote_docker
       - run:
+          name: Install MoreUtils
+          command: ./scripts/circle-ci/download-moreutils.sh
+          when: always
+      - run:
           name: Atlas Testing
           command: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh
           when: always
