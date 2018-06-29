@@ -20,10 +20,10 @@ jobs:
       - checkout
       - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
       - run:
-          command: ./scripts/circle-ci/pull-all-images.sh:
+          command: ./scripts/circle-ci/pull-all-images.sh
           background: true
       - run:
-          command: ./scripts/circle-ci/stop-services.sh:
+          command: ./scripts/circle-ci/stop-services.sh
           background: true
 
     dependencies:
