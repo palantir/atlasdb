@@ -33,10 +33,7 @@ jobs:
           name: Install Docker-Compose
           command: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` && sudo chmod +x /usr/local/bin/docker-compose
           when: always
-      - run:
-          name: Start Docker Service
-          command: docker info >/dev/null 2>&1 || sudo service docker start
-          when: always
+      - setup_remote_docker
       - run: ./gradlew --parallel --stacktrace --continue check -x test
       - run:
           command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
@@ -55,10 +52,7 @@ jobs:
           name: Install Docker-Compose
           command: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` && sudo chmod +x /usr/local/bin/docker-compose
           when: always
-      - run:
-          name: Start Docker Service
-          command: docker info >/dev/null 2>&1 || sudo service docker start
-          when: always
+      - setup_remote_docker
       - run: ./gradlew --parallel --stacktrace --continue test -x atlasdb-jepsen-tests:runUnitTestsForPrintLogsInChronologicalOrderScript -x atlasdb-jepsen-tests:jepsenTest
       - run:
           command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
