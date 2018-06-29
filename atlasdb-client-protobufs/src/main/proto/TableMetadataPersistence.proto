@@ -104,6 +104,7 @@ enum TableConflictHandler {
     RETRY_ON_VALUE_CHANGED = 3;
     SERIALIZABLE = 4;
     RETRY_ON_WRITE_WRITE_CELL = 5;
+    SERIALIZABLE_CELL = 6;
 }
 
 enum CachePriority {
