@@ -29,6 +29,10 @@ jobs:
       - attach_workspace: { at: . }
       - restore_cache: { key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}' }
       - restore_cache: { key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}' }
+      - run:
+          name: Install Docker-Compose
+          command: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` && sudo chmod +x /usr/local/bin/docker-compose
+          when: always
       - run: ./gradlew --parallel --stacktrace --continue check -x test
       - run:
           command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
@@ -43,6 +47,10 @@ jobs:
       - attach_workspace: { at: . }
       - restore_cache: { key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}' }
       - restore_cache: { key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}' }
+      - run:
+          name: Install Docker-Compose
+          command: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` && sudo chmod +x /usr/local/bin/docker-compose
+          when: always
       - run: ./gradlew --parallel --stacktrace --continue test
       - run:
           command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
