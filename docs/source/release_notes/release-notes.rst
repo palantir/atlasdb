@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |new|
+         - A new conflict handler ``SERIALIZABLE_CELL`` is added. This conflict handler is same as ``SERIALIZABLE``, but checks for conflicts by locking cells during commit instead of locking rows. Cell locks are more fine-grained, so this will produce less contention at the expense of requiring more locks to be acquired.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3267>`__)
 
 =======
 v0.94.0
