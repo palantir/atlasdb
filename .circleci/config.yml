@@ -21,25 +21,21 @@ jobs:
           root: .
           paths: [ . ]
 
-  check:
+  compileErrorProne:
     docker:
       - image: circleci/openjdk:8-jdk-browsers
-    resource_class: small
     steps:
-      - attach_workspace: { at: . }
+      - checkout
       - restore_cache: { key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}' }
       - restore_cache: { key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}' }
-      - run:
-          name: Install Docker-Compose
-          command: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` && sudo chmod +x /usr/local/bin/docker-compose
-          when: always
-      - setup_remote_docker
-      - run: ./gradlew --parallel --stacktrace --continue check -x test
-      - run:
-          command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
-          when: always
-      - store_test_results: { path: ~/junit }
-      - store_artifacts: { path: ~/artifacts }
+      - run: ./gradlew --parallel --stacktrace resolveConfigurations
+      - save_cache:
+          key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}'
+          paths: [ ~/.gradle/wrapper ]
+      - save_cache:
+          key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}'
+          paths: [ ~/.gradle/caches ]
+      - run: ./gradlew --parallel --stacktrace compileJava compileTestJava -PenableErrorProne=true
 
   unit-test:
     docker:
@@ -53,12 +49,70 @@ jobs:
           command: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` && sudo chmod +x /usr/local/bin/docker-compose
           when: always
       - setup_remote_docker
-      - run: ./gradlew --parallel --stacktrace --continue test -x atlasdb-jepsen-tests:runUnitTestsForPrintLogsInChronologicalOrderScript -x atlasdb-jepsen-tests:jepsenTest
+      - run: ./gradlew --parallel --stacktrace --continue test -x atlasdb-cassandra-integration-tests:test -x atlasdb-ete-tests:check atlasdb-ete-tests:startupIndependenceTest -x atlasdb-ete-test-utils:check -x atlasdb-cassandra:check -x atlasdb-api:check -x atlasdb-jepsen-tests:check -x atlasdb-cli:check
       - run:
           command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
           when: always
       - store_test_results: { path: ~/junit }
       - store_artifacts: { path: ~/artifacts }
+
+  cassandra-integration-tests:
+    docker:
+      - image: circleci/openjdk:8-jdk-browsers
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache: { key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}' }
+      - restore_cache: { key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}' }
+      - run:
+          name: Install Docker-Compose
+          command: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` && sudo chmod +x /usr/local/bin/docker-compose
+          when: always
+      - setup_remote_docker
+      - run: ./gradlew --parallel --stacktrace --continue atlasdb-cassandra-integration-tests:check atlasdb-cassandra-integration-tests:memorySensitiveTest
+      - run:
+          command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
+          when: always
+      - store_test_results: { path: ~/junit }
+      - store_artifacts: { path: ~/artifacts }
+
+  ete-tests:
+    docker:
+      - image: circleci/openjdk:8-jdk-browsers
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache: { key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}' }
+      - restore_cache: { key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}' }
+      - run:
+          name: Install Docker-Compose
+          command: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` && sudo chmod +x /usr/local/bin/docker-compose
+          when: always
+      - setup_remote_docker
+      - run: ./gradlew --parallel --stacktrace --continue atlasdb-ete-tests:check
+      - run:
+          command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
+          when: always
+      - store_test_results: { path: ~/junit }
+      - store_artifacts: { path: ~/artifacts }
+
+  startup-independence-and-friends:
+    docker:
+      - image: circleci/openjdk:8-jdk-browsers
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache: { key: 'gradle-wrapper-v1-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}' }
+      - restore_cache: { key: 'gradle-cache-v1-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}' }
+      - run:
+          name: Install Docker-Compose
+          command: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` && sudo chmod +x /usr/local/bin/docker-compose
+          when: always
+      - setup_remote_docker
+      - run: ./gradlew --parallel --stacktrace --continue atlasdb-ete-tests:startupIndependenceTest atlasdb-ete-test-utils:check atlasdb-cassandra:check atlasdb-api:check atlasdb-cli:check
+      - run:
+          command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
+          when: always
+      - store_test_results: { path: ~/junit }
+      - store_artifacts: { path: ~/artifacts }
+
 
 workflows:
   version: 2
