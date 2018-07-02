@@ -1,4 +1,4 @@
-# 14. Cassandra Targeted Sweep
+# 14. Targeted Sweep
 
 Date: 18/06/2018
 
@@ -63,9 +63,9 @@ writes were performed, it is our understanding that Cassandra internally still l
 
 #### Legacy Sweep can Get Stuck
 
-For tables that regularly have new rows added in increasing lexicographical order (for example, tables keyed on staedily  increasing
+For tables that regularly have new rows added in increasing lexicographical order (for example, tables keyed on steadily  increasing
 `FIXED` or `VAR_LONG`s), legacy sweep can end up sweeping the table indefinitely as each iteration will discover a new row, therefore
-never declaring the table as fully swept. As a consequence, no other tables are swept at all until ht eissue is noticed and manually
+never declaring the table as fully swept. As a consequence, no other tables are swept at all until the issue is noticed and manually
 resolved.
 
 ## Decision
@@ -133,7 +133,7 @@ to enable better parallelisation of targeted sweep. The maximum number of **Shar
 splitting the queue into that number of disjoint queues. Note that once that the number of shards is increased, it cannot be
 lowered again.
 
-### `sweepableCells`
+### Sweepable Cells Table
 
   This table stores the actual information about all the writes into AtlasDB. As a transaction is about to be committed, but before
   data is persisted to the KVS, all writes from the transaction are partitioned based on shard and sweep strategy
@@ -175,7 +175,7 @@ lowered again.
   the number of shards is greater than 1. Note that for each cell in a non-dedicated row, we can calculate the write's start
   timestamp simply by multiplying the *timestamp_partition* by *50_000* and then adding its *timestamp_modulus*.
 
-### `sweepableTimestamps`
+### Sweepable Timestamps Table
 
   This is an auxiliary table for locating the next row of the *sweepableCells* table to read since the timestamp partitions can be
   sparse, and therefore requiring many lookups to locate a nonempty row. Each non-dedicated row of *sweepableCells* is represented
@@ -198,7 +198,7 @@ lowered again.
   row if necessary. If a cell is found this way, its *timestamp_modulus* is the *timestamp_partition* of the row of *sweepableCells* we
   were looking for.
 
-### `sweepProgressPerShard`
+### Sweep Progress (Per Shard) Table
 
   This table stores targeted sweep's progress, as well as the information about the number of shards the sweep queue is using.
 
