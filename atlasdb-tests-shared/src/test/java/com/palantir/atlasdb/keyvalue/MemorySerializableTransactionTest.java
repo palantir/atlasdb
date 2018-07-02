@@ -17,10 +17,10 @@ package com.palantir.atlasdb.keyvalue;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionWithRowLockTest;
+import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 import com.palantir.common.concurrent.PTExecutors;
 
-public class MemorySerializableTransactionWithRowLockTest extends AbstractSerializableTransactionWithRowLockTest {
+public class MemorySerializableTransactionTest extends AbstractSerializableTransactionTest {
     @Override
     protected KeyValueService getKeyValueService() {
         return new InMemoryKeyValueService(false,

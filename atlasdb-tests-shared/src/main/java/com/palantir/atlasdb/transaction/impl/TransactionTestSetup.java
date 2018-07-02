@@ -20,10 +20,13 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -66,6 +69,10 @@ public abstract class TransactionTestSetup {
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
+
+    protected final TimestampCache timestampCache = new TimestampCache(
+            new MetricRegistry(),
+            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
     @Before
     public void setUp() throws Exception {
