@@ -78,6 +78,23 @@ v0.94.0
            These used to return mutable maps - please make a copy of the map if you need it to be mutable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3319>`__)
 
+    *    - |new|
+         - Multiple ``BackgroundSweeper`` threads can now run simultaneously.
+           To enable this, set the runtime option ``sweep/sweepThreads`` to the desired number of threads and restart any Atlas client.
+           If running multiple clients, these threads will be randomly split across them.
+           Due to the load it may place on Cassandra, this option is not recommended for long-term use for Cassandra-backed installations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3257>`__)
+
+    *    - |improved|
+         - Sweep progress is now stored per-table, meaning that if background sweep of a table is interrupted
+           (for example, because sweep priority config changed), next time the background sweeper selects that table, it will pick up where it left off.
+           Previously, the table would be swept from the start, potentially leading to several days of work being redone.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3257>`__)
+
+    *    - |devbreak|
+         - The ``BackgroundSweeper`` is no longer a ``Runnable``. Its job is now to manage ``BackgroundSweeperThread`` instances, which are ``Runnable``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3257>`__)
+
     *    - |improved|
          - Targeted sweep now stops reading from the sweep queue immediately if it encounters an entry known to be committed after the sweep timestamp.
            Previously, we would read an entire batch before checking commit timestamps so that lookups can be batched, but this is not necessary if the commit timestamp is cached from a previous iteration.
@@ -330,17 +347,6 @@ v0.90.0
          - The unbounded ``CommitTsLoader`` has been renamed to ``CommitTsCache`` and now has an eviction policy to prevent memory leaks.
            Background sweep now reuses this cache for iterations of sweep instead of recreating it every iteration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3256>`__)
-
-    *    - |new|
-         - Multiple ``BackgroundSweeper`` threads can now run simultaneously.
-           To enable this, set the runtime option ``sweep/sweepThreads`` to the desired number of threads and restart any Atlas client.
-           If running multiple clients, these threads will be randomly split across them.
-           Due to the load it may place on Cassandra, this option is not recommended for Cassandra-backed installations.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3257>`__)
-
-    *    - |devbreak|
-         - The ``BackgroundSweeper`` is no longer a ``Runnable``. Its job is now to manage ``BackgroundSweeperThread`` instances, which are ``Runnable``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3257>`__)
 
     *    - |fixed|
          - Some users of AtlasDB rely on being able to abort transactions which are in progress. Until the last release of AtlasDB, this worked successfully, however this was only the case because before
