@@ -20,13 +20,13 @@ public enum ConflictHandler {
      * If two transactions write to the same cell the one that was committed later will win.  We
      * are ignoring write conflicts in this case.
      */
-    IGNORE_ALL(false, false, false),
+    IGNORE_ALL(false, false, false, false),
 
     /**
      * If two transactions concurrently write to the same cell the one that commits later will
      * throw a {@link TransactionConflictException} and should have details about how this happened.
      */
-    RETRY_ON_WRITE_WRITE(false, true, false),
+    RETRY_ON_WRITE_WRITE(false, true, true, false),
 
     /**
      * If a transaction writes a new value to a Cell (different than the value read by that
@@ -47,7 +47,7 @@ public enum ConflictHandler {
      * Note: This ConflictHandler has the ABA problem (https://en.wikipedia.org/wiki/ABA_problem).  The easiest
      * way to fix this is to have the value always increase.
      */
-    RETRY_ON_VALUE_CHANGED(false, true, false),
+    RETRY_ON_VALUE_CHANGED(false, true, true, false),
 
     /**
      * This conflict type does everything that {@link #RETRY_ON_WRITE_WRITE} does but additionally detects
@@ -60,29 +60,46 @@ public enum ConflictHandler {
      * This should not be used on tables that are expected to have tons of reads because we must keep the whole read
      * set in memory so we can compare it at commit time to ensure that everything we read has not changed.
      */
-    SERIALIZABLE(false, true, true),
+    SERIALIZABLE(false, true, true, true),
 
     /**
      * Same as {@link RETRY_ON_WRITE_WRITE}, but checks for conflicts by locking cells during commit instead
      * of locking rows. Cell locks are more fine-grained, so this will produce less contention at the expense
      * of requiring more locks to be acquired.
      */
-    RETRY_ON_WRITE_WRITE_CELL(true, true, false),
+    RETRY_ON_WRITE_WRITE_CELL(true, false, true, false),
 
     /**
      * Same as {@link SERIALIZABLE}, but checks for conflicts by locking cells during commit instead
      * of locking rows. Cell locks are more fine-grained, so this will produce less contention at the expense
      * of requiring more locks to be acquired.
      */
-    SERIALIZABLE_CELL(true, true, true);
+    SERIALIZABLE_CELL(true, false, true, true),
+
+    /**
+     * This conflict handler is designed to be used for migrating a table from SERIALIZABLE to SERIALIZABLE_CELL
+     * conflict handler, or vice versa without requiring a shutdown.
+     * <p>
+     * Current implementation of lock service permits a client to lock a cell after locking the row that cell
+     * belongs to. In a scenario where we migrate table A to SERIALIZABLE_CELL from SERIALIZABLE, and conduct a rolling
+     * upgrade, if client_1 is on the newer version, it will try to acquire cell locks for its transaction t1; while
+     * client_2 with an older version, acquiring row locks for its transaction t2. If t1 and t2 are modifying the same
+     * cell then correctness issues may occur as there is no way for t1 to be aware of t2. Locking on both cell and row
+     * level prevents this issue.
+     */
+    SERIALIZABLE_LOCK_LEVEL_MIGRATION(true, true, true, true);
+
+    private final boolean lockCellsForConflicts;
+    private final boolean lockRowsForConflicts;
 
     private final boolean checkWriteWriteConflicts;
     private final boolean checkReadWriteConflicts;
 
-    private final boolean lockCellsForConflicts;
 
-    ConflictHandler(boolean lockCellsForConflicts, boolean checkWriteWriteConflicts, boolean checkReadWriteConflicts) {
+    ConflictHandler(boolean lockCellsForConflicts, boolean lockRowsForConflicts, boolean checkWriteWriteConflicts, boolean checkReadWriteConflicts) {
         this.lockCellsForConflicts = lockCellsForConflicts;
+        this.lockRowsForConflicts = lockRowsForConflicts;
+
         this.checkWriteWriteConflicts = checkWriteWriteConflicts;
         this.checkReadWriteConflicts = checkReadWriteConflicts;
     }
@@ -92,7 +109,7 @@ public enum ConflictHandler {
     }
 
     public boolean lockRowsForConflicts() {
-        return !lockCellsForConflicts && checkConflicts();
+        return lockRowsForConflicts;
     }
 
     public boolean checkWriteWriteConflicts() {
@@ -101,9 +118,5 @@ public enum ConflictHandler {
 
     public boolean checkReadWriteConflicts() {
         return checkReadWriteConflicts;
-    }
-
-    private boolean checkConflicts() {
-        return checkReadWriteConflicts || checkWriteWriteConflicts;
     }
 }

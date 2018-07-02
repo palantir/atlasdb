@@ -1504,14 +1504,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (conflictHandler == ConflictHandler.RETRY_ON_VALUE_CHANGED) {
             throwIfValueChangedConflict(tableRef, writes, spanningWrites, dominatingWrites, commitLocksToken);
-        } else if (conflictHandler.checkWriteWriteConflicts()) {
+        } else {
             if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
                 getTransactionConflictsMeter().mark();
                 throw TransactionConflictException.create(tableRef, getStartTimestamp(), spanningWrites,
                         dominatingWrites, System.currentTimeMillis() - timeCreated);
             }
-        } else {
-            throw new IllegalArgumentException("Unknown conflictHandler type: " + conflictHandler);
         }
     }
 
@@ -1749,7 +1747,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                     cell.getRowName(),
                                     cell.getColumnName()));
                 }
-            } else if (conflictHandler.lockRowsForConflicts()) {
+            }
+
+            if (conflictHandler.lockRowsForConflicts()) {
                 Cell lastCell = null;
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
                     if (lastCell == null || !Arrays.equals(lastCell.getRowName(), cell.getRowName())) {
