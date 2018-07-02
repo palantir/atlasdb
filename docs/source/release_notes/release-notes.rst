@@ -51,7 +51,8 @@ develop
          - Change
 
     *    - |new|
-         - A new conflict handler ``SERIALIZABLE_CELL`` is added. This conflict handler is same as ``SERIALIZABLE``, but checks for conflicts by locking cells during commit instead of locking rows. Cell locks are more fine-grained, so this will produce less contention at the expense of requiring more locks to be acquired.
+         - A new conflict handler ``SERIALIZABLE_CELL`` is added. This conflict handler is same as ``SERIALIZABLE``, but checks for conflicts by locking cells during commit instead of locking rows. Cell locks are more fine-grained, so this will produce less contention at the expense of requiring more locks to be acquired. 
+           If your schema already has a table with ``SERIALIZABLE`` conflict handler, and you would like to migrate it to ``SERIALIZABLE_CELL`` with a rolling upgrade (without a shutdown); then you should first migrate it to ``SERIALIZABLE_LOCK_LEVEL_MIGRATION`` conflict handler to avoid data corruption.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3267>`__)
 
 =======

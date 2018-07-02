@@ -193,14 +193,14 @@ public class CommitLockTest extends TransactionTestSetup {
         };
     }
 
-    protected LockResponse acquireRowLock(String rowName) {
+    private LockResponse acquireRowLock(String rowName) {
         LockDescriptor rowLockDescriptor = AtlasRowLockDescriptor.of(
                 TEST_TABLE.getQualifiedName(),
                 PtBytes.toBytes(rowName));
         return lock(rowLockDescriptor);
     }
 
-    protected LockResponse acquireCellLock(String rowName, String colName) {
+    private LockResponse acquireCellLock(String rowName, String colName) {
         LockDescriptor cellLockDescriptor = AtlasCellLockDescriptor.of(
                 TEST_TABLE.getQualifiedName(),
                 PtBytes.toBytes(rowName),

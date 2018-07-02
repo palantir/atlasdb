@@ -709,27 +709,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t1.commit();
     }
 
-    protected LockResponse acquireRowLock(String rowName) {
-        LockDescriptor rowLockDescriptor = AtlasRowLockDescriptor.of(
-                TEST_TABLE.getQualifiedName(),
-                PtBytes.toBytes(rowName));
-        return lock(rowLockDescriptor);
-    }
-
-    protected LockResponse acquireCellLock(String rowName, String colName) {
-        LockDescriptor cellLockDescriptor = AtlasCellLockDescriptor.of(
-                TEST_TABLE.getQualifiedName(),
-                PtBytes.toBytes(rowName),
-                PtBytes.toBytes(colName));
-        return lock(cellLockDescriptor);
-    }
-
-    private LockResponse lock(LockDescriptor lockDescriptor) {
-        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
-        LockRequest lockRequest = LockRequest.of(ImmutableSet.of(lockDescriptor), 5_000);
-        return timelockService.lock(lockRequest);
-    }
-
     private void writeColumns() {
         Transaction t1 = startTransaction();
         int totalPuts = 101;
