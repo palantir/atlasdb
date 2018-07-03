@@ -36,8 +36,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.remoting3.tracing.Tracers;
 
@@ -50,6 +51,7 @@ import com.palantir.remoting3.tracing.Tracers;
  */
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public final class PTExecutors {
+    private static Logger log = LoggerFactory.getLogger(PTExecutors.class);
 
     private static final String FILE_NAME_FOR_THIS_CLASS = PTExecutors.class.getSimpleName() + ".java";
 
@@ -557,8 +559,7 @@ public final class PTExecutors {
                 }
             }
         }
-        String errorMessage = "Can't figure out what name to use for this thread factory!";
-        Logger.getLogger(PTExecutors.class.getName()).log(Level.WARNING, errorMessage);
+        log.warn("Can't figure out what name to use for this thread factory!");
         return new NamedThreadFactory("Unnamed thread", isDaemon);
     }
 
