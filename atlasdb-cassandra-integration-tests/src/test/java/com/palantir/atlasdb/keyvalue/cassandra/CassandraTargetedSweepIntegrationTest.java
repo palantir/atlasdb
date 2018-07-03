@@ -40,6 +40,9 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.lock.v2.TimelockService;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
@@ -48,6 +51,8 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     @ClassRule
     public static final Containers CONTAINERS =
             new Containers(CassandraTargetedSweepIntegrationTest.class).with(new CassandraContainer());
+
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
@@ -58,13 +63,12 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
         super.setup();
 
         sweepQueue = TargetedSweeper.createUninitializedForTest(() -> 1);
-        sweepQueue.initialize(timestampsSupplier, kvs, mock(TargetedSweepFollower.class));
+        sweepQueue.initialize(timestampsSupplier, mock(TimelockService.class), kvs, mock(TargetedSweepFollower.class));
     }
 
     @Override
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
-
         return CassandraKeyValueServiceImpl.createForTesting(config, CassandraContainer.LEADER_CONFIG);
     }
 

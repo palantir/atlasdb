@@ -30,19 +30,18 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.util.AccumulatingValueMetric;
-import com.palantir.atlasdb.util.AggregateRecomputingMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
+import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
-import com.palantir.util.JavaSuppliers;
 
 public final class TargetedSweepMetrics {
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
 
-    private TargetedSweepMetrics(Function<Long, Long> tsToMillis, Clock clock, long millis) {
-        MetricsManager metricsManager = new MetricsManager();
+    private TargetedSweepMetrics(MetricsManager metricsManager,
+                Function<Long, Long> tsToMillis, Clock clock, long millis) {
         metricsForStrategyMap = ImmutableMap.of(
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, tsToMillis, clock, millis),
@@ -50,13 +49,17 @@ public final class TargetedSweepMetrics {
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, tsToMillis, clock, millis));
     }
 
-    public static TargetedSweepMetrics create(KeyValueService kvs, long millis) {
-        return createWithClock(kvs, new SystemClock(), millis);
+    public static TargetedSweepMetrics create(MetricsManager metricsManager, KeyValueService kvs, long millis) {
+        return createWithClock(metricsManager, kvs, new SystemClock(), millis);
     }
 
-    public static TargetedSweepMetrics createWithClock(KeyValueService kvs, Clock clock, long millis) {
-        return new TargetedSweepMetrics(ts -> KeyValueServicePuncherStore.getMillisForTimestamp(kvs, ts),
-                clock, millis);
+    public static TargetedSweepMetrics createWithClock(
+            MetricsManager metricsManager, KeyValueService kvs, Clock clock, long millis) {
+        return new TargetedSweepMetrics(
+                metricsManager,
+                ts -> KeyValueServicePuncherStore.getMillisForTimestamp(kvs, ts),
+                clock,
+                millis);
     }
 
     public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes) {
@@ -87,18 +90,17 @@ public final class TargetedSweepMetrics {
         return metricsForStrategyMap.get(shardStrategy.strategy());
     }
 
-    private static long minimum(Collection<Long> currentValues) {
-        return currentValues.stream().min(Comparator.naturalOrder()).orElse(-1L);
+    private static Long minimum(Collection<Long> currentValues) {
+        return currentValues.stream().min(Comparator.naturalOrder()).orElse(null);
     }
 
-    private static class MetricsForStrategy {
+    private static final class MetricsForStrategy {
         private final AccumulatingValueMetric enqueuedWrites = new AccumulatingValueMetric();
         private final AccumulatingValueMetric entriesRead = new AccumulatingValueMetric();
         private final AccumulatingValueMetric tombstonesPut = new AccumulatingValueMetric();
         private final AccumulatingValueMetric abortedWritesDeleted = new AccumulatingValueMetric();
         private final CurrentValueMetric<Long> sweepTimestamp = new CurrentValueMetric<>();
-        private final AggregateRecomputingMetric lastSweptTimestamp;
-        private final Gauge<Long> millisSinceOldestEntry;
+        private final AggregatingVersionedSupplier<Long> lastSweptTsSupplier;
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
@@ -109,23 +111,31 @@ public final class TargetedSweepMetrics {
             register(manager, AtlasDbMetricNames.ABORTED_WRITES_DELETED, abortedWritesDeleted, tag);
             register(manager, AtlasDbMetricNames.SWEEP_TS, sweepTimestamp, tag);
 
-            lastSweptTimestamp = new AggregateRecomputingMetric(TargetedSweepMetrics::minimum, recomputeMillis);
-            register(manager, AtlasDbMetricNames.LAST_SWEPT_TS, lastSweptTimestamp, tag);
+            lastSweptTsSupplier = new AggregatingVersionedSupplier<>(TargetedSweepMetrics::minimum, recomputeMillis);
+            Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
+                    lastSweptTs -> estimateMillisSinceTs(lastSweptTs, wallClock, tsToMillis),
+                    lastSweptTsSupplier);
 
-            Supplier<Long> lastSweptMillis = new CachedComposedSupplier<>(tsToMillis, lastSweptTimestamp::getValue);
-            millisSinceOldestEntry = JavaSuppliers.compose(ts -> wallClock.getTimeMillis() - ts, lastSweptMillis)::get;
-            register(manager, AtlasDbMetricNames.LAG_MILLIS, millisSinceOldestEntry, tag);
+            register(manager, AtlasDbMetricNames.LAST_SWEPT_TS, () -> lastSweptTsSupplier.get().value(), tag);
+            register(manager, AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get, tag);
         }
 
-        private static void register(MetricsManager manager, String name, Gauge<Long> metric, Map<String, String> tag) {
+        private void register(MetricsManager manager, String name, Gauge<Long> metric, Map<String, String> tag) {
             manager.registerMetric(TargetedSweepMetrics.class, name, metric, tag);
         }
 
-        public void updateEnqueuedWrites(long writes) {
+        private static Long estimateMillisSinceTs(Long timestamp, Clock clock, Function<Long, Long> tsToMillis) {
+            if (timestamp == null) {
+                return null;
+            }
+            return clock.getTimeMillis() - tsToMillis.apply(timestamp);
+        }
+
+        private void updateEnqueuedWrites(long writes) {
             enqueuedWrites.accumulateValue(writes);
         }
 
-        public void updateEntriesRead(long writes) {
+        private void updateEntriesRead(long writes) {
             entriesRead.accumulateValue(writes);
         }
 
@@ -142,7 +152,7 @@ public final class TargetedSweepMetrics {
         }
 
         private void updateProgressForShard(int shard, long lastSweptTs) {
-            lastSweptTimestamp.update(shard, lastSweptTs);
+            lastSweptTsSupplier.update(shard, lastSweptTs);
         }
     }
 }

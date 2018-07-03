@@ -87,6 +87,18 @@ public class QosCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
+    public void remove(String kvsMethodName, TableReference tableRef, byte[] row, long timestamp,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        qosClient.executeWrite(
+                () -> {
+                    client.remove(kvsMethodName, tableRef, row, timestamp, consistency_level);
+                    return null;
+                    },
+                ThriftQueryWeighers.remove(row));
+    }
+
+    @Override
     public void batch_mutate(String kvsMethodName, Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {

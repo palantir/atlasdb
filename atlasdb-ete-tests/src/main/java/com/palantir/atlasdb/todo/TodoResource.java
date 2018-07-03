@@ -90,4 +90,21 @@ public interface TodoResource {
     @Path("truncate-tables")
     @Consumes(MediaType.APPLICATION_JSON)
     void truncate();
+
+    @POST
+    @Path("/namespaced")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    long addNamespacedTodoWithIdAndReturnTimestamp(
+            @QueryParam("id") long id,
+            @QueryParam("namespace") String namespace,
+            Todo todo);
+
+    @GET
+    @Path("/namespacedDoesNotExistBeforeTimestamp")
+    @Produces(MediaType.APPLICATION_JSON)
+    boolean namespacedTodoDoesNotExistBeforeTimestamp(
+            @QueryParam("id") long id,
+            @QueryParam("timestamp") long timestamp,
+            @QueryParam("namespace") String namespace);
 }

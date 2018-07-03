@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -180,11 +181,11 @@ public class TimeLockMigrationEteTest {
 
     private static <T> T createEteClientFor(Class<T> clazz) {
         String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
-        return AtlasDbHttpClients.createProxy(Optional.empty(), uri, clazz);
+        return AtlasDbHttpClients.createProxy(new MetricRegistry(), Optional.empty(), uri, clazz);
     }
 
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
-        return AtlasDbHttpClients.createProxy(Optional.empty(), uri, TimestampService.class);
+        return AtlasDbHttpClients.createProxy(new MetricRegistry(), Optional.empty(), uri, TimestampService.class);
     }
 }

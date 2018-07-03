@@ -46,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
@@ -337,10 +338,11 @@ public final class CassandraKeyValueServices {
 
     static class StartTsResultsCollector implements ThreadSafeResultVisitor {
         private final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
-        private final ValueExtractor extractor = new ValueExtractor(collectedResults);
+        private final ValueExtractor extractor;
         private final long startTs;
 
-        StartTsResultsCollector(long startTs) {
+        StartTsResultsCollector(MetricsManager metricsManager, long startTs) {
+            this.extractor = new ValueExtractor(metricsManager, collectedResults);
             this.startTs = startTs;
         }
 

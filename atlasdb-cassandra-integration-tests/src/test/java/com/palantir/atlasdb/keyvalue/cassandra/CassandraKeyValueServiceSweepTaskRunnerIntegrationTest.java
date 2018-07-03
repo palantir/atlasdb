@@ -35,6 +35,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.ShouldRetry;
 
 @RunWith(Parameterized.class)
@@ -44,6 +46,8 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
     public static final Containers CONTAINERS = new Containers(
                 CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class)
             .with(new CassandraContainer());
+
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
@@ -67,6 +71,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         // Timestamp of 1,000,000 is done to ensure that tombstones are written at a Cassandra timestamp that is
         // greater than the Atlas timestamp for any values written during the test.
         return CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 config,
                 CassandraContainer.LEADER_CONFIG,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));

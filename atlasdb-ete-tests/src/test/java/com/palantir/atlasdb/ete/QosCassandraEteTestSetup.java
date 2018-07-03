@@ -45,8 +45,7 @@ import com.palantir.atlasdb.qos.config.ImmutableQosClientConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.TodoSchema;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
@@ -57,7 +56,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class QosCassandraEteTestSetup {
     private static final Random random = new Random();
-    protected static SerializableTransactionManager serializableTransactionManager;
+    protected static TransactionManager serializableTransactionManager;
     protected static final int readBytesPerSecond = 10_000;
     protected static final int writeBytesPerSecond = 10_000;
     private static final int CASSANDRA_PORT_NUMBER = 9160;
@@ -73,7 +72,6 @@ public class QosCassandraEteTestSetup {
 
     @Before
     public void setup() {
-        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault());
         ensureTransactionManagerIsCreated();
     }
 

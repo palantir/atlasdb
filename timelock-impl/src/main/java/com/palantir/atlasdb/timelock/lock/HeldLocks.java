@@ -28,6 +28,7 @@ import com.palantir.lock.v2.LockToken;
 
 public class HeldLocks {
 
+    private final LockLog lockLog;
     private final Collection<AsyncLock> acquiredLocks;
     private final LockToken token;
     private final LeaseExpirationTimer expirationTimer;
@@ -35,12 +36,14 @@ public class HeldLocks {
     @GuardedBy("this")
     private boolean isUnlocked = false;
 
-    public HeldLocks(Collection<AsyncLock> acquiredLocks, UUID requestId) {
-        this(acquiredLocks, requestId, new LeaseExpirationTimer(System::currentTimeMillis));
+    public HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks, UUID requestId) {
+        this(lockLog, acquiredLocks, requestId, new LeaseExpirationTimer(System::currentTimeMillis));
     }
 
     @VisibleForTesting
-    HeldLocks(Collection<AsyncLock> acquiredLocks, UUID requestId, LeaseExpirationTimer expirationTimer) {
+    HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks,
+            UUID requestId, LeaseExpirationTimer expirationTimer) {
+        this.lockLog = lockLog;
         this.acquiredLocks = acquiredLocks;
         this.token = LockToken.of(requestId);
         this.expirationTimer = expirationTimer;
@@ -53,7 +56,7 @@ public class HeldLocks {
     public synchronized boolean unlockIfExpired() {
         if (expirationTimer.isExpired()) {
             if (unlock()) {
-                LockLog.lockExpired(token.getRequestId(), getLockDescriptors());
+                lockLog.lockExpired(token.getRequestId(), getLockDescriptors());
             }
         }
         return isUnlocked;

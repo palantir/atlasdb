@@ -19,6 +19,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.util.MetricsManager;
 
 import dagger.Module;
 import dagger.Provides;
@@ -29,8 +30,8 @@ public class RawKeyValueServiceModule {
     @Provides
     @Singleton
     @Named("rawKvs")
-    public KeyValueService provideRawKeyValueService(ServicesConfig config) {
-        return config.atlasDbSupplier().getKeyValueService();
+    public KeyValueService provideRawKeyValueService(ServicesConfig config, MetricsManager metricsManager) {
+        return config.atlasDbSupplier(metricsManager).getKeyValueService();
     }
 
 }

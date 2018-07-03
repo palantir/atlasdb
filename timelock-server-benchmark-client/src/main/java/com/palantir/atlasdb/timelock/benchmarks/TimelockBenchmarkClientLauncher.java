@@ -21,11 +21,8 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.benchmarks.config.TimelockBenchmarkClientConfig;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
@@ -40,8 +37,6 @@ public class TimelockBenchmarkClientLauncher extends Application<TimelockBenchma
     @Override
     public void initialize(Bootstrap<TimelockBenchmarkClientConfig> bootstrap) {
         MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
-        TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
-        AtlasDbMetrics.setMetricRegistries(metricRegistry, taggedMetricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);

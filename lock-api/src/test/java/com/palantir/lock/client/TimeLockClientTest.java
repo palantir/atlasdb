@@ -58,7 +58,8 @@ public class TimeLockClientTest {
 
     private final LockRefresher refresher = mock(LockRefresher.class);
     private final TimelockService delegate = mock(TimelockService.class);
-    private final TimelockService timelock = new TimeLockClient(delegate, refresher);
+    private final AsyncTimeLockUnlocker unlocker = mock(AsyncTimeLockUnlocker.class);
+    private final TimelockService timelock = new TimeLockClient(delegate, refresher, unlocker);
 
     private static final long TIMEOUT = 10_000;
 

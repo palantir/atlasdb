@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class CachingTransactionManager extends WrappingTransactionManager {
-    public CachingTransactionManager(LockAwareTransactionManager delegate) {
+    public CachingTransactionManager(TransactionManager delegate) {
         super(delegate);
     }
 

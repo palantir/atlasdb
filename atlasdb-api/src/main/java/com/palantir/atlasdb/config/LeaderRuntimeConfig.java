@@ -22,5 +22,7 @@ import org.immutables.value.Value;
 public abstract class LeaderRuntimeConfig {
 
     @Value.Default
-    public boolean onlyLogOnQuorumFailure() { return true; }
+    public boolean onlyLogOnQuorumFailure() {
+        return true;
+    }
 }

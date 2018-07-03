@@ -1,23 +1,5 @@
-List<String> blacklistedBaselineProjects = [
-        'atlasdb-client',
-        'atlasdb-client-protobufs',
-        'atlasdb-commons',
-        'atlasdb-console',
-        'atlasdb-dbkvs-hikari',
-        'atlasdb-jdbc',
-        'atlasdb-jdbc-tests',
-        'atlasdb-service-server',
-        'cassandra-partitioner',
-        'commons-db',
-        'commons-executors',
-        'leader-election-impl',
-        'lock-impl',
-        'profile-client-protobufs',
-        'timestamp-impl']
+apply plugin: 'com.palantir.baseline-checkstyle'
 
-if (!blacklistedBaselineProjects.contains(project.name)) {
-    apply plugin: 'com.palantir.baseline-checkstyle'
-}
 // ./gradlew compileJava compileTestJava -PenableErrorProne=true
 if (enableErrorProne.toBoolean()) {
     apply plugin: 'org.inferred.processors'

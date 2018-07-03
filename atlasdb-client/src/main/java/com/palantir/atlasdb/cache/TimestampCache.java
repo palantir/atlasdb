@@ -42,10 +42,10 @@ public class TimestampCache {
                 .build();
     }
 
-    public TimestampCache(Supplier<Long> size) {
+    public TimestampCache(MetricRegistry metricRegistry, Supplier<Long> size) {
         this.size = size;
         startToCommitTimestampCache = createCache(size.get());
-        AtlasDbMetrics.registerCache(startToCommitTimestampCache,
+        AtlasDbMetrics.registerCache(metricRegistry, startToCommitTimestampCache,
                 MetricRegistry.name(TimestampCache.class, "startToCommitTimestamp"));
     }
 

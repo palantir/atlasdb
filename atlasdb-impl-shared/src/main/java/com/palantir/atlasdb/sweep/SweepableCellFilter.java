@@ -17,15 +17,13 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class SweepableCellFilter {
@@ -43,71 +41,67 @@ public class SweepableCellFilter {
     // Here we need to load the commit timestamps, and it's important to do that in bulk
     // to reduce the number of round trips to the database.
     public BatchOfCellsToSweep getCellsToSweep(List<CandidateCellForSweeping> candidates) {
-        Preconditions.checkArgument(!candidates.isEmpty(),
-                "Got an empty collection of candidates. This is a programming error.");
         Map<Long, Long> startToCommitTs = commitTsCache.loadBatch(getAllTimestamps(candidates));
         ImmutableBatchOfCellsToSweep.Builder builder = ImmutableBatchOfCellsToSweep.builder();
         long numCellTsPairsExamined = 0;
-        Cell lastCellExamined = null;
         for (CandidateCellForSweeping candidate : candidates) {
-            if (candidate.sortedTimestamps().size() > 0) {
-                getCellToSweep(candidate, startToCommitTs).ifPresent(builder::addCells);
-            }
+            getCellToSweep(candidate, startToCommitTs).ifPresent(builder::addCells);
             numCellTsPairsExamined += candidate.sortedTimestamps().size();
-            lastCellExamined = candidate.cell();
         }
-        return builder.numCellTsPairsExamined(numCellTsPairsExamined).lastCellExamined(lastCellExamined).build();
+        return builder
+                .numCellTsPairsExamined(numCellTsPairsExamined)
+                .lastCellExamined(candidates.get(candidates.size() - 1).cell())
+                .build();
     }
 
     private Optional<CellToSweep> getCellToSweep(CandidateCellForSweeping candidate, Map<Long, Long> startToCommitTs) {
-        Preconditions.checkArgument(candidate.sortedTimestamps().size() > 0);
-        List<Long> timestampsToSweep = new ArrayList<>();
-        List<Long> uncommittedTimestamps = new ArrayList<>();
-        long maxStartTs = TransactionConstants.FAILED_COMMIT_TS;
-        boolean maxStartTsIsCommitted = false;
+        List<Long> tsToSweep = new ArrayList<>();
+        List<Long> uncommittedTs = new ArrayList<>();
+        boolean lastIsCommittedBeforeSweepTs = false;
+
         for (long startTs : candidate.sortedTimestamps()) {
             long commitTs = startToCommitTs.get(startTs);
+            lastIsCommittedBeforeSweepTs = false;
+            if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
+                uncommittedTs.add(startTs);
+            } else if (commitTs < sweepTs) {
+                tsToSweep.add(startTs);
+                lastIsCommittedBeforeSweepTs = true;
+            }
+        }
 
-            if (startTs > maxStartTs && commitTs < sweepTs) {
-                maxStartTs = startTs;
-                maxStartTsIsCommitted = commitTs != TransactionConstants.FAILED_COMMIT_TS;
-            }
-            // Note: there could be an open transaction whose start timestamp is equal to
-            // sweepTimestamp; thus we want to sweep all cells such that:
-            // (1) their commit timestamp is less than sweepTimestamp
-            // (2) their start timestamp is NOT the greatest possible start timestamp
-            //     passing condition (1)
-            if (commitTs > 0 && commitTs < sweepTs) {
-                timestampsToSweep.add(startTs);
-            } else if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
-                uncommittedTimestamps.add(startTs);
-            }
-        }
-        boolean needsSentinel = sweeper.shouldAddSentinels() && timestampsToSweep.size() > 1;
-        boolean shouldSweepLastCommitted = sweeper.shouldSweepLastCommitted()
-                && candidate.isLatestValueEmpty()
-                && maxStartTsIsCommitted;
-        if (!timestampsToSweep.isEmpty() && !shouldSweepLastCommitted) {
-            timestampsToSweep.remove(timestampsToSweep.size() - 1);
-        }
-        timestampsToSweep.addAll(uncommittedTimestamps);
-        if (timestampsToSweep.isEmpty()) {
+        tsToSweep = checkIfLastShouldBeSwept(tsToSweep, candidate.isLatestValueEmpty(), lastIsCommittedBeforeSweepTs);
+        boolean shouldAddSentinel = sweeper.shouldAddSentinels() && !tsToSweep.isEmpty();
+        tsToSweep.addAll(uncommittedTs);
+
+        if (tsToSweep.isEmpty()) {
             return Optional.empty();
         } else {
             return Optional.of(ImmutableCellToSweep.builder()
                     .cell(candidate.cell())
-                    .sortedTimestamps(timestampsToSweep)
-                    .needsSentinel(needsSentinel)
+                    .sortedTimestamps(tsToSweep)
+                    .needsSentinel(shouldAddSentinel)
                     .build()
             );
         }
     }
 
     private static Set<Long> getAllTimestamps(Collection<CandidateCellForSweeping> candidates) {
-        Set<Long> ret = new HashSet<>();
-        for (CandidateCellForSweeping candidate : candidates) {
-            ret.addAll(candidate.sortedTimestamps());
+        return candidates.stream()
+                .map(CandidateCellForSweeping::sortedTimestamps)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
+    }
+
+    private List<Long> checkIfLastShouldBeSwept(List<Long> tsToSweep, boolean lastIsTombstone,
+            boolean lastIsCommittedBeforeSweepTs) {
+        if (!tsToSweep.isEmpty() && !shouldSweepLast(lastIsTombstone, lastIsCommittedBeforeSweepTs)) {
+            tsToSweep.remove(tsToSweep.size() - 1);
         }
-        return ret;
+        return tsToSweep;
+    }
+
+    private boolean shouldSweepLast(boolean lastIsTombstone, boolean lastIsCommittedBeforeSweepTs) {
+        return sweeper.shouldSweepLastCommitted() && lastIsTombstone && lastIsCommittedBeforeSweepTs;
     }
 }

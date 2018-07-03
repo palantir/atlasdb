@@ -42,6 +42,11 @@ public interface CassandraMutationTimestampProvider {
     long getSweepSentinelWriteTimestamp();
 
     /**
+     * Returns the Cassandra timestamp at which whole row deletes should be performed.
+     */
+    long getRemoveTimestamp();
+
+    /**
      * Returns an operator, which determines the Cassandra timestamp to write a delete at, given the Atlas timestamp
      * at which the deletion occurred.
      * The operator is intended to be use for a single batch deletion, and must not be re-used outside of the

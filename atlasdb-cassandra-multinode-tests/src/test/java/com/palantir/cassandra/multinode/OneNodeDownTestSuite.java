@@ -17,12 +17,15 @@ package com.palantir.cassandra.multinode;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
+import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockReleasingRule;
+import com.palantir.flake.ShouldRetry;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -33,11 +36,16 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
         OneNodeDownTableManipulationTest.class,
         OneNodeDownNodeAvailabilityTest.class
         })
+@ShouldRetry(numAttempts = 3)
 public final class OneNodeDownTestSuite extends NodesDownTestSetup {
 
+    // Reusing containers when the FlakeRule kicks in.
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(NodesDownTestSetup.class)
-            .with(new ThreeNodeCassandraCluster());
+    public static final RuleChain ruleChain = RuleChain
+            .outerRule(new Containers(NodesDownTestSetup.class)
+                    .with(new ThreeNodeCassandraCluster()))
+            .around(SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
+                    createCassandraKvs(), CONFIG));
 
     @BeforeClass
     public static void setup() {

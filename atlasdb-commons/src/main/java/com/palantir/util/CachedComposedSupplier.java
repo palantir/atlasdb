@@ -22,46 +22,36 @@ import java.util.function.Supplier;
 
 /**
  * A version of composed supplier that caches the result of applying the function to the value supplied by the
- * underlying supplier. The result is recomputed only if the supplied value changes.
+ * underlying supplier of {@link VersionedType}. The result is recomputed if and only if the returned version
+ * increased since last call to get().
  *
- * Intended to be used when applying the function is expensive in comparison to getting the value from the underlying
- * supplier.
+ * Intended to be used when applying the function is expensive and the versioned type is expected to be updated
+ * less frequently than calls to {@link CachedComposedSupplier#get()}.
  */
-public class CachedComposedSupplier<F, T> implements Supplier<T> {
-    private final Function<F, T> function;
-    private final Supplier<F> supplier;
-    private volatile F lastSupplied;
-    private volatile T cached;
-    private boolean initialized = false;
+public class CachedComposedSupplier<T, R> implements Supplier<R> {
+    private final Function<T, R> function;
+    private final Supplier<VersionedType<T>> supplier;
+    private volatile Long lastSuppliedVersion = null;
+    private R cached;
 
-    public CachedComposedSupplier(Function<F, T> function, Supplier<F> supplier) {
+    public CachedComposedSupplier(Function<T, R> function, Supplier<VersionedType<T>> supplier) {
         this.function = function;
         this.supplier = supplier;
     }
 
     @Override
-    public T get() {
-        initializeIfNecessary();
-        if (!Objects.equals(supplier.get(), lastSupplied)) {
+    public R get() {
+        if (!Objects.equals(supplier.get().version(), lastSuppliedVersion)) {
             recompute();
         }
         return cached;
     }
 
-    private synchronized void initializeIfNecessary() {
-        if (initialized) {
-            return;
-        }
-        lastSupplied = supplier.get();
-        cached = function.apply(lastSupplied);
-        initialized = true;
-    }
-
     private synchronized void recompute() {
-        F freshlySupplied = supplier.get();
-        if (!Objects.equals(freshlySupplied, lastSupplied)) {
-            lastSupplied = freshlySupplied;
-            cached = function.apply(lastSupplied);
+        VersionedType<T> freshVersion = supplier.get();
+        if (!Objects.equals(freshVersion.version(), lastSuppliedVersion)) {
+            cached = function.apply(freshVersion.value());
+            lastSuppliedVersion = freshVersion.version();
         }
     }
 }

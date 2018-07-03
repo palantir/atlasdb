@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
@@ -31,8 +32,12 @@ import org.openjdk.jmh.infra.Blackhole;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.performance.benchmarks.table.CleanModeratelyWideRowTable;
+import com.palantir.atlasdb.performance.benchmarks.table.DirtyModeratelyWideRowTable;
+import com.palantir.atlasdb.performance.benchmarks.table.ModeratelyWideRowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 import com.palantir.atlasdb.performance.benchmarks.table.VeryWideRowTable;
+import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 
 @State(Scope.Benchmark)
 public class TransactionGetRowsColumnRangeBenchmarks {
@@ -41,8 +46,50 @@ public class TransactionGetRowsColumnRangeBenchmarks {
     @Threads(1)
     @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
-    public Object getAllColumnsSingleBigRow(VeryWideRowTable table, Blackhole blackhole) {
-        return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+    public void getAllColumnsSingleBigRow(VeryWideRowTable table, Blackhole blackhole) {
+        getAllRowsAndAssert(table, blackhole,
+                count -> Preconditions.checkState(count == table.getNumCols(),
+                        "Should be %s columns, but was: %s", table.getNumCols(), count));
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    public void getAllColumnsModeratelyWideRow(
+            ModeratelyWideRowTable table,
+            Blackhole blackhole) {
+        getAllRowsAndAssert(table, blackhole,
+                count -> Preconditions.checkState(count == table.getNumCols(),
+                        "Should be %s columns, but was: %s", table.getNumCols(), count));
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    public void getAllColumnsModeratelyWideRowWithSomeUncommitted(
+            CleanModeratelyWideRowTable table,
+            Blackhole blackhole) {
+        getAllRowsAndAssert(table, blackhole,
+                count -> Preconditions.checkState(count == table.getNumReadableCols(),
+                        "Should be %s columns, but was: %s", table.getNumReadableCols(), count));
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    public void getAllColumnsModeratelyWideRowWithManyUncommitted(
+            DirtyModeratelyWideRowTable table,
+            Blackhole blackhole) {
+        getAllRowsAndAssert(table, blackhole,
+                count -> Preconditions.checkState(count == table.getNumReadableCols(),
+                        "Should be %s columns, but was: %s", table.getNumReadableCols(), count));
+    }
+
+    private void getAllRowsAndAssert(WideRowTable table, Blackhole blackhole, Consumer<Integer> assertion) {
+        int rowsRead = table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Iterator<Map.Entry<Cell, byte[]>> iter = txn.getRowsColumnRange(
                     table.getTableRef(),
                     Collections.singleton(Tables.ROW_BYTES.array()),
@@ -53,10 +100,8 @@ public class TransactionGetRowsColumnRangeBenchmarks {
                 blackhole.consume(iter.next());
                 ++count;
             }
-            Preconditions.checkState(count == table.getNumCols(),
-                    "Should be %s columns, but were: %s", table.getNumCols(), count);
             return count;
         });
+        assertion.accept(rowsRead);
     }
-
 }

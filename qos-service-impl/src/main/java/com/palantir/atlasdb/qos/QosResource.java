@@ -25,9 +25,11 @@ public class QosResource implements QosService {
     private final ClientLimitMultiplier clientLimitMultiplier;
     private static volatile double readLimitMultiplier = 1.0;
     private static volatile double writeLimitMultiplier = 1.0;
-    private static final MetricsManager metricsManager = new MetricsManager();
 
-    public QosResource(QosClientConfigLoader qosClientConfigLoader, ClientLimitMultiplier clientLimitMultiplier) {
+    public QosResource(
+            MetricsManager metricsManager,
+            QosClientConfigLoader qosClientConfigLoader,
+            ClientLimitMultiplier clientLimitMultiplier) {
         this.qosClientConfigLoader = qosClientConfigLoader;
         this.clientLimitMultiplier = clientLimitMultiplier;
         metricsManager.registerMetric(QosResource.class, "readLimitMultiplier", this::getReadLimitMultiplier);

@@ -28,17 +28,17 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumn
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsColumnValue;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsRow;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public final class RangeScanDynamicColumnsBenchmark extends AbstractRangeScanBenchmark {
 
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
             int requestsPerClient, int dataSize, int numRows) {
         return new RangeScanDynamicColumnsBenchmark(txnManager, numClients, requestsPerClient, dataSize,
                 numRows).execute();
     }
 
-    private RangeScanDynamicColumnsBenchmark(SerializableTransactionManager txnManager, int numClients,
+    private RangeScanDynamicColumnsBenchmark(TransactionManager txnManager, int numClients,
             int requestsPerClient,
             int dataSize, int numRows) {
         super(numClients, requestsPerClient, txnManager, dataSize, numRows);

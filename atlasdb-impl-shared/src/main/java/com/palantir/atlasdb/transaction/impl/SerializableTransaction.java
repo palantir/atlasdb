@@ -53,8 +53,8 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -73,8 +73,9 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
@@ -106,9 +107,9 @@ public class SerializableTransaction extends SnapshotTransaction {
             columnRangeEndsByTable = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<Cell>> cellsRead = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
-    private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
 
-    public SerializableTransaction(KeyValueService keyValueService,
+    public SerializableTransaction(MetricsManager metricsManager,
+                                   KeyValueService keyValueService,
                                    TimelockService timelockService,
                                    TransactionService transactionService,
                                    Cleaner cleaner,
@@ -127,8 +128,10 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    ExecutorService getRangesExecutor,
                                    int defaultGetRangesConcurrency,
                                    MultiTableSweepQueueWriter sweepQueue,
-                                   ExecutorService deleteExecutor) {
-        super(keyValueService,
+                                   ExecutorService deleteExecutor,
+                                   CommitProfileProcessor commitProfileProcessor) {
+        super(metricsManager,
+              keyValueService,
               timelockService,
               transactionService,
               cleaner,
@@ -147,7 +150,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               getRangesExecutor,
               defaultGetRangesConcurrency,
               sweepQueue,
-              deleteExecutor);
+              deleteExecutor,
+              commitProfileProcessor);
     }
 
     @Override
@@ -270,7 +274,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             rangeEnds.put(range, maxRow);
         }
 
-        rangeEnds.compute(range, (r, curVal) -> {
+        rangeEnds.compute(range, (unused, curVal) -> {
             if (curVal == null) {
                 return maxRow;
             } else if (curVal.length == 0) {
@@ -685,6 +689,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private Transaction getReadOnlyTransaction(final long commitTs) {
         return new SnapshotTransaction(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 defaultTransactionService,
@@ -704,7 +709,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                deleteExecutor) {
+                deleteExecutor,
+                commitProfileProcessor) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
@@ -759,7 +765,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private Meter getTransactionConflictsMeter() {
         // TODO(hsaraogi): add table names as a tag
-        return metricRegistry.meter(
+        return metricsManager.getRegistry().meter(
                 MetricRegistry.name(SerializableTransaction.class, "SerializableTransactionConflict"));
     }
 }
