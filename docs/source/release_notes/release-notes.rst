@@ -53,6 +53,7 @@ develop
     *    - |devbreak|
          - The ``putUnlessExists`` API has been removed from AtlasDB tables, as it was misleading (it only did the put if the given row, column and value triple were already present, as opposed to the more intuitive condition of the row and column value pair being present).
            Please replace any uses of ``putUnlessExists`` with a get, check and put - these will still be transactional because of the AtlasDB transaction protocol.
+           Note that this is not the same as the KVS ``putUnlessExists`` API, which is still used by the transaction protocol.
            This API has already been deprecated for 11 months.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3340>`__)
 
