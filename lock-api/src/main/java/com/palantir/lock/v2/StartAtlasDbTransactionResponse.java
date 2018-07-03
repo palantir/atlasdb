@@ -18,7 +18,12 @@ package com.palantir.lock.v2;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 @Value.Immutable
+@JsonSerialize(as = ImmutableStartAtlasDbTransactionResponse.class)
+@JsonDeserialize(as = ImmutableStartAtlasDbTransactionResponse.class)
 public interface StartAtlasDbTransactionResponse {
     @Value.Parameter
     LockImmutableTimestampResponse immutableTimestamp();
