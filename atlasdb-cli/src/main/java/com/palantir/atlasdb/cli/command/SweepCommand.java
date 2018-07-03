@@ -213,14 +213,6 @@ public class SweepCommand extends SingleBackendCommand {
                     LoggingArgs.tableRef(tableToSweep),
                     SafeArg.of("cellTs pairs examined", cellsExamined.get()),
                     SafeArg.of("cellTs pairs deleted", cellsDeleted.get()));
-
-            if (!dryRun && cellsDeleted.get() > 0) {
-                Stopwatch watch = Stopwatch.createStarted();
-                services.getKeyValueService().compactInternally(tableToSweep);
-                printer.info("Finished performing compactInternally on {} in {} ms.",
-                        LoggingArgs.tableRef(tableToSweep),
-                        SafeArg.of("time taken", watch.elapsed(TimeUnit.MILLISECONDS)));
-            }
         }
         return 0;
     }
