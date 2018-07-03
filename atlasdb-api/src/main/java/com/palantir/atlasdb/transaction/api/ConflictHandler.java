@@ -77,6 +77,17 @@ public enum ConflictHandler {
     SERIALIZABLE_CELL(true, false, true, true),
 
     /**
+     * This conflict handler is designed to be used by index tables. As any write/write conflict on an index table
+     * will necessarily also be a write/write conflict on base table, we do not need to check write/write conflicts
+     * on index tables. Read/write conflicts should still need to be checked, since we do not need to read the index
+     * table with the main table.
+     * <p>
+     * This conflict handler locks at cell level. As index tables use dynamic columns, locking at row level would
+     * result in higher contention.
+     */
+    SERIALIZABLE_INDEX(true, false, false, true),
+
+    /**
      * This conflict handler is designed to be used for migrating a table from SERIALIZABLE to SERIALIZABLE_CELL
      * conflict handler, or vice versa without requiring a shutdown.
      * <p>

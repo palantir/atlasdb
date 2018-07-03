@@ -57,8 +57,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3338>`__)
 
     *    - |new|
-         - A new conflict handler ``SERIALIZABLE_CELL`` is added. This conflict handler is same as ``SERIALIZABLE``, but checks for conflicts by locking cells during commit instead of locking rows. Cell locks are more fine-grained, so this will produce less contention at the expense of requiring more locks to be acquired. 
-           If your schema already has a table with ``SERIALIZABLE`` conflict handler, and you would like to migrate it to ``SERIALIZABLE_CELL`` with a rolling upgrade (without a shutdown); then you should first migrate it to ``SERIALIZABLE_LOCK_LEVEL_MIGRATION`` conflict handler to avoid data corruption.
+         - Three new conflict handlers ``SERIALIZABLE_CELL``, ``SERIALIZABLE_INDEX`` and ``SERIALIZABLE_LOCK_LEVEL_MIGRATION`` are added. 
+           ``SERIALIZABLE_CELL`` conflict handler is same as ``SERIALIZABLE``, but checks for conflicts by locking cells during commit instead of locking rows. Cell locks are more fine-grained, so this will produce less contention at the expense of requiring more locks to be acquired. 
+           ``SERIALIZABLE_INDEX`` conflict handler is designed to be used by index tables. As any write/write conflict on an index table will necessarily also be a write/write conflict on base table, this conflict handler does not check write/write conflicts. Read/write conflicts should still need to be checked, since we do not need to read the index table with the main table. This conflict handler also locks at cell level.
+           If your schema already has a table with ``SERIALIZABLE`` conflict handler, and you would like to migrate it to ``SERIALIZABLE_CELL`` or ``SERIALIZABLE_INDEX`` with a rolling upgrade (without a shutdown); then you should first migrate it to ``SERIALIZABLE_LOCK_LEVEL_MIGRATION`` conflict handler to avoid data corruption.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3267>`__)
 
 =======
