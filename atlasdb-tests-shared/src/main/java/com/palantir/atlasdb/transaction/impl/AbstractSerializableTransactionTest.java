@@ -34,7 +34,6 @@ import org.junit.Test;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -65,13 +64,7 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.AtlasCellLockDescriptor;
-import com.palantir.lock.AtlasRowLockDescriptor;
-import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.TimelockService;
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
