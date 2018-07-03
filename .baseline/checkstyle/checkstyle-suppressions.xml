@@ -27,18 +27,14 @@
 
     <!-- Certain AtlasDB projects are ignored. -->
     <suppress files="atlasdb-client/*" checks="." />
-    <suppress files="atlasdb-client-protobufs/*" checks="." />
     <suppress files="atlasdb-commons/*" checks="." />
     <suppress files="atlasdb-console/*" checks="." />
     <suppress files="atlasdb-dbkvs-hikari/*" checks="." />
     <suppress files="atlasdb-jdbc/*" checks="." />
     <suppress files="atlasdb-jdbc-tests/*" checks="." />
-    <suppress files="atlasdb-service-server/*" checks="." />
     <suppress files="cassandra-partitioner/*" checks="." />
     <suppress files="commons-db/*" checks="." />
     <suppress files="commons-executors/*" checks="." />
     <suppress files="leader-election-impl/*" checks="." />
     <suppress files="lock-impl/*" checks="." />
-    <suppress files="examples/profile-client-protobufs/*" checks="." />
-    <suppress files="timestamp-impl/*" checks="." />
 </suppressions>
