@@ -95,6 +95,12 @@ develop
          - Added logging for leadership election code,
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3294>`__)
 
+    *    - |fixed|
+         - The sweep CLI will no longer perform in-process compactions after sweeping a table.
+           For DbKvs, this operation is handled by the background compaction thread; Cassandra performs its own compactions.
+           Note that the sweep CLI itself has been deprecated in favour of using the sweep priority override configuration, possibly in conjunction with the thread count (:ref:`Docs<sweep_tunable_parameters>`).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3338>`__)
+
 =======
 v0.38.0
 =======
