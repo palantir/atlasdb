@@ -58,6 +58,7 @@ public class SerializableErrorDecoder implements ErrorDecoder {
     }
 
     private static Exception wrapRemoteException(RuntimeException exception) {
+        log.info("EXCEPTIONNNNN: {}", exception);
         if (exception instanceof RemoteException) {
             return new AtlasDbRemoteException((RemoteException) exception);
         }

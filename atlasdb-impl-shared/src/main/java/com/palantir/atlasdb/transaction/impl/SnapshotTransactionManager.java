@@ -51,8 +51,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -142,19 +142,21 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
+        StartAtlasDbTransactionResponse transactionResponse = timelockService.startAtlasDbTransaction(
                 IdentifiedTimeLockRequest.create());
         try {
-            LockToken immutableTsLock = immutableTsResponse.getLock();
-            long immutableTs = immutableTsResponse.getImmutableTimestamp();
+            LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
+            long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
             recordImmutableTimestamp(immutableTs);
-            Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
+
+            cleaner.punch(transactionResponse.freshTimestamp());
+            Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(transactionResponse.freshTimestamp());
 
             SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
                     immutableTsLock, condition);
             return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
         } catch (Throwable e) {
-            timelockService.tryUnlock(ImmutableSet.of(immutableTsResponse.getLock()));
+            timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
