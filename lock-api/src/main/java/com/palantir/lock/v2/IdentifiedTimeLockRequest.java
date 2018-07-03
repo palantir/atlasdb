@@ -24,15 +24,15 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLockImmutableTimestampRequest.class)
-@JsonDeserialize(as = ImmutableLockImmutableTimestampRequest.class)
-public interface LockImmutableTimestampRequest {
+@JsonSerialize(as = ImmutableIdentifiedTimeLockRequest.class)
+@JsonDeserialize(as = ImmutableIdentifiedTimeLockRequest.class)
+public interface IdentifiedTimeLockRequest {
 
     @Value.Parameter
     UUID getRequestId();
 
-    static LockImmutableTimestampRequest create() {
-        return ImmutableLockImmutableTimestampRequest.of(UUID.randomUUID());
+    static IdentifiedTimeLockRequest create() {
+        return ImmutableIdentifiedTimeLockRequest.of(UUID.randomUUID());
     }
 
 }

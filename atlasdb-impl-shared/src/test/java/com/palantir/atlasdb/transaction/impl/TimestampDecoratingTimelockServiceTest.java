@@ -28,7 +28,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -93,7 +93,7 @@ public class TimestampDecoratingTimelockServiceTest {
         decoratingService.currentTimeMillis();
         verify(delegate).currentTimeMillis();
 
-        LockImmutableTimestampRequest immutableTimestampRequest = LockImmutableTimestampRequest.create();
+        IdentifiedTimeLockRequest immutableTimestampRequest = IdentifiedTimeLockRequest.create();
         decoratingService.lockImmutableTimestamp(immutableTimestampRequest);
         verify(delegate).lockImmutableTimestamp(eq(immutableTimestampRequest));
     }

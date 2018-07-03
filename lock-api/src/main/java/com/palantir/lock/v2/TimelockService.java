@@ -53,7 +53,11 @@ public interface TimelockService {
 
     @POST
     @Path("lock-immutable-timestamp")
-    LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request);
+    LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
+
+    @POST
+    @Path("start-atlasdb-transaction")
+    StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
     @POST
     @Path("immutable-timestamp")
