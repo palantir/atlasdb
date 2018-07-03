@@ -16,12 +16,6 @@
 package com.palantir.atlasdb.sweep;
 
 public class NoOpBackgroundSweeper implements BackgroundSweeper {
-
-    @Override
-    public void run() {
-        // do nothing
-    }
-
     @Override
     public void runInBackground() {
         // do nothing

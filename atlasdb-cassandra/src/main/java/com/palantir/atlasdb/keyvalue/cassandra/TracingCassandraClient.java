@@ -93,6 +93,16 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
+    public void remove(String kvsMethodName, TableReference tableRef, byte[] row, long timestamp,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        try (CloseableTrace trace = startLocalTrace(
+                "client.remove(consistency {}) on kvs.{}", consistency_level, kvsMethodName)) {
+            client.remove(kvsMethodName, tableRef, row, timestamp, consistency_level);
+        }
+    }
+
+    @Override
     public void batch_mutate(String kvsMethodName,
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)

@@ -9,8 +9,9 @@
             [jepsen.util :refer [timeout]]
             [knossos.history :as history])
   ;; We can import any Java objects, since Clojure runs on the JVM
-  (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
-  (:import com.palantir.atlasdb.http.TimestampClient))
+  (:import com.codahale.metrics.MetricRegistry)
+  (:import com.palantir.atlasdb.http.TimestampClient)
+  (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Defining the set of of operations that you can do with a client
@@ -30,7 +31,7 @@
     (setup!
       [this test node]
       "Factory that returns an object implementing client/Client"
-      (create-client (TimestampClient/create '("n1" "n2" "n3" "n4" "n5"))))
+      (create-client (TimestampClient/create (MetricRegistry.) '("n1" "n2" "n3" "n4" "n5"))))
 
     (invoke!
       [this test op]

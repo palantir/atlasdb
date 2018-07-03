@@ -284,29 +284,17 @@ public abstract class TransactionManagers {
                 closeables);
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
-        ServiceDiscoveringAtlasSupplier atlasFactory =
-                new ServiceDiscoveringAtlasSupplier(
-                        metricsManager,
+        ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
                         config.keyValueService(),
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier),
-                        config.leader(),
-                        config.namespace(),
-                        Optional.empty(),
-                        config.initializeAsync(),
-                        qosClient,
-                        adapter);
+                        config.leader(), config.namespace(), Optional.empty(), config.initializeAsync(),
+                        qosClient, adapter);
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
-        LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
-                metricsManager,
-                config,
-                runtimeConfigSupplier,
-                registrar(),
-                () -> LockServiceImpl.create(lockServerOptions()),
-                atlasFactory::getTimestampService,
-                atlasFactory.getTimestampStoreInvalidator(),
-                userAgent());
+        LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(metricsManager, config,
+                runtimeConfigSupplier, registrar(), () -> LockServiceImpl.create(lockServerOptions()),
+                atlasFactory::getTimestampService, atlasFactory.getTimestampStoreInvalidator(), userAgent());
         adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
@@ -550,6 +538,7 @@ public abstract class TransactionManagers {
                 metricsManager,
                 sweepBatchConfigSource,
                 () -> runtimeConfigSupplier.get().sweep().enabled(),
+                () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
                 persistentLockManager,
@@ -952,6 +941,7 @@ public abstract class TransactionManagers {
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
 
+        @SuppressWarnings("checkstyle:WhitespaceAround")
         @Value.Default
         default Runnable close() {
             return () -> {};

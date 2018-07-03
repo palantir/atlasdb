@@ -160,6 +160,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:flake-rule",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
@@ -181,6 +182,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:flake-rule",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
@@ -205,6 +207,7 @@
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-processors",
+                "com.palantir.atlasdb:flake-rule",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:jaxrs-clients",
@@ -351,6 +354,9 @@
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
+        },
+        "com.palantir.atlasdb:flake-rule": {
+            "project": true
         },
         "com.palantir.atlasdb:lock-api": {
             "project": true,
@@ -714,6 +720,7 @@
             "locked": "4.12",
             "transitive": [
                 "com.github.almondtools:conmatch",
+                "com.palantir.atlasdb:flake-rule",
                 "com.palantir.docker.compose:docker-compose-rule-junit4",
                 "com.palantir.docker.proxy:docker-proxy-rule"
             ]
@@ -896,6 +903,7 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:flake-rule",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:jaxrs-clients",
@@ -1082,6 +1090,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:flake-rule",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
@@ -1103,6 +1112,7 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:commons-executors-api",
+                "com.palantir.atlasdb:flake-rule",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
@@ -1127,6 +1137,7 @@
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-processors",
+                "com.palantir.atlasdb:flake-rule",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:jaxrs-clients",
@@ -1273,6 +1284,9 @@
             "transitive": [
                 "com.palantir.atlasdb:commons-executors"
             ]
+        },
+        "com.palantir.atlasdb:flake-rule": {
+            "project": true
         },
         "com.palantir.atlasdb:lock-api": {
             "project": true,
@@ -1636,6 +1650,7 @@
             "locked": "4.12",
             "transitive": [
                 "com.github.almondtools:conmatch",
+                "com.palantir.atlasdb:flake-rule",
                 "com.palantir.docker.compose:docker-compose-rule-junit4",
                 "com.palantir.docker.proxy:docker-proxy-rule"
             ]
@@ -1818,6 +1833,7 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:flake-rule",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:jaxrs-clients",

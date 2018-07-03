@@ -110,7 +110,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         return client;
     }
 
-    private static Cassandra.Client getRawClientWithKeyspace(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
+    private static Cassandra.Client getRawClientWithKeyspace(InetSocketAddress addr,
+            CassandraKeyValueServiceConfig config)
             throws Exception {
 
         Client ret = getRawClient(addr, config);

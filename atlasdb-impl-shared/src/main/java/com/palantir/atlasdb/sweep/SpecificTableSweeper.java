@@ -174,7 +174,8 @@ public class SpecificTableSweeper {
     }
 
     private void processSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
-        updateTimeMetricsOneIteration(currentIteration.getTimeInMillis(), currentIteration.getTimeElapsedSinceStartedSweeping());
+        updateTimeMetricsOneIteration(currentIteration.getTimeInMillis(),
+                currentIteration.getTimeElapsedSinceStartedSweeping());
 
         SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
 
@@ -225,7 +226,8 @@ public class SpecificTableSweeper {
                 SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()),
                 SafeArg.of("time sweeping table", cumulativeResults.getTimeInMillis()),
                 SafeArg.of("time elapsed", cumulativeResults.getTimeElapsedSinceStartedSweeping()));
-        sweepProgressStore.clearProgress();
+        tableToSweep.getSweepLock().close();
+        sweepProgressStore.clearProgress(tableToSweep.getTableRef());
     }
 
     private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults finalSweepResults) {

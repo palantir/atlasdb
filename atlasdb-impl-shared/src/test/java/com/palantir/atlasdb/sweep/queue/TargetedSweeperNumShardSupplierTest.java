@@ -24,13 +24,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS;
-
 import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
@@ -49,7 +48,8 @@ public class TargetedSweeperNumShardSupplierTest {
 
     @Test
     public void testDefaultValue() {
-        assertThat(setRuntimeAndGetNumShards(DEFAULT_SWEEP_QUEUE_SHARDS)).isEqualTo(DEFAULT_SWEEP_QUEUE_SHARDS);
+        assertThat(setRuntimeAndGetNumShards(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS))
+                .isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
     }
 
     @Test
@@ -60,7 +60,7 @@ public class TargetedSweeperNumShardSupplierTest {
 
     @Test
     public void testProgressHigherValue() {
-        when(runtimeConfigSupplier.get()).thenReturn(DEFAULT_SWEEP_QUEUE_SHARDS);
+        when(runtimeConfigSupplier.get()).thenReturn(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
         progress.updateNumberOfShards(25);
         assertThat(numShardSupplier.get()).isEqualTo(25);
     }

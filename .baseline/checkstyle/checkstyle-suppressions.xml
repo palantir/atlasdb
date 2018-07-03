@@ -8,10 +8,10 @@
  for your changes to take effect in its Checkstyle integration. -->
 <suppressions>
     <!-- Suppress test classes -->
+    <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="AvoidStaticImport" />
     <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="Javadoc*" />
     <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="VariableDeclarationUsageDistance" />
     <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="VisibilityModifier" />
-    <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="AvoidStaticImport" />
 
     <!-- JavadocStyle enforces existence of package-info.java package-level Javadoc; we consider this a bug. -->
     <suppress files="package-info.java" checks="JavadocStyle" />
@@ -24,4 +24,21 @@
     <suppress files="[/\\].*[/\\]generated_src[/\\]" checks="." />
     <suppress files="[/\\].*[/\\]generated_testSrc[/\\]" checks="." />
     <suppress files="[/\\].*[/\\]generated[/\\]" checks="." />
+
+    <!-- Certain AtlasDB projects are ignored. -->
+    <suppress files="atlasdb-client/*" checks="." />
+    <suppress files="atlasdb-client-protobufs/*" checks="." />
+    <suppress files="atlasdb-commons/*" checks="." />
+    <suppress files="atlasdb-console/*" checks="." />
+    <suppress files="atlasdb-dbkvs-hikari/*" checks="." />
+    <suppress files="atlasdb-jdbc/*" checks="." />
+    <suppress files="atlasdb-jdbc-tests/*" checks="." />
+    <suppress files="atlasdb-service-server/*" checks="." />
+    <suppress files="cassandra-partitioner/*" checks="." />
+    <suppress files="commons-db/*" checks="." />
+    <suppress files="commons-executors/*" checks="." />
+    <suppress files="leader-election-impl/*" checks="." />
+    <suppress files="lock-impl/*" checks="." />
+    <suppress files="examples/profile-client-protobufs/*" checks="." />
+    <suppress files="timestamp-impl/*" checks="." />
 </suppressions>
