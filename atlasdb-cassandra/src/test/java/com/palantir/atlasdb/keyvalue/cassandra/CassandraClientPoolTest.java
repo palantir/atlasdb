@@ -211,7 +211,6 @@ public class CassandraClientPoolTest {
 
         host(HOST_1).throwsException(new SocketTimeoutException())
                 .throwsException(new InvalidRequestException())
-                .continuesToThrow()
                 .inPool(cassandraClientPool);
 
         host(HOST_2).throwsException(new SocketTimeoutException())
