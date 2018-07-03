@@ -149,8 +149,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         private void runCallback() {
             try {
-                callback.runWithRetry(txManager);
                 checkAndSetStatus(ImmutableSet.of(State.INITIALIZING), State.READY);
+                callback.runWithRetry(txManager);
             } catch (Throwable e) {
                 log.error("Callback failed and was not able to perform its cleanup task. "
                         + "Closing the TransactionManager.", e);

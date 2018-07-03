@@ -178,31 +178,23 @@ public class SerializableTransactionManagerTest {
     }
 
     @Test
-    public void callbackBlocksInitializationUntilDone() {
+    public void callbackRunsAfterInitialization() {
         everythingInitialized();
         ClusterAvailabilityStatusBlockingCallback blockingCallback = new ClusterAvailabilityStatusBlockingCallback();
         manager = getManagerWithCallback(true, blockingCallback);
 
         Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> blockingCallback.wasInvoked());
-        assertFalse(manager.isInitialized());
-
-        blockingCallback.stopBlocking();
-        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
+        assertTrue(manager.isInitialized());
     }
 
     @Test
-    public void callbackCanCallTmMethodsEvenThoughTmStillThrows() {
+    public void callbackCanCallTmMethods() {
         everythingInitialized();
         ClusterAvailabilityStatusBlockingCallback blockingCallback = new ClusterAvailabilityStatusBlockingCallback();
         manager = getManagerWithCallback(true, blockingCallback);
 
         Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> blockingCallback.wasInvoked());
         verify(mockKvs, atLeast(1)).getClusterAvailabilityStatus();
-        Assertions.assertThatThrownBy(() -> manager.getKeyValueServiceStatus())
-                .isInstanceOf(NotInitializedException.class);
-
-        blockingCallback.stopBlocking();
-        Awaitility.waitAtMost(2L, TimeUnit.SECONDS).until(() -> manager.isInitialized());
         manager.getKeyValueServiceStatus();
     }
 
