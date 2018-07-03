@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3161>`__)
 
 =======
 v0.94.0
@@ -561,10 +562,6 @@ v0.84.0
          - The (Thrift-backed) ``CassandraKeyValueService`` now returns correctly for CQL queries that return null.
            Previously, they would throw an exception when we attempted to log information about the response.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3158>`__)
-
-    *    - |improved|
-         - The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3161>`__)
 
 =======
 v0.83.0
