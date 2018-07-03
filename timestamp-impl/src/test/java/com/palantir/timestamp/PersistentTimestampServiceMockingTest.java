@@ -30,7 +30,8 @@ public class PersistentTimestampServiceMockingTest {
 
     private static final long INITIAL_TIMESTAMP = 12345L;
     private static final long TIMESTAMP = 100 * 1000;
-    private static final TimestampRange SINGLE_TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(TIMESTAMP, TIMESTAMP);
+    private static final TimestampRange SINGLE_TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(TIMESTAMP,
+            TIMESTAMP);
 
     private static final TimestampRange RANGE = TimestampRange.createInclusiveRange(100, 200);
 
@@ -38,8 +39,7 @@ public class PersistentTimestampServiceMockingTest {
     private PersistentTimestampServiceImpl timestampService = new PersistentTimestampServiceImpl(timestamp);
 
     @Test
-    public void
-    shouldDelegateFastForwardingToAvailableTimestamps() {
+    public void shouldDelegateFastForwardingToAvailableTimestamps() {
         timestampService.fastForwardTimestamp(INITIAL_TIMESTAMP + 1000);
         verify(timestamp).increaseTo(INITIAL_TIMESTAMP + 1000);
     }

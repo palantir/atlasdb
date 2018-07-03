@@ -55,7 +55,7 @@ public class TimestampAllocationFailures {
         }
 
         if (newFailure instanceof ServiceNotAvailableException) {
-            return ((ServiceNotAvailableException) newFailure);
+            return (ServiceNotAvailableException) newFailure;
         }
 
         return new RuntimeException("Could not allocate more timestamps", newFailure);
