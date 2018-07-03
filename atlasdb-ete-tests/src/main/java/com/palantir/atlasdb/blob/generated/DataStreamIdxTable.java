@@ -503,35 +503,6 @@ public final class DataStreamIdxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(DataStreamIdxRow rowName, Iterable<DataStreamIdxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<DataStreamIdxRow, DataStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(DataStreamIdxRow rowName, DataStreamIdxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<DataStreamIdxRow, DataStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<DataStreamIdxRow, ? extends DataStreamIdxColumnValue> rows) {
-        Multimap<DataStreamIdxRow, DataStreamIdxColumn> toGet = Multimaps.transformValues(rows, DataStreamIdxColumnValue.getColumnNameFun());
-        Multimap<DataStreamIdxRow, DataStreamIdxColumnValue> existing = get(toGet);
-        Multimap<DataStreamIdxRow, DataStreamIdxColumnValue> toPut = HashMultimap.create();
-        for (Entry<DataStreamIdxRow, ? extends DataStreamIdxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<DataStreamIdxRow, DataStreamIdxColumn> values) {
         Multimap<DataStreamIdxRow, DataStreamIdxColumnValue> currentValues = get(values);
@@ -756,5 +727,5 @@ public final class DataStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qP8z0k6dELrJ1//noaJ68w==";
+    static String __CLASS_HASH = "akfc3RwqwCN9ne8saSTh2A==";
 }
