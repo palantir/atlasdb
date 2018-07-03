@@ -56,6 +56,12 @@ develop
            Note that the old endpoints are still exposed (so TimeLock remains compatible with older Atlas clients), and there is an automated adapter for new TimeLock clients to talk to old TimeLock servers that don't have this endpoint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3319>`__)
 
+    *    - |fixed|
+         - The sweep CLI will no longer perform in-process compactions after sweeping a table.
+           For DbKvs, this operation is handled by the background compaction thread; Cassandra performs its own compactions.
+           Note that the sweep CLI itself has been deprecated in favour of using the sweep priority override configuration, possibly in conjunction with the thread count (:ref:`Docs<sweep_tunable_parameters>`).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3338>`__)
+
 =======
 v0.94.0
 =======
