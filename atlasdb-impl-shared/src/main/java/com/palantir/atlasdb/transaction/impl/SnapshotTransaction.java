@@ -1365,7 +1365,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     "microsForPunch");
 
             // Serializable transactions need to check their reads haven't changed, by reading again at commitTs + 1.
-            // This must happen before we actually commit (putUnlessExists).
+            // This must happen before the lock check for thorough tables, because the lock check verifies the
+            // immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out from underneath us.
             long microsForReadWriteConflictCheck = runAndReportTimeAndGetDurationMicros(
                     () -> throwIfReadWriteConflictForSerializable(commitTimestamp),
                     "readWriteConflictCheck");
