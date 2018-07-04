@@ -269,7 +269,7 @@ class CassandraRequestExceptionHandler {
 
     private static class Conservative implements RequestExceptionHandlerStrategy {
         private static final RequestExceptionHandlerStrategy INSTANCE = new Conservative();
-        private static final long MAX_BACKOFF = Duration.ofSeconds(30).toMillis();
+        private static final long MAX_EXPECTED_BACKOFF = Duration.ofSeconds(30).toMillis();
 
         @Override
         public boolean shouldBackoff(Exception ex) {
@@ -278,7 +278,8 @@ class CassandraRequestExceptionHandler {
 
         @Override
         public long getBackoffPeriod(int numberOfAttempts) {
-            return Math.min(500 * (long) Math.pow(2, numberOfAttempts), MAX_BACKOFF);
+            double randomCoeff = ThreadLocalRandom.current().nextDouble() + 0.5;
+            return (long)(Math.min(500 * Math.pow(2, numberOfAttempts), MAX_EXPECTED_BACKOFF) * randomCoeff);
         }
 
         @Override
