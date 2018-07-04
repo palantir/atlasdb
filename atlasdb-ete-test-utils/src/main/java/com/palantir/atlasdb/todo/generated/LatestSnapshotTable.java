@@ -415,18 +415,6 @@ public final class LatestSnapshotTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putStreamIdUnlessExists(LatestSnapshotRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, StreamId.of(value)));
-    }
-
-    public void putStreamIdUnlessExists(Map<LatestSnapshotRow, Long> map) {
-        Map<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<LatestSnapshotRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), StreamId.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<LatestSnapshotRow, ? extends LatestSnapshotNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -434,20 +422,6 @@ public final class LatestSnapshotTable implements
         for (LatestSnapshotTrigger trigger : triggers) {
             trigger.putLatestSnapshot(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<LatestSnapshotRow, ? extends LatestSnapshotNamedColumnValue<?>> rows) {
-        Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<LatestSnapshotRow, ? extends LatestSnapshotNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteStreamId(LatestSnapshotRow row) {
@@ -683,5 +657,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "HCvIueEecK9Xhwr3eqEnVQ==";
+    static String __CLASS_HASH = "W1wwimLI6PCSvWYMupoGKg==";
 }

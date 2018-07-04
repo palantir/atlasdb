@@ -489,35 +489,6 @@ public final class DataStreamHashAidxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(DataStreamHashAidxRow rowName, Iterable<DataStreamHashAidxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<DataStreamHashAidxRow, DataStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(DataStreamHashAidxRow rowName, DataStreamHashAidxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<DataStreamHashAidxRow, DataStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<DataStreamHashAidxRow, ? extends DataStreamHashAidxColumnValue> rows) {
-        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, DataStreamHashAidxColumnValue.getColumnNameFun());
-        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> toPut = HashMultimap.create();
-        for (Entry<DataStreamHashAidxRow, ? extends DataStreamHashAidxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> values) {
         Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> currentValues = get(values);
@@ -742,5 +713,5 @@ public final class DataStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qlMGE04avGWoWcqnMpEujQ==";
+    static String __CLASS_HASH = "DgL76OhsjjfzDcgwbtKo5A==";
 }
