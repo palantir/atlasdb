@@ -42,6 +42,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -137,9 +138,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
 
-        when(timelock.getFreshTimestamp()).thenReturn(1L);
-        when(timelock.lockImmutableTimestamp(any())).thenReturn(
-                LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
+        setupTimeLock(timelock);
 
         assertThatThrownBy(() -> txnManagerWithMocks.runTaskThrowOnConflict(txn -> {
             get(txn, TEST_TABLE_THOROUGH, "row1", "col1");
@@ -169,9 +168,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
 
-        when(timelock.getFreshTimestamp()).thenReturn(1L);
-        when(timelock.lockImmutableTimestamp(any())).thenReturn(
-                LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
+        setupTimeLock(timelock);
 
         txnManagerWithMocks.runTaskThrowOnConflict(txn -> {
             get(txn, TEST_TABLE, "row1", "col1");
@@ -200,9 +197,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
 
-        when(timelock.getFreshTimestamp()).thenReturn(1L);
-        when(timelock.lockImmutableTimestamp(any())).thenReturn(
-                LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
+        setupTimeLock(timelock);
 
         txnManagerWithMocks.runTaskThrowOnConflict(txn -> null);
     }
@@ -211,5 +206,14 @@ public class TransactionManagerTest extends TransactionTestSetup {
     protected KeyValueService getKeyValueService() {
         return new InMemoryKeyValueService(false,
                 PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
+    }
+
+    private void setupTimeLock(TimelockService timelock) {
+        when(timelock.getFreshTimestamp()).thenReturn(1L);
+        when(timelock.lockImmutableTimestamp(any())).thenReturn(
+                LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
+        when(timelock.startAtlasDbTransaction(any())).thenReturn(
+                StartAtlasDbTransactionResponse.of(
+                        LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())), 1L));
     }
 }
