@@ -22,8 +22,11 @@ import java.util.Optional;
 
 import org.junit.Test;
 
+import com.palantir.tokens.auth.BearerToken;
+
 public class ServerListConfigsTest {
     private static final String CLIENT = "client";
+    private static final BearerToken AUTH_TOKEN = BearerToken.valueOf("fooBarBazAuthSecret");
 
     private static final ImmutableServerListConfig SERVERS_LIST_1 = ImmutableServerListConfig.builder()
             .addServers("one")
@@ -42,6 +45,7 @@ public class ServerListConfigsTest {
             .build();
     private static final TimeLockRuntimeConfig RUNTIME_CONFIG = ImmutableTimeLockRuntimeConfig.builder()
             .serversList(SERVERS_LIST_2)
+            .authToken(AUTH_TOKEN)
             .build();
 
     @Test
@@ -81,7 +85,7 @@ public class ServerListConfigsTest {
     public void prioritisesRuntimeConfigEvenIfThatHasNoClients() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
-                () -> Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()),
+                () -> Optional.of(ImmutableTimeLockRuntimeConfig.builder().authToken(AUTH_TOKEN).build()),
                 CLIENT);
         assertThat(resolvedConfig.servers()).isEmpty();
     }

@@ -4,3 +4,4 @@ timestampClient:
 timelockRuntime:
   serversList:
     servers: []
+  auth-token: "fooBarBazAuthSecret"

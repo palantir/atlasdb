@@ -746,7 +746,8 @@ public abstract class TransactionManagers {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
-        Supplier<AuthHeader> authHeaderSupplier = () -> AuthHeader.of(runtimeConfigSupplier.get().timelockRuntime().get().authToken());
+        Supplier<AuthHeader> authHeaderSupplier =
+                () -> AuthHeader.of(runtimeConfigSupplier.get().timelockRuntime().get().authToken());
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(metricsManager,
                         serverListConfigSupplier, authHeaderSupplier, invalidator, userAgent, config.initializeAsync());

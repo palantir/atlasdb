@@ -94,6 +94,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.tokens.auth.BearerToken;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class TransactionManagersTest {
@@ -514,6 +515,7 @@ public class TransactionManagersTest {
         when(runtimeConfig.timelockRuntime()).thenReturn(
                 Optional.of(ImmutableTimeLockRuntimeConfig.builder()
                         .serversList(rawRemoteServerConfig)
+                        .authToken(BearerToken.valueOf("fooBarBazAuthSecret"))
                         .build()));
     }
 

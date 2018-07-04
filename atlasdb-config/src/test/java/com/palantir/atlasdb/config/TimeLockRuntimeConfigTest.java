@@ -18,10 +18,12 @@ package com.palantir.atlasdb.config;
 
 import org.junit.Test;
 
+import com.palantir.tokens.auth.BearerToken;
+
 public class TimeLockRuntimeConfigTest {
     @Test
     public void canCreateWithoutToken() {
-        ImmutableTimeLockRuntimeConfig.builder().build();
+        ImmutableTimeLockRuntimeConfig.builder().authToken(BearerToken.valueOf("fooBarBazAuthSecret")).build();
     }
 
 }
