@@ -44,6 +44,7 @@ import com.palantir.lock.v2.TimelockService;
 
 public class ImmutableTimestampBridgingTimeLockServiceTest {
     private static final AtlasDbRemoteException REMOTE_EXCEPTION_404 = mock(AtlasDbRemoteException.class);
+    private static final AtlasDbRemoteException REMOTE_EXCEPTION_503 = mock(AtlasDbRemoteException.class);
     private static final Exception RUNTIME_EXCEPTION = new RuntimeException("boom");
 
     private static final long FRESH_TIMESTAMP = 1L;
@@ -65,6 +66,7 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
     @Before
     public void setUp() {
         when(REMOTE_EXCEPTION_404.getStatus()).thenReturn(404);
+        when(REMOTE_EXCEPTION_503.getStatus()).thenReturn(503);
 
         when(timelockService.getFreshTimestamp()).thenReturn(1L);
         when(timelockService.lockImmutableTimestamp(any())).thenReturn(IMMUTABLE_TIMESTAMP_RESPONSE);
@@ -120,7 +122,17 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
     }
 
     @Test
-    public void passesThroughOtherExceptions() {
+    public void passesThroughExceptionsWithOtherErrorCodes() {
+        givenServerThrowsOnStartTransaction(REMOTE_EXCEPTION_503);
+
+        whenStandardClientStartsTransactionNTimes(5);
+
+        thenStartTransactionIsCalledNTimes(5);
+        thenCallsFailedWithExceptions(Collections.nCopies(5, REMOTE_EXCEPTION_503));
+    }
+
+    @Test
+    public void passesThroughNonRemoteExceptions() {
         givenServerThrowsOnStartTransaction(RUNTIME_EXCEPTION);
 
         whenStandardClientStartsTransactionNTimes(5);
