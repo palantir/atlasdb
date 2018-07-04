@@ -1323,47 +1323,58 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Optional<TransactionCommitProfile> optionalProfile = Optional.empty();
         Timer.Context commitStageTimer = getTimer("commitStage").time();
 
+        // Acquire row locks and a lock on the start timestamp row in the transactions table.
+        // This must happen before conflict checking, otherwise we could complete the checks and then have someone
+        // else write underneath us before we proceed (thus missing a write/write conflict).
         Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
         LockToken commitLocksToken = acquireLocksForCommit();
         long microsForRowLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
         try {
+            // Conflict checking. We can actually do this later without compromising correctness, but there is
+            // no reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
             long microsCheckingForConflicts = runAndReportTimeAndGetDurationMicros(
                     () -> throwIfConflictOnCommit(commitLocksToken, transactionService),
                     "commitCheckingForConflicts");
 
+            // Write to the targeted sweep queue. We must do this before writing to the key value service -
+            // otherwise we may have hanging values that targeted sweep won't know about.
             long microsWritingToTargetedSweepQueue =
                     runAndReportTimeAndGetDurationMicros(() -> sweepQueue.enqueue(writesByTable, getStartTimestamp()),
                             "writingToSweepQueue");
 
+            // Write to the key value service. We must do this before getting the commit timestamp - otherwise
+            // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
             long microsForWrites = runAndReportTimeAndGetDurationMicros(
                     () -> keyValueService.multiPut(writesByTable, getStartTimestamp()), "commitWrite");
 
             // Now that all writes are done, get the commit timestamp
-            // We must do this before we check that our locks are still valid to ensure that
-            // other transactions that will hold these locks are sure to have start
-            // timestamps after our commit timestamp.
+            // We must do this before we check that our locks are still valid to ensure that other transactions that
+            // will hold these locks are sure to have start timestamps after our commit timestamp.
             Timer.Context commitTimestampTimer = getTimer("getCommitTimestamp").time();
             long commitTimestamp = timelockService.getFreshTimestamp();
             commitTsForScrubbing = commitTimestamp;
             long microsForGetCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTimestampTimer.stop());
 
-            // punch on commit so that if hard delete is the only thing happening on a system,
+            // Punch on commit so that if hard delete is the only thing happening on a system,
             // we won't block forever waiting for the unreadable timestamp to advance past the
-            // scrub timestamp (same as the hard delete transaction's start timestamp)
+            // scrub timestamp (same as the hard delete transaction's start timestamp).
+            // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
+            // might well cost more.
             long microsForPunch = runAndReportTimeAndGetDurationMicros(
                     () -> cleaner.punch(commitTimestamp),
                     "microsForPunch");
 
+            // Serializable transactions need to check their reads haven't changed, by reading again at commitTs + 1.
+            // This must happen before the lock check for thorough tables, because the lock check verifies the
+            // immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out from underneath us.
             long microsForReadWriteConflictCheck = runAndReportTimeAndGetDurationMicros(
                     () -> throwIfReadWriteConflictForSerializable(commitTimestamp),
                     "readWriteConflictCheck");
 
             // Verify that our locks and pre-commit conditions are still valid before we actually commit;
-            // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness
-
+            // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
             long microsForPreCommitLockCheck = runAndReportTimeAndGetDurationMicros(
                     () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken), "preCommitLockCheck");
-
             long microsForUserPreCommitCondition = runAndReportTimeAndGetDurationMicros(
                     () -> preCommitCondition.throwIfConditionInvalid(commitTimestamp), "userPreCommitCondition");
 
