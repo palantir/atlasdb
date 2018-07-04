@@ -56,6 +56,27 @@ class CassandraRequestExceptionHandler {
         this.blacklist = blacklist;
     }
 
+    public static void main(String[] args) {
+        long[] vals = new long[10];
+        long[] min = new long[10];
+        long[] max = new long[10];
+        for (int i = 0; i < 10; i++) {
+            min[i] = Long.MAX_VALUE;
+        }
+        for (int j = 0; j < 1000; j++) {
+            for (int i = 1; i < 10; i++) {
+                long currVal = Conservative.INSTANCE.getBackoffPeriod(i);
+                vals[i] = vals[i] + currVal;
+                min[i] = Math.min(currVal, min[i]);
+                max[i] = Math.max(currVal, max[i]);
+            }
+        }
+
+        for (int i = 1; i < 10; i++) {
+            System.out.println("Trial:" + i + ", avr:" + vals[i]/1000 + ", min:" + min[i] + ", max:" + max[i]);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     <K extends Exception> void handleExceptionFromRequest(
             RetryableCassandraRequest<?, K> req,
@@ -269,7 +290,10 @@ class CassandraRequestExceptionHandler {
 
     private static class Conservative implements RequestExceptionHandlerStrategy {
         private static final RequestExceptionHandlerStrategy INSTANCE = new Conservative();
-        private static final long MAX_EXPECTED_BACKOFF = Duration.ofSeconds(30).toMillis();
+        private static final long MAX_BACKOFF = Duration.ofSeconds(30).toMillis();
+        private static final double UNCERTAINTY = 0.5;
+
+        private static final long MAX_EXPECTED_BACKOFF = (long) (MAX_BACKOFF / (UNCERTAINTY + 1));
 
         @Override
         public boolean shouldBackoff(Exception ex) {
@@ -278,8 +302,8 @@ class CassandraRequestExceptionHandler {
 
         @Override
         public long getBackoffPeriod(int numberOfAttempts) {
-            double randomCoeff = ThreadLocalRandom.current().nextDouble() + 0.5;
-            return (long) (Math.min(500 * Math.pow(2, numberOfAttempts), MAX_EXPECTED_BACKOFF) * randomCoeff);
+            double randomizationCoeff = ThreadLocalRandom.current().nextDouble() * UNCERTAINTY + 1 - UNCERTAINTY;
+            return (long) (Math.min(500 * Math.pow(2, numberOfAttempts), MAX_EXPECTED_BACKOFF) * randomizationCoeff);
         }
 
         @Override
