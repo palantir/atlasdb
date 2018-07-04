@@ -88,8 +88,12 @@ public enum ConflictHandler {
     SERIALIZABLE_INDEX(true, false, false, true),
 
     /**
-     * This conflict handler is designed to be used for migrating a table from SERIALIZABLE to SERIALIZABLE_CELL
-     * conflict handler, or vice versa without requiring a shutdown.
+     * This conflict handler is designed to be used for migrating a table from SERIALIZABLE to SERIALIZABLE_CELL or
+     * SERIALIZABLE_INDEX conflict handler, or vice versa without requiring a simultaneous shutdown of all clients.
+     * <p>
+     * Migration should be handled in two steps. First all the nodes should migrate to SERIALIZABLE_LOCK_LEVEL_MIGRATION
+     * with a rolling upgrade. Once this is complete, then in the second step migration to target conflict handler from
+     * SERIALIZABLE_LOCK_LEVEL_MIGRATION can be performed, in a rolling fashion.
      * <p>
      * Current implementation of lock service permits a client to lock a cell after locking the row that cell
      * belongs to. In a scenario where we migrate table A to SERIALIZABLE_CELL from SERIALIZABLE, and conduct a rolling

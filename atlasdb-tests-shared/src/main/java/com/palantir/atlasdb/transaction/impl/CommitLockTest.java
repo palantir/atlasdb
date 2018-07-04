@@ -52,13 +52,14 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.TimelockService;
 
 @RunWith(Theories.class)
 public class CommitLockTest extends TransactionTestSetup {
+    private static final String ROW = "row";
+    private static final String COLUMN = "col_1";
+    private static final String OTHER_COLUMN = "col_2";
 
     @DataPoints
     public static ConflictHandler[] conflictHandlers = ConflictHandler.values();
@@ -74,13 +75,11 @@ public class CommitLockTest extends TransactionTestSetup {
         Assume.assumeTrue(conflictHandler.lockRowsForConflicts());
 
         PreCommitCondition rowLocksAcquired = (ignored) -> {
-            LockResponse response = acquireRowLock("row1");
+            LockResponse response = acquireRowLock(ROW);
             assertFalse(response.wasSuccessful());
         };
 
-        Transaction transaction = startTransaction(rowLocksAcquired, conflictHandler);
-        put(transaction, "row1", "col1", "100");
-        transaction.commit();
+        commitWriteWith(rowLocksAcquired, conflictHandler);
     }
 
     @Theory
@@ -88,13 +87,11 @@ public class CommitLockTest extends TransactionTestSetup {
         Assume.assumeTrue(conflictHandler.lockCellsForConflicts());
 
         PreCommitCondition cellLocksAcquired = (ignored) -> {
-            LockResponse response = acquireCellLock("row1", "col1");
+            LockResponse response = acquireCellLock(ROW, COLUMN);
             assertFalse(response.wasSuccessful());
         };
 
-        Transaction transaction = startTransaction(cellLocksAcquired, conflictHandler);
-        put(transaction, "row1", "col1", "100");
-        transaction.commit();
+        commitWriteWith(cellLocksAcquired, conflictHandler);
     }
 
     @Theory
@@ -102,13 +99,11 @@ public class CommitLockTest extends TransactionTestSetup {
         Assume.assumeFalse(conflictHandler.lockRowsForConflicts());
 
         PreCommitCondition canAcquireRowLock = (ignored) -> {
-            LockResponse response = acquireRowLock("row1");
+            LockResponse response = acquireRowLock(ROW);
             assertTrue(response.wasSuccessful());
         };
 
-        Transaction transaction = startTransaction(canAcquireRowLock, conflictHandler);
-        put(transaction, "row1", "col1", "100");
-        transaction.commit();
+        commitWriteWith(canAcquireRowLock, conflictHandler);
     }
 
     @Theory
@@ -116,14 +111,12 @@ public class CommitLockTest extends TransactionTestSetup {
         Assume.assumeFalse(conflictHandler.lockCellsForConflicts());
 
         PreCommitCondition canAcquireCellLock = (ignored) -> {
-            LockResponse response = acquireCellLock("row1", "col1");
+            LockResponse response = acquireCellLock(ROW, COLUMN);
             //current lock implementation allows you to get a cell lock on a row that is already locked
             assertTrue(response.wasSuccessful());
         };
 
-        Transaction transaction = startTransaction(canAcquireCellLock, conflictHandler);
-        put(transaction, "row1", "col1", "100");
-        transaction.commit();
+        commitWriteWith(canAcquireCellLock, conflictHandler);
     }
 
     @Theory
@@ -131,16 +124,14 @@ public class CommitLockTest extends TransactionTestSetup {
         Assume.assumeTrue(conflictHandler.lockCellsForConflicts() && conflictHandler.lockRowsForConflicts());
 
         PreCommitCondition cellAndRowLockAcquired = (ignored) -> {
-            LockResponse cellLockResponse = acquireCellLock("row1", "col1");
-            LockResponse rowLockResponse = acquireRowLock("row1");
+            LockResponse cellLockResponse = acquireCellLock(ROW, COLUMN);
+            LockResponse rowLockResponse = acquireRowLock(ROW);
 
             assertFalse(cellLockResponse.wasSuccessful());
             assertFalse(rowLockResponse.wasSuccessful());
         };
 
-        Transaction transaction = startTransaction(cellAndRowLockAcquired, conflictHandler);
-        put(transaction, "row1", "col1", "100");
-        transaction.commit();
+        commitWriteWith(cellAndRowLockAcquired, conflictHandler);
     }
 
     @Theory
@@ -148,12 +139,16 @@ public class CommitLockTest extends TransactionTestSetup {
         Assume.assumeTrue(conflictHandler.lockCellsForConflicts());
 
         PreCommitCondition canAcquireLockOnDifferentCell = (ignored) -> {
-            LockResponse response = acquireCellLock("row1", "col2");
+            LockResponse response = acquireCellLock(ROW, OTHER_COLUMN);
             assertTrue(response.wasSuccessful());
         };
 
-        Transaction transaction = startTransaction(canAcquireLockOnDifferentCell, conflictHandler);
-        put(transaction, "row1", "col1", "100");
+        commitWriteWith(canAcquireLockOnDifferentCell, conflictHandler);
+    }
+
+    private void commitWriteWith(PreCommitCondition preCommitCondition, ConflictHandler conflictHandler) {
+        Transaction transaction = startTransaction(preCommitCondition, conflictHandler);
+        put(transaction, ROW, COLUMN, "100");
         transaction.commit();
     }
 
@@ -166,7 +161,7 @@ public class CommitLockTest extends TransactionTestSetup {
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                timelockService,
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
@@ -209,7 +204,6 @@ public class CommitLockTest extends TransactionTestSetup {
     }
 
     private LockResponse lock(LockDescriptor lockDescriptor) {
-        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         LockRequest lockRequest = LockRequest.of(ImmutableSet.of(lockDescriptor), 5_000);
         return timelockService.lock(lockRequest);
     }
