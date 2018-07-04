@@ -71,7 +71,7 @@ public class PersistentUpperLimitTest {
 
         long biggerLimit = upperLimit.get() + 1000;
         upperLimit.increaseToAtLeast(biggerLimit);
-        assertThat(upperLimit.get(), is(biggerLimit+ BUFFER));
+        assertThat(upperLimit.get(), is(biggerLimit + BUFFER));
     }
 
     @Test

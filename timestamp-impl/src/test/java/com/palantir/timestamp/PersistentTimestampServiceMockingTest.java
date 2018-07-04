@@ -15,17 +15,12 @@
  */
 package com.palantir.timestamp;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.junit.Test;
 
@@ -35,23 +30,22 @@ public class PersistentTimestampServiceMockingTest {
 
     private static final long INITIAL_TIMESTAMP = 12345L;
     private static final long TIMESTAMP = 100 * 1000;
-    private static final TimestampRange SINGLE_TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(TIMESTAMP, TIMESTAMP);
+    private static final TimestampRange SINGLE_TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(TIMESTAMP,
+            TIMESTAMP);
 
     private static final TimestampRange RANGE = TimestampRange.createInclusiveRange(100, 200);
 
     private PersistentTimestamp timestamp = mock(PersistentTimestamp.class);
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
     private PersistentTimestampServiceImpl timestampService = new PersistentTimestampServiceImpl(timestamp);
 
     @Test
-    public void
-    shouldDelegateFastForwardingToAvailableTimestamps() {
+    public void shouldDelegateFastForwardingToAvailableTimestamps() {
         timestampService.fastForwardTimestamp(INITIAL_TIMESTAMP + 1000);
         verify(timestamp).increaseTo(INITIAL_TIMESTAMP + 1000);
     }
 
     @Test
-    public void shouldLimitRequestsTo10000Timestamps() throws InterruptedException {
+    public void shouldLimitRequestsTo10000Timestamps() {
         when(timestamp.incrementBy(anyLong())).thenReturn(RANGE);
 
         timestampService.getFreshTimestamps(20000);
@@ -60,7 +54,7 @@ public class PersistentTimestampServiceMockingTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void willRejectRequestsForLessThan1Timestamp() throws InterruptedException {
+    public void willRejectRequestsForLessThan1Timestamp() {
         timestampService.getFreshTimestamps(0);
     }
 
@@ -82,11 +76,5 @@ public class PersistentTimestampServiceMockingTest {
     public void shouldRejectFastForwardToTheSentinelValue() {
         timestampService.fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP);
     }
-
-    private void waitForExecutorToFinish() throws InterruptedException {
-        executor.shutdown();
-        executor.awaitTermination(10, SECONDS);
-    }
-
 }
 
