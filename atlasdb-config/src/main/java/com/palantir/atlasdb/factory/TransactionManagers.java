@@ -299,12 +299,16 @@ public abstract class TransactionManagers {
         KeyValueService keyValueService = initializeCloseable(() -> {
             KeyValueService kvs = atlasFactory.getKeyValueService();
             kvs = ProfilingKeyValueService.create(kvs);
-            kvs = SweepStatsKeyValueService.create(kvs,
-                    new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
-                    JavaSuppliers.compose(SweepConfig::writeThreshold, sweepConfig),
-                    JavaSuppliers.compose(SweepConfig::writeSizeThreshold, sweepConfig)
 
-            );
+            // If we are writing to the sweep queue, then we do not need to use SweepStatsKVS to record modifications.
+            if (!config.targetedSweep().enableSweepQueueWrites()) {
+                kvs = SweepStatsKeyValueService.create(kvs,
+                        new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
+                        JavaSuppliers.compose(SweepConfig::writeThreshold, sweepConfig),
+                        JavaSuppliers.compose(SweepConfig::writeSizeThreshold, sweepConfig)
+                );
+            }
+
             kvs = TracingKeyValueService.create(kvs);
             kvs = AtlasDbMetrics.instrument(metricsManager.getRegistry(), KeyValueService.class,
                     kvs, MetricRegistry.name(KeyValueService.class));
