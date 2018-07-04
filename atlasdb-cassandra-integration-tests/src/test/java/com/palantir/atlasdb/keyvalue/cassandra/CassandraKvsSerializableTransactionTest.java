@@ -29,12 +29,12 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 import com.palantir.lock.v2.TimelockService;
 
-public class CassandraKeyValueServiceSerializableTransactionIntegrationTest
+public class CassandraKvsSerializableTransactionTest
         extends AbstractSerializableTransactionTest {
 
     @ClassRule
     public static final Containers CONTAINERS =
-            new Containers(CassandraKeyValueServiceSerializableTransactionIntegrationTest.class)
+            new Containers(CassandraKvsSerializableTransactionTest.class)
                     .with(new CassandraContainer());
 
     @Override
