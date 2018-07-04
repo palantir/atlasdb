@@ -40,6 +40,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting3.tracing.Tracers;
 
 /**
@@ -435,6 +437,9 @@ public final class PTExecutors {
     @SuppressWarnings("DangerousThreadPoolExecutorUsage")
     public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
             ThreadFactory threadFactory, RejectedExecutionHandler handler) {
+        Preconditions.checkArgument(corePoolSize >= 0,
+                "Cannot create a ScheduledThreadPoolExecutor with {} threads - thread count must not be negative!",
+                SafeArg.of("corePoolSize", corePoolSize));
         int positiveCorePoolSize = corePoolSize > 0 ? corePoolSize : 1;
         ScheduledThreadPoolExecutor ret = new ScheduledThreadPoolExecutor(positiveCorePoolSize, threadFactory,
                 handler) {
