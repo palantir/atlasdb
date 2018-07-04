@@ -279,7 +279,7 @@ class CassandraRequestExceptionHandler {
         @Override
         public long getBackoffPeriod(int numberOfAttempts) {
             double randomCoeff = ThreadLocalRandom.current().nextDouble() + 0.5;
-            return (long)(Math.min(500 * Math.pow(2, numberOfAttempts), MAX_EXPECTED_BACKOFF) * randomCoeff);
+            return (long) (Math.min(500 * Math.pow(2, numberOfAttempts), MAX_EXPECTED_BACKOFF) * randomCoeff);
         }
 
         @Override
