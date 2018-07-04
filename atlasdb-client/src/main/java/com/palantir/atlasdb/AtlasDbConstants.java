@@ -100,6 +100,7 @@ public final class AtlasDbConstants {
      */
     public static final Set<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
+            TransactionConstants.TRANSACTION_TABLE_V2,
             NAMESPACE_TABLE,
             PERSISTED_LOCKS_TABLE);
 
