@@ -273,10 +273,8 @@ public abstract class TransactionManagers {
         Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
-        QosClient qosClient = initializeCloseable(
-                () -> getQosClient(metricsManager,
-                        JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier)),
-                closeables);
+        QosClient qosClient = initializeCloseable(() -> getQosClient(metricsManager,
+                        JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier)), closeables);
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
@@ -318,14 +316,9 @@ public abstract class TransactionManagers {
         SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(keyValueService,
                 config.initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService,
-                schemas(),
-                schemaMetadataService,
-                config.initializeAsync());
+                keyValueService, schemas(), schemaMetadataService, config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
-                keyValueService,
-                registrar(),
-                config.initializeAsync());
+                keyValueService, registrar(), config.initializeAsync());
 
         TransactionService transactionService = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 TransactionService.class, TransactionServices.createTransactionService(keyValueService));
