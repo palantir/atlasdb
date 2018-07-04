@@ -50,7 +50,7 @@ Targeted sweep uses a combination of :ref:`install and runtime AtlasDB configura
 Changing Sweep Strategy for a Table
 -----------------------------------
 
-.. warning::
+.. danger::
 
    Consult with the AtlasDB team before changing the sweep strategy of a table. Doing this incorrectly can invalidate
    AtlasDB's correctness guarantees.
@@ -68,9 +68,10 @@ transactions.
 The safe way to change the sweep strategy from THOROUGH to CONSERVATIVE:
   1. Shut down all the nodes.
   2. Start AtlasDB with the new table metadata, but **do not use read-only transactions on the table yet**.
-  3. Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade.
+  3. Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade. This can be verified by
+     consulting the ``millisSinceLastSweptTs`` targeted sweep metric.
   4. We are now guaranteed to perform no more thorough sweeps on the table and can run read-only transactions.
 
-he safe way to change sweep strategy from CONSERVATIVE to THOROUGH:
+The safe way to change sweep strategy from CONSERVATIVE to THOROUGH:
    1. Shut down all the nodes.
    2. Start AtlasDB with the new table metadata.
