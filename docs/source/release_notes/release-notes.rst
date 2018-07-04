@@ -54,8 +54,14 @@ develop
          - The ``putUnlessExists`` API has been removed from AtlasDB tables, as it was misleading (it only did the put if the given row, column and value triple were already present, as opposed to the more intuitive condition of the row and column value pair being present).
            Please replace any uses of the table-level ``putUnlessExists`` with a get, check and put if appropriate - these will still be transactional because of the AtlasDB transaction protocol.
            Note that this is not the same as the KVS ``putUnlessExists`` API, which is still used by the transaction protocol.
-           This API has already been deprecated for 10 months (since August 2017).
+           This API has already been since August 2017 (11 months from time of writing).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3340>`__)
+
+    *    - |fixed|
+         - The sweep CLI will no longer perform in-process compactions after sweeping a table.
+           For DbKvs, this operation is handled by the background compaction thread; Cassandra performs its own compactions.
+           Note that the sweep CLI itself has been deprecated in favour of using the sweep priority override configuration, possibly in conjunction with the thread count (:ref:`Docs<sweep_tunable_parameters>`).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3338>`__)
 
 =======
 v0.94.0
