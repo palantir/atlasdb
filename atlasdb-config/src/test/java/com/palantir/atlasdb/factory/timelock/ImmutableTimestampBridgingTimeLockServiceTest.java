@@ -41,13 +41,9 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.remoting2.errors.RemoteException;
-import com.palantir.remoting2.errors.SerializableError;
 
 public class ImmutableTimestampBridgingTimeLockServiceTest {
-    private static final RemoteException REMOTE_EXCEPTION = new RemoteException(
-            SerializableError.of("boo", RuntimeException.class), 404);
-    private static final Exception WRAPPED_EXCEPTION = new AtlasDbRemoteException(REMOTE_EXCEPTION);
+    private static final AtlasDbRemoteException REMOTE_EXCEPTION_404 = mock(AtlasDbRemoteException.class);
     private static final Exception RUNTIME_EXCEPTION = new RuntimeException("boom");
 
     private static final long FRESH_TIMESTAMP = 1L;
@@ -68,6 +64,8 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
 
     @Before
     public void setUp() {
+        when(REMOTE_EXCEPTION_404.getStatus()).thenReturn(404);
+
         when(timelockService.getFreshTimestamp()).thenReturn(1L);
         when(timelockService.lockImmutableTimestamp(any())).thenReturn(IMMUTABLE_TIMESTAMP_RESPONSE);
     }
@@ -132,7 +130,7 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
     }
 
     private void givenServerThrows404sOnStartTransaction() {
-        givenServerThrowsOnStartTransaction(WRAPPED_EXCEPTION);
+        givenServerThrowsOnStartTransaction(REMOTE_EXCEPTION_404);
     }
 
     private void givenServerRespondsToStartTransaction() {
@@ -141,9 +139,9 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
 
     private void givenServerThrows404sOnlyOnFirstThreeInvocations() {
         when(timelockService.startAtlasDbTransaction(any()))
-                .thenThrow(WRAPPED_EXCEPTION)
-                .thenThrow(WRAPPED_EXCEPTION)
-                .thenThrow(WRAPPED_EXCEPTION)
+                .thenThrow(REMOTE_EXCEPTION_404)
+                .thenThrow(REMOTE_EXCEPTION_404)
+                .thenThrow(REMOTE_EXCEPTION_404)
                 .thenReturn(TRANSACTION_RESPONSE);
     }
 
