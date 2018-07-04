@@ -19,7 +19,7 @@ acquire two types of locks:
   writing to the same rows and committing.
 
 Transactions may also acquire additional locks as part of AtlasDB's pre-commit condition framework. These conditions
-are arbitrary and we thus do not focus on optimising these, btu.
+are arbitrary and we thus do not focus on optimising these.
 
 After a transaction commits, it needs to release the locks it acquired as part of the transaction protocol. Releasing
 the immutable timestamp lock helps AtlasDB keep as few stale versions of data around as possible (which factors into
@@ -106,8 +106,11 @@ thread death. If an enqueue has a successful compare-and-set in step 5, then the
 then some thread must already be scheduled to perform the unlock, and once it does the token must be in the relevant
 set (and again must be visible, because we synchronize on the set lock).
 
-To avoid issues with starving unlocks, we use a fair lock scheme. This may have lower throughput than an unfair lock,
-but we deemed it necessary as 'readers' (committing transactions) far exceed 'writers' (the unlocking thread).
+To avoid issues with starving unlocks, we use a fair lock scheme. Once the unlocking thread attempts to acquire the set
+lock, enqueues that are still running may finish, but fresh calls to enqueue will only be able to acquire the set lock
+after the unlocking thread has acquired and released it. This may have lower throughput than an unfair lock,
+but we deemed it necessary as 'readers' (committing transactions) far exceed 'writers' (the unlocking thread) -
+otherwise, the unlocking thread might be starved of the lock.
 
 ### TimeLock Failures
 
