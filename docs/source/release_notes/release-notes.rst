@@ -57,6 +57,12 @@ develop
            This API has already been since August 2017 (11 months from time of writing).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3340>`__)
 
+    *    - |improved|
+         - We will no longer continue to update ``sweep.priority`` if writes are persisted to the targeted sweep queue.
+           This means that assuming ``targetedSweep.enableSweepQueueWrites`` remains on, the background sweeper will eventually run out of things to sweep without further intervention.
+           At this point, the background sweeper will start reporting ``NOTHING_TO_SWEEP``, and the background sweeper may safely be disabled.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3349>`__)
+
     *    - |fixed|
          - Writes to the targeted sweep queue are now done using the start timestamp of the transaction that makes the call.
            Previously, the writes were done at timestamp 0, which was interfering with Cassandra compactions.
