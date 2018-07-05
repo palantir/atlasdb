@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -206,7 +206,7 @@ public final class StreamTestStreamIdxTable implements
                 return false;
             }
             StreamTestStreamIdxRow other = (StreamTestStreamIdxRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -489,35 +489,6 @@ public final class StreamTestStreamIdxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(StreamTestStreamIdxRow rowName, Iterable<StreamTestStreamIdxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(StreamTestStreamIdxRow rowName, StreamTestStreamIdxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<StreamTestStreamIdxRow, ? extends StreamTestStreamIdxColumnValue> rows) {
-        Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumn> toGet = Multimaps.transformValues(rows, StreamTestStreamIdxColumnValue.getColumnNameFun());
-        Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue> existing = get(toGet);
-        Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue> toPut = HashMultimap.create();
-        for (Entry<StreamTestStreamIdxRow, ? extends StreamTestStreamIdxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumn> values) {
         Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue> currentValues = get(values);
@@ -742,5 +713,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "pLdNmE4aKYCQHK81MVWGJA==";
+    static String __CLASS_HASH = "lgn8+RrwnRD+ORztxbl9ww==";
 }

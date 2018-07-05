@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -21,7 +22,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
@@ -219,7 +219,7 @@ public final class HotspottyDataStreamValueTable implements
                 return false;
             }
             HotspottyDataStreamValueRow other = (HotspottyDataStreamValueRow) obj;
-            return Objects.equal(id, other.id) && Objects.equal(blockId, other.blockId);
+            return Objects.equals(id, other.id) && Objects.equals(blockId, other.blockId);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -427,18 +427,6 @@ public final class HotspottyDataStreamValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(HotspottyDataStreamValueRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
-    }
-
-    public void putValueUnlessExists(Map<HotspottyDataStreamValueRow, byte[]> map) {
-        Map<HotspottyDataStreamValueRow, HotspottyDataStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<HotspottyDataStreamValueRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<HotspottyDataStreamValueRow, ? extends HotspottyDataStreamValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -446,20 +434,6 @@ public final class HotspottyDataStreamValueTable implements
         for (HotspottyDataStreamValueTrigger trigger : triggers) {
             trigger.putHotspottyDataStreamValue(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<HotspottyDataStreamValueRow, ? extends HotspottyDataStreamValueNamedColumnValue<?>> rows) {
-        Multimap<HotspottyDataStreamValueRow, HotspottyDataStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<HotspottyDataStreamValueRow, HotspottyDataStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<HotspottyDataStreamValueRow, ? extends HotspottyDataStreamValueNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteValue(HotspottyDataStreamValueRow row) {
@@ -695,5 +669,5 @@ public final class HotspottyDataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "mxCX7FY2WnrjY4hMnfTxaw==";
+    static String __CLASS_HASH = "SbxZ2fy8SdPXh+5D339tnQ==";
 }

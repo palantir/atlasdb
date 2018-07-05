@@ -93,6 +93,13 @@ public interface CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             org.apache.thrift.TException;
 
+    void remove(String kvsMethodName,
+            TableReference tableRef,
+            byte[] row,
+            long timestamp,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+
     TProtocol getOutputProtocol();
 
     TProtocol getInputProtocol();

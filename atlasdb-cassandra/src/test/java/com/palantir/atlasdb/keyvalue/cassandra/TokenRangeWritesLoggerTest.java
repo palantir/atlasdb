@@ -32,6 +32,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.logsafe.SafeArg;
 
 import uk.org.lidalia.slf4jext.Level;
@@ -62,7 +63,8 @@ public class TokenRangeWritesLoggerTest {
 
     @Before
     public void setup() {
-        writesLogger = TokenRangeWritesLogger.createUninitialized();
+        writesLogger = TokenRangeWritesLogger.createUninitialized(
+                MetricsManagers.createForTests());
         writesLogger.updateTokenRanges(TOKEN_RANGES);
         infoLogger = TestLoggerFactory.getTestLogger(TokenRangeWritesLogger.class);
         infoLogger.setEnabledLevelsForAllThreads(Level.INFO, Level.WARN);

@@ -18,15 +18,16 @@ package com.palantir.atlasdb.factory.timestamp;
 
 import java.util.function.Supplier;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.DynamicDecoratingProxy;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TimestampDecoratingTimelockService;
-import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.RequestBatchingTimestampService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.JavaSuppliers;
 
 public final class DecoratedTimelockServices {
     private DecoratedTimelockServices() {
@@ -34,19 +35,22 @@ public final class DecoratedTimelockServices {
     }
 
     public static TimelockService createTimelockServiceWithTimestampBatching(
+            MetricRegistry metricRegistry,
             TimelockService timelockService,
             Supplier<TimestampClientConfig> configSupplier) {
         return DynamicDecoratingProxy.newProxyInstance(
                 new TimestampDecoratingTimelockService(timelockService,
-                        createRequestBatchingTimestampService(timelockService)),
+                        createRequestBatchingTimestampService(metricRegistry, timelockService)),
                 timelockService,
                 JavaSuppliers.compose(TimestampClientConfig::enableTimestampBatching, configSupplier),
                 TimelockService.class);
     }
 
     private static TimestampService createRequestBatchingTimestampService(
+            MetricRegistry metrics,
             TimelockService timelockService) {
         return ServiceCreator.createInstrumentedService(
+                metrics,
                 new RequestBatchingTimestampService(new TimelockTimestampServiceAdapter(timelockService)),
                 TimestampService.class);
     }

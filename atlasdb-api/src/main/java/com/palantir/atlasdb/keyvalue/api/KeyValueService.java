@@ -22,6 +22,7 @@ import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -374,15 +375,20 @@ public interface KeyValueService extends AutoCloseable {
     void deleteRange(@QueryParam("tableRef") TableReference tableRef, RangeRequest range);
 
     /**
-     * For each cell, deletes all timestamps prior to the associated maximum timestamp, excluding garbage collection
-     * sentinels. Depending on the implementation, this may result in a range tombstone in the underlying KVS.
+     * For each cell, deletes all timestamps prior to the associated maximum timestamp. Depending on the
+     * implementation, this may result in a range tombstone in the underlying KVS.
+     *
+     * @param tableRef the name of the table to delete the timestamps in.
+     * @param maxTimestampExclusiveByCell exclusive maximum timestamp to delete for each cell.
+     * @param deleteSentinels if true, this method will also delete garbage collection sentinels.
      */
     @POST
     @Path("delete-all-timestamps")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     void deleteAllTimestamps(@QueryParam("tableRef") TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell);
+            Map<Cell, Long> maxTimestampExclusiveByCell,
+            @DefaultValue("false") @QueryParam("deleteSentinels") boolean deleteSentinels);
 
     /**
      * Truncate a table in the key-value store.
@@ -714,7 +720,7 @@ public interface KeyValueService extends AutoCloseable {
     }
 
     /**
-     * @return If {@link #compactInternally(TableReference)} should be called to free disk space.
+     * Whether {@link #compactInternally(TableReference)} should be called to free disk space.
      */
     default boolean shouldTriggerCompactions() {
         return false;

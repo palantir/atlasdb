@@ -37,21 +37,18 @@ import com.palantir.config.crypto.jackson.JsonNodeStringReplacer;
 import com.palantir.config.crypto.jackson.JsonNodeVisitors;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
-import io.dropwizard.jackson.DiscoverableSubtypeResolver;
-
 public final class AtlasDbConfigs {
     public static final String ATLASDB_CONFIG_OBJECT_PATH = "/atlasdb";
 
+    static final String DISCOVERED_SUBTYPE_MARKER = "io.dropwizard.jackson.Discoverable";
+
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
             .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
-            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
-
-    static {
-        OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
-        OBJECT_MAPPER.registerModule(new GuavaModule());
-        OBJECT_MAPPER.registerModule(new Jdk7Module());
-        OBJECT_MAPPER.registerModule(new Jdk8Module());
-    }
+            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
+            .setSubtypeResolver(new DiscoverableSubtypeResolver(DISCOVERED_SUBTYPE_MARKER))
+            .registerModule(new GuavaModule())
+            .registerModule(new Jdk7Module())
+            .registerModule(new Jdk8Module());
 
     private AtlasDbConfigs() {
         // uninstantiable
@@ -70,7 +67,8 @@ public final class AtlasDbConfigs {
         return getConfig(node, configRoot, clazz);
     }
 
-    public static <T> T loadFromString(String fileContents, @Nullable String configRoot, Class<T> clazz) throws IOException {
+    public static <T> T loadFromString(String fileContents, @Nullable String configRoot, Class<T> clazz)
+            throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(fileContents);
         return getConfig(node, configRoot, clazz);
     }

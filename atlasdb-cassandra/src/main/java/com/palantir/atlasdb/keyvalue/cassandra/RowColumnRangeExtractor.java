@@ -32,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
-import com.palantir.util.crypto.Sha256Hash;
 
 class RowColumnRangeExtractor {
     static class RowColumnRangeResult {
@@ -73,19 +72,24 @@ class RowColumnRangeExtractor {
     private final Map<byte[], Column> rowsToLastCompositeColumns = Maps.newHashMap();
     private final Map<byte[], Integer> rowsToRawColumnCount = Maps.newHashMap();
     private final Set<byte[]> emptyRows = Sets.newHashSet();
-    private final MetricsManager metricsManager = new MetricsManager();
-    private final Meter notLatestVisibleValueCellFilterMeter = metricsManager.registerOrGetMeter(
-            RowColumnRangeExtractor.class,
-            AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
+    private final MetricsManager metricsManager;
+    private final Meter notLatestVisibleValueCellFilterMeter;
+
+    RowColumnRangeExtractor(MetricsManager metricsManager) {
+        this.metricsManager = metricsManager;
+        notLatestVisibleValueCellFilterMeter = metricsManager.registerOrGetMeter(
+                RowColumnRangeExtractor.class,
+                AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
+    }
 
     public void extractResults(Iterable<byte[]> canonicalRows,
                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
                                long startTs) {
         // Make sure returned maps are keyed by the given rows
-        Map<Sha256Hash, byte[]> canonicalRowsByHash = Maps.uniqueIndex(canonicalRows, Sha256Hash::computeHash);
+        Map<ByteBuffer, byte[]> canonicalRowsByHash = Maps.uniqueIndex(canonicalRows, ByteBuffer::wrap);
         for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
             byte[] rawRow = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
-            byte[] row = canonicalRowsByHash.get(Sha256Hash.computeHash(rawRow));
+            byte[] row = canonicalRowsByHash.get(ByteBuffer.wrap(rawRow));
             List<ColumnOrSuperColumn> columns = colEntry.getValue();
 
             if (!columns.isEmpty()) {

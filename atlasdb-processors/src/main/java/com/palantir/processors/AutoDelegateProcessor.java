@@ -16,8 +16,6 @@
 
 package com.palantir.processors;
 
-import static java.util.stream.Collectors.joining;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -296,6 +294,6 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
     }
 
     private static String joinMultiple(String string, int times, String delimiter) {
-        return Stream.generate(() -> string).limit(times).collect(joining(delimiter));
+        return Stream.generate(() -> string).limit(times).collect(Collectors.joining(delimiter));
     }
 }

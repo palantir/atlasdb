@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -21,7 +22,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
@@ -206,7 +206,7 @@ public final class HotspottyDataStreamIdxTable implements
                 return false;
             }
             HotspottyDataStreamIdxRow other = (HotspottyDataStreamIdxRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -489,35 +489,6 @@ public final class HotspottyDataStreamIdxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(HotspottyDataStreamIdxRow rowName, Iterable<HotspottyDataStreamIdxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(HotspottyDataStreamIdxRow rowName, HotspottyDataStreamIdxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<HotspottyDataStreamIdxRow, ? extends HotspottyDataStreamIdxColumnValue> rows) {
-        Multimap<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumn> toGet = Multimaps.transformValues(rows, HotspottyDataStreamIdxColumnValue.getColumnNameFun());
-        Multimap<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumnValue> existing = get(toGet);
-        Multimap<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumnValue> toPut = HashMultimap.create();
-        for (Entry<HotspottyDataStreamIdxRow, ? extends HotspottyDataStreamIdxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumn> values) {
         Multimap<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumnValue> currentValues = get(values);
@@ -742,5 +713,5 @@ public final class HotspottyDataStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "dtjvisFA+rauOUpZSbWxlA==";
+    static String __CLASS_HASH = "G2byjrwUZEphtaXrSUazqA==";
 }

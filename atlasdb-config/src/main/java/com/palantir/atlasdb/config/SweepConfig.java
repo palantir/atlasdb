@@ -22,26 +22,34 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 
 @JsonDeserialize(as = ImmutableSweepConfig.class)
 @JsonSerialize(as = ImmutableSweepConfig.class)
 @Value.Immutable
 public abstract class SweepConfig {
     /**
-     * If true, a background thread will periodically delete cells that
-     * have been overwritten or deleted. This differs from scrubbing
-     * because it is an untargeted cleaning process that scans all data
-     * looking for cells to delete.
+     * If true, a background thread will periodically delete cells that have been overwritten or deleted. This differs
+     * from scrubbing because it is an untargeted cleaning process that scans all data looking for cells to delete.
      */
     @Value.Default
     public Boolean enabled() {
         return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
     }
 
+    // TODO handle live reload
     /**
-     * The number of milliseconds to wait between each batch of cells
-     * processed by the background sweeper.
+     * The number of background sweep threads to run.
+     */
+    @Value.Default
+    public int sweepThreads() {
+        return 1;
+    }
+
+    /**
+     * The number of milliseconds to wait between each batch of cells processed by the background sweeper.
      */
     @Value.Default
     public long pauseMillis() {
@@ -69,14 +77,33 @@ public abstract class SweepConfig {
         return AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT;
     }
 
+    /**
+     * The number of cells to be written before information on write patterns to a given table is flushed into
+     * the sweep priority table (thus increasing the probability that the background sweeper selects it).
+     */
     @Value.Default
     public Integer writeThreshold() {
         return AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD;
     }
 
+    /**
+     * The number of bytes to be written before information on write patterns to a given table is flushed into
+     * the sweep priority table (thus increasing the probability that the background sweeper selects it).
+     */
     @Value.Default
     public Long writeSizeThreshold() {
         return AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD;
+    }
+
+    @Value.Default
+    public SweepPriorityOverrideConfig sweepPriorityOverrides() {
+        return SweepPriorityOverrideConfig.defaultConfig();
+    }
+
+    @Value.Check
+    public void check() {
+        Preconditions.checkState(sweepThreads() > 0, "Must have a positive number of threads! "
+                        + "If your intention was to disable sweep, please set enabled to false.");
     }
 
     public static SweepConfig defaultSweepConfig() {

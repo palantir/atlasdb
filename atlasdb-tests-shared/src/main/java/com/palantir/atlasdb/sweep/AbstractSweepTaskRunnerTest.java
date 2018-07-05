@@ -31,7 +31,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
+import java.util.stream.IntStream;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -45,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.util.Pair;
 
@@ -287,6 +291,16 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertEquals(ImmutableSet.of(125L), getAllTsFromDefaultColumn("foo"));
     }
 
+    @Test(timeout = 50000)
+    public void testSweepHighlyVersionedCell() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+
+        IntStream.rangeClosed(1, 1_000)
+                .forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
+        Optional<SweepResults> results = completeSweep(TABLE_NAME, 100_000, 1);
+        Assert.assertEquals(1_000 - 1, results.get().getStaleValuesDeleted());
+    }
+
     @SuppressWarnings("unchecked")
     private Pair<List<List<Cell>>, SweepResults> runSweep(CellsSweeper cellsSweeper, SweepTaskRunner spiedSweepRunner,
             int maxCellTsPairsToExamine, int candidateBatchSize, int deleteBatchSize) {
@@ -314,6 +328,10 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     }
 
     protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts) {
+        return completeSweep(tableReference, ts, DEFAULT_BATCH_SIZE);
+    }
+
+    protected Optional<SweepResults> completeSweep(TableReference tableReference, long ts, int batchSize) {
         sweepTimestamp.set(ts);
         byte[] startRow = PtBytes.EMPTY_BYTE_ARRAY;
         long totalStaleValuesDeleted = 0;
@@ -322,9 +340,9 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
             SweepResults results = sweepRunner.run(
                     tableReference,
                     ImmutableSweepBatchConfig.builder()
-                            .deleteBatchSize(DEFAULT_BATCH_SIZE)
-                            .candidateBatchSize(DEFAULT_BATCH_SIZE)
-                            .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
+                            .deleteBatchSize(batchSize)
+                            .candidateBatchSize(batchSize)
+                            .maxCellTsPairsToExamine(batchSize)
                             .build(),
                     startRow);
             assertEquals(ts, results.getMinSweptTimestamp());

@@ -21,7 +21,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigs;
@@ -33,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.util.OptionalResolver;
 
 import io.airlift.airline.Command;
@@ -51,9 +51,11 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
         return runWithConfig(config);
     }
 
-    @VisibleForTesting
+    // Visible for testing (tested in a different package)
     public Integer runWithConfig(CassandraKeyValueServiceConfig config) throws TException {
-        CassandraClientPool clientPool = CassandraClientPoolImpl.create(config);
+        CassandraClientPool clientPool = CassandraClientPoolImpl.create(
+                MetricsManagers.createForTests(),
+                config);
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         TracingQueryRunner tracingQueryRunner = new TracingQueryRunner(log, new TracingPrefsConfig());
 

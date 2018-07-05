@@ -57,8 +57,8 @@ public class NamedThreadFactory implements ThreadFactory {
 
     /** {@inheritDoc} */
     @Override
-    public Thread newThread(Runnable r) {
-        Thread thread = threadFactory.newThread(r);
+    public Thread newThread(Runnable runnable) {
+        Thread thread = threadFactory.newThread(runnable);
         thread.setName(prefix + "-" + count.getAndIncrement());
         thread.setDaemon(isDaemon);
         return thread;

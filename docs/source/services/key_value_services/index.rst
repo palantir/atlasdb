@@ -19,9 +19,9 @@ This matrix details the current state of available Key Value Services supported 
 
     *    - :ref:`Cassandra KVS <cassandra-configuration>`
          - Supported
-         - 2.0+
-         - 2.2.8
-         - 
+         - 2.2.9+
+         - 2.2.9
+         -
 
     *    - :ref:`DB KVS (Postgres) <postgres-configuration>`
          - Supported

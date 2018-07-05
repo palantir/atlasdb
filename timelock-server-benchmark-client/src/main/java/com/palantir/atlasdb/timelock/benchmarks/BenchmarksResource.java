@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.benchmarks;
 import java.util.Map;
 import java.util.Optional;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.UserAgents;
@@ -35,19 +36,19 @@ import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteBench
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteDynamicColumnsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteRowsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class BenchmarksResource implements BenchmarksService {
 
-    private final SerializableTransactionManager txnManager;
+    private final TransactionManager txnManager;
 
     public BenchmarksResource(AtlasDbConfig config) {
         this.txnManager = TransactionManagers.builder()
                 .config(config)
                 .userAgent(UserAgents.DEFAULT_USER_AGENT)
-                .globalMetricsRegistry(AtlasDbMetrics.getMetricRegistry())
-                .globalTaggedMetricRegistry(AtlasDbMetrics.getTaggedMetricRegistry())
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(new DefaultTaggedMetricRegistry())
                 .addSchemas(BenchmarksSchema.SCHEMA)
                 .allowHiddenTableAccess(true)
                 .runtimeConfigSupplier(Optional::empty)

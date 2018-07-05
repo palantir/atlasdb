@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -43,13 +44,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellLimit;
-import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.UnsafeArg;
-
-import gnu.trove.TDecorators;
 
 /**
  * Sweeps one individual table.
@@ -58,12 +58,11 @@ public class SweepTaskRunner {
     private static final Logger log = LoggerFactory.getLogger(SweepTaskRunner.class);
 
     private final KeyValueService keyValueService;
-    private final LongSupplier unreadableTimestampSupplier;
-    private final LongSupplier immutableTimestampSupplier;
-    private final TransactionService transactionService;
+    private final SpecialTimestampsSupplier specialTimestampsSupplier;
     private final SweepStrategyManager sweepStrategyManager;
     private final CellsSweeper cellsSweeper;
-    private final Optional<SweepMetricsManager> metricsManager;
+    private final Optional<LegacySweepMetrics> metricsManager;
+    private final CommitTsCache commitTsCache;
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
@@ -83,20 +82,18 @@ public class SweepTaskRunner {
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
-            LongSupplier unreadableTimestampSupplier,
-            LongSupplier immutableTimestampSupplier,
+            LongSupplier unreadableTsSupplier,
+            LongSupplier immutableTsSupplier,
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper,
-            SweepMetricsManager metricsManager) {
+            LegacySweepMetrics metricsManager) {
         this.keyValueService = keyValueService;
-        this.unreadableTimestampSupplier = unreadableTimestampSupplier;
-        this.immutableTimestampSupplier = immutableTimestampSupplier;
-        this.transactionService = transactionService;
+        this.specialTimestampsSupplier = new SpecialTimestampsSupplier(unreadableTsSupplier, immutableTsSupplier);
         this.sweepStrategyManager = sweepStrategyManager;
         this.cellsSweeper = cellsSweeper;
         this.metricsManager = Optional.ofNullable(metricsManager);
-
+        this.commitTsCache = CommitTsCache.create(transactionService);
     }
 
     /**
@@ -127,8 +124,7 @@ public class SweepTaskRunner {
     }
 
     public long getConservativeSweepTimestamp() {
-        return Sweeper.CONSERVATIVE.getSweepTimestampSupplier().getSweepTimestamp(
-                unreadableTimestampSupplier, immutableTimestampSupplier);
+        return Sweeper.CONSERVATIVE.getSweepTimestamp(specialTimestampsSupplier);
     }
 
     private SweepResults runInternal(
@@ -180,8 +176,7 @@ public class SweepTaskRunner {
         // (1) force old readers to abort (if they read a garbage collection sentinel), or
         // (2) force old writers to retry (note that we must roll back any uncommitted transactions that
         //     we encounter
-        long sweepTs = sweeper.getSweepTimestampSupplier().getSweepTimestamp(
-                unreadableTimestampSupplier, immutableTimestampSupplier);
+        long sweepTs = sweeper.getSweepTimestamp(specialTimestampsSupplier);
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .batchSizeHint(batchConfig.candidateBatchSize())
@@ -190,7 +185,7 @@ public class SweepTaskRunner {
                 .shouldDeleteGarbageCollectionSentinels(!sweeper.shouldAddSentinels())
                 .build();
 
-        SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(transactionService, sweeper, sweepTs);
+        SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(commitTsCache, sweeper, sweepTs);
         try (ClosableIterator<List<CandidateCellForSweeping>> candidates = keyValueService.getCandidateCellsForSweeping(
                     tableRef, request)) {
             ExaminedCellLimit limit = new ExaminedCellLimit(startRow, batchConfig.maxCellTsPairsToExamine());
@@ -198,8 +193,6 @@ public class SweepTaskRunner {
                         candidates, batchConfig, sweepableCellFilter, limit);
             long totalCellTsPairsExamined = 0;
             long totalCellTsPairsDeleted = 0;
-
-            metricsManager.ifPresent(SweepMetricsManager::resetBeforeDeleteBatch);
 
             byte[] lastRow = startRow;
             while (batchesToSweep.hasNext()) {
@@ -217,7 +210,7 @@ public class SweepTaskRunner {
                 long cellsExamined = batch.numCellTsPairsExamined();
                 totalCellTsPairsExamined += cellsExamined;
 
-                metricsManager.ifPresent(manager -> manager.updateAfterDeleteBatch(cellsExamined, cellsDeleted));
+                metricsManager.ifPresent(manager -> manager.updateCellsExaminedDeleted(cellsExamined, cellsDeleted));
 
                 lastRow = batch.lastCellExamined().getRowName();
             }
@@ -261,28 +254,28 @@ public class SweepTaskRunner {
                 currentBatchSentinels.add(cell.cell());
             }
 
-            List<Long> currentCellTimestamps = TDecorators.wrap(cell.sortedTimestamps());
+            // Taking an immutable copy is done here to allow for faster sublist extraction.
+            List<Long> currentCellTimestamps = ImmutableList.copyOf(cell.sortedTimestamps());
 
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
                 currentBatch.putAll(cell.cell(), currentCellTimestamps);
-                continue;
-            }
+            } else {
+                while (currentBatch.size() + currentCellTimestamps.size() >= deleteBatchSize) {
+                    int numberOfTimestampsForThisBatch = deleteBatchSize - currentBatch.size();
 
-            while (currentBatch.size() + currentCellTimestamps.size() >= deleteBatchSize) {
-                int numberOfTimestampsForThisBatch = deleteBatchSize - currentBatch.size();
+                    currentBatch.putAll(cell.cell(), currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch));
+                    if (runType == RunType.FULL) {
+                        cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
+                    }
+                    numberOfSweptCells += currentBatch.size();
 
-                currentBatch.putAll(cell.cell(), currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch));
-                if (runType == RunType.FULL) {
-                    cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
+                    currentBatch.clear();
+                    currentBatchSentinels.clear();
+                    currentCellTimestamps = currentCellTimestamps.subList(
+                            numberOfTimestampsForThisBatch, currentCellTimestamps.size());
                 }
-                numberOfSweptCells += currentBatch.size();
-
-                currentBatch.clear();
-                currentBatchSentinels.clear();
-                currentCellTimestamps = currentCellTimestamps.subList(
-                        numberOfTimestampsForThisBatch, currentCellTimestamps.size());
+                currentBatch.putAll(cell.cell(), currentCellTimestamps);
             }
-            currentBatch.putAll(cell.cell(), currentCellTimestamps);
         }
 
         if (!currentBatch.isEmpty() && runType == RunType.FULL) {

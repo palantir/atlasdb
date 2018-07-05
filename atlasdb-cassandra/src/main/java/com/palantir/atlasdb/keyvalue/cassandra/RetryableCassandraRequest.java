@@ -17,18 +17,17 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
-import java.util.Set;
+import java.util.Map;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class RetryableCassandraRequest<V, K extends Exception> {
     private final InetSocketAddress preferredHost;
     private final FunctionCheckedException<CassandraClient, V, K> fn;
 
-    private int numberOfAttempts = 0;
     private boolean shouldGiveUpOnPreferredHost = false;
-    private Set<InetSocketAddress> triedHosts = Sets.newHashSet();
+    private Map<InetSocketAddress, Integer> triedHosts = Maps.newConcurrentMap();
 
     public RetryableCassandraRequest(InetSocketAddress preferredHost,
             FunctionCheckedException<CassandraClient, V, K> fn) {
@@ -45,7 +44,13 @@ public class RetryableCassandraRequest<V, K extends Exception> {
     }
 
     public int getNumberOfAttempts() {
-        return numberOfAttempts;
+        return triedHosts.values().stream()
+                .mapToInt(Number::intValue)
+                .sum();
+    }
+
+    public int getNumberOfAttemptsOnHost(InetSocketAddress host) {
+        return triedHosts.getOrDefault(host, 0);
     }
 
     public boolean shouldGiveUpOnPreferredHost() {
@@ -57,11 +62,10 @@ public class RetryableCassandraRequest<V, K extends Exception> {
     }
 
     public boolean alreadyTriedOnHost(InetSocketAddress address) {
-        return triedHosts.contains(address);
+        return triedHosts.containsKey(address);
     }
 
     public void triedOnHost(InetSocketAddress host) {
-        triedHosts.add(host);
-        numberOfAttempts++;
+        triedHosts.merge(host, 1, (old, ignore) -> old + 1);
     }
 }

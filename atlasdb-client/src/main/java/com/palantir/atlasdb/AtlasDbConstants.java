@@ -20,6 +20,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -127,6 +128,12 @@ public final class AtlasDbConstants {
     public static final int DEFAULT_SWEEP_WRITE_THRESHOLD = 1 << 12;
     public static final long DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD = 1 << 25;
 
+    public static final boolean DEFAULT_ENABLE_SWEEP_QUEUE_WRITES = false;
+    public static final boolean DEFAULT_ENABLE_TARGETED_SWEEP = false;
+    public static final int DEFAULT_SWEEP_QUEUE_SHARDS = 1;
+    public static final int DEFAULT_TARGETED_SWEEP_THREADS = 1;
+    public static final int MAX_SWEEP_QUEUE_SHARDS = TargetedSweepMetadata.MAX_SHARDS;
+
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 
     public static final long DEFAULT_TIMESTAMP_CACHE_SIZE = 1_000_000;
@@ -138,6 +145,8 @@ public final class AtlasDbConstants {
 
     public static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
     public static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
+
+    public static final int TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT = 50_000;
 
     public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
 }

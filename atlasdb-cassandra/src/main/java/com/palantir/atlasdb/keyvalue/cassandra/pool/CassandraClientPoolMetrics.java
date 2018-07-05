@@ -28,12 +28,13 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public class CassandraClientPoolMetrics {
-    private final MetricsManager metricsManager = new MetricsManager();
-    private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
+    private final MetricsManager metricsManager;
+    private final RequestMetrics aggregateMetrics;
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
 
-    public void deregisterMetrics() {
-        metricsManager.deregisterMetrics();
+    public CassandraClientPoolMetrics(MetricsManager metricsManager) {
+        this.metricsManager = metricsManager;
+        this.aggregateMetrics = new RequestMetrics(metricsManager, null);
     }
 
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
@@ -71,12 +72,12 @@ public class CassandraClientPoolMetrics {
         }
     }
 
-    private class RequestMetrics {
+    private static class RequestMetrics {
         private final Meter totalRequests;
         private final Meter totalRequestExceptions;
         private final Meter totalRequestConnectionExceptions;
 
-        RequestMetrics(String metricPrefix) {
+        RequestMetrics(MetricsManager metricsManager, String metricPrefix) {
             totalRequests = metricsManager.registerOrGetMeter(
                     CassandraClientPool.class, metricPrefix, "requests");
             totalRequestExceptions = metricsManager.registerOrGetMeter(

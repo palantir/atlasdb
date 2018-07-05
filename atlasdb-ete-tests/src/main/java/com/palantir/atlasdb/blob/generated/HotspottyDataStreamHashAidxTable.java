@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -21,7 +22,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
@@ -206,7 +206,7 @@ public final class HotspottyDataStreamHashAidxTable implements
                 return false;
             }
             HotspottyDataStreamHashAidxRow other = (HotspottyDataStreamHashAidxRow) obj;
-            return Objects.equal(hash, other.hash);
+            return Objects.equals(hash, other.hash);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -298,7 +298,7 @@ public final class HotspottyDataStreamHashAidxTable implements
                 return false;
             }
             HotspottyDataStreamHashAidxColumn other = (HotspottyDataStreamHashAidxColumn) obj;
-            return Objects.equal(streamId, other.streamId);
+            return Objects.equals(streamId, other.streamId);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -487,35 +487,6 @@ public final class HotspottyDataStreamHashAidxTable implements
         for (HotspottyDataStreamHashAidxTrigger trigger : triggers) {
             trigger.putHotspottyDataStreamHashAidx(values);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(HotspottyDataStreamHashAidxRow rowName, Iterable<HotspottyDataStreamHashAidxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(HotspottyDataStreamHashAidxRow rowName, HotspottyDataStreamHashAidxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<HotspottyDataStreamHashAidxRow, ? extends HotspottyDataStreamHashAidxColumnValue> rows) {
-        Multimap<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, HotspottyDataStreamHashAidxColumnValue.getColumnNameFun());
-        Multimap<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumnValue> toPut = HashMultimap.create();
-        for (Entry<HotspottyDataStreamHashAidxRow, ? extends HotspottyDataStreamHashAidxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     @Override
@@ -742,5 +713,5 @@ public final class HotspottyDataStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7ix5MBoUOvKMc30ZfEnuyA==";
+    static String __CLASS_HASH = "Lh4UEEm2Yer4BJTWKfCP4Q==";
 }

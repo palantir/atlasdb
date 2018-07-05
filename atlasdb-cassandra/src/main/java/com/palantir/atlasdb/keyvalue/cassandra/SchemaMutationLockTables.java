@@ -24,10 +24,14 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.SafeArg;
@@ -63,31 +67,58 @@ public class SchemaMutationLockTables {
     }
 
     public TableReference createLockTable() throws TException {
-        return clientPool.runWithRetry(this::createLockTable);
+        TableReference lockTable = TableReference.createWithEmptyNamespace(LOCK_TABLE_PREFIX);
+
+        try {
+            log.info("Creating lock table {}", SafeArg.of("schemaMutationTableName", lockTable.getQualifiedName()));
+            createTableWithCustomId(lockTable);
+            return lockTable;
+        } catch (InvalidRequestException ire) {
+            // This can happen if multiple nodes concurrently attempt to create the locks table
+            Set<TableReference> lockTables = getAllLockTables();
+            if (lockTables.size() == 1) {
+                log.info("Lock table was created by another node - returning it.");
+                return Iterables.getOnlyElement(lockTables);
+            } else {
+                throw new IllegalStateException(String.format("Expected 1 locks table to exist, but found %d",
+                        lockTables.size()));
+            }
+        }
     }
 
-    private TableReference createLockTable(CassandraClient client) throws TException {
-        String lockTableName = LOCK_TABLE_PREFIX + "_" + getUniqueSuffix();
-        TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
-        log.info("Creating lock table {}", SafeArg.of("schemaMutationTableName", lockTable));
-        createTableInternal(client, lockTable);
-        return lockTable;
-    }
+    private void createTableWithCustomId(TableReference tableRef) throws TException {
+        String internalTableName = CassandraKeyValueServiceImpl.internalTableName(tableRef);
+        String keyspace = config.getKeyspaceOrThrow();
+        String fullTableNameForUuid = keyspace + "." + internalTableName;
+        UUID uuid = UUID.nameUUIDFromBytes(fullTableNameForUuid.getBytes());
 
-    private String getUniqueSuffix() {
-        // We replace '-' with '_' as hyphens are forbidden in Cassandra table names.
-        return UUID.randomUUID().toString().replace('-', '_');
-    }
+        String createTableStatement = "CREATE TABLE \"%s\".\"%s\" (\n"
+                + "    key blob,\n"
+                + "    column1 blob,\n"
+                + "    column2 bigint,\n"
+                + "    value blob,\n"
+                + "    PRIMARY KEY (key, column1, column2)\n"
+                + ") WITH COMPACT STORAGE\n"
+                + "    AND id = '%s'";
+        CqlQuery query = new CqlQuery(createTableStatement,
+                SafeArg.of("keyspace", keyspace),
+                SafeArg.of("internalTableName", internalTableName),
+                SafeArg.of("cfId", uuid));
 
-    private void createTableInternal(CassandraClient client, TableReference tableRef) throws TException {
-        CfDef cf = ColumnFamilyDefinitions.getStandardCfDef(
-                config.getKeyspaceOrThrow(),
-                CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        client.system_add_column_family(cf);
-        CassandraKeyValueServices.waitForSchemaVersions(
-                config,
-                client,
-                tableRef.getQualifiedName(),
-                true);
+        clientPool.runWithRetry(client -> {
+            try {
+                client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM);
+
+                CassandraKeyValueServices.waitForSchemaVersions(
+                        config,
+                        client,
+                        tableRef.getQualifiedName(),
+                        true);
+                return null;
+            } catch (TException ex) {
+                log.warn("Failed to create table", ex);
+                throw ex;
+            }
+        });
     }
 }

@@ -33,7 +33,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +60,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -115,6 +119,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.PalantirSqlException;
@@ -380,6 +385,62 @@ public final class DbKvs extends AbstractKeyValueService {
         return entry -> Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length;
     }
 
+    /* (non-Javadoc)
+     * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
+     */
+    @Override
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp)
+            throws KeyAlreadyExistsException {
+        List<Callable<Void>> callables = Lists.newArrayList();
+        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+            final TableReference table = e.getKey();
+            // We sort here because some key value stores are more efficient if you store adjacent keys together.
+            NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
+
+            Iterable<List<Entry<Cell, byte[]>>> partitions = IterablePartitioner.partitionByCountAndBytes(
+                    sortedMap.entrySet(),
+                    getMultiPutBatchCount(),
+                    getMultiPutBatchSizeBytes(),
+                    table,
+                    entry -> entry == null ? 0 : entry.getValue().length + Cells.getApproxSizeOfCell(entry.getKey()));
+
+            for (final List<Entry<Cell, byte[]>> p : partitions) {
+                callables.add(() -> {
+                    String originalName = Thread.currentThread().getName();
+                    Thread.currentThread().setName("Atlas multiPut of " + p.size() + " cells into " + table);
+                    try {
+                        put(table, Maps2.fromEntries(p), timestamp);
+                        return null;
+                    } finally {
+                        Thread.currentThread().setName(originalName);
+                    }
+                });
+            }
+        }
+
+        List<Future<Void>> futures;
+        try {
+            futures = executor.invokeAll(callables);
+        } catch (InterruptedException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+        for (Future<Void> future : futures) {
+            try {
+                future.get();
+            } catch (InterruptedException e) {
+                throw Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+            }
+        }
+    }
+
+    @Override
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp)
+            throws KeyAlreadyExistsException {
+        put(tableRef, values, timestamp, true);
+    }
+
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, boolean idempotent) {
         Iterable<List<Entry<Cell, byte[]>>> batches = IterablePartitioner.partitionByCountAndBytes(
                 values.entrySet(),
@@ -402,12 +463,6 @@ public final class DbKvs extends AbstractKeyValueService {
             }
             return null;
         });
-    }
-
-    @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp)
-            throws KeyAlreadyExistsException {
-        put(tableRef, values, timestamp, true);
     }
 
     private void putIfNotUpdate(

@@ -262,11 +262,6 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 32;
     }
 
-    @Value.Default
-    public boolean scyllaDb() {
-        return false;
-    }
-
     /**
      * Obsolete value, replaced by {@link SweepConfig#readLimit}.
      *

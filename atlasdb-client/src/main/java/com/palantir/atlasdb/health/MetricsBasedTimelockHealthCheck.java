@@ -19,13 +19,19 @@ package com.palantir.atlasdb.health;
 import java.util.Map;
 
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public class MetricsBasedTimelockHealthCheck implements TimelockHealthCheck{
+    private final MetricRegistry metricRegistry;
+
+    public MetricsBasedTimelockHealthCheck(MetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
+    }
+
     public TimelockServiceStatus getStatus() {
-        Map<String, Meter> meters = AtlasDbMetrics.getMetricRegistry().getMeters();
+        Map<String, Meter> meters = metricRegistry.getMeters();
         if (!meters.containsKey(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST)
                 || !meters.containsKey(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST)) {
             throw new IllegalStateException("Timelock client metrics is not properly set");

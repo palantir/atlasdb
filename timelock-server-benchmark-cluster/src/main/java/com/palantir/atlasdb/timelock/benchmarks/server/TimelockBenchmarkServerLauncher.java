@@ -16,17 +16,14 @@
 
 package com.palantir.atlasdb.timelock.benchmarks.server;
 
-import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.benchmarks.server.config.TimelockBenchmarkServerConfig;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.paxos.TimeLockAgent;
-import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
@@ -40,10 +37,6 @@ public class TimelockBenchmarkServerLauncher extends Application<TimelockBenchma
 
     @Override
     public void initialize(Bootstrap<TimelockBenchmarkServerConfig> bootstrap) {
-        MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
-        TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
-        AtlasDbMetrics.setMetricRegistries(metricRegistry, taggedMetricRegistry);
-        bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
         super.initialize(bootstrap);
@@ -54,6 +47,7 @@ public class TimelockBenchmarkServerLauncher extends Application<TimelockBenchma
         FeignOkHttpClients.globalClientSettings = client -> client.hostnameVerifier((ig, nored) -> true);
 
         TimeLockAgent agent = TimeLockAgent.create(
+                MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry()),
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload
                 ImmutableTimeLockDeprecatedConfiguration.builder().build(),
