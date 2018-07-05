@@ -42,6 +42,11 @@ public class SweepableTimestamps extends KvsSweepQueueWriter {
     }
 
     @Override
+    Map<Cell, byte[]> populateReferences(PartitionInfo partitionInfo, List<WriteInfo> writes) {
+        return ImmutableMap.of();
+    }
+
+    @Override
     Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes) {
         SweepableTimestampsTable.SweepableTimestampsRow row = computeRow(info);
         SweepableTimestampsTable.SweepableTimestampsColumn col = computeColumn(info);
