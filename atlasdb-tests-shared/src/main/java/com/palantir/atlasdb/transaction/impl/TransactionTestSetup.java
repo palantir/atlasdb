@@ -73,6 +73,8 @@ public abstract class TransactionTestSetup {
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
 
+    protected TransactionOutcomeMetrics transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
+
     protected final TimestampCache timestampCache = new TimestampCache(
             new MetricRegistry(),
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);

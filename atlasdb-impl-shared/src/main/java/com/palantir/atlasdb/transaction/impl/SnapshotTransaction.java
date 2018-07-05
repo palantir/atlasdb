@@ -1956,6 +1956,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
+                transactionOutcomeMetrics.markLocksExpired();
                 throw new TransactionLockTimeoutException("Our commit was already rolled back at commit time"
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);

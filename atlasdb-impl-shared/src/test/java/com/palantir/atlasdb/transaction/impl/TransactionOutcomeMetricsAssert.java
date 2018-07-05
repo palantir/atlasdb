@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.function.LongConsumer;
+
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.WritableAssertionInfo;
 import org.assertj.core.internal.Objects;
@@ -89,6 +91,13 @@ public class TransactionOutcomeMetricsAssert extends
 
     public TransactionOutcomeMetricsAssert hasPlaceholderWriteWriteConflicts(long count) {
         checkPresentAndCheckCount("writeWriteConflict", count, LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
+        return this;
+    }
+
+    public TransactionOutcomeMetricsAssert hasPlaceholderWriteWriteConflictsSatisfying(LongConsumer assertion) {
+        MetricName metricName = actual.getMetricName("writeWriteConflict",
+                getTableReferenceTags(LoggingArgs.PLACEHOLDER_TABLE_REFERENCE));
+        assertion.accept(taggedMetricRegistry.meter(metricName).getCount());
         return this;
     }
 

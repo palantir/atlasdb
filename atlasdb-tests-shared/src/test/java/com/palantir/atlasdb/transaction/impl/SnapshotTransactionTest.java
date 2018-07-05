@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -142,6 +143,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     protected final int defaultGetRangesConcurrency = 2;
+    protected final TransactionOutcomeMetrics transactionOutcomeMetrics
+            = TransactionOutcomeMetrics.create(metricsManager);
 
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
@@ -223,6 +226,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testConcurrentWriteWriteConflicts() throws InterruptedException, ExecutionException {
         long val = concurrentlyIncrementValueThousandTimesAndGet();
         assertEquals(1000, val);
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasPlaceholderWriteWriteConflictsSatisfying(conflicts ->
+                        assertThat(conflicts, greaterThanOrEqualTo(1L)));
     }
 
     @Test
@@ -861,6 +867,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         executor.runUntilIdle();
 
         verify(keyValueService, times(1)).delete(any(), any());
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasSuccessfulCommits(1)
+                .hasFailedCommits(1);
     }
 
     @Test
@@ -890,6 +899,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void readTransactionSucceedsIfConditionSucceeds() {
         serializableTxManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP,
                 (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasSuccessfulCommits(1);
     }
 
     @Test
@@ -901,6 +912,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         } catch (TransactionFailedRetriableException e) {
             assertThat(e.getMessage(), containsString("Condition failed"));
         }
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasFailedCommits(1);
     }
 
     @Test
@@ -1046,6 +1059,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(snapshot::commit);
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasFailedCommits(1)
+                .hasLocksExpired(1);
     }
 
     @Test
