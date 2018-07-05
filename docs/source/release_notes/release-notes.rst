@@ -70,6 +70,10 @@ develop
            If your schema already has a table with ``SERIALIZABLE`` conflict handler, and you would like to migrate it to ``SERIALIZABLE_CELL`` or ``SERIALIZABLE_INDEX`` with a rolling upgrade (without a shutdown); then you should first migrate it to ``SERIALIZABLE_LOCK_LEVEL_MIGRATION`` conflict handler to avoid data corruption.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3267>`__)
 
+    *    - |devbreak|
+         - Removed the token range skewness logger from the Cassandra KVS. We've not been relying on it to catch issues and it produces a very large output that is cumbersome.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3352>`__)
+
 =======
 v0.94.0
 =======
