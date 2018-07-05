@@ -64,6 +64,7 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
@@ -614,7 +615,9 @@ public abstract class TransactionManagers {
     }
 
     private static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
-        return atlasDbConfig.timelock().isPresent() || runtimeConfig.timelockRuntime().isPresent();
+        Optional<TimeLockRuntimeConfig> timeLockRuntimeConfig = runtimeConfig.timelockRuntime();
+        return atlasDbConfig.timelock().isPresent() || (timeLockRuntimeConfig.isPresent()
+                && timeLockRuntimeConfig.get().serversList().hasAtLeastOneServer());
     }
 
     /**
@@ -725,10 +728,14 @@ public abstract class TransactionManagers {
             AtlasDbRuntimeConfig initialRuntimeConfig) {
         // Note: The other direction (timelock install config without a runtime block) should be maintained for
         // backwards compatibility.
-        if (remoteTimestampAndLockOrLeaderBlocksPresent(config) && initialRuntimeConfig.timelockRuntime().isPresent()) {
-            throw new IllegalStateException("Found a service configured not to use timelock, with a timelock"
-                    + " block in the runtime config! This is unexpected. If you wish to use non-timelock services,"
-                    + " please remove the timelock block from the runtime config; if you wish to use timelock,"
+        Optional<TimeLockRuntimeConfig> timeLockRuntimeConfig = initialRuntimeConfig.timelockRuntime();
+        if (remoteTimestampAndLockOrLeaderBlocksPresent(config)
+                && timeLockRuntimeConfig.isPresent()
+                && timeLockRuntimeConfig.get().serversList().hasAtLeastOneServer()) {
+            throw new IllegalStateException("Found a service configured not to use timelock, with an entry in the"
+                    + " server list of timelock block in the runtime config! This is unexpected."
+                    + " If you wish to use non-timelock services, please remove the entry from the server list of the"
+                    + " timelock block from the runtime config; if you wish to use timelock,"
                     + " please remove the leader, remote timestamp or remote lock configuration blocks.");
         }
     }
