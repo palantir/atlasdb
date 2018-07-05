@@ -258,11 +258,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    TokenRangeWritesLogger getTokenRangeWritesLogger() {
-        return cassandra.getTokenRangeWritesLogger();
-    }
-
-    @VisibleForTesting
     RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
         return cassandra.getTokenMap();
     }

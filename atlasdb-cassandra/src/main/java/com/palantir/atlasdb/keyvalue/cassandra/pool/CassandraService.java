@@ -52,7 +52,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
-import com.palantir.atlasdb.keyvalue.cassandra.TokenRangeWritesLogger;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
@@ -68,7 +67,6 @@ public class CassandraService implements AutoCloseable {
     private final QosClient qosClient;
 
     private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
-    private final TokenRangeWritesLogger tokenRangeWritesLogger;
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
 
     private List<InetSocketAddress> cassandraHosts;
@@ -79,16 +77,11 @@ public class CassandraService implements AutoCloseable {
         this.config = config;
         this.blacklist = blacklist;
         this.qosClient = qosClient;
-        this.tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized(metricsManager);
     }
 
     @Override
     public void close() {
         qosClient.close();
-    }
-
-    public TokenRangeWritesLogger getTokenRangeWritesLogger() {
-        return tokenRangeWritesLogger;
     }
 
     public Set<InetSocketAddress> refreshTokenRanges() {
