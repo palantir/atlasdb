@@ -186,25 +186,44 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3161">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> API has been removed from AtlasDB tables, as it was misleading (it only did the put if the given row, column and value triple were already present, as opposed to the more intuitive condition of the row and column value pair being present).
 Please replace any uses of the table-level <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> with a get, check and put if appropriate - these will still be transactional because of the AtlasDB transaction protocol.
 Note that this is not the same as the KVS <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> API, which is still used by the transaction protocol.
 This API has already been since August 2017 (11 months from time of writing).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3340">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>We will no longer continue to update <code class="docutils literal notranslate"><span class="pre">sweep.priority</span></code> if writes are persisted to the targeted sweep queue.
+This means that assuming <code class="docutils literal notranslate"><span class="pre">targetedSweep.enableSweepQueueWrites</span></code> remains on, the background sweeper will eventually run out of things to sweep without further intervention.
+At this point, the background sweeper will start reporting <code class="docutils literal notranslate"><span class="pre">NOTHING_TO_SWEEP</span></code>, and the background sweeper may safely be disabled.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3349">Pull Request</a>)</td>
+</tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Writes to the targeted sweep queue are now done using the start timestamp of the transaction that makes the call.
+Previously, the writes were done at timestamp 0, which was interfering with Cassandra compactions.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3342">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The sweep CLI will no longer perform in-process compactions after sweeping a table.
 For DbKvs, this operation is handled by the background compaction thread; Cassandra performs its own compactions.
 Note that the sweep CLI itself has been deprecated in favour of using the sweep priority override configuration, possibly in conjunction with the thread count (<a class="reference internal" href="../cluster_management/sweep/standard-sweep.html#sweep-tunable-parameters"><span class="std std-ref">Docs</span></a>).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3338">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Three new conflict handlers <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE_CELL</span></code>, <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE_INDEX</span></code> and <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE_LOCK_LEVEL_MIGRATION</span></code> are added.
 <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE_CELL</span></code> conflict handler is same as <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE</span></code>, but checks for conflicts by locking cells during commit instead of locking rows. Cell locks are more fine-grained, so this will produce less contention at the expense of requiring more locks to be acquired.
 <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE_INDEX</span></code> conflict handler is designed to be used by index tables. As any write/write conflict on an index table will necessarily also be a write/write conflict on base table, this conflict handler does not check write/write conflicts. Read/write conflicts should still need to be checked, since we do not need to read the index table with the main table. This conflict handler also locks at cell level.
 If your schema already has a table with <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE</span></code> conflict handler, and you would like to migrate it to <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE_CELL</span></code> or <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE_INDEX</span></code> with a rolling upgrade (without a shutdown); then you should first migrate it to <code class="docutils literal notranslate"><span class="pre">SERIALIZABLE_LOCK_LEVEL_MIGRATION</span></code> conflict handler to avoid data corruption.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3267">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Removed the token range skewness logger from the Cassandra KVS. We’ve not been relying on it to catch issues and it produces a very large output that is cumbersome.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3352">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
