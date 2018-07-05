@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3161>`__)
+
     *    - |devbreak|
          - The ``putUnlessExists`` API has been removed from AtlasDB tables, as it was misleading (it only did the put if the given row, column and value triple were already present, as opposed to the more intuitive condition of the row and column value pair being present).
            Please replace any uses of the table-level ``putUnlessExists`` with a get, check and put if appropriate - these will still be transactional because of the AtlasDB transaction protocol.
