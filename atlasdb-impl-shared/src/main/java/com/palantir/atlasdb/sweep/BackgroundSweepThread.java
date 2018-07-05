@@ -57,6 +57,21 @@ public class BackgroundSweepThread implements Runnable {
 
     private Optional<TableToSweep> currentTable = Optional.empty();
 
+    // Used in internal test code
+    @VisibleForTesting
+    public static BackgroundSweepThread createForTests(LockService lockService,
+            NextTableToSweepProvider nextTableToSweepProvider,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource,
+            Supplier<Boolean> isSweepEnabled,
+            Supplier<Long> sweepPauseMillis,
+            Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
+            SpecificTableSweeper specificTableSweeper,
+            SweepOutcomeMetrics sweepOutcomeMetrics) {
+        return new BackgroundSweepThread(lockService, nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled,
+                sweepPauseMillis, sweepPriorityOverrideConfig, specificTableSweeper, sweepOutcomeMetrics,
+                new CountDownLatch(1), 1);
+    }
+
     BackgroundSweepThread(LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
