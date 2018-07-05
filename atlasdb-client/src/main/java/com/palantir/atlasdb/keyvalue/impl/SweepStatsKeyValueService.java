@@ -84,8 +84,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
 
-    private final Set<TableReference> clearedTables = Collections.newSetFromMap(
-            new ConcurrentHashMap<TableReference, Boolean>());
+    private final Set<TableReference> clearedTables = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private final AtomicInteger totalModifications = new AtomicInteger();
     private final AtomicLong totalModificationsSize = new AtomicLong();
@@ -194,6 +193,21 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     @VisibleForTesting
     boolean hasBeenCleared(TableReference tableRef) {
         return clearedTables.contains(tableRef);
+    }
+
+    @VisibleForTesting
+    int getTotalModifications() {
+        return totalModifications.get();
+    }
+
+    @VisibleForTesting
+    long getTotalModificationsSize() {
+        return totalModificationsSize.get();
+    }
+
+    @VisibleForTesting
+    int getWriteCount(TableReference tableReference) {
+        return writesByTable.count(tableReference);
     }
 
     // This way of recording the number of writes to tables is obviously not
