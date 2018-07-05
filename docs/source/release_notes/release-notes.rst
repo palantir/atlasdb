@@ -50,8 +50,11 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |new|
+         - Requests sent by ``atlasdb-client`` to Timelock will have the Authorization header set.
+           Its value is retrieved from configs, from the ``auth-token`` field of ``timelockRuntime``.
+           This enables the possibility of authorizing the requests on the server side.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3077>`__)
 
 =======
 v0.94.0
