@@ -51,7 +51,7 @@ public interface AuthedRemoteLockService {
             @Safe @PathParam("client") String client, LockRequest request) throws InterruptedException;
 
     /**
-     * This is the same as {@link #lock(AuthHeader, String, LockRequest)} but will return as many locks as can be acquired.
+     * The same as {@link #lock(AuthHeader, String, LockRequest)} but will return as many locks as can be acquired.
      * @return a token for the locks acquired
      */
     @POST
@@ -89,8 +89,8 @@ public interface AuthedRemoteLockService {
     @Path("refresh-lock-tokens")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent Set<LockRefreshToken> refreshLockRefreshTokens(@HeaderParam(HttpHeaders.AUTHORIZATION) AuthHeader authHeader,
-            Iterable<LockRefreshToken> tokens);
+    @Idempotent Set<LockRefreshToken> refreshLockRefreshTokens(
+            @HeaderParam(HttpHeaders.AUTHORIZATION) AuthHeader authHeader, Iterable<LockRefreshToken> tokens);
 
     /**
      * Returns the minimum version ID for all locks that are currently acquired

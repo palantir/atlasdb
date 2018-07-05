@@ -92,7 +92,8 @@ public class TimeLockMigrator extends AsyncInitializer {
             String userAgent,
             Supplier<AuthHeader> authHeaderSupplier) {
         AuthedTimestampManagementService authedTimestampManagementService =
-                new ServiceCreator<>(metricsManager, AuthedTimestampManagementService.class, userAgent).applyDynamic(serverListConfig);
+                new ServiceCreator<>(metricsManager, AuthedTimestampManagementService.class, userAgent)
+                        .applyDynamic(serverListConfig);
         return new AuthDecoratedTimestampManagementService(authedTimestampManagementService, authHeaderSupplier);
     }
 

@@ -30,7 +30,7 @@ public class AuthDecoratingLockService implements LockService {
 
     public AuthDecoratingLockService(AuthedLockService authedLockService,
             Supplier<AuthHeader> authHeaderSupplier) {
-        this.authedLockService= authedLockService;
+        this.authedLockService = authedLockService;
         this.authHeaderSupplier = authHeaderSupplier;
     }
 
@@ -41,6 +41,11 @@ public class AuthDecoratingLockService implements LockService {
 
     @Override
     public boolean unlock(HeldLocksToken token) {
+        return authedLockService.unlock(authHeaderSupplier.get(), token);
+    }
+
+    @Override
+    public boolean unlock(LockRefreshToken token) {
         return authedLockService.unlock(authHeaderSupplier.get(), token);
     }
 
@@ -102,6 +107,12 @@ public class AuthDecoratingLockService implements LockService {
         return authedLockService.getMinLockedInVersionId(authHeaderSupplier.get(), client);
     }
 
+    @Nullable
+    @Override
+    public Long getMinLockedInVersionId(String client) {
+        return authedLockService.getMinLockedInVersionId(authHeaderSupplier.get(), client);
+    }
+
     @Override
     public LockServerOptions getLockServerOptions() {
         return authedLockService.getLockServerOptions(authHeaderSupplier.get());
@@ -119,19 +130,8 @@ public class AuthDecoratingLockService implements LockService {
     }
 
     @Override
-    public boolean unlock(LockRefreshToken token) {
-        return authedLockService.unlock(authHeaderSupplier.get(), token);
-    }
-
-    @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
         return authedLockService.refreshLockRefreshTokens(authHeaderSupplier.get(), tokens);
-    }
-
-    @Nullable
-    @Override
-    public Long getMinLockedInVersionId(String client) {
-        return authedLockService.getMinLockedInVersionId(authHeaderSupplier.get(), client);
     }
 
     @Override

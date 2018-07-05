@@ -777,11 +777,14 @@ public abstract class TransactionManagers {
             String userAgent) {
         AuthedLockService lockService = new ServiceCreator<>(metricsManager, AuthedLockService.class, userAgent)
                 .applyDynamic(timelockServerListConfig);
-        AuthDecoratingLockService authDecoratingLockService = new AuthDecoratingLockService(lockService, authHeaderSupplier);
+        AuthDecoratingLockService authDecoratingLockService =
+                new AuthDecoratingLockService(lockService, authHeaderSupplier);
 
-        AuthedTimelockService timelockService = new ServiceCreator<>(metricsManager, AuthedTimelockService.class, userAgent)
-                .applyDynamic(timelockServerListConfig);
-        AuthDecoratedTimelockService authDecoratedTimelockService = new AuthDecoratedTimelockService(timelockService, authHeaderSupplier);
+        AuthedTimelockService timelockService =
+                new ServiceCreator<>(metricsManager, AuthedTimelockService.class, userAgent)
+                        .applyDynamic(timelockServerListConfig);
+        AuthDecoratedTimelockService authDecoratedTimelockService =
+                new AuthDecoratedTimelockService(timelockService, authHeaderSupplier);
 
 
         return ImmutableLockAndTimestampServices.builder()
