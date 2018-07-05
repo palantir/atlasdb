@@ -97,7 +97,6 @@ public class CellValuePutter {
                                 tableRef,
                                 entry.getValue().entrySet(),
                                 overwriteTimestamps);
-                        clientPool.markWritesForTable(entry.getValue(), tableRef);
                         return null;
                     }));
         }
