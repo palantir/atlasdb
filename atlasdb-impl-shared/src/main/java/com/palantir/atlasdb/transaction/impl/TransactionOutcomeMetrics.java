@@ -43,7 +43,9 @@ public class TransactionOutcomeMetrics {
     private static final String PUT_UNLESS_EXISTS_FAILED = "putUnlessExistsFailed";
     private static final String ROLLBACK_OTHER = "rollbackOther";
 
-    private final MetricsManager metricsManager;
+    @VisibleForTesting
+    final MetricsManager metricsManager;
+
     private final Predicate<TableReference> safeForLogging;
 
     @VisibleForTesting
@@ -88,7 +90,8 @@ public class TransactionOutcomeMetrics {
         getMeter(ROLLBACK_OTHER).mark();
     }
 
-    private Meter getMeter(String meterName) {
+    @VisibleForTesting
+    Meter getMeter(String meterName) {
         return getMeter(meterName, ImmutableMap.of());
     }
 
@@ -101,9 +104,14 @@ public class TransactionOutcomeMetrics {
 
     private Meter getMeter(String meterName, Map<String, String> safeTags) {
         return metricsManager.getTaggedRegistry().meter(
-                MetricName.builder()
-                        .safeName(MetricRegistry.name(TransactionOutcomeMetrics.class, meterName))
-                        .putAllSafeTags(safeTags)
-                        .build());
+                getMetricName(meterName, safeTags));
+    }
+
+    @VisibleForTesting
+    MetricName getMetricName(String meterName, Map<String, String> safeTags) {
+        return MetricName.builder()
+                .safeName(MetricRegistry.name(TransactionOutcomeMetrics.class, meterName))
+                .putAllSafeTags(safeTags)
+                .build();
     }
 }

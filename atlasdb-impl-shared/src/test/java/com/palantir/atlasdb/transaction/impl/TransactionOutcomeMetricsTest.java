@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import static com.palantir.atlasdb.transaction.impl.TaggedMetricRegistryAssert.assertThat;
+import static com.palantir.atlasdb.transaction.impl.TransactionOutcomeMetricsAssert.assertThat;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
@@ -33,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class TransactionOutcomeMetricsTest {
@@ -58,15 +56,10 @@ public class TransactionOutcomeMetricsTest {
     private final TransactionOutcomeMetrics transactionOutcomeMetrics = new TransactionOutcomeMetrics(metricsManager,
             SAFE_REFERENCES::contains);
 
-    @Before
-    public void setUp() {
-        ;
-    }
-
     @Test
     public void canMarkOneSuccessfulCommit() {
         transactionOutcomeMetrics.markSuccessfulCommit();
-        assertThat(taggedMetricRegistry).hasMeterWithCount(getMetricName("successfulCommit"), 1);
+        assertThat(transactionOutcomeMetrics).hasSuccessfulCommits(1);
     }
 
     @Test
@@ -75,7 +68,7 @@ public class TransactionOutcomeMetricsTest {
         transactionOutcomeMetrics.markSuccessfulCommit();
         transactionOutcomeMetrics.markSuccessfulCommit();
         transactionOutcomeMetrics.markSuccessfulCommit();
-        assertThat(taggedMetricRegistry).hasMeterWithCount(getMetricName("successfulCommit"), 4);
+        assertThat(transactionOutcomeMetrics).hasSuccessfulCommits(4);
     }
 
     @Test
@@ -89,12 +82,12 @@ public class TransactionOutcomeMetricsTest {
 
         tasks.entrySet().forEach(entry -> IntStream.range(0, entry.getKey()).forEach(unused -> entry.getValue().run()));
 
-        assertThat(taggedMetricRegistry)
-                .hasMeterWithCount(getMetricName("abort"), 1)
-                .hasMeterWithCount(getMetricName("successfulCommit"), 2)
-                .hasMeterWithCount(getMetricName("locksExpired"), 3)
-                .hasMeterWithCount(getMetricName("putUnlessExistsFailed"), 4)
-                .hasMeterWithCount(getMetricName("rollbackOther"), 5);
+        assertThat(transactionOutcomeMetrics)
+                .hasAborts(1)
+                .hasSuccessfulCommits(2)
+                .hasLocksExpired(3)
+                .hasPutUnlessExistsFailed(4)
+                .hasRollbackOther(5);
     }
 
     @Test
@@ -103,9 +96,9 @@ public class TransactionOutcomeMetricsTest {
         transactionOutcomeMetrics.markReadWriteConflict(SAFE_REFERENCE_1);
         transactionOutcomeMetrics.markWriteWriteConflict(SAFE_REFERENCE_1);
 
-        assertThat(taggedMetricRegistry)
-                .hasMeterWithCount(getTableReferenceTaggedMetricName("readWriteConflict", SAFE_REFERENCE_1), 2)
-                .hasMeterWithCount(getTableReferenceTaggedMetricName("writeWriteConflict", SAFE_REFERENCE_1), 1);
+        assertThat(transactionOutcomeMetrics)
+                .hasNamedReadWriteConflicts(SAFE_REFERENCE_1, 2)
+                .hasNamedWriteWriteConflicts(SAFE_REFERENCE_1, 1);
     }
 
     @Test
@@ -113,9 +106,9 @@ public class TransactionOutcomeMetricsTest {
         transactionOutcomeMetrics.markReadWriteConflict(SAFE_REFERENCE_1);
         transactionOutcomeMetrics.markReadWriteConflict(SAFE_REFERENCE_2);
 
-        assertThat(taggedMetricRegistry)
-                .hasMeterWithCount(getTableReferenceTaggedMetricName("readWriteConflict", SAFE_REFERENCE_1), 1)
-                .hasMeterWithCount(getTableReferenceTaggedMetricName("readWriteConflict", SAFE_REFERENCE_2), 1);
+        assertThat(transactionOutcomeMetrics)
+                .hasNamedReadWriteConflicts(SAFE_REFERENCE_1, 1)
+                .hasNamedReadWriteConflicts(SAFE_REFERENCE_2, 1);
     }
 
     @Test
@@ -123,17 +116,16 @@ public class TransactionOutcomeMetricsTest {
         transactionOutcomeMetrics.markWriteWriteConflict(UNSAFE_REFERENCE_1);
         transactionOutcomeMetrics.markReadWriteConflict(UNSAFE_REFERENCE_2);
 
-        assertThat(taggedMetricRegistry)
-                .doesNotHaveMeter(getTableReferenceTaggedMetricName("writeWriteConflict", UNSAFE_REFERENCE_1))
-                .doesNotHaveMeter(getTableReferenceTaggedMetricName("readWriteConflict", UNSAFE_REFERENCE_2));
+        assertThat(transactionOutcomeMetrics)
+                .hasNoKnowledgeOf(UNSAFE_REFERENCE_1)
+                .hasNoKnowledgeOf(UNSAFE_REFERENCE_2);
     }
 
     @Test
     public void conflictsInUnsafeTablesAreTrackedWithPlaceholder() {
         transactionOutcomeMetrics.markWriteWriteConflict(UNSAFE_REFERENCE_1);
 
-        assertThat(taggedMetricRegistry)
-                .hasMeterWithCount(getTableReferenceTaggedMetricName("writeWriteConflict", PLACEHOLDER), 1);
+        assertThat(transactionOutcomeMetrics).hasPlaceholderWriteWriteConflicts(1);
     }
 
     @Test
@@ -143,8 +135,7 @@ public class TransactionOutcomeMetricsTest {
         transactionOutcomeMetrics.markReadWriteConflict(UNSAFE_REFERENCE_1);
         transactionOutcomeMetrics.markReadWriteConflict(UNSAFE_REFERENCE_2);
 
-        assertThat(taggedMetricRegistry)
-                .hasMeterWithCount(getTableReferenceTaggedMetricName("readWriteConflict", PLACEHOLDER), 4);
+        assertThat(transactionOutcomeMetrics).hasPlaceholderReadWriteConflicts(4);
     }
 
     @Test
@@ -154,22 +145,9 @@ public class TransactionOutcomeMetricsTest {
         transactionOutcomeMetrics.markReadWriteConflict(UNSAFE_REFERENCE_2);
         transactionOutcomeMetrics.markReadWriteConflict(SAFE_REFERENCE_2);
 
-        assertThat(taggedMetricRegistry)
-                .hasMeterWithCount(getTableReferenceTaggedMetricName("readWriteConflict", PLACEHOLDER), 2)
-                .hasMeterWithCount(getTableReferenceTaggedMetricName("readWriteConflict", SAFE_REFERENCE_1), 1)
-                .hasMeterWithCount(getTableReferenceTaggedMetricName("readWriteConflict", SAFE_REFERENCE_2), 1);
-    }
-
-    private MetricName getMetricName(String name) {
-        return MetricName.builder()
-                .safeName(MetricRegistry.name(TransactionOutcomeMetrics.class, name))
-                .build();
-    }
-
-    private MetricName getTableReferenceTaggedMetricName(String name, TableReference tableReference) {
-        return MetricName.builder()
-                .safeName(MetricRegistry.name(TransactionOutcomeMetrics.class, name))
-                .putSafeTags("tableReference", tableReference.getQualifiedName())
-                .build();
+        assertThat(transactionOutcomeMetrics)
+                .hasPlaceholderReadWriteConflicts(2)
+                .hasNamedReadWriteConflicts(SAFE_REFERENCE_1, 1)
+                .hasNamedReadWriteConflicts(SAFE_REFERENCE_2, 1);
     }
 }
