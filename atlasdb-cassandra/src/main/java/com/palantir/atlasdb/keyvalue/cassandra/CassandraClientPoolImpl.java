@@ -44,8 +44,6 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.qos.FakeQosClient;
@@ -250,11 +248,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
         return cassandra.getPools();
-    }
-
-    @Override
-    public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
-        cassandra.markWritesForTable(entries, tableRef);
     }
 
     @VisibleForTesting

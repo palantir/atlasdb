@@ -44,8 +44,6 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -120,8 +118,6 @@ public class CassandraService implements AutoCloseable {
                 }
             }
             tokenMap = newTokenRing.build();
-
-            tokenRangeWritesLogger.updateTokenRanges(tokenMap.asMapOfRanges().keySet());
             return servers;
         } catch (Exception e) {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
@@ -206,10 +202,6 @@ public class CassandraService implements AutoCloseable {
 
     public RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
         return tokenMap;
-    }
-
-    public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
-        tokenRangeWritesLogger.markWritesForTable(entries.keySet(), tableRef);
     }
 
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getPools() {

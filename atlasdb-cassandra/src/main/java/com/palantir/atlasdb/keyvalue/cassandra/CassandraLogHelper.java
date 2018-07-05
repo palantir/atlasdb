@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.TokenRange;
@@ -56,15 +55,6 @@ public final class CassandraLogHelper {
                         getLowerEndpoint(rangeListToHostEntry.getKey()),
                         getUpperEndpoint(rangeListToHostEntry.getKey()),
                         CassandraLogHelper.collectionOfHosts(rangeListToHostEntry.getValue())))
-                .collect(Collectors.toList());
-    }
-
-    static List<String> tokenRangesToWrites(RangeMap<LightweightOppToken, AtomicLong> writes) {
-        return writes.asMapOfRanges().entrySet().stream()
-                .map(entry -> String.format("range from %s to %s has %d writes",
-                        getLowerEndpoint(entry.getKey()),
-                        getUpperEndpoint(entry.getKey()),
-                        entry.getValue().get()))
                 .collect(Collectors.toList());
     }
 
