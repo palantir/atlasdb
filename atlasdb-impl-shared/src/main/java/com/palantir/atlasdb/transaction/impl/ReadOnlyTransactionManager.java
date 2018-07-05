@@ -40,7 +40,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
-public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
+public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
     private final MetricsManager metricsManager;
     private final KeyValueService keyValueService;
     private final TransactionService transactionService;
@@ -93,8 +93,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
+            LockAwareTransactionTask<T, E> task) {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
@@ -102,8 +101,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
+            LockAwareTransactionTask<T, E> task) {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
@@ -157,7 +155,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
 
     @Override
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
-            TransactionTask<T, E> task) throws E, TransactionFailedRetriableException {
+            TransactionTask<T, E> task) throws TransactionFailedRetriableException {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 

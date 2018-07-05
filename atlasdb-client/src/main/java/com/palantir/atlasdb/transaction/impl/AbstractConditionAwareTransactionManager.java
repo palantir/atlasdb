@@ -43,10 +43,6 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
         super(metricsManager, timestampCache);
     }
 
-    AbstractConditionAwareTransactionManager(MetricsManager metricsManager, Supplier<Long> timestampCacheSize) {
-        super(metricsManager, timestampCacheSize);
-    }
-
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {

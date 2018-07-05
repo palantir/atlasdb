@@ -19,7 +19,6 @@ import org.awaitility.Awaitility;
 import org.awaitility.Duration;
 
 import com.google.common.base.Supplier;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -78,7 +77,6 @@ public final class SweepTestUtils {
                 metricsManager, kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 writer);
         setupTables(kvs);
         writer.callbackInit(txManager);

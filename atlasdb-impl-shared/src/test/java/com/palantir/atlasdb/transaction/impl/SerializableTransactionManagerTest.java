@@ -37,7 +37,7 @@ import org.junit.Test;
 
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
-import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -224,7 +224,7 @@ public class SerializableTransactionManagerTest {
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 initializeAsync,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                TimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 callBack);
     }

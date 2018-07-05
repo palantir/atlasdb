@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -50,10 +49,6 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     AbstractTransactionManager(MetricsManager metricsManager, TimestampCache timestampCache) {
         this.timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricsManager.getRegistry());
         this.timestampValidationReadCache = timestampCache;
-    }
-
-    AbstractTransactionManager(MetricsManager metricsManager, Supplier<Long> timestampCacheSize) {
-        this(metricsManager, new TimestampCache(metricsManager.getRegistry(), timestampCacheSize));
     }
 
     protected static void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {

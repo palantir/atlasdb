@@ -30,6 +30,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -95,10 +96,10 @@ import com.palantir.timestamp.TimestampService;
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            Supplier<Long> timestampCacheSize,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor) {
-        super(metricsManager, timestampCacheSize);
+        super(metricsManager, timestampCache);
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;

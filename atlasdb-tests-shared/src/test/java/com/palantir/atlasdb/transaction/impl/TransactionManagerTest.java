@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -100,7 +101,6 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 MultiTableSweepQueueWriter.NO_OP);
 
         // fetch an immutable timestamp once so it's cached
@@ -129,7 +129,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                TimestampCache.createForTests(),
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
@@ -161,7 +161,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                TimestampCache.createForTests(),
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
@@ -192,7 +192,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                TimestampCache.createForTests(),
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,

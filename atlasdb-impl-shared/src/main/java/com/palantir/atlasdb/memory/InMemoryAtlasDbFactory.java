@@ -29,6 +29,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -198,7 +199,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 cleaner,
                 DEFAULT_MAX_CONCURRENT_RANGES,
                 DEFAULT_GET_RANGES_CONCURRENCY,
-                () -> DEFAULT_TIMESTAMP_CACHE_SIZE,
                 MultiTableSweepQueueWriter.NO_OP);
         cleaner.start(ret);
         return ret;
