@@ -131,7 +131,9 @@ public class CassandraService implements AutoCloseable {
             tokenRangeWritesLogger.updateTokenRanges(tokenMap.asMapOfRanges().keySet());
             return servers;
         } catch (Exception e) {
-            log.warn("Couldn't grab new token ranges for token aware cassandra mapping!", e);
+            log.info("Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
+                    SafeArg.of("poolRefreshIntervalSeconds", config.poolRefreshIntervalSeconds()),
+                    e);
 
             // return the set of servers we knew about last time we successfully constructed the tokenMap
             return tokenMap.asMapOfRanges().values().stream().flatMap(Collection::stream).collect(Collectors.toSet());

@@ -91,7 +91,7 @@ public class TracingQueryRunner {
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
         if (failed || duration > tracingPrefs.getMinimumDurationToTraceMillis()) {
-            log.warn("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
+            log.info("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
                     tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),
                     failed ? "failed and " : "",
                     duration,
