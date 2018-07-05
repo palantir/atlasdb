@@ -31,11 +31,11 @@ public class InMemoryTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public void storeUpperLimit(long newLimit) throws MultipleRunningTimestampServiceError {
-        if(shouldThrowErrorMultipleServerError) {
+        if (shouldThrowErrorMultipleServerError) {
             throw new MultipleRunningTimestampServiceError("error");
         }
 
-        if(error.isPresent()) {
+        if (error.isPresent()) {
             throw error.orElse(null);
         }
         numberOfAllocations++;
@@ -50,7 +50,7 @@ public class InMemoryTimestampBoundStore implements TimestampBoundStore {
         return numberOfAllocations;
     }
 
-    public void failWith(RuntimeException e) {
-        this.error = Optional.of(e);
+    public void failWith(RuntimeException ex) {
+        this.error = Optional.of(ex);
     }
 }

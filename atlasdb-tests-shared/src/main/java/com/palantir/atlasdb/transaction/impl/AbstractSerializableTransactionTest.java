@@ -169,7 +169,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
             t2.commit();
             fail();
         } catch (TransactionSerializableConflictException e) {
-            // this is expectecd to throw because it is a write skew
+            // this is expected to throw because it is a write skew
         }
     }
 

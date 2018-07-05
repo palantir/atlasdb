@@ -25,7 +25,5 @@ public interface AtlasDbDynamicMutablePersistentTable<ROW, COLUMN, COLUMN_VALUE,
             AtlasDbMutablePersistentTable<ROW, COLUMN_VALUE, ROW_RESULT> {
     void put(ROW row, Iterable<COLUMN_VALUE> values);
     void put(ROW row, COLUMN_VALUE... values);
-    void putUnlessExists(ROW row, Iterable<COLUMN_VALUE> values);
-    void putUnlessExists(ROW row, COLUMN_VALUE... values);
     void touch(Multimap<ROW, COLUMN> cellsToTouch);
 }

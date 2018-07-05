@@ -489,35 +489,6 @@ public final class StreamTestStreamHashAidxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(StreamTestStreamHashAidxRow rowName, Iterable<StreamTestStreamHashAidxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(StreamTestStreamHashAidxRow rowName, StreamTestStreamHashAidxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<StreamTestStreamHashAidxRow, ? extends StreamTestStreamHashAidxColumnValue> rows) {
-        Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, StreamTestStreamHashAidxColumnValue.getColumnNameFun());
-        Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue> toPut = HashMultimap.create();
-        for (Entry<StreamTestStreamHashAidxRow, ? extends StreamTestStreamHashAidxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumn> values) {
         Multimap<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue> currentValues = get(values);
@@ -742,5 +713,5 @@ public final class StreamTestStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ewJNW3nh7SbSlMCq9ik6vw==";
+    static String __CLASS_HASH = "9FT31wDEhFmVUaK07cQXhQ==";
 }

@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -206,7 +206,7 @@ public final class NamespacedTodoTable implements
                 return false;
             }
             NamespacedTodoRow other = (NamespacedTodoRow) obj;
-            return Objects.equal(namespace, other.namespace);
+            return Objects.equals(namespace, other.namespace);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -298,7 +298,7 @@ public final class NamespacedTodoTable implements
                 return false;
             }
             NamespacedTodoColumn other = (NamespacedTodoColumn) obj;
-            return Objects.equal(todoId, other.todoId);
+            return Objects.equals(todoId, other.todoId);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -487,35 +487,6 @@ public final class NamespacedTodoTable implements
         for (NamespacedTodoTrigger trigger : triggers) {
             trigger.putNamespacedTodo(values);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(NamespacedTodoRow rowName, Iterable<NamespacedTodoColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<NamespacedTodoRow, NamespacedTodoColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(NamespacedTodoRow rowName, NamespacedTodoColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<NamespacedTodoRow, NamespacedTodoColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<NamespacedTodoRow, ? extends NamespacedTodoColumnValue> rows) {
-        Multimap<NamespacedTodoRow, NamespacedTodoColumn> toGet = Multimaps.transformValues(rows, NamespacedTodoColumnValue.getColumnNameFun());
-        Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> existing = get(toGet);
-        Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> toPut = HashMultimap.create();
-        for (Entry<NamespacedTodoRow, ? extends NamespacedTodoColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     @Override
@@ -742,5 +713,5 @@ public final class NamespacedTodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/r7gWeqwhi+4p3TyxG70ag==";
+    static String __CLASS_HASH = "OUopFBahCh4GfAJWIg453g==";
 }

@@ -439,18 +439,6 @@ public final class UserPhotosStreamMetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putMetadataUnlessExists(UserPhotosStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
-        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
-    }
-
-    public void putMetadataUnlessExists(Map<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
-        Map<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
-            toPut.put(e.getKey(), Metadata.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -458,20 +446,6 @@ public final class UserPhotosStreamMetadataTable implements
         for (UserPhotosStreamMetadataTrigger trigger : triggers) {
             trigger.putUserPhotosStreamMetadata(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> rows) {
-        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteMetadata(UserPhotosStreamMetadataRow row) {
@@ -707,5 +681,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "62A+3fFUiSoaSRtntFmVRQ==";
+    static String __CLASS_HASH = "dzgGQC/ADP1dlAWGQYQKXg==";
 }

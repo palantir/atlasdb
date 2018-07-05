@@ -442,18 +442,6 @@ public final class DataStreamValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(DataStreamValueRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
-    }
-
-    public void putValueUnlessExists(Map<DataStreamValueRow, byte[]> map) {
-        Map<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<DataStreamValueRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<DataStreamValueRow, ? extends DataStreamValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -461,20 +449,6 @@ public final class DataStreamValueTable implements
         for (DataStreamValueTrigger trigger : triggers) {
             trigger.putDataStreamValue(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<DataStreamValueRow, ? extends DataStreamValueNamedColumnValue<?>> rows) {
-        Multimap<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<DataStreamValueRow, ? extends DataStreamValueNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteValue(DataStreamValueRow row) {
@@ -710,5 +684,5 @@ public final class DataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "JynJH7emC6QCUKeaXoxK0A==";
+    static String __CLASS_HASH = "mDGfypIqrVWc1GEkvuAc2g==";
 }

@@ -489,35 +489,6 @@ public final class UserPhotosStreamHashAidxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(UserPhotosStreamHashAidxRow rowName, Iterable<UserPhotosStreamHashAidxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(UserPhotosStreamHashAidxRow rowName, UserPhotosStreamHashAidxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<UserPhotosStreamHashAidxRow, ? extends UserPhotosStreamHashAidxColumnValue> rows) {
-        Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, UserPhotosStreamHashAidxColumnValue.getColumnNameFun());
-        Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> toPut = HashMultimap.create();
-        for (Entry<UserPhotosStreamHashAidxRow, ? extends UserPhotosStreamHashAidxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumn> values) {
         Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> currentValues = get(values);
@@ -742,5 +713,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "P2PrSZzgCPFMMBDLCxaDOQ==";
+    static String __CLASS_HASH = "02INLh3XG7XrmmPfLsx4KQ==";
 }
