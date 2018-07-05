@@ -118,7 +118,7 @@ Note that if this block is present, then the ``ServerListConfiguration`` in the 
            library.
 
     *    - auth-token
-         - The value of the Authorization header of the requests sent to the Timelock Server. This can be used on server side to authorize the requests per namespace basis.
+         - The value of the Authorization header of the requests sent to the Timelock Server. This can be used on the server side to authorize requests on a per-namespace basis.
 
 .. _semantics-for-live-reloading:
 
