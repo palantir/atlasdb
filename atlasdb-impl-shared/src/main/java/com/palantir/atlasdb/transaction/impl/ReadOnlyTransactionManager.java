@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -48,7 +46,6 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     private final Supplier<Long> startTimestamp;
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private final boolean allowHiddenTableAccess;
-    private final ExecutorService getRangesExecutor;
     private final int defaultGetRangesConcurrency;
 
     public ReadOnlyTransactionManager(
@@ -69,7 +66,6 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
         this.startTimestamp = startTimestamp;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.getRangesExecutor = MoreExecutors.newDirectExecutorService();
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
     }
 
@@ -203,7 +199,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
                 readSentinelBehavior,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                getRangesExecutor,
+                MoreExecutors.newDirectExecutorService(),
                 defaultGetRangesConcurrency);
         return runTaskThrowOnConflict((transaction) -> task.execute(transaction, condition),
                 new ReadTransaction(txn, txn.sweepStrategyManager));
