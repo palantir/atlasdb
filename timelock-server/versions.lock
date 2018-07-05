@@ -191,6 +191,13 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.tritium:tritium-caffeine"
+            ]
+        },
         "com.google.code.findbugs:findbugs-annotations": {
             "locked": "3.0.1",
             "transitive": [
@@ -276,6 +283,7 @@
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.remoting3:refresh-utils",
                 "com.palantir.remoting3:tracing",
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -680,6 +688,7 @@
                 "com.palantir.remoting3:jersey-servers",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.safe-logging:preconditions",
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -697,6 +706,7 @@
         "com.palantir.tritium:tritium-api": {
             "locked": "0.9.1",
             "transitive": [
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -704,9 +714,16 @@
                 "com.palantir.tritium:tritium-tracing"
             ]
         },
+        "com.palantir.tritium:tritium-caffeine": {
+            "locked": "0.9.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.palantir.tritium:tritium-core": {
             "locked": "0.9.1",
             "transitive": [
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
                 "com.palantir.tritium:tritium-slf4j",
@@ -724,6 +741,7 @@
             "locked": "0.9.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-lib"
             ]
         },
@@ -1371,6 +1389,7 @@
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tokens:auth-tokens",
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -1611,6 +1630,13 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.tritium:tritium-caffeine"
+            ]
+        },
         "com.github.jnr:jffi": {
             "locked": "1.2.10",
             "transitive": [
@@ -1755,6 +1781,7 @@
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.remoting3:refresh-utils",
                 "com.palantir.remoting3:tracing",
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -2250,6 +2277,7 @@
                 "com.palantir.remoting3:jersey-servers",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.safe-logging:preconditions",
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -2267,6 +2295,7 @@
         "com.palantir.tritium:tritium-api": {
             "locked": "0.9.1",
             "transitive": [
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -2274,9 +2303,16 @@
                 "com.palantir.tritium:tritium-tracing"
             ]
         },
+        "com.palantir.tritium:tritium-caffeine": {
+            "locked": "0.9.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.palantir.tritium:tritium-core": {
             "locked": "0.9.1",
             "transitive": [
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
                 "com.palantir.tritium:tritium-slf4j",
@@ -2294,6 +2330,7 @@
             "locked": "0.9.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-lib"
             ]
         },
@@ -3091,6 +3128,7 @@
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tokens:auth-tokens",
+                "com.palantir.tritium:tritium-caffeine",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
