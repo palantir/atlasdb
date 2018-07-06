@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cassandra;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
@@ -28,12 +29,20 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 @AutoService(KeyValueServiceRuntimeConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceRuntimeConfig.class)
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceRuntimeConfig.class)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = CassandraKeyValueServiceRuntimeConfig.class,
+                name = "CassandraKeyValueServiceRuntimeConfig"),
+        @JsonSubTypes.Type(value = CassandraKeyValueServiceRuntimeConfig.class,
+                name = CassandraKeyValueServiceRuntimeConfig.TYPE)
+})
 @Value.Immutable
 public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
 
+    public static final String TYPE = "cassandra";
+
     @Override
     public String type() {
-        return "cassandra";
+        return TYPE;
     }
 
     /**
