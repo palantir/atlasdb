@@ -95,16 +95,16 @@ public class TransactionOutcomeMetrics {
         return getMeter(meterName, ImmutableMap.of());
     }
 
+    private Meter getMeter(String meterName, Map<String, String> safeTags) {
+        return metricsManager.getTaggedRegistry().meter(
+                getMetricName(meterName, safeTags));
+    }
+
     private Meter getMeterForTable(String meterName, TableReference tableReference) {
         TableReference safeTableReference = safeForLogging.test(tableReference)
                 ? tableReference
                 : LoggingArgs.PLACEHOLDER_TABLE_REFERENCE;
         return getMeter(meterName, ImmutableMap.of("tableReference", safeTableReference.getQualifiedName()));
-    }
-
-    private Meter getMeter(String meterName, Map<String, String> safeTags) {
-        return metricsManager.getTaggedRegistry().meter(
-                getMetricName(meterName, safeTags));
     }
 
     @VisibleForTesting
