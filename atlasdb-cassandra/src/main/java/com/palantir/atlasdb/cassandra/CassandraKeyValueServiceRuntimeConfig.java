@@ -33,8 +33,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
         @JsonSubTypes.Type(value = CassandraKeyValueServiceRuntimeConfig.class,
                 name = "CassandraKeyValueServiceRuntimeConfig"),
         @JsonSubTypes.Type(value = CassandraKeyValueServiceRuntimeConfig.class,
-                name = CassandraKeyValueServiceRuntimeConfig.TYPE)
-})
+                name = CassandraKeyValueServiceRuntimeConfig.TYPE)})
 @Value.Immutable
 public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
 
