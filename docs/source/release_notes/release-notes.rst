@@ -52,7 +52,7 @@ develop
 
     *    - |improved|
          - TimeLock Server now exposes a ``startAtlasDbTransaction`` endpoint which locks an immutable timestamp and then gets a fresh timestamp (in a single round-trip call); new TimeLock clients call this endpoint.
-           This saves an estimated one TimeLock round-trip of latency when committing a transaction.
+           This saves an estimated one TimeLock round-trip of latency when starting a transaction.
            Note that the old endpoints are still exposed (so TimeLock remains compatible with older Atlas clients), and there is an automated adapter for new TimeLock clients to talk to old TimeLock servers that don't have this endpoint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3319>`__)
 

@@ -119,27 +119,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
     @Test
     public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnThoroughSweptTable() {
-        TimelockService timelock = mock(TimelockService.class);
-        LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
-                keyValueService,
-                timelock,
-                mockLockService,
-                transactionService,
-                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                NoOpCleaner.INSTANCE,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                false,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
-
-        setupTimeLock(timelock);
-
+        TransactionManager txnManagerWithMocks = setupTransactionManager();
         assertThatThrownBy(() -> txnManagerWithMocks.runTaskThrowOnConflict(txn -> {
             get(txn, TEST_TABLE_THOROUGH, "row1", "col1");
             return null;
@@ -149,27 +129,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
     @Test
     public void shouldNotConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnNonThoroughSweptTable() {
-        TimelockService timelock = mock(TimelockService.class);
-        LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
-                keyValueService,
-                timelock,
-                mockLockService,
-                transactionService,
-                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                NoOpCleaner.INSTANCE,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                false,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
-
-        setupTimeLock(timelock);
-
+        TransactionManager txnManagerWithMocks = setupTransactionManager();
         txnManagerWithMocks.runTaskThrowOnConflict(txn -> {
             get(txn, TEST_TABLE, "row1", "col1");
             return null;
@@ -178,27 +138,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
     @Test
     public void shouldNotConflictIfImmutableTimestampLockExpiresIfNoReadsOrWrites() {
-        TimelockService timelock = mock(TimelockService.class);
-        LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
-                keyValueService,
-                timelock,
-                mockLockService,
-                transactionService,
-                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                NoOpCleaner.INSTANCE,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                false,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
-
-        setupTimeLock(timelock);
-
+        TransactionManager txnManagerWithMocks = setupTransactionManager();
         txnManagerWithMocks.runTaskThrowOnConflict(txn -> null);
     }
 
@@ -208,12 +148,33 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
     }
 
-    private void setupTimeLock(TimelockService timelock) {
+    private TransactionManager setupTransactionManager() {
+        TimelockService timelock = mock(TimelockService.class);
+        LockService mockLockService = mock(LockService.class);
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
+                keyValueService,
+                timelock,
+                mockLockService,
+                transactionService,
+                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                NoOpCleaner.INSTANCE,
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                MultiTableSweepQueueWriter.NO_OP,
+                MoreExecutors.newDirectExecutorService());
+
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp(any())).thenReturn(
                 LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
         when(timelock.startAtlasDbTransaction(any())).thenReturn(
                 StartAtlasDbTransactionResponse.of(
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())), 1L));
+
+        return txnManagerWithMocks;
     }
 }
