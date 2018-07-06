@@ -33,6 +33,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
@@ -81,10 +82,10 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
     public void defersToIndividualStepsIfStartTransactionNotAvailable() {
         givenServerThrows404sOnStartTransaction();
 
-        whenStandardClientStartsTransactionNTimes(1);
+        whenStandardClientStartsTransactionTimes(1);
 
-        thenStartTransactionIsCalledNTimes(1);
-        thenIndividualEndpointsAreCalledNTimes(1);
+        thenStartTransactionIsCalledTimes(1);
+        thenIndividualEndpointsAreCalledTimes(1);
         thenNoCallsFailed();
     }
 
@@ -92,11 +93,11 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
     public void doesNotRepeatedlyTryAndFailToUseStartTransaction() {
         givenServerThrows404sOnStartTransaction();
 
-        whenStandardClientStartsTransactionNTimes(10);
+        whenStandardClientStartsTransactionTimes(10);
 
         // 2 because we are allowed to make a speculative try once per hour.
-        thenStartTransactionIsCalledNTimes(2);
-        thenIndividualEndpointsAreCalledNTimes(10);
+        thenStartTransactionIsCalledTimes(2);
+        thenIndividualEndpointsAreCalledTimes(10);
         thenNoCallsFailed();
     }
 
@@ -104,9 +105,9 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
     public void performsStepsBatchedIfStartTransactionAvailable() {
         givenServerRespondsToStartTransaction();
 
-        whenStandardClientStartsTransactionNTimes(1);
+        whenStandardClientStartsTransactionTimes(1);
 
-        thenStartTransactionIsCalledNTimes(1);
+        thenStartTransactionIsCalledTimes(1);
         thenNoCallsFailed();
     }
 
@@ -114,10 +115,10 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
     public void detectsStartTransactionBecomingAvailable() {
         givenServerThrows404sOnlyOnFirstThreeInvocations();
 
-        whenQuickRetryingClientStartsTransactionNTimes(10);
+        whenQuickRetryingClientStartsTransactionTimes(10);
 
-        thenStartTransactionIsCalledNTimes(10);
-        thenIndividualEndpointsAreCalledNTimes(3);
+        thenStartTransactionIsCalledTimes(10);
+        thenIndividualEndpointsAreCalledTimes(3);
         thenNoCallsFailed();
     }
 
@@ -125,9 +126,9 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
     public void passesThroughExceptionsWithOtherErrorCodes() {
         givenServerThrowsOnStartTransaction(REMOTE_EXCEPTION_503);
 
-        whenStandardClientStartsTransactionNTimes(5);
+        whenStandardClientStartsTransactionTimes(5);
 
-        thenStartTransactionIsCalledNTimes(5);
+        thenStartTransactionIsCalledTimes(5);
         thenCallsFailedWithExceptions(Collections.nCopies(5, REMOTE_EXCEPTION_503));
     }
 
@@ -135,10 +136,30 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
     public void passesThroughNonRemoteExceptions() {
         givenServerThrowsOnStartTransaction(RUNTIME_EXCEPTION);
 
-        whenStandardClientStartsTransactionNTimes(5);
+        whenStandardClientStartsTransactionTimes(5);
 
-        thenStartTransactionIsCalledNTimes(5);
+        thenStartTransactionIsCalledTimes(5);
         thenCallsFailedWithExceptions(Collections.nCopies(5, RUNTIME_EXCEPTION));
+    }
+
+    @Test
+    public void doesNotSwitchToSeparateEndpointsIfReceiving503() {
+        givenServerThrowsAndThenSucceeds(REMOTE_EXCEPTION_503);
+
+        whenStandardClientStartsTransactionTimes(5);
+
+        thenStartTransactionIsCalledTimes(5);
+        thenCallsFailedWithExceptions(ImmutableList.of(REMOTE_EXCEPTION_503));
+    }
+
+    @Test
+    public void doesNotSwitchToSeparateEndpointsIfConnectionFails() {
+        givenServerThrowsAndThenSucceeds(RUNTIME_EXCEPTION);
+
+        whenStandardClientStartsTransactionTimes(5);
+
+        thenStartTransactionIsCalledTimes(5);
+        thenCallsFailedWithExceptions(ImmutableList.of(RUNTIME_EXCEPTION));
     }
 
     private void givenServerThrows404sOnStartTransaction() {
@@ -157,19 +178,25 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
                 .thenReturn(TRANSACTION_RESPONSE);
     }
 
+    private void givenServerThrowsAndThenSucceeds(Exception exception) {
+        when(timelockService.startAtlasDbTransaction(any()))
+                .thenThrow(exception)
+                .thenReturn(TRANSACTION_RESPONSE);
+    }
+
     private void givenServerThrowsOnStartTransaction(Exception exception) {
         when(timelockService.startAtlasDbTransaction(any())).thenThrow(exception);
     }
 
-    private void whenStandardClientStartsTransactionNTimes(int numCalls) {
-        whenClientStartsTransactionNTimes(standardBridgingService, numCalls);
+    private void whenStandardClientStartsTransactionTimes(int numCalls) {
+        whenClientStartsTransactionTimes(standardBridgingService, numCalls);
     }
 
-    private void whenQuickRetryingClientStartsTransactionNTimes(int numCalls) {
-        whenClientStartsTransactionNTimes(quickRetryingService, numCalls);
+    private void whenQuickRetryingClientStartsTransactionTimes(int numCalls) {
+        whenClientStartsTransactionTimes(quickRetryingService, numCalls);
     }
 
-    private void whenClientStartsTransactionNTimes(TimelockService client, int numCalls) {
+    private void whenClientStartsTransactionTimes(TimelockService client, int numCalls) {
         IntStream.range(0, numCalls)
                 .forEach(unused -> {
                     try {
@@ -181,11 +208,11 @@ public class ImmutableTimestampBridgingTimeLockServiceTest {
                 });
     }
 
-    private void thenStartTransactionIsCalledNTimes(int numCalls) {
+    private void thenStartTransactionIsCalledTimes(int numCalls) {
         verify(timelockService, times(numCalls)).startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST);
     }
 
-    private void thenIndividualEndpointsAreCalledNTimes(int numCalls) {
+    private void thenIndividualEndpointsAreCalledTimes(int numCalls) {
         verify(timelockService, times(numCalls)).lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST);
         verify(timelockService, times(numCalls)).getFreshTimestamp();
     }
