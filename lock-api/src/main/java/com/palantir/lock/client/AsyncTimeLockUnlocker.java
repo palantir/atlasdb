@@ -16,16 +16,19 @@
 
 package com.palantir.lock.client;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
@@ -39,25 +42,21 @@ import com.palantir.logsafe.SafeArg;
  *
  * Concurrency: We want to guarantee that a token T that is enqueued is included in some call to unlockOutstanding.
  * If T can pass the compareAndSet, then T itself is scheduled. If T does not, that means there is some other
- * thread that has scheduled the task, but the task has not retrieved the reference to the set of tokens to be
- * unlocked (because it re-sets unlockIsScheduled to false first, before extracting the reference to the set).
+ * thread that has scheduled the task, but the task has not yet retrieved the current contents of the queue.
  */
 public class AsyncTimeLockUnlocker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockUnlocker.class);
+    private static final int BACKPRESSURE = 1024;
 
     private final TimelockService timelockService;
-    private final ScheduledExecutorService scheduledExecutorService;
+    private final ExecutorService executorService;
 
     private final AtomicBoolean unlockIsScheduled = new AtomicBoolean(false);
+    private final BlockingQueue<Set<LockToken>> outstandingLockTokens = new ArrayBlockingQueue<>(BACKPRESSURE);
 
-    // Fairness incurs a performance penalty but we do not want to starve the actual unlocking process.
-    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
-
-    private Set<LockToken> outstandingLockTokens = Sets.newConcurrentHashSet();
-
-    AsyncTimeLockUnlocker(TimelockService timelockService, ScheduledExecutorService scheduledExecutorService) {
+    AsyncTimeLockUnlocker(TimelockService timelockService, ExecutorService executorService) {
         this.timelockService = timelockService;
-        this.scheduledExecutorService = scheduledExecutorService;
+        this.executorService = executorService;
     }
 
     /**
@@ -65,19 +64,19 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
      * Locks in the queue are unlocked asynchronously, and users must not depend on these locks being unlocked /
      * available for other users immediately.
      *
+     * This may block, if continuing to buffer may cause memory pressure issues.
+     *
      * @param tokens Lock tokens to schedule an unlock for.
      */
     public void enqueue(Set<LockToken> tokens) {
-        // addAll() can run safely in parallel because the set is a concurrent set.
-        readWriteLock.readLock().lock();
         try {
-            outstandingLockTokens.addAll(tokens);
-        } finally {
-            readWriteLock.readLock().unlock();
+            outstandingLockTokens.put(tokens);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
-
         if (unlockIsScheduled.compareAndSet(false, true)) {
-            scheduledExecutorService.submit(this::unlockOutstanding);
+            executorService.submit(this::unlockOutstanding);
         }
     }
 
@@ -100,23 +99,18 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
     }
 
     private Set<LockToken> getOutstandingLockTokenSnapshot() {
-        // Ensure that we acquire the lock for as short as possible (i.e. only 2 writes)
-        Set<LockToken> toUnlock;
-        Set<LockToken> newSet = Sets.newConcurrentHashSet();
-
-        readWriteLock.writeLock().lock();
-        try {
-            toUnlock = outstandingLockTokens;
-            outstandingLockTokens = newSet;
-        } finally {
-            readWriteLock.writeLock().unlock();
+        List<Set<LockToken>> drained = new ArrayList<>(outstandingLockTokens.size());
+        outstandingLockTokens.drainTo(drained);
+        int expected = drained.stream().mapToInt(Collection::size).sum();
+        Set<LockToken> ret = new HashSet<>(expected);
+        for (Set<LockToken> tokens : drained) {
+            ret.addAll(tokens);
         }
-
-        return toUnlock;
+        return ret;
     }
 
     @Override
     public void close() {
-        scheduledExecutorService.shutdown();
+        executorService.shutdown();
     }
 }
