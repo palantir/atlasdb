@@ -21,7 +21,6 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-// TODO(jkong): Can this be deprecated?
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockImmutableTimestampResponse.class)
 @JsonDeserialize(as = ImmutableLockImmutableTimestampResponse.class)

@@ -34,7 +34,7 @@ import com.palantir.processors.AutoDelegate;
  * do not support the {@link TimelockService::startAtlasDbTransaction()} operation.
  *
  * Initially, we assume that the server does support this operation. If we get a 404, we assume that the server does
- * not support this. We try the new endpoints once an hour in case someone upgraded timelock (that said, if a user
+ * not support this. We try the new endpoints once an hour in case someone upgraded TimeLock (that said, if a user
  * wants to see the perf gain more quickly, a rolling bounce works).
  *
  * There is a risk of a race condition in terms of multiple threads updating serverSupportsStartAtlasDbTransaction to
@@ -83,10 +83,10 @@ public class ImmutableTimestampBridgingTimeLockService implements AutoDelegate_T
                 // The remote exception was for some other reason
                 throw remoteException;
             }
+        } else {
+            // We don't believe the server supports the operation, and we don't want to try again just yet.
+            return startTransactionViaConstituentCalls(request);
         }
-
-        // We don't believe the server supports the operation, and we don't want to try again just yet.
-        return startTransactionViaConstituentCalls(request);
     }
 
     private boolean shouldUseStartAtlasDbTransactionEndpoint() {

@@ -702,8 +702,7 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    @VisibleForTesting
-    static LockAndTimestampServices createRawInstrumentedServices(
+    private static LockAndTimestampServices createRawInstrumentedServices(
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
