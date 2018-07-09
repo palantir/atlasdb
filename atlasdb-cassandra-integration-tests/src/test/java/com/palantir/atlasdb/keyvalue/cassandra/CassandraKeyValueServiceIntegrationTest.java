@@ -120,6 +120,15 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         }
     }.toTableMetadata().persistToBytes();
 
+    // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
+    // to make sure the tests are actually exercising the correct retrieval codepaths
+    static byte[] originalMetadata = new TableMetadata(
+            new NameMetadataDescription(),
+            new ColumnMetadataDescription(),
+            ConflictHandler.RETRY_ON_VALUE_CHANGED,
+            TableMetadataPersistence.LogSafety.SAFE)
+            .persistToBytes();
+
     public static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
 
     @Override
@@ -423,31 +432,19 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public void oldMixedCaseMetadataStillVisible() {
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.cAsEsEnSiTiVe");
         Cell oldMetadataCell = CassandraKeyValueServices.getOldMetadataCell(userTable);
-        byte[] totallyLegitTableMetadata = new TableMetadata(
-                new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_VALUE_CHANGED,
-                TableMetadataPersistence.LogSafety.SAFE)
-                .persistToBytes();
 
         keyValueService.put(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(oldMetadataCell, totallyLegitTableMetadata), System.currentTimeMillis());
+                ImmutableMap.of(oldMetadataCell, originalMetadata), System.currentTimeMillis());
 
         assertThat(
-                Arrays.equals(keyValueService.getMetadataForTable(userTable), totallyLegitTableMetadata),
+                Arrays.equals(keyValueService.getMetadataForTable(userTable), originalMetadata),
                 is(true));
     }
 
     @Test
     public void metadataForNewTableIsLowerCased() {
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.xXcOoLtAbLeNaMeXx");
-        byte[] originalMetadata = new TableMetadata(
-                new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_VALUE_CHANGED,
-                TableMetadataPersistence.LogSafety.SAFE)
-                .persistToBytes();
 
         keyValueService.createTable(userTable, originalMetadata);
 
@@ -460,17 +457,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public void metadataUpdateForExistingOldFormatMetadataUpdatesOldFormat() {
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.tOoMaNyTeStS");
         Cell oldMetadataCell = CassandraKeyValueServices.getOldMetadataCell(userTable);
-        byte[] originalMetadata = new TableMetadata(
-                new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_VALUE_CHANGED,
-                TableMetadataPersistence.LogSafety.SAFE)
-                .persistToBytes();
 
         byte[] tableMetadataUpdate = new TableMetadata(
                 new NameMetadataDescription(),
                 new ColumnMetadataDescription(),
-                ConflictHandler.IGNORE_ALL, // <--- new update
+                ConflictHandler.IGNORE_ALL, // <--- new, update that isn't in originalMetadata
                 TableMetadataPersistence.LogSafety.SAFE)
                 .persistToBytes();
 
