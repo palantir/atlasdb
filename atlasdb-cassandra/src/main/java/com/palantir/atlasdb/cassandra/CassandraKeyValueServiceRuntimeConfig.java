@@ -31,7 +31,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceRuntimeConfig.class)
 @JsonSubTypes({
         @JsonSubTypes.Type(value = CassandraKeyValueServiceRuntimeConfig.class,
-                name = "CassandraKeyValueServiceRuntimeConfig"),
+                name = "CassandraKeyValueServiceRuntimeConfig"), //Deprecated, kept for backwards compatibility
         @JsonSubTypes.Type(value = CassandraKeyValueServiceRuntimeConfig.class,
                 name = CassandraKeyValueServiceRuntimeConfig.TYPE)})
 @Value.Immutable
