@@ -93,7 +93,10 @@ public abstract class AtlasDbRuntimeConfig {
      *
      * We do not currently support live reloading from a leader block or using embedded services to using TimeLock.
      */
-    public abstract Optional<TimeLockRuntimeConfig> timelockRuntime();
+    @Value.Default
+    public TimeLockRuntimeConfig timelockRuntime() {
+        return ImmutableTimeLockRuntimeConfig.builder().build();
+    }
 
     @Value.Default
     public StreamStorePersistenceConfiguration streamStorePersistence() {

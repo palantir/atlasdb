@@ -606,7 +606,7 @@ public abstract class TransactionManagers {
     }
 
     private static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
-        return atlasDbConfig.timelock().isPresent() || runtimeConfig.timelockRuntime().isPresent();
+        return atlasDbConfig.timelock().isPresent() || runtimeConfig.timelockRuntime().serversList().hasAtLeastOneServer();
     }
 
     /**
@@ -717,11 +717,12 @@ public abstract class TransactionManagers {
             AtlasDbRuntimeConfig initialRuntimeConfig) {
         // Note: The other direction (timelock install config without a runtime block) should be maintained for
         // backwards compatibility.
-        if (remoteTimestampAndLockOrLeaderBlocksPresent(config) && initialRuntimeConfig.timelockRuntime().isPresent()) {
-            throw new IllegalStateException("Found a service configured not to use timelock, with a timelock"
-                    + " block in the runtime config! This is unexpected. If you wish to use non-timelock services,"
-                    + " please remove the timelock block from the runtime config; if you wish to use timelock,"
-                    + " please remove the leader, remote timestamp or remote lock configuration blocks.");
+        if (remoteTimestampAndLockOrLeaderBlocksPresent(config) && initialRuntimeConfig.timelockRuntime().serversList().hasAtLeastOneServer()) {
+            throw new IllegalStateException("Found a service configured not to use timelock, with at least one entry"
+                    + " in the servers field of serversList block within timelock block in the runtime config! This is"
+                    + " unexpected. If you wish to use non-timelock services, please remove the entries from the servers"
+                    + " field of serversList block within timelock block in the runtime config! If you wish to use"
+                    + " timelock, please remove the leader, remote timestamp or remote lock configuration blocks.");
         }
     }
 

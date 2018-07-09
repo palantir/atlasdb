@@ -190,7 +190,7 @@ public class TransactionManagersTest {
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
         when(runtimeConfig.qos()).thenReturn(QosClientConfig.DEFAULT);
-        when(runtimeConfig.timelockRuntime()).thenReturn(Optional.empty());
+        when(runtimeConfig.timelockRuntime()).thenReturn(ImmutableTimeLockRuntimeConfig.builder().build());
 
         environment = mock(Consumer.class);
 
@@ -454,8 +454,9 @@ public class TransactionManagersTest {
         setUpTimeLockBlockInInstallConfig();
         verifyUsingTimeLockByGettingAFreshTimestamp();
 
-        assertTrue("Runtime config was not expected to contain a timelock block",
-                !runtimeConfig.timelockRuntime().isPresent());
+        assertTrue("Runtime config was not expected to contain an entry in the server list of"
+                        + " the timelock block",
+                !runtimeConfig.timelockRuntime().serversList().hasAtLeastOneServer());
     }
 
     @Test
@@ -512,9 +513,9 @@ public class TransactionManagersTest {
 
     private void setUpTimeLockBlockInRuntimeConfig() {
         when(runtimeConfig.timelockRuntime()).thenReturn(
-                Optional.of(ImmutableTimeLockRuntimeConfig.builder()
+                ImmutableTimeLockRuntimeConfig.builder()
                         .serversList(rawRemoteServerConfig)
-                        .build()));
+                        .build());
     }
 
     private void setUpRemoteTimestampAndLockBlocksInConfig() {
@@ -578,8 +579,8 @@ public class TransactionManagersTest {
     }
 
     private void assertGetLockAndTimestampServicesThrows() {
-        String expectedErrorPrefix = "Found a service configured not to use timelock, with a timelock block in"
-                + " the runtime config!";
+        String expectedErrorPrefix = "Found a service configured not to use timelock, with at least one entry"
+                + " in the servers field of serversList block within timelock block in the runtime config!";
         assertThatThrownBy(this::getLockAndTimestampServices).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(expectedErrorPrefix);
     }

@@ -39,13 +39,12 @@ public class AtlasDbRuntimeConfigDeserializationTest {
                 AtlasDbConfigs.OBJECT_MAPPER.readValue(TEST_RUNTIME_CONFIG_FILE, AtlasDbRuntimeConfig.class);
         assertThat(runtimeConfig.timestampClient().enableTimestampBatching()).isTrue();
 
-        assertThat(runtimeConfig.timelockRuntime()).isPresent();
-        assertThat(runtimeConfig.timelockRuntime().get().serversList().servers())
+        assertThat(runtimeConfig.timelockRuntime().serversList().servers())
                 .containsExactlyInAnyOrder(
                         "https://foo1:12345",
                         "https://foo2:8421",
                         "https://foo3:9421");
-        assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration()).satisfies(
+        assertThat(runtimeConfig.timelockRuntime().serversList().sslConfiguration()).satisfies(
                 sslConfiguration -> sslConfiguration.ifPresent(this::assertSslConfigDeserializedCorrectly));
         assertThat(runtimeConfig.streamStorePersistence()).satisfies(
                 persistenceConfig -> {
@@ -72,8 +71,7 @@ public class AtlasDbRuntimeConfigDeserializationTest {
                 AtlasDbConfigs.OBJECT_MAPPER.readValue(TEST_RUNTIME_CONFIG_NO_SERVERS_FILE, AtlasDbRuntimeConfig.class);
         assertThat(runtimeConfig.timestampClient().enableTimestampBatching()).isTrue();
 
-        assertThat(runtimeConfig.timelockRuntime()).isPresent();
-        assertThat(runtimeConfig.timelockRuntime().get().serversList().servers()).isEmpty();
-        assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration()).isEmpty();
+        assertThat(runtimeConfig.timelockRuntime().serversList().servers()).isEmpty();
+        assertThat(runtimeConfig.timelockRuntime().serversList().sslConfiguration()).isEmpty();
     }
 }

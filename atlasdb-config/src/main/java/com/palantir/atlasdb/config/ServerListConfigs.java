@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -27,11 +26,13 @@ public final class ServerListConfigs {
     }
 
     public static ServerListConfig parseInstallAndRuntimeConfigs(TimeLockClientConfig installClientConfig,
-            Supplier<Optional<TimeLockRuntimeConfig>> runtimeConfig,
+            Supplier<TimeLockRuntimeConfig> runtimeConfig,
             String namespace) {
-        ServerListConfig nonNamespacedConfig = runtimeConfig.get()
-                .map(TimeLockRuntimeConfig::serversList)
-                .orElse(installClientConfig.serversList());
+        ServerListConfig nonNamespacedConfig = installClientConfig.serversList();
+        TimeLockRuntimeConfig timeLockRuntimeConfig = runtimeConfig.get();
+        if (timeLockRuntimeConfig.serversList().hasAtLeastOneServer()) {
+            nonNamespacedConfig = timeLockRuntimeConfig.serversList();
+        }
         return namespaceUris(nonNamespacedConfig, namespace);
     }
 

@@ -18,8 +18,6 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-
 import org.junit.Test;
 
 public class ServerListConfigsTest {
@@ -72,7 +70,7 @@ public class ServerListConfigsTest {
     public void prioritisesRuntimeConfigIfAvailable() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
-                () -> Optional.of(RUNTIME_CONFIG),
+                () -> RUNTIME_CONFIG,
                 CLIENT);
         assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client", "two/client");
     }
@@ -81,7 +79,7 @@ public class ServerListConfigsTest {
     public void prioritisesRuntimeConfigEvenIfThatHasNoClients() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
-                () -> Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()),
+                () -> ImmutableTimeLockRuntimeConfig.builder().build(),
                 CLIENT);
         assertThat(resolvedConfig.servers()).isEmpty();
     }
@@ -90,7 +88,7 @@ public class ServerListConfigsTest {
     public void fallsBackToInstallConfigIfRuntimeConfigNotAvailable() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
-                Optional::empty,
+                () -> ImmutableTimeLockRuntimeConfig.builder().build(),
                 CLIENT);
         assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client");
     }
