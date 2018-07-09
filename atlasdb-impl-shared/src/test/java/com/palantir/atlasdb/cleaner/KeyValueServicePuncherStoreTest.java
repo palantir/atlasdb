@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class KeyValueServicePuncherStoreTest {
@@ -109,13 +110,61 @@ public class KeyValueServicePuncherStoreTest {
                 .isNotEqualTo(TIMESTAMP_2); // strictly speaking not needed but better for readability
     }
 
+    @Test
+    public void getMillisForTimestampIfNotPunchedBeforeWhenFirstPunchedBeforeHasLowerTimestampAndSamePunchEntry() {
+        KeyValueService kvs = new InMemoryKeyValueService(false);
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertThat(KeyValueServicePuncherStore
+                .getMillisForTimestampIfNotPunchedBefore(kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_BETWEEN_1_AND_2))
+                .isEqualTo(WALL_CLOCK_1);
+    }
+
+    @Test
+    public void getMillisForTimestampIfNotPunchedBeforeWhenFirstPunchedBeforeHasLowerTimestampAndOlderPunchEntry() {
+        KeyValueService kvs = new InMemoryKeyValueService(false);
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertThat(KeyValueServicePuncherStore
+                .getMillisForTimestampIfNotPunchedBefore(kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_1 - 1))
+                .isEqualTo(WALL_CLOCK_1);
+    }
+
+    @Test
+    public void getMillisForTimestampIfNotPunchedBeforeWhenLowerBoundIsNegative() {
+        KeyValueService kvs = new InMemoryKeyValueService(false);
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertThat(KeyValueServicePuncherStore
+                .getMillisForTimestampIfNotPunchedBefore(kvs, TIMESTAMP_BETWEEN_1_AND_2, -100L))
+                .isEqualTo(WALL_CLOCK_1);
+    }
+
+    @Test
+    public void getMillisForTimestampIfNotPunchedBeforeWhenFirstPunchedBeforeHasGreaterTimestamp() {
+        KeyValueService kvs = new InMemoryKeyValueService(false);
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertThat(KeyValueServicePuncherStore
+                .getMillisForTimestampIfNotPunchedBefore(kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_2 + 1))
+                .isEqualTo(WALL_CLOCK_2 + 1);
+    }
+
+    @Test
+    public void getMillisForTimestampIfNotPunchedBeforeWhenFirstPunchedBeforeIsExactTimestamp() {
+        KeyValueService kvs = new InMemoryKeyValueService(false);
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertThat(KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(kvs, TIMESTAMP_1, WALL_CLOCK_1))
+                .isEqualTo(WALL_CLOCK_1);
+    }
+
     private static long mean(long first, long second) {
         return (first + second) / 2;
     }
 
     private static PuncherStore initializePuncherStore(Map<Long, Long> timestampMap) {
-        PuncherStore puncherStore = KeyValueServicePuncherStore.create(new InMemoryKeyValueService(false));
-        timestampMap.forEach((key, value) -> puncherStore.put(key, value));
+        return initializePuncherStore(timestampMap, new InMemoryKeyValueService(false));
+    }
+
+    private static PuncherStore initializePuncherStore(Map<Long, Long> timestampMap, KeyValueService kvs) {
+        PuncherStore puncherStore = KeyValueServicePuncherStore.create(kvs);
+        timestampMap.forEach(puncherStore::put);
         return puncherStore;
     }
 }

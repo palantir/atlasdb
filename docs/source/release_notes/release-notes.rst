@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Targeted sweep metrics will no longer range scan the punch table if the last swept timestamp was issued more than one week ago.
+           Previously, we would range scan the table even if the last swept timestamp was -1, which would force a range scan of the entire table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3364>`__)
 
 =======
 v0.95.0

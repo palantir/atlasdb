@@ -19,6 +19,7 @@ package com.palantir.atlasdb.sweep.metrics;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -38,6 +39,7 @@ import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
 
 public final class TargetedSweepMetrics {
+    private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
 
     private TargetedSweepMetrics(MetricsManager metricsManager,
@@ -57,9 +59,14 @@ public final class TargetedSweepMetrics {
             MetricsManager metricsManager, KeyValueService kvs, Clock clock, long millis) {
         return new TargetedSweepMetrics(
                 metricsManager,
-                ts -> KeyValueServicePuncherStore.getMillisForTimestamp(kvs, ts),
+                ts -> getMillisForTimestampBoundedAtOneWeek(kvs, ts, clock),
                 clock,
                 millis);
+    }
+
+    private static long getMillisForTimestampBoundedAtOneWeek(KeyValueService kvs, long ts, Clock clock) {
+        return KeyValueServicePuncherStore
+                .getMillisForTimestampIfNotPunchedBefore(kvs, ts, clock.getTimeMillis() - ONE_WEEK);
     }
 
     public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes) {

@@ -114,20 +114,20 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
 
     @Override
     public Long get(Long timeMillis) {
+        return get(keyValueService, timeMillis);
+    }
+
+    public static Long get(KeyValueService kvs, Long timeMillis) {
         byte[] row = EncodingUtils.encodeUnsignedVarLong(timeMillis);
         EncodingUtils.flipAllBitsInPlace(row);
-        RangeRequest rangeRequest =
-                RangeRequest.builder().startRowInclusive(row).batchHint(1).build();
-        ClosableIterator<RowResult<Value>> result =
-                keyValueService.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, Long.MAX_VALUE);
-        try {
+        RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(row).batchHint(1).build();
+        try (ClosableIterator<RowResult<Value>> result = kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest,
+                Long.MAX_VALUE)) {
             if (result.hasNext()) {
                 return EncodingUtils.decodeUnsignedVarLong(result.next().getColumns().get(COLUMN).getContents());
             } else {
                 return Long.MIN_VALUE;
             }
-        } finally {
-            result.close();
         }
     }
 
@@ -136,18 +136,27 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         return getMillisForTimestamp(keyValueService, timestamp);
     }
 
+    /**
+     * Returns the real time in milliseconds corresponding to the given timestamp.
+     *
+     * Warning: If the given timestamp is low compared to currently given out timestamps, this call may range scan over
+     * the entire table. This table tends to grow quickly, so this call can be expensive. If you can bound how far in
+     * the past you want to look for, you should instead call
+     * {@link #getMillisForTimestampIfNotPunchedBefore(KeyValueService, long, long)}.
+     *
+     * @param kvs the KVS to query.
+     * @param timestamp timestamp to query for.
+     */
     public static long getMillisForTimestamp(KeyValueService kvs, long timestamp) {
         long timestampExclusive = timestamp + 1;
         // punch table is keyed by the real value we're trying to find so we have to do a whole table
         // scan, which is fine because this table should be really small
         byte[] startRow = EncodingUtils.encodeUnsignedVarLong(Long.MAX_VALUE);
         EncodingUtils.flipAllBitsInPlace(startRow);
-        RangeRequest rangeRequest =
-                RangeRequest.builder().startRowInclusive(startRow).batchHint(1).build();
-        ClosableIterator<RowResult<Value>> result =
-                kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, timestampExclusive);
+        RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(1).build();
 
-        try {
+        try (ClosableIterator<RowResult<Value>> result = kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest,
+                timestampExclusive)) {
             if (result.hasNext()) {
                 byte[] encodedMillis = result.next().getRowName();
                 EncodingUtils.flipAllBitsInPlace(encodedMillis);
@@ -155,9 +164,24 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
             } else {
                 return 0L;
             }
-        } finally {
-            result.close();
         }
     }
 
+    /**
+     * Same as {@link #getMillisForTimestamp(KeyValueService, long)}, except that it first does a lookup for the
+     * first timestamp punched before lowerBound. If that value is lower than timestamp, we then look up the real time
+     * value in the KVS, otherwise, we return lowerBound to avoid doing a large range scan.
+     *
+     * @param kvs the KVS to query.
+     * @param timestamp timestamp to query for.
+     * @param lowerBound if the first timestamp punched before this real time is larger than the query timestamp, then
+     * do not do a range scan and instead return lowerBound.
+     */
+    public static long getMillisForTimestampIfNotPunchedBefore(KeyValueService kvs, long timestamp, long lowerBound) {
+        if (get(kvs, Math.max(0L, lowerBound)) < timestamp) {
+            return getMillisForTimestamp(kvs, timestamp);
+        } else {
+            return lowerBound;
+        }
+    }
 }
