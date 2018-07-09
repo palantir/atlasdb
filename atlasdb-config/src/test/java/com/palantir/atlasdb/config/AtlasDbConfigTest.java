@@ -49,7 +49,6 @@ public class AtlasDbConfigTest {
             .build();
     private static final TimeLockClientConfig TIMELOCK_CONFIG = ImmutableTimeLockClientConfig.builder()
             .client("client")
-            .serversList(SINGLETON_SERVER_LIST)
             .build();
     private static final Optional<SslConfiguration> SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> OTHER_SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
@@ -61,12 +60,10 @@ public class AtlasDbConfigTest {
     private static final TimeLockClientConfig TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT = ImmutableTimeLockClientConfig
             .builder()
             .client(Optional.empty())
-            .serversList(SINGLETON_SERVER_LIST)
             .build();
     private static final TimeLockClientConfig TIMELOCK_CONFIG_WITH_OTHER_CLIENT = ImmutableTimeLockClientConfig
             .builder()
             .client(OTHER_CLIENT)
-            .serversList(SINGLETON_SERVER_LIST)
             .build();
     private static final String CLIENT_NAMESPACE = "client";
 
@@ -135,9 +132,7 @@ public class AtlasDbConfigTest {
     public void timelockBlockNotPermittedWithLockAndTimestampBlocks() {
         ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .timelock(ImmutableTimeLockClientConfig.builder()
-                        .client("testClient")
-                        .serversList(SINGLETON_SERVER_LIST).build())
+                .timelock(TIMELOCK_CONFIG)
                 .lock(SINGLETON_SERVER_LIST)
                 .timestamp(SINGLETON_SERVER_LIST)
                 .build();
@@ -326,16 +321,6 @@ public class AtlasDbConfigTest {
     }
 
     @Test
-    public void addingFallbackSslAddsItToTimelockServersBlock() {
-        AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .timelock(TIMELOCK_CONFIG)
-                .build();
-        AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
-        assertThat(withSsl.timelock().get().serversList().sslConfiguration(), is(SSL_CONFIG));
-    }
-
-    @Test
     public void addingFallbackSslAddsItToTimestampBlock() {
         AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
@@ -387,16 +372,5 @@ public class AtlasDbConfigTest {
                 .timestamp(SINGLETON_SERVER_LIST)
                 .lock(ImmutableServerListConfig.builder().build())
                 .build()).isInstanceOf(IllegalStateException.class);
-    }
-
-    @Test
-    public void canSpecifyZeroServersIfUsingTimelockBlock() {
-        ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
-                .namespace(CLIENT_NAMESPACE)
-                .timelock(ImmutableTimeLockClientConfig.builder()
-                        .serversList(ImmutableServerListConfig.builder().build())
-                        .build())
-                .build();
     }
 }

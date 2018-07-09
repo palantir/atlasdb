@@ -6,14 +6,5 @@ atlasdb:
 
   timelock:
     client: brian
-    serversList:
-      servers:
-        - timelock1:8080
-        - timelock2:8080
-        - timelock3:8080
-      sslConfiguration:
-        trustStorePath: var/security/trustStore.jks
-        keyStorePath: var/security/keyStore.jks
-        keyStorePassword: 1234567890
 
   enableSweep: true

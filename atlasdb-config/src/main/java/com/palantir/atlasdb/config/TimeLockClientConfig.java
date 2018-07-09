@@ -43,20 +43,6 @@ public abstract class TimeLockClientConfig {
                 "Tried to read a client from a TimeLockClientConfig, but it hadn't been initialised."));
     }
 
-    /**
-     * @deprecated Please use {@link TimeLockRuntimeConfig} to specify the {@link ServerListConfig} to be used
-     * for connecting to TimeLock.
-     */
-    @Deprecated
-    @Value.Default
-    public ServerListConfig serversList() {
-        return ImmutableServerListConfig.builder().build();
-    }
-
-    public ServerListConfig toNamespacedServerList() {
-        return ServerListConfigs.namespaceUris(serversList(), getClientOrThrow());
-    }
-
     @Value.Check
     protected final void check() {
         Preconditions.checkArgument(!client().isPresent() || !client().get().isEmpty(),

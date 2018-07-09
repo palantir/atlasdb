@@ -24,16 +24,10 @@ public class TimeLockClientConfigsTest {
     private static final String CLIENT_1 = "bar";
     private static final String CLIENT_2 = "baz";
 
-    private static final ImmutableServerListConfig SERVERS_LIST = ImmutableServerListConfig.builder()
-            .addServers("foo")
-            .build();
-
     private static final TimeLockClientConfig CONFIG_WITHOUT_CLIENT = ImmutableTimeLockClientConfig.builder()
-            .serversList(SERVERS_LIST)
             .build();
     private static final TimeLockClientConfig CONFIG_WITH_CLIENT = ImmutableTimeLockClientConfig.builder()
             .client(CLIENT_2)
-            .serversList(SERVERS_LIST)
             .build();
 
     @Test
@@ -41,13 +35,6 @@ public class TimeLockClientConfigsTest {
         TimeLockClientConfig newConfig =
                 TimeLockClientConfigs.copyWithClient(CONFIG_WITHOUT_CLIENT, CLIENT_1);
         assertThat(newConfig.getClientOrThrow()).isEqualTo(CLIENT_1);
-    }
-
-    @Test
-    public void otherPropertiesConservedWhenAddingClient() {
-        TimeLockClientConfig newConfig =
-                TimeLockClientConfigs.copyWithClient(CONFIG_WITHOUT_CLIENT, CLIENT_1);
-        assertThat(newConfig.serversList()).isEqualTo(SERVERS_LIST);
     }
 
     @Test

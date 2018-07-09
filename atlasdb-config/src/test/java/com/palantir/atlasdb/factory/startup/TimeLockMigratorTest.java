@@ -44,9 +44,10 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.ServerListConfigs;
+import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
@@ -54,16 +55,20 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TimeLockMigratorTest {
     private static final long BACKUP_TIMESTAMP = 42;
-    private static final String TEST_ENDPOINT = "/testClient/timestamp-management/fast-forward?currentTimestamp="
+    private static final String CLIENT_NAMESPACE = "testClient";
+    private static final String TEST_ENDPOINT = "/" + CLIENT_NAMESPACE +
+            "/timestamp-management/fast-forward?currentTimestamp="
             + BACKUP_TIMESTAMP;
-    private static final String PING_ENDPOINT = "/testClient/timestamp-management/ping";
+    private static final String PING_ENDPOINT = "/" + CLIENT_NAMESPACE + "/timestamp-management/ping";
     private static final MappingBuilder TEST_MAPPING = post(urlEqualTo(TEST_ENDPOINT));
     private static final MappingBuilder PING_MAPPING = get(urlEqualTo(PING_ENDPOINT));
     private static final String SCENARIO = "scenario";
 
     private static final String USER_AGENT = "user-agent (123456789)";
 
-    private TimeLockClientConfig timelockConfig;
+
+    private TimeLockRuntimeConfig timeLockRuntimeConfig;
+    private ServerListConfig namespacedServerList;
 
     private final TimestampStoreInvalidator invalidator = mock(TimestampStoreInvalidator.class);
 
@@ -85,20 +90,19 @@ public class TimeLockMigratorTest {
                 WireMockConfiguration.DEFAULT_BIND_ADDRESS,
                 wireMockRule.port());
         ServerListConfig defaultServerListConfig = ImmutableServerListConfig.builder().addServers(serverUri).build();
-        timelockConfig = ImmutableTimeLockClientConfig.builder()
-                .client("testClient")
+        timeLockRuntimeConfig = ImmutableTimeLockRuntimeConfig.builder()
                 .serversList(defaultServerListConfig)
                 .build();
+        namespacedServerList = ServerListConfigs.addNamespaceToServerAddresses(
+                timeLockRuntimeConfig.serversList(), CLIENT_NAMESPACE);
     }
 
     @Test
     public void propagatesBackupTimestampToFastForwardOnRemoteService() {
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+        TimeLockMigrator migrator = TimeLockMigrator.create(
+                MetricsManagers.createForTests(), namespacedServerList, invalidator, USER_AGENT);
         migrator.migrate();
 
         wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
@@ -110,10 +114,8 @@ public class TimeLockMigratorTest {
     public void invalidationDoesNotProceedIfTimelockPingUnsuccessful() {
         wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withStatus(500)));
 
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+        TimeLockMigrator migrator = TimeLockMigrator.create(
+                MetricsManagers.createForTests(), namespacedServerList, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(AtlasDbDependencyException.class);
         verify(invalidator, never()).backupAndInvalidate();
     }
@@ -122,10 +124,8 @@ public class TimeLockMigratorTest {
     public void migrationDoesNotProceedIfInvalidationFails() {
         when(invalidator.backupAndInvalidate()).thenThrow(new IllegalStateException());
 
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+        TimeLockMigrator migrator = TimeLockMigrator.create(
+                MetricsManagers.createForTests(), namespacedServerList, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
         wireMockRule.verify(0, postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
     }
@@ -145,10 +145,8 @@ public class TimeLockMigratorTest {
 
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        () -> timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT, true);
+        TimeLockMigrator migrator = TimeLockMigrator.create(
+                MetricsManagers.createForTests(), () -> namespacedServerList, invalidator, USER_AGENT, true);
         migrator.migrate();
 
         Awaitility.await()
@@ -176,10 +174,8 @@ public class TimeLockMigratorTest {
                 });
 
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        () -> timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT, true);
+        TimeLockMigrator migrator = TimeLockMigrator.create(
+                MetricsManagers.createForTests(), () -> namespacedServerList, invalidator, USER_AGENT, true);
         migrator.migrate();
 
         Awaitility.await()
