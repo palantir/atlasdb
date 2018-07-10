@@ -60,6 +60,7 @@ public class BackgroundSweepThread implements Runnable {
 
     // Used in internal test code
     @VisibleForTesting
+    @SuppressWarnings("checkstyle:RegexpMultilineCheck")
     public static BackgroundSweepThread createForTests(LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
