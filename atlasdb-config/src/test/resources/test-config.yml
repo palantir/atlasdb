@@ -4,7 +4,4 @@ atlasdb:
   keyValueService:
     type: memory
 
-  timelock:
-    client: brian
-
   enableSweep: true

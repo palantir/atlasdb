@@ -38,9 +38,6 @@ public class AtlasDbConfigDeserializationTest {
         assertThat(config.namespace().get()).isEqualTo("brian");
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
 
-        assertThat(config.timelock().isPresent()).isTrue();
-        assertThat(config.timelock().get().getClientOrThrow()).isEqualTo("brian");
-
         assertThat(config.leader().isPresent()).isFalse();
         assertThat(config.enableSweep()).isTrue();
     }
@@ -51,7 +48,6 @@ public class AtlasDbConfigDeserializationTest {
         assertThat(config.namespace().isPresent()).isFalse();
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
 
-        assertThat(config.timelock().isPresent()).isFalse();
         assertThat(config.leader().isPresent()).isFalse();
 
         assertThat(config.enableSweep()).isEqualTo(AtlasDbConstants.DEFAULT_ENABLE_SWEEP);

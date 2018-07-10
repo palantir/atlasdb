@@ -175,7 +175,6 @@ public class TransactionManagersTest {
                 .withStatus(204)));
 
         config = mock(AtlasDbConfig.class);
-        when(config.timelock()).thenReturn(Optional.empty());
         when(config.leader()).thenReturn(Optional.empty());
         when(config.timestamp()).thenReturn(Optional.empty());
         when(config.lock()).thenReturn(Optional.empty());
