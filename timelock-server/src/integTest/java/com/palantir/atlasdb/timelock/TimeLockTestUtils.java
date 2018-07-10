@@ -41,7 +41,8 @@ public final class TimeLockTestUtils {
         // Utility class
     }
 
-    private static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    private static final SslConfiguration SSL_CONFIGURATION =
+            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
 
     static TransactionManager createTransactionManager(TestableTimelockCluster cluster) {
         List<String> serverUris = cluster.servers().stream()
