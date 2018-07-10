@@ -1552,9 +1552,19 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        // This can be turned into not-a-full-table-scan if someone makes an upgrade task
-        // that makes sure we only write the metadata keys based on lowercased table names
+        // try and get with a single-key lookup
+        String lowerCaseTableName = tableRef.getQualifiedName().toLowerCase();
+        Map<Cell, Value> rows = getRows(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableSet.of(lowerCaseTableName.getBytes()),
+                ColumnSelection.all(),
+                Long.MAX_VALUE);
 
+        if (!rows.isEmpty()) {
+            return Iterables.getOnlyElement(rows.values()).getContents();
+        }
+
+        // if unsuccessful with fast code-path, we need to check if this table exists but was written at a key
+        // before we started enforcing only writing lower-case canonicalised versions of keys
         java.util.Optional<Entry<TableReference, byte[]>> match =
                 getMetadataForTables().entrySet().stream().filter(
                         entry -> matchingIgnoreCase(entry.getKey(), tableRef))
@@ -1666,46 +1676,57 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     private void internalPutMetadataForTables(
-            Map<TableReference, byte[]> tableNameToMetadata, boolean possiblyNeedToPerformSettingsChanges) {
-        if (tableNameToMetadata.isEmpty()) {
+            Map<TableReference, byte[]> tableRefToMetadata, boolean possiblyNeedToPerformSettingsChanges) {
+        if (tableRefToMetadata.isEmpty()) {
             return;
         }
 
-        Map<Cell, byte[]> metadataRequestedForUpdate = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
-        for (Entry<TableReference, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
-            metadataRequestedForUpdate.put(CassandraKeyValueServices.getMetadataCell(tableEntry.getKey()),
-                    tableEntry.getValue());
-        }
+        Map<TableReference, Cell> tableRefToNewCell = Maps.transformEntries(
+                tableRefToMetadata, (tableRef, metadata) -> CassandraKeyValueServices.getMetadataCell(tableRef));
+        Map<TableReference, Cell> tableRefToOldCell = Maps.transformEntries(
+                tableRefToMetadata, (tableRef, metadata) -> CassandraKeyValueServices.getOldMetadataCell(tableRef));
 
-        Map<Cell, Long> requestForLatestDbSideMetadata = Maps.transformValues(
-                metadataRequestedForUpdate,
-                Functions.constant(Long.MAX_VALUE));
-
-        // technically we're racing other services from here on, during an update period,
+        // technically we're racing other nodes from here on, during an update period,
         // but the penalty for not caring is just some superfluous schema mutations and a
         // few dead rows in the metadata table.
-        Map<Cell, Value> persistedMetadata = get(
-                AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                requestForLatestDbSideMetadata);
+        Map<Cell, Value> existingMetadataAtNewName = get(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                tableRefToNewCell.values().stream()
+                        .collect(Collectors.toMap(Functions.identity(), Functions.constant(Long.MAX_VALUE))));
+
+        Map<Cell, Value> existingMetadataAtOldName = get(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                tableRefToOldCell.values().stream()
+                        .collect(Collectors.toMap(Functions.identity(), Functions.constant(Long.MAX_VALUE))));
+
         final Map<Cell, byte[]> updatedMetadata = Maps.newHashMap();
-        final Collection<CfDef> updatedCfs = Lists.newArrayList();
-        for (Entry<Cell, byte[]> entry : metadataRequestedForUpdate.entrySet()) {
-            if (updatedMetadataFound(persistedMetadata.get(entry.getKey()), entry.getValue())) {
-                updatedMetadata.put(entry.getKey(), entry.getValue());
-                updatedCfs.add(getCfForTable(
-                        CassandraKeyValueServices.tableReferenceFromBytes(entry.getKey().getRowName()),
-                        entry.getValue(),
-                        config.gcGraceSeconds()));
+        final Set<CfDef> updatedCfs = Sets.newHashSet();
+
+        tableRefToNewCell.forEach((tableRef, newCell) -> {
+            if (existingMetadataAtNewName.containsKey(newCell)) {
+                if (metadataIsDifferent(
+                        existingMetadataAtNewName.get(newCell).getContents(), tableRefToMetadata.get(tableRef))) {
+                    // found existing metadata at new name, but we're performing an update
+                    updatedMetadata.put(newCell, tableRefToMetadata.get(tableRef));
+                    updatedCfs.add(getCfForTable(tableRef, tableRefToMetadata.get(tableRef), config.gcGraceSeconds()));
+                }
+            } else if (existingMetadataAtOldName.containsKey(tableRefToOldCell.get(tableRef))) {
+                if (metadataIsDifferent(
+                        existingMetadataAtOldName.get(tableRefToOldCell.get(tableRef)).getContents(),
+                        tableRefToMetadata.get(tableRef))) {
+                    // found existing metadata at old name, but we're performing an update
+                    updatedMetadata.put(tableRefToOldCell.get(tableRef), tableRefToMetadata.get(tableRef));
+                    updatedCfs.add(getCfForTable(tableRef, tableRefToMetadata.get(tableRef), config.gcGraceSeconds()));
+                }
+            } else {
+                // didn't find an existing metadata at old or new names, this is completely new;
+                // thus, let's write it out with the new format
+                updatedMetadata.put(tableRefToNewCell.get(tableRef), tableRefToMetadata.get(tableRef));
+                updatedCfs.add(getCfForTable(tableRef, tableRefToMetadata.get(tableRef), config.gcGraceSeconds()));
             }
-        }
+        });
 
         if (!updatedMetadata.isEmpty()) {
             putMetadataAndMaybeAlterTables(possiblyNeedToPerformSettingsChanges, updatedMetadata, updatedCfs);
         }
-    }
-
-    private boolean updatedMetadataFound(Value existingMetadata, byte[] requestMetadata) {
-        return existingMetadata == null || metadataIsDifferent(existingMetadata.getContents(), requestMetadata);
     }
 
     private boolean metadataIsDifferent(byte[] existingMetadata, byte[] requestMetadata) {

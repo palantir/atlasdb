@@ -77,7 +77,10 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -114,6 +117,15 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             cachePriority(TableMetadataPersistence.CachePriority.COLD);
         }
     }.toTableMetadata().persistToBytes();
+
+    // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
+    // to make sure the tests are actually exercising the correct retrieval codepaths
+    static byte[] originalMetadata = new TableMetadata(
+            new NameMetadataDescription(),
+            new ColumnMetadataDescription(),
+            ConflictHandler.RETRY_ON_VALUE_CHANGED,
+            TableMetadataPersistence.LogSafety.SAFE)
+            .persistToBytes();
 
     public static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
 
@@ -374,6 +386,53 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Map<Cell, Value> resultsOutsideRangeTombstone =
                 keyValueService.get(tableReference, ImmutableMap.of(CELL, Long.MAX_VALUE));
         assertThat(resultsOutsideRangeTombstone.containsKey(CELL), is(true));
+    }
+
+    @Test
+    public void oldMixedCaseMetadataStillVisible() {
+        TableReference userTable = TableReference.createFromFullyQualifiedName("test.cAsEsEnSiTiVe");
+        Cell oldMetadataCell = CassandraKeyValueServices.getOldMetadataCell(userTable);
+
+        keyValueService.put(
+                AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableMap.of(oldMetadataCell, originalMetadata), System.currentTimeMillis());
+
+        assertThat(
+                Arrays.equals(keyValueService.getMetadataForTable(userTable), originalMetadata),
+                is(true));
+    }
+
+    @Test
+    public void metadataForNewTableIsLowerCased() {
+        TableReference userTable = TableReference.createFromFullyQualifiedName("test.xXcOoLtAbLeNaMeXx");
+
+        keyValueService.createTable(userTable, originalMetadata);
+
+        assertThat(keyValueService.getMetadataForTables().keySet().stream()
+                .anyMatch(tableRef -> tableRef.getQualifiedName().equals(userTable.getQualifiedName().toLowerCase())),
+                is(true));
+    }
+
+    @Test
+    public void metadataUpdateForExistingOldFormatMetadataUpdatesOldFormat() {
+        TableReference userTable = TableReference.createFromFullyQualifiedName("test.tOoMaNyTeStS");
+        Cell oldMetadataCell = CassandraKeyValueServices.getOldMetadataCell(userTable);
+
+        byte[] tableMetadataUpdate = new TableMetadata(
+                new NameMetadataDescription(),
+                new ColumnMetadataDescription(),
+                ConflictHandler.IGNORE_ALL, // <--- new, update that isn't in originalMetadata
+                TableMetadataPersistence.LogSafety.SAFE)
+                .persistToBytes();
+
+        keyValueService.put(
+                AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableMap.of(oldMetadataCell, originalMetadata),
+                System.currentTimeMillis());
+
+        keyValueService.createTable(userTable, tableMetadataUpdate);
+
+        assertThat(Arrays.equals(keyValueService.getMetadataForTable(userTable), tableMetadataUpdate), is(true));
     }
 
     private void putDummyValueAtCellAndTimestamp(
