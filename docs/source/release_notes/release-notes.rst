@@ -32,6 +32,21 @@ Changelog
   :hidden:
 
 ========
+v0.61.15
+========
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *   - Type
+        - Change
+
+    *   - |improved|
+        - Startup and schema change performance improved for Cassandra users with large numbers of tables.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/3278>`__)
+
+========
 v0.61.12
 ========
 

@@ -17,6 +17,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +43,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.Throwables;
@@ -269,6 +272,23 @@ public final class CassandraKeyValueServices {
             }
         }
         return sb.toString();
+    }
+
+    static Cell getMetadataCell(TableReference tableRef) {
+        // would have preferred an explicit charset, but thrift uses default internally
+        return Cell.create(lowerCaseTableReferenceToBytes(tableRef), "m".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    static Cell getOldMetadataCell(TableReference tableRef) {
+        return Cell.create(
+                tableRef.getQualifiedName().getBytes(Charset.defaultCharset()),
+                "m".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    private static byte[] lowerCaseTableReferenceToBytes(TableReference tableRef) {
+        return tableRef.getQualifiedName().toLowerCase().getBytes(Charset.defaultCharset());
     }
 
     interface ThreadSafeResultVisitor extends Visitor<Map<ByteBuffer, List<ColumnOrSuperColumn>>> {
