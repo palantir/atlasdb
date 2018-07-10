@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak|
+         - The ``timelockRuntime`` block is now mandatory. Before this it was optional.
+
+    *    - |userbreak|
+         - The ``timelock`` block from the install config haa been removed. The block was deprecated in v0.67.0 (released on 15th of November 2017).
+
     *    - |improved|
          - The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3161>`__)
