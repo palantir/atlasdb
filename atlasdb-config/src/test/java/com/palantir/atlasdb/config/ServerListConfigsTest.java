@@ -41,25 +41,29 @@ public class ServerListConfigsTest {
 
     @Test
     public void namespacingAddsClientNameCorrectly() {
-        ServerListConfig namespacedServersList = ServerListConfigs.addNamespaceToServerAddresses(SERVERS_LIST_1, CLIENT);
+        ServerListConfig namespacedServersList =
+                ServerListConfigs.addNamespaceToServerAddresses(SERVERS_LIST_1, CLIENT);
         assertThat(namespacedServersList.servers()).containsExactly("one/client");
     }
 
     @Test
     public void namespacingAddsClientNameToAllServers() {
-        ServerListConfig namespacedServersList = ServerListConfigs.addNamespaceToServerAddresses(SERVERS_LIST_2, CLIENT);
+        ServerListConfig namespacedServersList =
+                ServerListConfigs.addNamespaceToServerAddresses(SERVERS_LIST_2, CLIENT);
         assertThat(namespacedServersList.servers()).containsExactlyInAnyOrder("one/client", "two/client");
     }
 
     @Test
     public void namespacingCanDealWithTrailingSlash() {
-        ServerListConfig namespacedServersList = ServerListConfigs.addNamespaceToServerAddresses(SERVERS_LIST_3, CLIENT);
+        ServerListConfig namespacedServersList =
+                ServerListConfigs.addNamespaceToServerAddresses(SERVERS_LIST_3, CLIENT);
         assertThat(namespacedServersList.servers()).containsExactlyInAnyOrder("three/client");
     }
 
     @Test
     public void namespacingCanDealWithServerListConfigsWithZeroNodes() {
-        ServerListConfig namespacedServersList = ServerListConfigs.addNamespaceToServerAddresses(SERVERS_LIST_EMPTY, CLIENT);
+        ServerListConfig namespacedServersList =
+                ServerListConfigs.addNamespaceToServerAddresses(SERVERS_LIST_EMPTY, CLIENT);
         assertThat(namespacedServersList.servers()).isEmpty();
     }
 }

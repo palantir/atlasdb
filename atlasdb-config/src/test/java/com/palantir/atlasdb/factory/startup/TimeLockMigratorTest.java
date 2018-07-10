@@ -56,8 +56,8 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 public class TimeLockMigratorTest {
     private static final long BACKUP_TIMESTAMP = 42;
     private static final String CLIENT_NAMESPACE = "testClient";
-    private static final String TEST_ENDPOINT = "/" + CLIENT_NAMESPACE +
-            "/timestamp-management/fast-forward?currentTimestamp="
+    private static final String TEST_ENDPOINT = "/" + CLIENT_NAMESPACE
+            + "/timestamp-management/fast-forward?currentTimestamp="
             + BACKUP_TIMESTAMP;
     private static final String PING_ENDPOINT = "/" + CLIENT_NAMESPACE + "/timestamp-management/ping";
     private static final MappingBuilder TEST_MAPPING = post(urlEqualTo(TEST_ENDPOINT));
