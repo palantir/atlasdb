@@ -34,6 +34,7 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
@@ -66,10 +67,10 @@ public class BackgroundSweepThread implements Runnable {
             Supplier<Long> sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             SpecificTableSweeper specificTableSweeper,
-            SweepOutcomeMetrics sweepOutcomeMetrics) {
+            MetricsManager metricsManager) {
         return new BackgroundSweepThread(lockService, nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled,
-                sweepPauseMillis, sweepPriorityOverrideConfig, specificTableSweeper, sweepOutcomeMetrics,
-                new CountDownLatch(1), 1);
+                sweepPauseMillis, sweepPriorityOverrideConfig, specificTableSweeper,
+                new SweepOutcomeMetrics(metricsManager), new CountDownLatch(1), 1);
     }
 
     BackgroundSweepThread(LockService lockService,
