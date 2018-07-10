@@ -149,8 +149,6 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
      */
     public static long getMillisForTimestamp(KeyValueService kvs, long timestamp) {
         long timestampExclusive = timestamp + 1;
-        // punch table is keyed by the real value we're trying to find so we have to do a whole table
-        // scan, which is fine because this table should be really small
         byte[] startRow = EncodingUtils.encodeUnsignedVarLong(Long.MAX_VALUE);
         EncodingUtils.flipAllBitsInPlace(startRow);
         RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(1).build();
