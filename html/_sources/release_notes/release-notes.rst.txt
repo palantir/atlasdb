@@ -50,12 +50,13 @@ develop
     *    - Type
          - Change
 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3359>`__)
     *    - |improved|
          - Startup and schema change performance improved for Cassandra users with large numbers of tables.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3278>`__)
 
-    *    -
-         -
+    *    - |fixed| |deprecated|
+         - Atlas clients using Cassandra can specify type of kvs as `cassandra` rather then `CassandraKeyValueServiceRuntimeConfig` in runtime configuration. `CassandraKeyValueServiceRuntimeConfig` type is now deprecated.
 
 =======
 v0.95.0
