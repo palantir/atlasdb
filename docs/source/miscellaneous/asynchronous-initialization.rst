@@ -14,6 +14,7 @@ If ``initializeAsync`` is set to false, the callback will be run synchronously (
 If ``initializeAsync`` is set to true, the callback will also be run asynchronously:
 
 1. Once all the resources for the transaction manager have become ready, **but before the transaction manager becomes initialized**, the registered callback will be run asynchronously.
+   Note that calls to the transaction manager from the callback at this time bypass the initialization checks.
 2. If the callback fails and should not be retried, the transaction manager will be closed.
 3. If the callback is successful, the transaction manager then becomes initialized.
 
