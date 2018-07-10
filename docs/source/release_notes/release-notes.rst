@@ -55,6 +55,14 @@ develop
            Previously, we would range scan the table even if the last swept timestamp was -1, which would force a range scan of the entire table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3364>`__)
 
+    *    - |improved|
+         - Startup and schema change performance improved for Cassandra users with large numbers of tables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3278>`__)
+
+    *    - |fixed| |deprecated|
+         - Atlas clients using Cassandra can specify type of kvs as `cassandra` rather then `CassandraKeyValueServiceRuntimeConfig` in runtime configuration. `CassandraKeyValueServiceRuntimeConfig` type is now deprecated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3359>`__)
+
 =======
 v0.95.0
 =======
