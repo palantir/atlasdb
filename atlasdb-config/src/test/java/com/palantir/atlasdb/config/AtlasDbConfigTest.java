@@ -86,15 +86,6 @@ public class AtlasDbConfigTest {
     }
 
     @Test
-    public void configWithTimelockBlockIsValid() {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .build();
-        assertThat(config.getNamespaceString(), equalTo(TEST_NAMESPACE));
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void remoteLockAndTimestampConfigIsValid() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)

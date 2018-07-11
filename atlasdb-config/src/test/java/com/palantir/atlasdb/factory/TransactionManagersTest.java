@@ -180,6 +180,7 @@ public class TransactionManagersTest {
         when(config.lock()).thenReturn(Optional.empty());
         when(config.keyValueService()).thenReturn(new InMemoryAtlasDbConfig());
         when(config.initializeAsync()).thenReturn(false);
+        when(config.namespace()).thenReturn(Optional.of(CLIENT));
 
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
@@ -205,7 +206,6 @@ public class TransactionManagersTest {
 
     @Test
     public void userAgentsPresentOnRequestsToTimelockServer() {
-        when(config.namespace()).thenReturn(Optional.of(CLIENT));
         setUpTimeLockBlockInRuntimeConfig();
         availableServer.stubFor(post(urlMatching("/")).willReturn(aResponse().withStatus(200).withBody("3")));
         availableServer.stubFor(TIMELOCK_LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("4")));
@@ -247,7 +247,6 @@ public class TransactionManagersTest {
     @Test
     public void remoteCallsElidedIfTalkingToLocalServer() throws IOException, InterruptedException {
         setUpForLocalServices();
-        setUpLeaderBlockInConfig();
 
         TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
@@ -298,7 +297,6 @@ public class TransactionManagersTest {
 
     @Test
     public void batchesRequestsIfBatchingEnabled() throws InterruptedException {
-        when(config.namespace()).thenReturn(Optional.of(CLIENT));
         setUpTimeLockBlockInRuntimeConfig();
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
 
@@ -309,7 +307,6 @@ public class TransactionManagersTest {
 
     @Test
     public void doesNotBatchRequestsIfBatchingNotEnabled() {
-        when(config.namespace()).thenReturn(Optional.of(CLIENT));
         setUpTimeLockBlockInRuntimeConfig();
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
 
@@ -362,7 +359,6 @@ public class TransactionManagersTest {
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingLocalService() throws IOException, InterruptedException {
         setUpForLocalServices();
-        setUpLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 LOCK_SERVICE_CURRENT_TIME_METRIC);
@@ -371,7 +367,6 @@ public class TransactionManagersTest {
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingRemoteService() throws IOException, InterruptedException {
         setUpForRemoteServices();
-        setUpLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 LOCK_SERVICE_CURRENT_TIME_METRIC);
@@ -379,7 +374,6 @@ public class TransactionManagersTest {
 
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingTimelockServiceWithRequestBatching() {
-        when(config.namespace()).thenReturn(Optional.of(CLIENT));
         setUpTimeLockBlockInRuntimeConfig();
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
 
@@ -425,7 +419,7 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void usesTimeLockIfInstallConfigIsTimeLockAndInitialRuntimeConfigContainsTimeLockBlock() {
+    public void usesTimeLockIfInitialRuntimeConfigContainsTimeLockBlock() {
         setUpTimeLockBlockInRuntimeConfig();
         verifyUsingTimeLockByGettingAFreshTimestamp();
     }
@@ -444,7 +438,6 @@ public class TransactionManagersTest {
     }
 
     private void verifyUsingTimeLockByGettingAFreshTimestamp() {
-        when(config.namespace()).thenReturn(Optional.of(CLIENT));
         getLockAndTimestampServices().timelock().getFreshTimestamp();
         availableServer.verify(1, postRequestedFor(urlMatching(TIMELOCK_TIMESTAMP_PATH)));
     }

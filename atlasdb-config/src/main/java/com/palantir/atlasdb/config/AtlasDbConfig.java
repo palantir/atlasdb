@@ -54,11 +54,10 @@ public abstract class AtlasDbConfig {
      * key value services. Currently, this only applies to external timelock services, and Cassandra KVS (where it is
      * used as the keyspace).
      *
-     * For backwards compatibility reasons, this is optional. If no namespace is specified:
-     *   - if using Cassandra, the keyspace must be explicitly specified.
-     *   - if using TimeLock, the client name must be explicitly specified.
+     * For backwards compatibility reasons, this is optional. If no namespace is specified, if using Cassandra,
+     * the keyspace must be explicitly specified.
      *
-     * If a namespace is specified and a Cassandra keyspace / TimeLock client name is also explicitly specified, then
+     * If a namespace is specified and a Cassandra keyspace is also explicitly specified, then
      * AtlasDB will fail to start if these are contradictory.
      */
     public abstract Optional<String> namespace();
@@ -270,12 +269,12 @@ public abstract class AtlasDbConfig {
 
     @Value.Check
     protected final void check() {
-        checkLeaderAndTimelockBlocks();
+        checkLeaderBlock();
         checkLockAndTimestampBlocks();
         checkNamespaceConfigAndGetNamespace();
     }
 
-    private void checkLeaderAndTimelockBlocks() {
+    private void checkLeaderBlock() {
         if (leader().isPresent()) {
             Preconditions.checkState(areTimeAndLockConfigsAbsent(),
                     "If the leader block is present, then the lock and timestamp server blocks must both be absent.");

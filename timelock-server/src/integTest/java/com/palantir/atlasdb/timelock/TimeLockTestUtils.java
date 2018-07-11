@@ -58,9 +58,17 @@ public final class TimeLockTestUtils {
                 .userAgent("test")
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .runtimeConfigSupplier(getAtlasdbRuntimeConfigSupplier(serverUris))
+                .runtimeConfigSupplier(getAtlasdbRuntimeConfig(serverUris))
                 .build()
                 .serializable();
+    }
+
+    private static Supplier<Optional<AtlasDbRuntimeConfig>> getAtlasdbRuntimeConfig(List<String> serverUris) {
+        return  () -> Optional.of(ImmutableAtlasDbRuntimeConfig.builder()
+                .timelockRuntime(ImmutableTimeLockRuntimeConfig.builder()
+                        .serversList(getServerListConfig(serverUris))
+                        .build())
+                .build());
     }
 
     private static ServerListConfig getServerListConfig(List<String> serverUris) {
@@ -69,13 +77,4 @@ public final class TimeLockTestUtils {
                 .sslConfiguration(SSL_CONFIGURATION)
                 .build();
     }
-
-    private static Supplier<Optional<AtlasDbRuntimeConfig>> getAtlasdbRuntimeConfigSupplier(List<String> serverUris) {
-        return  () -> Optional.of(ImmutableAtlasDbRuntimeConfig.builder()
-                .timelockRuntime(ImmutableTimeLockRuntimeConfig.builder()
-                        .serversList(getServerListConfig(serverUris))
-                        .build())
-                .build());
-    }
-
 }

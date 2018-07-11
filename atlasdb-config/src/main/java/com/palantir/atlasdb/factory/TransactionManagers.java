@@ -711,10 +711,8 @@ public abstract class TransactionManagers {
     private static void assertNoSpuriousTimeLockBlockInRuntimeConfig(
             AtlasDbConfig config,
             AtlasDbRuntimeConfig initialRuntimeConfig) {
-        // Note: The other direction (timelock install config without a runtime block) should be maintained for
-        // backwards compatibility.
         if (remoteTimestampAndLockOrLeaderBlocksPresent(config)
-                && initialRuntimeConfig.timelockRuntime().serversList().hasAtLeastOneServer()) {
+                && isUsingTimeLock(initialRuntimeConfig)) {
             throw new IllegalStateException("Found a service configured not to use timelock, with at least one entry"
                     + " in the servers field of serversList block within timelock block in the runtime config! This is"
                     + " unexpected. If you wish to use non-timelock services, please remove the entries from"
@@ -745,7 +743,6 @@ public abstract class TransactionManagers {
                 .withMigrator(migrator);
     }
 
-    //  what's the deal with all these clients
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {

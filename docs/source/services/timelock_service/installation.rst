@@ -83,7 +83,7 @@ Add client(s) to Timelock
 
 .. code-block:: yaml
 
-   atlasdb:
+   atlasdbRuntime:
       timelockRuntime:
         serversList:
           servers:

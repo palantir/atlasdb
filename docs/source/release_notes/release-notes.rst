@@ -52,10 +52,7 @@ develop
 
     *    - |userbreak|
          - The ``timelockRuntime`` block is now mandatory. Before this it was optional.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3362>`__)
-
-    *    - |userbreak|
-         - The ``timelock`` block from the install config haa been removed. The block was deprecated in v0.67.0 (released on 15th of November 2017).
+           The ``timelock`` block from the install config has been removed. The block was deprecated in v0.67.0 (released on 15th of November 2017).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3362>`__)
 
     *    - |fixed|
