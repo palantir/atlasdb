@@ -415,18 +415,6 @@ public final class CheckAndSetTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(CheckAndSetRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
-    }
-
-    public void putValueUnlessExists(Map<CheckAndSetRow, Long> map) {
-        Map<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<CheckAndSetRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -434,20 +422,6 @@ public final class CheckAndSetTable implements
         for (CheckAndSetTrigger trigger : triggers) {
             trigger.putCheckAndSet(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> rows) {
-        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteValue(CheckAndSetRow row) {
@@ -683,5 +657,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "woRNI9VtMe2tFg8WOowU2Q==";
+    static String __CLASS_HASH = "QWc6X5pvzfCCbu6ttAaF3A==";
 }

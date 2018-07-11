@@ -489,35 +489,6 @@ public final class HotspottyDataStreamIdxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(HotspottyDataStreamIdxRow rowName, Iterable<HotspottyDataStreamIdxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(HotspottyDataStreamIdxRow rowName, HotspottyDataStreamIdxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<HotspottyDataStreamIdxRow, ? extends HotspottyDataStreamIdxColumnValue> rows) {
-        Multimap<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumn> toGet = Multimaps.transformValues(rows, HotspottyDataStreamIdxColumnValue.getColumnNameFun());
-        Multimap<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumnValue> existing = get(toGet);
-        Multimap<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumnValue> toPut = HashMultimap.create();
-        for (Entry<HotspottyDataStreamIdxRow, ? extends HotspottyDataStreamIdxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumn> values) {
         Multimap<HotspottyDataStreamIdxRow, HotspottyDataStreamIdxColumnValue> currentValues = get(values);
@@ -742,5 +713,5 @@ public final class HotspottyDataStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "9RHp/+CSmiwzyo2808GTWg==";
+    static String __CLASS_HASH = "G2byjrwUZEphtaXrSUazqA==";
 }

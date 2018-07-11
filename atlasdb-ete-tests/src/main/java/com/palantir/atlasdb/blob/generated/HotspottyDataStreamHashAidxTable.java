@@ -489,35 +489,6 @@ public final class HotspottyDataStreamHashAidxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(HotspottyDataStreamHashAidxRow rowName, Iterable<HotspottyDataStreamHashAidxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(HotspottyDataStreamHashAidxRow rowName, HotspottyDataStreamHashAidxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<HotspottyDataStreamHashAidxRow, ? extends HotspottyDataStreamHashAidxColumnValue> rows) {
-        Multimap<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, HotspottyDataStreamHashAidxColumnValue.getColumnNameFun());
-        Multimap<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumnValue> toPut = HashMultimap.create();
-        for (Entry<HotspottyDataStreamHashAidxRow, ? extends HotspottyDataStreamHashAidxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumn> values) {
         Multimap<HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxColumnValue> currentValues = get(values);
@@ -742,5 +713,5 @@ public final class HotspottyDataStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "h3NNoQda1GH4gZI4Dk5i4w==";
+    static String __CLASS_HASH = "Lh4UEEm2Yer4BJTWKfCP4Q==";
 }

@@ -489,35 +489,6 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(StreamTestMaxMemStreamHashAidxRow rowName, Iterable<StreamTestMaxMemStreamHashAidxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(StreamTestMaxMemStreamHashAidxRow rowName, StreamTestMaxMemStreamHashAidxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<StreamTestMaxMemStreamHashAidxRow, ? extends StreamTestMaxMemStreamHashAidxColumnValue> rows) {
-        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, StreamTestMaxMemStreamHashAidxColumnValue.getColumnNameFun());
-        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> toPut = HashMultimap.create();
-        for (Entry<StreamTestMaxMemStreamHashAidxRow, ? extends StreamTestMaxMemStreamHashAidxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> values) {
         Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> currentValues = get(values);
@@ -742,5 +713,5 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "tP8ZBm3sXOwkmUliRmO3Gg==";
+    static String __CLASS_HASH = "E8Zf6PtirrT7zsEz8//DWA==";
 }

@@ -8,9 +8,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -21,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -414,18 +415,6 @@ public final class BlobsSerializableTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putDataUnlessExists(BlobsSerializableRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Data.of(value)));
-    }
-
-    public void putDataUnlessExists(Map<BlobsSerializableRow, byte[]> map) {
-        Map<BlobsSerializableRow, BlobsSerializableNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<BlobsSerializableRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Data.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<BlobsSerializableRow, ? extends BlobsSerializableNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -433,20 +422,6 @@ public final class BlobsSerializableTable implements
         for (BlobsSerializableTrigger trigger : triggers) {
             trigger.putBlobsSerializable(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<BlobsSerializableRow, ? extends BlobsSerializableNamedColumnValue<?>> rows) {
-        Multimap<BlobsSerializableRow, BlobsSerializableNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<BlobsSerializableRow, BlobsSerializableNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<BlobsSerializableRow, ? extends BlobsSerializableNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteData(BlobsSerializableRow row) {
@@ -606,11 +581,8 @@ public final class BlobsSerializableTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -681,8 +653,9 @@ public final class BlobsSerializableTable implements
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "yLyE7LWp3HCpLg4wfAKk+w==";
+    static String __CLASS_HASH = "SdgUSR8Y7V+fu2C7iUMTDg==";
 }

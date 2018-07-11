@@ -34,6 +34,7 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
@@ -56,6 +57,22 @@ public class BackgroundSweepThread implements Runnable {
     private final int threadIndex;
 
     private Optional<TableToSweep> currentTable = Optional.empty();
+
+    // Used in internal test code
+    @VisibleForTesting
+    @SuppressWarnings("checkstyle:RegexpMultilineCheck")
+    public static BackgroundSweepThread createForTests(LockService lockService,
+            NextTableToSweepProvider nextTableToSweepProvider,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource,
+            Supplier<Boolean> isSweepEnabled,
+            Supplier<Long> sweepPauseMillis,
+            Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
+            SpecificTableSweeper specificTableSweeper,
+            MetricsManager metricsManager) {
+        return new BackgroundSweepThread(lockService, nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled,
+                sweepPauseMillis, sweepPriorityOverrideConfig, specificTableSweeper,
+                new SweepOutcomeMetrics(metricsManager), new CountDownLatch(1), 1);
+    }
 
     BackgroundSweepThread(LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,

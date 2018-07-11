@@ -24,12 +24,12 @@ import org.junit.Test;
 public class TimestampRangeTest {
     @Test
     public void shouldHaveASizeOf1WhenCreatedWithTheSameUpperAndLowerBounds() {
-        assertThat(TimestampRange.createInclusiveRange(10,10).size(), is(1L));
+        assertThat(TimestampRange.createInclusiveRange(10, 10).size(), is(1L));
     }
 
     @Test
     public void shouldHaveASizeThatInludesBothEndpoints() {
-        assertThat(TimestampRange.createInclusiveRange(10,12).size(), is(3L));
+        assertThat(TimestampRange.createInclusiveRange(10, 12).size(), is(3L));
     }
 
     @Test

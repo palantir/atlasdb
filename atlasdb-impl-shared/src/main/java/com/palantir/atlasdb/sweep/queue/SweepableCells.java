@@ -67,13 +67,19 @@ public class SweepableCells extends KvsSweepQueueWriter {
     }
 
     @Override
+    Map<Cell, byte[]> populateReferences(PartitionInfo partitionInfo, List<WriteInfo> writes) {
+        boolean dedicate = writes.size() > SweepQueueUtils.MAX_CELLS_GENERIC;
+        if (dedicate) {
+            return addReferenceToDedicatedRows(partitionInfo, writes);
+        } else {
+            return ImmutableMap.of();
+        }
+    }
+
+    @Override
     Map<Cell, byte[]> populateCells(PartitionInfo partitionInfo, List<WriteInfo> writes) {
         Map<Cell, byte[]> cells = new HashMap<>();
         boolean dedicate = writes.size() > SweepQueueUtils.MAX_CELLS_GENERIC;
-
-        if (dedicate) {
-            cells.putAll(addReferenceToDedicatedRows(partitionInfo, writes));
-        }
 
         long index = 0;
         for (WriteInfo write : writes) {

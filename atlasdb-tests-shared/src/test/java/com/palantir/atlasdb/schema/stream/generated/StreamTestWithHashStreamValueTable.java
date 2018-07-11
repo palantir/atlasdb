@@ -441,18 +441,6 @@ public final class StreamTestWithHashStreamValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(StreamTestWithHashStreamValueRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
-    }
-
-    public void putValueUnlessExists(Map<StreamTestWithHashStreamValueRow, byte[]> map) {
-        Map<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<StreamTestWithHashStreamValueRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -460,20 +448,6 @@ public final class StreamTestWithHashStreamValueTable implements
         for (StreamTestWithHashStreamValueTrigger trigger : triggers) {
             trigger.putStreamTestWithHashStreamValue(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> rows) {
-        Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteValue(StreamTestWithHashStreamValueRow row) {
@@ -709,5 +683,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "H9s9oYltnwIo26sFEYi7KA==";
+    static String __CLASS_HASH = "DuQnupgMKPT4lnevj8xrww==";
 }

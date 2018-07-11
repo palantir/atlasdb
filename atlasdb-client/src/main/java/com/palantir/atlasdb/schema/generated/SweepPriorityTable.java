@@ -831,18 +831,6 @@ public final class SweepPriorityTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putWriteCountUnlessExists(SweepPriorityRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, WriteCount.of(value)));
-    }
-
-    public void putWriteCountUnlessExists(Map<SweepPriorityRow, Long> map) {
-        Map<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SweepPriorityRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), WriteCount.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putLastSweepTime(SweepPriorityRow row, Long value) {
         put(ImmutableMultimap.of(row, LastSweepTime.of(value)));
     }
@@ -853,18 +841,6 @@ public final class SweepPriorityTable implements
             toPut.put(e.getKey(), LastSweepTime.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
-    }
-
-    public void putLastSweepTimeUnlessExists(SweepPriorityRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, LastSweepTime.of(value)));
-    }
-
-    public void putLastSweepTimeUnlessExists(Map<SweepPriorityRow, Long> map) {
-        Map<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SweepPriorityRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), LastSweepTime.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putMinimumSweptTimestamp(SweepPriorityRow row, Long value) {
@@ -879,18 +855,6 @@ public final class SweepPriorityTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putMinimumSweptTimestampUnlessExists(SweepPriorityRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, MinimumSweptTimestamp.of(value)));
-    }
-
-    public void putMinimumSweptTimestampUnlessExists(Map<SweepPriorityRow, Long> map) {
-        Map<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SweepPriorityRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), MinimumSweptTimestamp.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putCellsDeleted(SweepPriorityRow row, Long value) {
         put(ImmutableMultimap.of(row, CellsDeleted.of(value)));
     }
@@ -901,18 +865,6 @@ public final class SweepPriorityTable implements
             toPut.put(e.getKey(), CellsDeleted.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
-    }
-
-    public void putCellsDeletedUnlessExists(SweepPriorityRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, CellsDeleted.of(value)));
-    }
-
-    public void putCellsDeletedUnlessExists(Map<SweepPriorityRow, Long> map) {
-        Map<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SweepPriorityRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), CellsDeleted.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putCellsExamined(SweepPriorityRow row, Long value) {
@@ -927,18 +879,6 @@ public final class SweepPriorityTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putCellsExaminedUnlessExists(SweepPriorityRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, CellsExamined.of(value)));
-    }
-
-    public void putCellsExaminedUnlessExists(Map<SweepPriorityRow, Long> map) {
-        Map<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SweepPriorityRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), CellsExamined.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<SweepPriorityRow, ? extends SweepPriorityNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -946,20 +886,6 @@ public final class SweepPriorityTable implements
         for (SweepPriorityTrigger trigger : triggers) {
             trigger.putSweepPriority(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<SweepPriorityRow, ? extends SweepPriorityNamedColumnValue<?>> rows) {
-        Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<SweepPriorityRow, ? extends SweepPriorityNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteWriteCount(SweepPriorityRow row) {
@@ -1239,5 +1165,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "1Jg6QChUupx53+JdkO4bzg==";
+    static String __CLASS_HASH = "TJJRvx5uQ/E1NQVzUnggYQ==";
 }

@@ -20,6 +20,7 @@ import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -49,7 +50,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     public static TimeLockClient createDefault(TimelockService timelockService) {
         ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
         LockRefresher lockRefresher = new LockRefresher(refreshExecutor, timelockService, REFRESH_INTERVAL_MILLIS);
-        ScheduledExecutorService asyncUnlockExecutor = createSingleThreadScheduledExecutor("async-unlock");
+        ExecutorService asyncUnlockExecutor = createSingleThreadScheduledExecutor("async-unlock");
         AsyncTimeLockUnlocker asyncUnlocker = new AsyncTimeLockUnlocker(timelockService, asyncUnlockExecutor);
         return new TimeLockClient(timelockService, lockRefresher, asyncUnlocker);
     }

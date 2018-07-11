@@ -541,21 +541,18 @@ public final class SweepableCellsTable implements
 
     /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
-    @Override
     public void putUnlessExists(SweepableCellsRow rowName, Iterable<SweepableCellsColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<SweepableCellsRow, SweepableCellsColumnValue>builder().putAll(rowName, values).build());
     }
 
     /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
-    @Override
     public void putUnlessExists(SweepableCellsRow rowName, SweepableCellsColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<SweepableCellsRow, SweepableCellsColumnValue>builder().putAll(rowName, values).build());
     }
 
     /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
-    @Override
     public void putUnlessExists(Multimap<SweepableCellsRow, ? extends SweepableCellsColumnValue> rows) {
         Multimap<SweepableCellsRow, SweepableCellsColumn> toGet = Multimaps.transformValues(rows, SweepableCellsColumnValue.getColumnNameFun());
         Multimap<SweepableCellsRow, SweepableCellsColumnValue> existing = get(toGet);
