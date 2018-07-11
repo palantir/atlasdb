@@ -22,7 +22,6 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableIdentifiedTimeLockRequest.class)
@@ -34,9 +33,5 @@ public interface IdentifiedTimeLockRequest {
 
     static IdentifiedTimeLockRequest create() {
         return ImmutableIdentifiedTimeLockRequest.of(UUID.randomUUID());
-    }
-
-    public static void main(String[] args) throws Exception {
-        System.out.println(ObjectMappers.newServerObjectMapper().writeValueAsString(IdentifiedTimeLockRequest.create()));
     }
 }
