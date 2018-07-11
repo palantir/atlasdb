@@ -52,19 +52,19 @@ develop
 
     *    - |userbreak|
          - The ``timelockRuntime`` block is now mandatory. Before this it was optional.
-         (`Pull Request <https://github.com/palantir/atlasdb/pull/3362>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3362>`__)
 
     *    - |userbreak|
          - The ``timelock`` block from the install config haa been removed. The block was deprecated in v0.67.0 (released on 15th of November 2017).
-         (`Pull Request <https://github.com/palantir/atlasdb/pull/3362>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3362>`__)
 
     *    - |improved|
          - Startup and schema change performance improved for Cassandra users with large numbers of tables.
-         (`Pull Request <https://github.com/palantir/atlasdb/pull/3278>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3278>`__)
 
     *    - |fixed| |deprecated|
          - Atlas clients using Cassandra can specify type of kvs as `cassandra` rather then `CassandraKeyValueServiceRuntimeConfig` in runtime configuration. `CassandraKeyValueServiceRuntimeConfig` type is now deprecated.
-         (`Pull Request <https://github.com/palantir/atlasdb/pull/3359>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3359>`__)
 
 =======
 v0.95.0
