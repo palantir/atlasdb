@@ -46,13 +46,13 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
     @Option(name = {"-s", "--start-timestamp"},
             title = "TIMESTAMP",
             type = OptionType.GROUP,
-            description = "The timestamp for to use for this command")
+            description = "The timestamp to begin scanning the _trasactions table at.")
     Long startTimestamp;
 
     @Option(name = {"--skip-start-timestamp-check"},
             title = "TIMESTAMP",
             type = OptionType.GROUP,
-            description = "Skip start timestamp check")
+            description = "Skips the check start timestamp check")
     boolean skipStartTimestampCheck;
 
 
@@ -75,7 +75,7 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
 
         if (startBytes.length != timestampBytes.length && !skipStartTimestampCheck) {
             throw new RuntimeException(String.format(
-                    "They aren't the same length! %s != %s", startBytes.length, timestampBytes.length));
+                    "Start timestamp and timestamp to clean after need to have the same number of bytes! %s != %s", startBytes.length, timestampBytes.length));
         }
 
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
@@ -90,22 +90,13 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
         Multimap<Cell, Long> toDelete = HashMultimap.create();
 
         long lastLoggedTsCountdown = 0;
-        long minTs = Long.MAX_VALUE;
-        long maxTs = Long.MIN_VALUE;
-
         while (range.hasNext()) {
             RowResult<Value> row = range.next();
             byte[] rowName = row.getRowName();
             long startTs = TransactionConstants.getTimestampForValue(rowName);
 
-            minTs = Math.min(minTs, startTs);
-            maxTs = Math.max(maxTs, startTs);
-
             if (lastLoggedTsCountdown == 0) {
-                printer.info("Currently at timestamp {}. min: {}, max: {}",
-                        SafeArg.of("startTs", startTs),
-                        SafeArg.of("minTs", minTs),
-                        SafeArg.of("maxTs", maxTs));
+                printer.info("Currently at timestamp {}.", SafeArg.of("startTs", startTs));
                 lastLoggedTsCountdown = 100000;
             }
             lastLoggedTsCountdown -= 1;
