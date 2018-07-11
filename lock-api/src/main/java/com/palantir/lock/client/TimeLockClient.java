@@ -20,8 +20,10 @@ import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -42,19 +44,21 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     private final TimelockService delegate;
     private final LockRefresher lockRefresher;
+    private final AsyncTimeLockUnlocker asyncUnlocker;
 
     public static TimeLockClient createDefault(TimelockService timelockService) {
-        ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                .setNameFormat(TimeLockClient.class.getSimpleName() + "-%d")
-                .setDaemon(true)
-                .build());
-        LockRefresher lockRefresher = new LockRefresher(executor, timelockService, REFRESH_INTERVAL_MILLIS);
-        return new TimeLockClient(timelockService, lockRefresher);
+        ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
+        LockRefresher lockRefresher = new LockRefresher(refreshExecutor, timelockService, REFRESH_INTERVAL_MILLIS);
+        ExecutorService asyncUnlockExecutor = createSingleThreadScheduledExecutor("async-unlock");
+        AsyncTimeLockUnlocker asyncUnlocker = new AsyncTimeLockUnlocker(timelockService, asyncUnlockExecutor);
+        return new TimeLockClient(timelockService, lockRefresher, asyncUnlocker);
     }
 
-    public TimeLockClient(TimelockService delegate, LockRefresher lockRefresher) {
+    @VisibleForTesting
+    TimeLockClient(TimelockService delegate, LockRefresher lockRefresher, AsyncTimeLockUnlocker asyncUnlocker) {
         this.delegate = delegate;
         this.lockRefresher = lockRefresher;
+        this.asyncUnlocker = asyncUnlocker;
     }
 
     @Override
@@ -110,6 +114,12 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
+    public void tryUnlock(Set<LockToken> tokens) {
+        lockRefresher.unregisterLocks(tokens);
+        asyncUnlocker.enqueue(tokens);
+    }
+
+    @Override
     public long currentTimeMillis() {
         return executeOnTimeLock(delegate::currentTimeMillis);
     }
@@ -131,5 +141,14 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public void close() {
         lockRefresher.close();
+        asyncUnlocker.close();
+    }
+
+    private static ScheduledExecutorService createSingleThreadScheduledExecutor(String operation) {
+        return PTExecutors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder()
+                        .setNameFormat(TimeLockClient.class.getSimpleName() + "-" + operation + "-%d")
+                        .setDaemon(true)
+                        .build());
     }
 }

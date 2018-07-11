@@ -8,9 +8,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -21,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -135,22 +136,22 @@ public final class MetadataTable implements
     /**
      * <pre>
      * MetadataRow {
-     *   {@literal Long firstComponentHash};
+     *   {@literal Long hashOfRowComponents};
      *   {@literal String key};
      * }
      * </pre>
      */
     public static final class MetadataRow implements Persistable, Comparable<MetadataRow> {
-        private final long firstComponentHash;
+        private final long hashOfRowComponents;
         private final String key;
 
         public static MetadataRow of(String key) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_STRING.convertFromJava(key)).asLong();
-            return new MetadataRow(firstComponentHash, key);
+            long hashOfRowComponents = computeHashFirstComponents(key);
+            return new MetadataRow(hashOfRowComponents, key);
         }
 
-        private MetadataRow(long firstComponentHash, String key) {
-            this.firstComponentHash = firstComponentHash;
+        private MetadataRow(long hashOfRowComponents, String key) {
+            this.hashOfRowComponents = hashOfRowComponents;
             this.key = key;
         }
 
@@ -178,41 +179,46 @@ public final class MetadataTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] keyBytes = EncodingUtils.encodeVarString(key);
-            return EncodingUtils.add(firstComponentHashBytes, keyBytes);
+            return EncodingUtils.add(hashOfRowComponentsBytes, keyBytes);
         }
 
         public static final Hydrator<MetadataRow> BYTES_HYDRATOR = new Hydrator<MetadataRow>() {
             @Override
             public MetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long firstComponentHash = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 String key = EncodingUtils.decodeVarString(__input, __index);
                 __index += EncodingUtils.sizeOfVarString(key);
-                return new MetadataRow(firstComponentHash, key);
+                return new MetadataRow(hashOfRowComponents, key);
             }
         };
 
-        public static RangeRequest.Builder createPrefixRangeUnsorted(String key) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_STRING.convertFromJava(key)).asLong();
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+        public static long computeHashFirstComponents(String key) {
             byte[] keyBytes = EncodingUtils.encodeVarString(key);
-            return RangeRequest.builder().prefixRange(EncodingUtils.add(firstComponentHashBytes, keyBytes));
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(keyBytes)).asLong();
+        }
+
+        public static RangeRequest.Builder createPrefixRangeUnsorted(String key) {
+            long hashOfRowComponents = computeHashFirstComponents(key);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
+            byte[] keyBytes = EncodingUtils.encodeVarString(key);
+            return RangeRequest.builder().prefixRange(EncodingUtils.add(hashOfRowComponentsBytes, keyBytes));
         }
 
         public static Prefix prefixUnsorted(String key) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_STRING.convertFromJava(key)).asLong();
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+            long hashOfRowComponents = computeHashFirstComponents(key);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] keyBytes = EncodingUtils.encodeVarString(key);
-            return new Prefix(EncodingUtils.add(firstComponentHashBytes, keyBytes));
+            return new Prefix(EncodingUtils.add(hashOfRowComponentsBytes, keyBytes));
         }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("firstComponentHash", firstComponentHash)
+                .add("hashOfRowComponents", hashOfRowComponents)
                 .add("key", key)
                 .toString();
         }
@@ -229,19 +235,19 @@ public final class MetadataTable implements
                 return false;
             }
             MetadataRow other = (MetadataRow) obj;
-            return Objects.equal(firstComponentHash, other.firstComponentHash) && Objects.equal(key, other.key);
+            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(key, other.key);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ firstComponentHash, key });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, key });
         }
 
         @Override
         public int compareTo(MetadataRow o) {
             return ComparisonChain.start()
-                .compare(this.firstComponentHash, o.firstComponentHash)
+                .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.key, o.key)
                 .result();
         }
@@ -437,18 +443,6 @@ public final class MetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putDataUnlessExists(MetadataRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Data.of(value)));
-    }
-
-    public void putDataUnlessExists(Map<MetadataRow, byte[]> map) {
-        Map<MetadataRow, MetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<MetadataRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Data.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<MetadataRow, ? extends MetadataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -456,20 +450,6 @@ public final class MetadataTable implements
         for (MetadataTrigger trigger : triggers) {
             trigger.putMetadata(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<MetadataRow, ? extends MetadataNamedColumnValue<?>> rows) {
-        Multimap<MetadataRow, MetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<MetadataRow, MetadataNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<MetadataRow, ? extends MetadataNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteData(MetadataRow row) {
@@ -630,6 +610,12 @@ public final class MetadataTable implements
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, MetadataRowResult::of)));
     }
 
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   BiFunction<RangeRequest, BatchingVisitable<MetadataRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges,
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, MetadataRowResult::of)));
+    }
+
     public Stream<BatchingVisitable<MetadataRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
         Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, MetadataRowResult::of));
@@ -672,11 +658,8 @@ public final class MetadataTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -747,8 +730,9 @@ public final class MetadataTable implements
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "DV1gh2O9rwXDJ5TvONBWVg==";
+    static String __CLASS_HASH = "hvf+4PjLdUtmIOq08NC5kA==";
 }

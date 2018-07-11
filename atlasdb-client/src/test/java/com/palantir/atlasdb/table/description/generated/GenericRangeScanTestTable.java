@@ -489,35 +489,6 @@ public final class GenericRangeScanTestTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(GenericRangeScanTestRow rowName, Iterable<GenericRangeScanTestColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(GenericRangeScanTestRow rowName, GenericRangeScanTestColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<GenericRangeScanTestRow, ? extends GenericRangeScanTestColumnValue> rows) {
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toGet = Multimaps.transformValues(rows, GenericRangeScanTestColumnValue.getColumnNameFun());
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> existing = get(toGet);
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> toPut = HashMultimap.create();
-        for (Entry<GenericRangeScanTestRow, ? extends GenericRangeScanTestColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> values) {
         Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> currentValues = get(values);
@@ -795,5 +766,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "AY9xYqAK0/4MlWNEl2//dg==";
+    static String __CLASS_HASH = "nLl28oDHfbNzyKxXdgdZ7Q==";
 }

@@ -273,35 +273,21 @@ public abstract class TransactionManagers {
         Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
-        QosClient qosClient = initializeCloseable(
-                () -> getQosClient(metricsManager,
-                        JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier)),
-                closeables);
+        QosClient qosClient = initializeCloseable(() -> getQosClient(metricsManager,
+                        JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier)), closeables);
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
-        ServiceDiscoveringAtlasSupplier atlasFactory =
-                new ServiceDiscoveringAtlasSupplier(
-                        metricsManager,
+        ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
                         config.keyValueService(),
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier),
-                        config.leader(),
-                        config.namespace(),
-                        Optional.empty(),
-                        config.initializeAsync(),
-                        qosClient,
-                        adapter);
+                        config.leader(), config.namespace(), Optional.empty(), config.initializeAsync(),
+                        qosClient, adapter);
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
-        LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
-                metricsManager,
-                config,
-                runtimeConfigSupplier,
-                registrar(),
-                () -> LockServiceImpl.create(lockServerOptions()),
-                atlasFactory::getTimestampService,
-                atlasFactory.getTimestampStoreInvalidator(),
-                userAgent());
+        LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(metricsManager, config,
+                runtimeConfigSupplier, registrar(), () -> LockServiceImpl.create(lockServerOptions()),
+                atlasFactory::getTimestampService, atlasFactory.getTimestampStoreInvalidator(), userAgent());
         adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
@@ -311,12 +297,16 @@ public abstract class TransactionManagers {
         KeyValueService keyValueService = initializeCloseable(() -> {
             KeyValueService kvs = atlasFactory.getKeyValueService();
             kvs = ProfilingKeyValueService.create(kvs);
-            kvs = SweepStatsKeyValueService.create(kvs,
-                    new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
-                    JavaSuppliers.compose(SweepConfig::writeThreshold, sweepConfig),
-                    JavaSuppliers.compose(SweepConfig::writeSizeThreshold, sweepConfig)
 
-            );
+            // If we are writing to the sweep queue, then we do not need to use SweepStatsKVS to record modifications.
+            if (!config.targetedSweep().enableSweepQueueWrites()) {
+                kvs = SweepStatsKeyValueService.create(kvs,
+                        new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
+                        JavaSuppliers.compose(SweepConfig::writeThreshold, sweepConfig),
+                        JavaSuppliers.compose(SweepConfig::writeSizeThreshold, sweepConfig)
+                );
+            }
+
             kvs = TracingKeyValueService.create(kvs);
             kvs = AtlasDbMetrics.instrument(metricsManager.getRegistry(), KeyValueService.class,
                     kvs, MetricRegistry.name(KeyValueService.class));
@@ -326,14 +316,9 @@ public abstract class TransactionManagers {
         SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(keyValueService,
                 config.initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService,
-                schemas(),
-                schemaMetadataService,
-                config.initializeAsync());
+                keyValueService, schemas(), schemaMetadataService, config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
-                keyValueService,
-                registrar(),
-                config.initializeAsync());
+                keyValueService, registrar(), config.initializeAsync());
 
         TransactionService transactionService = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 TransactionService.class, TransactionServices.createTransactionService(keyValueService));
@@ -545,6 +530,7 @@ public abstract class TransactionManagers {
                 metricsManager,
                 sweepBatchConfigSource,
                 () -> runtimeConfigSupplier.get().sweep().enabled(),
+                () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
                 persistentLockManager,
@@ -940,6 +926,7 @@ public abstract class TransactionManagers {
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
 
+        @SuppressWarnings("checkstyle:WhitespaceAround")
         @Value.Default
         default Runnable close() {
             return () -> {};

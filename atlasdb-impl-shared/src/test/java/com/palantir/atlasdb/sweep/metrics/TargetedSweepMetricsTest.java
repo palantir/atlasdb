@@ -16,14 +16,25 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
+
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -45,9 +56,20 @@ public class TargetedSweepMetricsTest {
     @Before
     public void setup() {
         clockTime = 100;
-        kvs = new InMemoryKeyValueService(true);
+        kvs = Mockito.spy(new InMemoryKeyValueService(true));
         puncherStore = KeyValueServicePuncherStore.create(kvs, false);
         metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, RECOMPUTE_MILLIS);
+    }
+
+    @Test
+    public void initialMetricsAreNormalized() {
+        assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(0);
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(0);
+        assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(0);
+        assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(0);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(null);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(null);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(null);
     }
 
     @Test
@@ -64,8 +86,8 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(21);
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
         assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2);
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(7);
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(4);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(7L);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(4L);
 
         puncherStore.put(3, 2);
         puncherStore.put(4, 15);
@@ -135,13 +157,13 @@ public class TargetedSweepMetricsTest {
     @Test
     public void sweepTimestampGetsLastValueOverShards() {
         metrics.updateSweepTimestamp(CONS_ZERO, 1);
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(1);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(1L);
 
         metrics.updateSweepTimestamp(CONS_ONE, 5);
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(5);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(5L);
 
         metrics.updateSweepTimestamp(CONS_ZERO, 3);
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(3);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(3L);
     }
 
     @Test
@@ -151,7 +173,7 @@ public class TargetedSweepMetricsTest {
         metrics.updateProgressForShard(CONS_TWO, 1000);
         waitForProgressToRecompute();
 
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(1);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(1L);
 
         puncherStore.put(0, 5);
         puncherStore.put(2, 500);
@@ -197,16 +219,30 @@ public class TargetedSweepMetricsTest {
     }
 
     @Test
+    public void millisSinceLastSweptDoesNotRangeScanForGivenTimestampIfSweepTsTooFarInThePast() {
+        metrics.updateProgressForShard(CONS_ZERO, 10);
+
+        // there was a great timestamp than sweep progress punched more than a week ago
+        clockTime = TimeUnit.DAYS.toMillis(14L);
+        puncherStore.put(15, 1);
+
+        // return the time from a week ago and only range scan for looking up the timestamp for the time a week ago
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - TimeUnit.DAYS.toMillis(7L));
+        verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
+        verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());
+    }
+
+    @Test
     public void lastSweptGoesDownIfNewInformationBecomesAvailable() {
         metrics.updateProgressForShard(CONS_ZERO, 9);
         waitForProgressToRecompute();
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(9);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(9L);
         puncherStore.put(9, 9);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 9);
 
         metrics.updateProgressForShard(CONS_ONE, 2);
         waitForProgressToRecompute();
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(2);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(2L);
         puncherStore.put(2, 2);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 2);
     }
@@ -221,7 +257,7 @@ public class TargetedSweepMetricsTest {
         metrics.updateProgressForShard(CONS_ONE, 15);
         waitForProgressToRecompute();
 
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(10);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(10L);
         puncherStore.put(1, 1);
         puncherStore.put(10, 7);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 7);
@@ -238,14 +274,14 @@ public class TargetedSweepMetricsTest {
         metrics.updateProgressForShard(CONS_TWO, 50);
         waitForProgressToRecompute();
 
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(10);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(10L);
         puncherStore.put(10, 10);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 10);
 
         metrics.updateProgressForShard(CONS_ONE, 40);
         waitForProgressToRecompute();
 
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(30);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(30L);
         puncherStore.put(30, 30);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 30);
     }
@@ -284,14 +320,14 @@ public class TargetedSweepMetricsTest {
     @Test
     public void sweepTimestampDoesNotClashAcrossStrategies() {
         metrics.updateSweepTimestamp(CONS_ZERO, 1);
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(1);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(1L);
 
         metrics.updateSweepTimestamp(THOR_ZERO, 5);
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(1);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(1L);
         assertThat(metricsManager).hasSweepTimestampThoroughEqualTo(5);
 
         metrics.updateSweepTimestamp(CONS_ZERO, 3);
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(3);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(3L);
         assertThat(metricsManager).hasSweepTimestampThoroughEqualTo(5);
     }
 
@@ -301,7 +337,7 @@ public class TargetedSweepMetricsTest {
         metrics.updateProgressForShard(THOR_ZERO, 50);
         waitForProgressToRecompute();
 
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(1);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(1L);
         assertThat(metricsManager).hasLastSweptTimestampThoroughEqualTo(50);
         puncherStore.put(1, 1);
         puncherStore.put(50, 50);
@@ -314,7 +350,7 @@ public class TargetedSweepMetricsTest {
         waitForProgressToRecompute();
 
         puncherStore.put(5, 5);
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(5);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(5L);
         assertThat(metricsManager).hasLastSweptTimestampThoroughEqualTo(5);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 5);
         assertThat(metricsManager).hasMillisSinceLastSweptThoroughEqualTo(clockTime - 5);

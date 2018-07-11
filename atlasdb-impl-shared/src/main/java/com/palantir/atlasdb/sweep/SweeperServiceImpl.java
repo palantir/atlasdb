@@ -124,7 +124,8 @@ public final class SweeperServiceImpl implements SweeperService {
                     cumulativeResults.getNextStartRow().get(),
                     sweepBatchConfig);
 
-            specificTableSweeper.updateTimeMetricsOneIteration(results.getTimeInMillis(), results.getTimeElapsedSinceStartedSweeping());
+            specificTableSweeper.updateTimeMetricsOneIteration(results.getTimeInMillis(),
+                    results.getTimeElapsedSinceStartedSweeping());
             cumulativeResults = cumulativeResults.accumulateWith(results);
         }
 

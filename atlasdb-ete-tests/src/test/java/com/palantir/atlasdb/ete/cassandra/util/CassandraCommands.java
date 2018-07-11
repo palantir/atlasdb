@@ -26,7 +26,11 @@ import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 
-public class CassandraCommands {
+public final class CassandraCommands {
+    private CassandraCommands() {
+        // Utility class
+    }
+
     public static void nodetoolFlush(String containerName) throws IOException, InterruptedException {
         EteSetup.execCliCommand(containerName, "nodetool flush");
     }
@@ -35,7 +39,7 @@ public class CassandraCommands {
         EteSetup.execCliCommand(containerName, "nodetool compact");
     }
 
-    public static List<String> nodetoolGetSSTables(String containerName,
+    public static List<String> nodetoolGetSsTables(String containerName,
             String keyspace,
             TableReference tableRef,
             byte[] rowKey) throws IOException, InterruptedException {

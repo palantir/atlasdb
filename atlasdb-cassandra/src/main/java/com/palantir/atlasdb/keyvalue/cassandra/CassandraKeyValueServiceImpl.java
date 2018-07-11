@@ -386,8 +386,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void tryInitialize() {
-        boolean supportsCas = !config.scyllaDb()
-                && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+        boolean supportsCas = clientPool.runWithRetry(
+                CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
         schemaMutationLock = new SchemaMutationLock(
                 supportsCas,
@@ -1552,9 +1552,19 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        // This can be turned into not-a-full-table-scan if someone makes an upgrade task
-        // that makes sure we only write the metadata keys based on lowercased table names
+        // try and get with a single-key lookup
+        String lowerCaseTableName = tableRef.getQualifiedName().toLowerCase();
+        Map<Cell, Value> rows = getRows(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableSet.of(lowerCaseTableName.getBytes()),
+                ColumnSelection.all(),
+                Long.MAX_VALUE);
 
+        if (!rows.isEmpty()) {
+            return Iterables.getOnlyElement(rows.values()).getContents();
+        }
+
+        // if unsuccessful with fast code-path, we need to check if this table exists but was written at a key
+        // before we started enforcing only writing lower-case canonicalised versions of keys
         java.util.Optional<Entry<TableReference, byte[]>> match =
                 getMetadataForTables().entrySet().stream().filter(
                         entry -> matchingIgnoreCase(entry.getKey(), tableRef))
@@ -1666,46 +1676,57 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     private void internalPutMetadataForTables(
-            Map<TableReference, byte[]> tableNameToMetadata, boolean possiblyNeedToPerformSettingsChanges) {
-        if (tableNameToMetadata.isEmpty()) {
+            Map<TableReference, byte[]> tableRefToMetadata, boolean possiblyNeedToPerformSettingsChanges) {
+        if (tableRefToMetadata.isEmpty()) {
             return;
         }
 
-        Map<Cell, byte[]> metadataRequestedForUpdate = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
-        for (Entry<TableReference, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
-            metadataRequestedForUpdate.put(CassandraKeyValueServices.getMetadataCell(tableEntry.getKey()),
-                    tableEntry.getValue());
-        }
+        Map<TableReference, Cell> tableRefToNewCell = Maps.transformEntries(
+                tableRefToMetadata, (tableRef, metadata) -> CassandraKeyValueServices.getMetadataCell(tableRef));
+        Map<TableReference, Cell> tableRefToOldCell = Maps.transformEntries(
+                tableRefToMetadata, (tableRef, metadata) -> CassandraKeyValueServices.getOldMetadataCell(tableRef));
 
-        Map<Cell, Long> requestForLatestDbSideMetadata = Maps.transformValues(
-                metadataRequestedForUpdate,
-                Functions.constant(Long.MAX_VALUE));
-
-        // technically we're racing other services from here on, during an update period,
+        // technically we're racing other nodes from here on, during an update period,
         // but the penalty for not caring is just some superfluous schema mutations and a
         // few dead rows in the metadata table.
-        Map<Cell, Value> persistedMetadata = get(
-                AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                requestForLatestDbSideMetadata);
+        Map<Cell, Value> existingMetadataAtNewName = get(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                tableRefToNewCell.values().stream()
+                        .collect(Collectors.toMap(Functions.identity(), Functions.constant(Long.MAX_VALUE))));
+
+        Map<Cell, Value> existingMetadataAtOldName = get(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                tableRefToOldCell.values().stream()
+                        .collect(Collectors.toMap(Functions.identity(), Functions.constant(Long.MAX_VALUE))));
+
         final Map<Cell, byte[]> updatedMetadata = Maps.newHashMap();
-        final Collection<CfDef> updatedCfs = Lists.newArrayList();
-        for (Entry<Cell, byte[]> entry : metadataRequestedForUpdate.entrySet()) {
-            if (updatedMetadataFound(persistedMetadata.get(entry.getKey()), entry.getValue())) {
-                updatedMetadata.put(entry.getKey(), entry.getValue());
-                updatedCfs.add(getCfForTable(
-                        CassandraKeyValueServices.tableReferenceFromBytes(entry.getKey().getRowName()),
-                        entry.getValue(),
-                        config.gcGraceSeconds()));
+        final Set<CfDef> updatedCfs = Sets.newHashSet();
+
+        tableRefToNewCell.forEach((tableRef, newCell) -> {
+            if (existingMetadataAtNewName.containsKey(newCell)) {
+                if (metadataIsDifferent(
+                        existingMetadataAtNewName.get(newCell).getContents(), tableRefToMetadata.get(tableRef))) {
+                    // found existing metadata at new name, but we're performing an update
+                    updatedMetadata.put(newCell, tableRefToMetadata.get(tableRef));
+                    updatedCfs.add(getCfForTable(tableRef, tableRefToMetadata.get(tableRef), config.gcGraceSeconds()));
+                }
+            } else if (existingMetadataAtOldName.containsKey(tableRefToOldCell.get(tableRef))) {
+                if (metadataIsDifferent(
+                        existingMetadataAtOldName.get(tableRefToOldCell.get(tableRef)).getContents(),
+                        tableRefToMetadata.get(tableRef))) {
+                    // found existing metadata at old name, but we're performing an update
+                    updatedMetadata.put(tableRefToOldCell.get(tableRef), tableRefToMetadata.get(tableRef));
+                    updatedCfs.add(getCfForTable(tableRef, tableRefToMetadata.get(tableRef), config.gcGraceSeconds()));
+                }
+            } else {
+                // didn't find an existing metadata at old or new names, this is completely new;
+                // thus, let's write it out with the new format
+                updatedMetadata.put(tableRefToNewCell.get(tableRef), tableRefToMetadata.get(tableRef));
+                updatedCfs.add(getCfForTable(tableRef, tableRefToMetadata.get(tableRef), config.gcGraceSeconds()));
             }
-        }
+        });
 
         if (!updatedMetadata.isEmpty()) {
             putMetadataAndMaybeAlterTables(possiblyNeedToPerformSettingsChanges, updatedMetadata, updatedCfs);
         }
-    }
-
-    private boolean updatedMetadataFound(Value existingMetadata, byte[] requestMetadata) {
-        return existingMetadata == null || metadataIsDifferent(existingMetadata.getContents(), requestMetadata);
     }
 
     private boolean metadataIsDifferent(byte[] existingMetadata, byte[] requestMetadata) {
@@ -1749,18 +1770,54 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 super.deleteRange(tableRef, range);
             }
+        } else if (isForSingleRow(range.getStartInclusive(), range.getEndExclusive())) {
+            try {
+                long timestamp = mutationTimestampProvider.getRemoveTimestamp();
+                byte[] row = range.getStartInclusive();
+                clientPool.runWithRetry(client -> {
+                    client.remove("deleteRange", tableRef, row, timestamp, deleteConsistency);
+                    return null;
+                });
+            } catch (UnavailableException e) {
+                throw new InsufficientConsistencyException(
+                        "Deleting requires all Cassandra nodes to be up and available.", e);
+            } catch (TException e) {
+                throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            }
         } else {
             super.deleteRange(tableRef, range);
         }
     }
 
+    private static boolean isForSingleRow(byte[] startInclusive, byte[] endExclusive) {
+        if (startInclusive.length == 0 || endExclusive.length == 0) {
+            return false;
+        }
+        return Arrays.equals(endExclusive, RangeRequests.nextLexicographicName(startInclusive));
+    }
+
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
             boolean deleteSentinels) {
+        if (maxTimestampExclusiveByCell.isEmpty()) {
+            return;
+        }
+
         Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
                 clientPool, maxTimestampExclusiveByCell.entrySet());
+
+        // this is required by the interface of the CassandraMutationTimestampProvider, although it exists for tests
+        long maxTimestampForAllCells = maxTimestampExclusiveByCell.values().stream()
+                .mapToLong(x -> x).max().getAsLong();
+        long rangeTombstoneCassandraTimestamp =
+                mutationTimestampProvider.getRangeTombstoneTimestamp(maxTimestampForAllCells);
         for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
-            deleteAllTimestampsOnSingleHost(tableRef, entry.getKey(), entry.getValue(), deleteSentinels);
+            deleteAllTimestampsOnSingleHost(
+                    tableRef,
+                    entry.getKey(),
+                    entry.getValue(),
+                    deleteSentinels,
+                    rangeTombstoneCassandraTimestamp);
         }
     }
 
@@ -1768,7 +1825,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             TableReference tableRef,
             InetSocketAddress host,
             Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
+            boolean deleteSentinels,
+            long rangeTombstoneCassandraTs) {
         if (maxTimestampExclusiveByCell.isEmpty()) {
             return;
         }
@@ -1778,7 +1836,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 @Override
                 public Void apply(CassandraClient client) throws Exception {
-                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef, deleteSentinels);
+                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef,
+                            deleteSentinels, rangeTombstoneCassandraTs);
                     return null;
                 }
 
@@ -1797,11 +1856,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void insertRangeTombstones(CassandraClient client, Map<Cell, Long> maxTimestampExclusiveByCell,
-            TableReference tableRef, boolean deleteSentinel) throws TException {
+            TableReference tableRef, boolean deleteSentinel, long rangeTombstoneCassandraTs) throws TException {
         MutationMap mutationMap = new MutationMap();
 
         maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
-            Mutation mutation = getMutation(cell, maxTimestampExclusive, deleteSentinel);
+            Mutation mutation = getMutation(cell, maxTimestampExclusive, deleteSentinel, rangeTombstoneCassandraTs);
 
             mutationMap.addMutationForCell(cell, tableRef, mutation);
         });
@@ -1810,15 +1869,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 deleteConsistency);
     }
 
-    private Mutation getMutation(Cell cell, long maxTimestampExclusive, boolean deleteSentinel) {
+    private Mutation getMutation(Cell cell, long maxTimestampExclusive,
+            boolean deleteSentinel, long rangeTombstoneCassandraTimestamp) {
         if (deleteSentinel) {
             return Mutations.rangeTombstoneIncludingSentinelForColumn(cell.getColumnName(), maxTimestampExclusive,
-                    mutationTimestampProvider.getRangeTombstoneTimestamp(maxTimestampExclusive));
+                    rangeTombstoneCassandraTimestamp);
         }
         return Mutations.rangeTombstoneForColumn(
                 cell.getColumnName(),
                 maxTimestampExclusive,
-                mutationTimestampProvider.getRangeTombstoneTimestamp(maxTimestampExclusive));
+                rangeTombstoneCassandraTimestamp);
     }
 
     /**
@@ -1905,7 +1965,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 ImmutableList.of(e.getKey())));
                     }
                 }
-                clientPool.markWritesForTable(values, tableRef);
                 return Optional.empty();
             });
             failure.ifPresent(exception -> {

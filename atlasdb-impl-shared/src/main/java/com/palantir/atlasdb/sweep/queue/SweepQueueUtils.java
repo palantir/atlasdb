@@ -36,8 +36,7 @@ public final class SweepQueueUtils {
     public static final int MAX_CELLS_DEDICATED = 100_000;
     public static final int SWEEP_BATCH_SIZE = MAX_CELLS_DEDICATED;
     public static final int BATCH_SIZE_KVS = 1000;
-    public static final long READ_TS = 1L;
-    public static final long WRITE_TS = 0L;
+    public static final long READ_TS = Long.MAX_VALUE;
     public static final long INITIAL_TIMESTAMP = -1L;
     public static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
     public static final int MINIMUM_WRITE_INDEX = -TargetedSweepMetadata.MAX_DEDICATED_ROWS;
@@ -72,7 +71,6 @@ public final class SweepQueueUtils {
 
     public static WriteInfo toWriteInfo(TableReference tableRef, Map.Entry<Cell, byte[]> write, long timestamp) {
         Cell cell = write.getKey();
-        // todo(gmaretic): verify this is indeed how a tombstone is encoded
         boolean isTombstone = Arrays.equals(write.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
         return WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
     }

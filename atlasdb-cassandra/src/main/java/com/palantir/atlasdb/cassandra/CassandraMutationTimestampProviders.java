@@ -19,21 +19,27 @@ package com.palantir.atlasdb.cassandra;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-public class CassandraMutationTimestampProviders {
+public final class CassandraMutationTimestampProviders {
     private CassandraMutationTimestampProviders() {
         // factory
     }
 
     /**
-     * @return {@link CassandraMutationTimestampProvider} which behaves in line with existing behaviour.
      * As far as possible, users should switch to {@link this#singleLongSupplierBacked(LongSupplier)} with a
      * fresh timestamp source from AtlasDB to promote better Cassandra compaction behaviour.
+     *
+     * @return {@link CassandraMutationTimestampProvider} which behaves in line with existing behaviour
      */
     public static CassandraMutationTimestampProvider legacyModeForTestsOnly() {
         return new CassandraMutationTimestampProvider() {
             @Override
             public long getSweepSentinelWriteTimestamp() {
                 return 0;
+            }
+
+            @Override
+            public long getRemoveTimestamp() {
+                throw new UnsupportedOperationException("Can't be implemented");
             }
 
             @Override
@@ -53,6 +59,11 @@ public class CassandraMutationTimestampProviders {
         return new CassandraMutationTimestampProvider() {
             @Override
             public long getSweepSentinelWriteTimestamp() {
+                return longSupplier.getAsLong();
+            }
+
+            @Override
+            public long getRemoveTimestamp() {
                 return longSupplier.getAsLong();
             }
 

@@ -23,6 +23,8 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atMost;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -41,17 +43,25 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.math.IntMath;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -59,8 +69,12 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 
 public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private static final long LOW_TS = 10L;
@@ -79,7 +93,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void setup() {
         super.setup();
         mockFollower = mock(TargetedSweepFollower.class);
-        sweepQueue.initialize(timestampsSupplier, spiedKvs, mockFollower);
+        sweepQueue.initialize(timestampsSupplier, mock(TimelockService.class), spiedKvs, mockFollower);
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
@@ -103,23 +117,17 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         KeyValueService uninitializedKvs = mock(KeyValueService.class);
         when(uninitializedKvs.isInitialized()).thenReturn(false);
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(null);
-        assertThatThrownBy(() -> sweeper.initialize(null, uninitializedKvs, mock(TargetedSweepFollower.class)))
+        assertThatThrownBy(() -> sweeper
+                .initialize(null, mock(TimelockService.class), uninitializedKvs, mock(TargetedSweepFollower.class)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
-    public void initializingTargetedSweeperWithMoreThreadsThanShardsIncreasesNumberOfShards() {
-        assertThat(progress.getNumberOfShards()).isLessThanOrEqualTo(DEFAULT_SHARDS);
-
-        TargetedSweeper sweeperConservative = TargetedSweeper
-                .createUninitialized(MetricsManagers.createForTests(), null, null, DEFAULT_SHARDS + 5, 0, ImmutableList.of());
-        sweeperConservative.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
-        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 5);
-
-        TargetedSweeper sweeperThorough = TargetedSweeper
-                .createUninitialized(MetricsManagers.createForTests(), null, null, 0, DEFAULT_SHARDS + 10, ImmutableList.of());
-        sweeperThorough.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
-        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS + 10);
+    public void enqueueUpdatesNumberOfShards() {
+        assertThat(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS).isLessThan(DEFAULT_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        enqueueWriteCommitted(TABLE_CONS, LOW_TS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS);
     }
 
     @Test
@@ -464,14 +472,14 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // last swept timestamp: 2 * TS_FINE_GRANULARITY - 1
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSweepableCellsHasNoEntriesBeforeTimestamp(LOW_TS + 1);
+        assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
         assertSweepableCellsHasEntryForTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
 
         // last swept timestamp: largestBeforeSweepTs
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSweepableCellsHasNoEntriesBeforeTimestamp(LOW_TS + 1);
-        assertSweepableCellsHasNoEntriesBeforeTimestamp(tsSecondPartitionFine);
+        assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
+        assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
     }
 
@@ -624,14 +632,14 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
 
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(17);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(17L);
         assertThat(metricsManager).hasSweepTimestampThoroughEqualTo(40);
 
         immutableTs = 5;
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
 
-        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(5);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(5L);
         assertThat(metricsManager).hasSweepTimestampThoroughEqualTo(5);
     }
 
@@ -695,6 +703,68 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(map.getValue()).containsValue(950L);
 
         assertReadAtTimestampReturnsValue(TABLE_CONS, 1500L, 950L);
+    }
+
+    @Test
+    public void stopReadingEarlyWhenEncounteringEntryKnownToBeCommittedAfterSweepTs() {
+        immutableTs = 100L;
+
+        enqueueWriteCommitted(TABLE_CONS, 10);
+        enqueueWriteCommitedAt(TABLE_CONS, 30, 150);
+
+        putTimestampIntoTransactionTable(50, 200);
+        Map<Integer, Integer> largeWriteDistribution = enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(100, 50);
+        int writesInDedicated = largeWriteDistribution.get(CONS_SHARD);
+
+        enqueueWriteUncommitted(TABLE_CONS, 70);
+        enqueueWriteCommitted(TABLE_CONS, 90);
+
+        // first iteration reads all before giving up
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated);
+
+        // we read one entry and give up
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 1);
+
+        immutableTs = 170;
+
+        // we read one good entry and then a reference to bad entries and give up
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 3);
+
+        immutableTs = 250;
+
+        // we now read all to the end
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 3 + writesInDedicated + 2);
+    }
+
+    @Test
+    public void stopReadingEarlyInOtherShardWhenEncounteringEntryKnownToBeCommittedAfterSweepTs() {
+        immutableTs = 100L;
+
+        putTimestampIntoTransactionTable(50, 200);
+        Map<Integer, Integer> largeWriteDistribution = enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(100, 50);
+        int writesInDedicated = largeWriteDistribution.get(CONS_SHARD);
+        int otherShard = IntMath.mod(CONS_SHARD + 1, DEFAULT_SHARDS);
+        int writesInOther = largeWriteDistribution.get(otherShard);
+
+        assertThat(writesInOther).isGreaterThan(0);
+
+        // first iteration reads all before giving up
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated);
+
+        // we read a reference to bad entries and give up
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(otherShard));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated + 1);
+
+        immutableTs = 250;
+
+        // we now read all to the end
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(otherShard));
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated + 1 + writesInOther);
     }
 
     @Test
@@ -771,6 +841,62 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEqualTo(5 * BATCH_SIZE_KVS + MAX_CELLS_GENERIC);
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(0)))
                 .isEqualTo(maxTsForFinePartition(0));
+    }
+
+    @Test
+    public void multipleSweepersSweepDifferentShardsAndCallUnlockAfterwards() throws InterruptedException {
+        int shards = 128;
+        int sweepers = 8;
+        int threads = shards / sweepers;
+        TimelockService stickyLockService = createStickyLockService();
+        createAndInitializeSweepersAndWaitForOneBackgroundIteration(sweepers, shards, threads, stickyLockService);
+
+        for (int i = 0; i < shards; i++) {
+            assertProgressUpdatedToTimestamp(maxTsForFinePartition(tsPartitionFine(unreadableTs - 1)), i);
+            verify(stickyLockService, times(1)).unlock(ImmutableSet.of(LockToken.of(new UUID(i, 0L))));
+        }
+
+        // minimum: all threads on one host succeed, then on another, etc:
+        // threads + threads * 2 + ...  + threads * swepers
+        verify(stickyLockService, atLeast(threads * sweepers * (sweepers - 1) / 2))
+                .lock(any(LockRequest.class));
+        // maximum: all but one succeed on each host, and only then those succeed:
+        // shards + shards - 1 + ... + shards - (sweepers - 1)
+        verify(stickyLockService, atMost(sweepers * shards - sweepers * (sweepers - 1) / 2))
+                .lock(any(LockRequest.class));
+    }
+
+    @Test
+    public void extraSweepersGiveUpAfterFailingToAcquireEnoughTimes() throws InterruptedException {
+        int shards = 16;
+        int sweepers = 4;
+        int threads = shards / (sweepers / 2);
+        TimelockService stickyLockService = createStickyLockService();
+        createAndInitializeSweepersAndWaitForOneBackgroundIteration(sweepers, shards, threads, stickyLockService);
+
+        ArgumentCaptor<LockRequest> captor = ArgumentCaptor.forClass(LockRequest.class);
+        // minimum: as in the example above, but we have extra threads
+        // threads + ... + threads * (shards / threads) + shards * (threads * sweepers - shards)
+        verify(stickyLockService, atLeast(shards * (shards / threads + 1) / 2 + shards * (threads * sweepers - shards)))
+                .lock(any(LockRequest.class));
+        // maximum: one would think that it is
+        // shards + shards - 1 + ... + shards - (sweepers - 1) + shards * (threads * sweepers - shards)
+        // but actually the logic is much more complicated since threads from the same sweeper can loop back and hit a
+        // race condition with each other, so we go with the more conservative upper bound
+        verify(stickyLockService, atMost(threads * sweepers * shards)).lock(captor.capture());
+
+        Set<String> requestedLockIds = captor.getAllValues().stream()
+                .map(LockRequest::getLockDescriptors)
+                .map(Iterables::getOnlyElement)
+                .map(LockDescriptor::getLockIdAsString)
+                .collect(Collectors.toSet());
+
+        Set<String> expectedLockIds = IntStream.range(0, shards).boxed()
+                .map(ShardAndStrategy::conservative)
+                .map(ShardAndStrategy::toText)
+                .collect(Collectors.toSet());
+
+        assertThat(requestedLockIds).hasSameElementsAs(expectedLockIds);
     }
 
     private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int sweepIterations) {
@@ -854,15 +980,16 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(readFromDefaultCell(tableRef, readTs)).isEmpty();
     }
 
+    // this implicitly assumes the entry was not committed after the timestamp
     private void assertSweepableCellsHasEntryForTimestamp(long timestamp) {
         SweepBatch batch = sweepableCells.getBatchForPartition(
                 ShardAndStrategy.conservative(CONS_SHARD), tsPartitionFine(timestamp), -1L, timestamp + 1);
         assertThat(batch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, timestamp));
     }
 
-    private void assertSweepableCellsHasNoEntriesBeforeTimestamp(long timestamp) {
+    private void assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(long timestamp) {
         SweepBatch batch = sweepableCells.getBatchForPartition(
-                ShardAndStrategy.conservative(CONS_SHARD), tsPartitionFine(timestamp), -1L, timestamp + 1);
+                ShardAndStrategy.conservative(CONS_SHARD), tsPartitionFine(timestamp), -1L, Long.MAX_VALUE);
         assertThat(batch.writes()).isEmpty();
     }
 
@@ -910,7 +1037,62 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private TargetedSweeper getSingleShardSweeper() {
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
-        sweeper.initialize(timestampsSupplier, spiedKvs, mock(TargetedSweepFollower.class));
+        sweeper.initialize(
+                timestampsSupplier, mock(TimelockService.class), spiedKvs, mock(TargetedSweepFollower.class));
         return sweeper;
+    }
+
+    /**
+     * Creates a mock of a LockService that only gives out a lock once per unique request and never releases it, even
+     * if unlock is called. The returned tokens are monotonically increasing in the tokenId.
+     */
+    private TimelockService createStickyLockService() throws InterruptedException {
+        AtomicLong lockToken = new AtomicLong(0);
+
+        Set<LockDescriptor> requestedLocks = new ConcurrentHashSet<>();
+        TimelockService stickyLockService = mock(TimelockService.class);
+        doAnswer((invocation) -> {
+            LockRequest request = (LockRequest) invocation.getArguments()[0];
+            if (requestedLocks.add(Iterables.getOnlyElement(request.getLockDescriptors()))) {
+                return (LockResponse) () -> Optional.of(LockToken.of(new UUID(lockToken.getAndIncrement(), 0L)));
+            } else {
+                return (LockResponse) Optional::empty;
+            }
+        }).when(stickyLockService).lock(any());
+        return stickyLockService;
+    }
+
+    private void createAndInitializeSweepersAndWaitForOneBackgroundIteration(int sweepers, int shards, int threads,
+            TimelockService stickyLockService) throws InterruptedException {
+        for (int i = 0; i < sweepers; i++) {
+            TargetedSweeper
+                    .createUninitialized(metricsManager, () -> true, () -> shards, threads, 0, ImmutableList.of())
+                    .initialize(timestampsSupplier, stickyLockService, spiedKvs, mockFollower);
+        }
+        waitUntilBackgroundSweepRunsOneIteration();
+    }
+
+    private void waitUntilBackgroundSweepRunsOneIteration() throws InterruptedException {
+        Thread.sleep(3_000);
+    }
+
+    private Map<Integer, Integer> enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(long threshold, long startTs) {
+        List<WriteInfo> writeInfos = new ArrayList<>();
+        int counter = 0;
+        while (writeInfos.stream().filter(write -> write.toShard(DEFAULT_SHARDS) == CONS_SHARD).count() < threshold) {
+            writeInfos.addAll(generateHundredWrites(counter++, startTs));
+        }
+        sweepQueue.enqueue(writeInfos);
+        return writeInfos.stream()
+                .collect(Collectors.toMap(write -> write.toShard(DEFAULT_SHARDS), write -> 1, (fst, snd) -> fst + snd));
+    }
+
+    private List<WriteInfo> generateHundredWrites(int startCol, long startTs) {
+        List<WriteInfo> writeInfos = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            writeInfos.add(WriteInfo.write(TABLE_CONS,
+                    Cell.create(DEFAULT_CELL.getRowName(), PtBytes.toBytes(startCol * 100 + i)), startTs));
+        }
+        return writeInfos;
     }
 }

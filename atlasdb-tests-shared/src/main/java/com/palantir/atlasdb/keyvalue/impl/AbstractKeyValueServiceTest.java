@@ -1064,6 +1064,13 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void testDeleteRangeSingleRow() {
+        // should delete row0 only
+        setupTestRowsZeroOneAndTwoAndDeleteFrom(row0, RangeRequests.nextLexicographicName(row0));
+        checkThatTableIsNowOnly(row1, row2);
+    }
+
+    @Test
     public void testDeleteRangeStartRowInclusivity() {
         // should delete row0 and row1
         setupTestRowsZeroOneAndTwoAndDeleteFrom(row0, PtBytes.toBytes("row1b"));

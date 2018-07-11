@@ -73,6 +73,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
@@ -127,7 +128,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    ExecutorService getRangesExecutor,
                                    int defaultGetRangesConcurrency,
                                    MultiTableSweepQueueWriter sweepQueue,
-                                   ExecutorService deleteExecutor) {
+                                   ExecutorService deleteExecutor,
+                                   CommitProfileProcessor commitProfileProcessor) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -148,7 +150,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               getRangesExecutor,
               defaultGetRangesConcurrency,
               sweepQueue,
-              deleteExecutor);
+              deleteExecutor,
+              commitProfileProcessor);
     }
 
     @Override
@@ -271,7 +274,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             rangeEnds.put(range, maxRow);
         }
 
-        rangeEnds.compute(range, (r, curVal) -> {
+        rangeEnds.compute(range, (unused, curVal) -> {
             if (curVal == null) {
                 return maxRow;
             } else if (curVal.length == 0) {
@@ -309,7 +312,8 @@ public class SerializableTransaction extends SnapshotTransaction {
     boolean isSerializableTable(TableReference table) {
         // If the metadata is null, we assume that the conflict handler is not SERIALIZABLE.
         // In that case the transaction will fail on commit if it has writes.
-        return conflictDetectionManager.get(table) == ConflictHandler.SERIALIZABLE;
+        ConflictHandler conflictHandler = conflictDetectionManager.get(table);
+        return conflictHandler.checkReadWriteConflicts();
     }
 
     /**
@@ -706,7 +710,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                deleteExecutor) {
+                deleteExecutor,
+                commitProfileProcessor) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

@@ -503,35 +503,6 @@ public final class TestHashComponentsStreamIdxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(TestHashComponentsStreamIdxRow rowName, Iterable<TestHashComponentsStreamIdxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<TestHashComponentsStreamIdxRow, TestHashComponentsStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(TestHashComponentsStreamIdxRow rowName, TestHashComponentsStreamIdxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<TestHashComponentsStreamIdxRow, TestHashComponentsStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<TestHashComponentsStreamIdxRow, ? extends TestHashComponentsStreamIdxColumnValue> rows) {
-        Multimap<TestHashComponentsStreamIdxRow, TestHashComponentsStreamIdxColumn> toGet = Multimaps.transformValues(rows, TestHashComponentsStreamIdxColumnValue.getColumnNameFun());
-        Multimap<TestHashComponentsStreamIdxRow, TestHashComponentsStreamIdxColumnValue> existing = get(toGet);
-        Multimap<TestHashComponentsStreamIdxRow, TestHashComponentsStreamIdxColumnValue> toPut = HashMultimap.create();
-        for (Entry<TestHashComponentsStreamIdxRow, ? extends TestHashComponentsStreamIdxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<TestHashComponentsStreamIdxRow, TestHashComponentsStreamIdxColumn> values) {
         Multimap<TestHashComponentsStreamIdxRow, TestHashComponentsStreamIdxColumnValue> currentValues = get(values);
@@ -756,5 +727,5 @@ public final class TestHashComponentsStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Dg8v1ZBoHiqc15DcOAAtDA==";
+    static String __CLASS_HASH = "WUJhPLtOVMnnlz7XwW6M/w==";
 }

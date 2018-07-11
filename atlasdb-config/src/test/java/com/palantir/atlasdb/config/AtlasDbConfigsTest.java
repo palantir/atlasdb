@@ -53,15 +53,17 @@ public class AtlasDbConfigsTest {
 
     @Test
     public void canDecryptValues() throws IOException {
-        AtlasDbConfig config = AtlasDbConfigs.load(new File(AtlasDbConfigsTest.class.getResource("/encrypted-config.yml").getPath()),
+        AtlasDbConfig config = AtlasDbConfigs.load(
+                new File(AtlasDbConfigsTest.class.getResource("/encrypted-config.yml").getPath()),
                 AtlasDbConfig.class);
         KeyValueServiceConfig kvsConfig = config.keyValueService();
         assertThat(kvsConfig).isInstanceOf(InMemoryAtlasDbConfig.class);
     }
 
     @Test
-    public void testDiscoverKVSConfigSubtypes() {
-        DiscoverableSubtypeResolver subtypeResolver = new DiscoverableSubtypeResolver(AtlasDbConfigs.DISCOVERED_SUBTYPE_MARKER);
+    public void testDiscoverKvsConfigSubtypes() {
+        DiscoverableSubtypeResolver subtypeResolver = new DiscoverableSubtypeResolver(
+                AtlasDbConfigs.DISCOVERED_SUBTYPE_MARKER);
         assertThat(subtypeResolver.getDiscoveredSubtypes()).contains(InMemoryAtlasDbConfig.class);
         List<Class<?>> allDiscoveredSubtypes = subtypeResolver.getDiscoveredSubtypes();
         Set<Class<?>> discoveredKvsConfigs = allDiscoveredSubtypes.stream()

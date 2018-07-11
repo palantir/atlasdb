@@ -415,18 +415,6 @@ public final class AuditedDataTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putDataUnlessExists(AuditedDataRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Data.of(value)));
-    }
-
-    public void putDataUnlessExists(Map<AuditedDataRow, byte[]> map) {
-        Map<AuditedDataRow, AuditedDataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AuditedDataRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Data.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<AuditedDataRow, ? extends AuditedDataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -434,20 +422,6 @@ public final class AuditedDataTable implements
         for (AuditedDataTrigger trigger : triggers) {
             trigger.putAuditedData(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<AuditedDataRow, ? extends AuditedDataNamedColumnValue<?>> rows) {
-        Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<AuditedDataRow, ? extends AuditedDataNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteData(AuditedDataRow row) {
@@ -683,5 +657,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "eNIK44rR7EaLDmiV0nOb7Q==";
+    static String __CLASS_HASH = "q9Ur/tVv9Zy8v6wnnmNG6A==";
 }

@@ -49,7 +49,7 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     }
 
     public void hasEnqueuedWritesConservativeEqualTo(long value) {
-       objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
+        objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
     }
 
     public void hasEntriesReadConservativeEqualTo(long value) {
@@ -64,15 +64,15 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.ABORTED_WRITES_DELETED).getValue(), value);
     }
 
-    public void hasSweepTimestampConservativeEqualTo(long value) {
+    public void hasSweepTimestampConservativeEqualTo(Long value) {
         objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.SWEEP_TS).getValue(), value);
     }
 
-    public void hasLastSweptTimestampConservativeEqualTo(long value) {
+    public void hasLastSweptTimestampConservativeEqualTo(Long value) {
         objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.LAST_SWEPT_TS).getValue(), value);
     }
 
-    public void hasMillisSinceLastSweptConservativeEqualTo(long value) {
+    public void hasMillisSinceLastSweptConservativeEqualTo(Long value) {
         objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
     }
 

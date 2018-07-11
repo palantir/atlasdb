@@ -113,6 +113,26 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
+    public void remove(String kvsMethodName, TableReference tableRef, byte[] row, long timestamp,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        long startTime = System.currentTimeMillis();
+        KvsProfilingLogger.maybeLog(
+                (KvsProfilingLogger.CallableCheckedException<Void, TException>)
+                        () -> {
+                             client.remove(kvsMethodName, tableRef, row, timestamp, consistency_level);
+                             return null;
+                        },
+                (logger, timer) -> logger.log("CassandraClient.remove({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("timestamp", timestamp),
+                        SafeArg.of("consistency", consistency_level.toString()),
+                        LoggingArgs.startTimeMillis(startTime),
+                        SafeArg.of("kvsMethodName", kvsMethodName),
+                        LoggingArgs.durationMillis(timer)));
+    }
+
+    @Override
     public void batch_mutate(String kvsMethodName,
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)

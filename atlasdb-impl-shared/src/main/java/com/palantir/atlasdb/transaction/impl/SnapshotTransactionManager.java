@@ -45,6 +45,7 @@ import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
@@ -77,6 +78,8 @@ import com.palantir.timestamp.TimestampService;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
+
+    final CommitProfileProcessor commitProfileProcessor;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -114,6 +117,7 @@ import com.palantir.timestamp.TimestampService;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
+        this.commitProfileProcessor = CommitProfileProcessor.createDefault(metricsManager);
     }
 
     @Override
@@ -150,7 +154,7 @@ import com.palantir.timestamp.TimestampService;
                     immutableTsLock, condition);
             return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
         } catch (Throwable e) {
-            timelockService.unlock(ImmutableSet.of(immutableTsResponse.getLock()));
+            timelockService.tryUnlock(ImmutableSet.of(immutableTsResponse.getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
@@ -168,7 +172,7 @@ import com.palantir.timestamp.TimestampService;
             result = runTaskThrowOnConflict(task, tx);
         } finally {
             postTaskContext = postTaskTimer.time();
-            timelockService.unlock(ImmutableSet.of(txAndLock.immutableTsLock()));
+            timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
         }
         scrubForAggressiveHardDelete(tx);
         postTaskContext.stop();
@@ -211,7 +215,8 @@ import com.palantir.timestamp.TimestampService;
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                deleteExecutor);
+                deleteExecutor,
+                commitProfileProcessor);
     }
 
     @Override
@@ -240,7 +245,8 @@ import com.palantir.timestamp.TimestampService;
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                deleteExecutor);
+                deleteExecutor,
+                commitProfileProcessor);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));

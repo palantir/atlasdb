@@ -538,21 +538,18 @@ public final class SweepableTimestampsTable implements
 
     /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
-    @Override
     public void putUnlessExists(SweepableTimestampsRow rowName, Iterable<SweepableTimestampsColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<SweepableTimestampsRow, SweepableTimestampsColumnValue>builder().putAll(rowName, values).build());
     }
 
     /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
-    @Override
     public void putUnlessExists(SweepableTimestampsRow rowName, SweepableTimestampsColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<SweepableTimestampsRow, SweepableTimestampsColumnValue>builder().putAll(rowName, values).build());
     }
 
     /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
-    @Override
     public void putUnlessExists(Multimap<SweepableTimestampsRow, ? extends SweepableTimestampsColumnValue> rows) {
         Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> toGet = Multimaps.transformValues(rows, SweepableTimestampsColumnValue.getColumnNameFun());
         Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> existing = get(toGet);

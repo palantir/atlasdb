@@ -16,19 +16,25 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Streams;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 
 public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
@@ -47,16 +53,34 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
 
     @Override
     public void enqueue(List<WriteInfo> allWrites) {
+        Map<Cell, byte[]> referencesToDedicatedCells = new HashMap<>();
         Map<Cell, byte[]> cellsToWrite = new HashMap<>();
         Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(allWrites);
-        partitionedWrites.forEach((partitionInfo, writes) -> cellsToWrite.putAll(populateCells(partitionInfo, writes)));
-        if (!cellsToWrite.isEmpty()) {
-            kvs.put(tableRef, cellsToWrite, SweepQueueUtils.WRITE_TS);
-        }
+
+        partitionedWrites.forEach((partitionInfo, writes) -> {
+            referencesToDedicatedCells.putAll(populateReferences(partitionInfo, writes));
+            cellsToWrite.putAll(populateCells(partitionInfo, writes));
+        });
+
+        partitionedWrites.keySet().stream()
+                .map(PartitionInfo::timestamp)
+                .mapToLong(x -> x)
+                .max()
+                .ifPresent(timestamp -> {
+                    write(referencesToDedicatedCells, timestamp);
+                    write(cellsToWrite, timestamp);
+                });
+
         maybeMetrics.ifPresent(metrics ->
                 partitionedWrites.forEach((info, writes) ->
                         metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size())));
     }
+
+    /**
+     * Returns a map representing all the map entries that act as references to entries returned by
+     * {@link #populateCells(PartitionInfo, List)}. Necessary to allow batched writes.
+     */
+    abstract Map<Cell, byte[]> populateReferences(PartitionInfo partitionInfo, List<WriteInfo> writes);
 
     /**
      * Converts a list of write infos into the required format to be persisted into the kvs. This method assumes all
@@ -70,8 +94,24 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
      */
     abstract Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes);
 
+    private void write(Map<Cell, byte[]> cells, long timestamp) {
+        if (!cells.isEmpty()) {
+            kvs.multiPut(ImmutableMap.of(tableRef, cells), timestamp);
+        }
+    }
+
     RowColumnRangeIterator getRowsColumnRange(Iterable<byte[]> rows, ColumnRangeSelection columnRange, int batchSize) {
-        return kvs.getRowsColumnRange(tableRef, rows, columnRange, batchSize, SweepQueueUtils.READ_TS);
+        return new LocalRowColumnRangeIterator(Streams.stream(rows)
+                .flatMap(row -> getBatchForRow(row, columnRange, batchSize))
+                .flatMap(Streams::stream)
+                .iterator());
+    }
+
+    private Stream<RowColumnRangeIterator> getBatchForRow(byte[] row, ColumnRangeSelection columnRange, int batchSize) {
+        return kvs.getRowsColumnRange(
+                tableRef, Collections.singleton(row),
+                BatchColumnRangeSelection.create(columnRange, batchSize),
+                SweepQueueUtils.READ_TS).values().stream();
     }
 
     void deleteRange(RangeRequest request) {

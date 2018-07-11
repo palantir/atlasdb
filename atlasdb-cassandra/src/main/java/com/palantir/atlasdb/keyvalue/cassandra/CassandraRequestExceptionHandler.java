@@ -70,12 +70,13 @@ class CassandraRequestExceptionHandler {
 
         req.triedOnHost(hostTried);
         int numberOfAttempts = req.getNumberOfAttempts();
+        int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(hostTried);
 
         if (numberOfAttempts >= maxTriesTotal.get()) {
             logAndThrowException(numberOfAttempts, ex);
         }
 
-        if (shouldBlacklist(ex, numberOfAttempts)) {
+        if (shouldBlacklist(ex, numberOfAttemptsOnHost)) {
             blacklist.add(hostTried);
         }
 
@@ -143,14 +144,16 @@ class CassandraRequestExceptionHandler {
             return;
         }
 
+        long backOffPeriod = strategy.getBackoffPeriod(req.getNumberOfAttemptsOnHost(hostTried));
         log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                 UnsafeArg.of("queryString", req.getFunction().toString()),
-                SafeArg.of("sleepDuration", strategy.getBackoffPeriod(req.getNumberOfAttempts())),
+                SafeArg.of("sleepDuration", backOffPeriod),
                 SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
 
         try {
-            Thread.sleep(strategy.getBackoffPeriod(req.getNumberOfAttempts()));
+            Thread.sleep(backOffPeriod);
         } catch (InterruptedException i) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(i);
         }
     }
@@ -162,8 +165,8 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
             InetSocketAddress hostTried, Exception ex, RequestExceptionHandlerStrategy strategy) {
-        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttempts(), strategy)) {
-            log.info("Retrying with on a different host a query intended for host {}.",
+        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(hostTried), strategy)) {
+            log.info("Retrying a query intended for host {} on a different host.",
                     SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
             req.giveUpOnPreferredHost();
         }
@@ -233,6 +236,12 @@ class CassandraRequestExceptionHandler {
     interface RequestExceptionHandlerStrategy {
         boolean shouldBackoff(Exception ex);
         long getBackoffPeriod(int numberOfAttempts);
+
+        /**
+         * Exceptions that cause a host to be blacklisted shouldn't be retried on another host. As number of
+         * retries are recorded per request, and we want the number of retries on that specific host to exceed a
+         * determined value before blacklisting.
+         */
         boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts);
     }
 
@@ -261,6 +270,9 @@ class CassandraRequestExceptionHandler {
     private static class Conservative implements RequestExceptionHandlerStrategy {
         private static final RequestExceptionHandlerStrategy INSTANCE = new Conservative();
         private static final long MAX_BACKOFF = Duration.ofSeconds(30).toMillis();
+        private static final double UNCERTAINTY = 0.5;
+
+        private static final long MAX_EXPECTED_BACKOFF = (long) (MAX_BACKOFF / (UNCERTAINTY + 1));
 
         @Override
         public boolean shouldBackoff(Exception ex) {
@@ -269,7 +281,8 @@ class CassandraRequestExceptionHandler {
 
         @Override
         public long getBackoffPeriod(int numberOfAttempts) {
-            return Math.min(500 * (long) Math.pow(2, numberOfAttempts), MAX_BACKOFF);
+            double randomCoeff = ThreadLocalRandom.current().nextDouble(1 - UNCERTAINTY, 1 + UNCERTAINTY);
+            return (long) (Math.min(500 * Math.pow(2, numberOfAttempts), MAX_EXPECTED_BACKOFF) * randomCoeff);
         }
 
         @Override

@@ -68,16 +68,16 @@ public class CellValuePutter {
         this.timestampOverrideSupplier = timestampOverrideSupplier;
     }
 
-    void put(final String kvsMethodName,
-            final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
-        put(kvsMethodName, tableRef, values, false);
-    }
-
     void putWithOverriddenTimestamps(final String kvsMethodName,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
         put(kvsMethodName, tableRef, values, true);
+    }
+
+    void put(final String kvsMethodName,
+            final TableReference tableRef,
+            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+        put(kvsMethodName, tableRef, values, false);
     }
 
     private void put(final String kvsMethodName,
@@ -97,7 +97,6 @@ public class CellValuePutter {
                                 tableRef,
                                 entry.getValue().entrySet(),
                                 overwriteTimestamps);
-                        clientPool.markWritesForTable(entry.getValue(), tableRef);
                         return null;
                     }));
         }

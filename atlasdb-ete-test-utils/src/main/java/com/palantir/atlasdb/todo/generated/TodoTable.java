@@ -415,18 +415,6 @@ public final class TodoTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putTextUnlessExists(TodoRow row, String value) {
-        putUnlessExists(ImmutableMultimap.of(row, Text.of(value)));
-    }
-
-    public void putTextUnlessExists(Map<TodoRow, String> map) {
-        Map<TodoRow, TodoNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<TodoRow, String> e : map.entrySet()) {
-            toPut.put(e.getKey(), Text.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<TodoRow, ? extends TodoNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -434,20 +422,6 @@ public final class TodoTable implements
         for (TodoTrigger trigger : triggers) {
             trigger.putTodo(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<TodoRow, ? extends TodoNamedColumnValue<?>> rows) {
-        Multimap<TodoRow, TodoNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<TodoRow, TodoNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<TodoRow, ? extends TodoNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteText(TodoRow row) {
@@ -683,5 +657,5 @@ public final class TodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "y7QrcAPHltjY8JFPQEedVw==";
+    static String __CLASS_HASH = "WZNsYRJNFU3f5r1AQ65yrw==";
 }

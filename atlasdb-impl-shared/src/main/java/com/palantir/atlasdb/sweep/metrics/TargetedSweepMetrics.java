@@ -19,8 +19,12 @@ package com.palantir.atlasdb.sweep.metrics;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
 import com.google.common.collect.ImmutableMap;
@@ -34,10 +38,13 @@ import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
 
 public final class TargetedSweepMetrics {
+    private static final Logger log = LoggerFactory.getLogger(TargetedSweepMetrics.class);
+    private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
 
     private TargetedSweepMetrics(MetricsManager metricsManager,
@@ -57,9 +64,14 @@ public final class TargetedSweepMetrics {
             MetricsManager metricsManager, KeyValueService kvs, Clock clock, long millis) {
         return new TargetedSweepMetrics(
                 metricsManager,
-                ts -> KeyValueServicePuncherStore.getMillisForTimestamp(kvs, ts),
+                ts -> getMillisForTimestampBoundedAtOneWeek(kvs, ts, clock),
                 clock,
                 millis);
+    }
+
+    private static long getMillisForTimestampBoundedAtOneWeek(KeyValueService kvs, long ts, Clock clock) {
+        return KeyValueServicePuncherStore
+                .getMillisForTimestampIfNotPunchedBefore(kvs, ts, clock.getTimeMillis() - ONE_WEEK);
     }
 
     public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes) {
@@ -90,8 +102,8 @@ public final class TargetedSweepMetrics {
         return metricsForStrategyMap.get(shardStrategy.strategy());
     }
 
-    private static long minimum(Collection<Long> currentValues) {
-        return currentValues.stream().min(Comparator.naturalOrder()).orElse(-1L);
+    private static Long minimum(Collection<Long> currentValues) {
+        return currentValues.stream().min(Comparator.naturalOrder()).orElse(null);
     }
 
     private static final class MetricsForStrategy {
@@ -112,16 +124,32 @@ public final class TargetedSweepMetrics {
             register(manager, AtlasDbMetricNames.SWEEP_TS, sweepTimestamp, tag);
 
             lastSweptTsSupplier = new AggregatingVersionedSupplier<>(TargetedSweepMetrics::minimum, recomputeMillis);
-            Supplier<Long> millisSinceOldestEntry = new CachedComposedSupplier<>(
-                    lastSweptTs -> wallClock.getTimeMillis() - tsToMillis.apply(lastSweptTs),
+            Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
+                    lastSweptTs -> estimateMillisSinceTs(lastSweptTs, wallClock, tsToMillis),
                     lastSweptTsSupplier);
 
             register(manager, AtlasDbMetricNames.LAST_SWEPT_TS, () -> lastSweptTsSupplier.get().value(), tag);
-            register(manager, AtlasDbMetricNames.LAG_MILLIS, millisSinceOldestEntry::get, tag);
+            register(manager, AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get, tag);
         }
 
         private void register(MetricsManager manager, String name, Gauge<Long> metric, Map<String, String> tag) {
             manager.registerMetric(TargetedSweepMetrics.class, name, metric, tag);
+        }
+
+        private static Long estimateMillisSinceTs(Long timestamp, Clock clock, Function<Long, Long> tsToMillis) {
+            if (timestamp == null) {
+                return null;
+            }
+            long timeBeforeRecomputing = System.currentTimeMillis();
+            long result = clock.getTimeMillis() - tsToMillis.apply(timestamp);
+
+            long timeTaken = System.currentTimeMillis() - timeBeforeRecomputing;
+            if (timeTaken > TimeUnit.SECONDS.toMillis(10)) {
+                log.warn("Recomputing the millisSinceLastSwept metric took {} ms.", SafeArg.of("timeTaken", timeTaken));
+            } else if (timeTaken > TimeUnit.SECONDS.toMillis(1)) {
+                log.info("Recomputing the millisSinceLastSwept metric took {} ms.", SafeArg.of("timeTaken", timeTaken));
+            }
+            return result;
         }
 
         private void updateEnqueuedWrites(long writes) {

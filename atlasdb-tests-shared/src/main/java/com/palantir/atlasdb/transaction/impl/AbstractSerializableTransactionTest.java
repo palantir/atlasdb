@@ -58,6 +58,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -117,7 +118,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
-                MoreExecutors.newDirectExecutorService()) {
+                MoreExecutors.newDirectExecutorService(),
+                CommitProfileProcessor.createNonLogging(metricsManager)) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());
@@ -167,7 +169,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
             t2.commit();
             fail();
         } catch (TransactionSerializableConflictException e) {
-            // this is expectecd to throw because it is a write skew
+            // this is expected to throw because it is a write skew
         }
     }
 

@@ -91,15 +91,23 @@ public class InstrumentedTimelockService implements TimelockService {
     }
 
     @Override
+    public void tryUnlock(Set<LockToken> tokens) {
+        executeWithRecord(() -> {
+            timelockService.tryUnlock(tokens);
+            return null;
+        });
+    }
+
+    @Override
     public long currentTimeMillis() {
         return executeWithRecord(() -> timelockService.currentTimeMillis());
     }
 
     private <T> T executeWithRecord(Supplier<T> method) {
         try {
-            T t = method.get();
+            T result = method.get();
             success.mark();
-            return t;
+            return result;
         } catch (Exception e) {
             fail.mark();
             throw e;

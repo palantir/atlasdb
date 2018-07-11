@@ -1,0 +1,4 @@
+  type: cassandra
+  numberOfRetriesOnSameHost: 4
+  numberOfRetriesOnAllHosts: 8
+  conservativeRequestExceptionHandler: true

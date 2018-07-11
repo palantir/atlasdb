@@ -458,18 +458,6 @@ public final class HashComponentsTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumnUnlessExists(HashComponentsTestRow row, String value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column.of(value)));
-    }
-
-    public void putColumnUnlessExists(Map<HashComponentsTestRow, String> map) {
-        Map<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<HashComponentsTestRow, String> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<HashComponentsTestRow, ? extends HashComponentsTestNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -477,20 +465,6 @@ public final class HashComponentsTestTable implements
         for (HashComponentsTestTrigger trigger : triggers) {
             trigger.putHashComponentsTest(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<HashComponentsTestRow, ? extends HashComponentsTestNamedColumnValue<?>> rows) {
-        Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<HashComponentsTestRow, ? extends HashComponentsTestNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteColumn(HashComponentsTestRow row) {
@@ -775,5 +749,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ZhLggIl3pmPr+p4Pgpmu1A==";
+    static String __CLASS_HASH = "D7jBjvqrJyVDhFQlvw9TRA==";
 }
