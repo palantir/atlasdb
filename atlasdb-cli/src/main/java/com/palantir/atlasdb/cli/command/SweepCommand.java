@@ -174,13 +174,6 @@ public class SweepCommand extends SingleBackendCommand {
                     cellsExamined.get(),
                     dryRun ? "would have " : "",
                     cellsDeleted.get());
-
-            if (!dryRun && cellsDeleted.get() > 0) {
-                Stopwatch watch = Stopwatch.createStarted();
-                services.getKeyValueService().compactInternally(tableToSweep);
-                printer.info("Finished performing compactInternally on {} in {} ms.",
-                        tableToSweep, watch.elapsed(TimeUnit.MILLISECONDS));
-            }
         }
         return 0;
 	}
