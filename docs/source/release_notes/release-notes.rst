@@ -58,6 +58,11 @@ develop
          - The ``timelock`` block from the install config haa been removed. The block was deprecated in v0.67.0 (released on 15th of November 2017).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3362>`__)
 
+    *    - |fixed|
+         - Targeted sweep metrics will no longer range scan the punch table if the last swept timestamp was issued more than one week ago.
+           Previously, we would range scan the table even if the last swept timestamp was -1, which would force a range scan of the entire table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3364>`__)
+
     *    - |improved|
          - Startup and schema change performance improved for Cassandra users with large numbers of tables.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3278>`__)
