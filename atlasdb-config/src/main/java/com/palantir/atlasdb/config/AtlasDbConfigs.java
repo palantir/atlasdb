@@ -115,7 +115,6 @@ public final class AtlasDbConfigs {
                 .leader(addFallbackSslConfigurationToLeader(config.leader(), sslConfiguration))
                 .lock(addFallbackSslConfigurationToServerList(config.lock(), sslConfiguration))
                 .timestamp(addFallbackSslConfigurationToServerList(config.timestamp(), sslConfiguration))
-                .timelock(addFallbackSslConfigurationToTimeLockClientConfig(config.timelock(), sslConfiguration))
                 .build();
     }
 
@@ -132,17 +131,6 @@ public final class AtlasDbConfigs {
             Optional<ServerListConfig> config,
             Optional<SslConfiguration> sslConfiguration) {
         return config.map(addSslConfigurationToServerListFunction(sslConfiguration));
-    }
-
-    private static Optional<TimeLockClientConfig> addFallbackSslConfigurationToTimeLockClientConfig(
-            Optional<TimeLockClientConfig> config,
-            Optional<SslConfiguration> sslConfiguration) {
-        //noinspection ConstantConditions - function returns an existing ServerListConfig, maybe with different SSL.
-        return config.map(clientConfig -> ImmutableTimeLockClientConfig.builder()
-                .from(clientConfig)
-                .serversList(addSslConfigurationToServerListFunction(sslConfiguration)
-                        .apply(clientConfig.serversList()))
-                .build());
     }
 
     private static Function<ServerListConfig, ServerListConfig> addSslConfigurationToServerListFunction(

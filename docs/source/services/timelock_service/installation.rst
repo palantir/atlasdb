@@ -79,12 +79,12 @@ Add client(s) to Timelock
 
 9. Configure each client to use Timelock.
    Detailed documentation is :ref:`here <timelock-client-configuration>`.
-   You must remove any ``leader``, ``timestamp``, or ``lock`` blocks; the ``timelock`` block to add looks like this:
+   You must remove any ``leader``, ``timestamp``, or ``lock`` blocks; the ``timelockRuntime`` block to add looks like this:
 
 .. code-block:: yaml
 
    atlasdb:
-      timelock:
+      timelockRuntime:
         serversList:
           servers:
             - palantir-1.com:8080

@@ -55,7 +55,6 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -63,7 +62,6 @@ import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
-import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
@@ -145,7 +143,6 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.JavaSuppliers;
-import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
 @Value.Style(stagedBuilder = true)
@@ -347,8 +344,8 @@ public abstract class TransactionManagers {
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier)),
                 closeables);
 
-        Callback<TransactionManager> callbacks = new Callback.CallChain(ImmutableList.of(
-                timelockConsistencyCheckCallback(config, runtimeConfigSupplier.get(), lockAndTimestampServices),
+        Callback.CallChain<TransactionManager> callbacks = new Callback.CallChain<>(ImmutableList.of(
+                timelockConsistencyCheckCallback(runtimeConfigSupplier.get(), lockAndTimestampServices),
                 LambdaCallback.of(targetedSweep::callbackInit),
                 asyncInitializationCallback()));
 
@@ -587,10 +584,9 @@ public abstract class TransactionManagers {
     }
 
     private static Callback<TransactionManager> timelockConsistencyCheckCallback(
-            AtlasDbConfig atlasDbConfig,
             AtlasDbRuntimeConfig initialRuntimeConfig,
             LockAndTimestampServices lockAndTimestampServices) {
-        if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
+        if (isUsingTimeLock(initialRuntimeConfig)) {
             // Only do the consistency check if we're using TimeLock.
             // This avoids a bootstrapping problem with leader-block services without async initialisation,
             // where you need a working timestamp service to check consistency, you need to check consistency
@@ -605,8 +601,8 @@ public abstract class TransactionManagers {
         return Callback.noOp();
     }
 
-    private static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
-        return atlasDbConfig.timelock().isPresent() || runtimeConfig.timelockRuntime().isPresent();
+    private static boolean isUsingTimeLock(AtlasDbRuntimeConfig runtimeConfig) {
+        return runtimeConfig.timelockRuntime().serversList().hasAtLeastOneServer();
     }
 
     /**
@@ -705,7 +701,7 @@ public abstract class TransactionManagers {
             return createRawLeaderServices(metricsManager, config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(metricsManager, config, userAgent);
-        } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
+        } else if (isUsingTimeLock(initialRuntimeConfig)) {
             return createRawServicesFromTimeLock(metricsManager, config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time);
@@ -717,11 +713,14 @@ public abstract class TransactionManagers {
             AtlasDbRuntimeConfig initialRuntimeConfig) {
         // Note: The other direction (timelock install config without a runtime block) should be maintained for
         // backwards compatibility.
-        if (remoteTimestampAndLockOrLeaderBlocksPresent(config) && initialRuntimeConfig.timelockRuntime().isPresent()) {
-            throw new IllegalStateException("Found a service configured not to use timelock, with a timelock"
-                    + " block in the runtime config! This is unexpected. If you wish to use non-timelock services,"
-                    + " please remove the timelock block from the runtime config; if you wish to use timelock,"
-                    + " please remove the leader, remote timestamp or remote lock configuration blocks.");
+        if (remoteTimestampAndLockOrLeaderBlocksPresent(config)
+                && initialRuntimeConfig.timelockRuntime().serversList().hasAtLeastOneServer()) {
+            throw new IllegalStateException("Found a service configured not to use timelock, with at least one entry"
+                    + " in the servers field of serversList block within timelock block in the runtime config! This is"
+                    + " unexpected. If you wish to use non-timelock services, please remove the entries from"
+                    + " the servers field of serversList block within timelock block in the runtime config!"
+                    + " If you wish to use timelock, please remove the leader, remote timestamp"
+                    + " or remote lock configuration blocks.");
         }
     }
 
@@ -746,17 +745,14 @@ public abstract class TransactionManagers {
                 .withMigrator(migrator);
     }
 
+    //  what's the deal with all these clients
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         Preconditions.checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
                 "Cannot create raw services from timelock with another source of timestamps/locks configured!");
-        TimeLockClientConfig clientConfig = config.timelock().orElse(ImmutableTimeLockClientConfig.builder().build());
-        String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
-        return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
-                clientConfig,
-                () -> runtimeConfigSupplier.get().timelockRuntime(),
-                resolvedClient);
+        return () -> ServerListConfigs.addNamespaceToServerAddresses(
+                runtimeConfigSupplier.get().timelockRuntime().serversList(), config.namespace().get());
     }
 
     private static LockAndTimestampServices getLockAndTimestampServices(
