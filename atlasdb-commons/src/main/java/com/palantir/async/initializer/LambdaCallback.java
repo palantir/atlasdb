@@ -42,7 +42,7 @@ public final class LambdaCallback<R> extends Callback<R> {
      * before wrapping and throwing a RuntimeException.
      * @param initialize initialization method.
      * @param onInitFailureCleanup cleanup to be done in case initialization throws. If this method also throws, it will
-     * bubble up to the caller.
+     * propagate up to the caller.
      * @return the desired Callback object.
      */
     public static <R> Callback<R> singleAttempt(Consumer<R> initialize, BiConsumer<R, Throwable> onInitFailureCleanup) {
@@ -54,7 +54,7 @@ public final class LambdaCallback<R> extends Callback<R> {
      * onInitFailureCleanup is called before calling initialize again.
      * @param initialize initialization method.
      * @param onInitFailureCleanup cleanup to be done in case initialization throws. If this method also throws, no more
-     * retries will be attampted and it will bubble up to the caller.
+     * retries will be attempted and it will propagate up to the caller.
      * @return the desired Callback object.
      */
     public static <R> Callback<R> retrying(Consumer<R> initialize, BiConsumer<R, Throwable> onInitFailureCleanup) {

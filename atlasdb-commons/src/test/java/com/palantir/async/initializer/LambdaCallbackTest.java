@@ -44,7 +44,7 @@ public class LambdaCallbackTest {
     }
 
     @Test
-    public void singleAttemptCallbackCallsInitializeAndCleanuoOnceThenRethrowsOnInitFailure() {
+    public void singleAttemptCallbackCallsInitializeAndCleanupOnceThenRethrowsOnInitFailure() {
         callback = LambdaCallback.singleAttempt(this::markInitAndFail, this::markCleanup);
 
         assertThatThrownBy(() -> callback.runWithRetry(initsAndCleanups)).isEqualToComparingFieldByField(INIT_FAIL);

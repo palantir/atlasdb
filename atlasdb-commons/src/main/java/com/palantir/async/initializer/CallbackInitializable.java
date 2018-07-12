@@ -44,7 +44,7 @@ public interface CallbackInitializable<R> {
 
     /**
      * Returns a Callback that will retry initialization on failure, unless the cleanup task also throws, in which case
-     * the cause is not caught.
+     * the exception thrown by the cleanup task is propagated.
      */
     default Callback<R> retryUnlessCleanupThrowsCallback() {
         return LambdaCallback.retrying(this::initialize, this::onInitializationFailureCleanup);
