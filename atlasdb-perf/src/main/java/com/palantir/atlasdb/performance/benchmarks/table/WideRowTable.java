@@ -38,13 +38,13 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
  * State class for creating a single Atlas table with one wide row.
  */
 public abstract class WideRowTable {
-    private AtlasDbServicesConnector connector;
-    private AtlasDbServices services;
+    protected AtlasDbServicesConnector connector;
+    protected AtlasDbServices services;
 
-    private TableReference tableRef;
+    protected TableReference tableRef;
 
-    private Map<Cell, Long> allCellsAtMaxTimestamp;
-    private Map<Cell, Long> firstCellAtMaxTimestamp;
+    protected Map<Cell, Long> allCellsAtMaxTimestamp;
+    protected Map<Cell, Long> firstCellAtMaxTimestamp;
 
     public TransactionManager getTransactionManager() {
         return services.getTransactionManager();
@@ -98,7 +98,7 @@ public abstract class WideRowTable {
         connector.close();
     }
 
-    private void storeData() {
+    protected void storeData() {
         services.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> values = Maps.newHashMap();
             allCellsAtMaxTimestamp = Maps.newHashMap();

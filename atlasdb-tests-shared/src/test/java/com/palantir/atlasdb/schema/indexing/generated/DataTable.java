@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -208,7 +208,7 @@ public final class DataTable implements
                 return false;
             }
             DataRow other = (DataRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -415,18 +415,6 @@ public final class DataTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(DataRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
-    }
-
-    public void putValueUnlessExists(Map<DataRow, Long> map) {
-        Map<DataRow, DataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<DataRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -502,20 +490,6 @@ public final class DataTable implements
         for (DataTrigger trigger : triggers) {
             trigger.putData(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
-        Multimap<DataRow, DataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<DataRow, DataNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<DataRow, ? extends DataNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteValue(DataRow row) {
@@ -950,7 +924,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index1IdxRow other = (Index1IdxRow) obj;
-                return Objects.equal(value, other.value);
+                return Objects.equals(value, other.value);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1095,7 +1069,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index1IdxColumn other = (Index1IdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1288,35 +1262,6 @@ public final class DataTable implements
             for (Index1IdxTrigger trigger : triggers) {
                 trigger.putIndex1Idx(values);
             }
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index1IdxRow rowName, Iterable<Index1IdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<Index1IdxRow, Index1IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index1IdxRow rowName, Index1IdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<Index1IdxRow, Index1IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<Index1IdxRow, ? extends Index1IdxColumnValue> rows) {
-            Multimap<Index1IdxRow, Index1IdxColumn> toGet = Multimaps.transformValues(rows, Index1IdxColumnValue.getColumnNameFun());
-            Multimap<Index1IdxRow, Index1IdxColumnValue> existing = get(toGet);
-            Multimap<Index1IdxRow, Index1IdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<Index1IdxRow, ? extends Index1IdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
         }
 
         @Override
@@ -1657,7 +1602,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index2IdxRow other = (Index2IdxRow) obj;
-                return Objects.equal(value, other.value) && Objects.equal(id, other.id);
+                return Objects.equals(value, other.value) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1962,35 +1907,6 @@ public final class DataTable implements
             for (Index2IdxTrigger trigger : triggers) {
                 trigger.putIndex2Idx(values);
             }
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index2IdxRow rowName, Iterable<Index2IdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<Index2IdxRow, Index2IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index2IdxRow rowName, Index2IdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<Index2IdxRow, Index2IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<Index2IdxRow, ? extends Index2IdxColumnValue> rows) {
-            Multimap<Index2IdxRow, Index2IdxColumn> toGet = Multimaps.transformValues(rows, Index2IdxColumnValue.getColumnNameFun());
-            Multimap<Index2IdxRow, Index2IdxColumnValue> existing = get(toGet);
-            Multimap<Index2IdxRow, Index2IdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<Index2IdxRow, ? extends Index2IdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
         }
 
         @Override
@@ -2310,7 +2226,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index3IdxRow other = (Index3IdxRow) obj;
-                return Objects.equal(value, other.value);
+                return Objects.equals(value, other.value);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2614,35 +2530,6 @@ public final class DataTable implements
             for (Index3IdxTrigger trigger : triggers) {
                 trigger.putIndex3Idx(values);
             }
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index3IdxRow rowName, Iterable<Index3IdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<Index3IdxRow, Index3IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index3IdxRow rowName, Index3IdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<Index3IdxRow, Index3IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<Index3IdxRow, ? extends Index3IdxColumnValue> rows) {
-            Multimap<Index3IdxRow, Index3IdxColumn> toGet = Multimaps.transformValues(rows, Index3IdxColumnValue.getColumnNameFun());
-            Multimap<Index3IdxRow, Index3IdxColumnValue> existing = get(toGet);
-            Multimap<Index3IdxRow, Index3IdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<Index3IdxRow, ? extends Index3IdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
         }
 
         @Override
@@ -2983,7 +2870,7 @@ public final class DataTable implements
                     return false;
                 }
                 Index4IdxRow other = (Index4IdxRow) obj;
-                return Objects.equal(value1, other.value1) && Objects.equal(value2, other.value2);
+                return Objects.equals(value1, other.value1) && Objects.equals(value2, other.value2);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -3290,35 +3177,6 @@ public final class DataTable implements
             }
         }
 
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index4IdxRow rowName, Iterable<Index4IdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<Index4IdxRow, Index4IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index4IdxRow rowName, Index4IdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<Index4IdxRow, Index4IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<Index4IdxRow, ? extends Index4IdxColumnValue> rows) {
-            Multimap<Index4IdxRow, Index4IdxColumn> toGet = Multimaps.transformValues(rows, Index4IdxColumnValue.getColumnNameFun());
-            Multimap<Index4IdxRow, Index4IdxColumnValue> existing = get(toGet);
-            Multimap<Index4IdxRow, Index4IdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<Index4IdxRow, ? extends Index4IdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
-        }
-
         @Override
         public void touch(Multimap<Index4IdxRow, Index4IdxColumn> values) {
             Multimap<Index4IdxRow, Index4IdxColumnValue> currentValues = get(values);
@@ -3598,5 +3456,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "x1VLSlvGrbiHfQq/rupNww==";
+    static String __CLASS_HASH = "xnOm0QZPMtAT9yZToV1YiQ==";
 }

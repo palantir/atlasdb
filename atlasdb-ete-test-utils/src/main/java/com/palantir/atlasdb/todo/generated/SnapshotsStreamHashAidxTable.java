@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -206,7 +206,7 @@ public final class SnapshotsStreamHashAidxTable implements
                 return false;
             }
             SnapshotsStreamHashAidxRow other = (SnapshotsStreamHashAidxRow) obj;
-            return Objects.equal(hash, other.hash);
+            return Objects.equals(hash, other.hash);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -298,7 +298,7 @@ public final class SnapshotsStreamHashAidxTable implements
                 return false;
             }
             SnapshotsStreamHashAidxColumn other = (SnapshotsStreamHashAidxColumn) obj;
-            return Objects.equal(streamId, other.streamId);
+            return Objects.equals(streamId, other.streamId);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -487,35 +487,6 @@ public final class SnapshotsStreamHashAidxTable implements
         for (SnapshotsStreamHashAidxTrigger trigger : triggers) {
             trigger.putSnapshotsStreamHashAidx(values);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(SnapshotsStreamHashAidxRow rowName, Iterable<SnapshotsStreamHashAidxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(SnapshotsStreamHashAidxRow rowName, SnapshotsStreamHashAidxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<SnapshotsStreamHashAidxRow, ? extends SnapshotsStreamHashAidxColumnValue> rows) {
-        Multimap<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, SnapshotsStreamHashAidxColumnValue.getColumnNameFun());
-        Multimap<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumnValue> toPut = HashMultimap.create();
-        for (Entry<SnapshotsStreamHashAidxRow, ? extends SnapshotsStreamHashAidxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     @Override
@@ -742,5 +713,5 @@ public final class SnapshotsStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "D9ccUt9MdOuoV3fKhAhC+A==";
+    static String __CLASS_HASH = "oS3B0uQRP5UTheSmeHU/1Q==";
 }

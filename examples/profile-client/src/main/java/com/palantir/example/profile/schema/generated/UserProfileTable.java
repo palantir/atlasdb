@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -208,7 +208,7 @@ public final class UserProfileTable implements
                 return false;
             }
             UserProfileRow other = (UserProfileRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -744,18 +744,6 @@ public final class UserProfileTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putMetadataUnlessExists(UserProfileRow row, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value) {
-        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
-    }
-
-    public void putMetadataUnlessExists(Map<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> e : map.entrySet()) {
-            toPut.put(e.getKey(), Metadata.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putCreate(UserProfileRow row, com.palantir.example.profile.schema.CreationData value) {
         put(ImmutableMultimap.of(row, Create.of(value)));
     }
@@ -766,18 +754,6 @@ public final class UserProfileTable implements
             toPut.put(e.getKey(), Create.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
-    }
-
-    public void putCreateUnlessExists(UserProfileRow row, com.palantir.example.profile.schema.CreationData value) {
-        putUnlessExists(ImmutableMultimap.of(row, Create.of(value)));
-    }
-
-    public void putCreateUnlessExists(Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, com.palantir.example.profile.schema.CreationData> e : map.entrySet()) {
-            toPut.put(e.getKey(), Create.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putJson(UserProfileRow row, com.fasterxml.jackson.databind.JsonNode value) {
@@ -792,18 +768,6 @@ public final class UserProfileTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putJsonUnlessExists(UserProfileRow row, com.fasterxml.jackson.databind.JsonNode value) {
-        putUnlessExists(ImmutableMultimap.of(row, Json.of(value)));
-    }
-
-    public void putJsonUnlessExists(Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> e : map.entrySet()) {
-            toPut.put(e.getKey(), Json.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putPhotoStreamId(UserProfileRow row, Long value) {
         put(ImmutableMultimap.of(row, PhotoStreamId.of(value)));
     }
@@ -814,18 +778,6 @@ public final class UserProfileTable implements
             toPut.put(e.getKey(), PhotoStreamId.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
-    }
-
-    public void putPhotoStreamIdUnlessExists(UserProfileRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, PhotoStreamId.of(value)));
-    }
-
-    public void putPhotoStreamIdUnlessExists(Map<UserProfileRow, Long> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), PhotoStreamId.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
@@ -885,20 +837,6 @@ public final class UserProfileTable implements
         for (UserProfileTrigger trigger : triggers) {
             trigger.putUserProfile(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
-        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteMetadata(UserProfileRow row) {
@@ -1329,7 +1267,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 CookiesIdxRow other = (CookiesIdxRow) obj;
-                return Objects.equal(cookie, other.cookie);
+                return Objects.equals(cookie, other.cookie);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1474,7 +1412,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 CookiesIdxColumn other = (CookiesIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -1667,35 +1605,6 @@ public final class UserProfileTable implements
             for (CookiesIdxTrigger trigger : triggers) {
                 trigger.putCookiesIdx(values);
             }
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(CookiesIdxRow rowName, Iterable<CookiesIdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(CookiesIdxRow rowName, CookiesIdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> rows) {
-            Multimap<CookiesIdxRow, CookiesIdxColumn> toGet = Multimaps.transformValues(rows, CookiesIdxColumnValue.getColumnNameFun());
-            Multimap<CookiesIdxRow, CookiesIdxColumnValue> existing = get(toGet);
-            Multimap<CookiesIdxRow, CookiesIdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<CookiesIdxRow, ? extends CookiesIdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
         }
 
         @Override
@@ -2015,7 +1924,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 CreatedIdxRow other = (CreatedIdxRow) obj;
-                return Objects.equal(time, other.time);
+                return Objects.equals(time, other.time);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2160,7 +2069,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 CreatedIdxColumn other = (CreatedIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2353,35 +2262,6 @@ public final class UserProfileTable implements
             for (CreatedIdxTrigger trigger : triggers) {
                 trigger.putCreatedIdx(values);
             }
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(CreatedIdxRow rowName, Iterable<CreatedIdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(CreatedIdxRow rowName, CreatedIdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> rows) {
-            Multimap<CreatedIdxRow, CreatedIdxColumn> toGet = Multimaps.transformValues(rows, CreatedIdxColumnValue.getColumnNameFun());
-            Multimap<CreatedIdxRow, CreatedIdxColumnValue> existing = get(toGet);
-            Multimap<CreatedIdxRow, CreatedIdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<CreatedIdxRow, ? extends CreatedIdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
         }
 
         @Override
@@ -2701,7 +2581,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 UserBirthdaysIdxRow other = (UserBirthdaysIdxRow) obj;
-                return Objects.equal(birthday, other.birthday);
+                return Objects.equals(birthday, other.birthday);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -2846,7 +2726,7 @@ public final class UserProfileTable implements
                     return false;
                 }
                 UserBirthdaysIdxColumn other = (UserBirthdaysIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
+                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
             @SuppressWarnings("ArrayHashCode")
@@ -3039,35 +2919,6 @@ public final class UserProfileTable implements
             for (UserBirthdaysIdxTrigger trigger : triggers) {
                 trigger.putUserBirthdaysIdx(values);
             }
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(UserBirthdaysIdxRow rowName, Iterable<UserBirthdaysIdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(UserBirthdaysIdxRow rowName, UserBirthdaysIdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> rows) {
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toGet = Multimaps.transformValues(rows, UserBirthdaysIdxColumnValue.getColumnNameFun());
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> existing = get(toGet);
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
         }
 
         @Override
@@ -3349,5 +3200,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2l6vERmYIdNq6v0h//tMEw==";
+    static String __CLASS_HASH = "i1/fSbC65yELf1GNvIGF5Q==";
 }

@@ -24,6 +24,7 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -48,11 +49,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -71,8 +73,9 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
@@ -100,13 +103,13 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> readsByTable = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, ConcurrentMap<RangeRequest, byte[]>> rangeEndByTable = Maps.newConcurrentMap();
-    final ConcurrentMap<TableReference, ConcurrentMap<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
+    final ConcurrentMap<TableReference, ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
             columnRangeEndsByTable = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<Cell>> cellsRead = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
-    private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
 
-    public SerializableTransaction(KeyValueService keyValueService,
+    public SerializableTransaction(MetricsManager metricsManager,
+                                   KeyValueService keyValueService,
                                    TimelockService timelockService,
                                    TransactionService transactionService,
                                    Cleaner cleaner,
@@ -125,8 +128,10 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    ExecutorService getRangesExecutor,
                                    int defaultGetRangesConcurrency,
                                    MultiTableSweepQueueWriter sweepQueue,
-                                   ExecutorService deleteExecutor) {
-        super(keyValueService,
+                                   ExecutorService deleteExecutor,
+                                   CommitProfileProcessor commitProfileProcessor) {
+        super(metricsManager,
+              keyValueService,
               timelockService,
               transactionService,
               cleaner,
@@ -145,7 +150,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               getRangesExecutor,
               defaultGetRangesConcurrency,
               sweepQueue,
-              deleteExecutor);
+              deleteExecutor,
+              commitProfileProcessor);
     }
 
     @Override
@@ -268,74 +274,46 @@ public class SerializableTransaction extends SnapshotTransaction {
             rangeEnds.put(range, maxRow);
         }
 
-        while (true) {
-            byte[] curVal = rangeEnds.get(range);
+        rangeEnds.compute(range, (unused, curVal) -> {
             if (curVal == null) {
-                byte[] oldVal = rangeEnds.putIfAbsent(range, maxRow);
-                if (oldVal == null) {
-                    return;
-                } else {
-                    continue;
-                }
+                return maxRow;
+            } else if (curVal.length == 0) {
+                return curVal;
             }
-            if (curVal.length == 0) {
-                return;
-            }
-            if (UnsignedBytes.lexicographicalComparator().compare(curVal, maxRow) >= 0) {
-                return;
-            }
-            if (rangeEnds.replace(range, curVal, maxRow)) {
-                return;
-            }
-        }
+            return Ordering.from(UnsignedBytes.lexicographicalComparator()).max(curVal, maxRow);
+        });
     }
 
     private void setColumnRangeEnd(
             TableReference table,
-            byte[] row,
+            byte[] unwrappedRow,
             BatchColumnRangeSelection columnRangeSelection,
             byte[] maxCol) {
         Validate.notNull(maxCol, "maxCol cannot be null");
-        if (!columnRangeEndsByTable.containsKey(table)) {
-            ConcurrentMap<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>> newMap = Maps.newConcurrentMap();
-            columnRangeEndsByTable.putIfAbsent(table, newMap);
-        }
-        if (!columnRangeEndsByTable.get(table).containsKey(row)) {
-            ConcurrentMap<BatchColumnRangeSelection, byte[]> newMap = Maps.newConcurrentMap();
-            columnRangeEndsByTable.get(table).putIfAbsent(row, newMap);
-        }
-        ConcurrentMap<BatchColumnRangeSelection, byte[]> rangeEnds = columnRangeEndsByTable.get(table).get(row);
+        ByteBuffer row = ByteBuffer.wrap(unwrappedRow);
+        columnRangeEndsByTable.computeIfAbsent(table, unused -> new ConcurrentHashMap<>());
+        ConcurrentMap<BatchColumnRangeSelection, byte[]> rangeEnds =
+                columnRangeEndsByTable.get(table).computeIfAbsent(row, unused -> new ConcurrentHashMap<>());
 
         if (maxCol.length == 0) {
             rangeEnds.put(columnRangeSelection, maxCol);
         }
 
-        while (true) {
-            byte[] curVal = rangeEnds.get(columnRangeSelection);
+        rangeEnds.compute(columnRangeSelection, (range, curVal) -> {
             if (curVal == null) {
-                byte[] oldVal = rangeEnds.putIfAbsent(columnRangeSelection, maxCol);
-                if (oldVal == null) {
-                    return;
-                } else {
-                    continue;
-                }
+                return maxCol;
+            } else if (curVal.length == 0) {
+                return curVal;
             }
-            if (curVal.length == 0) {
-                return;
-            }
-            if (UnsignedBytes.lexicographicalComparator().compare(curVal, maxCol) >= 0) {
-                return;
-            }
-            if (rangeEnds.replace(columnRangeSelection, curVal, maxCol)) {
-                return;
-            }
-        }
+            return Ordering.from(UnsignedBytes.lexicographicalComparator()).max(curVal, maxCol);
+        });
     }
 
     boolean isSerializableTable(TableReference table) {
         // If the metadata is null, we assume that the conflict handler is not SERIALIZABLE.
         // In that case the transaction will fail on commit if it has writes.
-        return conflictDetectionManager.get(table) == ConflictHandler.SERIALIZABLE;
+        ConflictHandler conflictHandler = conflictDetectionManager.get(table);
+        return conflictHandler.checkReadWriteConflicts();
     }
 
     /**
@@ -618,16 +596,17 @@ public class SerializableTransaction extends SnapshotTransaction {
     private void verifyColumnRanges(Transaction readOnlyTransaction) {
         // verify each set of reads to ensure they are the same.
         for (Entry<TableReference,
-                ConcurrentMap<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>>> tableAndRange :
+                ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>> tableAndRange :
                 columnRangeEndsByTable.entrySet()) {
             TableReference table = tableAndRange.getKey();
-            Map<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>> columnRangeEnds = tableAndRange.getValue();
+            Map<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> columnRangeEnds =
+                    tableAndRange.getValue();
 
             Map<Cell, byte[]> writes = writesByTable.get(table);
             Map<BatchColumnRangeSelection, List<byte[]>> rangesToRows = Maps.newHashMap();
-            for (Entry<byte[], ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
+            for (Entry<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
                     columnRangeEnds.entrySet()) {
-                byte[] row = rowAndRangeEnds.getKey();
+                byte[] row = rowAndRangeEnds.getKey().array();
                 Map<BatchColumnRangeSelection, byte[]> rangeEnds = rowAndRangeEnds.getValue();
 
                 for (Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
@@ -711,6 +690,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private Transaction getReadOnlyTransaction(final long commitTs) {
         return new SnapshotTransaction(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 defaultTransactionService,
@@ -730,7 +710,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                deleteExecutor) {
+                deleteExecutor,
+                commitProfileProcessor) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
@@ -785,7 +766,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private Meter getTransactionConflictsMeter() {
         // TODO(hsaraogi): add table names as a tag
-        return metricRegistry.meter(
+        return metricsManager.getRegistry().meter(
                 MetricRegistry.name(SerializableTransaction.class, "SerializableTransactionConflict"));
     }
 }

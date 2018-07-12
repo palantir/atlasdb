@@ -541,7 +541,7 @@ the setting, the more queries and the longer they are stored.
 
 .. code:: java
 
-    public void dbCompressionRequested();
+    public void explicitCompressionRequested();
 
 Cassandra only - specifies whether the table should be stored
 compressed.

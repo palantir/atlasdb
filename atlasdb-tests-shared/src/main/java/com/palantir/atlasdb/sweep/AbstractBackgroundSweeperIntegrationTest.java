@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
@@ -37,18 +38,21 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
+import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
 import com.palantir.timestamp.InMemoryTimestampService;
@@ -60,10 +64,11 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
 
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService kvs;
-    protected LockAwareTransactionManager txManager;
+    protected TransactionManager txManager;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
-    private BackgroundSweeperImpl backgroundSweeper;
+    private BackgroundSweepThread backgroundSweeper;
     private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
             .deleteBatchSize(8)
             .candidateBatchSize(15)
@@ -84,30 +89,36 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         txService = TransactionServices.createTransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
         LongSupplier tsSupplier = sweepTimestamp::get;
-        PersistentLockManager persistentLockManager = new PersistentLockManager(
+        PersistentLockManager persistentLockManager = new PersistentLockManager(metricsManager,
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
-        SweepMetricsManager sweepMetricsManager = new SweepMetricsManager();
+        LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
         specificTableSweeper = SpecificTableSweeper.create(
                 txManager,
                 kvs,
                 sweepRunner,
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
-                sweepMetricsManager,
+                sweepMetrics,
                 false);
 
-        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() -> sweepBatchConfig);
+        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(metricsManager, () -> sweepBatchConfig);
 
-        backgroundSweeper = BackgroundSweeperImpl.create(
+        backgroundSweeper = new BackgroundSweepThread(
+                txManager.getLockService(),
+                NextTableToSweepProvider.create(kvs,
+                        txManager.getLockService(),
+                        specificTableSweeper.getSweepPriorityStore()),
                 sweepBatchConfigSource,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis
                 SweepPriorityOverrideConfig::defaultConfig,
-                persistentLockManager,
-                specificTableSweeper);
+                specificTableSweeper,
+                new SweepOutcomeMetrics(metricsManager),
+                new CountDownLatch(1),
+                0);
     }
 
     @Test
@@ -144,8 +155,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             while (iter.hasNext()) {
                 RowResult<Set<Long>> rr = iter.next();
                 numCells += rr.getColumns().size();
-                Assert.assertTrue(rr.getColumns().values().stream().allMatch(
-                        s -> s.size() == 1 || (conservative && s.size() == 2 && s.contains(-1L))));
+                Assert.assertTrue(String.format("Found unswept values in %s!", tableRef.getQualifiedName()),
+                        rr.getColumns().values().stream()
+                                .allMatch(s -> s.size() == 1 || (conservative && s.size() == 2 && s.contains(-1L))));
             }
             Assert.assertEquals(expectedCells, numCells);
         }

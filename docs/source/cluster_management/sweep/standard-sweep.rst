@@ -36,6 +36,7 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
    :widths: 20, 20, 40, 200
 
    ``enabled``, "Only specified in config", "true", "Whether the background sweeper should run."
+   ``sweepThreads``, "Only specified in config", "1", "The number of threads to run sweep with. Changes require a restart of any service node to take effect. Not recommended for Cassandra KVS. Note that threads will contend with each other for the backup lock on deletes."
    ``readLimit``, ``maxCellTsPairsToExamine``, "128", "Target number of (cell, timestamp) pairs to examine in a batch of sweep."
    ``candidateBatchHint``, ``candidateBatchSize``, "128", "Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
    ``deleteBatchHint``, ``deleteBatchSize``, "128", "Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance."
@@ -76,12 +77,12 @@ Priority Overrides
 ~~~~~~~~~~~~~~~~~~
 
 .. warning::
-   Specifying priority tables can be useful for influencing sweep's behaviour in the short run.
-   However, while configured, no table that is not marked as a priority table will ever be swept, meaning that old versions of cells will not be cleaned up.
+   Specifying ``priorityTables`` can be useful for influencing sweep's behaviour in the short run.
+   However, if any tables are specified as ``priorityTables``, and the number of priority tables is at least ``sweepThreads``, then no other tables will ever be swept, meaning that old versions of cells for those tables will accumulate.
    It is not intended for priority tables to be specified in a steady state, generally speaking.
 
 There may be situations in which the background sweeper's heuristics for selecting tables to sweep may not satisfy one's requirements.
-One can influence the selection process by configuring the ``sweepPriorityOverrides`` parameter in runtime configuration.
+One can influence the selection process by configuring the ``sweep.sweepPriorityOverrides`` parameter in runtime configuration.
 
 .. csv-table::
    :header: "AtlasDB Runtime Config", "Default", "Description"
@@ -108,6 +109,10 @@ table we have swept; we thus don't have enough information to update the sweep p
 registering that we have only done a partial sweep. In practice, this would tend to mean that the probability the
 original table being swept will be picked again for sweeping after overrides have been removed may be a little higher
 than if we accounted for the partial sweep.
+
+One possible use of having blacklist tables is for specifying tables which you don't want the background sweeper to
+sweep, but you still want to be able to carry out a manual sweep. Note that specifying tables as
+``SweepStrategy.NOTHING`` will mean that even manual sweeps will not do anything.
 
 .. toctree::
     :maxdepth: 1

@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -39,7 +40,6 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
@@ -301,8 +301,6 @@ public class TableRenderer {
             }
             renderNamedPut();
             line();
-            renderNamedPutUnlessExists();
-            line();
             for (NamedColumnDescription col : table.getColumns().getNamedColumns()) {
                 renderNamedDeleteColumn(col);
                 line();
@@ -341,8 +339,6 @@ public class TableRenderer {
             renderDynamicDelete();
             line();
             renderDynamicPut();
-            line();
-            renderDynamicPutUnlessExists();
             line();
             renderDynamicTouch();
             line();
@@ -484,20 +480,6 @@ public class TableRenderer {
                 line("for (", Trigger, " trigger : triggers) {"); {
                     line("trigger.put", tableName, "(values);");
                 } line("}");
-            } line("}");
-            line();
-            line("/** @deprecated Use separate read and write in a single transaction instead. */");
-            line("@Deprecated");
-            line("@Override");
-            line("public void putUnlessExists(", Row, " rowName, Iterable<", ColumnValue, "> values) {"); {
-                line("putUnlessExists(ImmutableMultimap.<", Row, ", ", ColumnValue, ">builder().putAll(rowName, values).build());");
-            } line("}");
-            line();
-            line("/** @deprecated Use separate read and write in a single transaction instead. */");
-            line("@Deprecated");
-            line("@Override");
-            line("public void putUnlessExists(", Row, " rowName, ", ColumnValue, "... values) {"); {
-                line("putUnlessExists(ImmutableMultimap.<", Row, ", ", ColumnValue, ">builder().putAll(rowName, values).build());");
             } line("}");
         }
 
@@ -666,18 +648,6 @@ public class TableRenderer {
                 } line("}");
                 line("put(Multimaps.forMap(toPut));");
             } line("}");
-            line();
-            line("public void put", ColumnRenderers.VarName(col), "UnlessExists(", Row, " row, ", Value, " value) {"); {
-                line("putUnlessExists(ImmutableMultimap.of(row, ", ColumnRenderers.VarName(col), ".of(value)));");
-            } line("}");
-            line();
-            line("public void put", ColumnRenderers.VarName(col), "UnlessExists(Map<", Row, ", ", Value, "> map) {"); {
-                line("Map<", Row, ", ", ColumnValue, "> toPut = Maps.newHashMapWithExpectedSize(map.size());");
-                line("for (Entry<", Row, ", ", Value, "> e : map.entrySet()) {"); {
-                    line("toPut.put(e.getKey(), ", ColumnRenderers.VarName(col), ".of(e.getValue()));");
-                } line("}");
-                line("putUnlessExists(Multimaps.forMap(toPut));");
-            } line("}");
         }
 
         private void renderNamedGetAffectedCells() {
@@ -723,39 +693,6 @@ public class TableRenderer {
                 line("for (", Trigger, " trigger : triggers) {"); {
                     line("trigger.put", tableName, "(rows);");
                 } line("}");
-            } line("}");
-        }
-
-        private void renderNamedPutUnlessExists() {
-            line("/** @deprecated Use separate read and write in a single transaction instead. */");
-            line("@Deprecated");
-            line("@Override");
-            line("public void putUnlessExists(Multimap<", Row, ", ? extends ", ColumnValue, "> rows) {"); {
-                line("Multimap<", Row, ", ", ColumnValue, "> existing = getRowsMultimap(rows.keySet());");
-                line("Multimap<", Row, ", ", ColumnValue, "> toPut = HashMultimap.create();");
-                line("for (Entry<", Row, ", ? extends ", ColumnValue, "> entry : rows.entries()) {"); {
-                    line("if (!existing.containsEntry(entry.getKey(), entry.getValue())) {"); {
-                        line("toPut.put(entry.getKey(), entry.getValue());");
-                    } line("}");
-                } line("}");
-                line("put(toPut);");
-            } line("}");
-        }
-
-        private void renderDynamicPutUnlessExists() {
-            line("/** @deprecated Use separate read and write in a single transaction instead. */");
-            line("@Deprecated");
-            line("@Override");
-            line("public void putUnlessExists(Multimap<", Row, ", ? extends ", ColumnValue, "> rows) {"); {
-                line("Multimap<", Row, ", ", Column, "> toGet = Multimaps.transformValues(rows, ", ColumnValue, ".getColumnNameFun());");
-                line("Multimap<", Row, ", ", ColumnValue, "> existing = get(toGet);");
-                line("Multimap<", Row, ", ", ColumnValue, "> toPut = HashMultimap.create();");
-                line("for (Entry<", Row, ", ? extends ", ColumnValue, "> entry : rows.entries()) {"); {
-                    line("if (!existing.containsEntry(entry.getKey(), entry.getValue())) {"); {
-                        line("toPut.put(entry.getKey(), entry.getValue());");
-                    } line("}");
-                } line("}");
-                line("put(toPut);");
             } line("}");
         }
 

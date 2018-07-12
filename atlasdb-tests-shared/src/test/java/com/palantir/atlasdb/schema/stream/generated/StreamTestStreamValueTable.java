@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -219,7 +219,7 @@ public final class StreamTestStreamValueTable implements
                 return false;
             }
             StreamTestStreamValueRow other = (StreamTestStreamValueRow) obj;
-            return Objects.equal(id, other.id) && Objects.equal(blockId, other.blockId);
+            return Objects.equals(id, other.id) && Objects.equals(blockId, other.blockId);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -427,18 +427,6 @@ public final class StreamTestStreamValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(StreamTestStreamValueRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
-    }
-
-    public void putValueUnlessExists(Map<StreamTestStreamValueRow, byte[]> map) {
-        Map<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<StreamTestStreamValueRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<StreamTestStreamValueRow, ? extends StreamTestStreamValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -446,20 +434,6 @@ public final class StreamTestStreamValueTable implements
         for (StreamTestStreamValueTrigger trigger : triggers) {
             trigger.putStreamTestStreamValue(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<StreamTestStreamValueRow, ? extends StreamTestStreamValueNamedColumnValue<?>> rows) {
-        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<StreamTestStreamValueRow, ? extends StreamTestStreamValueNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteValue(StreamTestStreamValueRow row) {
@@ -695,5 +669,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "x228mprds1LAyTRJxS8eYg==";
+    static String __CLASS_HASH = "Ij5stLmnPhWfrTCFkq5FAA==";
 }

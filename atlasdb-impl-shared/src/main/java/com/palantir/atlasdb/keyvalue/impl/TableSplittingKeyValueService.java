@@ -368,17 +368,17 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        getDelegate(tableRef).compactInternally(tableRef, inMaintenanceMode);
+    }
+
+    @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         return delegates.stream()
                 .map(kvs -> kvs.getClusterAvailabilityStatus())
                 .sorted()
                 .findFirst()
                 .orElse(ClusterAvailabilityStatus.ALL_AVAILABLE);
-    }
-
-    @Override
-    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
-        getDelegate(tableRef).compactInternally(tableRef, inMaintenanceMode);
     }
 
     @Override

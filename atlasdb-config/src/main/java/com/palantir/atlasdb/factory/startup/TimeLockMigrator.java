@@ -21,6 +21,7 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
@@ -42,20 +43,23 @@ public class TimeLockMigrator extends AsyncInitializer {
     }
 
     public static TimeLockMigrator create(
+            MetricsManager metricsManager,
             ServerListConfig serverListConfig,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
-        return create(() -> serverListConfig, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(metricsManager, () -> serverListConfig, invalidator,
+                userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimeLockMigrator create(
+            MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
             TimestampStoreInvalidator invalidator,
             String userAgent,
             boolean initializeAsync) {
         TimestampManagementService remoteTimestampManagementService =
                 createRemoteManagementService(
-                        serverListConfigSupplier, userAgent);
+                        metricsManager, serverListConfigSupplier, userAgent);
         return new TimeLockMigrator(invalidator, remoteTimestampManagementService, initializeAsync);
     }
 
@@ -78,9 +82,10 @@ public class TimeLockMigrator extends AsyncInitializer {
     }
 
     private static TimestampManagementService createRemoteManagementService(
+            MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfig,
             String userAgent) {
-        return new ServiceCreator<>(TimestampManagementService.class, userAgent)
+        return new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent)
                 .applyDynamic(serverListConfig);
     }
 

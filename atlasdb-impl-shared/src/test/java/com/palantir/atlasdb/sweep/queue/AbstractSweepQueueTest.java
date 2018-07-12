@@ -18,12 +18,6 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.mockito.Mockito.spy;
 
-import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
-import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.NOTHING;
-import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.THOROUGH;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_COARSE_GRANULARITY;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -49,17 +43,19 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public abstract class AbstractSweepQueueTest {
     static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");
     static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.thorough");
     static final TableReference TABLE_NOTH = TableReference.createFromFullyQualifiedName("test.nothing");
     static final Cell DEFAULT_CELL = Cell.create(new byte[] {'r'}, new byte[] {'c'});
-    static final long TS = TS_COARSE_GRANULARITY + 100L;
+    static final long TS = SweepQueueUtils.TS_COARSE_GRANULARITY + 100L;
     static final long TS2 = 2 * TS;
-    static final long TS_FINE_PARTITION = tsPartitionFine(TS);
-    static final long TS2_FINE_PARTITION = tsPartitionFine(TS2);
-    static final int DEFAULT_SHARDS = 128;
+    static final long TS_FINE_PARTITION = SweepQueueUtils.tsPartitionFine(TS);
+    static final long TS2_FINE_PARTITION = SweepQueueUtils.tsPartitionFine(TS2);
+    static final int DEFAULT_SHARDS = 8;
     static final int FIXED_SHARD = WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(DEFAULT_SHARDS);
     static final int CONS_SHARD = WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
     static final int THOR_SHARD = WriteInfo.tombstone(TABLE_THOR, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
@@ -70,6 +66,8 @@ public abstract class AbstractSweepQueueTest {
     int shardCons;
     int shardThor;
 
+    protected final MetricsManager metricsManager = MetricsManagers.createForTests();
+
     KeyValueService spiedKvs;
     SpecialTimestampsSupplier timestampsSupplier;
     WriteInfoPartitioner partitioner;
@@ -79,17 +77,17 @@ public abstract class AbstractSweepQueueTest {
     @Before
     public void setup() {
         numShards = DEFAULT_SHARDS;
-        unreadableTs = TS_COARSE_GRANULARITY * 5;
-        immutableTs = TS_COARSE_GRANULARITY * 5;
+        unreadableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
+        immutableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
 
         spiedKvs = spy(new InMemoryKeyValueService(true));
-        spiedKvs.createTable(TABLE_CONS, metadataBytes(CONSERVATIVE));
-        spiedKvs.createTable(TABLE_THOR, metadataBytes(THOROUGH));
-        spiedKvs.createTable(TABLE_NOTH, metadataBytes(NOTHING));
+        spiedKvs.createTable(TABLE_CONS, metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
+        spiedKvs.createTable(TABLE_THOR, metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
+        spiedKvs.createTable(TABLE_NOTH, metadataBytes(TableMetadataPersistence.SweepStrategy.NOTHING));
         timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createTransactionService(spiedKvs);
-        metrics = TargetedSweepMetrics.withRecomputingInterval(1);
+        metrics = TargetedSweepMetrics.create(metricsManager, spiedKvs, 1);
     }
 
     static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {
@@ -111,7 +109,7 @@ public abstract class AbstractSweepQueueTest {
     }
 
     int writeToCellCommitted(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
-        putTimestampIntoTransactionTable(timestamp, Long.MAX_VALUE);
+        putTimestampIntoTransactionTable(timestamp, timestamp);
         return write(queueWriter, timestamp, cell, false, tableRef);
     }
 
@@ -124,8 +122,14 @@ public abstract class AbstractSweepQueueTest {
         return write(queueWriter, timestamp, DEFAULT_CELL, false, tableRef);
     }
 
+    int writeToDefaultCellCommitedAt(KvsSweepQueueWriter queueWriter, long startTs, long commitTs,
+            TableReference tableRef) {
+        putTimestampIntoTransactionTable(startTs, commitTs);
+        return write(queueWriter, startTs, DEFAULT_CELL, false, tableRef);
+    }
+
     int putTombstoneToDefaultCommitted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
-        putTimestampIntoTransactionTable(timestamp, Long.MAX_VALUE);
+        putTimestampIntoTransactionTable(timestamp, timestamp);
         return write(queueWriter, timestamp, DEFAULT_CELL, true, tableRef);
     }
 
@@ -150,7 +154,7 @@ public abstract class AbstractSweepQueueTest {
             Cell cell = getCellWithFixedHash(i);
             result.add(WriteInfo.write(tableRef, cell, ts));
         }
-        putTimestampIntoTransactionTable(ts, Long.MAX_VALUE);
+        putTimestampIntoTransactionTable(ts, ts);
         writer.enqueue(result);
         return result;
     }

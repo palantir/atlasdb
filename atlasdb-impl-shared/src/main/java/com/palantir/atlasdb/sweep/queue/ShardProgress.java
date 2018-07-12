@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,7 @@ public class ShardProgress {
             .getSweepShardProgressTable(null).getTableRef();
 
     private static final int SHARD_COUNT_INDEX = -1;
+    private static final ShardAndStrategy SHARD_COUNT_SAS = ShardAndStrategy.conservative(SHARD_COUNT_INDEX);
 
     private final KeyValueService kvs;
 
@@ -53,8 +55,7 @@ public class ShardProgress {
      * Returns the persisted number of shards for the sweep queue.
      */
     public int getNumberOfShards() {
-        return (int) getOrReturnInitial(ShardAndStrategy.conservative(SHARD_COUNT_INDEX),
-                AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        return maybeGet(SHARD_COUNT_SAS).map(Long::intValue).orElse(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
     }
 
     /**
@@ -66,14 +67,14 @@ public class ShardProgress {
      */
     public int updateNumberOfShards(int newNumber) {
         Preconditions.checkArgument(newNumber <= AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS);
-        return (int) increaseValueToAtLeast(ShardAndStrategy.conservative(SHARD_COUNT_INDEX), newNumber);
+        return (int) increaseValueFromToAtLeast(SHARD_COUNT_SAS, getNumberOfShards(), newNumber);
     }
 
     /**
      * Returns the last swept timestamp for the given shard and strategy.
      */
     public long getLastSweptTimestamp(ShardAndStrategy shardAndStrategy) {
-        return getOrReturnInitial(shardAndStrategy, SweepQueueUtils.INITIAL_TIMESTAMP);
+        return maybeGet(shardAndStrategy).orElse(SweepQueueUtils.INITIAL_TIMESTAMP);
     }
 
     /**
@@ -85,15 +86,15 @@ public class ShardProgress {
      * @return the latest known persisted sweep timestamp for the shard and strategy
      */
     public long updateLastSweptTimestamp(ShardAndStrategy shardAndStrategy, long timestamp) {
-        return increaseValueToAtLeast(shardAndStrategy, timestamp);
+        return increaseValueFromToAtLeast(shardAndStrategy, getLastSweptTimestamp(shardAndStrategy), timestamp);
     }
 
-    private long getOrReturnInitial(ShardAndStrategy shardAndStrategy, long initialValue) {
+    private Optional<Long> maybeGet(ShardAndStrategy shardAndStrategy) {
         Map<Cell, Value> result = getEntry(shardAndStrategy);
         if (result.isEmpty()) {
-            return initialValue;
+            return Optional.empty();
         }
-        return getValue(result);
+        return Optional.of(getValue(result));
     }
 
     private Map<Cell, Value> getEntry(ShardAndStrategy shardAndStrategy) {
@@ -114,12 +115,12 @@ public class ShardProgress {
         return value.getValue();
     }
 
-    private long increaseValueToAtLeast(ShardAndStrategy shardAndStrategy, long newVal) {
-        long oldVal = getLastSweptTimestamp(shardAndStrategy);
+    private long increaseValueFromToAtLeast(ShardAndStrategy shardAndStrategy, long oldVal, long newVal) {
         byte[] colValNew = SweepShardProgressTable.Value.of(newVal).persistValue();
 
-        while (oldVal < newVal) {
-            CheckAndSetRequest casRequest = createRequest(shardAndStrategy, oldVal, colValNew);
+        long currentValue = oldVal;
+        while (currentValue < newVal) {
+            CheckAndSetRequest casRequest = createRequest(shardAndStrategy, currentValue, colValNew);
             try {
                 kvs.checkAndSet(casRequest);
                 return newVal;
@@ -128,10 +129,10 @@ public class ShardProgress {
                         + "value changed under us.",
                         SafeArg.of("old value", oldVal),
                         SafeArg.of("new value", newVal));
-                oldVal = updateOrRethrowIfNoChange(shardAndStrategy, oldVal, e);
+                currentValue = updateOrRethrowIfNoChange(shardAndStrategy, currentValue, e);
             }
         }
-        return oldVal;
+        return currentValue;
     }
 
     private long updateOrRethrowIfNoChange(ShardAndStrategy shardAndStrategy, long oldVal, CheckAndSetException ex) {
@@ -143,7 +144,8 @@ public class ShardProgress {
     }
 
     private CheckAndSetRequest createRequest(ShardAndStrategy shardAndStrategy, long oldVal, byte[] colValNew) {
-        if (oldVal == SweepQueueUtils.INITIAL_TIMESTAMP) {
+        if (oldVal == SweepQueueUtils.INITIAL_TIMESTAMP
+                || (shardAndStrategy == SHARD_COUNT_SAS && oldVal == AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS)) {
             return CheckAndSetRequest.newCell(TABLE_REF, cellForShard(shardAndStrategy), colValNew);
         }
         byte[] colValOld = SweepShardProgressTable.Value.of(oldVal).persistValue();

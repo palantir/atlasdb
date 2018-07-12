@@ -44,16 +44,14 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
-import com.palantir.atlasdb.keyvalue.cassandra.TokenRangeWritesLogger;
 import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 
@@ -61,17 +59,19 @@ public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
+    private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
     private final Blacklist blacklist;
     private final QosClient qosClient;
 
     private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
-    private final TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
 
     private List<InetSocketAddress> cassandraHosts;
 
-    public CassandraService(CassandraKeyValueServiceConfig config, Blacklist blacklist, QosClient qosClient) {
+    public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config,
+            Blacklist blacklist, QosClient qosClient) {
+        this.metricsManager = metricsManager;
         this.config = config;
         this.blacklist = blacklist;
         this.qosClient = qosClient;
@@ -80,10 +80,6 @@ public class CassandraService implements AutoCloseable {
     @Override
     public void close() {
         qosClient.close();
-    }
-
-    public TokenRangeWritesLogger getTokenRangeWritesLogger() {
-        return tokenRangeWritesLogger;
     }
 
     public Set<InetSocketAddress> refreshTokenRanges() {
@@ -122,8 +118,6 @@ public class CassandraService implements AutoCloseable {
                 }
             }
             tokenMap = newTokenRing.build();
-
-            tokenRangeWritesLogger.updateTokenRanges(tokenMap.asMapOfRanges().keySet());
             return servers;
         } catch (Exception e) {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
@@ -210,10 +204,6 @@ public class CassandraService implements AutoCloseable {
         return tokenMap;
     }
 
-    public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
-        tokenRangeWritesLogger.markWritesForTable(entries.keySet(), tableRef);
-    }
-
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getPools() {
         return currentPools;
     }
@@ -280,7 +270,8 @@ public class CassandraService implements AutoCloseable {
 
     public void addPool(InetSocketAddress server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
-        currentPools.put(server, new CassandraClientPoolingContainer(qosClient, server, config, currentPoolNumber));
+        currentPools.put(server,
+                new CassandraClientPoolingContainer(metricsManager, qosClient, server, config, currentPoolNumber));
     }
 
     public void removePool(InetSocketAddress removedServerAddress) {

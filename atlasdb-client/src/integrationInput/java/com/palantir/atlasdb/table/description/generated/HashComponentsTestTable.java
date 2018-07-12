@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -249,7 +249,7 @@ public final class HashComponentsTestTable implements
                 return false;
             }
             HashComponentsTestRow other = (HashComponentsTestRow) obj;
-            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(component1, other.component1) && Objects.equal(component2, other.component2);
+            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(component1, other.component1) && Objects.equals(component2, other.component2);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -458,18 +458,6 @@ public final class HashComponentsTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumnUnlessExists(HashComponentsTestRow row, String value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column.of(value)));
-    }
-
-    public void putColumnUnlessExists(Map<HashComponentsTestRow, String> map) {
-        Map<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<HashComponentsTestRow, String> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<HashComponentsTestRow, ? extends HashComponentsTestNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -477,20 +465,6 @@ public final class HashComponentsTestTable implements
         for (HashComponentsTestTrigger trigger : triggers) {
             trigger.putHashComponentsTest(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<HashComponentsTestRow, ? extends HashComponentsTestNamedColumnValue<?>> rows) {
-        Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<HashComponentsTestRow, ? extends HashComponentsTestNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteColumn(HashComponentsTestRow row) {
@@ -775,5 +749,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "N0r8rTta9qcxehzWbQu7MQ==";
+    static String __CLASS_HASH = "D7jBjvqrJyVDhFQlvw9TRA==";
 }

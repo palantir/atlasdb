@@ -22,11 +22,6 @@ repositories {
     }
 }
 
-checkstyle {
-    toolVersion = libVersions.checkstyle
-    configFile rootProject.file('config/checkstyle/checkstyle.xml')
-}
-
 jar {
     manifest {
         attributes(
@@ -40,7 +35,8 @@ libsDirName = file('build/artifacts')
 
 dependencies {
     // Dont add Java8 compile/runtime dependencies here as commons-executors needs to be compatible with Java6 clients
-    compile group: 'com.google.code.findbugs', name: 'annotations'
+    compile group: 'com.google.code.findbugs', name: 'jsr305'
+    compile group: 'com.google.code.findbugs', name: 'findbugs-annotations'
     checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit'
 }
@@ -57,6 +53,7 @@ license {
     exclude '**/generated/**/*.java'
     exclude '**/RateLimiter.java'
     exclude '**/SmoothRateLimiter.java'
+    exclude '**/DiscoverableSubtypeResolver.java'
 }
 
 ext {

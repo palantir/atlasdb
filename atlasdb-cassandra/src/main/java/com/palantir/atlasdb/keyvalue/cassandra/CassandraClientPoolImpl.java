@@ -44,12 +44,11 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
@@ -112,16 +111,19 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraKeyValueServiceConfig config;
     private final StartupChecks startupChecks;
     private final ScheduledExecutorService refreshDaemon;
-    private final CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics();
+    private final CassandraClientPoolMetrics metrics;
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private ScheduledFuture<?> refreshPoolFuture;
 
     @VisibleForTesting
-    static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
+    static CassandraClientPoolImpl createImplForTest(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             Blacklist blacklist) {
-        return create(config,
+        return create(metricsManager,
+                config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 startupChecks,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
@@ -129,18 +131,21 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 blacklist);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
-        return create(config,
+    public static CassandraClientPool create(MetricsManager metricsManager, CassandraKeyValueServiceConfig config) {
+        return create(metricsManager,
+                config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 FakeQosClient.INSTANCE);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config,
+    public static CassandraClientPool create(MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             boolean initializeAsync,
             QosClient qosClient) {
-        CassandraClientPoolImpl cassandraClientPool = create(config,
+        CassandraClientPoolImpl cassandraClientPool = create(metricsManager,
+                config,
                 runtimeConfig,
                 StartupChecks.RUN,
                 initializeAsync,
@@ -149,13 +154,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
-    private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
+    private static CassandraClientPoolImpl create(MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
             boolean initializeAsync,
             QosClient qosClient,
             Blacklist blacklist) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config,
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
+                metricsManager,
+                config,
                 runtimeConfig,
                 startupChecks,
                 qosClient,
@@ -165,11 +173,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private CassandraClientPoolImpl(
+            MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
             QosClient qosClient,
             Blacklist blacklist) {
+        this.metrics = new CassandraClientPoolMetrics(metricsManager);
         this.config = config;
         this.startupChecks = startupChecks;
         this.refreshDaemon = PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
@@ -182,7 +192,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 () -> runtimeConfig.get().numberOfRetriesOnAllHosts(),
                 () -> runtimeConfig.get().conservativeRequestExceptionHandler(),
                 blacklist);
-        cassandra = new CassandraService(config, blacklist, qosClient);
+        cassandra = new CassandraService(metricsManager, config, blacklist, qosClient);
     }
 
     private void tryInitialize() {
@@ -206,7 +216,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void cleanUpOnInitFailure() {
-        metrics.deregisterMetrics();
         refreshPoolFuture.cancel(true);
         cassandra.getPools().forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
@@ -220,7 +229,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         refreshDaemon.shutdown();
         cassandra.getPools().forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
-        metrics.deregisterMetrics();
     }
 
     /**
@@ -240,16 +248,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
         return cassandra.getPools();
-    }
-
-    @Override
-    public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
-        cassandra.markWritesForTable(entries, tableRef);
-    }
-
-    @VisibleForTesting
-    TokenRangeWritesLogger getTokenRangeWritesLogger() {
-        return cassandra.getTokenRangeWritesLogger();
     }
 
     @VisibleForTesting
@@ -382,7 +380,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
             try {
                 V response = runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
-                blacklist.remove(hostPool.getHost()); // successful request -> can un-blacklist
+                removeFromBlacklistAfterResponse(hostPool.getHost());
                 return response;
             } catch (Exception ex) {
                 exceptionHandler.handleExceptionFromRequest(req, hostPool.getHost(), ex);
@@ -416,8 +414,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedHost);
         V response = runWithPooledResourceRecordingMetrics(hostPool, fn);
-        blacklist.remove(specifiedHost);
+        removeFromBlacklistAfterResponse(specifiedHost);
         return response;
+    }
+
+    private void removeFromBlacklistAfterResponse(InetSocketAddress host) {
+        if (blacklist.contains(host)) {
+            blacklist.remove(host);
+            log.info("Added host {} back into the pool after receiving a successful response",
+                    SafeArg.of("host", CassandraLogHelper.host(host)));
+        }
     }
 
     private <V, K extends Exception> V runWithPooledResourceRecordingMetrics(

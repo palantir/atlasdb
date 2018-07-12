@@ -18,8 +18,10 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,9 +29,11 @@ import com.palantir.atlasdb.sweep.Sweeper;
 
 public class SweepQueueDeleter {
     private final KeyValueService kvs;
+    private final TargetedSweepFollower follower;
 
-    SweepQueueDeleter(KeyValueService kvs) {
+    SweepQueueDeleter(KeyValueService kvs, TargetedSweepFollower follower) {
         this.kvs = kvs;
+        this.follower = follower;
     }
 
     /**
@@ -43,13 +47,20 @@ public class SweepQueueDeleter {
      */
     public void sweep(Collection<WriteInfo> writes, Sweeper sweeper) {
         Map<TableReference, Map<Cell, Long>> maxTimestampByCell = writesPerTable(writes, sweeper);
-        for (Map.Entry<TableReference, Map<Cell, Long>> entry: maxTimestampByCell.entrySet()) {
-            if (sweeper.shouldAddSentinels()) {
-                kvs.addGarbageCollectionSentinelValues(entry.getKey(), entry.getValue().keySet());
-                kvs.deleteAllTimestamps(entry.getKey(), entry.getValue(), false);
-            } else {
-                kvs.deleteAllTimestamps(entry.getKey(), entry.getValue(), true);
-            }
+        for (Map.Entry<TableReference, Map<Cell, Long>> entry : maxTimestampByCell.entrySet()) {
+            Iterables.partition(entry.getValue().keySet(), SweepQueueUtils.BATCH_SIZE_KVS)
+                    .forEach(cells -> {
+                        Map<Cell, Long> maxTimestampByCellPartition = cells.stream()
+                                .collect(Collectors.toMap(Function.identity(), entry.getValue()::get));
+                        follower.run(entry.getKey(), maxTimestampByCellPartition.keySet());
+                        if (sweeper.shouldAddSentinels()) {
+                            kvs.addGarbageCollectionSentinelValues(entry.getKey(),
+                                    maxTimestampByCellPartition.keySet());
+                            kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition, false);
+                        } else {
+                            kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition, true);
+                        }
+                    });
         }
     }
 

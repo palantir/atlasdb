@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -208,7 +208,7 @@ public final class LatestSnapshotTable implements
                 return false;
             }
             LatestSnapshotRow other = (LatestSnapshotRow) obj;
-            return Objects.equal(key, other.key);
+            return Objects.equals(key, other.key);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -415,18 +415,6 @@ public final class LatestSnapshotTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putStreamIdUnlessExists(LatestSnapshotRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, StreamId.of(value)));
-    }
-
-    public void putStreamIdUnlessExists(Map<LatestSnapshotRow, Long> map) {
-        Map<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<LatestSnapshotRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), StreamId.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<LatestSnapshotRow, ? extends LatestSnapshotNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -434,20 +422,6 @@ public final class LatestSnapshotTable implements
         for (LatestSnapshotTrigger trigger : triggers) {
             trigger.putLatestSnapshot(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<LatestSnapshotRow, ? extends LatestSnapshotNamedColumnValue<?>> rows) {
-        Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<LatestSnapshotRow, ? extends LatestSnapshotNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteStreamId(LatestSnapshotRow row) {
@@ -683,5 +657,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Z4JOlMtJnr6Ul0c6qTd/dQ==";
+    static String __CLASS_HASH = "W1wwimLI6PCSvWYMupoGKg==";
 }

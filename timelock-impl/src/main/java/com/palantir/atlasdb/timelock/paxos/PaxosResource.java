@@ -35,25 +35,28 @@ import com.palantir.paxos.PaxosLearnerImpl;
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
         + "/{client: [a-zA-Z0-9_-]+}")
 public final class PaxosResource {
+    private final MetricRegistry metricRegistry;
     private final String logDirectory;
     private final Map<String, PaxosComponents> paxosComponentsByClient = Maps.newConcurrentMap();
 
-    private PaxosResource(String logDirectory) {
+    private PaxosResource(MetricRegistry metricRegistry, String logDirectory) {
+        this.metricRegistry = metricRegistry;
         this.logDirectory = logDirectory;
     }
 
-    public static PaxosResource create() {
-        return create(PaxosTimeLockConstants.DEFAULT_LOG_DIRECTORY);
+    public static PaxosResource create(MetricRegistry metricRegistry) {
+        return create(metricRegistry, PaxosTimeLockConstants.DEFAULT_LOG_DIRECTORY);
     }
 
-    public static PaxosResource create(String logDirectory) {
-        return new PaxosResource(logDirectory);
+    public static PaxosResource create(MetricRegistry metricRegistry, String logDirectory) {
+        return new PaxosResource(metricRegistry, logDirectory);
     }
 
     public PaxosComponents createInstrumentedComponents(String client) {
         String learnerLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH)
                 .toString();
         PaxosLearner learner = instrument(
+                metricRegistry,
                 PaxosLearner.class,
                 PaxosLearnerImpl.newLearner(learnerLogDir),
                 client);
@@ -61,6 +64,7 @@ public final class PaxosResource {
         String acceptorLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH)
                 .toString();
         PaxosAcceptor acceptor = instrument(
+                metricRegistry,
                 PaxosAcceptor.class,
                 PaxosAcceptorImpl.newAcceptor(acceptorLogDir),
                 client);
@@ -71,9 +75,9 @@ public final class PaxosResource {
                 .build();
     }
 
-    private static <T> T instrument(Class<T> serviceClass, T service, String client) {
+    private static <T> T instrument(MetricRegistry metricRegistry, Class<T> serviceClass, T service, String client) {
         // TODO(nziebart): tag with the client name, when tritium supports it
-        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass));
+        return AtlasDbMetrics.instrument(metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass));
     }
 
     @Path("/learner")

@@ -24,7 +24,7 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class AtlasDbServiceImplTest {
     private KeyValueService kvs;
@@ -33,7 +33,7 @@ public class AtlasDbServiceImplTest {
     @Before
     public void setUp() {
         kvs = mock(KeyValueService.class);
-        SerializableTransactionManager txManager = mock(SerializableTransactionManager.class);
+        TransactionManager txManager = mock(TransactionManager.class);
         TableMetadataCache metadataCache = mock(TableMetadataCache.class);
         atlasDbService = new AtlasDbServiceImpl(kvs, txManager, metadataCache);
     }

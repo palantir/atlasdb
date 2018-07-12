@@ -39,6 +39,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -57,6 +58,8 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
@@ -69,6 +72,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     protected TransactionManager getManager() {
         MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterUninitialized();
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
+                MetricsManagers.createForTests(),
                 keyValueService,
                 timestampService,
                 lockClient,
@@ -82,7 +86,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 sweepQueue);
-        sweepQueue.callbackInit(txManager);
+        sweepQueue.initialize(txManager);
         return txManager;
     }
 
@@ -94,6 +98,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TransactionConstants.TRANSACTION_TABLE,
                 ConflictHandler.IGNORE_ALL);
         return new SerializableTransaction(
+                MetricsManagers.createForTests(),
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
@@ -113,7 +118,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
-                AbstractTransactionTest.DELETE_EXECUTOR) {
+                MoreExecutors.newDirectExecutorService(),
+                CommitProfileProcessor.createNonLogging(metricsManager)) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());
@@ -163,7 +169,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
             t2.commit();
             fail();
         } catch (TransactionSerializableConflictException e) {
-            // this is expectecd to throw because it is a write skew
+            // this is expected to throw because it is a write skew
         }
     }
 
@@ -674,6 +680,25 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row1", "col", "v0");
         t2.commit();
 
+        t1.commit();
+    }
+
+    @Test
+    public void testMultipleReadsToSameColumnRange() {
+        String rowString = "row1";
+        byte[] row = PtBytes.toBytes(rowString);
+        byte[] rowDifferentReference = PtBytes.toBytes(rowString);
+
+        Transaction t1 = startTransaction();
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+        columnRange.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeAgain =
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(rowDifferentReference),
+                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+        columnRangeAgain.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        put(t1, "mutation to ensure", "conflict", "handling");
         t1.commit();
     }
 

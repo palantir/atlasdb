@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -219,7 +219,7 @@ public final class StreamTestWithHashStreamIdxTable implements
                 return false;
             }
             StreamTestWithHashStreamIdxRow other = (StreamTestWithHashStreamIdxRow) obj;
-            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(id, other.id);
+            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -503,35 +503,6 @@ public final class StreamTestWithHashStreamIdxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(StreamTestWithHashStreamIdxRow rowName, Iterable<StreamTestWithHashStreamIdxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(StreamTestWithHashStreamIdxRow rowName, StreamTestWithHashStreamIdxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<StreamTestWithHashStreamIdxRow, ? extends StreamTestWithHashStreamIdxColumnValue> rows) {
-        Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumn> toGet = Multimaps.transformValues(rows, StreamTestWithHashStreamIdxColumnValue.getColumnNameFun());
-        Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> existing = get(toGet);
-        Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> toPut = HashMultimap.create();
-        for (Entry<StreamTestWithHashStreamIdxRow, ? extends StreamTestWithHashStreamIdxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumn> values) {
         Multimap<StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxColumnValue> currentValues = get(values);
@@ -756,5 +727,5 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cssCFH1Pz34681laVu6sLA==";
+    static String __CLASS_HASH = "+6r8zM0UTE4/vU55y0KptA==";
 }

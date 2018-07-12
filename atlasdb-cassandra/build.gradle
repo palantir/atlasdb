@@ -43,7 +43,9 @@ dependencies {
   explicitShadow group: 'com.palantir.remoting3', name: 'keystores'
   explicitShadow group: 'com.palantir.remoting3', name: 'tracing'
 
-  explicitShadow group: 'com.google.code.findbugs', name: 'annotations'
+  // does shadowing statically analysed annotations really buy us anything?
+  explicitShadow group: 'com.google.code.findbugs', name: 'findbugs-annotations'
+  explicitShadow group: 'com.google.code.findbugs', name: 'jsr305'
 
   explicitShadow group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
 

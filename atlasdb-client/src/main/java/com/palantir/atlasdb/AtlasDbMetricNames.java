@@ -42,7 +42,6 @@ public final class AtlasDbMetricNames {
     public static final String CELLS_SWEPT = "staleValuesDeleted";
     public static final String TIME_SPENT_SWEEPING = "sweepTimeSweeping";
     public static final String TIME_ELAPSED_SWEEPING = "sweepTimeElapsedSinceStart";
-    public static final String TABLE_BEING_SWEPT = "tableBeingSwept";
     public static final String SWEEP_ERROR = "sweepError";
 
     public static final String TIMELOCK_SUCCESSFUL_REQUEST = "timelockSuccessfulRequest";
@@ -56,5 +55,6 @@ public final class AtlasDbMetricNames {
     public static final String TOMBSTONES_PUT = "tombstonesPut";
     public static final String ABORTED_WRITES_DELETED = "abortedWritesDeleted";
     public static final String SWEEP_TS = "sweepTimestamp";
-    public static final String SWEPT_TS = "lastSweptTimestamp";
+    public static final String LAST_SWEPT_TS = "lastSweptTimestamp";
+    public static final String LAG_MILLIS = "millisSinceLastSweptTs";
 }

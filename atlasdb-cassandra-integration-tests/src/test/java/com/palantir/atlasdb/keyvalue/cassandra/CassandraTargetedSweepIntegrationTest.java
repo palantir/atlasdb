@@ -38,16 +38,21 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.AbstractSweepTest;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.lock.v2.TimelockService;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     private TargetedSweeper sweepQueue;
 
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(
-            CassandraTargetedSweepIntegrationTest.class)
-            .with(new CassandraContainer());
+    public static final Containers CONTAINERS =
+            new Containers(CassandraTargetedSweepIntegrationTest.class).with(new CassandraContainer());
+
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
@@ -57,15 +62,14 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     public void setup() {
         super.setup();
 
-        sweepQueue = TargetedSweeper.createUninitialized(() -> true, () -> 1, 0, 0);
-        sweepQueue.initialize(timestampsSupplier, kvs);
+        sweepQueue = TargetedSweeper.createUninitializedForTest(() -> 1);
+        sweepQueue.initialize(timestampsSupplier, mock(TimelockService.class), kvs, mock(TargetedSweepFollower.class));
     }
 
     @Override
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
-
-        return CassandraKeyValueServiceImpl.create(config, CassandraContainer.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.createForTesting(config, CassandraContainer.LEADER_CONFIG);
     }
 
     @Override

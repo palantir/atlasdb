@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cassandra;
 
 import java.util.Optional;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampService;
@@ -50,10 +52,12 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public KeyValueService createRawKeyValueService(
+            MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
+            LongSupplier freshTimestampSource,
             boolean initializeAsync,
             QosClient qosClient) {
         AtlasDbVersion.ensureVersionReported();
@@ -61,9 +65,11 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig = preprocessKvsRuntimeConfig(
                 runtimeConfig);
         return CassandraKeyValueServiceImpl.create(
+                metricsManager,
                 preprocessedConfig,
                 cassandraRuntimeConfig,
                 leaderConfig,
+                CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource),
                 initializeAsync,
                 qosClient);
     }

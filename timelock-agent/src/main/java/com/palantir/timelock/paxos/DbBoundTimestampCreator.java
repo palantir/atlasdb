@@ -19,6 +19,7 @@ package com.palantir.timelock.paxos;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -26,8 +27,10 @@ import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class DbBoundTimestampCreator implements TimestampCreator {
 
@@ -39,7 +42,9 @@ public class DbBoundTimestampCreator implements TimestampCreator {
 
     @Override
     public Supplier<ManagedTimestampService> createTimestampService(String client, LeaderConfig leaderConfig) {
-        ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(kvsConfig,
+        ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(
+                new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), x -> false),
+                kvsConfig,
                 Optional.of(leaderConfig),
                 Optional.empty(),
                 Optional.of(AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE));

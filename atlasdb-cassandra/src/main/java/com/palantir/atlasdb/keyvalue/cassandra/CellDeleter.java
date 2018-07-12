@@ -18,9 +18,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.function.LongUnaryOperator;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Deletion;
@@ -40,16 +41,20 @@ import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.common.base.FunctionCheckedException;
 
 class CellDeleter {
+    private final LongUnaryOperator deleteTimestampGetter;
+
     private CassandraClientPool clientPool;
     private WrappingQueryRunner wrappingQueryRunner;
     private ConsistencyLevel deleteConsistency;
 
     CellDeleter(CassandraClientPool clientPool,
             WrappingQueryRunner wrappingQueryRunner,
-            ConsistencyLevel deleteConsistency) {
+            ConsistencyLevel deleteConsistency,
+            LongUnaryOperator deleteTimestampGetter) {
         this.clientPool = clientPool;
         this.wrappingQueryRunner = wrappingQueryRunner;
         this.deleteConsistency = deleteConsistency;
+        this.deleteTimestampGetter = deleteTimestampGetter;
     }
 
     void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
@@ -85,10 +90,10 @@ class CellDeleter {
                                     cellVersions.getKey().getColumnName(),
                                     ts);
                             SlicePredicate pred = new SlicePredicate();
-                            pred.setColumn_names(Arrays.asList(colName));
+                            pred.setColumn_names(Collections.singletonList(colName));
                             Deletion del = new Deletion();
                             del.setPredicate(pred);
-                            del.setTimestamp(ts + 1);
+                            del.setTimestamp(deleteTimestampGetter.applyAsLong(ts));
                             Mutation mutation = new Mutation();
                             mutation.setDeletion(del);
 

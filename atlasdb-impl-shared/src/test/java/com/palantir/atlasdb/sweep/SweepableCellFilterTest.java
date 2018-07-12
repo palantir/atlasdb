@@ -34,8 +34,6 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
-import gnu.trove.list.array.TLongArrayList;
-
 public class SweepableCellFilterTest {
     private static final long LOW_START_TS = 6L;
     private static final long LOW_COMMIT_TS = 7L;
@@ -45,19 +43,22 @@ public class SweepableCellFilterTest {
     private static final Cell SINGLE_CELL = Cell.create(
             "cellRow".getBytes(StandardCharsets.UTF_8),
             "cellCol".getBytes(StandardCharsets.UTF_8));
+    private static final Cell ANOTHER_CELL = Cell.create(
+            "cellRow2".getBytes(StandardCharsets.UTF_8),
+            "cellCol2".getBytes(StandardCharsets.UTF_8));
 
     private final TransactionService mockTransactionService = mock(TransactionService.class);
+    private final CommitTsCache commitTsCache = CommitTsCache.create(mockTransactionService);
 
     @Test
     public void conservative_getTimestampsToSweep_twoEntriesBelowSweepTimestamp_returnsLowerOne() {
         long sweepTimestampHigherThanCommitTimestamp = HIGH_COMMIT_TS + 1;
         List<CandidateCellForSweeping> candidates = twoCommittedTimestampsForSingleCell();
         SweepableCellFilter filter = new SweepableCellFilter(
-                mockTransactionService, Sweeper.CONSERVATIVE, sweepTimestampHigherThanCommitTimestamp);
+                commitTsCache, Sweeper.CONSERVATIVE, sweepTimestampHigherThanCommitTimestamp);
         List<CellToSweep> cells = filter.getCellsToSweep(candidates).cells();
         assertThat(cells.size()).isEqualTo(1);
-        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps())
-                .isEqualTo(new TLongArrayList(new long[] { LOW_START_TS }));
+        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(LOW_START_TS);
     }
 
     @Test
@@ -65,7 +66,7 @@ public class SweepableCellFilterTest {
         long sweepTimestampLowerThanCommitTimestamp = HIGH_COMMIT_TS - 1;
         List<CandidateCellForSweeping> candidates = twoCommittedTimestampsForSingleCell();
         SweepableCellFilter filter = new SweepableCellFilter(
-                mockTransactionService, Sweeper.CONSERVATIVE, sweepTimestampLowerThanCommitTimestamp);
+                commitTsCache, Sweeper.CONSERVATIVE, sweepTimestampLowerThanCommitTimestamp);
         List<CellToSweep> cells = filter.getCellsToSweep(candidates).cells();
         assertThat(cells).isEmpty();
     }
@@ -75,7 +76,7 @@ public class SweepableCellFilterTest {
         long sweepTimestampHigherThanCommitTimestamp = HIGH_COMMIT_TS + 1;
         List<CandidateCellForSweeping> candidates = twoCommittedTimestampsForSingleCell();
         SweepableCellFilter filter = new SweepableCellFilter(
-                mockTransactionService, Sweeper.CONSERVATIVE, sweepTimestampHigherThanCommitTimestamp);
+                commitTsCache, Sweeper.CONSERVATIVE, sweepTimestampHigherThanCommitTimestamp);
         List<CellToSweep> cells = filter.getCellsToSweep(candidates).cells();
         assertThat(Iterables.getOnlyElement(cells).needsSentinel()).isTrue();
     }
@@ -85,7 +86,7 @@ public class SweepableCellFilterTest {
         long sweepTimestampHigherThanCommitTimestamp = HIGH_COMMIT_TS + 1;
         List<CandidateCellForSweeping> candidates = twoCommittedTimestampsForSingleCell();
         SweepableCellFilter filter = new SweepableCellFilter(
-                mockTransactionService, Sweeper.THOROUGH, sweepTimestampHigherThanCommitTimestamp);
+                commitTsCache, Sweeper.THOROUGH, sweepTimestampHigherThanCommitTimestamp);
         List<CellToSweep> cells = filter.getCellsToSweep(candidates).cells();
         assertThat(Iterables.getOnlyElement(cells).needsSentinel()).isFalse();
     }
@@ -101,11 +102,10 @@ public class SweepableCellFilterTest {
         when(mockTransactionService.get(anyCollection()))
                 .thenReturn(ImmutableMap.of(LOW_START_TS, TransactionConstants.FAILED_COMMIT_TS));
         SweepableCellFilter filter = new SweepableCellFilter(
-                mockTransactionService, Sweeper.CONSERVATIVE, HIGH_START_TS);
+                commitTsCache, Sweeper.CONSERVATIVE, HIGH_START_TS);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
         assertThat(cells.size()).isEqualTo(1);
-        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps())
-                .isEqualTo(new TLongArrayList(new long[] { LOW_START_TS }));
+        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(LOW_START_TS);
     }
 
     @Test
@@ -119,20 +119,54 @@ public class SweepableCellFilterTest {
         when(mockTransactionService.get(anyCollection()))
                 .thenReturn(ImmutableMap.of(LOW_START_TS, LOW_COMMIT_TS));
         SweepableCellFilter filter = new SweepableCellFilter(
-                mockTransactionService, Sweeper.THOROUGH, HIGH_START_TS);
+                commitTsCache, Sweeper.THOROUGH, HIGH_START_TS);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
         assertThat(cells.size()).isEqualTo(1);
-        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps())
-                .isEqualTo(new TLongArrayList(new long[] {LOW_START_TS }));
+        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(LOW_START_TS);
+    }
+
+    @Test
+    public void testNoCandidates() {
+        List<CandidateCellForSweeping> candidate = ImmutableList.of(
+                ImmutableCandidateCellForSweeping.builder()
+                        .cell(SINGLE_CELL)
+                        .sortedTimestamps(ImmutableList.of())
+                        .isLatestValueEmpty(true)
+                        .build());
+        SweepableCellFilter filter = new SweepableCellFilter(
+                commitTsCache, Sweeper.CONSERVATIVE, 100L);
+        BatchOfCellsToSweep result = filter.getCellsToSweep(candidate);
+        assertThat(result.lastCellExamined()).isEqualTo(SINGLE_CELL);
+        assertThat(result.cells()).isEmpty();
+        assertThat(result.numCellTsPairsExamined()).isEqualTo(0L);
+    }
+
+    @Test
+    public void testTwoCandidates() {
+        long sweepTimestampHigherThanCommitTimestamp = HIGH_COMMIT_TS + 1;
+        CandidateCellForSweeping snd = ImmutableCandidateCellForSweeping.builder()
+                .cell(ANOTHER_CELL)
+                .sortedTimestamps(ImmutableList.of(HIGH_START_TS))
+                .isLatestValueEmpty(true)
+                .build();
+        List<CandidateCellForSweeping> candidates = ImmutableList.of(twoCommittedTimestampsForSingleCell().get(0), snd);
+        SweepableCellFilter filter = new SweepableCellFilter(
+                commitTsCache, Sweeper.THOROUGH, sweepTimestampHigherThanCommitTimestamp);
+        BatchOfCellsToSweep result = filter.getCellsToSweep(candidates);
+        assertThat(result.lastCellExamined()).isEqualTo(ANOTHER_CELL);
+        assertThat(result.cells().size()).isEqualTo(2);
+        assertThat(result.numCellTsPairsExamined()).isEqualTo(3L);
+        assertThat(result.cells().get(0).sortedTimestamps()).containsExactly(LOW_START_TS);
+        assertThat(result.cells().get(1).sortedTimestamps()).containsExactly(HIGH_START_TS);
     }
 
     private List<CandidateCellForSweeping> twoCommittedTimestampsForSingleCell() {
         List<CandidateCellForSweeping> ret = ImmutableList.of(
                 ImmutableCandidateCellForSweeping.builder()
-                    .cell(SINGLE_CELL)
-                    .sortedTimestamps(ImmutableList.of(LOW_START_TS, HIGH_START_TS))
-                    .isLatestValueEmpty(false)
-                    .build());
+                        .cell(SINGLE_CELL)
+                        .sortedTimestamps(ImmutableList.of(LOW_START_TS, HIGH_START_TS))
+                        .isLatestValueEmpty(false)
+                        .build());
         when(mockTransactionService.get(anyCollection()))
                 .thenReturn(ImmutableMap.of(
                         LOW_START_TS, LOW_COMMIT_TS,

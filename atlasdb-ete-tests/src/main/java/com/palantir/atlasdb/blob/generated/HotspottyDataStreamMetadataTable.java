@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -21,7 +22,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
@@ -208,7 +208,7 @@ public final class HotspottyDataStreamMetadataTable implements
                 return false;
             }
             HotspottyDataStreamMetadataRow other = (HotspottyDataStreamMetadataRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -439,18 +439,6 @@ public final class HotspottyDataStreamMetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putMetadataUnlessExists(HotspottyDataStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
-        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
-    }
-
-    public void putMetadataUnlessExists(Map<HotspottyDataStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
-        Map<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<HotspottyDataStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
-            toPut.put(e.getKey(), Metadata.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<HotspottyDataStreamMetadataRow, ? extends HotspottyDataStreamMetadataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -458,20 +446,6 @@ public final class HotspottyDataStreamMetadataTable implements
         for (HotspottyDataStreamMetadataTrigger trigger : triggers) {
             trigger.putHotspottyDataStreamMetadata(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<HotspottyDataStreamMetadataRow, ? extends HotspottyDataStreamMetadataNamedColumnValue<?>> rows) {
-        Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<HotspottyDataStreamMetadataRow, ? extends HotspottyDataStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteMetadata(HotspottyDataStreamMetadataRow row) {
@@ -707,5 +681,5 @@ public final class HotspottyDataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "T0PRzzVTzwI1X5G5YAFt6Q==";
+    static String __CLASS_HASH = "oe90c1XfQ57B56r5/IE91g==";
 }

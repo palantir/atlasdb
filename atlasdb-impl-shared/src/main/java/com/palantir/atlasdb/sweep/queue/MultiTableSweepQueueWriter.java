@@ -20,14 +20,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.palantir.async.initializer.CallbackInitializable;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 /**
  * Adds {@link WriteInfo}s to a global queue to be swept.
  */
-public interface MultiTableSweepQueueWriter extends AutoCloseable {
+public interface MultiTableSweepQueueWriter extends AutoCloseable, CallbackInitializable<TransactionManager> {
     MultiTableSweepQueueWriter NO_OP = ignored -> { };
 
     default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
@@ -48,7 +49,8 @@ public interface MultiTableSweepQueueWriter extends AutoCloseable {
      *
      * @param txManager the transaction manager performing the callback
      */
-    default void callbackInit(SerializableTransactionManager txManager) {
+    @Override
+    default void initialize(TransactionManager txManager) {
         // noop
     }
 

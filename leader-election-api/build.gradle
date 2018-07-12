@@ -15,4 +15,5 @@ dependencies {
   compile group: 'org.apache.commons', name: 'commons-lang3'
   compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+  compile group: 'net.jcip', name: 'jcip-annotations'
 }
