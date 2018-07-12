@@ -81,7 +81,7 @@ public final class SweepTestUtils {
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 writer);
         setupTables(kvs);
-        writer.callbackInit(txManager);
+        writer.initialize(txManager);
         return txManager;
     }
 

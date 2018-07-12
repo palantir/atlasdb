@@ -51,8 +51,56 @@ develop
          - Change
 
     *    - |improved| |logs|
-         - Reduce the logging level of various log messages.
+         - Reduced the logging level of various log messages.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3101>`__)
+
+=======
+v0.96.0
+=======
+
+11 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Targeted sweep metrics will no longer range scan the punch table if the last swept timestamp was issued more than one week ago.
+           Previously, we would range scan the table even if the last swept timestamp was -1, which would force a range scan of the entire table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3364>`__)
+
+    *    - |fixed| |deprecated|
+         - Atlas clients using Cassandra can specify type of kvs as `cassandra` rather then `CassandraKeyValueServiceRuntimeConfig` in runtime configuration.
+           The `CassandraKeyValueServiceRuntimeConfig` type is now deprecated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3359>`__)
+
+    *    - |improved|
+         - Startup and schema change performance improved for Cassandra users with large numbers of tables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3278>`__)
+
+=======
+v0.95.0
+=======
+
+9 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Added the ``CallbackInitializable`` interface to simplify asynchronous initialization of resources using transaction manager callbacks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3360>`__)
+
+    *    - |improved|
+         - The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3161>`__)
 
     *    - |devbreak|
          - The ``putUnlessExists`` API has been removed from AtlasDB tables, as it was misleading (it only did the put if the given row, column and value triple were already present, as opposed to the more intuitive condition of the row and column value pair being present).
@@ -84,6 +132,10 @@ develop
            ``SERIALIZABLE_INDEX`` conflict handler is designed to be used by index tables. As any write/write conflict on an index table will necessarily also be a write/write conflict on base table, this conflict handler does not check write/write conflicts. Read/write conflicts should still need to be checked, since we do not need to read the index table with the main table. This conflict handler also locks at cell level.
            If your schema already has a table with ``SERIALIZABLE`` conflict handler, and you would like to migrate it to ``SERIALIZABLE_CELL`` or ``SERIALIZABLE_INDEX`` with a rolling upgrade (without a shutdown); then you should first migrate it to ``SERIALIZABLE_LOCK_LEVEL_MIGRATION`` conflict handler to avoid data corruption.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3267>`__)
+
+    *    - |devbreak|
+         - Removed the token range skewness logger from the Cassandra KVS. We've not been relying on it to catch issues and it produces a very large output that is cumbersome.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3352>`__)
 
 =======
 v0.94.0

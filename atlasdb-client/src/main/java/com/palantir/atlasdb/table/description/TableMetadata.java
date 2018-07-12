@@ -62,6 +62,7 @@ public class TableMetadata implements Persistable {
                 LogSafety.UNSAFE);
     }
 
+    // NOTE: if you change the defaults here, make sure to change them in TableMetadataDeserializer as well!
     public TableMetadata(NameMetadataDescription rowMetadata,
             ColumnMetadataDescription columns,
             ConflictHandler conflictHandler,

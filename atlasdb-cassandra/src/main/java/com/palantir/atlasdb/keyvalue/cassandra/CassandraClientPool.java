@@ -19,8 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 
 public interface CassandraClientPool {
@@ -34,6 +32,5 @@ public interface CassandraClientPool {
     <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K;
     InetSocketAddress getRandomHostForKey(byte[] key);
     Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools();
-    <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef);
     void shutdown();
 }

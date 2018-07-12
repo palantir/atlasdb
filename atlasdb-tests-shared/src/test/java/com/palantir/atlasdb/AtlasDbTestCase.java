@@ -126,7 +126,7 @@ public class AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService());
 
-        sweepQueue.callbackInit(serializableTxManager);
+        sweepQueue.initialize(serializableTxManager);
         txManager = new CachingTestTransactionManager(serializableTxManager);
     }
 
