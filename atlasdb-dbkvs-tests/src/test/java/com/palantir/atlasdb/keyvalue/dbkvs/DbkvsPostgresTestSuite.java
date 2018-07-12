@@ -41,12 +41,12 @@ import com.palantir.remoting.api.config.service.HumanReadableDuration;
 @RunWith(Suite.class)
 @SuiteClasses({
         DbkvsPostgresKeyValueServiceTest.class,
-//        DbkvsPostgresSerializableTransactionTest.class,
-//        DbkvsPostgresSweepTaskRunnerTest.class,
-//        DbkvsBackgroundSweeperIntegrationTest.class,
-//        PostgresDbTimestampBoundStoreTest.class,
-//        DbKvsPostgresGetCandidateCellsForSweepingTest.class,
-//        DbKvsSweepProgressStoreIntegrationTest.class
+        DbkvsPostgresSerializableTransactionTest.class,
+        DbkvsPostgresSweepTaskRunnerTest.class,
+        DbkvsBackgroundSweeperIntegrationTest.class,
+        PostgresDbTimestampBoundStoreTest.class,
+        DbKvsPostgresGetCandidateCellsForSweepingTest.class,
+        DbKvsSweepProgressStoreIntegrationTest.class
         })
 public final class DbkvsPostgresTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;

@@ -375,16 +375,16 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     private void deleteAllTimestampsOverflow(String overflowTable, List<Object[]> args) {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ALL_TS_OVERFLOW (" + overflowTable + ") */ "
-                        + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
-                        + "   FROM " + overflowTable + " m "
-                        + "  WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName) + ") */ "
-                        + "                        i.overflow "
-                        + "                   FROM " + shortTableName + " i "
-                        + "                  WHERE i.row_name = ? "
-                        + "                    AND i.col_name = ? "
-                        + "                    AND i.ts = ? "
-//                        + "                    AND i.ts < ? "
-                        + "                    AND i.overflow IS NOT NULL)",
+                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
+                + "   FROM " + overflowTable + " m "
+                + "  WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName) + ") */ "
+                + "                        i.overflow "
+                + "                   FROM " + shortTableName + " i "
+                + "                  WHERE i.row_name = ? "
+                + "                    AND i.col_name = ? "
+                + "                    AND i.ts >= ? "
+                + "                    AND i.ts < ? "
+                + "                    AND i.overflow IS NOT NULL)",
                 args);
     }
 
