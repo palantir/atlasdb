@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved| |logs|
+         - Reduced the logging level of various log messages.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3101>`__)
 
 =======
 v0.96.0
