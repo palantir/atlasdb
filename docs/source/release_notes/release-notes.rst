@@ -94,6 +94,10 @@ v0.95.0
          - Change
 
     *    - |improved|
+         - Added the ``CallbackInitializable`` interface to simplify asynchronous initialization of resources using transaction manager callbacks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3360>`__)
+
+    *    - |improved|
          - The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3161>`__)
 

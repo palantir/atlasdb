@@ -86,7 +86,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 sweepQueue);
-        sweepQueue.callbackInit(txManager);
+        sweepQueue.initialize(txManager);
         return txManager;
     }
 
