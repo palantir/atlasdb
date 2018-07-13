@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 
 @JsonSerialize(as = ImmutableTimeLockRuntimeConfig.class)
 @JsonDeserialize(as = ImmutableTimeLockRuntimeConfig.class)
@@ -28,5 +29,22 @@ public abstract class TimeLockRuntimeConfig {
     @Value.Default
     public ServerListConfig serversList() {
         return ImmutableServerListConfig.builder().build();
+    }
+
+    @Value.Default
+    protected boolean isUsingTimelock() {
+        return false;
+    }
+
+    @Value.Derived
+    public boolean shouldUseTimelock() {
+        return isUsingTimelock() || serversList().hasAtLeastOneServer();
+    }
+
+    @Value.Check
+    @Value.Derived
+    protected final void check() {
+        Preconditions.checkState(isUsingTimelock() || !serversList().hasAtLeastOneServer(),
+                "If there is at least one entry in the server list, isUsingTimelock field cannot be false.");
     }
 }

@@ -42,7 +42,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -142,7 +141,6 @@ public class TransactionManagersTest {
     private Consumer<Object> environment;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
-    private Supplier<Optional<AtlasDbRuntimeConfig>> configSupplier;
 
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -196,7 +194,6 @@ public class TransactionManagersTest {
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
                 .build();
-        configSupplier = () -> Optional.of(runtimeConfig);
     }
 
     @After
@@ -475,6 +472,7 @@ public class TransactionManagersTest {
         when(runtimeConfig.timelockRuntime()).thenReturn(
                 ImmutableTimeLockRuntimeConfig.builder()
                         .serversList(rawRemoteServerConfig)
+                        .isUsingTimelock(true)
                         .build());
     }
 
@@ -539,8 +537,8 @@ public class TransactionManagersTest {
     }
 
     private void assertGetLockAndTimestampServicesThrows() {
-        String expectedErrorPrefix = "Found a service configured not to use timelock, with at least one entry"
-                + " in the servers field of serversList block within timelock block in the runtime config!";
+        String expectedErrorPrefix = "Found a mismatch between the configuration to use timelock service and"
+                + " the configuration to use non-timelock services! This is unexpected.";
         assertThatThrownBy(this::getLockAndTimestampServices).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(expectedErrorPrefix);
     }

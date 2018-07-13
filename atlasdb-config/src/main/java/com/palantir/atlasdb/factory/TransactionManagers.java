@@ -586,7 +586,7 @@ public abstract class TransactionManagers {
     private static Callback<TransactionManager> timelockConsistencyCheckCallback(
             AtlasDbRuntimeConfig initialRuntimeConfig,
             LockAndTimestampServices lockAndTimestampServices) {
-        if (isUsingTimeLock(initialRuntimeConfig)) {
+        if (initialRuntimeConfig.timelockRuntime().shouldUseTimelock()) {
             // Only do the consistency check if we're using TimeLock.
             // This avoids a bootstrapping problem with leader-block services without async initialisation,
             // where you need a working timestamp service to check consistency, you need to check consistency
@@ -599,10 +599,6 @@ public abstract class TransactionManagers {
                             .build());
         }
         return Callback.noOp();
-    }
-
-    private static boolean isUsingTimeLock(AtlasDbRuntimeConfig runtimeConfig) {
-        return runtimeConfig.timelockRuntime().serversList().hasAtLeastOneServer();
     }
 
     /**
@@ -697,12 +693,12 @@ public abstract class TransactionManagers {
             String userAgent) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
-        if (config.leader().isPresent()) {
+        if (initialRuntimeConfig.timelockRuntime().shouldUseTimelock()) {
+            return createRawServicesFromTimeLock(metricsManager, config, runtimeConfigSupplier, invalidator, userAgent);
+        } else if (config.leader().isPresent()) {
             return createRawLeaderServices(metricsManager, config.leader().get(), env, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(metricsManager, config, userAgent);
-        } else if (isUsingTimeLock(initialRuntimeConfig)) {
-            return createRawServicesFromTimeLock(metricsManager, config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time);
         }
@@ -712,13 +708,15 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             AtlasDbRuntimeConfig initialRuntimeConfig) {
         if (remoteTimestampAndLockOrLeaderBlocksPresent(config)
-                && isUsingTimeLock(initialRuntimeConfig)) {
-            throw new IllegalStateException("Found a service configured not to use timelock, with at least one entry"
-                    + " in the servers field of serversList block within timelock block in the runtime config! This is"
-                    + " unexpected. If you wish to use non-timelock services, please remove the entries from"
-                    + " the servers field of serversList block within timelock block in the runtime config!"
+                && initialRuntimeConfig.timelockRuntime().shouldUseTimelock()) {
+            throw new IllegalStateException("Found a mismatch between the configuration to use timelock service and"
+                    + " the configuration to use non-timelock services! This is unexpected.\n"
+                    + " If you wish to use non-timelock services, please remove the entries from"
+                    + " the servers field of serversList block within timelock block in the runtime config,"
+                    + " and the isUsingTimelock field if that is present!\n"
                     + " If you wish to use timelock, please remove the leader, remote timestamp"
-                    + " or remote lock configuration blocks.");
+                    + " or remote lock configuration blocks."
+                    + " The isUsingTimelock field can be set to true even if list for timelock servers is empty");
         }
     }
 
