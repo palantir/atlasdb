@@ -81,13 +81,13 @@ public class CallbackTest {
     }
 
     @Test
-    public void shutdownDoesBlocksWhenTaskIsRunningUntilCleanupIsDone() {
+    public void shutdownBlocksWhenTaskIsRunningUntilCleanupIsDone() {
         SlowCallback slowCallback = new SlowCallback();
         long start = System.currentTimeMillis();
         AtomicBoolean started = new AtomicBoolean(false);
 
         PTExecutors.newSingleThreadScheduledExecutor().submit(() -> slowCallback.runWithRetry(started));
-        Awaitility.waitAtMost(200L, TimeUnit.MILLISECONDS).until(() -> started.get());
+        Awaitility.waitAtMost(500L, TimeUnit.MILLISECONDS).until(started::get);
 
         slowCallback.blockUntilSafeToShutdown();
         assertThat(System.currentTimeMillis()).isGreaterThanOrEqualTo(start + 2000L);
@@ -122,7 +122,6 @@ public class CallbackTest {
     }
 
     private static class SlowCallback extends Callback<AtomicBoolean> {
-
         @Override
         public void init(AtomicBoolean started) {
             try {
