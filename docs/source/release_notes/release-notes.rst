@@ -54,6 +54,10 @@ develop
          - Reduced the logging level of various log messages.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3101>`__)
 
+    *    - |changed| |metrics|
+         - CassandraClientPoolingContainer metrics are tagged by pool name. Previosly pool name was embedded in metric name.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3375>`__)
+
 =======
 v0.96.0
 =======
