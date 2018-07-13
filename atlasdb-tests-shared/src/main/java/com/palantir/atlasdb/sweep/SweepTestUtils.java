@@ -79,7 +79,7 @@ public final class SweepTestUtils {
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 writer);
         setupTables(kvs);
-        writer.callbackInit(txManager);
+        writer.initialize(txManager);
         return txManager;
     }
 

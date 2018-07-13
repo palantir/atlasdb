@@ -85,7 +85,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 sweepQueue);
-        sweepQueue.callbackInit(txManager);
+        sweepQueue.initialize(txManager);
         return txManager;
     }
 

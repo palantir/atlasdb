@@ -202,7 +202,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             try {
                 refreshPool();
             } catch (Throwable t) {
-                log.error("Failed to refresh Cassandra KVS pool."
+                log.warn("Failed to refresh Cassandra KVS pool."
                         + " Extended periods of being unable to refresh will cause perf degradation.", t);
             }
         }, config.poolRefreshIntervalSeconds(), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
