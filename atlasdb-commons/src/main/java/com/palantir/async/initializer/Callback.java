@@ -22,6 +22,18 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.palantir.common.base.Throwables;
 
+/**
+ * A Callback is a potentially retryable operation on a resource R. The intended use is to specify a task to be run on
+ * an uninitialized resource R once it becomes ready by calling {@link #runWithRetry(R)}.
+ *
+ * The desired task is specified by implementing {@link #init(R)}. The default behaviour on failure is to not retry and
+ * perform no cleanup. If cleanup is necessary, the user should override the {@link #cleanup(R, Throwable)} method. If
+ * the call to cleanup does not throw, {@link #init(R)} will be immediately retried.
+ *
+ * In case {@link #runWithRetry(R)} needs to be interrupted in a safe way, the user should call
+ * {@link #blockUntilSafeToShutdown()}, which will block until any in-progress call to init() terminates, and potential
+ * cleanup is finished, then prevent further retrying.
+ */
 public abstract class Callback<R> {
     private volatile boolean shutdownSignal = false;
     private Lock lock = new ReentrantLock();
@@ -40,7 +52,7 @@ public abstract class Callback<R> {
      * @param initException Throwable thrown by init()
      */
     public void cleanup(R resource, Throwable initException) {
-        Throwables.rewrapAndThrowUncheckedException(initException);
+        throw Throwables.rewrapAndThrowUncheckedException(initException);
     }
 
     /**
