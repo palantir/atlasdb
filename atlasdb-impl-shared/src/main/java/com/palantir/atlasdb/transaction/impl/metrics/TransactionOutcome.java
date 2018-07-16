@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.transaction.impl.metrics;
 
 /**
- * A TransactionOutcome describes the effect that a trans
+ * A TransactionOutcome describes an outcome resulting from a transaction. Note that a single transaction can
+ * cause multiple outcomes (for example, a transaction that rolls back two other transactions and then successfully
+ * commits will log one SUCCESSFUL_COMMIT outcome and two ROLLBACK_OTHER outcomes).
  */
 public enum TransactionOutcome {
     SUCCESSFUL_COMMIT,
