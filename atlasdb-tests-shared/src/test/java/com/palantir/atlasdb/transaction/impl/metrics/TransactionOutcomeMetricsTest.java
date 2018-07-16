@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -43,8 +42,6 @@ public class TransactionOutcomeMetricsTest {
 
     private static final TableReference UNSAFE_REFERENCE_1 = TableReference.create(NAMESPACE, "PII");
     private static final TableReference UNSAFE_REFERENCE_2 = TableReference.create(NAMESPACE, "topSecret");
-
-    private static final TableReference PLACEHOLDER = LoggingArgs.PLACEHOLDER_TABLE_REFERENCE;
 
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
@@ -73,12 +70,14 @@ public class TransactionOutcomeMetricsTest {
 
     @Test
     public void canMarkVariousOutcomes() {
-        Map<Integer, Runnable> tasks = ImmutableMap.of(
-                1, transactionOutcomeMetrics::markAbort,
-                2, transactionOutcomeMetrics::markSuccessfulCommit,
-                3, transactionOutcomeMetrics::markLocksExpired,
-                4, transactionOutcomeMetrics::markPutUnlessExistsFailed,
-                5, transactionOutcomeMetrics::markRollbackOtherTransaction);
+        Map<Integer, Runnable> tasks = ImmutableMap.<Integer, Runnable>builderWithExpectedSize(6)
+                .put(1, transactionOutcomeMetrics::markAbort)
+                .put(2, transactionOutcomeMetrics::markSuccessfulCommit)
+                .put(3, transactionOutcomeMetrics::markLocksExpired)
+                .put(4, transactionOutcomeMetrics::markPutUnlessExistsFailed)
+                .put(5, transactionOutcomeMetrics::markRollbackOtherTransaction)
+                .put(6, transactionOutcomeMetrics::markPreCommitCheckFailed)
+                .build();
 
         tasks.entrySet().forEach(entry -> IntStream.range(0, entry.getKey()).forEach(unused -> entry.getValue().run()));
 
@@ -86,8 +85,9 @@ public class TransactionOutcomeMetricsTest {
                 .hasAborts(1)
                 .hasSuccessfulCommits(2)
                 .hasLocksExpired(3)
-                .hasPutUnlessExistsFailed(4)
-                .hasRollbackOther(5);
+                .hasPutUnlessExistsFailures(4)
+                .hasRollbackOther(5)
+                .hasPreCommitCheckFailures(6);
     }
 
     @Test

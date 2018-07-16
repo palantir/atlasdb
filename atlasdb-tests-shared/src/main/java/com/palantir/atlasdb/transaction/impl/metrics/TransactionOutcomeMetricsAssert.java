@@ -69,7 +69,12 @@ public class TransactionOutcomeMetricsAssert extends
         return this;
     }
 
-    public TransactionOutcomeMetricsAssert hasPutUnlessExistsFailed(long count) {
+    public TransactionOutcomeMetricsAssert hasPreCommitCheckFailures(long count) {
+        checkPresentAndCheckCount(TransactionOutcome.PRE_COMMIT_CHECK_FAILED, count);
+        return this;
+    }
+
+    public TransactionOutcomeMetricsAssert hasPutUnlessExistsFailures(long count) {
         checkPresentAndCheckCount(TransactionOutcome.PUT_UNLESS_EXISTS_FAILED, count);
         return this;
     }
