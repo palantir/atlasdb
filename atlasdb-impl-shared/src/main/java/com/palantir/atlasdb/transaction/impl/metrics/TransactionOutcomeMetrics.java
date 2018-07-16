@@ -74,6 +74,10 @@ public class TransactionOutcomeMetrics {
         getMeter(TransactionOutcome.LOCKS_EXPIRED).mark();
     }
 
+    public void markPreCommitCheckFailed() {
+        getMeter(TransactionOutcome.PRE_COMMIT_CHECK_FAILED).mark();
+    }
+
     public void markPutUnlessExistsFailed() {
         getMeter(TransactionOutcome.PUT_UNLESS_EXISTS_FAILED).mark();
     }

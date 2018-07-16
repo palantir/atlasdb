@@ -215,13 +215,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final int defaultGetRangesConcurrency;
     private final Set<TableReference> involvedTables = Sets.newConcurrentHashSet();
     protected final ExecutorService deleteExecutor;
-
-    protected volatile boolean hasReads;
-
     private final Timer.Context transactionTimerContext;
     protected final CommitProfileProcessor commitProfileProcessor;
-
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
+
+    protected volatile boolean hasReads;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -1387,7 +1385,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             long microsForPreCommitLockCheck = runAndReportTimeAndGetDurationMicros(
                     () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken), "preCommitLockCheck");
             long microsForUserPreCommitCondition = runAndReportTimeAndGetDurationMicros(
-                    () -> preCommitCondition.throwIfConditionInvalid(commitTimestamp), "userPreCommitCondition");
+                    () -> throwIfPreCommitConditionInvalid(commitTimestamp), "userPreCommitCondition");
 
             long microsForPutCommitTs = runAndReportTimeAndGetDurationMicros(
                     () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService),
@@ -1465,7 +1463,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
-        preCommitCondition.throwIfConditionInvalid(timestamp);
+        throwIfPreCommitConditionInvalid(timestamp);
+    }
+
+    private void throwIfPreCommitConditionInvalid(long timestamp) {
+        try {
+            preCommitCondition.throwIfConditionInvalid(timestamp);
+        } catch (TransactionFailedException ex) {
+            transactionOutcomeMetrics.markPreCommitCheckFailed();
+            throw ex;
+        }
     }
 
     private void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
