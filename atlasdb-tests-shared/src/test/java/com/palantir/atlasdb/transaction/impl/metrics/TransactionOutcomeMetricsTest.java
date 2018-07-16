@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.impl.metrics;
 
-import static com.palantir.atlasdb.transaction.impl.TransactionOutcomeMetricsAssert.assertThat;
+import static com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert.assertThat;
 
 import java.util.Map;
 import java.util.Set;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.impl.metrics;
 
 import java.util.function.LongConsumer;
 
@@ -45,65 +45,71 @@ public class TransactionOutcomeMetricsAssert extends
     }
 
     public TransactionOutcomeMetricsAssert hasSuccessfulCommits(long count) {
-        checkPresentAndCheckCount("successfulCommit", count);
+        checkPresentAndCheckCount(TransactionOutcome.SUCCESSFUL_COMMIT, count);
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasFailedCommits(long count) {
-        checkPresentAndCheckCount("failedCommit", count);
+        checkPresentAndCheckCount(TransactionOutcome.FAILED_COMMIT, count);
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasAborts(long count) {
-        checkPresentAndCheckCount("abort", count);
+        checkPresentAndCheckCount(TransactionOutcome.ABORT, count);
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasRollbackOther(long count) {
-        checkPresentAndCheckCount("rollbackOther", count);
+        checkPresentAndCheckCount(TransactionOutcome.ROLLBACK_OTHER, count);
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasLocksExpired(long count) {
-        checkPresentAndCheckCount("locksExpired", count);
+        checkPresentAndCheckCount(TransactionOutcome.LOCKS_EXPIRED, count);
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasPutUnlessExistsFailed(long count) {
-        checkPresentAndCheckCount("putUnlessExistsFailed", count);
+        checkPresentAndCheckCount(TransactionOutcome.PUT_UNLESS_EXISTS_FAILED, count);
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasNamedReadWriteConflicts(TableReference tableReference, long count) {
-        checkPresentAndCheckCount("readWriteConflict", count, tableReference);
+        checkPresentAndCheckCount(TransactionOutcome.READ_WRITE_CONFLICT, count, tableReference);
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasNamedWriteWriteConflicts(TableReference tableReference, long count) {
-        checkPresentAndCheckCount("writeWriteConflict", count, tableReference);
+        checkPresentAndCheckCount(TransactionOutcome.WRITE_WRITE_CONFLICT, count, tableReference);
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasPlaceholderReadWriteConflicts(long count) {
-        checkPresentAndCheckCount("readWriteConflict", count, LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
+        checkPresentAndCheckCount(
+                TransactionOutcome.READ_WRITE_CONFLICT, count, LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasPlaceholderWriteWriteConflicts(long count) {
-        checkPresentAndCheckCount("writeWriteConflict", count, LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
+        checkPresentAndCheckCount(
+                TransactionOutcome.WRITE_WRITE_CONFLICT, count, LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasPlaceholderWriteWriteConflictsSatisfying(LongConsumer assertion) {
-        MetricName metricName = actual.getMetricName("writeWriteConflict",
+        MetricName metricName = actual.getMetricName(TransactionOutcome.WRITE_WRITE_CONFLICT,
                 getTableReferenceTags(LoggingArgs.PLACEHOLDER_TABLE_REFERENCE));
         assertion.accept(taggedMetricRegistry.meter(metricName).getCount());
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasNoKnowledgeOf(TableReference tableReference) {
-        assertMetricNotExists(actual.getMetricName("readWriteConflict", getTableReferenceTags(tableReference)));
-        assertMetricNotExists(actual.getMetricName("writeWriteConflict", getTableReferenceTags(tableReference)));
+        assertMetricNotExists(actual.getMetricName(
+                TransactionOutcome.READ_WRITE_CONFLICT,
+                getTableReferenceTags(tableReference)));
+        assertMetricNotExists(actual.getMetricName(
+                TransactionOutcome.WRITE_WRITE_CONFLICT,
+                getTableReferenceTags(tableReference)));
         return this;
     }
 
@@ -111,13 +117,13 @@ public class TransactionOutcomeMetricsAssert extends
         return ImmutableMap.of("tableReference", tableReference.getQualifiedName());
     }
 
-    private void checkPresentAndCheckCount(String name, long count) {
-        MetricName metricName = actual.getMetricName(name, ImmutableMap.of());
+    private void checkPresentAndCheckCount(TransactionOutcome outcome, long count) {
+        MetricName metricName = actual.getMetricName(outcome, ImmutableMap.of());
         checkPresentAndCheckCount(metricName, count);
     }
 
-    private void checkPresentAndCheckCount(String name, long count, TableReference tableReference) {
-        MetricName metricName = actual.getMetricName(name, getTableReferenceTags(tableReference));
+    private void checkPresentAndCheckCount(TransactionOutcome outcome, long count, TableReference tableReference) {
+        MetricName metricName = actual.getMetricName(outcome, getTableReferenceTags(tableReference));
         checkPresentAndCheckCount(metricName, count);
     }
 
