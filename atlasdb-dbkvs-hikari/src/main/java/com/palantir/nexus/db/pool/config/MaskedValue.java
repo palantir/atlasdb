@@ -27,7 +27,9 @@ public abstract class MaskedValue {
     @Value.Parameter
     abstract String value();
     @Override
-    public String toString() { return "<REDACTED>"; }
+    public String toString() {
+        return "<REDACTED>";
+    }
 
     public String unmasked() {
         return value();
