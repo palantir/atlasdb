@@ -103,6 +103,11 @@ v0.95.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3360>`__)
 
     *    - |improved|
+         - The timestamp cache size is now actually live reloaded, and uses Caffeine instead of Guava for better performance. The read only transaction manager
+           (almost unused) now no longer constructs a thread pool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3351>`__)
+
+    *    - |improved|
          - The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3161>`__)
 
