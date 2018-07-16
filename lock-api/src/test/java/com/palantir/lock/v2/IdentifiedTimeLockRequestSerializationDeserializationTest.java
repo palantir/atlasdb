@@ -37,11 +37,9 @@ public class IdentifiedTimeLockRequestSerializationDeserializationTest {
     private static final File IDENTIFIED_TIMELOCK_REQUEST_JSON = new File(
             IdentifiedTimeLockRequest.class.getResource("/identified-timelock-request.json").getPath());
 
-
     @Test
     public void canSerializeAndDeserializeRandomUuids() throws Exception {
-        UUID uuid = UUID.randomUUID();
-        IdentifiedTimeLockRequest request = ImmutableIdentifiedTimeLockRequest.of(uuid);
+        IdentifiedTimeLockRequest request = ImmutableIdentifiedTimeLockRequest.of(UUID.randomUUID());
 
         assertThat(OBJECT_MAPPER.readValue(OBJECT_MAPPER.writeValueAsString(request), IdentifiedTimeLockRequest.class))
                 .isEqualTo(request);
