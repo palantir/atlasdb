@@ -94,7 +94,7 @@ public class QosRateLimiter implements AutoCloseable {
                     try {
                         updateRateIfNeeded();
                     } catch (Throwable t) {
-                        log.error(RATE_UPDATE_ERROR_MESSAGE, t);
+                        log.info(RATE_UPDATE_ERROR_MESSAGE, t);
                     }
                 }, 0, RATE_UPDATE_INTERVAL_IN_SECONDS, TimeUnit.SECONDS);
     }
@@ -139,7 +139,7 @@ public class QosRateLimiter implements AutoCloseable {
         try {
             return unitsPerSecond.get();
         } catch (Exception e) {
-            log.error(RATE_UPDATE_ERROR_MESSAGE, e);
+            log.info(RATE_UPDATE_ERROR_MESSAGE, e);
             return returnPreviousOrDefaultRate();
         }
     }

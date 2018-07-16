@@ -62,7 +62,7 @@ public class TracingPrefsConfig implements Runnable {
                     String tableString = tracingPrefConfig.getProperty("tables_to_trace", "");
                     tracedTables = ImmutableSet.copyOf(Splitter.on(",").trimResults().split(tableString));
                     if (tracingEnabled && !loadedConfig) { // only log leading edge event
-                        log.error("Successfully loaded an {} file."
+                        log.warn("Successfully loaded an {} file."
                                 + " This incurs a large performance hit and"
                                 + " should only be used for short periods of debugging."
                                 + " [tracing_enabled = {}, trace_probability = {}, min_duration_to_log_ms = {}, "

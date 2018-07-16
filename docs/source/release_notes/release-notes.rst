@@ -56,6 +56,10 @@ develop
            Note that the old endpoints are still exposed (so TimeLock remains compatible with older Atlas clients), and there is an automated adapter for new TimeLock clients to talk to old TimeLock servers that don't have this endpoint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3319>`__)
 
+    *    - |improved| |logs|
+         - Reduced the logging level of various log messages.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3101>`__)
+
 =======
 v0.96.0
 =======
@@ -95,6 +99,10 @@ v0.95.0
 
     *    - Type
          - Change
+
+    *    - |improved|
+         - Added the ``CallbackInitializable`` interface to simplify asynchronous initialization of resources using transaction manager callbacks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3360>`__)
 
     *    - |improved|
          - The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
