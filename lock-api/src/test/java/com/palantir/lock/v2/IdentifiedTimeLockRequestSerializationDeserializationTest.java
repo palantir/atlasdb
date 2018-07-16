@@ -20,13 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.UUID;
 
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Charsets;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 public class IdentifiedTimeLockRequestSerializationDeserializationTest {
@@ -54,6 +54,8 @@ public class IdentifiedTimeLockRequestSerializationDeserializationTest {
     @Test
     public void canSerializeIdentifiedTimeLockRequestToJson() throws IOException {
         assertThat(OBJECT_MAPPER.writeValueAsString(REQUEST))
-                .isEqualTo(new String(Files.readAllBytes(IDENTIFIED_TIMELOCK_REQUEST_JSON.toPath()), Charsets.UTF_8));
+                .isEqualTo(new String(
+                        Files.readAllBytes(IDENTIFIED_TIMELOCK_REQUEST_JSON.toPath()),
+                        StandardCharsets.UTF_8));
     }
 }
