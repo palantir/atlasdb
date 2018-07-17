@@ -53,11 +53,37 @@ Committing a write transaction is a multi-stage process:
 4. Persist key-value pairs that were written to the database.
 5. Get the commit timestamp.
 6. For serializable transactions, check that the state of the world at commit time is same as that at start time.
+   This involves re-executing the relevant read queries we made and checking that we read the same *values*
+   (note that ABA situations where the state of the world changed and changed back are permitted).
 7. Verify that locks are still valid.
 8. Verify user-specified pre-commit conditions (if applicable).
 9. Atomically putUnlessExists into the transactions table.
 
 After step 9 successfully executes, the transaction is considered committed.
+
+The ordering of these steps is important:
+
+1. Checking TODO TODO
+2. If writes are made to the targeted sweep queue before we take out locks, TODO TODO
+3. If we write to the database before writing to the targeted sweep queue, we may write values to the database and
+   then crash. We then have no knowledge of these uncommitted values, meaning that we'll permanently have cruft
+   lying around. It's possible that Background Sweep can be used to clear any such values, but that may take a very
+   long time.
+4. If we get the commit timestamp before we write key-value pairs to the database, another transaction could start
+   after we commit, and may read cells that we have written to. Our own writes may not have been made, but the
+   other transaction must see them.
+5. The serializable commit check requires us to know the commit timestamp.
+6. For conservatively swept tables, the ordering of this step and step 7 is not critical (consider that our check
+   must not pass when it should fail, and once we read a value at the commit timestamp we will always read the same
+   value).
+   For thorough swept tables, there is an edge case. Suppose we read no data for some key, but someone wrote to it
+   in between our start and commit, and someone else deleted the value after our commit. If we pass our lock check, but
+   then lose our locks and have a very long GC, Thorough Sweep might clear all evidence of the conflict, meaning that
+   we miss a read-write conflict.
+   (This would be safe for conservative sweep because of the deletion sentinel.)
+7. This step may be run in parallel with step 8, though it must strictly be run before step 9 as we cannot
+   finish our commit if we can't be certain we still have locks.
+8. We need to check that the pre-commit conditions still hold before we can finish committing.
 
 Cleanup
 =======
