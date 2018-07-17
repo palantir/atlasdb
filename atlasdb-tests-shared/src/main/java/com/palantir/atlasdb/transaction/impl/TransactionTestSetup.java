@@ -42,6 +42,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -72,6 +73,8 @@ public abstract class TransactionTestSetup {
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
+
+    protected TransactionOutcomeMetrics transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
 
     protected final TimestampCache timestampCache = new TimestampCache(
             new MetricRegistry(),

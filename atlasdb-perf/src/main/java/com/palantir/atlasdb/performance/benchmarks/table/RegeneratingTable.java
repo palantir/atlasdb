@@ -18,6 +18,7 @@ package com.palantir.atlasdb.performance.benchmarks.table;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.LongStream;
 
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
@@ -25,12 +26,15 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -44,6 +48,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 @State(Scope.Benchmark)
 public abstract class RegeneratingTable<T> {
 
+    public static final long CELL_VERSIONS = 10_000;
     private static final int BATCH_SIZE = 250;
     public static final int SWEEP_DUPLICATES = 10;
     private static final int SWEEP_BATCH_SIZE = 10;
@@ -93,6 +98,32 @@ public abstract class RegeneratingTable<T> {
     public void cleanup() throws Exception {
         this.services.getKeyValueService().dropTable(getTableRef());
         this.connector.close();
+    }
+
+    @State(Scope.Benchmark)
+    public static class VersionedCellRegeneratingTable extends RegeneratingTable<Cell> {
+        private static final Cell cell = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
+        private static final byte[] value = PtBytes.toBytes("v");
+
+        private static final Multimap<Cell, Value> allVersions = getVersions();
+
+        @Override
+        public void setupTableData() {
+            getKvs().truncateTable(getTableRef());
+            getKvs().putWithTimestamps(getTableRef(), allVersions);
+        }
+
+        @Override
+        public Cell getTableCells() {
+            return cell;
+        }
+
+        private static Multimap<Cell, Value> getVersions() {
+            Multimap<Cell, Value> versions = ArrayListMultimap.create();
+            LongStream.rangeClosed(1, CELL_VERSIONS).boxed()
+                    .forEach(timestamp -> versions.put(cell, Value.create(value, timestamp)));
+            return versions;
+        }
     }
 
     @State(Scope.Benchmark)

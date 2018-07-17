@@ -44,12 +44,15 @@ import org.mockito.stubbing.OngoingStubbing;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;
@@ -64,6 +67,8 @@ public class CassandraClientPoolTest {
     private static final InetSocketAddress HOST_3 = new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT);
 
     private final MetricRegistry metricRegistry = new MetricRegistry();
+    private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
+
     private CassandraKeyValueServiceConfig config;
     private Blacklist blacklist;
 
@@ -84,12 +89,16 @@ public class CassandraClientPoolTest {
     }
 
     private void assertThatMetricsArePresent(ImmutableSet<String> poolNames) {
-        assertThat(metricRegistry.getGauges().keySet()).containsAll(
-                poolNames.stream().map(this::getPoolMetricName).collect(Collectors.toList()));
+        assertThat(taggedMetricRegistry.getMetrics().keySet()).containsAll(
+                poolNames.stream().map(this::getPoolMetricName).collect(Collectors.toSet()));
+
     }
 
-    private String getPoolMetricName(String poolName) {
-        return MetricRegistry.name(CassandraClientPoolingContainer.class, poolName + ".proportionDestroyedByBorrower");
+    private MetricName getPoolMetricName(String poolName) {
+        return MetricName.builder()
+                .safeName(MetricRegistry.name(CassandraClientPoolingContainer.class, "proportionDestroyedByBorrower"))
+                .safeTags(ImmutableMap.of("pool", poolName))
+                .build();
     }
 
     @Test
@@ -204,7 +213,7 @@ public class CassandraClientPoolTest {
     public void attemptsShouldBeCountedPerHost() {
         CassandraClientPoolImpl cassandraClientPool =
                 CassandraClientPoolImpl.createImplForTest(
-                        MetricsManagers.of(metricRegistry, new DefaultTaggedMetricRegistry()),
+                        MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                         config,
                         CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                         blacklist);
@@ -292,7 +301,7 @@ public class CassandraClientPoolTest {
 
         CassandraClientPoolImpl cassandraClientPool =
                 CassandraClientPoolImpl.createImplForTest(
-                        MetricsManagers.of(metricRegistry, new DefaultTaggedMetricRegistry()),
+                        MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                         config,
                         CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                         blacklist);

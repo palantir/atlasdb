@@ -38,6 +38,7 @@ import org.mockito.InOrder;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -80,7 +81,7 @@ public class SnapshotTransactionManagerTest {
             () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
             TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+            TimestampCache.createForTests(),
             MultiTableSweepQueueWriter.NO_OP,
             executorService);
 
@@ -124,7 +125,7 @@ public class SnapshotTransactionManagerTest {
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                TimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 executorService);
         newTransactionManager.close(); // should not throw

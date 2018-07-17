@@ -32,10 +32,8 @@ import com.google.common.reflect.AbstractInvocationHandler;
 /**
  * Allows you to intercept and override methods in {@link java.sql.Statement} and subinterfaces
  * methods.
- *
- * @param <T>
  */
-public class InterceptorStatement<T extends Statement> extends AbstractInvocationHandler
+public final class InterceptorStatement<T extends Statement> extends AbstractInvocationHandler
         implements InvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
 
@@ -61,7 +59,8 @@ public class InterceptorStatement<T extends Statement> extends AbstractInvocatio
                     handleExecException(e);
                 } catch (Exception ex) {
                     // We want to preserve the original exception, so let's log and discard here.
-                    log.debug("Unexpected exception handling unexpected exception from Statement execution.  This exception will be logged and discarded.", ex);
+                    log.debug("Unexpected exception handling unexpected exception from Statement execution.  "
+                            + "This exception will be logged and discarded.", ex);
                 }
             }
             throw e;
@@ -75,16 +74,13 @@ public class InterceptorStatement<T extends Statement> extends AbstractInvocatio
      * poisoning the pool with a bad connection, let's just close it.
      * <p/>
      * This will end poorly for whatever this just got kicked out from underneath it.
-     *
-     * @param Exception e
-     * @throws SQLException
      */
-    private void handleExecException(Exception e) throws SQLException {
-        // TODO: This is terrible. There has to be a better way.
-        log.debug("Handling Exception from Statement method.", e);
-        Connection c = delegate.getConnection().unwrap(Connection.class);
+    private void handleExecException(Exception execException) throws SQLException {
+        // TODO (bullman): This is terrible. There has to be a better way.
+        log.debug("Handling Exception from Statement method.", execException);
+        Connection conn = delegate.getConnection().unwrap(Connection.class);
 
-        if (c.isClosed()) {
+        if (conn.isClosed()) {
             // Closed connections are automatically returned to the pool.
             return;
         }
@@ -94,11 +90,11 @@ public class InterceptorStatement<T extends Statement> extends AbstractInvocatio
             // an implementation-specific detail. Don't assume that closing the driver will
             // roll back the transaction - some of them commit.
             log.debug("Issuing rollback on connection.");
-            c.rollback();
+            conn.rollback();
         } catch (SQLException sqe) {
             log.error("Transaction roll back threw exception.", sqe);
         } finally {
-            c.close();
+            conn.close();
         }
     }
 
