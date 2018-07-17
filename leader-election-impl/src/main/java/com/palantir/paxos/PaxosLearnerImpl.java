@@ -27,15 +27,11 @@ import org.slf4j.LoggerFactory;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.logsafe.SafeArg;
 
-public class PaxosLearnerImpl implements PaxosLearner {
+public final class PaxosLearnerImpl implements PaxosLearner {
 
     private static final Logger logger = LoggerFactory.getLogger(PaxosLearnerImpl.class);
 
-    /**
-     * @param logDir string path for directory to place durable logs
-     * @param type the type of the objects to be learned by the learner
-     * @return a new learner
-     */
+
     public static PaxosLearner newLearner(String logDir) {
         return newLearner(logDir, PaxosKnowledgeEventRecorder.NO_OP);
     }

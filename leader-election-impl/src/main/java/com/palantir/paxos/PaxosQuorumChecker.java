@@ -38,13 +38,14 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 
+@SuppressWarnings("MethodTypeParameterName")
 public final class PaxosQuorumChecker {
 
     public static final int DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS = 5;
     private static final Logger log = LoggerFactory.getLogger(PaxosQuorumChecker.class);
     private static final String PAXOS_MESSAGE_ERROR =
-                    "We encountered an error while trying to request an acknowledgement from another paxos node. " +
-                    "This could mean the node is down, or we cannot connect to it for some other reason.";
+            "We encountered an error while trying to request an acknowledgement from another paxos node."
+                    + " This could mean the node is down, or we cannot connect to it for some other reason.";
 
     // used to cancel outstanding reqeusts after we have already achieved a quorum or otherwise finished collecting
     // responses

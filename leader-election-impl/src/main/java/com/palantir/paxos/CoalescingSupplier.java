@@ -35,7 +35,7 @@ class CoalescingSupplier<T> implements Supplier<T> {
     private volatile CompletableFuture<T> nextResult = new CompletableFuture<T>();
     private final Lock fairLock = new ReentrantLock(true);
 
-    public CoalescingSupplier(Supplier<T> delegate) {
+    CoalescingSupplier(Supplier<T> delegate) {
         this.delegate = delegate;
     }
 

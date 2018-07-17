@@ -26,6 +26,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 
+@SuppressWarnings("HiddenField")
 public class PaxosLeaderElectionServiceBuilder {
     private PaxosProposer proposer;
     private PaxosLearner knowledge;
