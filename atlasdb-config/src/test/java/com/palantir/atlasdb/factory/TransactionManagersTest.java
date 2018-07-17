@@ -191,10 +191,7 @@ public class TransactionManagersTest {
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
         when(runtimeConfig.qos()).thenReturn(QosClientConfig.DEFAULT);
-        when(runtimeConfig.timelockRuntime()).thenReturn(Optional.of(
-                ImmutableTimeLockRuntimeConfig.builder()
-                        .authToken(BearerToken.valueOf("fooBarBazAuthSecret"))
-                        .build()));
+        when(runtimeConfig.timelockRuntime()).thenReturn(Optional.empty());
 
         environment = mock(Consumer.class);
 
@@ -459,8 +456,7 @@ public class TransactionManagersTest {
         verifyUsingTimeLockByGettingAFreshTimestamp();
 
         assertTrue("Runtime config was not expected to contain a timelock block",
-                !runtimeConfig.timelockRuntime().isPresent()
-                        || !runtimeConfig.timelockRuntime().get().serversList().hasAtLeastOneServer());
+                !runtimeConfig.timelockRuntime().isPresent());
     }
 
     @Test
@@ -584,8 +580,8 @@ public class TransactionManagersTest {
     }
 
     private void assertGetLockAndTimestampServicesThrows() {
-        String expectedErrorPrefix = "Found a service configured not to use timelock, with an entry in the server list"
-            + " of timelock block in the runtime config!";
+        String expectedErrorPrefix = "Found a service configured not to use timelock, with a timelock block in"
+                + " the runtime config!";
         assertThatThrownBy(this::getLockAndTimestampServices).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(expectedErrorPrefix);
     }
