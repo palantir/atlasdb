@@ -44,21 +44,23 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     private final TimelockService delegate;
     private final LockRefresher lockRefresher;
-    private final AsyncTimeLockUnlocker asyncUnlocker;
+    private final TimeLockUnlocker unlocker;
 
     public static TimeLockClient createDefault(TimelockService timelockService) {
-        ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
-        LockRefresher lockRefresher = new LockRefresher(refreshExecutor, timelockService, REFRESH_INTERVAL_MILLIS);
         ExecutorService asyncUnlockExecutor = createSingleThreadScheduledExecutor("async-unlock");
         AsyncTimeLockUnlocker asyncUnlocker = new AsyncTimeLockUnlocker(timelockService, asyncUnlockExecutor);
-        return new TimeLockClient(timelockService, lockRefresher, asyncUnlocker);
+        return new TimeLockClient(timelockService, createLockRefresher(timelockService), asyncUnlocker);
+    }
+
+    public static TimeLockClient createWithSynchronousUnlocker(TimelockService timelockService) {
+        return new TimeLockClient(timelockService, createLockRefresher(timelockService), timelockService::unlock);
     }
 
     @VisibleForTesting
-    TimeLockClient(TimelockService delegate, LockRefresher lockRefresher, AsyncTimeLockUnlocker asyncUnlocker) {
+    TimeLockClient(TimelockService delegate, LockRefresher lockRefresher, TimeLockUnlocker unlocker) {
         this.delegate = delegate;
         this.lockRefresher = lockRefresher;
-        this.asyncUnlocker = asyncUnlocker;
+        this.unlocker = unlocker;
     }
 
     @Override
@@ -116,7 +118,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public void tryUnlock(Set<LockToken> tokens) {
         lockRefresher.unregisterLocks(tokens);
-        asyncUnlocker.enqueue(tokens);
+        unlocker.enqueue(tokens);
     }
 
     @Override
@@ -141,7 +143,12 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public void close() {
         lockRefresher.close();
-        asyncUnlocker.close();
+        unlocker.close();
+    }
+
+    private static LockRefresher createLockRefresher(TimelockService timelockService) {
+        ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
+        return new LockRefresher(refreshExecutor, timelockService, REFRESH_INTERVAL_MILLIS);
     }
 
     private static ScheduledExecutorService createSingleThreadScheduledExecutor(String operation) {

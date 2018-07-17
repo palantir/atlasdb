@@ -636,7 +636,13 @@ public abstract class TransactionManagers {
                         time,
                         invalidator,
                         userAgent);
-        return withRefreshingLockService(lockAndTimestampServices);
+        TimeLockClient timeLockClient = TimeLockClient.createWithSynchronousUnlocker(lockAndTimestampServices.timelock());
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .timelock(timeLockClient)
+                .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
+                .close(timeLockClient::close)
+                .build();
     }
 
     @VisibleForTesting
