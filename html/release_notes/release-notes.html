@@ -190,6 +190,10 @@
 <td>Reduced the logging level of various log messages.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3101">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td>CassandraClientPoolingContainer metrics are tagged by pool name. Previosly pool name was embedded in metric name.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3375">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -243,14 +247,26 @@ The <cite>CassandraKeyValueServiceRuntimeConfig</cite> type is now deprecated.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3360">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The timestamp cache size is now actually live reloaded, and uses Caffeine instead of Guava for better performance. The read only transaction manager
+(almost unused) now no longer constructs a thread pool.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3351">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3161">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Transactions now have meters recording their outcomes (e.g. successful commits, lock expiry, being rolled back, read-write conflicts, etc.)
+In the cases of write-write and read-write conflicts, the first table on which a conflict occurred will be tagged on to the conflict meter if it is safe for logging.
+Note that some metric names have changed; in particular, <code class="docutils literal notranslate"><span class="pre">SerializableTransaction.SerializableTransactionConflict</span></code> and <code class="docutils literal notranslate"><span class="pre">SnapshotTransaction.SnapshotTransactionConflict</span></code> are now tracked as <code class="docutils literal notranslate"><span class="pre">readWriteConflicts</span></code> and <code class="docutils literal notranslate"><span class="pre">writeWriteConflicts</span></code> respectively under <code class="docutils literal notranslate"><span class="pre">TransactionOutcomeMetrics</span></code>.
+This is also an improvement in terms of clarity, as serializable transactions that experienced write-write conflicts were previously marked as snapshot transaction conflicts.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3358">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> API has been removed from AtlasDB tables, as it was misleading (it only did the put if the given row, column and value triple were already present, as opposed to the more intuitive condition of the row and column value pair being present).
 Please replace any uses of the table-level <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> with a get, check and put if appropriate - these will still be transactional because of the AtlasDB transaction protocol.
 Note that this is not the same as the KVS <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> API, which is still used by the transaction protocol.
-This API has already been since August 2017 (11 months from time of writing).
+This API has already been deprecated since August 2017 (11 months from time of writing).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3340">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
