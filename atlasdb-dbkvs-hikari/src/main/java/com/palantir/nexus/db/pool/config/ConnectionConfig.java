@@ -35,8 +35,12 @@ import com.palantir.nexus.db.pool.InterceptorDataSource;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.util.DriverDataSource;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
-@JsonSubTypes({@JsonSubTypes.Type(PostgresConnectionConfig.class), @JsonSubTypes.Type(OracleConnectionConfig.class), @JsonSubTypes.Type(H2ConnectionConfig.class)})
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(PostgresConnectionConfig.class),
+        @JsonSubTypes.Type(OracleConnectionConfig.class),
+        @JsonSubTypes.Type(H2ConnectionConfig.class)
+        })
 public abstract class ConnectionConfig {
 
     public abstract String type();
@@ -133,12 +137,14 @@ public abstract class ConnectionConfig {
         config.setMaxLifetime(TimeUnit.SECONDS.toMillis(getMaxConnectionAge()));
         config.setIdleTimeout(TimeUnit.SECONDS.toMillis(getMaxIdleTime()));
         config.setLeakDetectionThreshold(getUnreturnedConnectionTimeout());
+
         // Not a bug - we don't want to use connectionTimeout here, since Hikari uses a different terminology.
-        // See https://github.com/brettwooldridge/HikariCP/wiki/Configuration - connectionTimeout = how long to wait for a connection to be opened.
+        // See https://github.com/brettwooldridge/HikariCP/wiki/Configuration
+        //   - connectionTimeout = how long to wait for a connection to be opened.
         // ConnectionConfig.connectionTimeoutSeconds is passed in via getHikariProperties(), in subclasses.
         config.setConnectionTimeout(getCheckoutTimeout());
 
-        // TODO: See if driver supports JDBC4 (isValid()) and use it.
+        // TODO (bullman): See if driver supports JDBC4 (isValid()) and use it.
         config.setConnectionTestQuery(getTestQuery());
 
         if (!props.isEmpty()) {
@@ -157,8 +163,8 @@ public abstract class ConnectionConfig {
     private static DataSource wrapDataSourceWithVisitor(DataSource ds, final Visitor<Connection> visitor) {
         return InterceptorDataSource.wrapInterceptor(new InterceptorDataSource(ds) {
             @Override
-            protected void onAcquire(Connection c) {
-                visitor.visit(c);
+            protected void onAcquire(Connection conn) {
+                visitor.visit(conn);
             }
         });
     }

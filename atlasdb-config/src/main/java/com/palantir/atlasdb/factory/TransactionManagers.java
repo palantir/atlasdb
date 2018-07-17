@@ -42,8 +42,8 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
-import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -347,9 +347,9 @@ public abstract class TransactionManagers {
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier)),
                 closeables);
 
-        Callback<TransactionManager> callbacks = new Callback.CallChain(ImmutableList.of(
+        Callback<TransactionManager> callbacks = new Callback.CallChain<>(ImmutableList.of(
                 timelockConsistencyCheckCallback(config, runtimeConfigSupplier.get(), lockAndTimestampServices),
-                LambdaCallback.of(targetedSweep::callbackInit),
+                targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback()));
 
         TransactionManager transactionManager = initializeCloseable(
@@ -371,7 +371,8 @@ public abstract class TransactionManagers {
                         config.keyValueService().concurrentGetRangesThreadPoolSize(),
                         config.keyValueService().defaultGetRangesConcurrency(),
                         config.initializeAsync(),
-                        () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
+                        new TimestampCache(metricsManager.getRegistry(),
+                                () -> runtimeConfigSupplier.get().getTimestampCacheSize()),
                         targetedSweep,
                         callbacks),
                 closeables);
@@ -479,7 +480,7 @@ public abstract class TransactionManagers {
                 || config.getSweepReadLimit() != null
                 || config.getSweepCandidateBatchHint() != null
                 || config.getSweepDeleteBatchHint() != null) {
-            log.error("Your configuration specifies sweep parameters on the install config. They will be ignored."
+            log.warn("Your configuration specifies sweep parameters on the install config. They will be ignored."
                     + " Please use the runtime config to specify them.");
         }
     }

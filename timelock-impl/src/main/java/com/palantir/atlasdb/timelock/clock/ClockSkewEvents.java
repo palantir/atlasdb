@@ -57,14 +57,14 @@ public class ClockSkewEvents {
 
     public void clockSkew(String server, long skew, long minRequestInterval, long duration) {
         if (skew >= ERROR_SKEW_THRESHOLD_NANOS && requestHasLikelyRepresentativeSkew(minRequestInterval, duration)) {
-            log.error("Significant skew of {} ns over at least {} ns was detected on the remote server {}."
+            log.debug("Significant skew of {} ns over at least {} ns was detected on the remote server {}."
                             + " (Our request took approximately {} ns.)",
                     SafeArg.of("skew", skew),
                     SafeArg.of("minRequestInterval", minRequestInterval),
                     SafeArg.of("server", server),
                     SafeArg.of("requestDuration", duration));
         } else if (skew >= WARN_SKEW_THRESHOLD_NANOS) {
-            log.warn("Skew of {} ns over at least {} ns was detected on the remote server {}."
+            log.debug("Skew of {} ns over at least {} ns was detected on the remote server {}."
                             + " (Our request took approximately {} ns.)",
                     SafeArg.of("skew", skew),
                     SafeArg.of("minRequestInterval", minRequestInterval),
@@ -75,7 +75,7 @@ public class ClockSkewEvents {
     }
 
     public void clockWentBackwards(String server, long amount) {
-        log.error("The clock for server {} went backwards by {} nanoseconds",
+        log.debug("The clock for server {} went backwards by {} nanoseconds",
                 SafeArg.of("server", server),
                 SafeArg.of("amountNanos", amount));
 
@@ -84,7 +84,7 @@ public class ClockSkewEvents {
 
     public void exception(Throwable throwable) {
         if (exceptionLoggingRateLimiter.tryAcquire()) {
-            log.warn("ClockSkewMonitor threw an exception", throwable);
+            log.debug("ClockSkewMonitor threw an exception", throwable);
         }
         exception.inc();
     }
