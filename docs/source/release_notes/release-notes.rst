@@ -50,6 +50,13 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Cassandra KVS now correctly accepts check-and-set operations if one is working with multiple columns in the relevant row.
+           Previously, if there were multiple columns in the row where one was trying to do a CAS, the CAS would be rejected even if the column value matched the cell.
+           Similarly, for put-unless-exists, the PUE would be rejected if there were any other cells in the relevant row (even if they had a different column name).
+           We now perform the operations correctly only considering the value (or absence of) the relevant cell.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+
     *    - |improved|
          - TimeLock Server now exposes a ``startAtlasDbTransaction`` endpoint which locks an immutable timestamp and then gets a fresh timestamp (in a single round-trip call); new TimeLock clients call this endpoint.
            This saves an estimated one TimeLock round-trip of latency when starting a transaction.
