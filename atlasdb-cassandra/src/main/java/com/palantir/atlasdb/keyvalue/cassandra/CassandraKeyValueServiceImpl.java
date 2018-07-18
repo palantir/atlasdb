@@ -136,6 +136,8 @@ import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
+import okio.ByteString;
+
 /**
  * Each service can have one or many C* KVS.
  * For each C* KVS, it maintains a list of active nodes, and the client connections attached to each node:
@@ -1996,7 +1998,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CheckAndSetResult casResult = clientPool.runWithRetry(
                     client -> checkAndSetRunner.executeCheckAndSet(client, request));
             if (!casResult.successful()) {
-                List<byte[]> currentValues = casResult.existingValues();
+                List<byte[]> currentValues = casResult.existingValues()
+                        .stream()
+                        .map(ByteString::toByteArray)
+                        .collect(Collectors.toList());
 
                 throw new CheckAndSetException(
                         request.cell(),

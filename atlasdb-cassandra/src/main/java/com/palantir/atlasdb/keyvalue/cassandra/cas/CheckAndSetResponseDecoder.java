@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 
+import okio.ByteString;
+
 class CheckAndSetResponseDecoder {
     private static final String APPLIED_COLUMN = "[applied]";
     private static final String VALUE_COLUMN = "value";
@@ -51,12 +53,12 @@ class CheckAndSetResponseDecoder {
         return Arrays.equals(SUCCESSFUL_OPERATION, appliedColumn.getValue());
     }
 
-    private static List<byte[]> existingValues(CqlRow cqlRow) {
+    private static List<ByteString> existingValues(CqlRow cqlRow) {
         return cqlRow.getColumns()
                 .stream()
                 .filter(column -> VALUE_COLUMN.equals(decodeCqlColumnName(column)))
                 .findFirst()
-                .map(column -> ImmutableList.of(column.getValue()))
+                .map(column -> ImmutableList.of(ByteString.of(column.getValue())))
                 .orElseGet(ImmutableList::of);
     }
 

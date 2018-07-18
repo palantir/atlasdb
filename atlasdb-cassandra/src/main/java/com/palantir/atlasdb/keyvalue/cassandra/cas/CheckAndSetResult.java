@@ -20,15 +20,17 @@ import java.util.List;
 
 import org.immutables.value.Value;
 
+import okio.ByteString;
+
 @Value.Immutable
 public interface CheckAndSetResult {
     @Value.Parameter
     boolean successful();
 
     @Value.Parameter
-    List<byte[]> existingValues();
+    List<ByteString> existingValues();
 
-    static CheckAndSetResult of(boolean successful, List<byte[]> existingValues) {
+    static CheckAndSetResult of(boolean successful, List<ByteString> existingValues) {
         return ImmutableCheckAndSetResult.of(successful, existingValues);
     }
 }
