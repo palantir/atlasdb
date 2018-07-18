@@ -415,18 +415,6 @@ public final class DataTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(DataRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
-    }
-
-    public void putValueUnlessExists(Map<DataRow, Long> map) {
-        Map<DataRow, DataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<DataRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -502,20 +490,6 @@ public final class DataTable implements
         for (DataTrigger trigger : triggers) {
             trigger.putData(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
-        Multimap<DataRow, DataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<DataRow, DataNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<DataRow, ? extends DataNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteValue(DataRow row) {
@@ -1290,35 +1264,6 @@ public final class DataTable implements
             }
         }
 
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index1IdxRow rowName, Iterable<Index1IdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<Index1IdxRow, Index1IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index1IdxRow rowName, Index1IdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<Index1IdxRow, Index1IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<Index1IdxRow, ? extends Index1IdxColumnValue> rows) {
-            Multimap<Index1IdxRow, Index1IdxColumn> toGet = Multimaps.transformValues(rows, Index1IdxColumnValue.getColumnNameFun());
-            Multimap<Index1IdxRow, Index1IdxColumnValue> existing = get(toGet);
-            Multimap<Index1IdxRow, Index1IdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<Index1IdxRow, ? extends Index1IdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
-        }
-
         @Override
         public void touch(Multimap<Index1IdxRow, Index1IdxColumn> values) {
             Multimap<Index1IdxRow, Index1IdxColumnValue> currentValues = get(values);
@@ -1964,35 +1909,6 @@ public final class DataTable implements
             }
         }
 
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index2IdxRow rowName, Iterable<Index2IdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<Index2IdxRow, Index2IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index2IdxRow rowName, Index2IdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<Index2IdxRow, Index2IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<Index2IdxRow, ? extends Index2IdxColumnValue> rows) {
-            Multimap<Index2IdxRow, Index2IdxColumn> toGet = Multimaps.transformValues(rows, Index2IdxColumnValue.getColumnNameFun());
-            Multimap<Index2IdxRow, Index2IdxColumnValue> existing = get(toGet);
-            Multimap<Index2IdxRow, Index2IdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<Index2IdxRow, ? extends Index2IdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
-        }
-
         @Override
         public void touch(Multimap<Index2IdxRow, Index2IdxColumn> values) {
             Multimap<Index2IdxRow, Index2IdxColumnValue> currentValues = get(values);
@@ -2614,35 +2530,6 @@ public final class DataTable implements
             for (Index3IdxTrigger trigger : triggers) {
                 trigger.putIndex3Idx(values);
             }
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index3IdxRow rowName, Iterable<Index3IdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<Index3IdxRow, Index3IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index3IdxRow rowName, Index3IdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<Index3IdxRow, Index3IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<Index3IdxRow, ? extends Index3IdxColumnValue> rows) {
-            Multimap<Index3IdxRow, Index3IdxColumn> toGet = Multimaps.transformValues(rows, Index3IdxColumnValue.getColumnNameFun());
-            Multimap<Index3IdxRow, Index3IdxColumnValue> existing = get(toGet);
-            Multimap<Index3IdxRow, Index3IdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<Index3IdxRow, ? extends Index3IdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
         }
 
         @Override
@@ -3290,35 +3177,6 @@ public final class DataTable implements
             }
         }
 
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index4IdxRow rowName, Iterable<Index4IdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<Index4IdxRow, Index4IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Index4IdxRow rowName, Index4IdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<Index4IdxRow, Index4IdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        /** @deprecated Use separate read and write in a single transaction instead. */
-        @Deprecated
-        @Override
-        public void putUnlessExists(Multimap<Index4IdxRow, ? extends Index4IdxColumnValue> rows) {
-            Multimap<Index4IdxRow, Index4IdxColumn> toGet = Multimaps.transformValues(rows, Index4IdxColumnValue.getColumnNameFun());
-            Multimap<Index4IdxRow, Index4IdxColumnValue> existing = get(toGet);
-            Multimap<Index4IdxRow, Index4IdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<Index4IdxRow, ? extends Index4IdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
-        }
-
         @Override
         public void touch(Multimap<Index4IdxRow, Index4IdxColumn> values) {
             Multimap<Index4IdxRow, Index4IdxColumnValue> currentValues = get(values);
@@ -3598,5 +3456,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "am52K64Gej3IAHTMaJ2/kQ==";
+    static String __CLASS_HASH = "xnOm0QZPMtAT9yZToV1YiQ==";
 }

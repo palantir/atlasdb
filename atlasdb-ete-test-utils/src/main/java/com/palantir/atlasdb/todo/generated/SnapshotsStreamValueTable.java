@@ -427,18 +427,6 @@ public final class SnapshotsStreamValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(SnapshotsStreamValueRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
-    }
-
-    public void putValueUnlessExists(Map<SnapshotsStreamValueRow, byte[]> map) {
-        Map<SnapshotsStreamValueRow, SnapshotsStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SnapshotsStreamValueRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<SnapshotsStreamValueRow, ? extends SnapshotsStreamValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -446,20 +434,6 @@ public final class SnapshotsStreamValueTable implements
         for (SnapshotsStreamValueTrigger trigger : triggers) {
             trigger.putSnapshotsStreamValue(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<SnapshotsStreamValueRow, ? extends SnapshotsStreamValueNamedColumnValue<?>> rows) {
-        Multimap<SnapshotsStreamValueRow, SnapshotsStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<SnapshotsStreamValueRow, SnapshotsStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<SnapshotsStreamValueRow, ? extends SnapshotsStreamValueNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteValue(SnapshotsStreamValueRow row) {
@@ -695,5 +669,5 @@ public final class SnapshotsStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "IyCIfgbpIWFg+j1HB+px5A==";
+    static String __CLASS_HASH = "w2Kv2zKptBlrmL07xKxTRg==";
 }

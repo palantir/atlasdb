@@ -45,6 +45,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import javax.ws.rs.core.Response;
+
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
@@ -77,6 +79,8 @@ import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
+import com.palantir.atlasdb.table.description.generated.GenericTestSchemaTableFactory;
+import com.palantir.atlasdb.table.description.generated.RangeScanTestTable;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -127,6 +131,10 @@ public class TransactionManagersTest {
     private static final MappingBuilder TIMELOCK_ONE_TIMESTAMP_MAPPING = post(urlEqualTo(TIMELOCK_TIMESTAMPS_PATH));
     private static final String TIMELOCK_LOCK_PATH = "/" + CLIENT + "/timelock/current-time-millis";
     private static final MappingBuilder TIMELOCK_LOCK_MAPPING = post(urlEqualTo(TIMELOCK_LOCK_PATH));
+    private static final String TIMELOCK_START_TRANSACTION_PATH
+            = "/" + CLIENT + "/timelock/start-atlasdb-transaction";
+    private static final MappingBuilder TIMELOCK_START_TRANSACTION_MAPPING
+            = post(urlEqualTo(TIMELOCK_START_TRANSACTION_PATH));
 
 
     private static final String TIMELOCK_PING_PATH =  "/" + CLIENT + "/timestamp-management/ping";
@@ -473,6 +481,19 @@ public class TransactionManagersTest {
         TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
         tm.getUnreadableTimestamp();
         assertTrue(tm.getTimelockServiceStatus().isHealthy());
+    }
+
+    @Test
+    public void timelockServiceCanStartTransactionsEvenWithoutStartTransactionEndpoint() {
+        availableServer.stubFor(TIMELOCK_START_TRANSACTION_MAPPING.willReturn(
+                aResponse().withStatus(Response.Status.NOT_FOUND.getStatusCode())));
+        TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
+
+        tm.runTaskWithRetry(tx -> {
+            RangeScanTestTable testTable = GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx);
+            testTable.putColumn1(RangeScanTestTable.RangeScanTestRow.of("foo"), 12345L);
+            return null;
+        });
     }
 
     private void verifyUsingTimeLockByGettingAFreshTimestamp() {

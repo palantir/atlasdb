@@ -519,18 +519,6 @@ public final class SchemaApiTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn1UnlessExists(SchemaApiTestRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column1.of(value)));
-    }
-
-    public void putColumn1UnlessExists(Map<SchemaApiTestRow, Long> map) {
-        Map<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SchemaApiTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column1.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putColumn2(SchemaApiTestRow row, com.palantir.atlasdb.table.description.test.StringValue value) {
         put(ImmutableMultimap.of(row, Column2.of(value)));
     }
@@ -543,18 +531,6 @@ public final class SchemaApiTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn2UnlessExists(SchemaApiTestRow row, com.palantir.atlasdb.table.description.test.StringValue value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column2.of(value)));
-    }
-
-    public void putColumn2UnlessExists(Map<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> map) {
-        Map<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column2.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -562,20 +538,6 @@ public final class SchemaApiTestTable implements
         for (SchemaApiTestTrigger trigger : triggers) {
             trigger.putSchemaApiTest(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> rows) {
-        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteColumn1(SchemaApiTestRow row) {
@@ -871,5 +833,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "imjzrX/X4tDr/Y6I5HHi5A==";
+    static String __CLASS_HASH = "gJjGs7nehodvK83lsXBdyA==";
 }

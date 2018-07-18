@@ -489,35 +489,6 @@ public final class SnapshotsStreamHashAidxTable implements
         }
     }
 
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(SnapshotsStreamHashAidxRow rowName, Iterable<SnapshotsStreamHashAidxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(SnapshotsStreamHashAidxRow rowName, SnapshotsStreamHashAidxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<SnapshotsStreamHashAidxRow, ? extends SnapshotsStreamHashAidxColumnValue> rows) {
-        Multimap<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, SnapshotsStreamHashAidxColumnValue.getColumnNameFun());
-        Multimap<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumnValue> toPut = HashMultimap.create();
-        for (Entry<SnapshotsStreamHashAidxRow, ? extends SnapshotsStreamHashAidxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumn> values) {
         Multimap<SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxColumnValue> currentValues = get(values);
@@ -742,5 +713,5 @@ public final class SnapshotsStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Rr89YNzlBm2CiK/6z02A1A==";
+    static String __CLASS_HASH = "oS3B0uQRP5UTheSmeHU/1Q==";
 }

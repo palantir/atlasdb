@@ -48,7 +48,7 @@ public class CassandraMetricMeasurementsLoader {
                     try {
                         loadCassandraMetrics();
                     } catch (Throwable t) {
-                        log.error("Failed to refresh the cassandra metrics."
+                        log.info("Failed to refresh the cassandra metrics."
                                 + " Extended periods of being unable to refresh will hinder QoS of all clients.", t);
                     }
                 }, 0, 5, TimeUnit.SECONDS);

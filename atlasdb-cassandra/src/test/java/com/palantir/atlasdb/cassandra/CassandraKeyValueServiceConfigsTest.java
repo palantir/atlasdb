@@ -83,4 +83,28 @@ public class CassandraKeyValueServiceConfigsTest {
                 CONFIG_WITH_KEYSPACE, KEYSPACE_2);
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE_2);
     }
+
+    @Test
+    public void canDeserializeRuntimeConfig() throws IOException {
+        CassandraKeyValueServiceRuntimeConfig expectedConfig = ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .numberOfRetriesOnSameHost(4)
+                .numberOfRetriesOnAllHosts(8)
+                .conservativeRequestExceptionHandler(true)
+                .build();
+
+        URL configUrl =
+                CassandraKeyValueServiceConfigsTest.class.getClassLoader().getResource("testRuntimeConfig.yml");
+
+        CassandraKeyValueServiceRuntimeConfig deserializedConfig = AtlasDbConfigs.OBJECT_MAPPER
+                .readValue(new File(configUrl.getPath()), CassandraKeyValueServiceRuntimeConfig.class);
+
+        assertThat(deserializedConfig).isEqualTo(expectedConfig);
+    }
+
+    @Test
+    public void canParseRuntimeDeprecatedConfigType() throws IOException {
+        CassandraKeyValueServiceRuntimeConfig config =
+                AtlasDbConfigs.OBJECT_MAPPER.readValue("type: CassandraKeyValueServiceRuntimeConfig",
+                        CassandraKeyValueServiceRuntimeConfig.class);
+    }
 }

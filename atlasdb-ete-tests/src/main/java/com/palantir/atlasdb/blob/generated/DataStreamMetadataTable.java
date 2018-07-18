@@ -453,18 +453,6 @@ public final class DataStreamMetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putMetadataUnlessExists(DataStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
-        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
-    }
-
-    public void putMetadataUnlessExists(Map<DataStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
-        Map<DataStreamMetadataRow, DataStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<DataStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
-            toPut.put(e.getKey(), Metadata.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<DataStreamMetadataRow, ? extends DataStreamMetadataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -472,20 +460,6 @@ public final class DataStreamMetadataTable implements
         for (DataStreamMetadataTrigger trigger : triggers) {
             trigger.putDataStreamMetadata(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<DataStreamMetadataRow, ? extends DataStreamMetadataNamedColumnValue<?>> rows) {
-        Multimap<DataStreamMetadataRow, DataStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<DataStreamMetadataRow, DataStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<DataStreamMetadataRow, ? extends DataStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteMetadata(DataStreamMetadataRow row) {
@@ -721,5 +695,5 @@ public final class DataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "uLIsDYFW39YaApnj0nLGZw==";
+    static String __CLASS_HASH = "R8htd1SMhNPTnF3yuJ+Htg==";
 }

@@ -118,13 +118,13 @@ class CassandraRequestExceptionHandler {
     private <K extends Exception> void logNumberOfAttempts(Exception ex, int numberOfAttempts) throws K {
         // Only log the actual exception the first time
         if (numberOfAttempts > 1) {
-            log.info("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
+            log.debug("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
                     SafeArg.of("numTries", numberOfAttempts),
                     SafeArg.of("maxTotalTries", maxTriesTotal.get()),
                     SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                     UnsafeArg.of("exceptionMessage", ex.getMessage()));
         } else {
-            log.info("Error occurred talking to cassandra. Attempt {} of {}.",
+            log.debug("Error occurred talking to cassandra. Attempt {} of {}.",
                     SafeArg.of("numTries", numberOfAttempts),
                     SafeArg.of("maxTotalTries", maxTriesTotal.get()),
                     ex);
@@ -270,6 +270,9 @@ class CassandraRequestExceptionHandler {
     private static class Conservative implements RequestExceptionHandlerStrategy {
         private static final RequestExceptionHandlerStrategy INSTANCE = new Conservative();
         private static final long MAX_BACKOFF = Duration.ofSeconds(30).toMillis();
+        private static final double UNCERTAINTY = 0.5;
+
+        private static final long MAX_EXPECTED_BACKOFF = (long) (MAX_BACKOFF / (UNCERTAINTY + 1));
 
         @Override
         public boolean shouldBackoff(Exception ex) {
@@ -278,7 +281,8 @@ class CassandraRequestExceptionHandler {
 
         @Override
         public long getBackoffPeriod(int numberOfAttempts) {
-            return Math.min(500 * (long) Math.pow(2, numberOfAttempts), MAX_BACKOFF);
+            double randomCoeff = ThreadLocalRandom.current().nextDouble(1 - UNCERTAINTY, 1 + UNCERTAINTY);
+            return (long) (Math.min(500 * Math.pow(2, numberOfAttempts), MAX_EXPECTED_BACKOFF) * randomCoeff);
         }
 
         @Override

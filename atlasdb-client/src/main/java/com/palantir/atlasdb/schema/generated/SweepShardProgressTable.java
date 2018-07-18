@@ -464,7 +464,6 @@ public final class SweepShardProgressTable implements
 
     /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
-    @Override
     public void putUnlessExists(Multimap<SweepShardProgressRow, ? extends SweepShardProgressNamedColumnValue<?>> rows) {
         Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
         Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> toPut = HashMultimap.create();

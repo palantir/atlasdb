@@ -247,7 +247,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                 }
             } catch (Throwable t) {
                 if (!Thread.interrupted()) {
-                    log.error("Error occurred while flushing sweep stats: {}", t, t);
+                    log.warn("Error occurred while flushing sweep stats: {}", t, t);
                 }
             }
         };
@@ -307,7 +307,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                 // ignore problems when sweep or transaction tables don't exist
                 log.warn("Ignoring failed sweep stats flush due to ", e);
             }
-            log.error("Unable to flush sweep stats for writes {} and clears {}: ",
+            log.warn("Unable to flush sweep stats for writes {} and clears {}: ",
                     writes, clears, e);
             throw e;
         }

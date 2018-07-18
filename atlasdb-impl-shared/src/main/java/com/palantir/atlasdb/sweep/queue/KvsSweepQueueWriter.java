@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -52,16 +53,34 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
 
     @Override
     public void enqueue(List<WriteInfo> allWrites) {
+        Map<Cell, byte[]> referencesToDedicatedCells = new HashMap<>();
         Map<Cell, byte[]> cellsToWrite = new HashMap<>();
         Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(allWrites);
-        partitionedWrites.forEach((partitionInfo, writes) -> cellsToWrite.putAll(populateCells(partitionInfo, writes)));
-        if (!cellsToWrite.isEmpty()) {
-            kvs.put(tableRef, cellsToWrite, SweepQueueUtils.WRITE_TS);
-        }
+
+        partitionedWrites.forEach((partitionInfo, writes) -> {
+            referencesToDedicatedCells.putAll(populateReferences(partitionInfo, writes));
+            cellsToWrite.putAll(populateCells(partitionInfo, writes));
+        });
+
+        partitionedWrites.keySet().stream()
+                .map(PartitionInfo::timestamp)
+                .mapToLong(x -> x)
+                .max()
+                .ifPresent(timestamp -> {
+                    write(referencesToDedicatedCells, timestamp);
+                    write(cellsToWrite, timestamp);
+                });
+
         maybeMetrics.ifPresent(metrics ->
                 partitionedWrites.forEach((info, writes) ->
                         metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size())));
     }
+
+    /**
+     * Returns a map representing all the map entries that act as references to entries returned by
+     * {@link #populateCells(PartitionInfo, List)}. Necessary to allow batched writes.
+     */
+    abstract Map<Cell, byte[]> populateReferences(PartitionInfo partitionInfo, List<WriteInfo> writes);
 
     /**
      * Converts a list of write infos into the required format to be persisted into the kvs. This method assumes all
@@ -74,6 +93,12 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
      * @return map of cell to byte array persisting the write infomations into the kvs
      */
     abstract Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes);
+
+    private void write(Map<Cell, byte[]> cells, long timestamp) {
+        if (!cells.isEmpty()) {
+            kvs.multiPut(ImmutableMap.of(tableRef, cells), timestamp);
+        }
+    }
 
     RowColumnRangeIterator getRowsColumnRange(Iterable<byte[]> rows, ColumnRangeSelection columnRange, int batchSize) {
         return new LocalRowColumnRangeIterator(Streams.stream(rows)

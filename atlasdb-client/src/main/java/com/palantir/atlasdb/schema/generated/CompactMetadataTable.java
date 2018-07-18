@@ -415,18 +415,6 @@ public final class CompactMetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putLastCompactTimeUnlessExists(CompactMetadataRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, LastCompactTime.of(value)));
-    }
-
-    public void putLastCompactTimeUnlessExists(Map<CompactMetadataRow, Long> map) {
-        Map<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<CompactMetadataRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), LastCompactTime.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<CompactMetadataRow, ? extends CompactMetadataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -434,20 +422,6 @@ public final class CompactMetadataTable implements
         for (CompactMetadataTrigger trigger : triggers) {
             trigger.putCompactMetadata(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<CompactMetadataRow, ? extends CompactMetadataNamedColumnValue<?>> rows) {
-        Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<CompactMetadataRow, ? extends CompactMetadataNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteLastCompactTime(CompactMetadataRow row) {
@@ -683,5 +657,5 @@ public final class CompactMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "49LUGGRKSR/vJ9oAtYrAcA==";
+    static String __CLASS_HASH = "0WtSpbMMOvlM3AribPiPxQ==";
 }

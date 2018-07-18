@@ -34,8 +34,6 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -312,7 +310,8 @@ public class SerializableTransaction extends SnapshotTransaction {
     boolean isSerializableTable(TableReference table) {
         // If the metadata is null, we assume that the conflict handler is not SERIALIZABLE.
         // In that case the transaction will fail on commit if it has writes.
-        return conflictDetectionManager.get(table) == ConflictHandler.SERIALIZABLE;
+        ConflictHandler conflictHandler = conflictDetectionManager.get(table);
+        return conflictHandler.checkReadWriteConflicts();
     }
 
     /**
@@ -738,7 +737,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         // If we do not get back all these results we may be in the deadlock case so we should just
                         // fail out early.  It may be the case that abort more transactions than needed to break the
                         // deadlock cycle, but this should be pretty rare.
-                        getTransactionConflictsMeter().mark();
+                        transactionOutcomeMetrics.markReadWriteConflict(tableRef);
                         throw new TransactionSerializableConflictException("An uncommitted conflicting read was "
                                 + "written after our start timestamp for table " + tableRef + ".  "
                                 + "This case can cause deadlock and is very likely to be a read write conflict.");
@@ -758,14 +757,8 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void handleTransactionConflict(TableReference tableRef) {
-        getTransactionConflictsMeter().mark();
+        transactionOutcomeMetrics.markReadWriteConflict(tableRef);
         throw TransactionSerializableConflictException.create(tableRef, getTimestamp(),
                 System.currentTimeMillis() - timeCreated);
-    }
-
-    private Meter getTransactionConflictsMeter() {
-        // TODO(hsaraogi): add table names as a tag
-        return metricsManager.getRegistry().meter(
-                MetricRegistry.name(SerializableTransaction.class, "SerializableTransactionConflict"));
     }
 }

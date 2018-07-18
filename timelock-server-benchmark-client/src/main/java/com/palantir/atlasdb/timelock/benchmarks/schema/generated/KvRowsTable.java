@@ -8,9 +8,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -21,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -135,24 +136,24 @@ public final class KvRowsTable implements
     /**
      * <pre>
      * KvRowsRow {
-     *   {@literal Long firstComponentHash};
+     *   {@literal Long hashOfRowComponents};
      *   {@literal String bucket};
      *   {@literal Long key};
      * }
      * </pre>
      */
     public static final class KvRowsRow implements Persistable, Comparable<KvRowsRow> {
-        private final long firstComponentHash;
+        private final long hashOfRowComponents;
         private final String bucket;
         private final long key;
 
         public static KvRowsRow of(String bucket, long key) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_STRING.convertFromJava(bucket)).asLong();
-            return new KvRowsRow(firstComponentHash, bucket, key);
+            long hashOfRowComponents = computeHashFirstComponents(bucket);
+            return new KvRowsRow(hashOfRowComponents, bucket, key);
         }
 
-        private KvRowsRow(long firstComponentHash, String bucket, long key) {
-            this.firstComponentHash = firstComponentHash;
+        private KvRowsRow(long hashOfRowComponents, String bucket, long key) {
+            this.hashOfRowComponents = hashOfRowComponents;
             this.bucket = bucket;
             this.key = key;
         }
@@ -185,60 +186,65 @@ public final class KvRowsTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] bucketBytes = EncodingUtils.encodeVarString(bucket);
             byte[] keyBytes = PtBytes.toBytes(Long.MIN_VALUE ^ key);
-            return EncodingUtils.add(firstComponentHashBytes, bucketBytes, keyBytes);
+            return EncodingUtils.add(hashOfRowComponentsBytes, bucketBytes, keyBytes);
         }
 
         public static final Hydrator<KvRowsRow> BYTES_HYDRATOR = new Hydrator<KvRowsRow>() {
             @Override
             public KvRowsRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long firstComponentHash = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 String bucket = EncodingUtils.decodeVarString(__input, __index);
                 __index += EncodingUtils.sizeOfVarString(bucket);
                 Long key = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                return new KvRowsRow(firstComponentHash, bucket, key);
+                return new KvRowsRow(hashOfRowComponents, bucket, key);
             }
         };
 
-        public static RangeRequest.Builder createPrefixRangeUnsorted(String bucket) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_STRING.convertFromJava(bucket)).asLong();
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+        public static long computeHashFirstComponents(String bucket) {
             byte[] bucketBytes = EncodingUtils.encodeVarString(bucket);
-            return RangeRequest.builder().prefixRange(EncodingUtils.add(firstComponentHashBytes, bucketBytes));
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(bucketBytes)).asLong();
+        }
+
+        public static RangeRequest.Builder createPrefixRangeUnsorted(String bucket) {
+            long hashOfRowComponents = computeHashFirstComponents(bucket);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
+            byte[] bucketBytes = EncodingUtils.encodeVarString(bucket);
+            return RangeRequest.builder().prefixRange(EncodingUtils.add(hashOfRowComponentsBytes, bucketBytes));
         }
 
         public static Prefix prefixUnsorted(String bucket) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_STRING.convertFromJava(bucket)).asLong();
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+            long hashOfRowComponents = computeHashFirstComponents(bucket);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] bucketBytes = EncodingUtils.encodeVarString(bucket);
-            return new Prefix(EncodingUtils.add(firstComponentHashBytes, bucketBytes));
+            return new Prefix(EncodingUtils.add(hashOfRowComponentsBytes, bucketBytes));
         }
 
         public static RangeRequest.Builder createPrefixRange(String bucket, long key) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_STRING.convertFromJava(bucket)).asLong();
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+            long hashOfRowComponents = computeHashFirstComponents(bucket);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] bucketBytes = EncodingUtils.encodeVarString(bucket);
             byte[] keyBytes = PtBytes.toBytes(Long.MIN_VALUE ^ key);
-            return RangeRequest.builder().prefixRange(EncodingUtils.add(firstComponentHashBytes, bucketBytes, keyBytes));
+            return RangeRequest.builder().prefixRange(EncodingUtils.add(hashOfRowComponentsBytes, bucketBytes, keyBytes));
         }
 
         public static Prefix prefix(String bucket, long key) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_STRING.convertFromJava(bucket)).asLong();
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+            long hashOfRowComponents = computeHashFirstComponents(bucket);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] bucketBytes = EncodingUtils.encodeVarString(bucket);
             byte[] keyBytes = PtBytes.toBytes(Long.MIN_VALUE ^ key);
-            return new Prefix(EncodingUtils.add(firstComponentHashBytes, bucketBytes, keyBytes));
+            return new Prefix(EncodingUtils.add(hashOfRowComponentsBytes, bucketBytes, keyBytes));
         }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("firstComponentHash", firstComponentHash)
+                .add("hashOfRowComponents", hashOfRowComponents)
                 .add("bucket", bucket)
                 .add("key", key)
                 .toString();
@@ -256,19 +262,19 @@ public final class KvRowsTable implements
                 return false;
             }
             KvRowsRow other = (KvRowsRow) obj;
-            return Objects.equal(firstComponentHash, other.firstComponentHash) && Objects.equal(bucket, other.bucket) && Objects.equal(key, other.key);
+            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(bucket, other.bucket) && Objects.equals(key, other.key);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ firstComponentHash, bucket, key });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, bucket, key });
         }
 
         @Override
         public int compareTo(KvRowsRow o) {
             return ComparisonChain.start()
-                .compare(this.firstComponentHash, o.firstComponentHash)
+                .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.bucket, o.bucket)
                 .compare(this.key, o.key)
                 .result();
@@ -465,18 +471,6 @@ public final class KvRowsTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putDataUnlessExists(KvRowsRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Data.of(value)));
-    }
-
-    public void putDataUnlessExists(Map<KvRowsRow, byte[]> map) {
-        Map<KvRowsRow, KvRowsNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<KvRowsRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Data.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<KvRowsRow, ? extends KvRowsNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -484,20 +478,6 @@ public final class KvRowsTable implements
         for (KvRowsTrigger trigger : triggers) {
             trigger.putKvRows(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<KvRowsRow, ? extends KvRowsNamedColumnValue<?>> rows) {
-        Multimap<KvRowsRow, KvRowsNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<KvRowsRow, KvRowsNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<KvRowsRow, ? extends KvRowsNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteData(KvRowsRow row) {
@@ -658,6 +638,12 @@ public final class KvRowsTable implements
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KvRowsRowResult::of)));
     }
 
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   BiFunction<RangeRequest, BatchingVisitable<KvRowsRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges,
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KvRowsRowResult::of)));
+    }
+
     public Stream<BatchingVisitable<KvRowsRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
         Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, KvRowsRowResult::of));
@@ -700,11 +686,8 @@ public final class KvRowsTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -775,8 +758,9 @@ public final class KvRowsTable implements
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8IM1VFFyEfQZuXiplEiPdg==";
+    static String __CLASS_HASH = "m8yeo8CW8a+4SZzBshzfRA==";
 }

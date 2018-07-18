@@ -415,18 +415,6 @@ public final class KeyValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putStreamIdUnlessExists(KeyValueRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, StreamId.of(value)));
-    }
-
-    public void putStreamIdUnlessExists(Map<KeyValueRow, Long> map) {
-        Map<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<KeyValueRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), StreamId.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -434,20 +422,6 @@ public final class KeyValueTable implements
         for (KeyValueTrigger trigger : triggers) {
             trigger.putKeyValue(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteStreamId(KeyValueRow row) {
@@ -683,5 +657,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "q9oMibrXLUXP3R7y6PNrjA==";
+    static String __CLASS_HASH = "yq2eXKtO//M5nxFkoep7Tw==";
 }

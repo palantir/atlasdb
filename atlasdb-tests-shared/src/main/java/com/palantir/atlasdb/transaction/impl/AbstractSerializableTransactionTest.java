@@ -84,9 +84,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 sweepQueue);
-        sweepQueue.callbackInit(txManager);
+        sweepQueue.initialize(txManager);
         return txManager;
     }
 
@@ -169,7 +168,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
             t2.commit();
             fail();
         } catch (TransactionSerializableConflictException e) {
-            // this is expectecd to throw because it is a write skew
+            // this is expected to throw because it is a write skew
         }
     }
 

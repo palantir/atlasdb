@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -30,7 +28,6 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -41,63 +38,15 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
-/**
- * This {@link TransactionManager} will provide transactions that will read the most recently
- * committed values stored by a {@link SnapshotTransactionManager}. This does not provide snapshot
- * isolation but will always read the most recently committed value for any {@link Cell}.
- */
-public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
+public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
     private final MetricsManager metricsManager;
-    protected final KeyValueService keyValueService;
-    protected final TransactionService transactionService;
-    protected final AtlasDbConstraintCheckingMode constraintCheckingMode;
-    protected final Supplier<Long> startTimestamp;
-    protected final TransactionReadSentinelBehavior readSentinelBehavior;
-    protected final boolean allowHiddenTableAccess;
-    final ExecutorService getRangesExecutor;
-    final int defaultGetRangesConcurrency;
-
-    public ReadOnlyTransactionManager(MetricsManager metricsManager,
-            KeyValueService keyValueService,
-            TransactionService transactionService,
-            AtlasDbConstraintCheckingMode constraintCheckingMode,
-            int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency,
-            Supplier<Long> timestampCacheSize) {
-        this(
-                metricsManager,
-                keyValueService,
-                transactionService,
-                constraintCheckingMode,
-                Suppliers.ofInstance(Long.MAX_VALUE),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                false,
-                concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                timestampCacheSize);
-    }
-
-    public ReadOnlyTransactionManager(MetricsManager metricsManager,
-            KeyValueService keyValueService,
-            TransactionService transactionService,
-            AtlasDbConstraintCheckingMode constraintCheckingMode,
-            Supplier<Long> startTimestamp,
-            TransactionReadSentinelBehavior readSentinelBehavior,
-            int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency,
-            Supplier<Long> timestampCacheSize) {
-        this(
-                metricsManager,
-                keyValueService,
-                transactionService,
-                constraintCheckingMode,
-                startTimestamp,
-                readSentinelBehavior,
-                false,
-                concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                timestampCacheSize);
-    }
+    private final KeyValueService keyValueService;
+    private final TransactionService transactionService;
+    private final AtlasDbConstraintCheckingMode constraintCheckingMode;
+    private final Supplier<Long> startTimestamp;
+    private final TransactionReadSentinelBehavior readSentinelBehavior;
+    private final boolean allowHiddenTableAccess;
+    private final int defaultGetRangesConcurrency;
 
     public ReadOnlyTransactionManager(
             MetricsManager metricsManager,
@@ -107,10 +56,9 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
             Supplier<Long> startTimestamp,
             TransactionReadSentinelBehavior readSentinelBehavior,
             boolean allowHiddenTableAccess,
-            int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            Supplier<Long> timestampCacheSize) {
-        super(metricsManager, timestampCacheSize::get);
+            TimestampCache timestampCache) {
+        super(metricsManager, timestampCache);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.transactionService = transactionService;
@@ -118,7 +66,6 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
         this.startTimestamp = startTimestamp;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
     }
 
@@ -142,8 +89,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
+            LockAwareTransactionTask<T, E> task) {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
@@ -151,8 +97,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
+            LockAwareTransactionTask<T, E> task) {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
@@ -206,7 +151,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
 
     @Override
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
-            TransactionTask<T, E> task) throws E, TransactionFailedRetriableException {
+            TransactionTask<T, E> task) throws TransactionFailedRetriableException {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 
@@ -254,7 +199,7 @@ public class ReadOnlyTransactionManager extends AbstractLockAwareTransactionMana
                 readSentinelBehavior,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                getRangesExecutor,
+                MoreExecutors.newDirectExecutorService(),
                 defaultGetRangesConcurrency);
         return runTaskThrowOnConflict((transaction) -> task.execute(transaction, condition),
                 new ReadTransaction(txn, txn.sweepStrategyManager));

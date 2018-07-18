@@ -30,6 +30,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -50,9 +51,9 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -95,10 +96,10 @@ import com.palantir.timestamp.TimestampService;
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            Supplier<Long> timestampCacheSize,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor) {
-        super(metricsManager, timestampCacheSize);
+        super(metricsManager, timestampCache);
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -142,19 +143,21 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
-                LockImmutableTimestampRequest.create());
+        StartAtlasDbTransactionResponse transactionResponse = timelockService.startAtlasDbTransaction(
+                IdentifiedTimeLockRequest.create());
         try {
-            LockToken immutableTsLock = immutableTsResponse.getLock();
-            long immutableTs = immutableTsResponse.getImmutableTimestamp();
+            LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
+            long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
             recordImmutableTimestamp(immutableTs);
-            Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
+
+            cleaner.punch(transactionResponse.freshTimestamp());
+            Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(transactionResponse.freshTimestamp());
 
             SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
                     immutableTsLock, condition);
             return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
         } catch (Throwable e) {
-            timelockService.tryUnlock(ImmutableSet.of(immutableTsResponse.getLock()));
+            timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }

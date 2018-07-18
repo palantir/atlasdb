@@ -20,6 +20,7 @@ import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -27,11 +28,12 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -48,7 +50,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     public static TimeLockClient createDefault(TimelockService timelockService) {
         ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
         LockRefresher lockRefresher = new LockRefresher(refreshExecutor, timelockService, REFRESH_INTERVAL_MILLIS);
-        ScheduledExecutorService asyncUnlockExecutor = createSingleThreadScheduledExecutor("async-unlock");
+        ExecutorService asyncUnlockExecutor = createSingleThreadScheduledExecutor("async-unlock");
         AsyncTimeLockUnlocker asyncUnlocker = new AsyncTimeLockUnlocker(timelockService, asyncUnlockExecutor);
         return new TimeLockClient(timelockService, lockRefresher, asyncUnlocker);
     }
@@ -76,9 +78,16 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
+    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
         LockImmutableTimestampResponse response = executeOnTimeLock(() -> delegate.lockImmutableTimestamp(request));
         lockRefresher.registerLock(response.getLock());
+        return response;
+    }
+
+    @Override
+    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
+        StartAtlasDbTransactionResponse response = executeOnTimeLock(() -> delegate.startAtlasDbTransaction(request));
+        lockRefresher.registerLock(response.immutableTimestamp().getLock());
         return response;
     }
 

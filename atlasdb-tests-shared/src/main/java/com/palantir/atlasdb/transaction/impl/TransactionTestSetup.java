@@ -20,10 +20,13 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -39,13 +42,16 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
@@ -58,6 +64,7 @@ public abstract class TransactionTestSetup {
 
     protected LockClient lockClient;
     protected LockServiceImpl lockService;
+    protected TimelockService timelockService;
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService keyValueService;
@@ -66,6 +73,12 @@ public abstract class TransactionTestSetup {
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
+
+    protected TransactionOutcomeMetrics transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
+
+    protected final TimestampCache timestampCache = new TimestampCache(
+            new MetricRegistry(),
+            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
     @Before
     public void setUp() throws Exception {
@@ -101,7 +114,9 @@ public abstract class TransactionTestSetup {
                 TransactionConstants.TRANSACTION_TABLE,
                 TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
         keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
+
         timestampService = new InMemoryTimestampService();
+        timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
 
         transactionService = TransactionServices.createTransactionService(keyValueService);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
