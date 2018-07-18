@@ -68,6 +68,7 @@ import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.factory.timelock.ImmutableTimestampBridgingTimeLockService;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
@@ -655,7 +656,16 @@ public abstract class TransactionManagers {
         return withRequestBatchingTimestampService(
                 metricsManager,
                 () -> runtimeConfigSupplier.get().timestampClient(),
-                withRefreshingLockService(lockAndTimestampServices));
+                withRefreshingLockService(
+                        withBridgingTimelockService(lockAndTimestampServices)));
+    }
+
+    private static LockAndTimestampServices withBridgingTimelockService(
+            LockAndTimestampServices lockAndTimestampServices) {
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .timelock(ImmutableTimestampBridgingTimeLockService.create(lockAndTimestampServices.timelock()))
+                .build();
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
@@ -690,8 +700,7 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    @VisibleForTesting
-    static LockAndTimestampServices createRawInstrumentedServices(
+    private static LockAndTimestampServices createRawInstrumentedServices(
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,

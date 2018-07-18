@@ -16,24 +16,22 @@
 
 package com.palantir.lock.v2;
 
+import java.util.UUID;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLockImmutableTimestampResponse.class)
-@JsonDeserialize(as = ImmutableLockImmutableTimestampResponse.class)
-public interface LockImmutableTimestampResponse {
+@JsonSerialize(as = ImmutableIdentifiedTimeLockRequest.class)
+@JsonDeserialize(as = ImmutableIdentifiedTimeLockRequest.class)
+public interface IdentifiedTimeLockRequest {
 
     @Value.Parameter
-    long getImmutableTimestamp();
+    UUID getRequestId();
 
-    @Value.Parameter
-    LockToken getLock();
-
-    static LockImmutableTimestampResponse of(long timestamp, LockToken lock) {
-        return ImmutableLockImmutableTimestampResponse.of(timestamp, lock);
+    static IdentifiedTimeLockRequest create() {
+        return ImmutableIdentifiedTimeLockRequest.of(UUID.randomUUID());
     }
-
 }

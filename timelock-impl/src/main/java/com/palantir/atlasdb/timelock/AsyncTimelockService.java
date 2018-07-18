@@ -21,7 +21,7 @@ import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
@@ -41,6 +41,6 @@ public interface AsyncTimelockService extends ManagedTimestampService, Closeable
 
     long getImmutableTimestamp();
 
-    LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request);
+    LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
 }

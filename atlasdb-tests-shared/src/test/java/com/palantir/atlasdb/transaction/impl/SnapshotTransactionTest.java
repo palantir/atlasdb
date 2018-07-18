@@ -134,7 +134,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
@@ -1026,7 +1026,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 unused -> doReturn(ImmutableSet.of()).when(timelockService).refreshLockLeases(any());
 
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(LockImmutableTimestampRequest.create());
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long transactionTs = timelockService.getFreshTimestamp();
         SnapshotTransaction snapshot = new SnapshotTransaction(
                 metricsManager,
@@ -1073,7 +1073,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(LockImmutableTimestampRequest.create());
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long transactionTs = timelockService.getFreshTimestamp();
         SnapshotTransaction snapshot = new SnapshotTransaction(
                 metricsManager,
@@ -1118,7 +1118,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = new LegacyTimelockService(timestampServiceSpy, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(LockImmutableTimestampRequest.create());
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         SnapshotTransaction snapshot = new SnapshotTransaction(
                 metricsManager,
                 keyValueService,
