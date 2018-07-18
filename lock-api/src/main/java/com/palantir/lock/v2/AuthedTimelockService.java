@@ -64,7 +64,13 @@ public interface AuthedTimelockService {
     @POST
     @Path("lock-immutable-timestamp")
     LockImmutableTimestampResponse lockImmutableTimestamp(@HeaderParam(HttpHeaders.AUTHORIZATION) AuthHeader authHeader,
-            LockImmutableTimestampRequest request);
+            IdentifiedTimeLockRequest request);
+
+    @POST
+    @Path("start-atlasdb-transaction")
+    StartAtlasDbTransactionResponse startAtlasDbTransaction(
+            @HeaderParam(HttpHeaders.AUTHORIZATION) AuthHeader authHeader,
+            IdentifiedTimeLockRequest request);
 
     @POST
     @Path("immutable-timestamp")

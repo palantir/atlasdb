@@ -760,8 +760,8 @@ public abstract class TransactionManagers {
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
         LockService authDecoratedLockService = createAuthLockService(metricsManager, serverListConfigSupplier,
                 authHeaderSupplier, userAgent);
-        TimelockService authDecoratedTimelockService = createAuthedTimelockService(metricsManager, serverListConfigSupplier,
-                authHeaderSupplier, userAgent);
+        TimelockService authDecoratedTimelockService = createAuthedTimelockService(metricsManager,
+                serverListConfigSupplier, authHeaderSupplier, userAgent);
         return ImmutableLockAndTimestampServices.copyOf(
                 getLockAndTimestampServices(authDecoratedLockService, authDecoratedTimelockService))
                 .withMigrator(migrator);

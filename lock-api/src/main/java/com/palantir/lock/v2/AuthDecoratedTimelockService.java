@@ -43,8 +43,13 @@ public class AuthDecoratedTimelockService implements TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
+    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
         return authedTimelockService.lockImmutableTimestamp(authHeaderSupplier.get(), request);
+    }
+
+    @Override
+    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
+        return authedTimelockService.startAtlasDbTransaction(authHeaderSupplier.get(), request);
     }
 
     @Override
