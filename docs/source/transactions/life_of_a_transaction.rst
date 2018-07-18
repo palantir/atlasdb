@@ -49,41 +49,48 @@ Committing a write transaction is a multi-stage process:
 
 1. Check constraints if applicable.
 2. Lock rows or cells (depending on the table conflict handler) for a given table.
-3. Persist information about writes to the targeted sweep queue.
-4. Persist key-value pairs that were written to the database.
-5. Get the commit timestamp.
-6. For serializable transactions, check that the state of the world at commit time is same as that at start time.
+3. Check for write/write conflicts.
+4. Persist information about writes to the targeted sweep queue.
+5. Persist key-value pairs that were written to the database.
+6. Get the commit timestamp.
+7. For serializable transactions, check that the state of the world at commit time is same as that at start time.
    This involves re-executing the relevant read queries we made and checking that we read the same *values*
    (note that ABA situations where the state of the world changed and changed back are permitted).
-7. Verify that locks are still valid.
-8. Verify user-specified pre-commit conditions (if applicable).
-9. Atomically putUnlessExists into the transactions table.
+8. Verify that locks are still valid.
+9. Verify user-specified pre-commit conditions (if applicable).
+10. Atomically putUnlessExists into the transactions table.
 
-After step 9 successfully executes, the transaction is considered committed.
+After we have successfully written to the transactions table, the transaction is considered committed.
 
 The ordering of these steps is important:
 
-1. Checking TODO TODO
-2. If writes are made to the targeted sweep queue before we take out locks, TODO TODO
-3. If we write to the database before writing to the targeted sweep queue, we may write values to the database and
+1. Checking constraints must be done before committing. These constraints do not depend on the rows being locked,
+   so we should do this before acquiring locks (generally we want to minimise critical sections).
+2. If we check for conflicts before acquiring locks, it is possible that another transaction may write to a value
+   we've written to underneath us. This should cause a write-write conflict, but we will miss it. Taking locks first
+   means that this is only possible if we've lost our locks before the check - but if that is the case then we will
+   not commit as we will fail when we check our locks (step 8).
+3. Checking for write/write conflicts must be done before checking locks are still valid (step 8), as we could
+   otherwise lose the lock and have a thorough sweep clear out all evidence of spanning/dominating writes.
+   It may be possible to postpone this, though we would be doing unnecessary work.
+4. If we write to the database before writing to the targeted sweep queue, we may write values to the database and
    then crash. We then have no knowledge of these uncommitted values, meaning that we'll permanently have cruft
    lying around. It's possible that Background Sweep can be used to clear any such values, but that may take a very
    long time.
-4. If we get the commit timestamp before we write key-value pairs to the database, another transaction could start
+5. If we get the commit timestamp before we write key-value pairs to the database, another transaction could start
    after we commit, and may read cells that we have written to. Our own writes may not have been made, but the
    other transaction must see them.
-5. The serializable commit check requires us to know the commit timestamp.
-6. For conservatively swept tables, the ordering of this step and step 7 is not critical (consider that our check
-   must not pass when it should fail, and once we read a value at the commit timestamp we will always read the same
-   value).
+6. The serializable commit check requires us to know the commit timestamp.
+7. For conservatively swept tables, the ordering of this step and checking locks is not critical (consider that our
+   check must not pass when it should fail, and once we read a value at the commit timestamp we will always read the
+   same value).
    For thorough swept tables, there is an edge case. Suppose we read no data for some key, but someone wrote to it
    in between our start and commit, and someone else deleted the value after our commit. If we pass our lock check, but
    then lose our locks and have a very long GC, Thorough Sweep might clear all evidence of the conflict, meaning that
-   we miss a read-write conflict.
-   (This would be safe for conservative sweep because of the deletion sentinel.)
-7. This step may be run in parallel with step 8, though it must strictly be run before step 9 as we cannot
-   finish our commit if we can't be certain we still have locks.
-8. We need to check that the pre-commit conditions still hold before we can finish committing.
+   we miss a read-write conflict. (This would be safe for conservative sweep because of the deletion sentinel.)
+8. This step may be run in parallel with pre-commit condition checks, though it must strictly be run before writing
+   to the transactions table, as we cannot finish our commit if we can't be certain we still have locks.
+9. We need to check that the pre-commit conditions still hold before we can finish committing.
 
 Cleanup
 =======
