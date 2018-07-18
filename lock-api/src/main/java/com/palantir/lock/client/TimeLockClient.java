@@ -52,7 +52,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
         return new TimeLockClient(timelockService, createLockRefresher(timelockService), asyncUnlocker);
     }
 
-    public static TimeLockClient createWithSynchronousUnlocker(TimelockService timelockService) {
+    public static TimeLockClient withSynchronousUnlocker(TimelockService timelockService) {
         return new TimeLockClient(timelockService, createLockRefresher(timelockService), timelockService::unlock);
     }
 

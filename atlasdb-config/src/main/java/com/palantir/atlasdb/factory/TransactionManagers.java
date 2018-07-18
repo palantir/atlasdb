@@ -636,7 +636,7 @@ public abstract class TransactionManagers {
                         time,
                         invalidator,
                         userAgent);
-        TimeLockClient timeLockClient = TimeLockClient.createWithSynchronousUnlocker(lockAndTimestampServices.timelock());
+        TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .timelock(timeLockClient)
