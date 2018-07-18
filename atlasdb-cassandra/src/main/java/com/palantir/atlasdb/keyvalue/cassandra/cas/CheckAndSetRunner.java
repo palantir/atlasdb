@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.cas;
 
-import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
-import org.immutables.value.Value;
 
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -38,7 +36,7 @@ public class CheckAndSetRunner {
         this.queryRunner = queryRunner;
     }
 
-    public CASResult executeCheckAndSet(CassandraClient client, CheckAndSetRequest request) throws TException {
+    public CheckAndSetResult executeCheckAndSet(CassandraClient client, CheckAndSetRequest request) throws TException {
         try {
             TableReference table = request.table();
             CqlResult result = queryRunner.run(
@@ -48,18 +46,10 @@ public class CheckAndSetRunner {
                             CheckAndSetQueries.getQueryForRequest(request),
                             Compression.NONE,
                             writeConsistency));
-            System.out.println(result);
-
-            // return some transformation of the result
-            return new CASResult(true);
+            return CheckAndSetResponseDecoder.decodeCqlResult(result);
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
                     "Check-and-set requires " + writeConsistency + " Cassandra nodes to be up and available.", e);
         }
-    }
-
-    @Value.Immutable
-    public interface CheckAndSetResult {
-        boolean successful();
     }
 }

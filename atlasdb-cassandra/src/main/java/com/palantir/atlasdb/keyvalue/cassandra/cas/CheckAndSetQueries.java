@@ -30,7 +30,7 @@ class CheckAndSetQueries {
         // Static Factory
     }
 
-    public static CqlQuery getQueryForRequest(CheckAndSetRequest request) {
+    static CqlQuery getQueryForRequest(CheckAndSetRequest request) {
         return request.oldValue().map(unused -> updateIfMatching(request)).orElseGet(() -> insertIfNotExists(request));
     }
 
