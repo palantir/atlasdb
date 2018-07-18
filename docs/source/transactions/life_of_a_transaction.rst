@@ -4,11 +4,11 @@
 Life of a Transaction
 =====================
 
-This document seeks to outline the efficiency of our implementation of the AtlasDB protocol for write transactions.
+This document seeks to outline the efficiency of our implementation of the AtlasDB protocol.
 We do this by establishing a strict ordering on the steps of the protocol.
 
-Stages of a Transaction
------------------------
+Stages of a Write Transaction
+-----------------------------
 
 A user can run a ``TransactionTask`` through a ``TransactionManager``. Running the user's task in a transaction can be
 seen as a four step process.
@@ -102,22 +102,27 @@ after 2 minutes).
 We unlock these locks asynchronously, placing them on a queue and periodically clearing them out. See ADR 15 for a
 more detailed discussion.
 
+Read Transactions
+-----------------
+
+S
+
 Minimising TimeLock RPCs
 ------------------------
 
 Principles
 ==========
 
-1. RPCs are expensive, so we seek to minimise them.
+1. Synchronous RPCs are expensive, so we seek to minimise them.
 2. A sequence of exclusively TimeLock operations can be batched as a single call to TimeLock, even if there is an
    ordering constraint on these operations (because TimeLock can enforce them).
 3. Suppose E1, E2 and E3 are three events that must occur in that order. E1 and E3 are TimeLock calls; E2 is not.
    Then, E1 and E3 cannot be batched together.
 
-TimeLock Calls
-==============
+Write Transactions
+==================
 
-The transaction protocol requires several calls to timestamp and lock services:
+The write transaction protocol requires several calls to timestamp and lock services:
 
 1. Startup: 3 calls (get immutable timestamp, lock immutable timestamp, get start timestamp)
 2. User task: 0 calls by default, though user code can call for timestamps or locks directly
@@ -132,7 +137,32 @@ Our current implementation has:
 3. Commit: 3 calls (lock rows/cells, get commit timestamp, check locks)
 4. Cleanup: 0 synchronous calls; <=2 asynchronous calls
 
-Optimality
-==========
+Efficiency
+~~~~~~~~~~
 
-TODO
+We claim that for the current AtlasDB protocol, the remaining four synchronous RPCs must be separate.
+We show that each successive pair of timestamp calls has an event that must happen after the first call but before
+the second, thus splitting up the calls. Following principle 3, the calls must then be distinct.
+
+1. The startup call must run before the user task; this guarantees that sweep won't remove values that were read
+   before we commit or fail, and also gives us a start timestamp which the user is allowed to use in the task.
+   Locking rows or cells must take place after the task (otherwise we don't know which locks to acquire).
+2. Locking rows or cells must happen before writing to the database, which must happen before we get the commit
+   timestamp (see the Commit section above).
+3. Getting the commit timestamp must happen before the serializable commit check, which must happen before
+   we check our locks (see the Commit section above). Interestingly, for snapshot transactions it appears possible to
+   merge these last two calls (since the serializable check is a no-op).
+
+Also, these four calls have to be synchronous. In current AtlasDB usage, running a transaction task is synchronous.
+The last timelock call (checking locks) must happen before putUnlessExists which marks the end of the task, so we need
+to wait for it. Each of the other TimeLock calls must happen before the last timelock call as well, so we also need to
+wait for them.
+
+There is scope for reducing the number of asynchronous calls. In particular, locks could be released immediately after
+verification. However, we have avoided this for now because there is a risk of livelock where transactions roll back
+one another after acquiring locks, preventing a successful commit.
+
+Read Transactions
+=================
+
+The read transaction protocol
