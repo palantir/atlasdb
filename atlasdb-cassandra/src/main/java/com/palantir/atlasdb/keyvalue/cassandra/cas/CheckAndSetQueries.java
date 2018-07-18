@@ -22,7 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 
-class CheckAndSetQueries {
+final class CheckAndSetQueries {
     private static final long CASSANDRA_TIMESTAMP = -1L;
     private static final String CASSANDRA_PREFIX = "0x";
 

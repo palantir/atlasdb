@@ -29,7 +29,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 
 import okio.ByteString;
 
-class CheckAndSetResponseDecoder {
+final class CheckAndSetResponseDecoder {
     private static final String APPLIED_COLUMN = "[applied]";
     private static final String VALUE_COLUMN = "value";
 
