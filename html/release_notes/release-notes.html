@@ -186,11 +186,17 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>TimeLock Server now exposes a <code class="docutils literal notranslate"><span class="pre">startAtlasDbTransaction</span></code> endpoint which locks an immutable timestamp and then gets a fresh timestamp (in a single round-trip call); new TimeLock clients call this endpoint.
+This saves an estimated one TimeLock round-trip of latency when starting a transaction.
+Note that the old endpoints are still exposed (so TimeLock remains compatible with older Atlas clients), and there is an automated adapter for new TimeLock clients to talk to old TimeLock servers that don’t have this endpoint.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3319">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>Reduced the logging level of various log messages.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3101">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>CassandraClientPoolingContainer metrics are tagged by pool name. Previosly pool name was embedded in metric name.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3375">Pull Request</a>)</td>
 </tr>
