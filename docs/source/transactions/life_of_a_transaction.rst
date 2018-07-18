@@ -92,20 +92,32 @@ The ordering of these steps is important:
    to the transactions table, as we cannot finish our commit if we can't be certain we still have locks.
 9. We need to check that the pre-commit conditions still hold before we can finish committing.
 
+Read-Only Variant
+^^^^^^^^^^^^^^^^^
+
+.. note::
+
+    This section looks at write transactions that perform only reads (as opposed to pure read transactions).
+    This is motivated by a shift towards thorough tables which can have better performance characteristics, especially
+    for workflows involving row or dynamic column range scans.
+
+Transactions that do not write have a much simpler commit stage:
+
+1. Verify user-specified pre-commit conditions (if applicable).
+2. Verify that the immutable timestamp lock is still held.
+
+Notice that these are analogous to the lock and pre-commit condition checks for transactions that write. They
+can be run in parallel (though we haven't implemented this as the expected gain is currently not large).
+
 Cleanup
 =======
 
-We need to unlock the commit locks token and immutable timestamp lock. This need not be strictly immediate, though
+We need to unlock row/cell locks and the immutable timestamp lock. This need not be strictly immediate, though
 should be fast. Also, note that if we fail to do this (e.g. our server crashes), the locks will time-out (by default
 after 2 minutes).
 
 We unlock these locks asynchronously, placing them on a queue and periodically clearing them out. See ADR 15 for a
 more detailed discussion.
-
-Read Transactions
------------------
-
-S
 
 Minimising TimeLock RPCs
 ------------------------
@@ -158,11 +170,10 @@ The last timelock call (checking locks) must happen before putUnlessExists which
 to wait for it. Each of the other TimeLock calls must happen before the last timelock call as well, so we also need to
 wait for them.
 
+Some tasks may be run with locks; in these cases, it may be possible to merge the AtlasDB transaction lock check and
+the user-defined lock check together, which could save one RPC for tasks run with locks (though this is not currently
+implemented).
+
 There is scope for reducing the number of asynchronous calls. In particular, locks could be released immediately after
 verification. However, we have avoided this for now because there is a risk of livelock where transactions roll back
 one another after acquiring locks, preventing a successful commit.
-
-Read Transactions
-=================
-
-The read transaction protocol
