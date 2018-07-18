@@ -28,7 +28,7 @@ import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.tokens.auth.BearerToken;
 
 public class AtlasDbRuntimeConfigDeserializationTest {
-    private static BearerToken AUTH_TOKEN = BearerToken.valueOf("fooBarBazAuthSecret");
+    private static final BearerToken AUTH_TOKEN = BearerToken.valueOf("fooBarBazAuthSecret");
 
     private static final File TEST_RUNTIME_CONFIG_FILE = new File(
             AtlasDbRuntimeConfigDeserializationTest.class.getResource("/runtime-config-block.yml").getPath());

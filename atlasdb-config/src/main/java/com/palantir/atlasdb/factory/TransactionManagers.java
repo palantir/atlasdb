@@ -126,7 +126,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-import com.palantir.lock.AuthDecoratingLockService;
+import com.palantir.lock.AuthDecoratedLockService;
 import com.palantir.lock.AuthedLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
@@ -745,15 +745,18 @@ public abstract class TransactionManagers {
             String userAgent) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
-
         Supplier<AuthHeader> authHeaderSupplier =
                 () -> AuthHeader.of(runtimeConfigSupplier.get().timelockRuntime().get().authToken());
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(metricsManager,
                         serverListConfigSupplier, authHeaderSupplier, invalidator, userAgent, config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
+        LockService authDecoratedLockService = createAuthLockService(metricsManager, serverListConfigSupplier,
+                authHeaderSupplier, userAgent);
+        TimelockService authDecoratedTimelockService = createAuthedTimelockService(metricsManager, serverListConfigSupplier,
+                authHeaderSupplier, userAgent);
         return ImmutableLockAndTimestampServices.copyOf(
-                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, authHeaderSupplier, userAgent))
+                getLockAndTimestampServices(authDecoratedLockService, authDecoratedTimelockService))
                 .withMigrator(migrator);
     }
 
@@ -770,27 +773,40 @@ public abstract class TransactionManagers {
                 resolvedClient);
     }
 
-    private static LockAndTimestampServices getLockAndTimestampServices(
+    private static LockService createAuthLockService(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> timelockServerListConfig,
             Supplier<AuthHeader> authHeaderSupplier,
             String userAgent) {
         AuthedLockService lockService = new ServiceCreator<>(metricsManager, AuthedLockService.class, userAgent)
                 .applyDynamic(timelockServerListConfig);
-        AuthDecoratingLockService authDecoratingLockService =
-                new AuthDecoratingLockService(lockService, authHeaderSupplier);
+        return ServiceCreator.createInstrumentedService(
+                metricsManager.getRegistry(),
+                new AuthDecoratedLockService(lockService, authHeaderSupplier),
+                LockService.class);
+    }
 
+    private static TimelockService createAuthedTimelockService(
+            MetricsManager metricsManager,
+            Supplier<ServerListConfig> timelockServerListConfig,
+            Supplier<AuthHeader> authHeaderSupplier,
+            String userAgent) {
         AuthedTimelockService timelockService =
                 new ServiceCreator<>(metricsManager, AuthedTimelockService.class, userAgent)
                         .applyDynamic(timelockServerListConfig);
-        AuthDecoratedTimelockService authDecoratedTimelockService =
-                new AuthDecoratedTimelockService(timelockService, authHeaderSupplier);
+        return ServiceCreator.createInstrumentedService(
+                metricsManager.getRegistry(),
+                new AuthDecoratedTimelockService(timelockService, authHeaderSupplier),
+                TimelockService.class);
+    }
 
-
+    private static LockAndTimestampServices getLockAndTimestampServices(
+            LockService lockService,
+            TimelockService timelockService) {
         return ImmutableLockAndTimestampServices.builder()
-                .lock(authDecoratingLockService)
-                .timestamp(new TimelockTimestampServiceAdapter(authDecoratedTimelockService))
-                .timelock(authDecoratedTimelockService)
+                .lock(lockService)
+                .timestamp(new TimelockTimestampServiceAdapter(timelockService))
+                .timelock(timelockService)
                 .build();
     }
 
