@@ -104,3 +104,35 @@ more detailed discussion.
 
 Minimising TimeLock RPCs
 ------------------------
+
+Principles
+==========
+
+1. RPCs are expensive, so we seek to minimise them.
+2. A sequence of exclusively TimeLock operations can be batched as a single call to TimeLock, even if there is an
+   ordering constraint on these operations (because TimeLock can enforce them).
+3. Suppose E1, E2 and E3 are three events that must occur in that order. E1 and E3 are TimeLock calls; E2 is not.
+   Then, E1 and E3 cannot be batched together.
+
+TimeLock Calls
+==============
+
+The transaction protocol requires several calls to timestamp and lock services:
+
+1. Startup: 3 calls (get immutable timestamp, lock immutable timestamp, get start timestamp)
+2. User task: 0 calls by default, though user code can call for timestamps or locks directly
+3. Commit: 3 calls (lock rows/cells, get commit timestamp, check locks)
+4. Cleanup: 2 calls (unlock rows, unlock immutable timestamp)
+
+However, some of these calls can be batched together, and others can be executed asynchronously.
+Our current implementation has:
+
+1. Startup: 1 call (startAtlasDbTransaction, which executes the three steps in order)
+2. User tasks: 0 calls
+3. Commit: 3 calls (lock rows/cells, get commit timestamp, check locks)
+4. Cleanup: 0 synchronous calls; <=2 asynchronous calls
+
+Optimality
+==========
+
+TODO
