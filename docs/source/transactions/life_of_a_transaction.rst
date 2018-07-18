@@ -93,7 +93,7 @@ The ordering of these steps is important:
 9. We need to check that the pre-commit conditions still hold before we can finish committing.
 
 Read-Only Variant
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 .. note::
 
@@ -150,7 +150,7 @@ Our current implementation has:
 4. Cleanup: 0 synchronous calls; <=2 asynchronous calls
 
 Efficiency
-~~~~~~~~~~
+==========
 
 We claim that for the current AtlasDB protocol, the remaining four synchronous RPCs must be separate.
 We show that each successive pair of timestamp calls has an event that must happen after the first call but before
