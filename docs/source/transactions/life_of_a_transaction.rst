@@ -95,5 +95,12 @@ The ordering of these steps is important:
 Cleanup
 =======
 
+We need to unlock the commit locks token and immutable timestamp lock. This need not be strictly immediate, though
+should be fast. Also, note that if we fail to do this (e.g. our server crashes), the locks will time-out (by default
+after 2 minutes).
+
+We unlock these locks asynchronously, placing them on a queue and periodically clearing them out. See ADR 15 for a
+more detailed discussion.
+
 Minimising TimeLock RPCs
 ------------------------
