@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map;
 
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -30,6 +31,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
 public class OneNodeDownPutTest {
@@ -74,6 +76,11 @@ public class OneNodeDownPutTest {
 
     @Test
     public void putUnlessExistsThrowsOnExists() {
+        LoggerFactory.getLogger(OneNodeDownPutTest.class).error(
+                "PUTUNLESSEXISTSTHROWSONEXISTS AAAAAA",
+                OneNodeDownTestSuite.kvs.getRange(OneNodeDownTestSuite.TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE));
+        System.out.println(OneNodeDownTestSuite.kvs.getRange(OneNodeDownTestSuite.TEST_TABLE, RangeRequest.all(),
+                Long.MAX_VALUE));
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_CONTENTS)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
