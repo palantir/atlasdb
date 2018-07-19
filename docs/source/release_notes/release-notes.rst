@@ -52,6 +52,7 @@ develop
 
     *    - |userbreak|
          - The ``timelock`` block from the install config has been removed. The block was deprecated in v0.67.0 (released on 15th of November 2017).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3394>`__)
 
     *    - |improved|
          - TimeLock Server now exposes a ``startAtlasDbTransaction`` endpoint which locks an immutable timestamp and then gets a fresh timestamp (in a single round-trip call); new TimeLock clients call this endpoint.
