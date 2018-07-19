@@ -52,7 +52,9 @@ public class ScrubberTest {
     @Before
     public void before() {
         kvs = new InMemoryKeyValueService(false, MoreExecutors.newDirectExecutorService());
-        kvs.createTable(TransactionConstants.TRANSACTION_TABLE, new byte[] {});
+        kvs.createTable(
+                TransactionConstants.TRANSACTION_TABLE_V2,
+                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
         transactions = TransactionServices.createTransactionService(kvs);
         scrubStore = KeyValueServiceScrubberStore.create(kvs);
         scrubber = getScrubber(kvs, scrubStore, transactions);
