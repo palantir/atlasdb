@@ -15,8 +15,6 @@
  */
 package com.palantir.cassandra.multinode;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
@@ -30,7 +28,6 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
@@ -81,14 +78,17 @@ public class OneNodeDownPutTest {
                 OneNodeDownTestSuite.kvs.getRange(OneNodeDownTestSuite.TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE));
         System.out.println(OneNodeDownTestSuite.kvs.getRange(OneNodeDownTestSuite.TEST_TABLE, RangeRequest.all(),
                 Long.MAX_VALUE));
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_CONTENTS)))
-                .isInstanceOf(KeyAlreadyExistsException.class);
-
-        Map<Cell, Value> result = OneNodeDownTestSuite.kvs.get(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, AtlasDbConstants.TRANSACTION_TS));
-        assertThat(Value.create(OneNodeDownTestSuite.DEFAULT_CONTENTS, AtlasDbConstants.TRANSACTION_TS))
-                .isNotEqualTo(result.get(OneNodeDownTestSuite.CELL_1_1));
+        throw new AssertionError("fail " + OneNodeDownTestSuite.kvs.getRange(OneNodeDownTestSuite.TEST_TABLE,
+                RangeRequest.all(),
+                Long.MAX_VALUE));
+//        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
+//                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_CONTENTS)))
+//                .isInstanceOf(KeyAlreadyExistsException.class);
+//
+//        Map<Cell, Value> result = OneNodeDownTestSuite.kvs.get(OneNodeDownTestSuite.TEST_TABLE,
+//                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, AtlasDbConstants.TRANSACTION_TS));
+//        assertThat(Value.create(OneNodeDownTestSuite.DEFAULT_CONTENTS, AtlasDbConstants.TRANSACTION_TS))
+//                .isNotEqualTo(result.get(OneNodeDownTestSuite.CELL_1_1));
     }
 
     @Test
