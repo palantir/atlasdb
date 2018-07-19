@@ -18,6 +18,7 @@ package com.palantir.cassandra.multinode;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -80,7 +81,7 @@ public class OneNodeDownPutTest {
                 Long.MAX_VALUE));
         throw new AssertionError("fail " + OneNodeDownTestSuite.kvs.getRange(OneNodeDownTestSuite.TEST_TABLE,
                 RangeRequest.all(),
-                Long.MAX_VALUE));
+                Long.MAX_VALUE).stream().collect(Collectors.toList()));
 //        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
 //                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_CONTENTS)))
 //                .isInstanceOf(KeyAlreadyExistsException.class);
