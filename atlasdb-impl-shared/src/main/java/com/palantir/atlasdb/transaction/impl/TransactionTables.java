@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public final class TransactionTables {
@@ -23,9 +24,11 @@ public final class TransactionTables {
     }
 
     public static void createTables(KeyValueService keyValueService) {
-        keyValueService.createTable(
+        keyValueService.createTables(ImmutableMap.of(
                 TransactionConstants.TRANSACTION_TABLE,
-                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
+                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes(),
+                TransactionConstants.TRANSACTION_TABLE_V2,
+                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
     }
 
     public static void deleteTables(KeyValueService keyValueService) {

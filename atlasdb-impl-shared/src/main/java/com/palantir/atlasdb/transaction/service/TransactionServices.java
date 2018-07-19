@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.service;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.service.v2.TicketingTransactionService;
 
 public final class TransactionServices {
     private TransactionServices() {
@@ -24,6 +25,9 @@ public final class TransactionServices {
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService) {
-        return new SimpleTransactionService(keyValueService);
+        return new DynamicSplittingTransactionService(
+                unused -> true,
+                new TicketingTransactionService(keyValueService),
+                new SimpleTransactionService(keyValueService));
     }
 }

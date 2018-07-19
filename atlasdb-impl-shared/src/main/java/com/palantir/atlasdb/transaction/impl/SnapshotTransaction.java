@@ -1770,7 +1770,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Set<LockDescriptor> result = Sets.newHashSet();
         Iterable<TableReference> allTables = IterableUtils.append(
                 writesByTable.keySet(),
-                TransactionConstants.TRANSACTION_TABLE);
+                TransactionConstants.TRANSACTION_TABLE); // ok, we need a lock
         for (TableReference tableRef : allTables) {
             if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
                 result.add(
