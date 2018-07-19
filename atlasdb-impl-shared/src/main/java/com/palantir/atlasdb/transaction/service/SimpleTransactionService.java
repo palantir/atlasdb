@@ -21,8 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public final class SimpleTransactionService extends AbstractKeyValueServiceBackedTransactionService {
-
-    protected SimpleTransactionService(KeyValueService keyValueService) {
+    public SimpleTransactionService(KeyValueService keyValueService) {
         super(keyValueService);
     }
 

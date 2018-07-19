@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.service.v2;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -44,7 +44,7 @@ public class TicketingTransactionService extends AbstractKeyValueServiceBackedTr
     public static final long PARTITIONING_QUANTUM = 400_000_000;
     public static final long ROWS_PER_QUANTUM = 256;
 
-    protected TicketingTransactionService(KeyValueService keyValueService) {
+    public TicketingTransactionService(KeyValueService keyValueService) {
         super(keyValueService);
     }
 
