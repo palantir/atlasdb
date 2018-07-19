@@ -37,3 +37,4 @@ atlasDbRuntime:
     serversList:
       servers:
         - 'http://timelock:8421'
+    auth-token: "fooBarBazAuthSecret"
