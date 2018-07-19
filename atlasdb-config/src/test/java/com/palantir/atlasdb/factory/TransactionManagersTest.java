@@ -464,13 +464,6 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void usesTimeLockIfInstallConfigIsTimeLockAndInitialRuntimeConfigDoesNotContainTimeLockBlock() {
-        setUpTimeLockBlockInInstallConfig();
-        setUpTimeLockBlockInRuntimeConfig();
-        verifyUsingTimeLockByGettingAFreshTimestamp();
-    }
-
-    @Test
     public void timelockServiceStatusReturnsHealthyWithoutRequest() {
         TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
         assertTrue(tm.getTimelockServiceStatus().isHealthy());
