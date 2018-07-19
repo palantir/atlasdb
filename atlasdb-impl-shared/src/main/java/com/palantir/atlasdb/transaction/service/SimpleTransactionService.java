@@ -21,15 +21,9 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public final class SimpleTransactionService extends AbstractKeyValueServiceBackedTransactionService {
-    private final KeyValueService keyValueService;
 
-    public SimpleTransactionService(KeyValueService keyValueService) {
-        this.keyValueService = keyValueService;
-    }
-
-    @Override
-    public KeyValueService getKeyValueService() {
-        return keyValueService;
+    protected SimpleTransactionService(KeyValueService keyValueService) {
+        super(keyValueService);
     }
 
     @Override
@@ -38,24 +32,26 @@ public final class SimpleTransactionService extends AbstractKeyValueServiceBacke
     }
 
     @Override
-    public Cell encodeTimestampAsCell(long startTimestamp) {
+    public Cell encodeStartTimestampAsCell(long startTimestamp) {
         return Cell.create(
                 TransactionConstants.getValueForTimestamp(startTimestamp),
                 TransactionConstants.COMMIT_TS_COLUMN);
     }
 
     @Override
-    public long decodeCellAsTimestamp(Cell cell) {
+    public long decodeCellAsStartTimestamp(Cell cell) {
         return TransactionConstants.getTimestampForValue(cell.getRowName());
     }
 
     @Override
-    public byte[] encodeTimestampAsValue(long commitTimestamp) {
+    public byte[] encodeCommitTimestampAsValue(long startTimestamp, long commitTimestamp) {
+        // startTimestamp is unused
         return TransactionConstants.getValueForTimestamp(commitTimestamp);
     }
 
     @Override
-    public long decodeValueAsTimestamp(byte[] value) {
+    public long decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+        // startTimestamp is unused
         return TransactionConstants.getTimestampForValue(value);
     }
 }

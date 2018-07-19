@@ -39,6 +39,8 @@ public class TransactionConstants {
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;
 
+    public static final TableReference TRANSACTION_TABLE_V2 = TableReference.createWithEmptyNamespace("_transactions2");
+
     public static final long WARN_LEVEL_FOR_QUEUED_BYTES = 10 * 1024 * 1024;
 
     public static final long APPROX_IN_MEM_CELL_OVERHEAD_BYTES = 16;

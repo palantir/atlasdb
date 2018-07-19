@@ -31,14 +31,20 @@ public abstract class AbstractKeyValueServiceBackedTransactionService implements
     // All entries in transaction table are stored with timestamp 0
     private static final long MAX_TIMESTAMP = 1L;
 
+    private final KeyValueService keyValueService;
+
+    protected AbstractKeyValueServiceBackedTransactionService(KeyValueService keyValueService) {
+        this.keyValueService = keyValueService;
+    }
+
     @Override
     public final Long get(long startTimestamp) {
-        Cell cell = encodeTimestampAsCell(startTimestamp);
-        Map<Cell, Value> returnMap = getKeyValueService().get(
+        Cell cell = encodeStartTimestampAsCell(startTimestamp);
+        Map<Cell, Value> returnMap = keyValueService.get(
                 getTableReference(),
                 ImmutableMap.of(cell, MAX_TIMESTAMP));
         if (returnMap.containsKey(cell)) {
-            return decodeValueAsTimestamp(returnMap.get(cell).getContents());
+            return decodeValueAsCommitTimestamp(startTimestamp, returnMap.get(cell).getContents());
         } else {
             return null;
         }
@@ -48,15 +54,15 @@ public abstract class AbstractKeyValueServiceBackedTransactionService implements
     public final Map<Long, Long> get(Iterable<Long> startTimestamps) {
         Map<Cell, Long> startTsMap = Maps.newHashMap();
         for (Long startTimestamp : startTimestamps) {
-            Cell cell = encodeTimestampAsCell(startTimestamp);
+            Cell cell = encodeStartTimestampAsCell(startTimestamp);
             startTsMap.put(cell, MAX_TIMESTAMP);
         }
 
-        Map<Cell, Value> rawResults = getKeyValueService().get(getTableReference(), startTsMap);
+        Map<Cell, Value> rawResults = keyValueService.get(getTableReference(), startTsMap);
         Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults.size());
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-            long startTs = decodeCellAsTimestamp(e.getKey());
-            long commitTs = decodeValueAsTimestamp(e.getValue().getContents());
+            long startTs = decodeCellAsStartTimestamp(e.getKey());
+            long commitTs = decodeValueAsCommitTimestamp(startTs, e.getValue().getContents());
             result.put(startTs, commitTs);
         }
         return result;
@@ -64,20 +70,18 @@ public abstract class AbstractKeyValueServiceBackedTransactionService implements
 
     @Override
     public final void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        Cell key = encodeTimestampAsCell(startTimestamp);
-        byte[] value = encodeTimestampAsValue(commitTimestamp);
-        getKeyValueService().putUnlessExists(getTableReference(), ImmutableMap.of(key, value));
+        Cell key = encodeStartTimestampAsCell(startTimestamp);
+        byte[] value = encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
+        keyValueService.putUnlessExists(getTableReference(), ImmutableMap.of(key, value));
     }
-
-    public abstract KeyValueService getKeyValueService();
 
     public abstract TableReference getTableReference();
 
-    public abstract Cell encodeTimestampAsCell(long startTimestamp);
+    public abstract Cell encodeStartTimestampAsCell(long startTimestamp);
 
-    public abstract long decodeCellAsTimestamp(Cell cell);
+    public abstract long decodeCellAsStartTimestamp(Cell cell);
 
-    public abstract byte[] encodeTimestampAsValue(long startTimestamp);
+    public abstract byte[] encodeCommitTimestampAsValue(long startTimestamp, long commitTimestamp);
 
-    public abstract long decodeValueAsTimestamp(byte[] value);
+    public abstract long decodeValueAsCommitTimestamp(long startTimestamp, byte[] value);
 }
