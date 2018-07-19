@@ -29,4 +29,8 @@ public abstract class TimeLockRuntimeConfig {
     public ServerListConfig serversList() {
         return ImmutableServerListConfig.builder().build();
     }
+
+    public ServerListConfig toNamespacedServerList(String client) {
+        return ServerListConfigs.namespaceUris(serversList(), client);
+    }
 }

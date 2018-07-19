@@ -20,13 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public class AtlasDbConfigDeserializationTest {
     private static final File TEST_CONFIG_FILE = new File(
@@ -39,10 +37,6 @@ public class AtlasDbConfigDeserializationTest {
         AtlasDbConfig config = AtlasDbConfigs.load(TEST_CONFIG_FILE, AtlasDbConfig.class);
         assertThat(config.namespace().get()).isEqualTo("brian");
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
-
-        assertThat(config.timelock().isPresent()).isTrue();
-        assertTimeLockConfigDeserializedCorrectly(config.timelock().get());
-
         assertThat(config.leader().isPresent()).isFalse();
         assertThat(config.enableSweep()).isTrue();
     }
@@ -52,26 +46,7 @@ public class AtlasDbConfigDeserializationTest {
         AtlasDbConfig config = AtlasDbConfigs.load(MINIMAL_TEST_CONFIG_FILE, AtlasDbConfig.class);
         assertThat(config.namespace().isPresent()).isFalse();
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
-
-        assertThat(config.timelock().isPresent()).isFalse();
         assertThat(config.leader().isPresent()).isFalse();
-
         assertThat(config.enableSweep()).isEqualTo(AtlasDbConstants.DEFAULT_ENABLE_SWEEP);
-    }
-
-    private void assertTimeLockConfigDeserializedCorrectly(TimeLockClientConfig timeLockClientConfig) {
-        assertThat(timeLockClientConfig.getClientOrThrow()).isEqualTo("brian");
-        assertThat(timeLockClientConfig.serversList().servers()).containsExactlyInAnyOrder(
-                "timelock1:8080", "timelock2:8080", "timelock3:8080");
-        assertThat(timeLockClientConfig.serversList().sslConfiguration().isPresent()).isTrue();
-
-        SslConfiguration sslConfiguration = timeLockClientConfig.serversList().sslConfiguration().get();
-        assertSslConfigDeserializedCorrectly(sslConfiguration);
-    }
-
-    private void assertSslConfigDeserializedCorrectly(SslConfiguration sslConfiguration) {
-        assertThat(sslConfiguration.keyStorePassword()).hasValue("1234567890");
-        assertThat(sslConfiguration.keyStorePath()).hasValue(Paths.get("var", "security", "keyStore.jks"));
-        assertThat(sslConfiguration.trustStorePath()).isEqualTo(Paths.get("var", "security", "trustStore.jks"));
     }
 }

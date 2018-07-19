@@ -45,8 +45,6 @@ public abstract class AtlasDbConfig {
 
     public abstract Optional<LeaderConfig> leader();
 
-    public abstract Optional<TimeLockClientConfig> timelock();
-
     public abstract Optional<ServerListConfig> lock();
 
     public abstract Optional<ServerListConfig> timestamp();
@@ -56,11 +54,10 @@ public abstract class AtlasDbConfig {
      * key value services. Currently, this only applies to external timelock services, and Cassandra KVS (where it is
      * used as the keyspace).
      *
-     * For backwards compatibility reasons, this is optional. If no namespace is specified:
-     *   - if using Cassandra, the keyspace must be explicitly specified.
-     *   - if using TimeLock, the client name must be explicitly specified.
+     * For backwards compatibility reasons, this is optional. If no namespace is specified, if using Cassandra,
+     * the keyspace must be explicitly specified.
      *
-     * If a namespace is specified and a Cassandra keyspace / TimeLock client name is also explicitly specified, then
+     * If a namespace is specified and a Cassandra keyspace is also explicitly specified, then
      * AtlasDB will fail to start if these are contradictory.
      */
     public abstract Optional<String> namespace();
@@ -272,24 +269,17 @@ public abstract class AtlasDbConfig {
 
     @Value.Check
     protected final void check() {
-        checkLeaderAndTimelockBlocks();
+        checkLeaderTimeAndLockBlocks();
         checkLockAndTimestampBlocks();
         checkNamespaceConfigAndGetNamespace();
     }
 
-    private void checkLeaderAndTimelockBlocks() {
+    private void checkLeaderTimeAndLockBlocks() {
         if (leader().isPresent()) {
             Preconditions.checkState(areTimeAndLockConfigsAbsent(),
                     "If the leader block is present, then the lock and timestamp server blocks must both be absent.");
-            Preconditions.checkState(!timelock().isPresent(),
-                    "If the leader block is present, then the timelock block must be absent.");
             Preconditions.checkState(!leader().get().leaders().isEmpty(),
                     "Leader config must have at least one server.");
-        }
-
-        if (timelock().isPresent()) {
-            Preconditions.checkState(areTimeAndLockConfigsAbsent(),
-                    "If the timelock block is present, then the lock and timestamp blocks must both be absent.");
         }
     }
 
@@ -313,45 +303,16 @@ public abstract class AtlasDbConfig {
                     Preconditions.checkState(kvsNamespace.equals(namespaceConfigValue),
                             "If present, keyspace/dbName/sid config should be the same as the"
                                     + " atlas root-level namespace config."));
-
-            timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
-                    Preconditions.checkState(client.equals(namespaceConfigValue),
-                            "If present, the TimeLock client config should be the same as the"
-                                    + " atlas root-level namespace config.")));
             return namespaceConfigValue;
         } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
             Preconditions.checkState(keyValueService().namespace().isPresent(),
                     "Either the atlas root-level namespace"
                             + " or the keyspace/dbName/sid config needs to be set.");
-
-            String keyValueServiceNamespace = keyValueService().namespace().get();
-
-            if (timelock().isPresent()) {
-                TimeLockClientConfig timeLockConfig = timelock().get();
-
-                Preconditions.checkState(timeLockConfig.client().isPresent(),
-                        "Either the atlas root-level namespace config or the TimeLock client config"
-                                + " should be present.");
-
-                // In this case, we need to change the TimeLock client name to be equal to the KVS namespace
-                // (C* keyspace / Postgres dbName / Oracle sid). But changing the name of the TimeLock client
-                // will return the timestamp bound store to 0, so we also need to fast forward the new client bound
-                // to a value above of the original bound.
-                Preconditions.checkState(timeLockConfig.client().equals(Optional.of(keyValueServiceNamespace)),
-                        "AtlasDB refused to start, in order to avoid potential data corruption."
-                                + " Please contact AtlasDB support to remediate this. Specific steps are required;"
-                                + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
-            }
-            return keyValueServiceNamespace;
+            return keyValueService().namespace().get();
         } else {
             Preconditions.checkState(keyValueService() instanceof InMemoryAtlasDbConfig,
                     "Expecting KeyvalueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
                     keyValueService().getClass());
-            if (timelock().isPresent()) {
-                return timelock().get().client()
-                        .orElseThrow(() ->
-                                new IllegalStateException("For InMemoryKVS, the TimeLock client should not be empty"));
-            }
             return UNSPECIFIED_NAMESPACE;
         }
     }
