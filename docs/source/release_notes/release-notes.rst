@@ -50,6 +50,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+=======
+v0.97.0
+=======
+
+20 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - TimeLock Server now exposes a ``startAtlasDbTransaction`` endpoint which locks an immutable timestamp and then gets a fresh timestamp (in a single round-trip call); new TimeLock clients call this endpoint.
            This saves an estimated one TimeLock round-trip of latency when starting a transaction.
