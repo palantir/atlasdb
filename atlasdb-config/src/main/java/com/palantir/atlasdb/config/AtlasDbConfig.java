@@ -175,6 +175,14 @@ public abstract class AtlasDbConfig {
     }
 
     /**
+     * Schema configuration for the transactions table.
+     */
+    @Value.Default
+    public TransactionSchemaConfig transactionSchemaConfig() {
+        return ImmutableTransactionSchemaConfig.builder().build();
+    }
+
+    /**
      * If true, a background thread will periodically delete cells that
      * have been overwritten or deleted. This differs from scrubbing
      * because it is an untargeted cleaning process that scans all data
