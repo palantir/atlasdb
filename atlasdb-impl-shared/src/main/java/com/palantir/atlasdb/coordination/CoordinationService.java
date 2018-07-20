@@ -16,10 +16,23 @@
 
 package com.palantir.atlasdb.coordination;
 
+/**
+ * Coordinates state concerning internal schema versions and metadata used by AtlasDB.
+ *
+ * Users are expected to provide state objects that are JSON-serializable.
+ */
 public interface CoordinationService {
-    <T> VersionedMetadata<T> get(String coordinationKey, Class<T> metadataType);
+    /**
+     * Retrieves the data currently associated with the provided coordinationKey.
+     *
+     * @param coordinationKey Key used for coordinating.
+     * @param metadataType Metadata type, required for deserialization.
+     * @param <T> Type of the object being serialized.
+     * @return data associated with the coordination key.
+     */
+    <T> T get(String coordinationKey, Class<T> metadataType);
 
-    <T> void putUnlessExists(String coordinationKey, VersionedMetadata<T> desiredValue);
+    <T> void putUnlessExists(String coordinationKey, T desiredValue);
 
-    <T> void checkAndSet(String coordinationKey, VersionedMetadata<T> oldValue, VersionedMetadata<T> newValue);
+    <T> void checkAndSet(String coordinationKey, T oldValue, T newValue);
 }

@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -37,7 +36,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 /**
- * Coordinates state concerning internal schema versions of AtlasDB.
+ * Coordinates state concerning internal schema versions and metadata used by AtlasDB.
  *
  * The table stores all of its data on the same row, to allow for atomic operations that mutate multiple values
  * simultaneously in Cassandra KVS. We do not anticipate this to be a problem as the amount of data to achieve
@@ -66,24 +65,23 @@ public class CoordinationServiceImpl implements CoordinationService {
     }
 
     @Override
-    public <T> VersionedMetadata<T> get(String coordinationKey, Class<T> metadataType) {
+    public <T> T get(String coordinationKey, Class<T> metadataType) {
         Cell cell = createCellFromCoordinationKey(coordinationKey);
         Map<Cell, Value> response = keyValueService.get(
                 AtlasDbConstants.COORDINATION_TABLE,
                 ImmutableMap.of(cell, Long.MAX_VALUE));
         byte[] metadata = response.get(cell).getContents();
 
-        JavaType versionedMetadataType = getVersionedMetadataType(metadataType);
         try {
-            return objectMapper.readValue(metadata, versionedMetadataType);
+            return objectMapper.readValue(metadata, metadataType);
         } catch (IOException e) {
-            log.warn("Could not deserialize versioned metadata: {}", SafeArg.of("metadataBytes", metadata));
+            log.warn("Could not deserialize metadata: {}", SafeArg.of("metadataBytes", metadata));
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public <T> void putUnlessExists(String coordinationKey, VersionedMetadata<T> desiredValue) {
+    public <T> void putUnlessExists(String coordinationKey, T desiredValue) {
         keyValueService.putUnlessExists(
                 AtlasDbConstants.COORDINATION_TABLE,
                 ImmutableMap.of(
@@ -92,7 +90,7 @@ public class CoordinationServiceImpl implements CoordinationService {
     }
 
     @Override
-    public <T> void checkAndSet(String coordinationKey, VersionedMetadata<T> oldValue, VersionedMetadata<T> newValue) {
+    public <T> void checkAndSet(String coordinationKey, T oldValue, T newValue) {
         keyValueService.checkAndSet(
                 CheckAndSetRequest.singleCell(
                         AtlasDbConstants.COORDINATION_TABLE,
@@ -105,16 +103,11 @@ public class CoordinationServiceImpl implements CoordinationService {
         return Cell.create(GLOBAL_ROW_NAME, PtBytes.toBytes(coordinationKey));
     }
 
-    private <T> JavaType getVersionedMetadataType(Class<T> metadataType) {
-        return objectMapper.getTypeFactory().constructParametrizedType(
-                VersionedMetadata.class, VersionedMetadata.class, metadataType);
-    }
-
-    private <T> byte[] serializeUnchecked(VersionedMetadata<T> versionedMetadata) {
+    private <T> byte[] serializeUnchecked(T data) {
         try {
-            objectMapper.writeValueAsBytes(versionedMetadata);
+            return objectMapper.writeValueAsBytes(data);
         } catch (JsonProcessingException e) {
-            log.warn("Could not serialize versioned metadata: {}", SafeArg.of("versionedMetadata", versionedMetadata));
+            log.warn("Could not serialize metadata: {}", SafeArg.of("data", data));
             throw new RuntimeException(e);
         }
     }
