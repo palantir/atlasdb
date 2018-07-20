@@ -69,7 +69,9 @@ def get_last_release_from_gradle():
   We parse the output of ./gradlew printLastVersion in order to get the current
   version of the repository, and then split off the commit hash. We are assuming
   that this file is two directories up from the codebase root, and the version
-  is the line after ':printVersion' in the stdout of the gradle command.
+  is the first expression matching the format of number.number.number[.-+alphanum]*
+  in the stdout of the gradle command. This is a superset of valid semver strings
+  but we do not always conform to semver, e.g., "0.94.0.dirty".
 
   Returns:
     A string representing full version.
@@ -77,14 +79,14 @@ def get_last_release_from_gradle():
   Raises:
     A variety of exceptions if either the parsing or command fails.
   """
-  import subprocess, os
+  import subprocess, os, re
   conf_py_directory = os.path.dirname(os.path.realpath(__file__))
   codebase_root = os.path.join(conf_py_directory, '..', '..')
   p = subprocess.Popen(['./gradlew', 'printLastVersion'],
                        cwd=codebase_root, stdout=subprocess.PIPE)
   stdout = p.communicate()[0]
-  lines = stdout.decode().split('\n')
-  return lines[lines.index(':printLastVersion') + 1]
+  matcher = re.search('\d+\.\d+\.\d+[\.\-\+\w]*', stdout)
+  return matcher.group(0)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
