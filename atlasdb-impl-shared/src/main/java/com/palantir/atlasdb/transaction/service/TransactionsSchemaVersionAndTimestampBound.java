@@ -24,13 +24,34 @@ import com.google.common.base.Preconditions;
 
 @Value.Immutable
 public interface TransactionsSchemaVersionAndTimestampBound {
+    /**
+     * Schema version of the transactions table that should be used.
+     *
+     * In schema version 1, users write to the _transactions table.
+     * In schema version 2, users split their writes between _transactions and _transactions2, depending on the value
+     * of the transactions2LowerBound.
+     */
     long transactionsSchemaVersion();
+
+    /**
+     * Validity is intended to be used as a construct in live migrations. Write transactions that start after the
+     * specified timestamp may not be committed without first refreshing the validity of this bound, if live migrations
+     * are being used.
+     *
+     * A value of -1 means that live migrations are not being used, and this value should be interpreted as correct.
+     * Implementations supporting live migrations will set a bounded validity before accepting the information here
+     * as correct.
+     */
+    @Value.Default
+    default long validity() {
+        return -1;
+    }
 
     /**
      * If the schema version is 2, then:
      *   - this bound must be present
-     *   - all transactions with start timestamps beneath this bound should be looked up in _transactions1
-     *   - all transactions with start timestamps above this bound should be looked up in _transactions2
+     *   - all transactions with start timestamps beneath this bound should be looked up in _transactions (1)
+     *   - all transactions with start timestamps at or above this bound should be looked up in _transactions2
      *
      * No guarantees on this bound are made if the schema version is not equal to 2.
      */
