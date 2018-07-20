@@ -20,10 +20,19 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 
+@JsonSerialize(as = ImmutableTransactionSchemaMetadata.class)
+@JsonDeserialize(as = ImmutableTransactionSchemaMetadata.class)
 @Value.Immutable
-public interface TransactionsSchemaVersionAndTimestampBound {
+public interface TransactionSchemaMetadata {
+    /**
+     * Coordination key to be used for the coordination service when persisting this object.
+     */
+    String TRANSACTION_SCHEMA_METADATA = "transactionSchemaMetadata";
+
     /**
      * Schema version of the transactions table that should be used.
      *
@@ -31,7 +40,7 @@ public interface TransactionsSchemaVersionAndTimestampBound {
      * In schema version 2, users split their writes between _transactions and _transactions2, depending on the value
      * of the transactions2LowerBound.
      */
-    long transactionsSchemaVersion();
+    long schemaVersion();
 
     /**
      * Validity is intended to be used as a construct in live migrations. Write transactions that start after the
@@ -59,7 +68,7 @@ public interface TransactionsSchemaVersionAndTimestampBound {
 
     @Value.Check
     default void checkBoundPresentIfRequired() {
-        Preconditions.checkState(transactionsSchemaVersion() != 2 || transactions2LowerBound().isPresent(),
+        Preconditions.checkState(schemaVersion() != 2 || transactions2LowerBound().isPresent(),
                 "If the schema version is at least 2, the transactions2 lower bound must be present.");
     }
 }

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.coordination;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,32 +47,66 @@ import com.palantir.remoting3.ext.jackson.ObjectMappers;
  * performing a simultaneous atomic update on these, it can be supported by all underlying KVS implementations we are
  * aware of.
  */
-public class CoordinationServiceImpl implements CoordinationService {
+public class CoordinationServiceImpl<T> implements CoordinationService<T> {
     private static final Logger log = LoggerFactory.getLogger(CoordinationServiceImpl.class);
 
     private static final byte[] GLOBAL_ROW_NAME = PtBytes.toBytes("r");
 
     private final KeyValueService keyValueService;
     private final ObjectMapper objectMapper = ObjectMappers.newServerObjectMapper();
+    private final Cell synchronizationCell;
+    private final Class<T> metadataType;
 
-    private CoordinationServiceImpl(KeyValueService keyValueService) {
+    private CoordinationServiceImpl(KeyValueService keyValueService, Cell synchronizationCell, Class<T> metadataType) {
         this.keyValueService = keyValueService;
+        this.synchronizationCell = synchronizationCell;
+        this.metadataType = metadataType;
     }
 
-    public CoordinationService create(KeyValueService keyValueService) {
+    public static <T> CoordinationService<T> create(
+            KeyValueService keyValueService,
+            String coordinationKey,
+            Class<T> metadataType) {
         Preconditions.checkState(keyValueService.supportsCheckAndSet(),
                 "Coordination service can only be set up on a KVS supporting check and set.");
-        return new CoordinationServiceImpl(keyValueService);
+        return new CoordinationServiceImpl<>(
+                keyValueService,
+                createCellFromCoordinationKey(coordinationKey),
+                metadataType);
     }
 
     @Override
-    public <T> T get(String coordinationKey, Class<T> metadataType) {
-        Cell cell = createCellFromCoordinationKey(coordinationKey);
+    public Optional<T> get() {
         Map<Cell, Value> response = keyValueService.get(
                 AtlasDbConstants.COORDINATION_TABLE,
-                ImmutableMap.of(cell, Long.MAX_VALUE));
-        byte[] metadata = response.get(cell).getContents();
+                ImmutableMap.of(synchronizationCell, Long.MAX_VALUE));
+        return Optional.ofNullable(response.get(synchronizationCell))
+                .map(Value::getContents)
+                .map(this::deserializeUnchecked);
+    }
 
+    @Override
+    public void putUnlessExists(T desiredValue) {
+        keyValueService.putUnlessExists(
+                AtlasDbConstants.COORDINATION_TABLE,
+                ImmutableMap.of(synchronizationCell, serializeUnchecked(desiredValue)));
+    }
+
+    @Override
+    public void checkAndSet(T oldValue, T newValue) {
+        keyValueService.checkAndSet(
+                CheckAndSetRequest.singleCell(
+                        AtlasDbConstants.COORDINATION_TABLE,
+                        synchronizationCell,
+                        serializeUnchecked(oldValue),
+                        serializeUnchecked(newValue)));
+    }
+
+    private static Cell createCellFromCoordinationKey(String coordinationKey) {
+        return Cell.create(GLOBAL_ROW_NAME, PtBytes.toBytes(coordinationKey));
+    }
+
+    private T deserializeUnchecked(byte[] metadata) {
         try {
             return objectMapper.readValue(metadata, metadataType);
         } catch (IOException e) {
@@ -80,34 +115,11 @@ public class CoordinationServiceImpl implements CoordinationService {
         }
     }
 
-    @Override
-    public <T> void putUnlessExists(String coordinationKey, T desiredValue) {
-        keyValueService.putUnlessExists(
-                AtlasDbConstants.COORDINATION_TABLE,
-                ImmutableMap.of(
-                        createCellFromCoordinationKey(coordinationKey),
-                        serializeUnchecked(desiredValue)));
-    }
-
-    @Override
-    public <T> void checkAndSet(String coordinationKey, T oldValue, T newValue) {
-        keyValueService.checkAndSet(
-                CheckAndSetRequest.singleCell(
-                        AtlasDbConstants.COORDINATION_TABLE,
-                        createCellFromCoordinationKey(coordinationKey),
-                        serializeUnchecked(oldValue),
-                        serializeUnchecked(newValue)));
-    }
-
-    private Cell createCellFromCoordinationKey(String coordinationKey) {
-        return Cell.create(GLOBAL_ROW_NAME, PtBytes.toBytes(coordinationKey));
-    }
-
-    private <T> byte[] serializeUnchecked(T data) {
+    private byte[] serializeUnchecked(T object) {
         try {
-            return objectMapper.writeValueAsBytes(data);
+            return objectMapper.writeValueAsBytes(object);
         } catch (JsonProcessingException e) {
-            log.warn("Could not serialize metadata: {}", SafeArg.of("data", data));
+            log.warn("Could not serialize metadata: {}", SafeArg.of("object", object));
             throw new RuntimeException(e);
         }
     }
