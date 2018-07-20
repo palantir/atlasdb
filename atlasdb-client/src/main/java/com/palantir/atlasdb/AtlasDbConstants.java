@@ -41,6 +41,8 @@ public final class AtlasDbConstants {
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
 
+    public static final TableReference COORDINATION_TABLE = TableReference.createWithEmptyNamespace("_coordination");
+
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace(
             "atlasdb_metadata");
@@ -93,7 +95,8 @@ public final class AtlasDbConstants {
             SWEEP_PROGRESS_TABLE,
             DEFAULT_SCHEMA_METADATA_TABLE,
             SWEEP_PROGRESS_V2,
-            SWEEP_PROGRESS_V1_5);
+            SWEEP_PROGRESS_V1_5,
+            COORDINATION_TABLE);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
@@ -102,7 +105,8 @@ public final class AtlasDbConstants {
             TransactionConstants.TRANSACTION_TABLE,
             TransactionConstants.TRANSACTION_TABLE_V2,
             NAMESPACE_TABLE,
-            PERSISTED_LOCKS_TABLE);
+            PERSISTED_LOCKS_TABLE,
+            COORDINATION_TABLE);
 
     public static final Set<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED = ImmutableSet.of(
             TableReference.createWithEmptyNamespace("resync_object"));
