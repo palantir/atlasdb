@@ -22,6 +22,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -58,8 +60,8 @@ public class TimeLockClientTest {
 
     private final LockRefresher refresher = mock(LockRefresher.class);
     private final TimelockService delegate = mock(TimelockService.class);
-    private final AsyncTimeLockUnlocker unlocker = mock(AsyncTimeLockUnlocker.class);
-    private final TimelockService timelock = new TimeLockClient(delegate, refresher, unlocker);
+    private final TimeLockUnlocker unlocker = mock(TimeLockUnlocker.class);
+    private final TimelockService timelock = spy(new TimeLockClient(delegate, refresher, unlocker));
 
     private static final long TIMEOUT = 10_000;
 
@@ -183,5 +185,14 @@ public class TimeLockClientTest {
 
         assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(RuntimeException.class)
             .isNotInstanceOf(AtlasDbDependencyException.class);
+    }
+
+    @Test
+    public void clientWithSynchronousUnlockerDelegatesToUnlock() {
+        try (TimeLockClient client = TimeLockClient.withSynchronousUnlocker(timelock)) {
+            UUID uuid = UUID.randomUUID();
+            client.tryUnlock(ImmutableSet.of(LockToken.of(uuid)));
+            verify(timelock, times(1)).unlock(ImmutableSet.of(LockToken.of(uuid)));
+        }
     }
 }
