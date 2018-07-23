@@ -73,7 +73,7 @@ public class BackgroundSweepThread implements Runnable {
             MetricsManager metricsManager) {
         return new BackgroundSweepThread(lockService, nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled,
                 sweepPauseMillis, sweepPriorityOverrideConfig, specificTableSweeper,
-                new SweepOutcomeMetrics(metricsManager), new CountDownLatch(1), 1);
+                SweepOutcomeMetrics.registerLegacy(metricsManager), new CountDownLatch(1), 1);
     }
 
     BackgroundSweepThread(LockService lockService,

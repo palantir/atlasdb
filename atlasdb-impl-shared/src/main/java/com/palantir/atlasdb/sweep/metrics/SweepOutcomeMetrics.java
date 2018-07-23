@@ -53,7 +53,7 @@ public final class SweepOutcomeMetrics {
     }
 
     private <T> void registerMetric(MetricsManager manager, List<SweepOutcome> outcomes, Class<T> forClass) {
-        outcomes.forEach(outcome -> manager.registerMetric(forClass, AtlasDbMetricNames.SWEEP_OUTCOME,
+        outcomes.forEach(outcome -> manager.registerIfNotExists(forClass, AtlasDbMetricNames.SWEEP_OUTCOME,
                 () -> getOutcomeCount(outcome), ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name())));
     }
 
