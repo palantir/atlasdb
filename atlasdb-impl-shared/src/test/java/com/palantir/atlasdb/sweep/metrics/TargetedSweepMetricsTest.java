@@ -16,14 +16,25 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
+
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -45,7 +56,7 @@ public class TargetedSweepMetricsTest {
     @Before
     public void setup() {
         clockTime = 100;
-        kvs = new InMemoryKeyValueService(true);
+        kvs = Mockito.spy(new InMemoryKeyValueService(true));
         puncherStore = KeyValueServicePuncherStore.create(kvs, false);
         metricsManager = MetricsManagers.createForTests();
         metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, RECOMPUTE_MILLIS);
@@ -206,6 +217,20 @@ public class TargetedSweepMetricsTest {
         puncherStore.put(1, 10);
         waitForProgressToRecompute();
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 10);
+    }
+
+    @Test
+    public void millisSinceLastSweptDoesNotRangeScanForGivenTimestampIfSweepTsTooFarInThePast() {
+        metrics.updateProgressForShard(CONS_ZERO, 10);
+
+        // there was a great timestamp than sweep progress punched more than a week ago
+        clockTime = TimeUnit.DAYS.toMillis(14L);
+        puncherStore.put(15, 1);
+
+        // return the time from a week ago and only range scan for looking up the timestamp for the time a week ago
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - TimeUnit.DAYS.toMillis(7L));
+        verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
+        verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());
     }
 
     @Test

@@ -131,7 +131,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     }
 
     @Override
-    public void callbackInit(TransactionManager txManager) {
+    public void initialize(TransactionManager txManager) {
         initialize(SpecialTimestampsSupplier.create(txManager),
                 txManager.getTimelockService(),
                 txManager.getKeyValueService(),

@@ -36,6 +36,7 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
@@ -58,6 +59,22 @@ public class BackgroundSweepThread implements Runnable {
     private final int threadIndex;
 
     private Optional<TableToSweep> currentTable = Optional.empty();
+
+    // Used in internal test code
+    @VisibleForTesting
+    @SuppressWarnings("checkstyle:RegexpMultilineCheck")
+    public static BackgroundSweepThread createForTests(LockService lockService,
+            NextTableToSweepProvider nextTableToSweepProvider,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource,
+            Supplier<Boolean> isSweepEnabled,
+            Supplier<Long> sweepPauseMillis,
+            Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
+            SpecificTableSweeper specificTableSweeper,
+            MetricsManager metricsManager) {
+        return new BackgroundSweepThread(lockService, nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled,
+                sweepPauseMillis, sweepPriorityOverrideConfig, specificTableSweeper,
+                new SweepOutcomeMetrics(metricsManager), new CountDownLatch(1), 1);
+    }
 
     BackgroundSweepThread(LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
@@ -190,7 +207,7 @@ public class BackgroundSweepThread implements Runnable {
         } catch (RuntimeException e) {
             specificTableSweeper.updateSweepErrorMetric();
 
-            log.error("Sweep failed", e);
+            log.info("Sweep failed", e);
             return SweepOutcome.ERROR;
         }
     }
@@ -214,7 +231,7 @@ public class BackgroundSweepThread implements Runnable {
             specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), batchConfig);
             return SweepOutcome.SUCCESS;
         } catch (InsufficientConsistencyException e) {
-            log.warn("Could not sweep because not all nodes of the database are online.", e);
+            log.info("Could not sweep because not all nodes of the database are online.", e);
             return SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE;
         } catch (RuntimeException e) {
             specificTableSweeper.updateSweepErrorMetric();
@@ -308,13 +325,13 @@ public class BackgroundSweepThread implements Runnable {
                 return SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
             }
 
-            log.warn("The background sweep job failed unexpectedly; will retry with a lower batch size...",
+            log.info("The background sweep job failed unexpectedly; will retry with a lower batch size...",
                     originalException);
             return SweepOutcome.ERROR;
 
         } catch (RuntimeException newE) {
-            log.error("Sweep failed", originalException);
-            log.error("Failed to check whether the table being swept was dropped. Retrying...", newE);
+            log.warn("Sweep failed", originalException);
+            log.warn("Failed to check whether the table being swept was dropped. Retrying...", newE);
             return SweepOutcome.ERROR;
         }
     }

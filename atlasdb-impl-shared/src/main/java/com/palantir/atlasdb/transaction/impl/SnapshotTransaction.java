@@ -115,6 +115,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.impl.logging.ImmutableTransactionCommitProfile;
 import com.palantir.atlasdb.transaction.impl.logging.TransactionCommitProfile;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
@@ -214,11 +215,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final int defaultGetRangesConcurrency;
     private final Set<TableReference> involvedTables = Sets.newConcurrentHashSet();
     protected final ExecutorService deleteExecutor;
-
-    protected volatile boolean hasReads;
-
     private final Timer.Context transactionTimerContext;
     protected final CommitProfileProcessor commitProfileProcessor;
+    protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
+
+    protected volatile boolean hasReads;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -272,6 +273,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
         this.commitProfileProcessor = commitProfileProcessor;
+        this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
     }
 
     @Override
@@ -1217,6 +1219,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (hasWrites()) {
                     throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
                 }
+                transactionOutcomeMetrics.markAbort();
                 return;
             }
         }
@@ -1282,7 +1285,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             success = true;
         } finally {
             // Once we are in state committing, we need to try/finally to set the state to a terminal state.
-            state.set(success ? State.COMMITTED : State.FAILED);
+            if (success) {
+                state.set(State.COMMITTED);
+                transactionOutcomeMetrics.markSuccessfulCommit();
+            } else {
+                state.set(State.FAILED);
+                transactionOutcomeMetrics.markFailedCommit();
+            }
         }
     }
 
@@ -1376,7 +1385,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             long microsForPreCommitLockCheck = runAndReportTimeAndGetDurationMicros(
                     () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken), "preCommitLockCheck");
             long microsForUserPreCommitCondition = runAndReportTimeAndGetDurationMicros(
-                    () -> preCommitCondition.throwIfConditionInvalid(commitTimestamp), "userPreCommitCondition");
+                    () -> throwIfPreCommitConditionInvalid(commitTimestamp), "userPreCommitCondition");
 
             long microsForPutCommitTs = runAndReportTimeAndGetDurationMicros(
                     () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService),
@@ -1454,7 +1463,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
-        preCommitCondition.throwIfConditionInvalid(timestamp);
+        throwIfPreCommitConditionInvalid(timestamp);
+    }
+
+    private void throwIfPreCommitConditionInvalid(long timestamp) {
+        try {
+            preCommitCondition.throwIfConditionInvalid(timestamp);
+        } catch (TransactionFailedException ex) {
+            transactionOutcomeMetrics.markPreCommitCheckFailed();
+            throw ex;
+        }
     }
 
     private void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
@@ -1464,6 +1482,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
             TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
             log.error(baseMsg + "{}", expiredLocksErrorString, ex);
+            transactionOutcomeMetrics.markLocksExpired();
             throw ex;
         }
     }
@@ -1527,7 +1546,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throwIfValueChangedConflict(tableRef, writes, spanningWrites, dominatingWrites, commitLocksToken);
         } else {
             if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
-                getTransactionConflictsMeter().mark();
+                transactionOutcomeMetrics.markWriteWriteConflict(tableRef);
                 throw TransactionConflictException.create(tableRef, getStartTimestamp(), spanningWrites,
                         dominatingWrites, System.currentTimeMillis() - timeCreated);
             }
@@ -1592,7 +1611,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Predicate<CellConflict> conflicting = Predicates.compose(
                 Predicates.in(conflictingCells),
                 CellConflict.getCellFunction());
-        getTransactionConflictsMeter().mark();
+        transactionOutcomeMetrics.markWriteWriteConflict(table);
         throw TransactionConflictException.create(table,
                 getStartTimestamp(),
                 Sets.filter(spanningWrites, conflicting),
@@ -1712,6 +1731,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private boolean rollbackOtherTransaction(long startTs, TransactionService transactionService) {
         try {
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
+            transactionOutcomeMetrics.markRollbackOtherTransaction();
             return true;
         } catch (KeyAlreadyExistsException e) {
             log.info("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
@@ -1927,6 +1947,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     "This transaction failed writing the commit timestamp. "
                     + "It might have been committed, but it may not have.", e);
             log.error("failed to commit an atlasdb transaction", commitFailedEx);
+            transactionOutcomeMetrics.markPutUnlessExistsFailed();
             throw commitFailedEx;
         }
     }
@@ -1943,6 +1964,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
+                transactionOutcomeMetrics.markLocksExpired();
                 throw new TransactionLockTimeoutException("Our commit was already rolled back at commit time"
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
@@ -2047,10 +2069,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Histogram getHistogram(String name) {
         return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
-    }
-
-    private Meter getTransactionConflictsMeter() {
-        return getMeter("SnapshotTransactionConflict");
     }
 
     private Meter getMeter(String name) {

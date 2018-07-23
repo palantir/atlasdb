@@ -53,7 +53,12 @@ public interface TimelockService {
 
     @POST
     @Path("lock-immutable-timestamp")
-    LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request);
+    // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
+    LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
+
+    @POST
+    @Path("start-atlasdb-transaction")
+    StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
     @POST
     @Path("immutable-timestamp")

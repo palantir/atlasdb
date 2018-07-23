@@ -39,7 +39,7 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -77,7 +77,7 @@ public class TimeLockClientTest {
     @Test
     public void registersImmutableTimestampLock() {
         when(delegate.lockImmutableTimestamp(any())).thenReturn(LockImmutableTimestampResponse.of(123L, TOKEN_1));
-        timelock.lockImmutableTimestamp(LockImmutableTimestampRequest.create());
+        timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
 
         verify(refresher).registerLock(TOKEN_1);
     }

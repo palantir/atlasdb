@@ -32,11 +32,12 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -75,7 +76,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
+    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
         long immutableLockTs = timestampService.getFreshTimestamp();
         LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
         com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
@@ -99,6 +100,13 @@ public class LegacyTimelockService implements TimelockService {
             }
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
+    }
+
+    @Override
+    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
+        LockImmutableTimestampResponse immutableTimestampResponse = lockImmutableTimestamp(request);
+        long freshTimestamp = getFreshTimestamp();
+        return StartAtlasDbTransactionResponse.of(immutableTimestampResponse, freshTimestamp);
     }
 
     @Override
