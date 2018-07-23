@@ -30,6 +30,10 @@ public interface SweepBatch {
     List<WriteInfo> writes();
     long lastSweptTimestamp();
 
+    default boolean hasNothingToSweep() {
+        return writes().size() == 0;
+    }
+
     static SweepBatch of(Collection<WriteInfo> writes, long timestamp) {
         return ImmutableSweepBatch.builder().writes(writes).lastSweptTimestamp(timestamp).build();
     }

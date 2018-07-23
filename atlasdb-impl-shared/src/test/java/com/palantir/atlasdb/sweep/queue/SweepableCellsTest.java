@@ -50,6 +50,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 
 public class SweepableCellsTest extends AbstractSweepQueueTest {
     private static final long SMALL_SWEEP_TS = TS + 200L;
@@ -57,11 +58,13 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
             .getSweepableCellsTable(null)
             .getTableRef();
 
+    private TargetedSweepMetrics metrics;
     private SweepableCells sweepableCells;
 
     @Before
     public void setup() {
         super.setup();
+        metrics = TargetedSweepMetrics.create(metricsManager, spiedKvs, 1);
         sweepableCells = new SweepableCells(spiedKvs, partitioner, metrics);
 
         shardCons = writeToDefaultCellCommitted(sweepableCells, TS, TABLE_CONS);

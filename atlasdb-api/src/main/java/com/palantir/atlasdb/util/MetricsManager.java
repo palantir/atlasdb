@@ -105,21 +105,15 @@ public class MetricsManager {
         registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
     }
 
-    public static void main(String[] args) {
-        MetricName metricToAdd = MetricName.builder()
-                .safeName(MetricRegistry.name(MetricsManager.class, "test"))
-                .safeTags(ImmutableMap.of("strategy", "bsL"))
-                .build();
-        System.out.println(metricToAdd);
-    }
-
     public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
         Map<String, String> tag = getTableNameTagFor(tableRef);
         registerMetric(clazz, metricName, gauge, tag);
     }
 
     /**
-     * Add a new gauge to a metric (which may already exist).
+     * Add a new gauge metric of the given name.
+     *
+     * If the metric already exists, this is a noop.
      */
     public void registerOrAddToMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
         MetricName metricToAdd = MetricName.builder()

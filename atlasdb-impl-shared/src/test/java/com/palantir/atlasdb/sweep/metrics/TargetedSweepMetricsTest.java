@@ -36,7 +36,7 @@ public class TargetedSweepMetricsTest {
     private static final ShardAndStrategy CONS_TWO = ShardAndStrategy.conservative(2);
     private static final ShardAndStrategy THOR_ZERO = ShardAndStrategy.thorough(0);
 
-    private static final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private MetricsManager metricsManager;
     private long clockTime;
     private KeyValueService kvs;
     private PuncherStore puncherStore;
@@ -47,6 +47,7 @@ public class TargetedSweepMetricsTest {
         clockTime = 100;
         kvs = new InMemoryKeyValueService(true);
         puncherStore = KeyValueServicePuncherStore.create(kvs, false);
+        metricsManager = MetricsManagers.createForTests();
         metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, RECOMPUTE_MILLIS);
     }
 
