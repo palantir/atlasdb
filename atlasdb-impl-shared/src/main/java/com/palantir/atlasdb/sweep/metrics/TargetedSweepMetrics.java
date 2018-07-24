@@ -46,6 +46,7 @@ public final class TargetedSweepMetrics {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweepMetrics.class);
     private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
+    private final SweepOutcomeMetrics outcomeMetrics;
 
     private TargetedSweepMetrics(MetricsManager metricsManager,
                 Function<Long, Long> tsToMillis, Clock clock, long millis) {
@@ -54,6 +55,7 @@ public final class TargetedSweepMetrics {
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, tsToMillis, clock, millis),
                 TableMetadataPersistence.SweepStrategy.THOROUGH,
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, tsToMillis, clock, millis));
+        outcomeMetrics = SweepOutcomeMetrics.registerTargeted(metricsManager);
     }
 
     public static TargetedSweepMetrics create(MetricsManager metricsManager, KeyValueService kvs, long millis) {
@@ -96,6 +98,10 @@ public final class TargetedSweepMetrics {
 
     public void updateProgressForShard(ShardAndStrategy shardStrategy, long lastSweptTs) {
         getMetrics(shardStrategy).updateProgressForShard(shardStrategy.shard(), lastSweptTs);
+    }
+
+    public void registerOccurrenceOf(SweepOutcome outcome) {
+        outcomeMetrics.registerOccurrenceOf(outcome);
     }
 
     private MetricsForStrategy getMetrics(ShardAndStrategy shardStrategy) {
