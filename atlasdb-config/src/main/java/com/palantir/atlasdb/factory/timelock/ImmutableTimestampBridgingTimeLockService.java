@@ -27,7 +27,6 @@ import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.processors.AutoDelegate;
 
 /**
  * This class serves as a bridge to allow newer Atlas clients to maintain compatibility with TimeLock servers that
