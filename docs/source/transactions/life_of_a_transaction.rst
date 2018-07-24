@@ -14,7 +14,7 @@ A user can run a ``TransactionTask`` through a ``TransactionManager``. Running t
 seen as a four step process.
 
 1. Start an AtlasDB transaction.
-2. Execute the user's transaction task (which has access to the transaction we started).
+2. Execute the user's transaction task within the transaction.
 3. Commit the transaction.
 4. Cleanup resources used by the transaction.
 
@@ -54,8 +54,7 @@ Committing a write transaction is a multi-stage process:
 5. Persist key-value pairs that were written to the database.
 6. Get the commit timestamp.
 7. For serializable transactions, check that the state of the world at commit time is same as that at start time.
-   This involves re-executing the relevant read queries we made and checking that we read the same *values*
-   (note that ABA situations where the state of the world changed and changed back are permitted).
+   Please see :ref:`Isolation Levels<isolation-levels>` for more details.
 8. Verify that locks are still valid.
 9. Verify user-specified pre-commit conditions (if applicable).
 10. Atomically putUnlessExists into the transactions table.
@@ -64,13 +63,13 @@ After we have successfully written to the transactions table, the transaction is
 
 The ordering of these steps is important:
 
-1. Checking constraints must be done before committing. These constraints do not depend on the rows being locked,
+1. Checking constraints must be done before putUnlessExists. These constraints do not depend on the rows being locked,
    so we should do this before acquiring locks (generally we want to minimise critical sections).
-2. If we check for conflicts before acquiring locks, it is possible that another transaction may write to a value
-   we've written to underneath us. This should cause a write-write conflict, but we will miss it. Taking locks first
-   means that this is only possible if we've lost our locks before the check - but if that is the case then we will
-   not commit as we will fail when we check our locks (step 8).
-3. Checking for write/write conflicts must be done before checking locks are still valid (step 8), as we could
+2. If we check for write/write conflicts before acquiring locks, another transaction could write a conflicting value
+   after we perform the check, but before we acquire locks. This should cause a write-write conflict, but we will miss
+   it. Taking locks first means that this is only possible if we've lost our locks before the check - but if that is
+   the case then we will not commit as we will fail when we check our locks (step 8).
+3. Checking for write/write conflicts must be done before checking that locks are still valid (step 8), as we could
    otherwise lose the lock and have a thorough sweep clear out all evidence of spanning/dominating writes.
    It may be possible to postpone this, though we would be doing unnecessary work.
 4. If we write to the database before writing to the targeted sweep queue, we may write values to the database and
@@ -78,17 +77,18 @@ The ordering of these steps is important:
    lying around. It's possible that Background Sweep can be used to clear any such values, but that may take a very
    long time.
 5. If we get the commit timestamp before we write key-value pairs to the database, another transaction could start
-   after we commit, and may read cells that we have written to. Our own writes may not have been made, but the
-   other transaction must see them.
+   after we commit, and may read cells that we have written to. Our own writes may not have been made. The AtlasDB
+   protocol is that writes take place at commit time, so our writes must be observable to the other transaction
+   if it has a higher start timestamp than our commit timestamp, which is possible here.
 6. The serializable commit check requires us to know the commit timestamp.
-7. For conservatively swept tables, the ordering of this step and checking locks is not critical (consider that our
-   check must not pass when it should fail, and once we read a value at the commit timestamp we will always read the
-   same value).
-   For thorough swept tables, there is an edge case. Suppose we read no data for some key, but someone wrote to it
+7. For conservatively swept tables, the ordering of the serializable conflict check and lock check is not critical
+   (consider that our check must not pass when it should fail, and once we read a value at the commit timestamp we
+   will always read the same value).
+   For thoroughly swept tables, there is an edge case. Suppose we read no data for some key, but someone wrote to it
    in between our start and commit, and someone else deleted the value after our commit. If we pass our lock check, but
    then lose our locks and have a very long GC, Thorough Sweep might clear all evidence of the conflict, meaning that
-   we miss a read-write conflict. (This would be safe for conservative sweep because of the deletion sentinel.)
-8. This step may be run in parallel with pre-commit condition checks, though it must strictly be run before writing
+   we miss a read-write conflict. This would be safe for conservative sweep because of the deletion sentinel.
+8. The kock check may be run in parallel with pre-commit condition checks, though it must strictly be run before writing
    to the transactions table, as we cannot finish our commit if we can't be certain we still have locks.
 9. We need to check that the pre-commit conditions still hold before we can finish committing.
 
@@ -98,8 +98,8 @@ Read-Only Variant
 .. note::
 
     This section looks at write transactions that perform only reads (as opposed to pure read transactions).
-    This is motivated by a shift towards thorough tables which can have better performance characteristics, especially
-    for workflows involving row or dynamic column range scans.
+    This is motivated by a shift towards thoroughly swept tables which can have better performance characteristics,
+    especially for workflows involving row or dynamic column range scans.
 
 Transactions that do not write have a much simpler commit stage:
 
@@ -113,8 +113,8 @@ Cleanup
 =======
 
 We need to unlock row/cell locks and the immutable timestamp lock. This need not be strictly immediate, though
-should be fast. Also, note that if we fail to do this (e.g. our server crashes), the locks will time-out (by default
-after 2 minutes).
+should be fast to avoid contention on future writes. Also, note that if we fail to do this (e.g. our server crashes),
+the locks will time-out (by default after 2 minutes).
 
 We unlock these locks asynchronously, placing them on a queue and periodically clearing them out. See ADR 15 for a
 more detailed discussion.
