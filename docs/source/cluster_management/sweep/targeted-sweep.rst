@@ -30,7 +30,8 @@ As long as targeted sweep is enabled, background threads will read the informati
 Configuration Options
 ---------------------
 
-Targeted sweep uses a combination of :ref:`install and runtime AtlasDB configurations <atlas-config>`, as follows:
+Targeted sweep uses a combination of :ref:`install and runtime AtlasDB configurations <atlas-config>`.
+In both cases, these configuration options are specified within a ``targetedSweep`` context.
 
 .. csv-table::
    :header: "AtlasDB Install Config", "Default", "Description"
@@ -46,6 +47,24 @@ Targeted sweep uses a combination of :ref:`install and runtime AtlasDB configura
 
    ``enabled``, "false", "Whether targeted sweep should be run by background threads. Note that enableSweepQueueWrites must be set to true before targeted sweep can be run."
    ``shards``, "1", "Number of shards to use for persisting information to the sweep queue, enabling better parallelization of targeted sweep. The number of shards should be greater than or equal to the number of threads used for background targeted sweep. Note that this number must be monotonically increasing, and attempts to lower may be ignored. Maximum supported value is 256."
+
+For example, to enable writes to the sweep queue and targeted sweep, with three conservative threads and 8 shards,
+one should add the following blocks to their configuration:
+
+.. code-block:: yaml
+
+    atlasdb:
+      targetedSweep:
+        enableSweepQueueWrites: true
+        conservativeThreads: 3
+
+    atlasdb-runtime:
+      targetedSweep:
+        enabled: true
+        shards: 8
+
+Also note that threads perform targeted sweep serially within the context of a shard, so configuring more threads
+in an attempt to increase parallelism will only work if the number of shards is also increased.
 
 Changing Sweep Strategy for a Table
 -----------------------------------
