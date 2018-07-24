@@ -30,6 +30,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcomeMetrics;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
@@ -71,7 +73,7 @@ public class BackgroundSweepThread implements Runnable {
             MetricsManager metricsManager) {
         return new BackgroundSweepThread(lockService, nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled,
                 sweepPauseMillis, sweepPriorityOverrideConfig, specificTableSweeper,
-                new SweepOutcomeMetrics(metricsManager), new CountDownLatch(1), 1);
+                SweepOutcomeMetrics.registerLegacy(metricsManager), new CountDownLatch(1), 1);
     }
 
     BackgroundSweepThread(LockService lockService,

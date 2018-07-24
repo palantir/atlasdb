@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.Sweeper;
-import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -66,13 +65,12 @@ public abstract class AbstractSweepQueueTest {
     int shardCons;
     int shardThor;
 
-    protected final MetricsManager metricsManager = MetricsManagers.createForTests();
+    protected MetricsManager metricsManager;
 
     KeyValueService spiedKvs;
     SpecialTimestampsSupplier timestampsSupplier;
     WriteInfoPartitioner partitioner;
     TransactionService txnService;
-    TargetedSweepMetrics metrics;
 
     @Before
     public void setup() {
@@ -80,6 +78,7 @@ public abstract class AbstractSweepQueueTest {
         unreadableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
         immutableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
 
+        metricsManager = MetricsManagers.createForTests();
         spiedKvs = spy(new InMemoryKeyValueService(true));
         spiedKvs.createTable(TABLE_CONS, metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
         spiedKvs.createTable(TABLE_THOR, metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
@@ -87,7 +86,6 @@ public abstract class AbstractSweepQueueTest {
         timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createTransactionService(spiedKvs);
-        metrics = TargetedSweepMetrics.create(metricsManager, spiedKvs, 1);
     }
 
     static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {

@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcomeMetrics;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
@@ -96,7 +97,7 @@ public class SweeperTestSetup {
                 () -> 0L, // pauseMillis
                 () -> overrideConfig,
                 specificTableSweeper,
-                new SweepOutcomeMetrics(metricsManager),
+                SweepOutcomeMetrics.registerLegacy(metricsManager),
                 new CountDownLatch(1),
                 threadIndex);
     }

@@ -69,6 +69,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
@@ -81,17 +82,18 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private static final long LOW_TS2 = 2 * LOW_TS;
     private static final long LOW_TS3 = 3 * LOW_TS;
 
-    private TargetedSweeper sweepQueue =
-            TargetedSweeper.createUninitializedForTest(metricsManager, () -> DEFAULT_SHARDS);
+    private TargetedSweeper sweepQueue;
     private ShardProgress progress;
     private SweepableTimestamps sweepableTimestamps;
     private SweepableCells sweepableCells;
     private TargetedSweepFollower mockFollower;
     private PuncherStore puncherStore;
+    private boolean enabled = true;
 
     @Before
     public void setup() {
         super.setup();
+        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, () -> enabled, () -> DEFAULT_SHARDS);
         mockFollower = mock(TargetedSweepFollower.class);
         sweepQueue.initialize(timestampsSupplier, mock(TimelockService.class), spiedKvs, mockFollower);
 
@@ -169,6 +171,25 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         punchCurrentTimeMinusMillisAtTimestamp(2000, LOW_TS);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeWithinOneSecondOf(2000L);
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.SUCCESS, 1L);
+    }
+
+    @Test
+    public void sweepWithNoCandidatesBeforeSweepTimestampReportsNothingToSweep() {
+        enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.NOTHING_TO_SWEEP, 1L);
+    }
+
+    @Test
+    public void sweepDisabledIsReportedInOutcome() {
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.NOTHING_TO_SWEEP, 1L);
+
+        enabled = false;
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.DISABLED, 1L);
     }
 
     @Test
