@@ -27,7 +27,6 @@ import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.processors.AutoDelegate;
 
 /**
  * This class serves as a bridge to allow newer Atlas clients to maintain compatibility with TimeLock servers that
@@ -42,7 +41,6 @@ import com.palantir.processors.AutoDelegate;
  * (one hour by default), so we believe it is unlikely. We also are not dependent on this for correctness, only for
  * performance.
  */
-@AutoDelegate(typeToExtend = TimelockService.class)
 public class ImmutableTimestampBridgingTimeLockService implements AutoDelegate_TimelockService {
     private static final double ONCE_PER_HOUR = 1. / TimeUnit.HOURS.toSeconds(1);
 
