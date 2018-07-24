@@ -25,8 +25,11 @@ import java.nio.file.Paths;
 import org.junit.Test;
 
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.tokens.auth.BearerToken;
 
 public class AtlasDbRuntimeConfigDeserializationTest {
+    private static final BearerToken AUTH_TOKEN = BearerToken.valueOf("fooBarBazAuthSecret");
+
     private static final File TEST_RUNTIME_CONFIG_FILE = new File(
             AtlasDbRuntimeConfigDeserializationTest.class.getResource("/runtime-config-block.yml").getPath());
     private static final File TEST_RUNTIME_CONFIG_NO_SERVERS_FILE = new File(
@@ -58,6 +61,7 @@ public class AtlasDbRuntimeConfigDeserializationTest {
                     assertThat(overrides.blacklistTables()).containsExactlyInAnyOrder(
                             "atlas.bad_table", "atlas2.immutable_log");
                 });
+        assertThat(runtimeConfig.timelockRuntime().get().authToken()).isEqualTo(AUTH_TOKEN);
     }
 
     private void assertSslConfigDeserializedCorrectly(SslConfiguration sslConfiguration) {
@@ -75,5 +79,6 @@ public class AtlasDbRuntimeConfigDeserializationTest {
         assertThat(runtimeConfig.timelockRuntime()).isPresent();
         assertThat(runtimeConfig.timelockRuntime().get().serversList().servers()).isEmpty();
         assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration()).isEmpty();
+        assertThat(runtimeConfig.timelockRuntime().get().authToken()).isEqualTo(AUTH_TOKEN);
     }
 }

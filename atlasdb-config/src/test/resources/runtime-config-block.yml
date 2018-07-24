@@ -11,6 +11,7 @@ timelockRuntime:
       trustStorePath: var/security/trustStore.jks
       keyStorePath: var/security/keyStore.jks
       keyStorePassword: 0987654321
+  auth-token: "fooBarBazAuthSecret"
 
 streamStorePersistence:
   numBlocksToWriteBeforePause: 7

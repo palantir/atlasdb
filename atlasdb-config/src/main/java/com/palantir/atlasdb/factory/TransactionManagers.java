@@ -127,6 +127,8 @@ import com.palantir.common.annotation.Output;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.lock.AuthDecoratedLockService;
+import com.palantir.lock.AuthedLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
@@ -136,6 +138,8 @@ import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.AuthDecoratedTimelockService;
+import com.palantir.lock.v2.AuthedTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
@@ -143,6 +147,7 @@ import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.JavaSuppliers;
@@ -753,12 +758,18 @@ public abstract class TransactionManagers {
             String userAgent) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
+        Supplier<AuthHeader> authHeaderSupplier =
+                () -> AuthHeader.of(runtimeConfigSupplier.get().timelockRuntime().get().authToken());
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(metricsManager,
-                        serverListConfigSupplier, invalidator, userAgent, config.initializeAsync());
+                        serverListConfigSupplier, authHeaderSupplier, invalidator, userAgent, config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
+        LockService authDecoratedLockService = createAuthLockService(metricsManager, serverListConfigSupplier,
+                authHeaderSupplier, userAgent);
+        TimelockService authDecoratedTimelockService = createAuthedTimelockService(metricsManager,
+                serverListConfigSupplier, authHeaderSupplier, userAgent);
         return ImmutableLockAndTimestampServices.copyOf(
-                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent))
+                getLockAndTimestampServices(authDecoratedLockService, authDecoratedTimelockService))
                 .withMigrator(migrator);
     }
 
@@ -775,15 +786,36 @@ public abstract class TransactionManagers {
                 resolvedClient);
     }
 
-    private static LockAndTimestampServices getLockAndTimestampServices(
+    private static LockService createAuthLockService(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> timelockServerListConfig,
+            Supplier<AuthHeader> authHeaderSupplier,
             String userAgent) {
-        LockService lockService = new ServiceCreator<>(metricsManager, LockService.class, userAgent)
+        AuthedLockService lockService = new ServiceCreator<>(metricsManager, AuthedLockService.class, userAgent)
                 .applyDynamic(timelockServerListConfig);
-        TimelockService timelockService = new ServiceCreator<>(metricsManager, TimelockService.class, userAgent)
-                .applyDynamic(timelockServerListConfig);
+        return ServiceCreator.createInstrumentedService(
+                metricsManager.getRegistry(),
+                new AuthDecoratedLockService(lockService, authHeaderSupplier),
+                LockService.class);
+    }
 
+    private static TimelockService createAuthedTimelockService(
+            MetricsManager metricsManager,
+            Supplier<ServerListConfig> timelockServerListConfig,
+            Supplier<AuthHeader> authHeaderSupplier,
+            String userAgent) {
+        AuthedTimelockService timelockService =
+                new ServiceCreator<>(metricsManager, AuthedTimelockService.class, userAgent)
+                        .applyDynamic(timelockServerListConfig);
+        return ServiceCreator.createInstrumentedService(
+                metricsManager.getRegistry(),
+                new AuthDecoratedTimelockService(timelockService, authHeaderSupplier),
+                TimelockService.class);
+    }
+
+    private static LockAndTimestampServices getLockAndTimestampServices(
+            LockService lockService,
+            TimelockService timelockService) {
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
                 .timestamp(new TimelockTimestampServiceAdapter(timelockService))

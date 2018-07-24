@@ -117,6 +117,8 @@ Note that if this block is present, then the ``ServerListConfiguration`` in the 
            `palantir/http-remoting-api <https://github.com/palantir/http-remoting-api/blob/1.4.0/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java>`__
            library.
 
+    *    - auth-token
+         - The value of the Authorization header of the requests sent to the Timelock Server. This can be used on the server side to authorize requests on a per-namespace basis.
 
 .. _semantics-for-live-reloading:
 
@@ -210,6 +212,7 @@ Runtime Configuration
           trustStorePath: var/security/trustStore.jks
           keyStorePath: var/security/keyStore.jks
           keyStorePassword: 0987654321
+      auth-token: "fooBarBazAuthSecret"
 
 AtlasDB will at runtime determine that the ``client`` to be used is ``yourapp`` and the servers are as indicated above,
 and it will be able to route requests to TimeLock correctly.

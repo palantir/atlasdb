@@ -92,12 +92,13 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.AuthedTimelockService;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.tokens.auth.BearerToken;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class TransactionManagersTest {
@@ -107,14 +108,15 @@ public class TransactionManagersTest {
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
 
-    private static final String TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC =
-            MetricRegistry.name(TimelockService.class, "getFreshTimestamp");
-    private static final String TIMELOCK_SERVICE_CURRENT_TIME_METRIC =
-            MetricRegistry.name(TimelockService.class, "currentTimeMillis");
+    private static final String AUTHED_TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC =
+            MetricRegistry.name(AuthedTimelockService.class, "getFreshTimestamp");
+    private static final String AUTHED_TIMELOCK_SERVICE_CURRENT_TIME_METRIC =
+            MetricRegistry.name(AuthedTimelockService.class, "currentTimeMillis");
     private static final String LOCK_SERVICE_CURRENT_TIME_METRIC =
             MetricRegistry.name(LockService.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
+
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
     private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
@@ -221,7 +223,7 @@ public class TransactionManagersTest {
     @Test
     public void userAgentsPresentOnRequestsToTimelockServer() {
         setUpTimeLockBlockInInstallConfig();
-
+        setUpTimeLockBlockInRuntimeConfig();
         availableServer.stubFor(post(urlMatching("/")).willReturn(aResponse().withStatus(200).withBody("3")));
         availableServer.stubFor(TIMELOCK_LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("4")));
 
@@ -314,6 +316,7 @@ public class TransactionManagersTest {
     @Test
     public void batchesRequestsIfBatchingEnabled() throws InterruptedException {
         setUpTimeLockBlockInInstallConfig();
+        setUpTimeLockBlockInRuntimeConfig();
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
 
         createLockAndTimestampServicesForConfig(config, runtimeConfig).timestamp().getFreshTimestamp();
@@ -324,6 +327,7 @@ public class TransactionManagersTest {
     @Test
     public void doesNotBatchRequestsIfBatchingNotEnabled() {
         setUpTimeLockBlockInInstallConfig();
+        setUpTimeLockBlockInRuntimeConfig();
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
 
         createLockAndTimestampServicesForConfig(config, runtimeConfig).timelock().getFreshTimestamp();
@@ -393,18 +397,20 @@ public class TransactionManagersTest {
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingTimelockService() {
         setUpTimeLockBlockInInstallConfig();
+        setUpTimeLockBlockInRuntimeConfig();
 
-        assertThatTimeAndLockMetricsAreRecorded(TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
-                TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
+        assertThatTimeAndLockMetricsAreRecorded(AUTHED_TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
+                AUTHED_TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
     @Test
     public void metricsAreReportedExactlyOnceWhenUsingTimelockServiceWithRequestBatching() {
         setUpTimeLockBlockInInstallConfig();
+        setUpTimeLockBlockInRuntimeConfig();
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
+                AUTHED_TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
     @Test
@@ -455,15 +461,6 @@ public class TransactionManagersTest {
         setUpTimeLockBlockInInstallConfig();
         setUpTimeLockBlockInRuntimeConfig();
         verifyUsingTimeLockByGettingAFreshTimestamp();
-    }
-
-    @Test
-    public void usesTimeLockIfInstallConfigIsTimeLockAndInitialRuntimeConfigDoesNotContainTimeLockBlock() {
-        setUpTimeLockBlockInInstallConfig();
-        verifyUsingTimeLockByGettingAFreshTimestamp();
-
-        assertTrue("Runtime config was not expected to contain a timelock block",
-                !runtimeConfig.timelockRuntime().isPresent());
     }
 
     @Test
@@ -535,6 +532,7 @@ public class TransactionManagersTest {
         when(runtimeConfig.timelockRuntime()).thenReturn(
                 Optional.of(ImmutableTimeLockRuntimeConfig.builder()
                         .serversList(rawRemoteServerConfig)
+                        .authToken(BearerToken.valueOf("fooBarBazAuthSecret"))
                         .build()));
     }
 

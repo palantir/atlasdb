@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.ws.rs.core.HttpHeaders;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -39,7 +40,8 @@ import okhttp3.TlsVersion;
 
 public final class FeignOkHttpClients {
     @VisibleForTesting
-    static final String USER_AGENT_HEADER = "User-Agent";
+    static final String USER_AGENT_HEADER = HttpHeaders.USER_AGENT;
+
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
 
@@ -112,6 +114,7 @@ public final class FeignOkHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
             String userAgent) {
+
         Supplier<Client> clientSupplier = () -> CounterBackedRefreshingClient.createRefreshingClient(
                 () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
 
@@ -129,9 +132,8 @@ public final class FeignOkHttpClients {
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
                 .proxySelector(proxySelector.orElse(ProxySelector.getDefault()))
                 .retryOnConnectionFailure(false);
-        if (sslSocketFactory.isPresent()) {
-            builder.sslSocketFactory(sslSocketFactory.get());
-        }
+        sslSocketFactory.ifPresent(builder::sslSocketFactory);
+
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
 
         globalClientSettings.accept(builder);

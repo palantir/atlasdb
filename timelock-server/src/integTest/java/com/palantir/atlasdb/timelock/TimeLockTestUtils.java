@@ -18,17 +18,23 @@ package com.palantir.atlasdb.timelock;
 
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
+import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.tokens.auth.BearerToken;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public final class TimeLockTestUtils {
@@ -43,20 +49,30 @@ public final class TimeLockTestUtils {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .namespace("test")
                 .keyValueService(new InMemoryAtlasDbConfig())
-                .timelock(ImmutableTimeLockClientConfig.builder()
-                        .serversList(ImmutableServerListConfig.builder()
-                                .servers(serverUris)
-                                .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
-                                .build())
-                        .build())
                 .build();
         return TransactionManagers.builder()
                 .config(config)
                 .userAgent("test")
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .runtimeConfigSupplier(getAtlasdbRuntimeConfig(serverUris))
                 .build()
                 .serializable();
     }
 
+    private static Supplier<Optional<AtlasDbRuntimeConfig>> getAtlasdbRuntimeConfig(List<String> serverUris) {
+        return () -> Optional.of(ImmutableAtlasDbRuntimeConfig.builder()
+                .timelockRuntime(ImmutableTimeLockRuntimeConfig.builder()
+                        .serversList(getServerListConfig(serverUris))
+                        .authToken(BearerToken.valueOf("fooBarBazAuthSecret"))
+                        .build())
+                .build());
+    }
+
+    private static ServerListConfig getServerListConfig(List<String> serverUris) {
+        return ImmutableServerListConfig.builder()
+                .servers(serverUris)
+                .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
+                .build();
+    }
 }

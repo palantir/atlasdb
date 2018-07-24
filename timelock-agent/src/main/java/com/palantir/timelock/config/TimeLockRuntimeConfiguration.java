@@ -4,12 +4,16 @@
 
 package com.palantir.timelock.config;
 
+import java.util.List;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.timelock.auth.TimelockClientCredentials;
+import com.palantir.tokens.auth.BearerToken;
 
 /**
  * Dynamic (live-reloaded) portions of TimeLock's configuration.
@@ -43,6 +47,18 @@ public abstract class TimeLockRuntimeConfiguration {
     public long slowLockLogTriggerMillis() {
         return 10000;
     }
+
+    /**
+     * The namespace and token credentials the server should use to authenticate basic service clients.
+     */
+    @JsonProperty("service-auth-credentials")
+    public abstract List<TimelockClientCredentials> serviceAuthCredentials();
+
+    /**
+     * The tokens the server should use to authenticate admin clients.
+     */
+    @JsonProperty("admin-auth-tokens")
+    public abstract List<BearerToken> adminAuthTokens();
 
     @Value.Check
     public void check() {
