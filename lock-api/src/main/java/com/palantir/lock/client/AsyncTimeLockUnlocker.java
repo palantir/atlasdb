@@ -44,7 +44,7 @@ import com.palantir.logsafe.SafeArg;
  * If T can pass the compareAndSet, then T itself is scheduled. If T does not, that means there is some other
  * thread that has scheduled the task, but the task has not yet retrieved the current contents of the queue.
  */
-public class AsyncTimeLockUnlocker implements AutoCloseable {
+public class AsyncTimeLockUnlocker implements TimeLockUnlocker, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockUnlocker.class);
     private static final int BACKPRESSURE = 1024;
 
@@ -68,6 +68,7 @@ public class AsyncTimeLockUnlocker implements AutoCloseable {
      *
      * @param tokens Lock tokens to schedule an unlock for.
      */
+    @Override
     public void enqueue(Set<LockToken> tokens) {
         try {
             outstandingLockTokens.put(tokens);

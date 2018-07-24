@@ -14,8 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.processors;
+package com.palantir.lock.client;
 
-@AutoDelegate
-public interface OtherTestInterface {
+import java.io.Closeable;
+import java.util.Set;
+
+import com.palantir.lock.v2.LockToken;
+
+public interface TimeLockUnlocker extends Closeable {
+    void enqueue(Set<LockToken> tokens);
+
+    @Override
+    default void close() {
+        // noop
+    }
 }

@@ -53,7 +53,6 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.processors.AutoDelegate;
 
 /**
  * Feature breakdown:
