@@ -127,7 +127,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    int defaultGetRangesConcurrency,
                                    MultiTableSweepQueueWriter sweepQueue,
                                    ExecutorService deleteExecutor,
-                                   CommitProfileProcessor commitProfileProcessor) {
+                                   CommitProfileProcessor commitProfileProcessor,
+                                   boolean validateImmutableTsLockOnReads) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -149,7 +150,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               defaultGetRangesConcurrency,
               sweepQueue,
               deleteExecutor,
-              commitProfileProcessor);
+              commitProfileProcessor,
+              validateImmutableTsLockOnReads);
     }
 
     @Override
@@ -709,7 +711,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
-                commitProfileProcessor) {
+                commitProfileProcessor,
+                validateImmutableTsLockOnReads) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

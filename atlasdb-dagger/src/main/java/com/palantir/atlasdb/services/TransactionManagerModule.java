@@ -112,7 +112,8 @@ public class TransactionManagerModule {
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
                 Executors.newSingleThreadExecutor(
-                        new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)));
+                        new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)),
+                true);
     }
 
 }

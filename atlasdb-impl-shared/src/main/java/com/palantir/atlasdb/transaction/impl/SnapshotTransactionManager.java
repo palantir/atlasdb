@@ -76,6 +76,7 @@ import com.palantir.timestamp.TimestampService;
     final ExecutorService deleteExecutor;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
+    final boolean validateImmutableTsLockOnReads;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -98,7 +99,8 @@ import com.palantir.timestamp.TimestampService;
             int defaultGetRangesConcurrency,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            ExecutorService deleteExecutor) {
+            ExecutorService deleteExecutor,
+            boolean validateImmutableTsLockOnReads) {
         super(metricsManager, timestampCache);
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
@@ -119,6 +121,7 @@ import com.palantir.timestamp.TimestampService;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
         this.commitProfileProcessor = CommitProfileProcessor.createDefault(metricsManager);
+        this.validateImmutableTsLockOnReads = validateImmutableTsLockOnReads;
     }
 
     @Override
@@ -219,7 +222,8 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor);
+                commitProfileProcessor,
+                validateImmutableTsLockOnReads);
     }
 
     @Override
@@ -249,7 +253,8 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor);
+                commitProfileProcessor,
+                validateImmutableTsLockOnReads);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));

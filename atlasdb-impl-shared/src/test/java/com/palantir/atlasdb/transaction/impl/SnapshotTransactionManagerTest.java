@@ -83,7 +83,8 @@ public class SnapshotTransactionManagerTest {
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
             TimestampCache.createForTests(),
             MultiTableSweepQueueWriter.NO_OP,
-            executorService);
+            executorService,
+            true);
 
     @Test
     public void isAlwaysInitialized() {
@@ -127,7 +128,8 @@ public class SnapshotTransactionManagerTest {
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 TimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                executorService);
+                executorService,
+                true);
         newTransactionManager.close(); // should not throw
     }
 

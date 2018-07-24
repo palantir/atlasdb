@@ -296,7 +296,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -363,7 +364,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
@@ -1051,7 +1053,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true);
 
         //simulate roll back at commit time
         transactionService.putUnlessExists(snapshot.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
@@ -1098,7 +1101,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true);
 
         //forcing to try to commit a transaction that is already committed
         transactionService.putUnlessExists(transactionTs, TransactionConstants.FAILED_COMMIT_TS);
@@ -1142,7 +1146,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true);
 
         when(timestampServiceSpy.getFreshTimestamp()).thenReturn(10000000L);
 

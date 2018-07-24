@@ -180,7 +180,8 @@ public class CommitLockTest extends TransactionTestSetup {
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager)) {
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());

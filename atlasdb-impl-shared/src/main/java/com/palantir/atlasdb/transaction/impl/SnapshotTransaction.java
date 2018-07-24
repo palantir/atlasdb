@@ -218,6 +218,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Timer.Context transactionTimerContext;
     protected final CommitProfileProcessor commitProfileProcessor;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
+    protected final boolean validateImmutableTsLockOnReads;
 
     protected volatile boolean hasReads;
 
@@ -248,7 +249,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                int defaultGetRangesConcurrency,
                                MultiTableSweepQueueWriter sweepQueue,
                                ExecutorService deleteExecutor,
-                               CommitProfileProcessor commitProfileProcessor) {
+                               CommitProfileProcessor commitProfileProcessor,
+                               boolean validateImmutableTsLockOnReads) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -274,6 +276,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.hasReads = false;
         this.commitProfileProcessor = commitProfileProcessor;
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
+        this.validateImmutableTsLockOnReads = validateImmutableTsLockOnReads;
     }
 
     @Override
@@ -748,13 +751,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef, long timestamp) {
-        if (!isValidationNecessary(tableRef)) {
+        if (!isValidationNecessaryOnReads(tableRef)) {
             return;
         }
         throwIfPreCommitRequirementsNotMet(null, timestamp);
     }
 
-    private boolean isValidationNecessary(TableReference tableRef) {
+    private boolean isValidationNecessaryOnReads(TableReference tableRef) {
+        return isValidationNecessaryOnCommit(tableRef) && validateImmutableTsLockOnReads;
+    }
+
+    private boolean isValidationNecessaryOnCommit(TableReference tableRef) {
         return sweepStrategyManager.get().get(tableRef) == SweepStrategy.THOROUGH;
     }
 
@@ -1491,7 +1498,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * Refreshes external and commit locks.
      * @return set of locks that could not be refreshed
      */
-    private Set<LockToken> refreshCommitAndImmutableTsLocks(@Nullable LockToken commitLocksToken) {
+    private Set<LockToken>  refreshCommitAndImmutableTsLocks(@Nullable LockToken commitLocksToken) {
         Set<LockToken> toRefresh = Sets.newHashSet();
         if (commitLocksToken != null) {
             toRefresh.add(commitLocksToken);
@@ -2010,7 +2017,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean validationNecessaryForInvolvedTables() {
-        return involvedTables.stream().anyMatch(this::isValidationNecessary);
+        return involvedTables.stream().anyMatch(this::isValidationNecessaryOnCommit);
     }
 
     private long getStartTimestamp() {
