@@ -50,7 +50,6 @@ develop
     *    - Type
          - Change
 
-=======
     *    - |new| |metrics|
          - Targeted sweep now exposes tagged metrics for the outcome of each iteration, analogous to the legacy sweep outcome metrics.
            The reported outcomes for targeted sweep are: ``SUCCESS``, ``NOTHING_TO_SWEEP``, ``DISABLED``, ``NOT_ENOUGH_DB_NODES_ONLINE``, and ``ERROR``.
