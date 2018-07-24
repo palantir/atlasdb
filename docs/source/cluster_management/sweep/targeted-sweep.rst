@@ -48,8 +48,8 @@ In both cases, these configuration options are specified within a ``targetedSwee
    ``enabled``, "false", "Whether targeted sweep should be run by background threads. Note that enableSweepQueueWrites must be set to true before targeted sweep can be run."
    ``shards``, "1", "Number of shards to use for persisting information to the sweep queue, enabling better parallelization of targeted sweep. The number of shards should be greater than or equal to the number of threads used for background targeted sweep. Note that this number must be monotonically increasing, and attempts to lower may be ignored. Maximum supported value is 256."
 
-For example, to enable writes to the sweep queue and targeted sweep, with three conservative threads and 8 shards,
-one should add the following blocks to their configuration:
+For example, to enable writes to the sweep queue and targeted sweep, with three conservative threads, one thorough
+thread (which is the default) and 8 shards, one should add the following blocks to their configuration:
 
 .. code-block:: yaml
 
