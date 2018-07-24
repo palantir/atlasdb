@@ -82,6 +82,22 @@ v0.97.0
          - CassandraClientPoolingContainer metrics are tagged by pool name. Previosly pool name was embedded in metric name.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3375>`__)
 
+    *    - |improved|
+         - Added the ``CallbackInitializable`` interface to simplify asynchronous initialization of resources using transaction manager callbacks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3360>`__)
+
+    *    - |improved|
+         - The timestamp cache size is now actually live reloaded, and uses Caffeine instead of Guava for better performance. The read only transaction manager
+           (almost unused) now no longer constructs a thread pool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3351>`__)
+
+    *    - |improved| |devbreak|
+         - Transactions now have meters recording their outcomes (e.g. successful commits, lock expiry, being rolled back, read-write conflicts, etc.)
+           In the cases of write-write and read-write conflicts, the first table on which a conflict occurred will be tagged on to the conflict meter if it is safe for logging.
+           Note that some metric names have changed; in particular, ``SerializableTransaction.SerializableTransactionConflict`` and ``SnapshotTransaction.SnapshotTransactionConflict`` are now tracked as ``readWriteConflicts`` and ``writeWriteConflicts`` respectively under ``TransactionOutcomeMetrics``.
+           This is also an improvement in terms of clarity, as serializable transactions that experienced write-write conflicts were previously marked as snapshot transaction conflicts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3358>`__)
+
 =======
 v0.96.0
 =======
@@ -123,24 +139,8 @@ v0.95.0
          - Change
 
     *    - |improved|
-         - Added the ``CallbackInitializable`` interface to simplify asynchronous initialization of resources using transaction manager callbacks.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3360>`__)
-
-    *    - |improved|
-         - The timestamp cache size is now actually live reloaded, and uses Caffeine instead of Guava for better performance. The read only transaction manager
-           (almost unused) now no longer constructs a thread pool.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3351>`__)
-
-    *    - |improved|
          - The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3161>`__)
-
-    *    - |improved| |devbreak|
-         - Transactions now have meters recording their outcomes (e.g. successful commits, lock expiry, being rolled back, read-write conflicts, etc.)
-           In the cases of write-write and read-write conflicts, the first table on which a conflict occurred will be tagged on to the conflict meter if it is safe for logging.
-           Note that some metric names have changed; in particular, ``SerializableTransaction.SerializableTransactionConflict`` and ``SnapshotTransaction.SnapshotTransactionConflict`` are now tracked as ``readWriteConflicts`` and ``writeWriteConflicts`` respectively under ``TransactionOutcomeMetrics``.
-           This is also an improvement in terms of clarity, as serializable transactions that experienced write-write conflicts were previously marked as snapshot transaction conflicts.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3358>`__)
 
     *    - |devbreak|
          - The ``putUnlessExists`` API has been removed from AtlasDB tables, as it was misleading (it only did the put if the given row, column and value triple were already present, as opposed to the more intuitive condition of the row and column value pair being present).
