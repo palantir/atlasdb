@@ -50,6 +50,25 @@ develop
     *    - Type
          - Change
 
+=======
+    *    - |new| |metrics|
+         - Targeted sweep now exposes tagged metrics for the outcome of each iteration, analogous to the legacy sweep outcome metrics.
+           The reported outcomes for targeted sweep are: ``SUCCESS``, ``NOTHING_TO_SWEEP``, ``DISABLED``, ``NOT_ENOUGH_DB_NODES_ONLINE``, and ``ERROR``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3399>`__)
+
+=======
+v0.97.0
+=======
+
+20 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - TimeLock Server now exposes a ``startAtlasDbTransaction`` endpoint which locks an immutable timestamp and then gets a fresh timestamp (in a single round-trip call); new TimeLock clients call this endpoint.
            This saves an estimated one TimeLock round-trip of latency when starting a transaction.

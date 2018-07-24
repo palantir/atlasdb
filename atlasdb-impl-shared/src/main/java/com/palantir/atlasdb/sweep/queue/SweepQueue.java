@@ -117,7 +117,7 @@ public final class SweepQueue implements SweepQueueWriter {
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
 
-        if (!sweepBatch.hasNothingToSweep()) {
+        if (!sweepBatch.isEmpty()) {
             log.debug("Put {} ranged tombstones and swept up to timestamp {} for {}.",
                     SafeArg.of("tombstones", sweepBatch.writes().size()),
                     SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
@@ -129,7 +129,7 @@ public final class SweepQueue implements SweepQueueWriter {
         metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
         metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());
 
-        if (sweepBatch.hasNothingToSweep()) {
+        if (sweepBatch.isEmpty()) {
             metrics.registerOccurrenceOf(SweepOutcome.NOTHING_TO_SWEEP);
         } else {
             metrics.registerOccurrenceOf(SweepOutcome.SUCCESS);
