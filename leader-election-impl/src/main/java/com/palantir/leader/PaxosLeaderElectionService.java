@@ -343,9 +343,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         IllegalStateException exception = new IllegalStateException(
                 "There is a fatal problem with the leadership election configuration! "
                         + "This is probably caused by invalid pref files setting up the cluster "
-                        + "(exception.g. for lock server look at lock.prefs, leader.prefs, and lock_client.prefs)."
+                        + "(e.g. for lock server look at lock.prefs, leader.prefs, and lock_client.prefs)."
                         + "If the preferences are specified with a host port pair list and localhost index "
-                        + "then make sure that the localhost index is correct (exception.g. actually the localhost).");
+                        + "then make sure that the localhost index is correct (e.g. actually the localhost).");
 
         if (cachedService != pingedService) {
             log.error("Remote potential leaders are claiming to be each other!", exception);

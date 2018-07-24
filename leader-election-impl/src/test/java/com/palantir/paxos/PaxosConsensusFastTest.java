@@ -94,7 +94,7 @@ public class PaxosConsensusFastTest {
         for (int i = 1; i < NUM_POTENTIAL_LEADERS - QUORUM_SIZE + 2; i++) {
             state.goDown(i);
         }
-        assertNotSame("leader cannot maintain leadership withou quorum",
+        assertNotSame("leader cannot maintain leadership without quorum",
                 state.leader(0).isStillLeading(token), StillLeadingStatus.LEADING);
         state.comeUp(1);
         state.gainLeadership(0);
