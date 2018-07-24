@@ -420,12 +420,6 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void usesTimeLockIfInstallConfigIsUnspecifiedButInitialRuntimeConfigContainsTimeLockBlock() {
-        setUpTimeLockBlockInRuntimeConfig();
-        verifyUsingTimeLockByGettingAFreshTimestamp();
-    }
-
-    @Test
     public void throwsIfInstallConfigHasLeaderBlockButInitialRuntimeConfigContainsTimeLockBlock() throws IOException {
         setUpLeaderBlockInConfig();
         setUpTimeLockBlockInRuntimeConfig();
@@ -440,7 +434,7 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void usesTimeLockIfInstallConfigIsTimeLockAndInitialRuntimeConfigContainsTimeLockBlock() {
+    public void usesTimeLockIfInitialRuntimeConfigContainsTimeLockBlock() {
         setUpTimeLockBlockInRuntimeConfig();
         verifyUsingTimeLockByGettingAFreshTimestamp();
     }

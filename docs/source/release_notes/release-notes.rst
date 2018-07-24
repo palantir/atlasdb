@@ -52,6 +52,7 @@ develop
 
     *    - |userbreak|
          - The ``timelock`` block from the install config has been removed. The block was deprecated in v0.67.0 (released on 15th of November 2017).
+           Products using this block should switch to using ``timelockRuntime`` from the atlas runtime config.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3394>`__)
 
     *    - |improved|
