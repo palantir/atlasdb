@@ -42,7 +42,6 @@ import com.palantir.processors.AutoDelegate;
  * (one hour by default), so we believe it is unlikely. We also are not dependent on this for correctness, only for
  * performance.
  */
-@AutoDelegate(typeToExtend = TimelockService.class)
 public class ImmutableTimestampBridgingTimeLockService implements AutoDelegate_TimelockService {
     private static final double ONCE_PER_HOUR = 1. / TimeUnit.HOURS.toSeconds(1);
 
