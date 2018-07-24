@@ -72,7 +72,6 @@ import com.palantir.processors.AutoDelegate;
  *   ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
-@AutoDelegate(typeToExtend = CassandraClientPool.class)
 public class CassandraClientPoolImpl implements CassandraClientPool {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override

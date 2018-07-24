@@ -24,7 +24,6 @@ import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = CassandraKeyValueServiceConfig.class)
 public class CassandraReloadableKvsConfig extends AutoDelegate_CassandraKeyValueServiceConfig {
     private final CassandraKeyValueServiceConfig config;
     private final Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigSupplier;

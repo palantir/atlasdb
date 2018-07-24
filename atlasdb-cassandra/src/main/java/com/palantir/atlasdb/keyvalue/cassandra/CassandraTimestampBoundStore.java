@@ -45,14 +45,12 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.AutoDelegate_TimestampBoundStore;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.util.debug.ThreadDumps;
 
-@AutoDelegate(typeToExtend = TimestampBoundStore.class)
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TimestampBoundStore {
         @Override

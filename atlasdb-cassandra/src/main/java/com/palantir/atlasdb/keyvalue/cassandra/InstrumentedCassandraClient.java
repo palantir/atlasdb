@@ -31,12 +31,10 @@ import org.apache.thrift.TException;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @SuppressWarnings({"all"}) // thrift variable names.
-@AutoDelegate(typeToExtend = CassandraClient.class)
 public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient {
     private final CassandraClient delegate;
     private final TaggedMetricRegistry taggedMetricRegistry;

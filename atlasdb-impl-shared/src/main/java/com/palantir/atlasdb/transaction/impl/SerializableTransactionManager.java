@@ -45,10 +45,8 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampService;
 
-@AutoDelegate(typeToExtend = SerializableTransactionManager.class)
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static class InitializeCheckingWrapper implements AutoDelegate_TransactionManager {

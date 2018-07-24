@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-package com.palantir.timestamp;
+package com.palantir.processors;
 
-import com.palantir.processors.AutoDelegate;
-
-@AutoDelegate(typeToExtend = PersistentTimestampService.class)
-public interface PersistentTimestampService extends TimestampService, TimestampManagementService {
-    @SuppressWarnings("unused") // used by product
-    long getUpperLimitTimestampToHandOutInclusive();
+@AutoDelegate
+public interface OtherTestInterface {
 }
