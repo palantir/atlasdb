@@ -201,7 +201,8 @@ In this case, running standard sweep may be necessary, to delete any stale versi
 </div>
 <div class="section" id="configuration-options">
 <h2>Configuration Options<a class="headerlink" href="#configuration-options" title="Permalink to this headline">¶</a></h2>
-<p>Targeted sweep uses a combination of <a class="reference internal" href="../../configuration/index.html#atlas-config"><span class="std std-ref">install and runtime AtlasDB configurations</span></a>, as follows:</p>
+<p>Targeted sweep uses a combination of <a class="reference internal" href="../../configuration/index.html#atlas-config"><span class="std std-ref">install and runtime AtlasDB configurations</span></a>.
+In both cases, these configuration options are specified within a <code class="docutils literal notranslate"><span class="pre">targetedSweep</span></code> context.</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="25%" />
@@ -252,6 +253,21 @@ In this case, running standard sweep may be necessary, to delete any stale versi
 </tr>
 </tbody>
 </table>
+<p>For example, to enable writes to the sweep queue and targeted sweep, with three conservative threads, one thorough
+thread (which is the default) and 8 shards, one should add the following blocks to their configuration:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">targetedSweep</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">enableSweepQueueWrites</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+    <span class="l l-Scalar l-Scalar-Plain">conservativeThreads</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
+
+<span class="l l-Scalar l-Scalar-Plain">atlasdb-runtime</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">targetedSweep</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">enabled</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+    <span class="l l-Scalar l-Scalar-Plain">shards</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8</span>
+</pre></div>
+</div>
+<p>Also note that threads perform targeted sweep serially within the context of a shard, so configuring more threads
+in an attempt to increase parallelism will only work if the number of shards is also increased.</p>
 </div>
 <div class="section" id="changing-sweep-strategy-for-a-table">
 <h2>Changing Sweep Strategy for a Table<a class="headerlink" href="#changing-sweep-strategy-for-a-table" title="Permalink to this headline">¶</a></h2>
