@@ -88,7 +88,7 @@ The ordering of these steps is important:
    in between our start and commit, and someone else deleted the value after our commit. If we pass our lock check, but
    then lose our locks and have a very long GC, Thorough Sweep might clear all evidence of the conflict, meaning that
    we miss a read-write conflict. This would be safe for conservative sweep because of the deletion sentinel.
-8. The kock check may be run in parallel with pre-commit condition checks, though it must strictly be run before writing
+8. The lock check may be run in parallel with pre-commit condition checks, though it must strictly be run before writing
    to the transactions table, as we cannot finish our commit if we can't be certain we still have locks.
 9. We need to check that the pre-commit conditions still hold before we can finish committing.
 
