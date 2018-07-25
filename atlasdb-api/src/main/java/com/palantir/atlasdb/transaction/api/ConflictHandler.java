@@ -17,7 +17,7 @@ package com.palantir.atlasdb.transaction.api;
 
 public enum ConflictHandler {
     /**
-     * If two transactions write to the same cell the one that was committed later will win.  We
+     * If two transactions concurrently write to the same cell the one that has started later will win.  We
      * are ignoring write conflicts in this case.
      */
     IGNORE_ALL(false, false, false, false),
