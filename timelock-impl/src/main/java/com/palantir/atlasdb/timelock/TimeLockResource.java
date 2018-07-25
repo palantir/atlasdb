@@ -29,6 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
@@ -43,11 +44,20 @@ public class TimeLockResource {
     private final ConcurrentMap<String, TimeLockServices> servicesByNamespace = Maps.newConcurrentMap();
     private final Supplier<Integer> maxNumberOfClients;
 
-    public TimeLockResource(
+    @VisibleForTesting
+    TimeLockResource(
             Function<String, TimeLockServices> clientServicesFactory,
             Supplier<Integer> maxNumberOfClients) {
         this.clientServicesFactory = clientServicesFactory;
         this.maxNumberOfClients = maxNumberOfClients;
+    }
+
+    public static TimeLockResource create(MetricsManager metricsManager,
+            Function<String, TimeLockServices> clientServicesFactory,
+            Supplier<Integer> maxNumberOfClients) {
+        TimeLockResource resource = new TimeLockResource(clientServicesFactory, maxNumberOfClients);
+        registerClientCapacityMetrics(resource, metricsManager);
+        return resource;
     }
 
     @Path("/lock")
@@ -96,5 +106,10 @@ public class TimeLockResource {
         }
 
         return clientServicesFactory.apply(namespace);
+    }
+
+    private static void registerClientCapacityMetrics(TimeLockResource resource, MetricsManager metricsManager) {
+        metricsManager.registerMetric(TimeLockResource.class, "activeClients", resource::numberOfClients);
+        metricsManager.registerMetric(TimeLockResource.class, "maxClients", () -> resource.maxNumberOfClients);
     }
 }
