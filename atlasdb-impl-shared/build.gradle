@@ -20,7 +20,6 @@ dependencies {
   compile project(":timestamp-client")
   compile project(":atlasdb-client")
   compile project(":qos-service-api")
-  compile project(":flake-rule")
 
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
   compile group: 'com.palantir.common', name: 'streams'
