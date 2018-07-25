@@ -59,6 +59,18 @@ develop
          - Changed the range scan behavior for the sweep priority table so that reads scan less data in Cassandra.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3410>`__)
 
+    *    - |improved|
+         - TimeLock by default now has a client limit of 500.
+           Previously, this used to be 100 - however we have run into issues internally where stacks legitimately reach this threshold.
+           Note that we still need to maintain the client limit to avoid a possible DOS attack with users creating arbitrarily many clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3413>`__)
+
+    *    - |new| |metrics|
+         - Added metrics for the number of active clients and maximum number of clients in TimeLock Server.
+           These are useful to identify stacks that may be in danger of breaching their maxima.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3413>`__)
+
+
 =======
 v0.97.0
 =======
