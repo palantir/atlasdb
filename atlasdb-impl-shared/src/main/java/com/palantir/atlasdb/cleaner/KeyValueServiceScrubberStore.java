@@ -50,14 +50,12 @@ import com.palantir.common.base.AbstractBatchingVisitable;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.processors.AutoDelegate;
 
 /**
  *
  * A ScrubberStore implemented as a table in the KeyValueService.
  *
  */
-@AutoDelegate(typeToExtend = ScrubberStore.class)
 public final class KeyValueServiceScrubberStore implements ScrubberStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_ScrubberStore {
         @Override

@@ -21,9 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = PersistentTimestampService.class)
 @ThreadSafe
 public class PersistentTimestampServiceImpl implements PersistentTimestampService {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PersistentTimestampService {

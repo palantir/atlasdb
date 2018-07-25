@@ -85,7 +85,7 @@ public class MetricsManager {
      * Add a new gauge metric of the given name.
      *
      * If the metric already exists, this will REPLACE it with a new metric.
-     * Consider using {@link MetricsManager#registerOrAddToMetric} instead.
+     * Consider using {@link MetricsManager#registerIfNotExists} instead.
      */
     public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
         MetricName metricToAdd = MetricName.builder()
@@ -105,23 +105,17 @@ public class MetricsManager {
         registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
     }
 
-    public static void main(String[] args) {
-        MetricName metricToAdd = MetricName.builder()
-                .safeName(MetricRegistry.name(MetricsManager.class, "test"))
-                .safeTags(ImmutableMap.of("strategy", "bsL"))
-                .build();
-        System.out.println(metricToAdd);
-    }
-
     public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
         Map<String, String> tag = getTableNameTagFor(tableRef);
         registerMetric(clazz, metricName, gauge, tag);
     }
 
     /**
-     * Add a new gauge to a metric (which may already exist).
+     * Add a new gauge metric of the given name.
+     *
+     * If the metric already exists, this is a noop.
      */
-    public void registerOrAddToMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+    public void registerIfNotExists(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
         MetricName metricToAdd = MetricName.builder()
                 .safeName(MetricRegistry.name(clazz, metricName))
                 .safeTags(tag)
