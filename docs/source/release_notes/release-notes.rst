@@ -55,6 +55,10 @@ develop
            The reported outcomes for targeted sweep are: ``SUCCESS``, ``NOTHING_TO_SWEEP``, ``DISABLED``, ``NOT_ENOUGH_DB_NODES_ONLINE``, and ``ERROR``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3399>`__)
 
+    *    - |improved|
+         - Changed the range scan behavior for the sweep priority table so that reads scan less data in Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3410>`__)
+
 =======
 v0.97.0
 =======
