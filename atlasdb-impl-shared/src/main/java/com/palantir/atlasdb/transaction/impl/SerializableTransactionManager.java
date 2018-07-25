@@ -45,14 +45,12 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampService;
 
-@AutoDelegate(typeToExtend = SerializableTransactionManager.class)
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static class InitializeCheckingWrapper implements AutoDelegate_TransactionManager {
-        private final SerializableTransactionManager txManager;
+        private final TransactionManager txManager;
         private final Supplier<Boolean> initializationPrerequisite;
         private final Callback<TransactionManager> callback;
 
@@ -62,7 +60,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor(
                 new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true));
 
-        InitializeCheckingWrapper(SerializableTransactionManager manager,
+        InitializeCheckingWrapper(TransactionManager manager,
                 Supplier<Boolean> initializationPrerequisite,
                 Callback<TransactionManager> callBack) {
             this.txManager = manager;
@@ -72,7 +70,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
 
         @Override
-        public SerializableTransactionManager delegate() {
+        public TransactionManager delegate() {
             assertOpen();
             if (!isInitialized()) {
                 throw new NotInitializedException("TransactionManager");
@@ -199,7 +197,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback) {
-        SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
+        TransactionManager serializableTransactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
                 timelockService,

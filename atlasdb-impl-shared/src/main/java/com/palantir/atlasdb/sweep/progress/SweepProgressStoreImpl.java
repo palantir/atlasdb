@@ -48,9 +48,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = SweepProgressStore.class)
 public final class SweepProgressStoreImpl implements SweepProgressStore {
 
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepProgressStore {

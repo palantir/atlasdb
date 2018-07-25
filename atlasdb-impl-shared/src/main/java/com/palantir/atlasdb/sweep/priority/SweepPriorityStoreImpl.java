@@ -31,9 +31,7 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.UnmodifiableTransaction;
-import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = SweepPriorityStore.class)
 public final class SweepPriorityStoreImpl implements SweepPriorityStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepPriorityStore {
 

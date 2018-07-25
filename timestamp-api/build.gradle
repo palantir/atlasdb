@@ -1,10 +1,13 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
+apply plugin: 'org.inferred.processors'
 
 dependencies {
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+
+    processor project(":atlasdb-processors")
 
     testCompile group: 'org.assertj', name: 'assertj-core'
 }

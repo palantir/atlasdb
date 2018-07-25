@@ -15,12 +15,15 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import com.palantir.processors.AutoDelegate;
+
 /**
  * This is the underlying store used by the puncher for keeping track in a persistent way of the
  * wall-clock/timestamp mapping.
  *
  * @author jweel
  */
+@AutoDelegate(typeToExtend = PuncherStore.class)
 public interface PuncherStore {
     /**
      * Used for PuncherStores that can be initialized asynchronously (i.e. those extending

@@ -130,7 +130,6 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -148,7 +147,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * if some nodes are down, and the change can be detected through active hosts,
  * and these inactive nodes will be removed afterwards.
  */
-@AutoDelegate(typeToExtend = CassandraKeyValueService.class)
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
     @VisibleForTesting

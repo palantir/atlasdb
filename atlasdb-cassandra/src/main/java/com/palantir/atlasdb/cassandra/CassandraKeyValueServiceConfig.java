@@ -33,12 +33,14 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
+@AutoDelegate(typeToExtend = CassandraKeyValueServiceConfig.class)
 @Value.Immutable
 public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceConfig {
 
