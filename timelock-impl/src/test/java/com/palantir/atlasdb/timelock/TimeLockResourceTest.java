@@ -25,7 +25,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
-import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -169,9 +168,7 @@ public class TimeLockResourceTest {
     private int getGaugeValueForTimeLockResource(String gaugeName) {
         Object value = Optional.ofNullable(metricsManager.getRegistry()
                 .getGauges()
-                .get(new StringJoiner(".").add(TimeLockResource.class.getCanonicalName())
-                        .add(gaugeName)
-                        .toString())
+                .get(TimeLockResource.class.getCanonicalName() + "." + gaugeName)
                 .getValue())
                 .orElseThrow(() -> new IllegalStateException("Gauge with gauge name " + gaugeName + " did not exist."));
         return (int) value;
