@@ -91,6 +91,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Isolation Levels</a></li>
 <li class="toctree-l2"><a class="reference internal" href="performance_ideas.html">Performance Ideas</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transaction_protocol.html">Transaction Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="life_of_a_transaction.html">Life of a Transaction</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
@@ -169,7 +170,7 @@
            <div itemprop="articleBody">
             
   <div class="section" id="isolation-levels">
-<h1>Isolation Levels<a class="headerlink" href="#isolation-levels" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Isolation Levels<a class="headerlink" href="#isolation-levels" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="snapshot-vs-serializable-vs-no-conflict">
 <h2>Snapshot vs Serializable vs No Conflict<a class="headerlink" href="#snapshot-vs-serializable-vs-no-conflict" title="Permalink to this headline">¶</a></h2>
 <p>Transaction types (snapshot or serializable) provide different
@@ -177,6 +178,8 @@ transactional properties.</p>
 <ul class="simple">
 <li>Serializable<ul>
 <li>Read and Writes to this table both happen at commit time</li>
+<li>Implemented by checking that reads made at startTs return the
+same results at commitTs. ABA scenarios are permitted.</li>
 </ul>
 </li>
 <li>Snapshot<ul>
