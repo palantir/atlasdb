@@ -83,10 +83,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         ThreadPoolExecutor executor = PTExecutors.newFixedThreadPool(poolSize,
                 new NamedThreadFactory(threadNamePrefix, false));
         executor.setKeepAliveTime(1, TimeUnit.MINUTES);
-        return new InstrumentedExecutorService(
-                executor,
-                AtlasDbMetrics.getMetricRegistry(),
-                MetricRegistry.name(AbstractKeyValueService.class, "executorService"));
+        return executor;
     }
 
     @Override

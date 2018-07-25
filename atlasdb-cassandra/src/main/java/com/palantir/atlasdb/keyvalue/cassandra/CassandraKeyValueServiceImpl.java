@@ -47,6 +47,8 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.InstrumentedExecutorService;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -345,8 +347,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClientPool clientPool,
             Optional<LeaderConfig> leaderConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
-                config.maxConnectionBurstSize() * config.servers().size()));
+        super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry()));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
@@ -372,6 +373,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellLoader, cellValuePutter,
                 wrappingQueryRunner, deleteConsistency);
+    }
+
+    private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
+            MetricRegistry registry) {
+        return new InstrumentedExecutorService(
+                createFixedThreadPool("Atlas Cassandra KVS",
+                        config.poolSize() * config.servers().size()),
+                registry,
+                MetricRegistry.name(CassandraKeyValueService.class, "executorService"));
     }
 
     @Override
