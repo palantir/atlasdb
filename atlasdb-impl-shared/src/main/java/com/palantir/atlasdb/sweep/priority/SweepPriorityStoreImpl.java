@@ -20,12 +20,16 @@ import java.util.List;
 import java.util.OptionalLong;
 
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
+import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityNamedColumn;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow;
+import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -51,6 +55,8 @@ public final class SweepPriorityStoreImpl implements SweepPriorityStore {
         }
 
     }
+
+    private static final int READ_BATCH_SIZE = 100;
 
     private final KeyValueService kvs;
     private final SweepTableFactory sweepTableFactory;
@@ -101,7 +107,18 @@ public final class SweepPriorityStoreImpl implements SweepPriorityStore {
 
     private List<SweepPriority> loadPriorities(Transaction tx) {
         SweepPriorityTable table = sweepTableFactory.getSweepPriorityTable(tx);
-        return table.getAllRowsUnordered().transform(SweepPriorityStoreImpl::hydrate).immutableCopy();
+
+        // Load a single column first for each row. This is a much more efficient query on Cassandra
+        // than the full table scan that occurs otherwise.
+        List<SweepPriorityRowResult> rows = table.getRange(RangeRequest.builder()
+                .retainColumns(SweepPriorityTable.getColumnSelection(SweepPriorityNamedColumn.CELLS_DELETED))
+                .batchHint(READ_BATCH_SIZE)
+                .build())
+                .immutableCopy();
+
+        // Fetch all columns for the above rows directly
+        return Lists.transform(table.getRows(Lists.transform(rows, SweepPriorityRowResult::getRowName)),
+                SweepPriorityStoreImpl::hydrate);
     }
 
     private static SweepPriority hydrate(SweepPriorityTable.SweepPriorityRowResult rr) {

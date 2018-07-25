@@ -16,11 +16,9 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -70,7 +68,7 @@ import com.palantir.timestamp.TimestampService;
 public class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     private static final Logger log = LoggerFactory.getLogger(SweepStatsKeyValueService.class);
-    private static final int CLEAR_WEIGHT = 1 << 14;
+    private static final int CLEAR_WEIGHT = 1 << 14; // 16384
     private static final long FLUSH_DELAY_SECONDS = 42;
 
     // This is gross and won't work if someone starts namespacing sweep differently
@@ -84,8 +82,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
 
-    private final Set<TableReference> clearedTables = Collections.newSetFromMap(
-            new ConcurrentHashMap<TableReference, Boolean>());
+    private final Set<TableReference> clearedTables = Sets.newConcurrentHashSet();
 
     private final AtomicInteger totalModifications = new AtomicInteger();
     private final AtomicLong totalModificationsSize = new AtomicLong();
