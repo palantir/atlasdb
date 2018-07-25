@@ -218,7 +218,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Timer.Context transactionTimerContext;
     protected final CommitProfileProcessor commitProfileProcessor;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
-    protected final boolean validateImmutableTsLockOnReads;
+    protected final boolean validateLocksOnReads;
 
     protected volatile boolean hasReads;
 
@@ -250,7 +250,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                MultiTableSweepQueueWriter sweepQueue,
                                ExecutorService deleteExecutor,
                                CommitProfileProcessor commitProfileProcessor,
-                               boolean validateImmutableTsLockOnReads) {
+                               boolean validateLocksOnReads) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -276,7 +276,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.hasReads = false;
         this.commitProfileProcessor = commitProfileProcessor;
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
-        this.validateImmutableTsLockOnReads = validateImmutableTsLockOnReads;
+        this.validateLocksOnReads = validateLocksOnReads;
     }
 
     @Override
@@ -758,7 +758,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef) {
-        return isValidationNecessaryOnCommit(tableRef) && validateImmutableTsLockOnReads;
+        return isValidationNecessaryOnCommit(tableRef) && validateLocksOnReads;
     }
 
     private boolean isValidationNecessaryOnCommit(TableReference tableRef) {

@@ -144,7 +144,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueueWriter,
                 deleteExecutor,
                 CommitProfileProcessor.createNonLogging(metricsManager),
-                validateImmutableTsLockOnReads);
+                validateLocksOnReads);
     }
 
     @Override

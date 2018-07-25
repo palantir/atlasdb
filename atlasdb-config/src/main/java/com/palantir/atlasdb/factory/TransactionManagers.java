@@ -181,7 +181,7 @@ public abstract class TransactionManagers {
     }
 
     @Value.Default
-    boolean validateImmutableTsLockOnReads() {
+    boolean validateLocksOnReads() {
         return true;
     }
 
@@ -381,7 +381,7 @@ public abstract class TransactionManagers {
                                 () -> runtimeConfigSupplier.get().getTimestampCacheSize()),
                         targetedSweep,
                         callbacks,
-                        validateImmutableTsLockOnReads()),
+                        validateLocksOnReads()),
                 closeables);
         TransactionManager instrumentedTransactionManager =
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
