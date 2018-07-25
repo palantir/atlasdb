@@ -31,7 +31,7 @@ public abstract class TimeLockRuntimeConfiguration {
     @JsonProperty("max-number-of-clients")
     @Value.Default
     public Integer maxNumberOfClients() {
-        return 100;
+        return 200;
     }
 
     /**
