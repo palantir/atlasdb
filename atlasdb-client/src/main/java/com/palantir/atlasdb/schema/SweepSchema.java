@@ -63,6 +63,7 @@ public enum SweepSchema implements AtlasSchema {
                 // was last swept.
                 column("cells_examined", "e", ValueType.VAR_LONG);
             conflictHandler(ConflictHandler.IGNORE_ALL);
+            rangeScanAllowed();
         }});
 
         schema.validate();
