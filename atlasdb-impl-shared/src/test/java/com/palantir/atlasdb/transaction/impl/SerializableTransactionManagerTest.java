@@ -33,6 +33,7 @@ import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.palantir.async.initializer.AsyncInitializer;
@@ -45,8 +46,11 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.v2.TimelockService;
 
+@ShouldRetry(numAttempts = 2)
 public class SerializableTransactionManagerTest {
     private static final long THREE = 3L;
 
@@ -57,6 +61,9 @@ public class SerializableTransactionManagerTest {
     private Callback<TransactionManager> mockCallback = mock(Callback.class);
 
     private TransactionManager manager;
+
+    @Rule
+    public final FlakeRetryingRule flakeRetryingRule = new FlakeRetryingRule();
 
     @Before
     public void setUp() {
