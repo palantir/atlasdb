@@ -40,12 +40,16 @@ import com.palantir.timestamp.TimestampService;
 public class TimeLockResource {
     private final Logger log = LoggerFactory.getLogger(TimeLockResource.class);
 
+    @VisibleForTesting
+    static final String ACTIVE_CLIENTS = "activeClients";
+    @VisibleForTesting
+    static final String MAX_CLIENTS = "maxClients";
+
     private final Function<String, TimeLockServices>  clientServicesFactory;
     private final ConcurrentMap<String, TimeLockServices> servicesByNamespace = Maps.newConcurrentMap();
     private final Supplier<Integer> maxNumberOfClients;
 
-    @VisibleForTesting
-    TimeLockResource(
+    private TimeLockResource(
             Function<String, TimeLockServices> clientServicesFactory,
             Supplier<Integer> maxNumberOfClients) {
         this.clientServicesFactory = clientServicesFactory;
@@ -109,7 +113,7 @@ public class TimeLockResource {
     }
 
     private static void registerClientCapacityMetrics(TimeLockResource resource, MetricsManager metricsManager) {
-        metricsManager.registerMetric(TimeLockResource.class, "activeClients", resource::numberOfClients);
-        metricsManager.registerMetric(TimeLockResource.class, "maxClients", () -> resource.maxNumberOfClients);
+        metricsManager.registerMetric(TimeLockResource.class, ACTIVE_CLIENTS, resource::numberOfClients);
+        metricsManager.registerMetric(TimeLockResource.class, MAX_CLIENTS, resource.maxNumberOfClients::get);
     }
 }
