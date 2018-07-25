@@ -80,7 +80,7 @@ develop
               - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.completed``
               - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.xecutorService.duration``
 
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3064>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3416>`__)
 
 =======
 v0.97.0
