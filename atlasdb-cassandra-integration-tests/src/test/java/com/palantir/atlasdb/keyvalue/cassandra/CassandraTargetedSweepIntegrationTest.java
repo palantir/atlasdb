@@ -63,7 +63,8 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
         super.setup();
 
         sweepQueue = TargetedSweeper.createUninitializedForTest(() -> 1);
-        sweepQueue.initialize(timestampsSupplier, mock(TimelockService.class), kvs, mock(TargetedSweepFollower.class));
+        sweepQueue.initializeWithoutRunning(
+                timestampsSupplier, mock(TimelockService.class), kvs, mock(TargetedSweepFollower.class));
     }
 
     @Override

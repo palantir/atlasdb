@@ -27,12 +27,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.logsafe.SafeArg;
 
-public final class SweepQueue implements SweepQueueWriter {
+public final class SweepQueue implements MultiTableSweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(SweepQueue.class);
     private final SweepableCells sweepableCells;
     private final SweepableTimestamps sweepableTimestamps;
@@ -56,6 +58,7 @@ public final class SweepQueue implements SweepQueueWriter {
 
     public static SweepQueue create(TargetedSweepMetrics metrics, KeyValueService kvs, Supplier<Integer> shardsConfig,
             TargetedSweepFollower follower) {
+        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         ShardProgress progress = new ShardProgress(kvs);
         Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress,
                 SweepQueueUtils.REFRESH_INTERVAL);
