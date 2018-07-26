@@ -120,7 +120,9 @@ public class TimeLockAgent {
 
         // Finally, register the health check, and endpoints associated with the clients.
         healthCheckSupplier = leadershipCreator.getHealthCheck();
-        resource = new TimeLockResource(this::createInvalidatingTimeLockServices,
+        resource = TimeLockResource.create(
+                metricsManager,
+                this::createInvalidatingTimeLockServices,
                 JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime));
         registrar.accept(resource);
 

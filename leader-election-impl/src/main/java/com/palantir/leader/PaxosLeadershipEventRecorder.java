@@ -62,8 +62,8 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     }
 
     @Override
-    public void recordProposalFailure(PaxosRoundFailureException e) {
-        events.proposalFailure(e);
+    public void recordProposalFailure(PaxosRoundFailureException paxosException) {
+        events.proposalFailure(paxosException);
     }
 
     @Override
@@ -112,5 +112,4 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     private synchronized boolean isSameRound(PaxosValue value) {
         return currentRound != null && value != null && currentRound.getRound() == value.getRound();
     }
-
 }

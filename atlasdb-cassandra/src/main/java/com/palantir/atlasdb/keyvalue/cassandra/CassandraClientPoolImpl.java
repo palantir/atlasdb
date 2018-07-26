@@ -53,7 +53,6 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.processors.AutoDelegate;
 
 /**
  * Feature breakdown:
@@ -72,7 +71,6 @@ import com.palantir.processors.AutoDelegate;
  *   ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
-@AutoDelegate(typeToExtend = CassandraClientPool.class)
 public class CassandraClientPoolImpl implements CassandraClientPool {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override

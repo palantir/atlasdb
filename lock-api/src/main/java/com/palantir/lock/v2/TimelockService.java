@@ -26,11 +26,13 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 
 @Path("/timelock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@AutoDelegate(typeToExtend = TimelockService.class)
 public interface TimelockService {
     /**
      * Used for TimelockServices that can be initialized asynchronously (i.e. those extending

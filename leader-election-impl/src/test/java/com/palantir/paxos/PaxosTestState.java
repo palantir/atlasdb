@@ -33,7 +33,8 @@ public class PaxosTestState {
     private final List<AtomicBoolean> failureToggles;
     private final ExecutorService executor;
 
-    public PaxosTestState(List<LeaderElectionService> leaders, List<PaxosAcceptor> acceptors, List<PaxosLearner> learners, List<AtomicBoolean> failureToggles, ExecutorService executor) {
+    public PaxosTestState(List<LeaderElectionService> leaders, List<PaxosAcceptor> acceptors,
+            List<PaxosLearner> learners, List<AtomicBoolean> failureToggles, ExecutorService executor) {
         this.leaders = leaders;
         this.acceptors = acceptors;
         this.learners = learners;
@@ -41,26 +42,22 @@ public class PaxosTestState {
         this.executor = executor;
     }
 
-    public void goDown(int i) {
-        failureToggles.get(i).set(true);
+    public void goDown(int idx) {
+        failureToggles.get(idx).set(true);
     }
 
-    public void comeUp(int i) {
-        failureToggles.get(i).set(false);
+    public void comeUp(int idx) {
+        failureToggles.get(idx).set(false);
     }
 
     public LeadershipToken gainLeadership(int leaderNum) {
         return gainLeadership(leaderNum, true /* check leadership afterwards */);
     }
 
-    public LeadershipToken gainLeadershipWithoutCheckingAfter(int leaderNum) {
-        return gainLeadership(leaderNum, false /* check leadership afterwards */);
-    }
-
     public LeadershipToken gainLeadership(int leaderNum, boolean checkAfterwards) {
-        LeaderElectionService.LeadershipToken t = null;
+        LeaderElectionService.LeadershipToken token = null;
         try {
-            t = leader(leaderNum).blockOnBecomingLeader();
+            token = leader(leaderNum).blockOnBecomingLeader();
         } catch (InterruptedException e) {
             fail(e.getMessage());
         }
@@ -68,17 +65,21 @@ public class PaxosTestState {
             assertEquals(
                     "leader should still be leading right after becoming leader",
                     StillLeadingStatus.LEADING,
-                    leader(leaderNum).isStillLeading(t));
+                    leader(leaderNum).isStillLeading(token));
         }
-        return t;
+        return token;
     }
 
-    public LeaderElectionService leader(int i) {
-        return leaders.get(i);
+    public LeadershipToken gainLeadershipWithoutCheckingAfter(int leaderNum) {
+        return gainLeadership(leaderNum, false /* check leadership afterwards */);
     }
 
-    public PaxosLearner learner(int i) {
-        return learners.get(i);
+    public LeaderElectionService leader(int idx) {
+        return leaders.get(idx);
+    }
+
+    public PaxosLearner learner(int idx) {
+        return learners.get(idx);
     }
 
     public ExecutorService getExecutor() {

@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcomeMetrics;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -62,7 +64,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
-        this.sweepOutcomeMetrics = new SweepOutcomeMetrics(metricsManager);
+        this.sweepOutcomeMetrics = SweepOutcomeMetrics.registerLegacy(metricsManager);
         this.lockService = lockService;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.sweepBatchConfigSource = sweepBatchConfigSource;

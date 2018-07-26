@@ -38,7 +38,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.processors.AutoDelegate;
 
 /**
  * LockStore manages {@link LockEntry} objects, specifically for the "Backup Lock" (to be taken out by backup and
@@ -61,7 +60,6 @@ import com.palantir.processors.AutoDelegate;
  * This is actually OK - all we care about is that we're in the state machine _somewhere_.
  */
 @SuppressWarnings("checkstyle:FinalClass") // Non-final as we'd like to mock it.
-@AutoDelegate(typeToExtend = LockStore.class)
 public class LockStoreImpl implements LockStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_LockStore {
         @Override

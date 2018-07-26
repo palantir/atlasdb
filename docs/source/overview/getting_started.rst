@@ -70,19 +70,3 @@ include in a gradle project:
        dependencies {
            compile 'com.palantir.atlasdb:atlasdb-client:0.3.3'
        }
-
-Standalone JSON/REST Server
-===========================
-
-The standalone server is a lightweight way to try out AtlasDB and can be
-done by running AtlasDbServiceServer in the atlasdb-service-server project.
-The default configuration file uses an ephemeral in-memory DB;
-if you'd like to run tests with persisted data there is also an `atlasdb_standalone_postgres.yml`
-
-.. code:: bash
-
-    AtlasDbServiceServer server src/dist/atlasdb_standalone.yml
-
-This is Dropwizard service that runs all the needed parts and doesn't
-force you to use the Java client to get the benefits of AtlasDB. See the
-ref:`atlasdb-service-api` for more details.

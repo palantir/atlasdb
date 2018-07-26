@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep;
+package com.palantir.atlasdb.sweep.metrics;
 
 public enum SweepOutcome {
     SUCCESS, NOTHING_TO_SWEEP, DISABLED, UNABLE_TO_ACQUIRE_LOCKS,

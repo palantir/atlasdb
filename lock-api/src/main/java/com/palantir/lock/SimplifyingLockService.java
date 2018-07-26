@@ -23,13 +23,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = LockService.class)
 public abstract class SimplifyingLockService implements AutoDelegate_LockService, CloseableLockService {
-
-    @Override
-    public abstract LockService delegate();
 
     @Override
     public boolean unlock(HeldLocksToken token) {

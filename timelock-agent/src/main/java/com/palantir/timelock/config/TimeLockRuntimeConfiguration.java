@@ -31,7 +31,7 @@ public abstract class TimeLockRuntimeConfiguration {
     @JsonProperty("max-number-of-clients")
     @Value.Default
     public Integer maxNumberOfClients() {
-        return 100;
+        return 500;
     }
 
     /**
@@ -46,6 +46,8 @@ public abstract class TimeLockRuntimeConfiguration {
 
     @Value.Check
     public void check() {
+        Preconditions.checkState(maxNumberOfClients() >= 0,
+                "Maximum number of clients must be nonnegative, but found %s", maxNumberOfClients());
         Preconditions.checkState(slowLockLogTriggerMillis() >= 0,
                 "Slow lock log trigger threshold must be nonnegative, but found %s", slowLockLogTriggerMillis());
     }
