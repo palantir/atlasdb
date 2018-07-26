@@ -24,13 +24,9 @@ import com.palantir.paxos.persistence.generated.PaxosPersistence;
 
 /**
  * The logged state (per round) for a paxos acceptor.
- *
- * @author rullman
- *
- * @param <T> the type of the state agreed on for this round
  */
 @Immutable
-public class PaxosAcceptorState implements Persistable, Versionable {
+public final class PaxosAcceptorState implements Persistable, Versionable {
     final PaxosProposalId lastPromisedId; // latest promised id
     final PaxosProposalId lastAcceptedId; // latest accepted id
     final PaxosValue lastAcceptedValue; // latest accepted value, null if no accepted value
@@ -78,15 +74,15 @@ public class PaxosAcceptorState implements Persistable, Versionable {
 
     @Override
     public byte[] persistToBytes() {
-        PaxosPersistence.PaxosAcceptorState.Builder b = PaxosPersistence.PaxosAcceptorState.newBuilder();
+        PaxosPersistence.PaxosAcceptorState.Builder builder = PaxosPersistence.PaxosAcceptorState.newBuilder();
         if (lastPromisedId != null) {
-            b.setLastPromisedId(lastPromisedId.persistToProto());
+            builder.setLastPromisedId(lastPromisedId.persistToProto());
         }
         if (lastAcceptedId != null) {
-            b.setLastAcceptedId(lastAcceptedId.persistToProto())
+            builder.setLastAcceptedId(lastAcceptedId.persistToProto())
                     .setLastAcceptedValue(lastAcceptedValue.persistToProto());
         }
-        return b.build().toByteArray();
+        return builder.build().toByteArray();
     }
 
     public static PaxosAcceptorState hydrateFromProto(PaxosPersistence.PaxosAcceptorState message) {

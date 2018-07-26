@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 package com.palantir.leader;
-
-import static com.google.common.collect.ImmutableList.copyOf;
 
 import java.util.AbstractMap;
 import java.util.Collections;
@@ -90,7 +88,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     private final PaxosLeaderElectionEventRecorder eventRecorder;
 
-    @Deprecated // Use PaxosLeaderElectionServiceBuilder instead.
+    /**
+     * @deprecated Use PaxosLeaderElectionServiceBuilder instead.
+     */
+    @Deprecated
     public PaxosLeaderElectionService(PaxosProposer proposer,
                                       PaxosLearner knowledge,
                                       Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
@@ -121,8 +122,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.knowledge = knowledge;
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
         this.otherPotentialLeadersToHosts = Collections.unmodifiableMap(otherPotentialLeadersToHosts);
-        this.acceptors = copyOf(acceptors);
-        this.learners = copyOf(learners);
+        this.acceptors = ImmutableList.copyOf(acceptors);
+        this.learners = ImmutableList.copyOf(learners);
         this.executor = executor;
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
@@ -130,7 +131,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
         this.latestRoundVerifier = new CoalescingPaxosLatestRoundVerifier(
-                new PaxosLatestRoundVerifierImpl(acceptors, proposer.getQuorumSize(), executor, onlyLogOnQuorumFailure));
+                new PaxosLatestRoundVerifierImpl(acceptors, proposer.getQuorumSize(), executor,
+                        onlyLogOnQuorumFailure));
     }
 
     @Override
@@ -221,8 +223,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 eventRecorder.recordLeaderPingReturnedFalse();
             }
             return isLeader;
-        } catch (ExecutionException e) {
-            eventRecorder.recordLeaderPingFailure(e.getCause());
+        } catch (ExecutionException ex) {
+            eventRecorder.recordLeaderPingFailure(ex.getCause());
             return false;
         }
     }
@@ -256,13 +258,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private Optional<PingableLeader> getSuspectedLeaderOverNetwork(String uuid) {
-        CompletionService<Entry<String, PingableLeader>> pingService = new ExecutorCompletionService<Entry<String, PingableLeader>>(
+        CompletionService<Entry<String, PingableLeader>> pingService = new ExecutorCompletionService<>(
                 executor);
 
         // kick off requests to get leader uuids
         List<Future<Entry<String, PingableLeader>>> allFutures = Lists.newArrayList();
         for (final PingableLeader potentialLeader : otherPotentialLeadersToHosts.keySet()) {
-            allFutures.add(pingService.submit(() -> new AbstractMap.SimpleEntry<String, PingableLeader>(
+            allFutures.add(pingService.submit(() -> new AbstractMap.SimpleEntry<>(
                     potentialLeader.getUUID(),
                     potentialLeader)));
         }
@@ -338,7 +340,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             return;
         }
 
-        IllegalStateException e = new IllegalStateException(
+        IllegalStateException exception = new IllegalStateException(
                 "There is a fatal problem with the leadership election configuration! "
                         + "This is probably caused by invalid pref files setting up the cluster "
                         + "(e.g. for lock server look at lock.prefs, leader.prefs, and lock_client.prefs)."
@@ -346,13 +348,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                         + "then make sure that the localhost index is correct (e.g. actually the localhost).");
 
         if (cachedService != pingedService) {
-            log.error("Remote potential leaders are claiming to be each other!", e);
-            throw Throwables.rewrap(e);
+            log.error("Remote potential leaders are claiming to be each other!", exception);
+            throw Throwables.rewrap(exception);
         }
 
         if (pingedServiceUuid.equals(getUUID())) {
-            log.error("Remote potential leader is claiming to be you!", e);
-            throw Throwables.rewrap(e);
+            log.error("Remote potential leader is claiming to be you!", exception);
+            throw Throwables.rewrap(exception);
         }
     }
 
@@ -406,7 +408,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             return StillLeadingStatus.NOT_LEADING;
         }
 
-        PaxosLeadershipToken paxosToken = (PaxosLeadershipToken)token;
+        PaxosLeadershipToken paxosToken = (PaxosLeadershipToken) token;
         return determineAndRecordLeadershipStatus(paxosToken);
     }
 
@@ -466,7 +468,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     /**
-     * Queries all other learners for unknown learned values
+     * Queries all other learners for unknown learned values.
      *
      * @returns true if new state was learned, otherwise false
      */
@@ -480,7 +482,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     @Nullable
                     public PaxosUpdate apply(@Nullable PaxosLearner learner) {
                         return new PaxosUpdate(
-                                copyOf(learner.getLearnedValuesSince(nextToLearnSeq)));
+                                ImmutableList.copyOf(learner.getLearnedValuesSince(nextToLearnSeq)));
                     }
                 },
                 proposer.getQuorumSize(),

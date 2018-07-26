@@ -15,7 +15,7 @@
  */
 package com.palantir.leader;
 
-import org.apache.commons.lang.builder.CompareToBuilder;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 
 import com.palantir.common.annotation.Immutable;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
@@ -32,18 +32,18 @@ public class PaxosLeadershipToken implements LeadershipToken {
     }
 
     @Override
-    public boolean sameAs(LeadershipToken o) {
-        if ((o == null) || (o.getClass() != this.getClass())) {
+    public boolean sameAs(LeadershipToken obj) {
+        if ((obj == null) || (obj.getClass() != this.getClass())) {
             return false;
         }
-        PaxosValue v = ((PaxosLeadershipToken) o).value;
-        if (value == v) {
+        PaxosValue paxosValue = ((PaxosLeadershipToken) obj).value;
+        if (value == paxosValue) {
             return true;
         }
-        return value != null && v != null
-                && (new CompareToBuilder().append(value.getLeaderUUID(), v.getLeaderUUID())
-                .append(value.getRound(), v.getRound())
-                .append(value.getData(), v.getData())
+        return value != null && paxosValue != null
+                && (new CompareToBuilder().append(value.getLeaderUUID(), paxosValue.getLeaderUUID())
+                .append(value.getRound(), paxosValue.getRound())
+                .append(value.getData(), paxosValue.getData())
                 .toComparison() == 0);
     }
 
