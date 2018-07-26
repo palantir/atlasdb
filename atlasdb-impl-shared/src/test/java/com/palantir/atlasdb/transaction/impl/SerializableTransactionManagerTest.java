@@ -236,6 +236,7 @@ public class SerializableTransactionManagerTest {
 
         blockingCallback.stopBlocking();
         Awaitility.waitAtMost(THREE, TimeUnit.SECONDS).until(manager::isInitialized);
+        tickerThread.shutdown();
     }
 
     @Test
@@ -254,6 +255,7 @@ public class SerializableTransactionManagerTest {
         blockingCallback.stopBlocking();
         Awaitility.waitAtMost(THREE, TimeUnit.SECONDS).until(manager::isInitialized);
         assertThat(manager.getKeyValueServiceStatus()).isEqualTo(KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS);
+        tickerThread.shutdown();
     }
 
     private TransactionManager getManagerWithCallback(boolean initializeAsync,
