@@ -186,15 +186,26 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
-<td>Targeted sweep now exposes tagged metrics for the outcome of each iteration, analogous to the legacy sweep outcome metrics.
-The reported outcomes for targeted sweep are: <code class="docutils literal notranslate"><span class="pre">SUCCESS</span></code>, <code class="docutils literal notranslate"><span class="pre">NOTHING_TO_SWEEP</span></code>, <code class="docutils literal notranslate"><span class="pre">DISABLED</span></code>, <code class="docutils literal notranslate"><span class="pre">NOT_ENOUGH_DB_NODES_ONLINE</span></code>, and <code class="docutils literal notranslate"><span class="pre">ERROR</span></code>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3399">Pull Request</a>)</td>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Changed the range scan behavior for the sweep priority table so that reads scan less data in Cassandra.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3410">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-99-0">
+<h2>v0.99.0<a class="headerlink" href="#v0-99-0" title="Permalink to this headline">¶</a></h2>
+<p>25 July 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
 </tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>TimeLock by default now has a client limit of 500.
 Previously, this used to be 100 - however we have run into issues internally where stacks legitimately reach this threshold.
@@ -205,6 +216,32 @@ Note that we still need to maintain the client limit to avoid a possible DOS att
 <td>Added metrics for the number of active clients and maximum number of clients in TimeLock Server.
 These are useful to identify stacks that may be in danger of breaching their maxima.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3413">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-98-0">
+<h2>v0.98.0<a class="headerlink" href="#v0-98-0" title="Permalink to this headline">¶</a></h2>
+<p>25 July 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td>Targeted sweep now exposes tagged metrics for the outcome of each iteration, analogous to the legacy sweep outcome metrics.
+The reported outcomes for targeted sweep are: <code class="docutils literal notranslate"><span class="pre">SUCCESS</span></code>, <code class="docutils literal notranslate"><span class="pre">NOTHING_TO_SWEEP</span></code>, <code class="docutils literal notranslate"><span class="pre">DISABLED</span></code>, <code class="docutils literal notranslate"><span class="pre">NOT_ENOUGH_DB_NODES_ONLINE</span></code>, and <code class="docutils literal notranslate"><span class="pre">ERROR</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3399">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Changed the range scan behavior for the sweep priority table so that reads scan less data in Cassandra.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3410">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
