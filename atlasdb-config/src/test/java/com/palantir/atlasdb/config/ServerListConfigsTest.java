@@ -18,8 +18,6 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-
 import org.junit.Test;
 
 public class ServerListConfigsTest {
@@ -35,13 +33,6 @@ public class ServerListConfigsTest {
             .addServers("three/")
             .build();
     private static final ImmutableServerListConfig SERVERS_LIST_EMPTY = ImmutableServerListConfig.builder()
-            .build();
-
-    private static final TimeLockClientConfig INSTALL_CONFIG = ImmutableTimeLockClientConfig.builder()
-            .serversList(SERVERS_LIST_1)
-            .build();
-    private static final TimeLockRuntimeConfig RUNTIME_CONFIG = ImmutableTimeLockRuntimeConfig.builder()
-            .serversList(SERVERS_LIST_2)
             .build();
 
     @Test
@@ -66,32 +57,5 @@ public class ServerListConfigsTest {
     public void namespacingCanDealWithServerListConfigsWithZeroNodes() {
         ServerListConfig namespacedServersList = ServerListConfigs.namespaceUris(SERVERS_LIST_EMPTY, CLIENT);
         assertThat(namespacedServersList.servers()).isEmpty();
-    }
-
-    @Test
-    public void prioritisesRuntimeConfigIfAvailable() {
-        ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
-                INSTALL_CONFIG,
-                () -> Optional.of(RUNTIME_CONFIG),
-                CLIENT);
-        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client", "two/client");
-    }
-
-    @Test
-    public void prioritisesRuntimeConfigEvenIfThatHasNoClients() {
-        ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
-                INSTALL_CONFIG,
-                () -> Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()),
-                CLIENT);
-        assertThat(resolvedConfig.servers()).isEmpty();
-    }
-
-    @Test
-    public void fallsBackToInstallConfigIfRuntimeConfigNotAvailable() {
-        ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
-                INSTALL_CONFIG,
-                Optional::empty,
-                CLIENT);
-        assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client");
     }
 }

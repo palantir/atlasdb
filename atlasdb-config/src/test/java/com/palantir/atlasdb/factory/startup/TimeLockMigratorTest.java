@@ -44,15 +44,16 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TimeLockMigratorTest {
+    private static final String TIMELOCK_CLIENT = "testClient";
     private static final long BACKUP_TIMESTAMP = 42;
     private static final String TEST_ENDPOINT = "/testClient/timestamp-management/fast-forward?currentTimestamp="
             + BACKUP_TIMESTAMP;
@@ -63,8 +64,8 @@ public class TimeLockMigratorTest {
 
     private static final String USER_AGENT = "user-agent (123456789)";
 
-    private TimeLockClientConfig timelockConfig;
-
+    private TimeLockRuntimeConfig timelockRuntimeConfig;
+    private ServerListConfig namespacedServerListConfig;
     private final TimestampStoreInvalidator invalidator = mock(TimestampStoreInvalidator.class);
 
     @Rule
@@ -85,10 +86,8 @@ public class TimeLockMigratorTest {
                 WireMockConfiguration.DEFAULT_BIND_ADDRESS,
                 wireMockRule.port());
         ServerListConfig defaultServerListConfig = ImmutableServerListConfig.builder().addServers(serverUri).build();
-        timelockConfig = ImmutableTimeLockClientConfig.builder()
-                .client("testClient")
-                .serversList(defaultServerListConfig)
-                .build();
+        timelockRuntimeConfig = ImmutableTimeLockRuntimeConfig.builder().serversList(defaultServerListConfig).build();
+        namespacedServerListConfig = timelockRuntimeConfig.toNamespacedServerList(TIMELOCK_CLIENT);
     }
 
     @Test
@@ -98,7 +97,7 @@ public class TimeLockMigratorTest {
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(
                         MetricsManagers.createForTests(),
-                        timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+                        namespacedServerListConfig, invalidator, USER_AGENT);
         migrator.migrate();
 
         wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
@@ -112,8 +111,7 @@ public class TimeLockMigratorTest {
 
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+                        MetricsManagers.createForTests(), namespacedServerListConfig, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(AtlasDbDependencyException.class);
         verify(invalidator, never()).backupAndInvalidate();
     }
@@ -124,8 +122,7 @@ public class TimeLockMigratorTest {
 
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+                        MetricsManagers.createForTests(), namespacedServerListConfig, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
         wireMockRule.verify(0, postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
     }
@@ -148,7 +145,7 @@ public class TimeLockMigratorTest {
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(
                         MetricsManagers.createForTests(),
-                        () -> timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT, true);
+                        () -> namespacedServerListConfig, invalidator, USER_AGENT, true);
         migrator.migrate();
 
         Awaitility.await()
@@ -179,7 +176,7 @@ public class TimeLockMigratorTest {
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(
                         MetricsManagers.createForTests(),
-                        () -> timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT, true);
+                        () -> namespacedServerListConfig, invalidator, USER_AGENT, true);
         migrator.migrate();
 
         Awaitility.await()

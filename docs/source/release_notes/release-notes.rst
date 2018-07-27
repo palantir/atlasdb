@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak|
+         - The ``timelock`` block from the install config has been removed. The block was deprecated in v0.67.0 (released on 15th of November 2017).
+           Products using this block should switch to using ``timelockRuntime`` from the atlas runtime config.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3394>`__)
+
     *    - |new| |metrics|
          - Targeted sweep now exposes tagged metrics for the outcome of each iteration, analogous to the legacy sweep outcome metrics.
            The reported outcomes for targeted sweep are: ``SUCCESS``, ``NOTHING_TO_SWEEP``, ``DISABLED``, ``NOT_ENOUGH_DB_NODES_ONLINE``, and ``ERROR``.
