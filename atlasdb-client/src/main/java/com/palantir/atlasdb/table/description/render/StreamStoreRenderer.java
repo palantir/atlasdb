@@ -664,14 +664,12 @@ public class StreamStoreRenderer {
                 line("import java.util.Map;");
                 line("import java.util.Set;");
                 line();
-                line("import com.google.common.collect.Multimap;");
                 line("import com.google.common.collect.Sets;");
                 line("import com.palantir.atlasdb.cleaner.api.OnCleanupTask;");
                 line("import com.palantir.atlasdb.encoding.PtBytes;");
                 line("import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;");
                 line("import com.palantir.atlasdb.keyvalue.api.Cell;");
                 line("import com.palantir.atlasdb.keyvalue.api.Namespace;");
-                line("import com.palantir.atlasdb.table.description.ValueType;");
                 line("import com.palantir.atlasdb.transaction.api.Transaction;");
                 line("import com.palantir.common.base.BatchingVisitable;");
 
