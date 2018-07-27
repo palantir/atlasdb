@@ -34,12 +34,10 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
-import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -103,7 +101,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         return createUninitialized(metricsManager, enabled, shards, 0, 0, ImmutableList.of());
     }
 
-    @VisibleForTesting
     public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
         return createUninitializedForTest(MetricsManagers.createForTests(), () -> true, shards);
     }
@@ -129,7 +126,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * @param kvs key value service that must be already initialized.
      * @param follower followers used for sweeps.
      */
-    @VisibleForTesting
     public void initializeWithoutRunning(SpecialTimestampsSupplier timestamps, TimelockService timelockService,
             KeyValueService kvs, TargetedSweepFollower follower) {
         if (isInitialized) {
