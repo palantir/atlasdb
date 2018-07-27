@@ -23,7 +23,6 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -60,14 +59,22 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             TargetedSweepFollower follower) {
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         ShardProgress progress = new ShardProgress(kvs);
-        Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress,
-                SweepQueueUtils.REFRESH_INTERVAL);
+        Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress, SweepQueueUtils.REFRESH_TIME);
         WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
         SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
         SweepQueueDeleter deleter = new SweepQueueDeleter(kvs, follower);
         SweepQueueCleaner cleaner = new SweepQueueCleaner(cells, timestamps, progress);
         return new SweepQueue(cells, timestamps, progress, deleter, cleaner, shards, metrics);
+    }
+
+    /**
+     * Creates an instance of SweepQueue that should be used only for writing to the sweep queue and does not implement
+     * the deleting logic.
+     */
+    public static MultiTableSweepQueueWriter createWriter(TargetedSweepMetrics metrics, KeyValueService kvs,
+            Supplier<Integer> shardsConfig) {
+        return create(metrics, kvs, shardsConfig, new TargetedSweepFollower(ImmutableList.of(), null));
     }
 
     /**
@@ -81,8 +88,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
      * @param refreshTimeMillis timeout for caching the number of shards
      * @return supplier calculating and persisting the number of shards to use
      */
-    @VisibleForTesting
-    static Supplier<Integer> createProgressUpdatingSupplier(Supplier<Integer> runtimeConfig,
+    public static Supplier<Integer> createProgressUpdatingSupplier(Supplier<Integer> runtimeConfig,
             ShardProgress progress, long refreshTimeMillis) {
         return Suppliers.memoizeWithExpiration(
                 () -> progress.updateNumberOfShards(runtimeConfig.get()), refreshTimeMillis, TimeUnit.MILLISECONDS);

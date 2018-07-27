@@ -51,8 +51,7 @@ public class CassandraKvsSerializableTransactionTest
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
-        return SweepQueue.create(mock(TargetedSweepMetrics.class), keyValueService, () -> 128,
-                mock(TargetedSweepFollower.class));
+        return SweepQueue.createWriter(mock(TargetedSweepMetrics.class), keyValueService, () -> 128);
     }
 
     @Override

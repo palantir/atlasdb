@@ -57,7 +57,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.logsafe.SafeArg;
 
-public class SweepableCells extends KvsSweepQueueWriter {
+public class SweepableCells extends SweepQueueTable {
     private final Logger log = LoggerFactory.getLogger(SweepableCells.class);
     private final CommitTsCache commitTsCache;
 
