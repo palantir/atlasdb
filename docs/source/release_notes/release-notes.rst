@@ -70,6 +70,10 @@ develop
            These are useful to identify stacks that may be in danger of breaching their maxima.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3413>`__)
 
+    *    - |improved|
+         - The index cleanup task for stream stores now only fetches the first column for each stream ID when determining whether the stream is still in use.
+           Previously, we would fetch the entire row which is unnecessary and causes read pressure on the key-value-service for highly referenced streams.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/qqqq>`__)
 
 =======
 v0.97.0
