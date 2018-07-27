@@ -661,15 +661,19 @@ public class StreamStoreRenderer {
             private void packageAndImports() {
                 line("package ", packageName, ";");
                 line();
+                line("import java.util.Map;");
                 line("import java.util.Set;");
                 line();
                 line("import com.google.common.collect.Multimap;");
                 line("import com.google.common.collect.Sets;");
                 line("import com.palantir.atlasdb.cleaner.api.OnCleanupTask;");
+                line("import com.palantir.atlasdb.encoding.PtBytes;");
+                line("import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;");
                 line("import com.palantir.atlasdb.keyvalue.api.Cell;");
                 line("import com.palantir.atlasdb.keyvalue.api.Namespace;");
                 line("import com.palantir.atlasdb.table.description.ValueType;");
                 line("import com.palantir.atlasdb.transaction.api.Transaction;");
+                line("import com.palantir.common.base.BatchingVisitable;");
 
                 if (streamIdType == ValueType.SHA256HASH) {
                     line("import com.palantir.util.crypto.Sha256Hash;");
@@ -684,9 +688,26 @@ public class StreamStoreRenderer {
                     line("for (Cell cell : cells) {"); {
                         line("rows.add(", StreamIdxRow, ".BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));");
                     } line("}");
-                    line("Multimap<", StreamIdxRow, ", ", StreamIdxColumnValue, "> rowsInDb = usersIndex.getRowsMultimap(rows);");
-                    line("Set<", StreamId, "> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.keySet().size());");
-                    line("for (", StreamIdxRow, " rowToDelete : Sets.difference(rows, rowsInDb.keySet())) {"); {
+
+                    line("BatchColumnRangeSelection oneColumn = BatchColumnRangeSelection.create(");
+                    line("        PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1);");
+                    line("Map<", StreamIdxRow, ", BatchingVisitable<", StreamIdxColumnValue, ">> existentRows");
+                    line("        = usersIndex.getRowsColumnRange(rows, oneColumn);");
+
+                    line("Set<", StreamIdxRow, "> rowsInDb = Sets.newHashSetWithExpectedSize(cells.size());");
+
+                    line("for (Map.Entry<", StreamIdxRow, ", BatchingVisitable<", StreamIdxColumnValue, ">> rowVisitable");
+                    line("        : existentRows.entrySet())"); {
+                        line("rowVisitable.getValue().batchAccept(1, columnValues -> {"); {
+                            line("if (!columnValues.isEmpty()) {"); {
+                                line("rowsInDb.add(rowVisitable.getKey());");
+                            } line("}");
+                            line("return false;");
+                        } line("});");
+                    }
+
+                    line("Set<", StreamId, "> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.size());");
+                    line("for (", StreamIdxRow, " rowToDelete : Sets.difference(rows, rowsInDb)) {"); {
                         line("toDelete.add(rowToDelete.getId());");
                     } line("}");
                     line(StreamStore, ".of(tables).deleteStreams(t, toDelete);");
