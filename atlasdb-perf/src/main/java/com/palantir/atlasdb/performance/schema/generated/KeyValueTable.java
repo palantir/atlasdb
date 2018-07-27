@@ -8,18 +8,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -205,9 +208,10 @@ public final class KeyValueTable implements
                 return false;
             }
             KeyValueRow other = (KeyValueRow) obj;
-            return Objects.equal(key, other.key);
+            return Objects.equals(key, other.key);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(key);
@@ -411,18 +415,6 @@ public final class KeyValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putStreamIdUnlessExists(KeyValueRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, StreamId.of(value)));
-    }
-
-    public void putStreamIdUnlessExists(Map<KeyValueRow, Long> map) {
-        Map<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<KeyValueRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), StreamId.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -430,17 +422,6 @@ public final class KeyValueTable implements
         for (KeyValueTrigger trigger : triggers) {
             trigger.putKeyValue(rows);
         }
-    }
-
-    public void putUnlessExists(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteStreamId(KeyValueRow row) {
@@ -577,6 +558,7 @@ public final class KeyValueTable implements
         });
     }
 
+    @Deprecated
     public IterableView<BatchingVisitable<KeyValueRowResult>> getRanges(Iterable<RangeRequest> ranges) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
         return IterableView.of(rangeResults).transform(
@@ -591,6 +573,24 @@ public final class KeyValueTable implements
                 });
             }
         });
+    }
+
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   int concurrencyLevel,
+                                   BiFunction<RangeRequest, BatchingVisitable<KeyValueRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges, concurrencyLevel,
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KeyValueRowResult::of)));
+    }
+
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   BiFunction<RangeRequest, BatchingVisitable<KeyValueRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges,
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, KeyValueRowResult::of)));
+    }
+
+    public Stream<BatchingVisitable<KeyValueRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+        return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, KeyValueRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
@@ -630,17 +630,15 @@ public final class KeyValueTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -697,14 +695,16 @@ public final class KeyValueTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "DVmy8BAhP93Nqv/yw36IGw==";
+    static String __CLASS_HASH = "Qc7pcc51X7rJjD/g5pXc1w==";
 }

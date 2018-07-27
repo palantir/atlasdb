@@ -8,18 +8,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -216,9 +219,10 @@ public final class ValueStreamValueTable implements
                 return false;
             }
             ValueStreamValueRow other = (ValueStreamValueRow) obj;
-            return Objects.equal(id, other.id) && Objects.equal(blockId, other.blockId);
+            return Objects.equals(id, other.id) && Objects.equals(blockId, other.blockId);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ id, blockId });
@@ -423,18 +427,6 @@ public final class ValueStreamValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(ValueStreamValueRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
-    }
-
-    public void putValueUnlessExists(Map<ValueStreamValueRow, byte[]> map) {
-        Map<ValueStreamValueRow, ValueStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<ValueStreamValueRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<ValueStreamValueRow, ? extends ValueStreamValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -442,17 +434,6 @@ public final class ValueStreamValueTable implements
         for (ValueStreamValueTrigger trigger : triggers) {
             trigger.putValueStreamValue(rows);
         }
-    }
-
-    public void putUnlessExists(Multimap<ValueStreamValueRow, ? extends ValueStreamValueNamedColumnValue<?>> rows) {
-        Multimap<ValueStreamValueRow, ValueStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<ValueStreamValueRow, ValueStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<ValueStreamValueRow, ? extends ValueStreamValueNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteValue(ValueStreamValueRow row) {
@@ -612,17 +593,15 @@ public final class ValueStreamValueTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -679,14 +658,16 @@ public final class ValueStreamValueTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Vrl1mvElEunj4YBz1rGRHA==";
+    static String __CLASS_HASH = "e5xKlJ7a0qaBdJay/FGvQA==";
 }

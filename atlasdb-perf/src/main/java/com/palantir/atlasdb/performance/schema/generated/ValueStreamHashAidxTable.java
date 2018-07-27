@@ -8,18 +8,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -203,9 +206,10 @@ public final class ValueStreamHashAidxTable implements
                 return false;
             }
             ValueStreamHashAidxRow other = (ValueStreamHashAidxRow) obj;
-            return Objects.equal(hash, other.hash);
+            return Objects.equals(hash, other.hash);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(hash);
@@ -294,9 +298,10 @@ public final class ValueStreamHashAidxTable implements
                 return false;
             }
             ValueStreamHashAidxColumn other = (ValueStreamHashAidxColumn) obj;
-            return Objects.equal(streamId, other.streamId);
+            return Objects.equals(streamId, other.streamId);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(streamId);
@@ -484,26 +489,6 @@ public final class ValueStreamHashAidxTable implements
         }
     }
 
-    public void putUnlessExists(ValueStreamHashAidxRow rowName, Iterable<ValueStreamHashAidxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<ValueStreamHashAidxRow, ValueStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    public void putUnlessExists(ValueStreamHashAidxRow rowName, ValueStreamHashAidxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<ValueStreamHashAidxRow, ValueStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    public void putUnlessExists(Multimap<ValueStreamHashAidxRow, ? extends ValueStreamHashAidxColumnValue> rows) {
-        Multimap<ValueStreamHashAidxRow, ValueStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, ValueStreamHashAidxColumnValue.getColumnNameFun());
-        Multimap<ValueStreamHashAidxRow, ValueStreamHashAidxColumnValue> existing = get(toGet);
-        Multimap<ValueStreamHashAidxRow, ValueStreamHashAidxColumnValue> toPut = HashMultimap.create();
-        for (Entry<ValueStreamHashAidxRow, ? extends ValueStreamHashAidxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<ValueStreamHashAidxRow, ValueStreamHashAidxColumn> values) {
         Multimap<ValueStreamHashAidxRow, ValueStreamHashAidxColumnValue> currentValues = get(values);
@@ -652,17 +637,15 @@ public final class ValueStreamHashAidxTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -719,14 +702,16 @@ public final class ValueStreamHashAidxTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6fowX/ukMQ6UNoGKcOPGFg==";
+    static String __CLASS_HASH = "S53q11+p34+R2TREhI+SWg==";
 }
