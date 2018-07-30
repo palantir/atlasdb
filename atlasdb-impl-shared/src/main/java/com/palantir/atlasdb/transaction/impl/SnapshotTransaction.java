@@ -1348,8 +1348,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // Write to the targeted sweep queue. We must do this before writing to the key value service -
             // otherwise we may have hanging values that targeted sweep won't know about.
             long microsWritingToTargetedSweepQueue =
-                    runAndReportTimeAndGetDurationMicros(() -> sweepQueue.
-                                    enqueue(writesByTable, getStartTimestamp()),
+                    runAndReportTimeAndGetDurationMicros(() -> sweepQueue.enqueue(writesByTable, getStartTimestamp()),
                             "writingToSweepQueue");
 
             // Write to the key value service. We must do this before getting the commit timestamp - otherwise
