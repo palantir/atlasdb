@@ -66,6 +66,11 @@ v0.99.0
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed an issue where a failure to punch a value into the _punch table would suppress any future attempts to punch.
+           Previously, if the asynchronous job that punches a timestamp every minute ever threw an exception, the unreadable timestamp would be stuck until the service is restarted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3427>`__)
+
     *    - |improved|
          - TimeLock by default now has a client limit of 500.
            Previously, this used to be 100 - however we have run into issues internally where stacks legitimately reach this threshold.
