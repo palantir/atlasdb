@@ -179,6 +179,8 @@ public class BackgroundSweepThread implements Runnable {
         long sleepDurationMillis = getBackoffTimeWhenSweepHasNotRun();
         if (outcome == SweepOutcome.SUCCESS) {
             sleepDurationMillis = sweepPauseMillis.get();
+        } else if (outcome == SweepOutcome.NOTHING_TO_SWEEP) {
+            sleepDurationMillis = getBackoffTimeWhenNothingToSweep();
         }
         sleepForMillis(sleepDurationMillis);
     }
@@ -213,7 +215,11 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     private long getBackoffTimeWhenSweepHasNotRun() {
-        return 20 * (1000 + sweepPauseMillis.get());
+        return 20 * (1000 + sweepPauseMillis.get()); // 2 minutes by default
+    }
+
+    private long getBackoffTimeWhenNothingToSweep() {
+        return 5 * getBackoffTimeWhenSweepHasNotRun(); // 10 minutes by default
     }
 
     @VisibleForTesting
