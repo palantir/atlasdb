@@ -121,7 +121,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        metrics = TargetedSweepMetrics.create(metricsManager, kvs, SweepQueueUtils.REFRESH_INTERVAL);
+        metrics = TargetedSweepMetrics.create(metricsManager, timelockService, kvs, SweepQueueUtils.REFRESH_INTERVAL);
         queue = SweepQueue.create(metrics, kvs, shardsConfig, follower);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
