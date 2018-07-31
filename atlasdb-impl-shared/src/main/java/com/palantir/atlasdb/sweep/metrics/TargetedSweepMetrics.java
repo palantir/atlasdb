@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -76,8 +77,8 @@ public final class TargetedSweepMetrics {
                 .getMillisForTimestampIfNotPunchedBefore(kvs, ts, clock.getTimeMillis() - ONE_WEEK);
     }
 
-    public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes) {
-        getMetrics(shardStrategy).updateEnqueuedWrites(writes);
+    public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes, long timestamp) {
+        getMetrics(shardStrategy).updateEnqueuedWrites(writes, timestamp);
     }
 
     public void updateEntriesRead(ShardAndStrategy shardStrategy, long writes) {
@@ -119,6 +120,7 @@ public final class TargetedSweepMetrics {
         private final AccumulatingValueMetric abortedWritesDeleted = new AccumulatingValueMetric();
         private final CurrentValueMetric<Long> sweepTimestamp = new CurrentValueMetric<>();
         private final AggregatingVersionedSupplier<Long> lastSweptTsSupplier;
+        private volatile long lastWrittenTs = 0L;
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
@@ -142,12 +144,15 @@ public final class TargetedSweepMetrics {
             manager.registerMetric(TargetedSweepMetrics.class, name, metric, tag);
         }
 
-        private static Long estimateMillisSinceTs(Long timestamp, Clock clock, Function<Long, Long> tsToMillis) {
-            if (timestamp == null) {
+        private Long estimateMillisSinceTs(Long lastSweptTs, Clock clock, Function<Long, Long> tsToMillis) {
+            if (lastSweptTs == null) {
                 return null;
             }
+            if (lastSweptTs >= lastWrittenTs) {
+                return 0L;
+            }
             long timeBeforeRecomputing = System.currentTimeMillis();
-            long result = clock.getTimeMillis() - tsToMillis.apply(timestamp);
+            long result = clock.getTimeMillis() - tsToMillis.apply(lastSweptTs);
 
             long timeTaken = System.currentTimeMillis() - timeBeforeRecomputing;
             if (timeTaken > TimeUnit.SECONDS.toMillis(10)) {
@@ -158,8 +163,9 @@ public final class TargetedSweepMetrics {
             return result;
         }
 
-        private void updateEnqueuedWrites(long writes) {
+        private void updateEnqueuedWrites(long writes, long timestamp) {
             enqueuedWrites.accumulateValue(writes);
+            lastWrittenTs = timestamp;
         }
 
         private void updateEntriesRead(long writes) {
