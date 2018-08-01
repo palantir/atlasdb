@@ -57,7 +57,7 @@ develop
          - Sequential sweep now sleeps longer between iterations if there was nothing to sweep.
            Previously we would sleep for 2 minutes between runs, but it is unlikely that anything has changed dramatically in 2 minutes so we sleep for longer to prevent scanning the sweep priority table too often.  Going forward the most likely explanation for there being nothing to sweep is that we have switched to targeted sweep.
            We don't stop completely or sleep for too long just in case configuration changes and a table is eligible to sweep again.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/XXXX>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3429>`__)
 
 =======
 v0.99.0
