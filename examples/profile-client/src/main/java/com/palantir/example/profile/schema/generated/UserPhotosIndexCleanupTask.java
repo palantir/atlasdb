@@ -33,13 +33,14 @@ public class UserPhotosIndexCleanupTask implements OnCleanupTask {
                 = usersIndex.getRowsColumnRange(rows, oneColumn);
         Set<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow> rowsInDb = Sets.newHashSetWithExpectedSize(cells.size());
         for (Map.Entry<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow, BatchingVisitable<UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue>> rowVisitable
-                : existentRows.entrySet())
-        rowVisitable.getValue().batchAccept(1, columnValues -> {
-            if (!columnValues.isEmpty()) {
-                rowsInDb.add(rowVisitable.getKey());
-            }
-            return false;
-        });
+                : existentRows.entrySet()) {
+            rowVisitable.getValue().batchAccept(1, columnValues -> {
+                if (!columnValues.isEmpty()) {
+                    rowsInDb.add(rowVisitable.getKey());
+                }
+                return false;
+            });
+        }
         Set<Long> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.size());
         for (UserPhotosStreamIdxTable.UserPhotosStreamIdxRow rowToDelete : Sets.difference(rows, rowsInDb)) {
             toDelete.add(rowToDelete.getId());

@@ -33,13 +33,14 @@ public class HotspottyDataIndexCleanupTask implements OnCleanupTask {
                 = usersIndex.getRowsColumnRange(rows, oneColumn);
         Set<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow> rowsInDb = Sets.newHashSetWithExpectedSize(cells.size());
         for (Map.Entry<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, BatchingVisitable<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue>> rowVisitable
-                : existentRows.entrySet())
-        rowVisitable.getValue().batchAccept(1, columnValues -> {
-            if (!columnValues.isEmpty()) {
-                rowsInDb.add(rowVisitable.getKey());
-            }
-            return false;
-        });
+                : existentRows.entrySet()) {
+            rowVisitable.getValue().batchAccept(1, columnValues -> {
+                if (!columnValues.isEmpty()) {
+                    rowsInDb.add(rowVisitable.getKey());
+                }
+                return false;
+            });
+        }
         Set<Long> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.size());
         for (HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow rowToDelete : Sets.difference(rows, rowsInDb)) {
             toDelete.add(rowToDelete.getId());

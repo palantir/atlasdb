@@ -33,13 +33,14 @@ public class DataIndexCleanupTask implements OnCleanupTask {
                 = usersIndex.getRowsColumnRange(rows, oneColumn);
         Set<DataStreamIdxTable.DataStreamIdxRow> rowsInDb = Sets.newHashSetWithExpectedSize(cells.size());
         for (Map.Entry<DataStreamIdxTable.DataStreamIdxRow, BatchingVisitable<DataStreamIdxTable.DataStreamIdxColumnValue>> rowVisitable
-                : existentRows.entrySet())
-        rowVisitable.getValue().batchAccept(1, columnValues -> {
-            if (!columnValues.isEmpty()) {
-                rowsInDb.add(rowVisitable.getKey());
-            }
-            return false;
-        });
+                : existentRows.entrySet()) {
+            rowVisitable.getValue().batchAccept(1, columnValues -> {
+                if (!columnValues.isEmpty()) {
+                    rowsInDb.add(rowVisitable.getKey());
+                }
+                return false;
+            });
+        }
         Set<Long> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.size());
         for (DataStreamIdxTable.DataStreamIdxRow rowToDelete : Sets.difference(rows, rowsInDb)) {
             toDelete.add(rowToDelete.getId());

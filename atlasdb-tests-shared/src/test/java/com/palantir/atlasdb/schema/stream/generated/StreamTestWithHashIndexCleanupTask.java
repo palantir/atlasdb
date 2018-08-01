@@ -33,13 +33,14 @@ public class StreamTestWithHashIndexCleanupTask implements OnCleanupTask {
                 = usersIndex.getRowsColumnRange(rows, oneColumn);
         Set<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow> rowsInDb = Sets.newHashSetWithExpectedSize(cells.size());
         for (Map.Entry<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow, BatchingVisitable<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumnValue>> rowVisitable
-                : existentRows.entrySet())
-        rowVisitable.getValue().batchAccept(1, columnValues -> {
-            if (!columnValues.isEmpty()) {
-                rowsInDb.add(rowVisitable.getKey());
-            }
-            return false;
-        });
+                : existentRows.entrySet()) {
+            rowVisitable.getValue().batchAccept(1, columnValues -> {
+                if (!columnValues.isEmpty()) {
+                    rowsInDb.add(rowVisitable.getKey());
+                }
+                return false;
+            });
+        }
         Set<Long> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.size());
         for (StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow rowToDelete : Sets.difference(rows, rowsInDb)) {
             toDelete.add(rowToDelete.getId());
