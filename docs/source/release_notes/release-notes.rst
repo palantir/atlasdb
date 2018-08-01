@@ -61,7 +61,7 @@ develop
          - We have removed the ``sleepForBackoff(int)`` method from ``AbstractTransactionManager`` as there were no known users and its presence led to user confusion.
            AtlasDB does not actually backoff between attempts of running a user's transaction task.
            If your service overrides this method, please contact the AtlasDB team.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3432>`__)
 
     *    - |improved|
          - Sequential sweep now sleeps longer between iterations if there was nothing to sweep.
