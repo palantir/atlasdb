@@ -16,29 +16,21 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.palantir.logsafe.SafeArg;
-
-class SweepQueueWriter implements MultiTableSweepQueueWriter {
-    private static final Logger log = LoggerFactory.getLogger(SweepQueueWriter.class);
-
+class SweepQueueReader {
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
 
-    SweepQueueWriter(SweepableTimestamps sweepableTimestamps,
+    SweepQueueReader(SweepableTimestamps sweepableTimestamps,
             SweepableCells sweepableCells) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;
     }
 
-    @Override
-    public void enqueue(List<WriteInfo> writes) {
-        sweepableTimestamps.enqueue(writes);
-        sweepableCells.enqueue(writes);
-        log.debug("Enqueued {} writes into the sweep queue.", SafeArg.of("writes", writes.size()));
+    SweepBatch getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+        return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
+                .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
+                .orElse(SweepBatch.of(ImmutableList.of(), sweepTs - 1L));
     }
 }

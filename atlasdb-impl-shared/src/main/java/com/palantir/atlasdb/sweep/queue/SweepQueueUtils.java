@@ -31,7 +31,7 @@ import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.persist.Persistable;
 
 public final class SweepQueueUtils {
-    public static final long REFRESH_INTERVAL = TimeUnit.MINUTES.toMillis(5L);
+    public static final long REFRESH_TIME = TimeUnit.MINUTES.toMillis(5L);
     public static final long TS_COARSE_GRANULARITY = 10_000_000L;
     public static final long TS_FINE_GRANULARITY = 50_000L;
     public static final int MAX_CELLS_GENERIC = 50;

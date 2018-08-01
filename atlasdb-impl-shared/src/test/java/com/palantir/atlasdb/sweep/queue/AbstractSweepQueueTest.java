@@ -102,36 +102,36 @@ public abstract class AbstractSweepQueueTest {
                 .persistToBytes();
     }
 
-    int writeToDefaultCellCommitted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
+    int writeToDefaultCellCommitted(SweepQueueTable queueWriter, long timestamp, TableReference tableRef) {
         return writeToCellCommitted(queueWriter, timestamp, DEFAULT_CELL, tableRef);
     }
 
-    int writeToCellCommitted(KvsSweepQueueWriter queueWriter, long timestamp, Cell cell, TableReference tableRef) {
+    int writeToCellCommitted(SweepQueueTable queueWriter, long timestamp, Cell cell, TableReference tableRef) {
         putTimestampIntoTransactionTable(timestamp, timestamp);
         return write(queueWriter, timestamp, cell, false, tableRef);
     }
 
-    int writeToDefaultCellUncommitted(KvsSweepQueueWriter queueWriter, long ts, TableReference tableRef) {
+    int writeToDefaultCellUncommitted(SweepQueueTable queueWriter, long ts, TableReference tableRef) {
         return write(queueWriter, ts, DEFAULT_CELL, false, tableRef);
     }
 
-    int writeToDefaultCellAborted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
+    int writeToDefaultCellAborted(SweepQueueTable queueWriter, long timestamp, TableReference tableRef) {
         putTimestampIntoTransactionTable(timestamp, TransactionConstants.FAILED_COMMIT_TS);
         return write(queueWriter, timestamp, DEFAULT_CELL, false, tableRef);
     }
 
-    int writeToDefaultCellCommitedAt(KvsSweepQueueWriter queueWriter, long startTs, long commitTs,
+    int writeToDefaultCellCommitedAt(SweepQueueTable queueWriter, long startTs, long commitTs,
             TableReference tableRef) {
         putTimestampIntoTransactionTable(startTs, commitTs);
         return write(queueWriter, startTs, DEFAULT_CELL, false, tableRef);
     }
 
-    int putTombstoneToDefaultCommitted(KvsSweepQueueWriter queueWriter, long timestamp, TableReference tableRef) {
+    int putTombstoneToDefaultCommitted(SweepQueueTable queueWriter, long timestamp, TableReference tableRef) {
         putTimestampIntoTransactionTable(timestamp, timestamp);
         return write(queueWriter, timestamp, DEFAULT_CELL, true, tableRef);
     }
 
-    private int write(KvsSweepQueueWriter writer, long ts, Cell cell, boolean isTombstone, TableReference tableRef) {
+    private int write(SweepQueueTable writer, long ts, Cell cell, boolean isTombstone, TableReference tableRef) {
         WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), ts);
         writer.enqueue(ImmutableList.of(write));
         return write.toShard(numShards);
@@ -146,7 +146,7 @@ public abstract class AbstractSweepQueueTest {
         }
     }
 
-    List<WriteInfo> writeToCellsInFixedShard(KvsSweepQueueWriter writer, long ts, int number, TableReference tableRef) {
+    List<WriteInfo> writeToCellsInFixedShard(SweepQueueTable writer, long ts, int number, TableReference tableRef) {
         List<WriteInfo> result = new ArrayList<>();
         for (long i = 0; i < number; i++) {
             Cell cell = getCellWithFixedHash(i);
