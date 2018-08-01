@@ -1054,16 +1054,65 @@ public final class SweepPriorityTable implements
         });
     }
 
-    public BatchingVisitableView<SweepPriorityRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
-    }
-
-    public BatchingVisitableView<SweepPriorityRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
-                new Function<RowResult<byte[]>, SweepPriorityRowResult>() {
+    public BatchingVisitableView<SweepPriorityRowResult> getRange(RangeRequest range) {
+        if (range.getColumnNames().isEmpty()) {
+            range = range.getBuilder().retainColumns(allColumns).build();
+        }
+        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, SweepPriorityRowResult>() {
             @Override
             public SweepPriorityRowResult apply(RowResult<byte[]> input) {
                 return SweepPriorityRowResult.of(input);
+            }
+        });
+    }
+
+    @Deprecated
+    public IterableView<BatchingVisitable<SweepPriorityRowResult>> getRanges(Iterable<RangeRequest> ranges) {
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+        return IterableView.of(rangeResults).transform(
+                new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<SweepPriorityRowResult>>() {
+            @Override
+            public BatchingVisitable<SweepPriorityRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
+                return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, SweepPriorityRowResult>() {
+                    @Override
+                    public SweepPriorityRowResult apply(RowResult<byte[]> row) {
+                        return SweepPriorityRowResult.of(row);
+                    }
+                });
+            }
+        });
+    }
+
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   int concurrencyLevel,
+                                   BiFunction<RangeRequest, BatchingVisitable<SweepPriorityRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges, concurrencyLevel,
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SweepPriorityRowResult::of)));
+    }
+
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   BiFunction<RangeRequest, BatchingVisitable<SweepPriorityRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges,
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SweepPriorityRowResult::of)));
+    }
+
+    public Stream<BatchingVisitable<SweepPriorityRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+        return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, SweepPriorityRowResult::of));
+    }
+
+    public void deleteRange(RangeRequest range) {
+        deleteRanges(ImmutableSet.of(range));
+    }
+
+    public void deleteRanges(Iterable<RangeRequest> ranges) {
+        BatchingVisitables.concat(getRanges(ranges))
+                          .transform(SweepPriorityRowResult.getRowNameFun())
+                          .batchAccept(1000, new AbortingVisitor<List<SweepPriorityRow>, RuntimeException>() {
+            @Override
+            public boolean visit(List<SweepPriorityRow> rows) {
+                delete(rows);
+                return true;
             }
         });
     }
@@ -1165,5 +1214,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "TJJRvx5uQ/E1NQVzUnggYQ==";
+    static String __CLASS_HASH = "SQZh8Tiuo9hisseHEHNpnA==";
 }

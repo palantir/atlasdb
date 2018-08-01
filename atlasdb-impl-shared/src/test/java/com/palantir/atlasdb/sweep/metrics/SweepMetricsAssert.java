@@ -22,20 +22,19 @@ import javax.annotation.CheckReturnValue;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.WritableAssertionInfo;
-import org.assertj.core.internal.Comparables;
 import org.assertj.core.internal.Objects;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert, MetricsManager> {
     private final MetricsManager metrics;
     private final Objects objects = Objects.instance();
-    private final Comparables comparables = Comparables.instance();
     private final WritableAssertionInfo info = new WritableAssertionInfo();
 
     public SweepMetricsAssert(MetricsManager actual) {
@@ -76,11 +75,6 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
     }
 
-    public void hasMillisSinceLastSweptConservativeWithinOneSecondOf(long expected) {
-        comparables.assertIsBetween(info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue(),
-                expected - 1000L, expected + 1000, true, false);
-    }
-
     public void hasEnqueuedWritesThoroughEqualTo(long value) {
         objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
     }
@@ -109,18 +103,44 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
     }
 
+    public void hasLegacyOutcomeEqualTo(SweepOutcome outcome, long value) {
+        objects.assertEqual(info, getGaugeForLegacyOutcome(outcome).getValue(), value);
+    }
+
+    public void hasTargetedOutcomeEqualTo(SweepOutcome outcome, Long value) {
+        objects.assertEqual(info, getGaugeForTargetedOutcome(outcome).getValue(), value);
+    }
+
+    public void hasNotRegisteredTargetedOutcome(SweepOutcome outcome) {
+        objects.assertNull(info, getGaugeForTargetedOutcome(outcome));
+    }
+
     private Gauge<Long> getGaugeConservative(String name) {
-        return getGauge(AtlasDbMetricNames.TAG_CONSERVATIVE, name);
+        return getGaugeForTargetedSweep(AtlasDbMetricNames.TAG_CONSERVATIVE, name);
     }
 
     private Gauge<Long> getGaugeThorough(String name) {
-        return getGauge(AtlasDbMetricNames.TAG_THOROUGH, name);
+        return getGaugeForTargetedSweep(AtlasDbMetricNames.TAG_THOROUGH, name);
     }
 
-    private Gauge<Long> getGauge(String strategy, String name) {
+    private Gauge<Long> getGaugeForTargetedSweep(String strategy, String name) {
         Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
+        return getGauge(TargetedSweepMetrics.class, name, tag);
+    }
+
+    private Gauge<Long> getGaugeForLegacyOutcome(SweepOutcome outcome) {
+        return getGauge(BackgroundSweeperImpl.class, AtlasDbMetricNames.SWEEP_OUTCOME,
+                ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name()));
+    }
+
+    private Gauge<Long> getGaugeForTargetedOutcome(SweepOutcome outcome) {
+        return getGauge(TargetedSweepMetrics.class, AtlasDbMetricNames.SWEEP_OUTCOME,
+                ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name()));
+    }
+
+    private <T> Gauge<Long> getGauge(Class<T> metricClass, String name, Map<String, String> tag) {
         MetricName metricName = MetricName.builder()
-                .safeName(MetricRegistry.name(TargetedSweepMetrics.class, name))
+                .safeName(MetricRegistry.name(metricClass, name))
                 .safeTags(tag)
                 .build();
 

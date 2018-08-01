@@ -54,7 +54,7 @@ public final class PaxosConsensusTestUtils {
         List<AtomicBoolean> failureToggles = Lists.newArrayList();
         ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-        RuntimeException e = new RuntimeException("mock server failure");
+        RuntimeException exception = new RuntimeException("mock server failure");
         for (int i = 0; i < numLeaders; i++) {
             failureToggles.add(new AtomicBoolean(false));
 
@@ -63,21 +63,21 @@ public final class PaxosConsensusTestUtils {
                     PaxosLearner.class,
                     learner,
                     failureToggles.get(i),
-                    e));
+                    exception));
 
             PaxosAcceptor acceptor = PaxosAcceptorImpl.newAcceptor(getAcceptorLogDir(i));
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosAcceptor.class,
                     acceptor,
                     failureToggles.get(i),
-                    e));
+                    exception));
         }
 
         for (int i = 0; i < numLeaders; i++) {
             PaxosProposer proposer = PaxosProposerImpl.newProposer(
                     learners.get(i),
-                    ImmutableList.<PaxosAcceptor> copyOf(acceptors),
-                    ImmutableList.<PaxosLearner> copyOf(learners),
+                    ImmutableList.copyOf(acceptors),
+                    ImmutableList.copyOf(learners),
                     quorumSize,
                     UUID.randomUUID(),
                     executor);
@@ -109,18 +109,19 @@ public final class PaxosConsensusTestUtils {
             executor.shutdownNow();
             boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
             if (!terminated) {
-                throw new IllegalStateException("Some threads are still hanging around! Can't proceed or they might corrupt future tests.");
+                throw new IllegalStateException("Some threads are still hanging around!"
+                        + " Can't proceed or they might corrupt future tests.");
             }
         } finally {
             FileUtils.deleteDirectory(new File(LOG_DIR));
         }
     }
 
-    public static String getLearnerLogDir(int i) {
-        return LEARNER_DIR_PREFIX + i;
+    public static String getLearnerLogDir(int dir) {
+        return LEARNER_DIR_PREFIX + dir;
     }
 
-    public static String getAcceptorLogDir(int i) {
-        return ACCEPTOR_DIR_PREFIX + i;
+    public static String getAcceptorLogDir(int dir) {
+        return ACCEPTOR_DIR_PREFIX + dir;
     }
 }

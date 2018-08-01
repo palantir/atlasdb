@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.paxos;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+package com.palantir.lock.client;
 
-import com.palantir.paxos.persistence.ProtobufTest;
+import java.io.Closeable;
+import java.util.Set;
 
-@RunWith(Suite.class)
-@SuiteClasses({ProtobufTest.class, PaxosConsensusFastTest.class, PaxosConsensusSlowTest.class})
-public class AllLeaderElectionTests {}
+import com.palantir.lock.v2.LockToken;
+
+public interface TimeLockUnlocker extends Closeable {
+    void enqueue(Set<LockToken> tokens);
+
+    @Override
+    default void close() {
+        // noop
+    }
+}

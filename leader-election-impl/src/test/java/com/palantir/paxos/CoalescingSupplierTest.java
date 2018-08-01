@@ -123,11 +123,11 @@ public class CoalescingSupplierTest {
 
         private final List<Future<?>> futures;
 
-        public AsyncTasks(List<Future<?>> futures) {
+        AsyncTasks(List<Future<?>> futures) {
             this.futures = futures;
         }
 
-        public static AsyncTasks runInParallel(Runnable task, int count) {
+        static AsyncTasks runInParallel(Runnable task, int count) {
             ExecutorService executor = Executors.newCachedThreadPool();
             List<Future<?>> futures = IntStream.range(0, count)
                     .mapToObj(i -> executor.submit(task))
@@ -148,7 +148,7 @@ public class CoalescingSupplierTest {
             }
         }
 
-        public void assertAllFailed(Throwable expectedError) {
+        void assertAllFailed(Throwable expectedError) {
             for (Future<?> future : futures) {
                 assertThatThrownBy(future::get).hasCause(expectedError);
             }
@@ -160,15 +160,15 @@ public class CoalescingSupplierTest {
         private volatile boolean isFrozen;
         private final Supplier<Integer> delegate;
 
-        public FreezableSupplier(Supplier<Integer> delegate) {
+        FreezableSupplier(Supplier<Integer> delegate) {
             this.delegate = delegate;
         }
 
-        public void freeze() {
+        void freeze() {
             isFrozen = true;
         }
 
-        public void unfreeze() {
+        void unfreeze() {
             isFrozen = false;
         }
 

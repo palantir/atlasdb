@@ -57,4 +57,7 @@ public final class AtlasDbMetricNames {
     public static final String SWEEP_TS = "sweepTimestamp";
     public static final String LAST_SWEPT_TS = "lastSweptTimestamp";
     public static final String LAG_MILLIS = "millisSinceLastSweptTs";
+
+    public static final String SWEEP_OUTCOME = "outcome";
+    public static final String TAG_OUTCOME = "status";
 }

@@ -15,8 +15,6 @@
  */
 package com.palantir.paxos;
 
-import static com.google.common.collect.ImmutableList.copyOf;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -40,11 +38,11 @@ import com.palantir.logsafe.UnsafeArg;
  *
  * @author rullman
  */
-public class PaxosProposerImpl implements PaxosProposer {
+public final class PaxosProposerImpl implements PaxosProposer {
     private static final Logger log = LoggerFactory.getLogger(PaxosProposerImpl.class);
 
     /**
-     * @deprecated use {@link #newProposer(PaxosLearner, List, List, int, UUID, ExecutorService)}
+     * @deprecated use {@link #newProposer(PaxosLearner, List, List, int, UUID, ExecutorService)}.
      */
     @Deprecated
     public static PaxosProposer newProposer(
@@ -68,14 +66,14 @@ public class PaxosProposerImpl implements PaxosProposer {
             List<PaxosAcceptor> allAcceptors,
             List<PaxosLearner> allLearners,
             int quorumSize,
-            UUID leaderUUID,
+            UUID leaderUuid,
             ExecutorService executor) {
         return new PaxosProposerImpl(
                 localLearner,
                 allAcceptors,
                 allLearners,
                 quorumSize,
-                leaderUUID.toString(),
+                leaderUuid.toString(),
                 executor);
     }
 
@@ -98,8 +96,8 @@ public class PaxosProposerImpl implements PaxosProposer {
                 quorumSize > acceptors.size() / 2,
                 "quorum size needs to be at least the majority of acceptors");
         this.localLearner = localLearner;
-        this.allAcceptors = copyOf(acceptors);
-        this.allLearners = copyOf(learners);
+        this.allAcceptors = ImmutableList.copyOf(acceptors);
+        this.allLearners = ImmutableList.copyOf(learners);
         this.quorumSize = quorumSize;
         this.uuid = uuid;
         this.proposalNum = new AtomicLong();
@@ -108,14 +106,14 @@ public class PaxosProposerImpl implements PaxosProposer {
 
     @Override
     public byte[] propose(final long seq, @Nullable byte[] bytes) throws PaxosRoundFailureException {
-        final PaxosProposalId proposalID = new PaxosProposalId(proposalNum.incrementAndGet(), uuid);
+        final PaxosProposalId proposalId = new PaxosProposalId(proposalNum.incrementAndGet(), uuid);
         PaxosValue toPropose = new PaxosValue(uuid, seq, bytes);
 
         // paxos phase one (prepare and promise)
-        final PaxosValue finalValue = phaseOne(seq, proposalID, toPropose);
+        final PaxosValue finalValue = phaseOne(seq, proposalId, toPropose);
 
         // paxos phase two (accept request and accepted)
-        phaseTwo(seq, proposalID, finalValue);
+        phaseTwo(seq, proposalId, finalValue);
 
         // broadcast learned value
         for (final PaxosLearner learner : allLearners) {
@@ -143,25 +141,24 @@ public class PaxosProposerImpl implements PaxosProposer {
     }
 
     /**
-     * Executes phase one of paxos (see
-     * http://en.wikipedia.org/wiki/Paxos_(computer_science)#Basic_Paxos)
+     * Executes phase one of paxos (see http://en.wikipedia.org/wiki/Paxos_(computer_science)#Basic_Paxos).
      *
      * @param seq the number identifying this instance of paxos
-     * @param proposalID the id of the proposal currently being considered
+     * @param proposalId the id of the proposal currently being considered
      * @param proposalValue the default proposal value if no member of the quorum has already
      *        accepted an offer
      * @return the value accepted by the quorum
      * @throws PaxosRoundFailureException if quorum cannot be reached in this phase
      */
-    private PaxosValue phaseOne(final long seq, final PaxosProposalId pid, PaxosValue value)
+    private PaxosValue phaseOne(final long seq, final PaxosProposalId proposalId, PaxosValue proposalValue)
             throws PaxosRoundFailureException {
-        List<PaxosPromise> receivedPromises = PaxosQuorumChecker.<PaxosAcceptor, PaxosPromise> collectQuorumResponses(
+        List<PaxosPromise> receivedPromises = PaxosQuorumChecker.collectQuorumResponses(
                 allAcceptors,
                 new Function<PaxosAcceptor, PaxosPromise>() {
                     @Override
                     @Nullable
                     public PaxosPromise apply(@Nullable PaxosAcceptor acceptor) {
-                        return acceptor.prepare(seq, pid);
+                        return acceptor.prepare(seq, proposalId);
                     }
                 },
                 quorumSize,
@@ -189,22 +186,21 @@ public class PaxosProposerImpl implements PaxosProposer {
             return greatestPromise.lastAcceptedValue;
         }
 
-        return value;
+        return proposalValue;
     }
 
     /**
-     * Executes phase two of paxos (see
-     * http://en.wikipedia.org/wiki/Paxos_(computer_science)#Basic_Paxos)
+     * Executes phase two of paxos (see http://en.wikipedia.org/wiki/Paxos_(computer_science)#Basic_Paxos).
      *
      * @param seq the number identifying this instance of paxos
-     * @param pid the id of the proposal currently being considered
-     * @param val the value agree on in phase one of paxos
+     * @param proposalId the id of the proposal currently being considered
+     * @param proposalValue the value agree on in phase one of paxos
      * @throws PaxosRoundFailureException if quorum cannot be reached in this phase
      */
-    private void phaseTwo(final long seq, PaxosProposalId pid, PaxosValue val)
+    private void phaseTwo(final long seq, PaxosProposalId proposalId, PaxosValue proposalValue)
             throws PaxosRoundFailureException {
-        final PaxosProposal proposal = new PaxosProposal(pid, val);
-        List<PaxosResponse> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosResponse> collectQuorumResponses(
+        final PaxosProposal proposal = new PaxosProposal(proposalId, proposalValue);
+        List<PaxosResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
                 allAcceptors,
                 new Function<PaxosAcceptor, PaxosResponse>() {
                     @Override

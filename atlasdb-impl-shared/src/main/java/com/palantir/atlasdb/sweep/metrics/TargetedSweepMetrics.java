@@ -37,7 +37,7 @@ import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.time.Clock;
-import com.palantir.common.time.SystemClock;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
@@ -46,6 +46,7 @@ public final class TargetedSweepMetrics {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweepMetrics.class);
     private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
+    private final SweepOutcomeMetrics outcomeMetrics;
 
     private TargetedSweepMetrics(MetricsManager metricsManager,
                 Function<Long, Long> tsToMillis, Clock clock, long millis) {
@@ -54,10 +55,12 @@ public final class TargetedSweepMetrics {
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, tsToMillis, clock, millis),
                 TableMetadataPersistence.SweepStrategy.THOROUGH,
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, tsToMillis, clock, millis));
+        outcomeMetrics = SweepOutcomeMetrics.registerTargeted(metricsManager);
     }
 
-    public static TargetedSweepMetrics create(MetricsManager metricsManager, KeyValueService kvs, long millis) {
-        return createWithClock(metricsManager, kvs, new SystemClock(), millis);
+    public static TargetedSweepMetrics create(MetricsManager metricsManager, TimelockService timelock,
+            KeyValueService kvs, long millis) {
+        return createWithClock(metricsManager, kvs, timelock::currentTimeMillis, millis);
     }
 
     public static TargetedSweepMetrics createWithClock(
@@ -96,6 +99,10 @@ public final class TargetedSweepMetrics {
 
     public void updateProgressForShard(ShardAndStrategy shardStrategy, long lastSweptTs) {
         getMetrics(shardStrategy).updateProgressForShard(shardStrategy.shard(), lastSweptTs);
+    }
+
+    public void registerOccurrenceOf(SweepOutcome outcome) {
+        outcomeMetrics.registerOccurrenceOf(outcome);
     }
 
     private MetricsForStrategy getMetrics(ShardAndStrategy shardStrategy) {

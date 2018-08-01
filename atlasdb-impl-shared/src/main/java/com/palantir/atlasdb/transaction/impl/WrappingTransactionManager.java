@@ -27,9 +27,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = TransactionManager.class)
 public abstract class WrappingTransactionManager implements AutoDelegate_TransactionManager {
     private final TransactionManager delegate;
 

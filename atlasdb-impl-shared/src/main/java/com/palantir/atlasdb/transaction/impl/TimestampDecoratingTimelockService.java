@@ -18,11 +18,9 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
-@AutoDelegate(typeToExtend = TimelockService.class)
 public class TimestampDecoratingTimelockService implements AutoDelegate_TimelockService {
     private final TimelockService delegate;
     private final TimestampService decoratedTimestamps;

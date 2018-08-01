@@ -54,8 +54,78 @@ develop
          - Cassandra KVS now correctly accepts check-and-set operations if one is working with multiple columns in the relevant row.
            Previously, if there were multiple columns in the row where one was trying to do a CAS, the CAS would be rejected even if the column value matched the cell.
            Similarly, for put-unless-exists, the PUE would be rejected if there were any other cells in the relevant row (even if they had a different column name).
-           We now perform the operations correctly only considering the value (or absence of) the relevant cell.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+           We now perform the operations correctly only considering the value (or absence of value) in the relevant cell.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3388>`__)
+
+    *    - |improved|
+         - Sequential sweep now sleeps longer between iterations if there was nothing to sweep.
+           Previously we would sleep for 2 minutes between runs, but it is unlikely that anything has changed dramatically in 2 minutes so we sleep for longer to prevent scanning the sweep priority table too often.  Going forward the most likely explanation for there being nothing to sweep is that we have switched to targeted sweep.
+           We don't stop completely or sleep for too long just in case configuration changes and a table is eligible to sweep again.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3429>`__)
+
+=======
+v0.99.0
+=======
+
+25 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed an issue where a failure to punch a value into the _punch table would suppress any future attempts to punch.
+           Previously, if the asynchronous job that punches a timestamp every minute ever threw an exception, the unreadable timestamp would be stuck until the service is restarted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3427>`__)
+
+    *    - |improved|
+         - TimeLock by default now has a client limit of 500.
+           Previously, this used to be 100 - however we have run into issues internally where stacks legitimately reach this threshold.
+           Note that we still need to maintain the client limit to avoid a possible DOS attack with users creating arbitrarily many clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3413>`__)
+
+    *    - |new| |metrics|
+         - Added metrics for the number of active clients and maximum number of clients in TimeLock Server.
+           These are useful to identify stacks that may be in danger of breaching their maxima.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3413>`__)
+
+=======
+v0.98.0
+=======
+
+25 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new| |metrics|
+         - Targeted sweep now exposes tagged metrics for the outcome of each iteration, analogous to the legacy sweep outcome metrics.
+           The reported outcomes for targeted sweep are: ``SUCCESS``, ``NOTHING_TO_SWEEP``, ``DISABLED``, ``NOT_ENOUGH_DB_NODES_ONLINE``, and ``ERROR``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3399>`__)
+
+    *    - |improved|
+         - Changed the range scan behavior for the sweep priority table so that reads scan less data in Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3410>`__)
+
+=======
+v0.97.0
+=======
+
+20 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |improved|
          - TimeLock Server now exposes a ``startAtlasDbTransaction`` endpoint which locks an immutable timestamp and then gets a fresh timestamp (in a single round-trip call); new TimeLock clients call this endpoint.
@@ -70,6 +140,22 @@ develop
     *    - |changed| |metrics|
          - CassandraClientPoolingContainer metrics are tagged by pool name. Previosly pool name was embedded in metric name.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3375>`__)
+
+    *    - |improved|
+         - Added the ``CallbackInitializable`` interface to simplify asynchronous initialization of resources using transaction manager callbacks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3360>`__)
+
+    *    - |improved|
+         - The timestamp cache size is now actually live reloaded, and uses Caffeine instead of Guava for better performance. The read only transaction manager
+           (almost unused) now no longer constructs a thread pool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3351>`__)
+
+    *    - |improved| |devbreak|
+         - Transactions now have meters recording their outcomes (e.g. successful commits, lock expiry, being rolled back, read-write conflicts, etc.)
+           In the cases of write-write and read-write conflicts, the first table on which a conflict occurred will be tagged on to the conflict meter if it is safe for logging.
+           Note that some metric names have changed; in particular, ``SerializableTransaction.SerializableTransactionConflict`` and ``SnapshotTransaction.SnapshotTransactionConflict`` are now tracked as ``readWriteConflicts`` and ``writeWriteConflicts`` respectively under ``TransactionOutcomeMetrics``.
+           This is also an improvement in terms of clarity, as serializable transactions that experienced write-write conflicts were previously marked as snapshot transaction conflicts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3358>`__)
 
 =======
 v0.96.0
@@ -112,24 +198,8 @@ v0.95.0
          - Change
 
     *    - |improved|
-         - Added the ``CallbackInitializable`` interface to simplify asynchronous initialization of resources using transaction manager callbacks.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3360>`__)
-
-    *    - |improved|
-         - The timestamp cache size is now actually live reloaded, and uses Caffeine instead of Guava for better performance. The read only transaction manager
-           (almost unused) now no longer constructs a thread pool.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3351>`__)
-
-    *    - |improved|
          - The atlas console metadata query now returns more table metadata, such as sweep strategy and conflict handler information.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3161>`__)
-
-    *    - |improved| |devbreak|
-         - Transactions now have meters recording their outcomes (e.g. successful commits, lock expiry, being rolled back, read-write conflicts, etc.)
-           In the cases of write-write and read-write conflicts, the first table on which a conflict occurred will be tagged on to the conflict meter if it is safe for logging.
-           Note that some metric names have changed; in particular, ``SerializableTransaction.SerializableTransactionConflict`` and ``SnapshotTransaction.SnapshotTransactionConflict`` are now tracked as ``readWriteConflicts`` and ``writeWriteConflicts`` respectively under ``TransactionOutcomeMetrics``.
-           This is also an improvement in terms of clarity, as serializable transactions that experienced write-write conflicts were previously marked as snapshot transaction conflicts.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3358>`__)
 
     *    - |devbreak|
          - The ``putUnlessExists`` API has been removed from AtlasDB tables, as it was misleading (it only did the put if the given row, column and value triple were already present, as opposed to the more intuitive condition of the row and column value pair being present).

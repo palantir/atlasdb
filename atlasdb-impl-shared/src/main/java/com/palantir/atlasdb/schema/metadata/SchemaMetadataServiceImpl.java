@@ -38,9 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.SchemaMetadata;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = SchemaMetadataService.class)
 public final class SchemaMetadataServiceImpl implements SchemaMetadataService {
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SchemaMetadataService {

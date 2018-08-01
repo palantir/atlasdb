@@ -72,12 +72,14 @@ public class ProtobufTest {
         PaxosAcceptorPersistence.PaxosProposal persisted;
         PaxosProposal actual;
 
-        expected = new PaxosProposal(new PaxosProposalId(55, "nonce"), new PaxosValue("red leader", 93, null));
+        expected = new PaxosProposal(new PaxosProposalId(55, "nonce"),
+                new PaxosValue("red leader", 93, null));
         persisted = expected.persistToProto();
         actual = PaxosProposal.hydrateFromProto(persisted);
         assertEquals(expected, actual);
 
-        expected = new PaxosProposal(new PaxosProposalId(0, "noice"), new PaxosValue("", 93, new byte[]{}));
+        expected = new PaxosProposal(new PaxosProposalId(0, "noice"),
+                new PaxosValue("", 93, new byte[]{}));
         persisted = expected.persistToProto();
         actual = PaxosProposal.hydrateFromProto(persisted);
         assertEquals(expected, actual);
@@ -94,17 +96,23 @@ public class ProtobufTest {
         actual = PaxosPromises.fromProto(persisted);
         assertEquals(expected, actual);
 
-        expected = PaxosPromise.accept(new PaxosProposalId(20, "id"), new PaxosProposalId(6, "fire"), new PaxosValue("me", 5, new byte[]{8, 8, 100}));
+        expected = PaxosPromise.accept(new PaxosProposalId(20, "id"),
+                new PaxosProposalId(6, "fire"),
+                new PaxosValue("me", 5, new byte[]{8, 8, 100}));
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
         assertEquals(expected, actual);
 
-        expected = PaxosPromise.accept(new PaxosProposalId(20, "id"), null, new PaxosValue("me", 5, new byte[]{8, 8, 100}));
+        expected = PaxosPromise.accept(new PaxosProposalId(20, "id"),
+                null,
+                new PaxosValue("me", 5, new byte[]{8, 8, 100}));
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
         assertEquals(expected, actual);
 
-        expected = PaxosPromise.accept(new PaxosProposalId(20, "id"), null, null);
+        expected = PaxosPromise.accept(new PaxosProposalId(20, "id"),
+                null,
+                null);
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
         assertEquals(expected, actual);

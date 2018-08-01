@@ -20,12 +20,12 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.palantir.common.base.Throwables;
 import com.palantir.common.proxy.DelegatingInvocationHandler;
 
-public class ToggleableExceptionProxy implements DelegatingInvocationHandler {
+public final class ToggleableExceptionProxy implements DelegatingInvocationHandler {
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass,
@@ -45,9 +45,9 @@ public class ToggleableExceptionProxy implements DelegatingInvocationHandler {
     private ToggleableExceptionProxy(Object delegate,
                                      AtomicBoolean throwException,
                                      Exception exception) {
-        Validate.notNull(delegate);
-        Validate.notNull(throwException);
-        Validate.notNull(exception);
+        Validate.notNull(delegate, "delegate should not be null.");
+        Validate.notNull(throwException, "thrownException should not be null.");
+        Validate.notNull(exception, "exception should not be null.");
         this.delegate = delegate;
         this.throwException = throwException;
         this.exception = exception;
