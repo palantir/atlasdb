@@ -50,8 +50,18 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Cassandra KVS now correctly accepts check-and-set operations if one is working with multiple columns in the relevant row.
+           Previously, if there were multiple columns in the row where one was trying to do a CAS, the CAS would be rejected even if the column value matched the cell.
+           Similarly, for put-unless-exists, the PUE would be rejected if there were any other cells in the relevant row (even if they had a different column name).
+           We now perform the operations correctly only considering the value (or absence of value) in the relevant cell.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3388>`__)
+
+    *    - |improved|
+         - Sequential sweep now sleeps longer between iterations if there was nothing to sweep.
+           Previously we would sleep for 2 minutes between runs, but it is unlikely that anything has changed dramatically in 2 minutes so we sleep for longer to prevent scanning the sweep priority table too often.  Going forward the most likely explanation for there being nothing to sweep is that we have switched to targeted sweep.
+           We don't stop completely or sleep for too long just in case configuration changes and a table is eligible to sweep again.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3429>`__)
 
 =======
 v0.99.0
@@ -65,6 +75,11 @@ v0.99.0
 
     *    - Type
          - Change
+
+    *    - |fixed|
+         - Fixed an issue where a failure to punch a value into the _punch table would suppress any future attempts to punch.
+           Previously, if the asynchronous job that punches a timestamp every minute ever threw an exception, the unreadable timestamp would be stuck until the service is restarted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3427>`__)
 
     *    - |improved|
          - TimeLock by default now has a client limit of 500.

@@ -37,7 +37,7 @@ import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.time.Clock;
-import com.palantir.common.time.SystemClock;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
@@ -58,8 +58,9 @@ public final class TargetedSweepMetrics {
         outcomeMetrics = SweepOutcomeMetrics.registerTargeted(metricsManager);
     }
 
-    public static TargetedSweepMetrics create(MetricsManager metricsManager, KeyValueService kvs, long millis) {
-        return createWithClock(metricsManager, kvs, new SystemClock(), millis);
+    public static TargetedSweepMetrics create(MetricsManager metricsManager, TimelockService timelock,
+            KeyValueService kvs, long millis) {
+        return createWithClock(metricsManager, kvs, timelock::currentTimeMillis, millis);
     }
 
     public static TargetedSweepMetrics createWithClock(

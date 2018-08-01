@@ -1442,6 +1442,28 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void putUnlessExistsDoesNotConflictForMultipleCellsSameRow() {
+        Assume.assumeTrue(checkAndSetSupported());
+        Cell firstTestCell = Cell.create(row0, column0);
+        Cell nextTestCell = Cell.create(row0, column1);
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(firstTestCell, value00));
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(nextTestCell, value01));
+        // Legal as the cells are different
+    }
+
+    @Test
+    public void putUnlessExistsDoesNotConflictForMultipleCellsSameColumn() {
+        Assume.assumeTrue(checkAndSetSupported());
+        Cell firstTestCell = Cell.create(row0, column0);
+        Cell nextTestCell = Cell.create(row1, column0);
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(firstTestCell, value00));
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(nextTestCell, value01));
+        // Legal as the cells are different
+    }
+
+    @Test
     public void testCheckAndSetFromEmpty() {
         Assume.assumeTrue(checkAndSetSupported());
 
@@ -1483,8 +1505,8 @@ public abstract class AbstractKeyValueServiceTest {
         ClosableIterator<RowResult<Value>> result = keyValueService.getRange(TEST_TABLE, RangeRequest.all(),
                 AtlasDbConstants.TRANSACTION_TS + 1);
 
-        // Check first result is right
-        byte[] actual = result.next().getOnlyColumnValue().getContents();
+        // Check result is right
+        byte[] actual = result.next().getColumns().get(key.getColumnName()).getContents();
         assertArrayEquals(String.format("Value \"%s\" different from expected \"%s\"",
                 new String(actual, StandardCharsets.UTF_8),
                 new String(expectedValue, StandardCharsets.UTF_8)),
@@ -1526,6 +1548,50 @@ public abstract class AbstractKeyValueServiceTest {
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, value00);
         keyValueService.checkAndSet(request);
         keyValueService.checkAndSet(request);
+    }
+
+    @Test
+    public void testCheckAndSetToNewCellsInDistinctRows() {
+        Assume.assumeTrue(checkAndSetSupported());
+        Cell firstTestCell = Cell.create(row0, column0);
+        Cell nextTestCell = Cell.create(row0, column1);
+
+        keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, firstTestCell, value00));
+        keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, nextTestCell, value01));
+
+        verifyCheckAndSet(firstTestCell, value00);
+        verifyCheckAndSet(nextTestCell, value01);
+    }
+
+    @Test
+    public void testCheckAndSetIndependentlyWorks() {
+        Assume.assumeTrue(checkAndSetSupported());
+        Cell firstTestCell = Cell.create(row0, column0);
+        Cell nextTestCell = Cell.create(row0, column1);
+
+        keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, firstTestCell, value00));
+        keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, nextTestCell, value01));
+        keyValueService.checkAndSet(CheckAndSetRequest.singleCell(TEST_TABLE, firstTestCell, value00, value01));
+
+        verifyCheckAndSet(firstTestCell, value01);
+        verifyCheckAndSet(nextTestCell, value01);
+    }
+
+    @Test
+    public void testCheckAndSetIndependentlyFails() {
+        Assume.assumeTrue(checkAndSetSupported());
+        Cell firstTestCell = Cell.create(row0, column0);
+        Cell nextTestCell = Cell.create(row0, column1);
+
+        keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, firstTestCell, value00));
+        keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, nextTestCell, value01));
+
+        assertThatThrownBy(() -> keyValueService.checkAndSet(
+                CheckAndSetRequest.singleCell(TEST_TABLE, nextTestCell, value00, value01)))
+                .isInstanceOf(CheckAndSetException.class);
+
+        verifyCheckAndSet(firstTestCell, value00);
+        verifyCheckAndSet(nextTestCell, value01);
     }
 
     @Test

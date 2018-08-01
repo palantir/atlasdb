@@ -22,7 +22,6 @@ import javax.annotation.CheckReturnValue;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.WritableAssertionInfo;
-import org.assertj.core.internal.Comparables;
 import org.assertj.core.internal.Objects;
 
 import com.codahale.metrics.Gauge;
@@ -36,7 +35,6 @@ import com.palantir.tritium.metrics.registry.MetricName;
 public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert, MetricsManager> {
     private final MetricsManager metrics;
     private final Objects objects = Objects.instance();
-    private final Comparables comparables = Comparables.instance();
     private final WritableAssertionInfo info = new WritableAssertionInfo();
 
     public SweepMetricsAssert(MetricsManager actual) {
@@ -75,11 +73,6 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
 
     public void hasMillisSinceLastSweptConservativeEqualTo(Long value) {
         objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
-    }
-
-    public void hasMillisSinceLastSweptConservativeWithinOneSecondOf(long expected) {
-        comparables.assertIsBetween(info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue(),
-                expected - 1000L, expected + 1000, true, false);
     }
 
     public void hasEnqueuedWritesThoroughEqualTo(long value) {

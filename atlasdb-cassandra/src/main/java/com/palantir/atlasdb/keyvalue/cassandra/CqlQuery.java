@@ -30,7 +30,7 @@ public class CqlQuery {
     final String queryFormat;
     final Arg<?>[] queryArgs;
 
-    CqlQuery(String queryFormat, Arg<?>... args) {
+    public CqlQuery(String queryFormat, Arg<?>... args) {
         this.queryFormat = queryFormat;
         this.queryArgs = args;
     }
