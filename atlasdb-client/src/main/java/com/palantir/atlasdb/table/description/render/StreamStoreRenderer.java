@@ -695,14 +695,14 @@ public class StreamStoreRenderer {
                     line("Set<", StreamIdxRow, "> rowsInDb = Sets.newHashSetWithExpectedSize(cells.size());");
 
                     line("for (Map.Entry<", StreamIdxRow, ", BatchingVisitable<", StreamIdxColumnValue, ">> rowVisitable");
-                    line("        : existentRows.entrySet())"); {
+                    line("        : existentRows.entrySet()) {"); {
                         line("rowVisitable.getValue().batchAccept(1, columnValues -> {"); {
                             line("if (!columnValues.isEmpty()) {"); {
                                 line("rowsInDb.add(rowVisitable.getKey());");
                             } line("}");
                             line("return false;");
                         } line("});");
-                    }
+                    } line("}");
 
                     line("Set<", StreamId, "> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.size());");
                     line("for (", StreamIdxRow, " rowToDelete : Sets.difference(rows, rowsInDb)) {"); {
