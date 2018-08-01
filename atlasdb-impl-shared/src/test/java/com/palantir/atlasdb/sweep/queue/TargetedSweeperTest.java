@@ -98,7 +98,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         mockFollower = mock(TargetedSweepFollower.class);
 
         timelockService = mock(TimelockService.class);
-        sweepQueue.initializeWithoutRunning(timestampsSupplier, mock(TimelockService.class), spiedKvs, mockFollower);
+        sweepQueue.initializeWithoutRunning(timestampsSupplier, timelockService, spiedKvs, mockFollower);
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
