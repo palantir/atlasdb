@@ -219,7 +219,7 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     private long getBackoffTimeWhenNothingToSweep() {
-        return 5 * getBackoffTimeWhenSweepHasNotRun(); // 10 minutes by default
+        return TimeUnit.MINUTES.toMillis(10);
     }
 
     @VisibleForTesting
