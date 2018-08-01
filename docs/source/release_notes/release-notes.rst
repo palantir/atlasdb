@@ -50,14 +50,35 @@ develop
     *    - Type
          - Change
 
-    *    - |new| |metrics|
-         - Targeted sweep now exposes tagged metrics for the outcome of each iteration, analogous to the legacy sweep outcome metrics.
-           The reported outcomes for targeted sweep are: ``SUCCESS``, ``NOTHING_TO_SWEEP``, ``DISABLED``, ``NOT_ENOUGH_DB_NODES_ONLINE``, and ``ERROR``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3399>`__)
+    *    - |improved|
+         - Sequential sweep now sleeps longer between iterations if there was nothing to sweep.
+           Previously we would sleep for 2 minutes between runs, but it is unlikely that anything has changed dramatically in 2 minutes so we sleep for longer to prevent scanning the sweep priority table too often.  Going forward the most likely explanation for there being nothing to sweep is that we have switched to targeted sweep.
+           We don't stop completely or sleep for too long just in case configuration changes and a table is eligible to sweep again.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3429>`__)
 
     *    - |improved|
-         - Changed the range scan behavior for the sweep priority table so that reads scan less data in Cassandra.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3410>`__)
+         - The index cleanup task for stream stores now only fetches the first column for each stream ID when determining whether the stream is still in use.
+           Previously, we would fetch the entire row which is unnecessary and causes read pressure on the key-value-service for highly referenced streams.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/qqqq>`__)
+
+
+=======
+v0.99.0
+=======
+
+25 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed an issue where a failure to punch a value into the _punch table would suppress any future attempts to punch.
+           Previously, if the asynchronous job that punches a timestamp every minute ever threw an exception, the unreadable timestamp would be stuck until the service is restarted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3427>`__)
 
     *    - |improved|
          - TimeLock by default now has a client limit of 500.
@@ -70,10 +91,27 @@ develop
            These are useful to identify stacks that may be in danger of breaching their maxima.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3413>`__)
 
+=======
+v0.98.0
+=======
+
+25 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new| |metrics|
+         - Targeted sweep now exposes tagged metrics for the outcome of each iteration, analogous to the legacy sweep outcome metrics.
+           The reported outcomes for targeted sweep are: ``SUCCESS``, ``NOTHING_TO_SWEEP``, ``DISABLED``, ``NOT_ENOUGH_DB_NODES_ONLINE``, and ``ERROR``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3399>`__)
+
     *    - |improved|
-         - The index cleanup task for stream stores now only fetches the first column for each stream ID when determining whether the stream is still in use.
-           Previously, we would fetch the entire row which is unnecessary and causes read pressure on the key-value-service for highly referenced streams.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/qqqq>`__)
+         - Changed the range scan behavior for the sweep priority table so that reads scan less data in Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3410>`__)
 
 =======
 v0.97.0

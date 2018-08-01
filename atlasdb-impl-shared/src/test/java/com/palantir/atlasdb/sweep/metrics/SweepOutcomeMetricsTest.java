@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
+import static org.mockito.Mockito.mock;
+
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
 
 import java.util.Arrays;
@@ -27,6 +29,7 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.lock.v2.TimelockService;
 
 public class SweepOutcomeMetricsTest {
     private MetricsManager metricsManager;
@@ -39,7 +42,7 @@ public class SweepOutcomeMetricsTest {
         metricsManager = MetricsManagers.createForTests();
         legacyMetrics = SweepOutcomeMetrics.registerLegacy(metricsManager);
         targetedSweepMetrics = TargetedSweepMetrics
-                .create(metricsManager, new InMemoryKeyValueService(true), Long.MAX_VALUE);
+                .create(metricsManager, mock(TimelockService.class), new InMemoryKeyValueService(true), Long.MAX_VALUE);
     }
 
     @Test
