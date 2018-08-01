@@ -63,6 +63,12 @@ develop
            We don't stop completely or sleep for too long just in case configuration changes and a table is eligible to sweep again.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3429>`__)
 
+    *    - |improved|
+         - TimeLockAgent now exposes the number of active clients and the configured maximum
+           This makes it easier for a service to expose these via a health check
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3431>`__)
+
+
 =======
 v0.99.0
 =======
