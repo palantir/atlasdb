@@ -57,6 +57,12 @@ develop
            We now perform the operations correctly only considering the value (or absence of value) in the relevant cell.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3388>`__)
 
+    *    - |improved| |devbreak|
+         - We have removed the ``sleepForBackoff(int)`` method from ``AbstractTransactionManager`` as there were no known users and its presence led to user confusion.
+           AtlasDB does not actually backoff between attempts of running a user's transaction task.
+           If your service overrides this method, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+
     *    - |improved|
          - Sequential sweep now sleeps longer between iterations if there was nothing to sweep.
            Previously we would sleep for 2 minutes between runs, but it is unlikely that anything has changed dramatically in 2 minutes so we sleep for longer to prevent scanning the sweep priority table too often.  Going forward the most likely explanation for there being nothing to sweep is that we have switched to targeted sweep.
