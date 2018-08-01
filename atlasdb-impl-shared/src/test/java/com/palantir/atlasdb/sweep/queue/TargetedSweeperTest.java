@@ -87,6 +87,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private SweepableTimestamps sweepableTimestamps;
     private SweepableCells sweepableCells;
     private TargetedSweepFollower mockFollower;
+    private TimelockService timelockService;
     private PuncherStore puncherStore;
     private boolean enabled = true;
 
@@ -95,6 +96,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         super.setup();
         sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, () -> enabled, () -> DEFAULT_SHARDS);
         mockFollower = mock(TargetedSweepFollower.class);
+
+        timelockService = mock(TimelockService.class);
         sweepQueue.initializeWithoutRunning(timestampsSupplier, mock(TimelockService.class), spiedKvs, mockFollower);
 
         progress = new ShardProgress(spiedKvs);
@@ -169,8 +172,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(
                 maxTsForFinePartition(0));
 
-        punchCurrentTimeMinusMillisAtTimestamp(2000, LOW_TS);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeWithinOneSecondOf(2000L);
+        setTimelockTime(5_000L);
+        punchTimeAtTimestamp(2_000, LOW_TS);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(3000L);
         assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.SUCCESS, 1L);
     }
 
@@ -348,8 +352,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(
                 maxTsForFinePartition(0));
 
-        punchCurrentTimeMinusMillisAtTimestamp(5000L, LOW_TS + 8);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeWithinOneSecondOf(5000L);
+        setTimelockTime(10_000L);
+        punchTimeAtTimestamp(5_000L, LOW_TS + 8);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(5000L);
     }
 
     @Test
@@ -381,8 +386,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(3));
 
-        punchCurrentTimeMinusMillisAtTimestamp(0L, tsFineFour + 1L);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeWithinOneSecondOf(0L);
+        setTimelockTime(0L);
+        punchTimeAtTimestamp(0L, tsFineFour + 1L);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(0L);
     }
 
     @Test
@@ -1040,8 +1046,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEmpty();
     }
 
-    private void punchCurrentTimeMinusMillisAtTimestamp(long minusMillis, long timestamp) {
-        puncherStore.put(timestamp, System.currentTimeMillis() - minusMillis);
+    private void setTimelockTime(long timeMillis) {
+        when(timelockService.currentTimeMillis()).thenReturn(timeMillis);
+    }
+
+    private void punchTimeAtTimestamp(long timeMillis, long timestamp) {
+        puncherStore.put(timestamp, timeMillis);
     }
 
     private void commitTransactionsWithWritesIntoUniqueCells(int transactions, int writes, TargetedSweeper sweeper) {

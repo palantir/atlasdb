@@ -75,7 +75,7 @@ public class ClockSkewEvents {
     }
 
     public void clockWentBackwards(String server, long amount) {
-        log.debug("The clock for server {} went backwards by {} nanoseconds",
+        log.info("The clock for server {} went backwards by {} nanoseconds",
                 SafeArg.of("server", server),
                 SafeArg.of("amountNanos", amount));
 
