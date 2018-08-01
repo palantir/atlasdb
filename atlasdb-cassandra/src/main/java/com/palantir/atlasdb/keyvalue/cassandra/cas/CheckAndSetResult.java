@@ -29,8 +29,4 @@ public interface CheckAndSetResult {
 
     @Value.Parameter
     List<ByteString> existingValues();
-
-    static CheckAndSetResult of(boolean successful, List<ByteString> existingValues) {
-        return ImmutableCheckAndSetResult.of(successful, existingValues);
-    }
 }

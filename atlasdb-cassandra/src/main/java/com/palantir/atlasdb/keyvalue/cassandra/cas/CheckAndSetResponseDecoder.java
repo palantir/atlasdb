@@ -41,7 +41,7 @@ final class CheckAndSetResponseDecoder {
 
     static CheckAndSetResult decodeCqlResult(CqlResult cqlResult) {
         CqlRow resultRow = Iterables.getOnlyElement(cqlResult.getRows());
-        return CheckAndSetResult.of(isResultSuccessful(resultRow), existingValues(resultRow));
+        return ImmutableCheckAndSetResult.of(isResultSuccessful(resultRow), existingValues(resultRow));
     }
 
     private static boolean isResultSuccessful(CqlRow cqlRow) {
