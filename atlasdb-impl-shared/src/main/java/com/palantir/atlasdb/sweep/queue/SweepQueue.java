@@ -23,48 +23,46 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.logsafe.SafeArg;
 
-public final class SweepQueue implements SweepQueueWriter {
+public final class SweepQueue implements MultiTableSweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(SweepQueue.class);
-    private final SweepableCells sweepableCells;
-    private final SweepableTimestamps sweepableTimestamps;
     private final ShardProgress progress;
+    private final SweepQueueWriter writer;
+    private final SweepQueueReader reader;
     private final SweepQueueDeleter deleter;
     private final SweepQueueCleaner cleaner;
     private final Supplier<Integer> numShards;
     private final TargetedSweepMetrics metrics;
 
-    private SweepQueue(SweepableCells cells, SweepableTimestamps timestamps, ShardProgress progress,
-            SweepQueueDeleter deleter, SweepQueueCleaner cleaner, Supplier<Integer> numShards,
-            TargetedSweepMetrics metrics) {
-        this.sweepableCells = cells;
-        this.sweepableTimestamps = timestamps;
-        this.progress = progress;
-        this.deleter = deleter;
-        this.cleaner = cleaner;
-        this.numShards = numShards;
-        this.metrics = metrics;
+    private SweepQueue(SweepQueueFactory factory, TargetedSweepFollower follower) {
+        this.progress = factory.progress;
+        this.writer = factory.createWriter();
+        this.reader = factory.createReader();
+        this.deleter = factory.createDeleter(follower);
+        this.cleaner = factory.createCleaner();
+        this.numShards = factory.numShards;
+        this.metrics = factory.metrics;
     }
 
     public static SweepQueue create(TargetedSweepMetrics metrics, KeyValueService kvs, Supplier<Integer> shardsConfig,
             TargetedSweepFollower follower) {
-        ShardProgress progress = new ShardProgress(kvs);
-        Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, progress,
-                SweepQueueUtils.REFRESH_INTERVAL);
-        WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
-        SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
-        SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
-        SweepQueueDeleter deleter = new SweepQueueDeleter(kvs, follower);
-        SweepQueueCleaner cleaner = new SweepQueueCleaner(cells, timestamps, progress);
-        return new SweepQueue(cells, timestamps, progress, deleter, cleaner, shards, metrics);
+        return new SweepQueue(SweepQueueFactory.create(metrics, kvs, shardsConfig), follower);
+    }
+
+    /**
+     * Creates a SweepQueueWriter, performing all the necessary initialization.
+     */
+    public static MultiTableSweepQueueWriter createWriter(TargetedSweepMetrics metrics, KeyValueService kvs,
+            Supplier<Integer> shardsConfig) {
+        return SweepQueueFactory.create(metrics, kvs, shardsConfig).createWriter();
     }
 
     /**
@@ -78,8 +76,7 @@ public final class SweepQueue implements SweepQueueWriter {
      * @param refreshTimeMillis timeout for caching the number of shards
      * @return supplier calculating and persisting the number of shards to use
      */
-    @VisibleForTesting
-    static Supplier<Integer> createProgressUpdatingSupplier(Supplier<Integer> runtimeConfig,
+    public static Supplier<Integer> createProgressUpdatingSupplier(Supplier<Integer> runtimeConfig,
             ShardProgress progress, long refreshTimeMillis) {
         return Suppliers.memoizeWithExpiration(
                 () -> progress.updateNumberOfShards(runtimeConfig.get()), refreshTimeMillis, TimeUnit.MILLISECONDS);
@@ -87,9 +84,7 @@ public final class SweepQueue implements SweepQueueWriter {
 
     @Override
     public void enqueue(List<WriteInfo> writes) {
-        sweepableTimestamps.enqueue(writes);
-        sweepableCells.enqueue(writes);
-        log.debug("Enqueued {} writes into the sweep queue.", SafeArg.of("writes", writes.size()));
+        writer.enqueue(writes);
     }
 
     /**
@@ -113,7 +108,7 @@ public final class SweepQueue implements SweepQueueWriter {
                 SafeArg.of("shardStrategy", shardStrategy.toText()),
                 SafeArg.of("sweepTs", sweepTs), SafeArg.of("lastSweptTs", lastSweptTs));
 
-        SweepBatch sweepBatch = getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
+        SweepBatch sweepBatch = reader.getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
 
@@ -136,16 +131,57 @@ public final class SweepQueue implements SweepQueueWriter {
         }
     }
 
-    private SweepBatch getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
-                .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
-                .orElse(SweepBatch.of(ImmutableList.of(), sweepTs - 1L));
-    }
-
     /**
      * Returns the most recently known number of shards.
      */
     public int getNumShards() {
         return numShards.get();
+    }
+
+    private static final class SweepQueueFactory {
+        private final ShardProgress progress;
+        private final Supplier<Integer> numShards;
+        private final SweepableCells cells;
+        private final SweepableTimestamps timestamps;
+        private final TargetedSweepMetrics metrics;
+        private final KeyValueService kvs;
+
+        private SweepQueueFactory(ShardProgress progress, Supplier<Integer> numShards, SweepableCells cells,
+                SweepableTimestamps timestamps, TargetedSweepMetrics metrics, KeyValueService kvs) {
+            this.progress = progress;
+            this.numShards = numShards;
+            this.cells = cells;
+            this.timestamps = timestamps;
+            this.metrics = metrics;
+            this.kvs = kvs;
+        }
+
+        static SweepQueueFactory create(TargetedSweepMetrics metrics, KeyValueService kvs,
+                Supplier<Integer> shardsConfig) {
+            Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+            ShardProgress shardProgress = new ShardProgress(kvs);
+            Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, shardProgress,
+                    SweepQueueUtils.REFRESH_TIME);
+            WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
+            SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
+            SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
+            return new SweepQueueFactory(shardProgress, shards, cells, timestamps, metrics, kvs);
+        }
+
+        private SweepQueueWriter createWriter() {
+            return new SweepQueueWriter(timestamps, cells);
+        }
+
+        private SweepQueueReader createReader() {
+            return new SweepQueueReader(timestamps, cells);
+        }
+
+        private SweepQueueDeleter createDeleter(TargetedSweepFollower follower) {
+            return new SweepQueueDeleter(kvs, follower);
+        }
+
+        private SweepQueueCleaner createCleaner() {
+            return new SweepQueueCleaner(cells, timestamps, progress);
+        }
     }
 }

@@ -96,8 +96,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         super.setup();
         sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, () -> enabled, () -> DEFAULT_SHARDS);
         mockFollower = mock(TargetedSweepFollower.class);
+
         timelockService = mock(TimelockService.class);
-        sweepQueue.initialize(timestampsSupplier, timelockService, spiedKvs, mockFollower);
+        sweepQueue.initializeWithoutRunning(timestampsSupplier, timelockService, spiedKvs, mockFollower);
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
@@ -121,8 +122,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         KeyValueService uninitializedKvs = mock(KeyValueService.class);
         when(uninitializedKvs.isInitialized()).thenReturn(false);
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(null);
-        assertThatThrownBy(() -> sweeper
-                .initialize(null, mock(TimelockService.class), uninitializedKvs, mock(TargetedSweepFollower.class)))
+        assertThatThrownBy(() -> sweeper.initializeWithoutRunning(
+                null, mock(TimelockService.class), uninitializedKvs, mock(TargetedSweepFollower.class)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -1078,7 +1079,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private TargetedSweeper getSingleShardSweeper() {
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
-        sweeper.initialize(
+        sweeper.initializeWithoutRunning(
                 timestampsSupplier, mock(TimelockService.class), spiedKvs, mock(TargetedSweepFollower.class));
         return sweeper;
     }
@@ -1106,9 +1107,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private void createAndInitializeSweepersAndWaitForOneBackgroundIteration(int sweepers, int shards, int threads,
             TimelockService stickyLockService) throws InterruptedException {
         for (int i = 0; i < sweepers; i++) {
-            TargetedSweeper
-                    .createUninitialized(metricsManager, () -> true, () -> shards, threads, 0, ImmutableList.of())
-                    .initialize(timestampsSupplier, stickyLockService, spiedKvs, mockFollower);
+            TargetedSweeper sweeperInstance = TargetedSweeper
+                    .createUninitialized(metricsManager, () -> true, () -> shards, threads, 0, ImmutableList.of());
+            sweeperInstance.initializeWithoutRunning(timestampsSupplier, stickyLockService, spiedKvs, mockFollower);
+            sweeperInstance.runInBackground();
         }
         waitUntilBackgroundSweepRunsOneIteration();
     }

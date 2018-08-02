@@ -42,7 +42,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
 
-public final class TargetedSweepMetrics {
+@SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
+public class TargetedSweepMetrics {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweepMetrics.class);
     private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
