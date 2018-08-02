@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -121,7 +122,7 @@ public class TargetedSweepMetrics {
         private final AccumulatingValueMetric abortedWritesDeleted = new AccumulatingValueMetric();
         private final CurrentValueMetric<Long> sweepTimestamp = new CurrentValueMetric<>();
         private final AggregatingVersionedSupplier<Long> lastSweptTsSupplier;
-        private volatile long lastWrittenTs = 0L;
+        private final AtomicLong lastWrittenTs = new AtomicLong(0L);
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
@@ -149,7 +150,7 @@ public class TargetedSweepMetrics {
             if (lastSweptTs == null) {
                 return null;
             }
-            if (lastSweptTs >= lastWrittenTs) {
+            if (lastSweptTs >= lastWrittenTs.get()) {
                 return 0L;
             }
             long timeBeforeRecomputing = System.currentTimeMillis();
@@ -166,7 +167,7 @@ public class TargetedSweepMetrics {
 
         private void updateEnqueuedWrites(long writes, long timestamp) {
             enqueuedWrites.accumulateValue(writes);
-            lastWrittenTs = timestamp;
+            lastWrittenTs.accumulateAndGet(timestamp, Long::max);
         }
 
         private void updateEntriesRead(long writes) {
