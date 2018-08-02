@@ -193,11 +193,22 @@ Similarly, for put-unless-exists, the PUE would be rejected if there were any ot
 We now perform the operations correctly only considering the value (or absence of value) in the relevant cell.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3388">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>We have removed the <code class="docutils literal notranslate"><span class="pre">sleepForBackoff(int)</span></code> method from <code class="docutils literal notranslate"><span class="pre">AbstractTransactionManager</span></code> as there were no known users and its presence led to user confusion.
+AtlasDB does not actually backoff between attempts of running a user’s transaction task.
+If your service overrides this method, please contact the AtlasDB team.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3432">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Sequential sweep now sleeps longer between iterations if there was nothing to sweep.
 Previously we would sleep for 2 minutes between runs, but it is unlikely that anything has changed dramatically in 2 minutes so we sleep for longer to prevent scanning the sweep priority table too often.  Going forward the most likely explanation for there being nothing to sweep is that we have switched to targeted sweep.
 We don’t stop completely or sleep for too long just in case configuration changes and a table is eligible to sweep again.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3429">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>TimeLockAgent now exposes the number of active clients and the configured maximum
+This makes it easier for a service to expose these via a health check
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3431">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
