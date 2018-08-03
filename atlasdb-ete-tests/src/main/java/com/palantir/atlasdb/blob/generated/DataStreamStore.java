@@ -63,6 +63,7 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.LZ4CompressingInputStream;
 import com.palantir.common.io.ConcatenatedInputStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
 import com.palantir.util.Pair;
@@ -122,7 +123,8 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
             touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId());
             tables.getDataStreamValueTable(t).putValue(row, block);
         } catch (RuntimeException e) {
-            log.error("Error storing block {} for stream id {}", row.getBlockId(), row.getId(), e);
+            log.error("Error storing block {} for stream id {}",
+                    SafeArg.of("blockId", row.getBlockId()), SafeArg.of("streamId", row.getId()), e);
             throw e;
         }
     }
@@ -187,10 +189,12 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
         try {
             os.write(getBlock(t, row));
         } catch (RuntimeException e) {
-            log.error("Error storing block {} for stream id {}", row.getBlockId(), row.getId(), e);
+            log.error("Error storing block {} for stream id {}",
+                    SafeArg.of("blockId", row.getBlockId()), SafeArg.of("streamId", row.getId()), e);
             throw e;
         } catch (IOException e) {
-            log.error("Error writing block {} to file when getting stream id {}", row.getBlockId(), row.getId(), e);
+            log.error("Error writing block {} to file when getting stream id {}",
+                    SafeArg.of("blockId", row.getBlockId()), SafeArg.of("streamId", row.getId()), e);
             throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks to file when creating stream.", e);
         }
     }
@@ -312,7 +316,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
             if (streamHash != com.google.protobuf.ByteString.EMPTY) {
                 hash = new Sha256Hash(streamHash.toByteArray());
             } else {
-                log.error("Empty hash for stream {}", streamId);
+                log.error("Empty hash for stream {}", SafeArg.of("streamId", streamId));
             }
             DataStreamHashAidxTable.DataStreamHashAidxRow hashRow = DataStreamHashAidxTable.DataStreamHashAidxRow.of(hash);
             DataStreamHashAidxTable.DataStreamHashAidxColumn column = DataStreamHashAidxTable.DataStreamHashAidxColumn.of(streamId);
@@ -429,6 +433,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
      * {@link Pair}
      * {@link PersistentStreamStore}
      * {@link Preconditions}
+     * {@link SafeArg}
      * {@link Set}
      * {@link SetView}
      * {@link Sets}
