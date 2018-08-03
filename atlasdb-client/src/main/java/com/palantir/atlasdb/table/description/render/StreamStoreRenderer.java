@@ -77,6 +77,7 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.LZ4CompressingInputStream;
 import com.palantir.common.io.ConcatenatedInputStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
 import com.palantir.util.Pair;
@@ -839,5 +840,6 @@ public class StreamStoreRenderer {
         ByteStreams.class,
         Supplier.class,
         StreamStorePersistenceConfiguration.class,
+        SafeArg.class,
     };
 }
