@@ -41,6 +41,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -170,7 +171,10 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                     .setHash(com.google.protobuf.ByteString.EMPTY)
                     .build();
             storeMetadataAndIndex(id, metadata);
-            log.error("Could not store stream {}. Failed after {} bytes.", id, length, e);
+            log.error("Could not store stream {}. Failed after {} bytes.",
+                    SafeArg.of("streamId", id),
+                    SafeArg.of("bytes", length),
+                    e);
             throw Throwables.rewrapAndThrowUncheckedException("Failed to store stream.", e);
         }
 
