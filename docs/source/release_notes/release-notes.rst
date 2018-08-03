@@ -57,6 +57,11 @@ develop
            We now perform the operations correctly only considering the value (or absence of value) in the relevant cell.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3388>`__)
 
+    *    - |fixed| |logs|
+         - Stream and block IDs, and stream store messages, in stream store log messages are now logged as named safe arguments.
+           Previously, these were not specified as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/QQQQ>`__)
+
     *    - |improved| |devbreak|
          - We have removed the ``sleepForBackoff(int)`` method from ``AbstractTransactionManager`` as there were no known users and its presence led to user confusion.
            AtlasDB does not actually backoff between attempts of running a user's transaction task.
