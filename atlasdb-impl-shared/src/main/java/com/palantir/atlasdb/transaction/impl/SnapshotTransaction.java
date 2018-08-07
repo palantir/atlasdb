@@ -19,13 +19,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -470,7 +470,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
-                Map<Cell, byte[]> post = new LinkedHashMap<>();
+                SortedMap<Cell, byte[]> post = new TreeMap<>();
                 getWithPostFiltering(tableRef, raw, post, Value.GET_VALUE);
                 batchIterator.markNumResultsNotDeleted(post.keySet().size());
                 return post.entrySet().iterator();
