@@ -48,6 +48,7 @@ public class ProtobufTransactionService {
     private ListenableFuture<Optional<GeneratedMessageV3>> process(TransactionServiceRequest request) {
         switch (request.getType()) {
             case GET_IMMUTABLE_TIMESTAMP: return Futures.immediateFuture(Optional.of(delegate.getImmutableTimestamp()));
+            case GET_FRESH_TIMESTAMP: return Futures.immediateFuture(Optional.of(delegate.getFreshTimestamp()));
             case START_TRANSACTIONS:
                 return Futures.immediateFuture(Optional.of(
                         delegate.startTransactions(request.getStartTransactions().getNumberOfTransactions())));
@@ -63,6 +64,10 @@ public class ProtobufTransactionService {
             case UNLOCK:
                 delegate.unlock(request.getUnlock().getStartTimestampsList());
                 return Futures.immediateFuture(null);
+            case WAIT_FOR_COMMIT:
+                return Futures.transform(delegate.waitForCommit(request.getWaitForCommit().getStartTimestampsList()),
+                        x -> Optional.empty(),
+                        MoreExecutors.directExecutor());
             default: return Futures.immediateFailedFuture(new AssertionError("Unknown message"));
         }
     }
