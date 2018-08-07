@@ -51,9 +51,15 @@ enum MessageType {
     COMMIT_WRITES = 3;
     CHECK_READ_CONFLICTS = 4;
     UNLOCK = 5; 
+    GET_FRESH_TIMESTAMP = 6;
+    WAIT_FOR_COMMIT = 7;
 }
 
 message GetImmutableTimestampRequest {
+
+}
+
+message GetFreshTimestampRequest {
 
 }
 
@@ -76,6 +82,10 @@ message UnlockRequest {
     repeated int64 startTimestamps = 1;
 }
 
+message WaitForCommitRequest {
+    repeated int64 startTimestamps = 1;
+}
+
 message TransactionServiceRequest {
     required MessageType type = 1;
     optional GetImmutableTimestampRequest getImmutableTimestamp = 2;
@@ -83,4 +93,6 @@ message TransactionServiceRequest {
     optional CommitWritesRequest commitWrites = 4;
     optional CheckReadConflictsRequest checkReadConflicts = 5;
     optional UnlockRequest unlock = 6;
+    optional GetFreshTimestampRequest getFreshTimestamp = 7;
+    optional WaitForCommitRequest waitForCommit = 8;
 }

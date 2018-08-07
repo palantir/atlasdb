@@ -19,6 +19,9 @@ package com.palantir.atlasdb.timelock.hackweek;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -31,34 +34,36 @@ public class ProtobufTransactionService {
         this.delegate = delegate;
     }
 
-    public Optional<ByteBuffer> process(ByteBuffer buffer) {
+    public ListenableFuture<Optional<ByteBuffer>> process(ByteBuffer buffer) {
         try {
             TransactionServiceRequest req = TransactionServiceRequest.parseFrom(buffer);
-            return process(req).map(GeneratedMessageV3::toByteString).map(ByteString::asReadOnlyByteBuffer);
+            return Futures.transform(process(req),
+                    opt -> opt.map(GeneratedMessageV3::toByteString).map(ByteString::asReadOnlyByteBuffer),
+                    MoreExecutors.directExecutor());
         } catch (InvalidProtocolBufferException e) {
-            throw new RuntimeException(e);
+            return Futures.immediateFailedFuture(e);
         }
     }
 
-    private Optional<GeneratedMessageV3> process(TransactionServiceRequest request) {
+    private ListenableFuture<Optional<GeneratedMessageV3>> process(TransactionServiceRequest request) {
         switch (request.getType()) {
-            case GET_IMMUTABLE_TIMESTAMP: return Optional.of(delegate.getImmutableTimestamp());
+            case GET_IMMUTABLE_TIMESTAMP: return Futures.immediateFuture(Optional.of(delegate.getImmutableTimestamp()));
             case START_TRANSACTIONS:
-                return Optional.of(
-                        delegate.startTransactions(request.getStartTransactions().getNumberOfTransactions()));
+                return Futures.immediateFuture(Optional.of(
+                        delegate.startTransactions(request.getStartTransactions().getNumberOfTransactions())));
             case COMMIT_WRITES:
-                return Optional.of(delegate.commitWrites(
+                return Futures.immediateFuture(Optional.of(delegate.commitWrites(
                         request.getCommitWrites().getStartTimestamp(),
-                        request.getCommitWrites().getWritesList()));
+                        request.getCommitWrites().getWritesList())));
             case CHECK_READ_CONFLICTS:
-                return Optional.of(delegate.checkReadConflicts(
+                return Futures.immediateFuture(Optional.of(delegate.checkReadConflicts(
                         request.getCheckReadConflicts().getStartTimestamp(),
                         request.getCheckReadConflicts().getReadsList(),
-                        request.getCheckReadConflicts().getRangeReadsList()));
+                        request.getCheckReadConflicts().getRangeReadsList())));
             case UNLOCK:
                 delegate.unlock(request.getUnlock().getStartTimestampsList());
-                return Optional.empty();
-            default: throw new AssertionError("Unknown message");
+                return Futures.immediateFuture(null);
+            default: return Futures.immediateFailedFuture(new AssertionError("Unknown message"));
         }
     }
 }

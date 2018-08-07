@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.factory;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -29,10 +31,10 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
@@ -54,6 +56,7 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.UserAgents;
@@ -92,7 +95,10 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.SynchronizedTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.TransactionServiceClient;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -108,8 +114,11 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.annotation.Output;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
+import com.palantir.remoting3.clients.ClientConfiguration;
 import com.palantir.remoting3.clients.ClientConfigurations;
+import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
+import com.palantir.remoting3.okhttp.OkHttpClients;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.JavaSuppliers;
@@ -244,7 +253,18 @@ public abstract class TransactionManagers {
                         config.leader(), config.namespace(), Optional.empty(), config.initializeAsync(),
                         qosClient, adapter);
 
-        JamesTransactionService james = null;
+        final JamesTransactionService james;
+        if (runtimeConfigSupplier.get().timelockRuntime().isPresent()) {
+            TimeLockRuntimeConfig timelock = runtimeConfigSupplier.get().timelockRuntime().get();
+            ClientConfiguration clientConfig = ClientConfigurations.of(
+                    ImmutableList.copyOf(timelock.serversList().servers()),
+                    SslSocketFactories.createSslSocketFactory(timelock.serversList().sslConfiguration().get()),
+                    SslSocketFactories.createX509TrustManager(timelock.serversList().sslConfiguration().get()));
+            james = new TransactionServiceClient(OkHttpClients.create(clientConfig, userAgent(), Transaction.class),
+                    Iterables.getOnlyElement(timelock.serversList().servers()));
+        } else {
+            james = new SynchronizedTransactionService();
+        }
 
         adapter.setTimestampService(james);
 
@@ -564,7 +584,7 @@ public abstract class TransactionManagers {
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        Preconditions.checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
+        checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
                 "Cannot create raw services from timelock with another source of timestamps/locks configured!");
         TimeLockClientConfig clientConfig = config.timelock().orElse(ImmutableTimeLockClientConfig.builder().build());
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());

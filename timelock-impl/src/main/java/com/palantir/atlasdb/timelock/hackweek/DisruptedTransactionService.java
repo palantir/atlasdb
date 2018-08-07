@@ -21,6 +21,9 @@ import java.util.Optional;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.BiConsumer;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.RingBuffer;
@@ -55,13 +58,21 @@ public final class DisruptedTransactionService {
         Disruptor<Message> disruptor = new Disruptor<>(
                 Message::new, BUFFER_SIZE, threadFactory, ProducerType.SINGLE, new BlockingWaitStrategy());
         disruptor.handleEventsWith((event, sequence, endOfBatch) -> {
-            try {
-                event.responseConsumer.accept(txnService.process(event.message), null);
-            } catch (Throwable t) {
-                event.responseConsumer.accept(null, t);
-            }
+            BiConsumer<Optional<ByteBuffer>, Throwable> responseConsumer = event.responseConsumer;
+            ByteBuffer message = event.message;
             event.message = null;
             event.responseConsumer = null;
+            Futures.addCallback(txnService.process(message), new FutureCallback<Optional<ByteBuffer>>() {
+                @Override
+                public void onSuccess(Optional<ByteBuffer> result) {
+                    event.responseConsumer.accept(result, null);
+                }
+
+                @Override
+                public void onFailure(Throwable throwable) {
+                    event.responseConsumer.accept(null, throwable);
+                }
+            }, MoreExecutors.directExecutor());
         });
 
         return new DisruptedTransactionService(disruptor.getRingBuffer());
