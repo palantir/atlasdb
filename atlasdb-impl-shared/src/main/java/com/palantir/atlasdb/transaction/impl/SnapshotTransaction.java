@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -49,20 +50,17 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Supplier;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -74,6 +72,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -97,23 +96,23 @@ import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.protos.generated.TransactionService.CheckReadConflictsResponse;
+import com.palantir.atlasdb.protos.generated.TransactionService.CommitWritesResponse;
+import com.palantir.atlasdb.protos.generated.TransactionService.Table;
+import com.palantir.atlasdb.protos.generated.TransactionService.TableCell;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
-import com.palantir.atlasdb.transaction.api.TransactionConflictException;
-import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
-import com.palantir.atlasdb.transaction.impl.logging.ImmutableTransactionCommitProfile;
 import com.palantir.atlasdb.transaction.impl.logging.TransactionCommitProfile;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -127,19 +126,10 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
-import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.streams.MoreStreams;
-import com.palantir.lock.AtlasCellLockDescriptor;
-import com.palantir.lock.AtlasRowLockDescriptor;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.AssertUtils;
@@ -178,17 +168,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         FAILED
     }
 
-    protected final TimelockService timelockService;
+    protected final JamesTransactionService james;
     final KeyValueService keyValueService;
     final TransactionService defaultTransactionService;
     private final Cleaner cleaner;
-    private final Supplier<Long> startTimestamp;
+    private final long startTimestamp;
     protected final MetricsManager metricsManager;
 
     private final MultiTableSweepQueueWriter sweepQueue;
 
     protected final long immutableTimestamp;
-    protected final Optional<LockToken> immutableTimestampLock;
     private final PreCommitCondition preCommitCondition;
     protected final long timeCreated = System.currentTimeMillis();
 
@@ -229,14 +218,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /* package */ SnapshotTransaction(
                                MetricsManager metricsManager,
                                KeyValueService keyValueService,
-                               TimelockService timelockService,
+                               JamesTransactionService james,
                                TransactionService transactionService,
                                Cleaner cleaner,
-                               Supplier<Long> startTimeStamp,
+                               long startTimeStamp,
                                ConflictDetectionManager conflictDetectionManager,
                                SweepStrategyManager sweepStrategyManager,
                                long immutableTimestamp,
-                               Optional<LockToken> immutableTimestampLock,
                                PreCommitCondition preCommitCondition,
                                AtlasDbConstraintCheckingMode constraintCheckingMode,
                                Long transactionTimeoutMillis,
@@ -252,14 +240,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
-        this.timelockService = timelockService;
+        this.james = james;
         this.defaultTransactionService = transactionService;
         this.cleaner = cleaner;
         this.startTimestamp = startTimeStamp;
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = sweepStrategyManager;
         this.immutableTimestamp = immutableTimestamp;
-        this.immutableTimestampLock = immutableTimestampLock;
         this.preCommitCondition = preCommitCondition;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = transactionTimeoutMillis;
@@ -751,7 +738,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (!isValidationNecessary(tableRef)) {
             return;
         }
-        throwIfPreCommitRequirementsNotMet(null, timestamp);
+        throwIfPreCommitRequirementsNotMet(timestamp);
     }
 
     private boolean isValidationNecessary(TableReference tableRef) {
@@ -1142,7 +1129,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * This is protected to allow for different post filter behavior.
      */
     protected boolean shouldDeleteAndRollback() {
-        Validate.notNull(timelockService, "if we don't have a valid lock server we can't roll back transactions");
+        Validate.notNull(james, "if we don't have a valid lock server we can't roll back transactions");
         return true;
     }
 
@@ -1217,7 +1204,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Preconditions.checkState(state.get() == State.UNCOMMITTED, "Transaction must be uncommitted.");
             if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
                 if (hasWrites()) {
-                    throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
+                    throwIfPreCommitRequirementsNotMet(getStartTimestamp());
                 }
                 transactionOutcomeMetrics.markAbort();
                 return;
@@ -1313,6 +1300,20 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
+    protected static Table toTable(TableReference table) {
+        return Table.newBuilder()
+                .setNamespace(table.getNamespace().getName())
+                .setTableName(table.getTablename())
+                .build();
+    }
+
+    protected static com.palantir.atlasdb.protos.generated.TransactionService.Cell cell(Cell cell) {
+        return com.palantir.atlasdb.protos.generated.TransactionService.Cell.newBuilder()
+                .setRow(ByteString.copyFrom(cell.getRowName()))
+                .setColumn(ByteString.copyFrom(cell.getColumnName()))
+                .build();
+    }
+
     private void commitWrites(TransactionService transactionService) {
         if (!hasWrites()) {
             if (hasReads()) {
@@ -1322,7 +1323,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
                 if (validationNecessaryForInvolvedTables()) {
-                    throwIfImmutableTsOrCommitLocksExpired(null);
+                    james.checkReadConflicts(startTimestamp, Collections.emptyList(), Collections.emptyList());
+                    james.unlock(Collections.singletonList(startTimestamp));
                 }
                 return;
             }
@@ -1336,14 +1338,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // This must happen before conflict checking, otherwise we could complete the checks and then have someone
         // else write underneath us before we proceed (thus missing a write/write conflict).
         Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
-        LockToken commitLocksToken = acquireLocksForCommit();
         long microsForRowLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
         try {
-            // Conflict checking. We can actually do this later without compromising correctness, but there is
-            // no reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
-            long microsCheckingForConflicts = runAndReportTimeAndGetDurationMicros(
-                    () -> throwIfConflictOnCommit(commitLocksToken, transactionService),
-                    "commitCheckingForConflicts");
+            List<TableCell> cells = KeyedStream.stream(writesByTable)
+                    .mapKeys(SnapshotTransaction::toTable)
+                    .flatMap(writesByTable -> writesByTable.keySet().stream().map(SnapshotTransaction::cell))
+                    .map((table, write) -> TableCell.newBuilder().setCell(write).setTable(table).build())
+                    .values()
+                    .collect(Collectors.toList());
+            CommitWritesResponse writes = james.commitWrites(startTimestamp, cells);
+            if (!writes.getContinue()) {
+                throw new RuntimeException("Got a transaction conflict");
+            }
 
             // Write to the targeted sweep queue. We must do this before writing to the key value service -
             // otherwise we may have hanging values that targeted sweep won't know about.
@@ -1360,7 +1366,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // We must do this before we check that our locks are still valid to ensure that other transactions that
             // will hold these locks are sure to have start timestamps after our commit timestamp.
             Timer.Context commitTimestampTimer = getTimer("getCommitTimestamp").time();
-            long commitTimestamp = timelockService.getFreshTimestamp();
+
+            CheckReadConflictsResponse response = james.checkReadConflicts(startTimestamp, getReads(), getReadRanges());
+            if (!response.hasCommitTimestamp()) {
+                throw new RuntimeException("Read/write conflict");
+            }
+
+            long commitTimestamp = response.getCommitTimestamp();
             commitTsForScrubbing = commitTimestamp;
             long microsForGetCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTimestampTimer.stop());
 
@@ -1372,54 +1384,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             long microsForPunch = runAndReportTimeAndGetDurationMicros(
                     () -> cleaner.punch(commitTimestamp),
                     "microsForPunch");
-
-            // Serializable transactions need to check their reads haven't changed, by reading again at commitTs + 1.
-            // This must happen before the lock check for thorough tables, because the lock check verifies the
-            // immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out from underneath us.
-            long microsForReadWriteConflictCheck = runAndReportTimeAndGetDurationMicros(
-                    () -> throwIfReadWriteConflictForSerializable(commitTimestamp),
-                    "readWriteConflictCheck");
-
-            // Verify that our locks and pre-commit conditions are still valid before we actually commit;
-            // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
-            long microsForPreCommitLockCheck = runAndReportTimeAndGetDurationMicros(
-                    () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken), "preCommitLockCheck");
             long microsForUserPreCommitCondition = runAndReportTimeAndGetDurationMicros(
                     () -> throwIfPreCommitConditionInvalid(commitTimestamp), "userPreCommitCondition");
 
             long microsForPutCommitTs = runAndReportTimeAndGetDurationMicros(
-                    () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService),
+                    () -> putCommitTimestamp(commitTimestamp, transactionService),
                     "commitPutCommitTs");
 
             long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
             getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
-            optionalProfile = Optional.of(ImmutableTransactionCommitProfile.builder()
-                    .startTimestamp(getTimestamp())
-                    .acquireRowLocksMicros(microsForRowLocks)
-                    .conflictCheckMicros(microsCheckingForConflicts)
-                    .writingToSweepQueueMicros(microsWritingToTargetedSweepQueue)
-                    .keyValueServiceWriteMicros(microsForWrites)
-                    .commitTimestampMicros(microsForGetCommitTs)
-                    .punchMicros(microsForPunch)
-                    .readWriteConflictCheckMicros(microsForReadWriteConflictCheck)
-                    .verifyPreCommitLockCheckMicros(microsForPreCommitLockCheck)
-                    .verifyUserPreCommitConditionMicros(microsForUserPreCommitCondition)
-                    .putCommitTimestampMicros(microsForPutCommitTs)
-                    .commitTimestamp(commitTimestamp)
-                    .totalCommitStageMicros(TimeUnit.NANOSECONDS.toMicros(commitStageTimer.stop()))
-                    .totalTimeSinceTransactionCreationMicros(microsSinceCreation)
-                    .build());
         } finally {
-            long microsForPostCommitUnlock = runAndReportTimeAndGetDurationMicros(
-                    () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)), "postCommitUnlock");
-
-            // We only care about detailed profiling for successful transactions
-            optionalProfile.ifPresent(profile -> commitProfileProcessor.consumeProfilingData(
-                    profile,
-                    writesByTable.keySet(),
-                    byteCount.get(),
-                    microsForPostCommitUnlock));
+            james.unlock(Collections.singletonList(startTimestamp));
         }
     }
 
@@ -1429,8 +1405,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return TimeUnit.NANOSECONDS.toMicros(timer.stop());
     }
 
-    protected void throwIfReadWriteConflictForSerializable(long commitTimestamp) {
-        // This is for overriding to get serializable transactions
+    protected List<TableCell> getReads() {
+        return Collections.emptyList();
+    }
+
+    protected List<com.palantir.atlasdb.protos.generated.TransactionService.TableRange> getReadRanges() {
+       return Collections.emptyList();
     }
 
     private boolean hasWrites() {
@@ -1448,21 +1428,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return hasReads;
     }
 
-    protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
-        return Preconditions.checkNotNull(conflictDetectionManager.get(tableRef),
-            "Not a valid table for this transaction. Make sure this table name exists or has a valid namespace: %s",
-            tableRef);
-    }
-
-    private String getExpiredLocksErrorString(@Nullable LockToken commitLocksToken,
-                                              Set<LockToken> expiredLocks) {
-        return "The following immutable timestamp lock was required: " + immutableTimestampLock
-            + "; the following commit locks were required: " + commitLocksToken
-            + "; the following locks are no longer valid: " + expiredLocks;
-    }
-
-    private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
-        throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
+    private void throwIfPreCommitRequirementsNotMet(long timestamp) {
         throwIfPreCommitConditionInvalid(timestamp);
     }
 
@@ -1473,208 +1439,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             transactionOutcomeMetrics.markPreCommitCheckFailed();
             throw ex;
         }
-    }
-
-    private void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
-        Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
-        if (!expiredLocks.isEmpty()) {
-            final String baseMsg = "Required locks are no longer valid. ";
-            String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
-            TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
-            log.error(baseMsg + "{}", expiredLocksErrorString, ex);
-            transactionOutcomeMetrics.markLocksExpired();
-            throw ex;
-        }
-    }
-
-    /**
-     * Refreshes external and commit locks.
-     * @return set of locks that could not be refreshed
-     */
-    private Set<LockToken> refreshCommitAndImmutableTsLocks(@Nullable LockToken commitLocksToken) {
-        Set<LockToken> toRefresh = Sets.newHashSet();
-        if (commitLocksToken != null) {
-            toRefresh.add(commitLocksToken);
-        }
-        immutableTimestampLock.ifPresent(toRefresh::add);
-
-        if (toRefresh.isEmpty()) {
-            return ImmutableSet.of();
-        }
-
-        return Sets.difference(toRefresh, timelockService.refreshLockLeases(toRefresh)).immutableCopy();
-    }
-
-    /**
-     * Make sure we have all the rows we are checking already locked before calling this.
-     */
-    protected void throwIfConflictOnCommit(LockToken commitLocksToken, TransactionService transactionService)
-            throws TransactionConflictException {
-        for (Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write : writesByTable.entrySet()) {
-            ConflictHandler conflictHandler = getConflictHandlerForTable(write.getKey());
-            throwIfWriteAlreadyCommitted(
-                    write.getKey(),
-                    write.getValue(),
-                    conflictHandler,
-                    commitLocksToken,
-                    transactionService);
-        }
-    }
-
-    protected void throwIfWriteAlreadyCommitted(TableReference tableRef,
-                                                Map<Cell, byte[]> writes,
-                                                ConflictHandler conflictHandler,
-                                                LockToken commitLocksToken,
-                                                TransactionService transactionService)
-            throws TransactionConflictException {
-        if (writes.isEmpty() || !conflictHandler.checkWriteWriteConflicts()) {
-            return;
-        }
-        Set<CellConflict> spanningWrites = Sets.newHashSet();
-        Set<CellConflict> dominatingWrites = Sets.newHashSet();
-        Map<Cell, Long> keysToLoad = Maps.asMap(writes.keySet(), Functions.constant(Long.MAX_VALUE));
-        while (!keysToLoad.isEmpty()) {
-            keysToLoad = detectWriteAlreadyCommittedInternal(
-                    tableRef,
-                    keysToLoad,
-                    spanningWrites,
-                    dominatingWrites,
-                    transactionService);
-        }
-
-        if (conflictHandler == ConflictHandler.RETRY_ON_VALUE_CHANGED) {
-            throwIfValueChangedConflict(tableRef, writes, spanningWrites, dominatingWrites, commitLocksToken);
-        } else {
-            if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
-                transactionOutcomeMetrics.markWriteWriteConflict(tableRef);
-                throw TransactionConflictException.create(tableRef, getStartTimestamp(), spanningWrites,
-                        dominatingWrites, System.currentTimeMillis() - timeCreated);
-            }
-        }
-    }
-
-    /**
-     * This will throw if we have a value changed conflict.  This means that either we changed the
-     * value and anyone did a write after our start timestamp, or we just touched the value (put the
-     * same value as before) and a changed value was written after our start time.
-     */
-    private void throwIfValueChangedConflict(TableReference table,
-                                             Map<Cell, byte[]> writes,
-                                             Set<CellConflict> spanningWrites,
-                                             Set<CellConflict> dominatingWrites,
-                                             LockToken commitLocksToken) {
-        Map<Cell, CellConflict> cellToConflict = Maps.newHashMap();
-        Map<Cell, Long> cellToTs = Maps.newHashMap();
-        for (CellConflict c : Sets.union(spanningWrites, dominatingWrites)) {
-            cellToConflict.put(c.getCell(), c);
-            cellToTs.put(c.getCell(), c.getTheirStart() + 1);
-        }
-
-        Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(table, cellToTs.keySet());
-        Map<Cell, Value> conflictingValues = keyValueService.get(table, cellToTs);
-
-        Set<Cell> conflictingCells = Sets.newHashSet();
-        for (Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
-            Cell cell = cellEntry.getKey();
-            if (!writes.containsKey(cell)) {
-                Validate.isTrue(false, "Missing write for cell: %s for table %s", cellToConflict.get(cell), table);
-            }
-            if (!conflictingValues.containsKey(cell)) {
-                // This error case could happen if our locks expired.
-                throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
-                Validate.isTrue(false, "Missing conflicting value for cell: %s for table %s", cellToConflict.get(cell),
-                        table);
-            }
-            if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
-                // This error case could happen if our locks expired.
-                throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
-                Validate.isTrue(false, "Wrong timestamp for cell in table %s Expected: %s Actual: %s", table,
-                        cellToConflict.get(cell),
-                        conflictingValues.get(cell));
-            }
-            @Nullable byte[] oldVal = oldValues.get(cell);
-            byte[] writeVal = writes.get(cell);
-            byte[] conflictingVal = conflictingValues.get(cell).getContents();
-            if (!Transactions.cellValuesEqual(oldVal, writeVal)
-                    || !Arrays.equals(writeVal, conflictingVal)) {
-                conflictingCells.add(cell);
-            } else if (log.isInfoEnabled()) {
-                log.info("Another transaction committed to the same cell before us but their value was the same."
-                        + " Cell: {} Table: {}",
-                        UnsafeArg.of("cell", cell),
-                        LoggingArgs.tableRef(table));
-            }
-        }
-        if (conflictingCells.isEmpty()) {
-            return;
-        }
-        Predicate<CellConflict> conflicting = Predicates.compose(
-                Predicates.in(conflictingCells),
-                CellConflict.getCellFunction());
-        transactionOutcomeMetrics.markWriteWriteConflict(table);
-        throw TransactionConflictException.create(table,
-                getStartTimestamp(),
-                Sets.filter(spanningWrites, conflicting),
-                Sets.filter(dominatingWrites, conflicting),
-                System.currentTimeMillis() - timeCreated);
-    }
-
-    /**
-     * This will return the set of keys that need to be retried.  It will output any conflicts
-     * it finds into the output params.
-     */
-    protected Map<Cell, Long> detectWriteAlreadyCommittedInternal(TableReference tableRef,
-                                                                  Map<Cell, Long> keysToLoad,
-                                                                  @Output Set<CellConflict> spanningWrites,
-                                                                  @Output Set<CellConflict> dominatingWrites,
-                                                                  TransactionService transactionService) {
-        Map<Cell, Long> rawResults = keyValueService.getLatestTimestamps(tableRef, keysToLoad);
-        Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, rawResults.values(), false);
-        Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
-
-        for (Map.Entry<Cell, Long> e : rawResults.entrySet()) {
-            Cell key = e.getKey();
-            long theirStartTimestamp = e.getValue();
-            AssertUtils.assertAndLog(log, theirStartTimestamp != getStartTimestamp(),
-                    "Timestamp reuse is bad:%d", getStartTimestamp());
-
-            Long theirCommitTimestamp = commitTimestamps.get(theirStartTimestamp);
-            if (theirCommitTimestamp == null
-                    || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-                // The value has no commit timestamp or was explicitly rolled back.
-                // This means the value is garbage from a transaction which didn't commit.
-                keysToDelete.put(key, theirStartTimestamp);
-                continue;
-            }
-
-            AssertUtils.assertAndLog(log, theirCommitTimestamp != getStartTimestamp(),
-                    "Timestamp reuse is bad:%d", getStartTimestamp());
-            if (theirStartTimestamp > getStartTimestamp()) {
-                dominatingWrites.add(Cells.createConflictWithMetadata(
-                        keyValueService,
-                        tableRef,
-                        key,
-                        theirStartTimestamp,
-                        theirCommitTimestamp));
-            } else if (theirCommitTimestamp > getStartTimestamp()) {
-                spanningWrites.add(Cells.createConflictWithMetadata(
-                        keyValueService,
-                        tableRef,
-                        key,
-                        theirStartTimestamp,
-                        theirCommitTimestamp));
-            }
-        }
-
-        if (!keysToDelete.isEmpty()) {
-            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, transactionService)) {
-                // If we can't roll back the failed transactions, we should just try again.
-                return keysToLoad;
-            }
-        }
-
-        // Once we successfully rollback and delete these cells we need to reload them.
-        return keysToDelete;
     }
 
     /**
@@ -1748,95 +1512,40 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * This method should acquire any locks needed to do proper concurrency control at commit time.
-     */
-    protected LockToken acquireLocksForCommit() {
-        Set<LockDescriptor> lockDescriptors = getLocksForWrites();
-
-        LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMs);
-        LockResponse lockResponse = timelockService.lock(request);
-        if (!lockResponse.wasSuccessful()) {
-            log.error("Timed out waiting while acquiring commit locks. Request id was {}. Timeout was {} ms. "
-                            + "First ten required locks were {}.",
-                    SafeArg.of("requestId", request.getRequestId()),
-                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
-                    UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
-            throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
-        }
-        return lockResponse.getToken();
-    }
-
-    protected Set<LockDescriptor> getLocksForWrites() {
-        Set<LockDescriptor> result = Sets.newHashSet();
-        Iterable<TableReference> allTables = IterableUtils.append(
-                writesByTable.keySet(),
-                TransactionConstants.TRANSACTION_TABLE);
-        for (TableReference tableRef : allTables) {
-            if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
-                result.add(
-                        AtlasRowLockDescriptor.of(
-                                TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                                TransactionConstants.getValueForTimestamp(getStartTimestamp())));
-                continue;
-            }
-            ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
-            if (conflictHandler.lockCellsForConflicts()) {
-                for (Cell cell : getLocalWrites(tableRef).keySet()) {
-                    result.add(
-                            AtlasCellLockDescriptor.of(
-                                    tableRef.getQualifiedName(),
-                                    cell.getRowName(),
-                                    cell.getColumnName()));
-                }
-            }
-
-            if (conflictHandler.lockRowsForConflicts()) {
-                Cell lastCell = null;
-                for (Cell cell : getLocalWrites(tableRef).keySet()) {
-                    if (lastCell == null || !Arrays.equals(lastCell.getRowName(), cell.getRowName())) {
-                        result.add(
-                                AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName()));
-                    }
-                    lastCell = cell;
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
      * We will block here until the passed transactions have released their lock.  This means that
      * the committing transaction is either complete or it has failed and we are allowed to roll
      * it back.
+     *
+     * TODO fix this
      */
     private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
-        boolean isEmpty = true;
-        Set<LockDescriptor> lockDescriptors = Sets.newHashSet();
-        for (long start : startTimestamps) {
-            if (start < immutableTimestamp) {
-                // We don't need to block in this case because this transaction is already complete
-                continue;
-            }
-            isEmpty = false;
-            lockDescriptors.add(
-                    AtlasRowLockDescriptor.of(
-                            TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                            TransactionConstants.getValueForTimestamp(start)));
-        }
-
-        if (isEmpty) {
-            return;
-        }
-
-        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMs);
-        WaitForLocksResponse response = timelockService.waitForLocks(request);
-        if (!response.wasSuccessful()) {
-            log.error("Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
-                    SafeArg.of("requestId", request.getRequestId()),
-                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
-                    UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
-            throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
-        }
+//        boolean isEmpty = true;
+//        Set<LockDescriptor> lockDescriptors = Sets.newHashSet();
+//        for (long start : startTimestamps) {
+//            if (start < immutableTimestamp) {
+//                // We don't need to block in this case because this transaction is already complete
+//                continue;
+//            }
+//            isEmpty = false;
+//            lockDescriptors.add(
+//                    AtlasRowLockDescriptor.of(
+//                            TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+//                            TransactionConstants.getValueForTimestamp(start)));
+//        }
+//
+//        if (isEmpty) {
+//            return;
+//        }
+//
+//        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMs);
+//        WaitForLocksResponse response = timelockService.waitForLocks(request);
+//        if (!response.wasSuccessful()) {
+//            log.error("Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
+//                    SafeArg.of("requestId", request.getRequestId()),
+//                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
+//                    UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
+//            throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
+//        }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -1934,14 +1643,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     private void putCommitTimestamp(
             long commitTimestamp,
-            LockToken locksToken,
             TransactionService transactionService)
             throws TransactionFailedException {
         Validate.isTrue(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
         try {
             transactionService.putUnlessExists(getStartTimestamp(), commitTimestamp);
         } catch (KeyAlreadyExistsException e) {
-            handleKeyAlreadyExistsException(commitTimestamp, e, locksToken);
+            handleKeyAlreadyExistsException(commitTimestamp, e);
         } catch (Exception e) {
             TransactionCommitFailedException commitFailedEx = new TransactionCommitFailedException(
                     "This transaction failed writing the commit timestamp. "
@@ -1954,25 +1662,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void handleKeyAlreadyExistsException(
             long commitTs,
-            KeyAlreadyExistsException ex,
-            LockToken commitLocksToken) {
+            KeyAlreadyExistsException ex) {
         try {
             if (wasCommitSuccessful(commitTs)) {
                 // We did actually commit successfully.  This case could happen if the impl
                 // for putUnlessExists did a retry and we had committed already
                 return;
             }
-            Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
-            if (!expiredLocks.isEmpty()) {
+            if (false) {
                 transactionOutcomeMetrics.markLocksExpired();
                 throw new TransactionLockTimeoutException("Our commit was already rolled back at commit time"
-                        + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
-                        + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
+                        + " because our locks timed out. startTs: " + getStartTimestamp() + ".  ");
+                       // + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
             } else {
                 log.warn("Possible bug: Someone rolled back our transaction but"
-                        + " our locks were still valid; Atlas code is not allowed to do this, though others can.",
-                        SafeArg.of("immutableTimestampLock", immutableTimestampLock),
-                        SafeArg.of("commitLocksToken", commitLocksToken));
+                        + " our locks were still valid; Atlas code is not allowed to do this, though others can.");
+//                        SafeArg.of("immutableTimestampLock", immutableTimestampLock),
+//                        SafeArg.of("commitLocksToken", commitLocksToken));
             }
         } catch (TransactionFailedException e1) {
             throw e1;
@@ -2014,7 +1720,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private long getStartTimestamp() {
-        return startTimestamp.get();
+        return startTimestamp;
     }
 
     @Override

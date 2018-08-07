@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
@@ -52,7 +51,6 @@ import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
-import com.palantir.lock.v2.TimelockService;
 
 public class SweepableCellsTest extends AbstractSweepQueueTest {
     private static final long SMALL_SWEEP_TS = TS + 200L;
@@ -66,7 +64,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     @Before
     public void setup() {
         super.setup();
-        metrics = TargetedSweepMetrics.create(metricsManager, mock(TimelockService.class), spiedKvs, 1);
+        metrics = TargetedSweepMetrics.create(metricsManager, spiedKvs, 1);
         sweepableCells = new SweepableCells(spiedKvs, partitioner, metrics);
 
         shardCons = writeToDefaultCellCommitted(sweepableCells, TS, TABLE_CONS);

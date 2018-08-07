@@ -1,0 +1,86 @@
+package com.palantir.atlasdb.protos.generated;
+
+message TimestampRange {
+    required int64 immutable = 1;
+    required int64 lower = 2;
+    required int64 upper = 3;
+}
+
+message CommitWritesResponse {
+    required bool continue = 1;
+}
+
+message CheckReadConflictsResponse {
+    optional int64 commitTimestamp = 2;
+}
+
+message Table {
+    required string namespace = 1;
+    required string tableName = 2;
+}
+
+message Cell {
+    required bytes row = 1;
+    required bytes column = 2;
+}
+
+message TableCell {
+    required Table table = 1;
+    required Cell cell = 2;
+}
+
+message TableRange {
+    required Table table = 1;
+    required Cell start = 2;
+    required Cell end = 3;
+    required bool hasColumnFilter = 4;
+    repeated bytes columnFilter = 5;
+}
+
+message ImmutableTimestamp {
+    required int64 timestamp = 1;
+}
+
+message Timestamp {
+    required int64 timestamp = 1;
+}
+
+enum MessageType {
+    GET_IMMUTABLE_TIMESTAMP = 1;
+    START_TRANSACTIONS = 2;
+    COMMIT_WRITES = 3;
+    CHECK_READ_CONFLICTS = 4;
+    UNLOCK = 5; 
+}
+
+message GetImmutableTimestampRequest {
+
+}
+
+message StartTransactionsRequest {
+    required int64 numberOfTransactions = 1;
+}
+
+message CommitWritesRequest {
+    required int64 startTimestamp = 1;
+    repeated TableCell writes = 2;
+}
+
+message CheckReadConflictsRequest {
+    required int64 startTimestamp = 1;
+    repeated TableCell reads = 2;
+    repeated TableRange rangeReads = 3;
+}
+
+message UnlockRequest {
+    repeated int64 startTimestamps = 1;
+}
+
+message TransactionServiceRequest {
+    required MessageType type = 1;
+    optional GetImmutableTimestampRequest getImmutableTimestamp = 2;
+    optional StartTransactionsRequest startTransactions = 3;
+    optional CommitWritesRequest commitWrites = 4;
+    optional CheckReadConflictsRequest checkReadConflicts = 5;
+    optional UnlockRequest unlock = 6;
+}

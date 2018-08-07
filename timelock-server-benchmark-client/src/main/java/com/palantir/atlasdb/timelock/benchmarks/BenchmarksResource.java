@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock.benchmarks;
 
+import static java.util.Collections.emptyMap;
+
 import java.util.Map;
 import java.util.Optional;
 
@@ -26,11 +28,8 @@ import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsPutUnlessExistsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsReadBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsWriteBenchmark;
-import com.palantir.atlasdb.timelock.benchmarks.benchmarks.LockAndUnlockContendedBenchmark;
-import com.palantir.atlasdb.timelock.benchmarks.benchmarks.LockAndUnlockUncontendedBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.RangeScanDynamicColumnsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.RangeScanRowsBenchmark;
-import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TimestampBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionReadRowsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteBenchmarkContended;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteDynamicColumnsBenchmark;
@@ -75,12 +74,12 @@ public class BenchmarksResource implements BenchmarksService {
 
     @Override
     public Map<String, Object> lockAndUnlockUncontended(int numClients, int numRequestsPerClient) {
-        return LockAndUnlockUncontendedBenchmark.execute(txnManager, numClients, numRequestsPerClient);
+        return emptyMap();
     }
 
     @Override
     public Map<String, Object> lockAndUnlockContended(int numClients, int numRequestsPerClient, int numDistinctLocks) {
-        return LockAndUnlockContendedBenchmark.execute(txnManager, numClients, numRequestsPerClient, numDistinctLocks);
+        return emptyMap();
     }
 
     @Override
@@ -106,7 +105,7 @@ public class BenchmarksResource implements BenchmarksService {
 
     @Override
     public Map<String, Object> timestamp(int numClients, int numRequestsPerClient) {
-        return TimestampBenchmark.execute(txnManager, numClients, numRequestsPerClient);
+        return emptyMap();
     }
 
     @Override

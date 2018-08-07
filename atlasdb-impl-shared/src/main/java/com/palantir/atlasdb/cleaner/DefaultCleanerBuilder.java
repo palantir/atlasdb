@@ -23,17 +23,13 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.time.Clock;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.TimestampService;
 
 public class DefaultCleanerBuilder {
     private final KeyValueService keyValueService;
-    private final TimelockService timelockService;
+    private final JamesTransactionService james;
     private final List<Follower> followerList;
     private final TransactionService transactionService;
 
@@ -47,21 +43,11 @@ public class DefaultCleanerBuilder {
     private boolean initalizeAsync = AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC;
 
     public DefaultCleanerBuilder(KeyValueService keyValueService,
-            LockService lockService,
-            TimestampService timestampService,
-            LockClient lockClient,
-            List<? extends Follower> followerList,
-            TransactionService transactionService) {
-        this(keyValueService, new LegacyTimelockService(timestampService, lockService, lockClient), followerList,
-                transactionService);
-    }
-
-    public DefaultCleanerBuilder(KeyValueService keyValueService,
-            TimelockService timelockService,
+            JamesTransactionService james,
             List<? extends Follower> followerList,
             TransactionService transactionService) {
         this.keyValueService = keyValueService;
-        this.timelockService = timelockService;
+        this.james = james;
         this.followerList = ImmutableList.copyOf(followerList);
         this.transactionService = transactionService;
     }
@@ -111,7 +97,7 @@ public class DefaultCleanerBuilder {
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
                 punchIntervalMillis * 3);
-        Clock clock = GlobalClock.create(timelockService);
+        Clock clock = GlobalClock.createLocal();
         SimplePuncher simplePuncher = SimplePuncher.create(
                 cachingPuncherStore,
                 clock,
@@ -140,7 +126,7 @@ public class DefaultCleanerBuilder {
     public Cleaner buildCleaner() {
         Puncher puncher = buildPuncher();
         Supplier<Long> immutableTs = ImmutableTimestampSupplier
-                .createMemoizedWithExpiration(timelockService);
+                .createMemoizedWithExpiration(james);
         Scrubber scrubber = buildScrubber(puncher.getTimestampSupplier(), immutableTs);
         return new SimpleCleaner(
                 scrubber,

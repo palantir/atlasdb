@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.palantir.lock.v2.TimelockService;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 
 /**
  * This will return immutableTimestamps
@@ -33,9 +33,9 @@ public final class ImmutableTimestampSupplier {
 
     private ImmutableTimestampSupplier() { }
 
-    public static Supplier<Long> createMemoizedWithExpiration(TimelockService timelockService) {
+    public static Supplier<Long> createMemoizedWithExpiration(JamesTransactionService timelockService) {
         return Suppliers.memoizeWithExpiration(
-                timelockService::getImmutableTimestamp,
+                () -> timelockService.getImmutableTimestamp().getTimestamp(),
                 RELOAD_INTERVAL_MILLIS,
                 TimeUnit.MILLISECONDS);
     }

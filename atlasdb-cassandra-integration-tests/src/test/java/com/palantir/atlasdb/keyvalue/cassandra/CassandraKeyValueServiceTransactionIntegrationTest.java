@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.stream.LongStream;
+
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -25,10 +27,8 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
-import com.palantir.timestamp.TimestampManagementService;
 
 @ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
@@ -38,14 +38,14 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
 
     // This constant exists so that fresh timestamps are always greater than the write timestamps of values used in the
     // test.
-    private static final long ONE_BILLION = 1_000_000_000;
+    private static final long ONE_BILLION = 1_00_000;
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     @Before
     public void advanceTimestamp() {
-        ((TimestampManagementService) timestampService).fastForwardTimestamp(ONE_BILLION);
+        LongStream.range(0, ONE_BILLION).forEach(x -> james.getFreshTimestamp());
     }
 
     @Override
@@ -55,12 +55,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
                 CassandraContainer.KVS_CONFIG,
                 CassandraContainer.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(
-                        () -> {
-                            if (timestampService == null) {
-                                throw new NotInitializedException("timestamp service");
-                            }
-                            return timestampService.getFreshTimestamp();
-                        }));
+                        () -> james.getFreshTimestamp().getTimestamp()));
     }
 
     @Override

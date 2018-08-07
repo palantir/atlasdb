@@ -44,7 +44,6 @@ import com.palantir.remoting.api.config.service.HumanReadableDuration;
         DbkvsPostgresSerializableTransactionTest.class,
         DbkvsPostgresSweepTaskRunnerTest.class,
         DbkvsBackgroundSweeperIntegrationTest.class,
-        PostgresDbTimestampBoundStoreTest.class,
         DbKvsPostgresGetCandidateCellsForSweepingTest.class,
         DbKvsSweepProgressStoreIntegrationTest.class
         })

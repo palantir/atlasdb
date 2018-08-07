@@ -39,6 +39,8 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -47,13 +49,6 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 
 public abstract class TransactionTestSetup {
@@ -62,13 +57,10 @@ public abstract class TransactionTestSetup {
     protected static final TableReference TEST_TABLE_THOROUGH = TableReference.createFromFullyQualifiedName(
             "ns.atlasdb_transactions_test_table_thorough");
 
-    protected LockClient lockClient;
-    protected LockServiceImpl lockService;
-    protected TimelockService timelockService;
+    protected JamesTransactionService james;
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService keyValueService;
-    protected TimestampService timestampService;
     protected TransactionService transactionService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
@@ -82,8 +74,7 @@ public abstract class TransactionTestSetup {
 
     @Before
     public void setUp() throws Exception {
-        lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
-        lockClient = LockClient.of("test_client");
+        james = new DefaultTransactionService();
 
         keyValueService = getKeyValueService();
         keyValueService.createTables(ImmutableMap.of(
@@ -115,9 +106,6 @@ public abstract class TransactionTestSetup {
                 TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
         keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
 
-        timestampService = new InMemoryTimestampService();
-        timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
-
         transactionService = TransactionServices.createTransactionService(keyValueService);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -126,14 +114,13 @@ public abstract class TransactionTestSetup {
 
     @After
     public void tearDown() {
-        lockService.close();
         keyValueService.close();
     }
 
     protected TransactionManager getManager() {
         return new TestTransactionManagerImpl(
                 MetricsManagers.createForTests(),
-                keyValueService, timestampService, lockClient, lockService,
+                keyValueService, james,
                 transactionService, conflictDetectionManager, sweepStrategyManager, MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
     }

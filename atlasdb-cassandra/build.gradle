@@ -23,7 +23,6 @@ dependencies {
   explicitShadow project(":atlasdb-processors")
   explicitShadow project(":atlasdb-api")
   explicitShadow project(":commons-api")
-  explicitShadow project(':timestamp-impl')
 
   explicitShadow ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
     exclude(group: 'de.jflex', module: 'jflex')

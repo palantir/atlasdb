@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.factory;
 
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -36,7 +35,6 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.TimestampService;
 
 public class ServiceDiscoveringAtlasSupplierTest {
     private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
@@ -59,18 +57,6 @@ public class ServiceDiscoveringAtlasSupplierTest {
     }
 
     @Test
-    public void delegateToFactoriesAnnotatedWithAutoServiceForCreatingTimestampServices() {
-        ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(
-                metrics, kvsConfig, leaderConfig);
-        TimestampService timestampService = mock(TimestampService.class);
-        AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(timestampService);
-
-        assertThat(
-                atlasSupplier.getTimestampService(),
-                is(timestampService));
-    }
-
-    @Test
     public void notAllowConstructionWithoutAValidBackingFactory() {
         exception.expect(IllegalStateException.class);
         exception.expectMessage("No atlas provider");
@@ -78,18 +64,6 @@ public class ServiceDiscoveringAtlasSupplierTest {
         exception.expectMessage("Have you annotated it with @AutoService(AtlasDbFactory.class)?");
 
         new ServiceDiscoveringAtlasSupplier(metrics, invalidKvsConfig, leaderConfig);
-    }
-
-    @Test
-    public void returnDifferentTimestampServicesOnSubsequentCalls() {
-        // Need to get a newly-initialized timestamp service in case leadership changed between calls.
-        ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(
-                metrics, kvsConfig, leaderConfig);
-        AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(
-                mock(TimestampService.class),
-                mock(TimestampService.class));
-
-        assertThat(supplier.getTimestampService(), is(not(sameObjectAs(supplier.getTimestampService()))));
     }
 
     @Test

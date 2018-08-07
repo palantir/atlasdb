@@ -29,6 +29,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.util.crypto.Sha256Hash;
 
 /**
@@ -126,7 +127,7 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
         }
 
         // Simulate getting a timestamp, writing the values, but not putting into the tx table
-        long freshTimestamp = services.getTransactionManager().getTimestampService().getFreshTimestamp();
+        long freshTimestamp = services.getTransactionManager().runTaskReadOnly(Transaction::getTimestamp);
         services.getKeyValueService().multiPut(ImmutableMap.of(tableRef, values), freshTimestamp);
     }
 

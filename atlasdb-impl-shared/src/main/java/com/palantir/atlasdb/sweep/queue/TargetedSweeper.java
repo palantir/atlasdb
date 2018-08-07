@@ -44,7 +44,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
@@ -58,7 +57,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
-    private TimelockService timeLock;
     private BackgroundSweepScheduler conservativeScheduler;
     private BackgroundSweepScheduler thoroughScheduler;
 
@@ -78,7 +76,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     /**
      * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
-     * {@link #initializeWithoutRunning(SpecialTimestampsSupplier, TimelockService, KeyValueService,
      * TargetedSweepFollower)} method before any writes can be made to the sweep queue, or before the background sweep
      * job can run.
      *
@@ -113,7 +110,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     public void initializeWithoutRunning(TransactionManager txManager) {
         initializeWithoutRunning(SpecialTimestampsSupplier.create(txManager),
-                txManager.getTimelockService(),
                 txManager.getKeyValueService(),
                 new TargetedSweepFollower(followers, txManager));
     }
@@ -122,21 +118,19 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * This method initializes all the resources necessary for the targeted sweeper. This method should only be called
      * once the kvs is ready.
      * @param timestamps supplier of unreadable and immutable timestamps.
-     * @param timelockService TimeLockService to use for synchronizing iterations of sweep on different nodes
      * @param kvs key value service that must be already initialized.
      * @param follower followers used for sweeps.
      */
-    public void initializeWithoutRunning(SpecialTimestampsSupplier timestamps, TimelockService timelockService,
+    public void initializeWithoutRunning(SpecialTimestampsSupplier timestamps,
             KeyValueService kvs, TargetedSweepFollower follower) {
         if (isInitialized) {
             return;
         }
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
-        metrics = TargetedSweepMetrics.create(metricsManager, timelockService, kvs, SweepQueueUtils.REFRESH_TIME);
+        metrics = TargetedSweepMetrics.create(metricsManager, kvs, SweepQueueUtils.REFRESH_TIME);
         queue = SweepQueue.create(metrics, kvs, shardsConfig, follower);
         timestampsSupplier = timestamps;
-        timeLock = timelockService;
         isInitialized = true;
     }
 
@@ -229,7 +223,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         private Optional<TargetedSweeperLock> tryToAcquireLockForNextShardAndStrategy() {
             return IntStream.range(0, queue.getNumShards())
                     .map(ignore -> getShardAndIncrement())
-                    .mapToObj(shard -> TargetedSweeperLock.tryAcquire(shard, sweepStrategy, timeLock))
+                    .mapToObj(shard -> TargetedSweeperLock.tryAcquire(shard, sweepStrategy))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .findFirst();

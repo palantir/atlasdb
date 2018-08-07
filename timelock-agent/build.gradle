@@ -7,6 +7,10 @@ apply from: "../gradle/timelock.gradle"
 
 dependencies {
     compile project(":timelock-impl")
+    compile (project(":atlasdb-config")) {
+        exclude group:'io.dropwizard'
+    }
+
 
     // many of these we get as transitive dependencies but I wanted to be super explicit
     // about what dependencies we're actually using

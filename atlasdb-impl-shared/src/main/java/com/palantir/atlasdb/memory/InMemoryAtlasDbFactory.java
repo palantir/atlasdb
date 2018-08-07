@@ -45,6 +45,8 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -58,13 +60,6 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.LockService;
-import com.palantir.lock.client.LockRefreshingLockService;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 /**
  * This is the easiest way to try out AtlasDB with your schema.  It runs entirely in memory but has
@@ -131,19 +126,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         return new InMemoryKeyValueService(false);
     }
 
-    @Override
-    public TimestampService createTimestampService(
-            KeyValueService rawKvs,
-            Optional<TableReference> unused,
-            boolean initializeAsync) {
-        if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
-        }
-
-        AtlasDbVersion.ensureVersionReported();
-        return new InMemoryTimestampService();
-    }
-
     /**
      * @deprecated use {@link TransactionManagers#createInMemory(...)}
      *
@@ -164,33 +146,26 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static TransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
-        TimestampService ts = new InMemoryTimestampService();
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
 
         schemas.forEach(s -> Schemas.createTablesAndIndexes(s, keyValueService));
         TransactionTables.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
-        LockService lock = LockRefreshingLockService.create(LockServiceImpl.create(
-                 LockServerOptions.builder().isStandaloneServer(false).build()));
-        LockClient client = LockClient.of("in memory atlasdb instance");
+        JamesTransactionService james= new DefaultTransactionService();
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         CleanupFollower follower = CleanupFollower.create(schemas);
         Cleaner cleaner = new DefaultCleanerBuilder(
                 keyValueService,
-                lock,
-                ts,
-                client,
+                james,
                 ImmutableList.of(follower),
                 transactionService).buildCleaner();
         TransactionManager ret = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
                 keyValueService,
-                ts,
-                client,
-                lock,
+                james,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,

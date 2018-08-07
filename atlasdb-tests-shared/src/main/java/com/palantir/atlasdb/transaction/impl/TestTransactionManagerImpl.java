@@ -27,8 +27,9 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
+import com.palantir.atlasdb.protos.generated.TransactionService.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -36,10 +37,6 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.timestamp.TimestampService;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
 
@@ -49,18 +46,15 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(MetricsManager metricsManager,
             KeyValueService keyValueService,
-            TimestampService timestampService,
-            LockClient lockClient,
-            LockService lockService,
+            JamesTransactionService james,
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor) {
         super(metricsManager,
-                createAssertKeyValue(keyValueService, lockService),
-                new LegacyTimelockService(timestampService, lockService, lockClient),
-                lockService,
+                keyValueService,
+                james,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
@@ -78,15 +72,12 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(MetricsManager metricsManager,
             KeyValueService keyValueService,
-            TimestampService timestampService,
-            LockClient lockClient,
-            LockService lockService,
+            JamesTransactionService james,
             TransactionService transactionService,
             AtlasDbConstraintCheckingMode constraintCheckingMode) {
         super(metricsManager,
-                createAssertKeyValue(keyValueService, lockService),
-                new LegacyTimelockService(timestampService, lockService, lockClient),
-                lockService,
+                keyValueService,
+                james,
                 transactionService,
                 Suppliers.ofInstance(constraintCheckingMode),
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
@@ -106,10 +97,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         return false;
     }
 
-    private static KeyValueService createAssertKeyValue(KeyValueService kv, LockService lock) {
-        return new AssertLockedKeyValueService(kv, lock);
-    }
-
     @Override
     public Transaction commitAndStartNewTransaction(Transaction tx) {
         tx.commit();
@@ -118,17 +105,17 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     @Override
     public Transaction createNewTransaction() {
-        long startTimestamp = timelockService.getFreshTimestamp();
+        TimestampRange range = james.startTransactions(1);
+        long startTimestamp = range.getLower();
         return new SnapshotTransaction(metricsManager,
                 keyValueService,
-                timelockService,
+                james,
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                () -> startTimestamp,
+                startTimestamp,
                 getConflictDetectionManager(),
                 SweepStrategyManagers.createDefault(keyValueService),
-                startTimestamp,
-                Optional.empty(),
+                james.getImmutableTimestamp().getTimestamp(),
                 PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,

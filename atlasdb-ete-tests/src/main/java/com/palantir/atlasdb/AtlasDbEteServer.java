@@ -18,7 +18,6 @@ package com.palantir.atlasdb;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -129,7 +128,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             TransactionManager transactionManager, MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry) {
         KeyValueService kvs = transactionManager.getKeyValueService();
-        LongSupplier ts = transactionManager.getTimestampService()::getFreshTimestamp;
         TransactionService txnService = TransactionServices.createTransactionService(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.completelyConservative(kvs); // maybe createDefault
         PersistentLockManager noLocks = new PersistentLockManager(
@@ -138,13 +136,13 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CleanupFollower follower = CleanupFollower.create(ETE_SCHEMAS);
         CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, noLocks, ImmutableList.of(follower));
-        return new SweepTaskRunner(kvs, ts, ts, txnService, ssm, cellsSweeper);
+        return new SweepTaskRunner(kvs, transactionManager::getImmutableTimestamp,
+                transactionManager::getUnreadableTimestamp, txnService, ssm, cellsSweeper);
     }
 
     private TargetedSweeper initializeAndGet(TargetedSweeper sweeper, TransactionManager txManager) {
         sweeper.initializeWithoutRunning(
                 new SpecialTimestampsSupplier(txManager::getImmutableTimestamp, txManager::getImmutableTimestamp),
-                txManager.getTimelockService(),
                 txManager.getKeyValueService(),
                 new TargetedSweepFollower(ImmutableList.of(FOLLOWER), txManager));
         sweeper.runInBackground();

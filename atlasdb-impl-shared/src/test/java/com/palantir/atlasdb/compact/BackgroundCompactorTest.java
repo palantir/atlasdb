@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 
 public class BackgroundCompactorTest {
@@ -60,7 +59,6 @@ public class BackgroundCompactorTest {
     private final BackgroundCompactor compactor = new BackgroundCompactor(metricsManager,
             txManager,
             kvs,
-            mock(LockService.class),
             () -> ImmutableCompactorConfig.builder()
                     .enableCompaction(true)
                     .inMaintenanceMode(true)
@@ -119,7 +117,6 @@ public class BackgroundCompactorTest {
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(metricsManager,
                 txManager,
                 kvs,
-                mock(LockService.class),
                 createAlternatingInMaintenanceHoursSupplier(),
                 priorityCalculator);
 
@@ -152,7 +149,6 @@ public class BackgroundCompactorTest {
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(metricsManager,
                 txManager,
                 kvs,
-                mock(LockService.class),
                 () -> ImmutableCompactorConfig.builder().enableCompaction(false).build(),
                 priorityCalculator);
 

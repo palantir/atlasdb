@@ -34,7 +34,6 @@ import com.palantir.atlasdb.schema.generated.CompactTableFactory;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
-import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 
@@ -45,7 +44,6 @@ public final class BackgroundCompactor implements AutoCloseable {
 
     private final TransactionManager transactionManager;
     private final KeyValueService keyValueService;
-    private final LockService lockService;
     private final Supplier<CompactorConfig> compactorConfigSupplier;
     private final CompactPriorityCalculator compactPriorityCalculator;
 
@@ -59,7 +57,6 @@ public final class BackgroundCompactor implements AutoCloseable {
             MetricsManager metricsManager,
             TransactionManager transactionManager,
             KeyValueService keyValueService,
-            LockService lockService,
             Supplier<CompactorConfig> compactorConfigSupplier) {
         if (!keyValueService.shouldTriggerCompactions()) {
             log.info("Not starting a background compactor, because we don't believe our KVS needs one.");
@@ -70,7 +67,6 @@ public final class BackgroundCompactor implements AutoCloseable {
         BackgroundCompactor backgroundCompactor = new BackgroundCompactor(metricsManager,
                 transactionManager,
                 keyValueService,
-                lockService,
                 compactorConfigSupplier,
                 compactPriorityCalculator);
         backgroundCompactor.runInBackground();
@@ -85,13 +81,11 @@ public final class BackgroundCompactor implements AutoCloseable {
             MetricsManager metricsManager,
             TransactionManager transactionManager,
             KeyValueService keyValueService,
-            LockService lockService,
             Supplier<CompactorConfig> compactorConfigSupplier,
             CompactPriorityCalculator compactPriorityCalculator) {
         this.compactionOutcomeMetrics = new CompactionOutcomeMetrics(metricsManager);
         this.transactionManager = transactionManager;
         this.keyValueService = keyValueService;
-        this.lockService = lockService;
         this.compactorConfigSupplier = compactorConfigSupplier;
         this.compactPriorityCalculator = compactPriorityCalculator;
     }
@@ -237,7 +231,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     }
 
     private SingleLockService createSimpleLocks() {
-        return SingleLockService.createSingleLockServiceWithSafeLockId(lockService, "atlas compact");
+        return SingleLockService.createSingleLockServiceWithSafeLockId("atlas compact");
     }
 
     private void registerCompactedTable(String tableToCompact) {

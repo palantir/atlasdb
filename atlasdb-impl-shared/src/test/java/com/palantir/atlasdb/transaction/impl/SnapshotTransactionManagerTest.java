@@ -19,17 +19,12 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -42,16 +37,11 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.CloseableLockService;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.timestamp.InMemoryTimestampService;
 
 public class SnapshotTransactionManagerTest {
     private static final String SETUP_TASK_METRIC_NAME =
@@ -59,9 +49,9 @@ public class SnapshotTransactionManagerTest {
     private static final String FINISH_TASK_METRIC_NAME =
             SnapshotTransactionManager.class.getCanonicalName() + ".finishTask";
 
-    private final CloseableLockService closeableLockService = mock(CloseableLockService.class);
     private final Cleaner cleaner = mock(Cleaner.class);
     private final KeyValueService keyValueService = mock(KeyValueService.class);
+    private final JamesTransactionService james = new DefaultTransactionService();
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -69,9 +59,7 @@ public class SnapshotTransactionManagerTest {
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             metricsManager,
             keyValueService,
-            new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
-                    LockClient.of("lock")),
-            closeableLockService,
+            james,
             null,
             () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
             null,
@@ -103,19 +91,11 @@ public class SnapshotTransactionManagerTest {
     }
 
     @Test
-    public void closesCloseableLockServiceOnClosingTransactionManager() throws IOException {
-        snapshotTransactionManager.close();
-        verify(closeableLockService, times(1)).close();
-    }
-
-    @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
-                        LockClient.of("lock")),
-                mock(LockService.class), // not closeable
+                james,
                 null,
                 null,
                 null,
@@ -162,7 +142,6 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void registersMetrics() throws InterruptedException {
-        when(closeableLockService.lock(any(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE));
         snapshotTransactionManager.runTaskWithRetry(tx -> 42);
         MetricRegistry registry = snapshotTransactionManager.metricsManager.getRegistry();
         assertThat(registry.getNames())
@@ -170,14 +149,5 @@ public class SnapshotTransactionManagerTest {
                 .contains(FINISH_TASK_METRIC_NAME);
         assertThat(registry.getTimers().get(SETUP_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
         assertThat(registry.getTimers().get(FINISH_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
-    }
-
-    @Test
-    public void profilingIsSharedAcrossTransactions() {
-        SnapshotTransaction tx1 = snapshotTransactionManager.createTransaction(1, () -> 2L, LockToken.of(
-                UUID.randomUUID()), PreCommitConditions.NO_OP);
-        SnapshotTransaction tx2 = snapshotTransactionManager.createTransaction(1, () -> 2L, LockToken.of(
-                UUID.randomUUID()), PreCommitConditions.NO_OP);
-        assertThat(tx1.commitProfileProcessor).isSameAs(tx2.commitProfileProcessor);
     }
 }

@@ -41,7 +41,6 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -52,8 +51,6 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweepTest {
     protected static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
@@ -92,13 +89,9 @@ public abstract class AbstractSweepTest {
 
     @Before
     public void setup() {
-        TimestampService tsService = new InMemoryTimestampService();
-        kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService,
-                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
-                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD);
         ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
-        txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
+        txManager = SweepTestUtils.setupTxManager(kvs, ssm, txService);
         persistentLockManager = new PersistentLockManager(
                 MetricsManagers.createForTests(),
                 SweepTestUtils.getPersistentLockService(kvs),

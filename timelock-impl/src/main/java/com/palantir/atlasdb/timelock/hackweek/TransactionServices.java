@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.services;
 
-import javax.inject.Singleton;
+package com.palantir.atlasdb.timelock.hackweek;
 
-import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
-import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
+import java.util.HashMap;
+import java.util.Map;
 
-import dagger.Module;
-import dagger.Provides;
+public final class TransactionServices {
+    private final Map<String, DisruptedTransactionService> transactionServices = new HashMap<>();
 
-@Module
-public class LockAndTimestampModule {
-
-    @Provides
-    @Singleton
-    public JamesTransactionService provideJames() {
-        return new DefaultTransactionService();
+    public DisruptedTransactionService getTransactionService(String namespace) {
+        return transactionServices.computeIfAbsent(namespace, DisruptedTransactionService::create);
     }
 }

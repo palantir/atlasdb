@@ -24,7 +24,6 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 import com.palantir.atlasdb.performance.benchmarks.endpoint.TimestampServiceEndpoint;
-import com.palantir.timestamp.TimestampRange;
 
 public class TimestampServiceBenchmarks {
     @Benchmark
@@ -50,21 +49,5 @@ public class TimestampServiceBenchmarks {
     public long manyThreadsGetFreshTimestampWithBackoff(TimestampServiceEndpoint timestampService) {
         Blackhole.consumeCPU(20000);
         return timestampService.getFreshTimestamp();
-    }
-
-    @Benchmark
-    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
-    @Threads(4)
-    public TimestampRange fewThreadsGetBatchOfTimestamps(TimestampServiceEndpoint timestampService) {
-        return timestampService.getFreshTimestamps(10000);
-    }
-
-    @Benchmark
-    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
-    @Threads(32)
-    public TimestampRange manyThreadsGetBatchOfTimestamps(TimestampServiceEndpoint timestampService) {
-        return timestampService.getFreshTimestamps(500);
     }
 }

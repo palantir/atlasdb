@@ -20,8 +20,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,29 +27,21 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Functions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -63,25 +53,23 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.protos.generated.TransactionService.TableCell;
+import com.palantir.atlasdb.protos.generated.TransactionService.TableRange;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
-import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.util.Pair;
 
 /**
@@ -108,14 +96,13 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     public SerializableTransaction(MetricsManager metricsManager,
                                    KeyValueService keyValueService,
-                                   TimelockService timelockService,
+                                   JamesTransactionService james,
                                    TransactionService transactionService,
                                    Cleaner cleaner,
-                                   Supplier<Long> startTimeStamp,
+                                   long startTimeStamp,
                                    ConflictDetectionManager conflictDetectionManager,
                                    SweepStrategyManager sweepStrategyManager,
                                    long immutableTimestamp,
-                                   Optional<LockToken> immutableTsLock,
                                    PreCommitCondition preCommitCondition,
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,
@@ -130,14 +117,13 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    CommitProfileProcessor commitProfileProcessor) {
         super(metricsManager,
               keyValueService,
-              timelockService,
+              james,
               transactionService,
               cleaner,
               startTimeStamp,
               conflictDetectionManager,
               sweepStrategyManager,
               immutableTimestamp,
-              immutableTsLock,
               preCommitCondition,
               constraintCheckingMode,
               transactionTimeoutMillis,
@@ -419,346 +405,64 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     @Override
-    protected void throwIfReadWriteConflictForSerializable(long commitTimestamp) {
-        Transaction ro = getReadOnlyTransaction(commitTimestamp);
-        verifyRanges(ro);
-        verifyColumnRanges(ro);
-        verifyCells(ro);
-        verifyRows(ro);
+    protected List<TableCell> getReads() {
+        return KeyedStream.stream(readsByTable)
+                .mapKeys(SnapshotTransaction::toTable)
+                .flatMap(map -> map.keySet().stream().map(SnapshotTransaction::cell))
+                .map((table, cell) -> TableCell.newBuilder().setTable(table).setCell(cell).build())
+                .values()
+                .collect(Collectors.toList());
     }
 
-    private void verifyRows(Transaction ro) {
-        for (Map.Entry<TableReference, Set<RowRead>> tableAndRowsEntry : rowsRead.entrySet()) {
-            TableReference table = tableAndRowsEntry.getKey();
-            Set<RowRead> rows = tableAndRowsEntry.getValue();
-
-            ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(table);
-            Multimap<ColumnSelection, byte[]> rowsReadByColumns = Multimaps.newSortedSetMultimap(
-                    Maps.newHashMap(),
-                    () -> Sets.newTreeSet(UnsignedBytes.lexicographicalComparator()));
-            for (RowRead r : rows) {
-                rowsReadByColumns.putAll(r.cols, r.rows);
-            }
-            for (ColumnSelection cols : rowsReadByColumns.keySet()) {
-                verifyColumns(ro, table, readsForTable, rowsReadByColumns, cols);
-            }
-
+    private static byte[] transformForFirst(byte[] row) {
+        if (row.length == 0) {
+            return RangeRequests.getFirstRowName();
         }
+        return row;
     }
 
-    private void verifyColumns(
-            Transaction ro,
-            TableReference table,
-            ConcurrentNavigableMap<Cell, byte[]> readsForTable,
-            Multimap<ColumnSelection, byte[]> rowsReadByColumns,
-            ColumnSelection columns) {
-        for (List<byte[]> batch : Iterables.partition(rowsReadByColumns.get(columns), BATCH_SIZE)) {
-            SortedMap<byte[], RowResult<byte[]>> currentRows = ro.getRows(table, batch, columns);
-            for (byte[] row : batch) {
-                RowResult<byte[]> currentRow = currentRows.get(row);
-                Map<Cell, byte[]> orignalReads = readsForTable
-                        .tailMap(Cells.createSmallestCellForRow(row), true)
-                        .headMap(Cells.createLargestCellForRow(row), true);
-
-                // We want to filter out all our reads to just the set that matches our column selection.
-                orignalReads = Maps.filterKeys(orignalReads, input -> columns.contains(input.getColumnName()));
-
-                if (writesByTable.get(table) != null) {
-                    // We don't want to verify any reads that we wrote to cause
-                    // we will just read our own values.
-                    // NB: We filter our write set out here because our normal SI
-                    // checking handles this case to ensure the value hasn't changed.
-                    orignalReads = Maps.filterKeys(
-                            orignalReads,
-                            Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
-                }
-
-                if (currentRow == null && orignalReads.isEmpty()) {
-                    continue;
-                }
-
-                if (currentRow == null) {
-                    handleTransactionConflict(table);
-                }
-
-                Map<Cell, byte[]> currentCells = Maps2.fromEntries(currentRow.getCells());
-                if (writesByTable.get(table) != null) {
-                    // We don't want to verify any reads that we wrote to cause
-                    // we will just read our own values.
-                    // NB: We filter our write set out here because our normal SI
-                    // checking handles this case to ensure the value hasn't changed.
-                    currentCells = Maps.filterKeys(
-                            currentCells,
-                            Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
-                }
-                if (!areMapsEqual(orignalReads, currentCells)) {
-                    handleTransactionConflict(table);
-                }
-            }
-        }
-    }
-
-    private boolean areMapsEqual(Map<Cell, byte[]> map1, Map<Cell, byte[]> map2) {
-        if (map1.size() != map2.size()) {
-            return false;
-        }
-        for (Map.Entry<Cell, byte[]> e : map1.entrySet()) {
-            if (!map2.containsKey(e.getKey())) {
-                return false;
-            }
-            if (UnsignedBytes.lexicographicalComparator().compare(e.getValue(), map2.get(e.getKey())) != 0) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void verifyCells(Transaction readOnlyTransaction) {
-        for (Entry<TableReference, Set<Cell>> tableAndCellsEntry : cellsRead.entrySet()) {
-            TableReference table = tableAndCellsEntry.getKey();
-            Set<Cell> cells = tableAndCellsEntry.getValue();
-
-            final ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(table);
-            for (Iterable<Cell> batch : Iterables.partition(cells, BATCH_SIZE)) {
-                // We don't want to verify any reads that we wrote to cause we will just read our own values.
-                // NB: If the value has changed between read and write, our normal SI checking handles this case
-                Iterable<Cell> batchWithoutWrites = writesByTable.get(table) != null
-                        ? Iterables.filter(batch, Predicates.not(Predicates.in(writesByTable.get(table).keySet())))
-                        : batch;
-                ImmutableSet<Cell> batchWithoutWritesSet = ImmutableSet.copyOf(batchWithoutWrites);
-                Map<Cell, byte[]> currentBatch = readOnlyTransaction.get(table, batchWithoutWritesSet);
-                ImmutableMap<Cell, byte[]> originalReads = Maps.toMap(
-                        Sets.intersection(batchWithoutWritesSet, readsForTable.keySet()),
-                        Functions.forMap(readsForTable));
-                if (!areMapsEqual(currentBatch, originalReads)) {
-                    handleTransactionConflict(table);
-                }
-            }
-        }
-    }
-
-    private void verifyRanges(Transaction readOnlyTransaction) {
-        // verify each set of reads to ensure they are the same.
-        for (Entry<TableReference, ConcurrentMap<RangeRequest, byte[]>> tableAndRange : rangeEndByTable.entrySet()) {
-            TableReference table = tableAndRange.getKey();
-            Map<RangeRequest, byte[]> rangeEnds = tableAndRange.getValue();
-
-            for (Entry<RangeRequest, byte[]> rangeAndRangeEndEntry : rangeEnds.entrySet()) {
-                RangeRequest range = rangeAndRangeEndEntry.getKey();
-                byte[] rangeEnd = rangeAndRangeEndEntry.getValue();
-
-                if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(range.isReverse(), rangeEnd)) {
-                    range = range.getBuilder()
-                            .endRowExclusive(RangeRequests.getNextStartRow(range.isReverse(), rangeEnd))
-                            .build();
-                }
-
-                ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
-                BatchingVisitableView<RowResult<byte[]>> bv = BatchingVisitableView.of(
-                        readOnlyTransaction.getRange(table, range));
-                NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(
-                        getReadsInRange(table, range),
-                        ByteBuffer::wrap);
-                if (!bv.transformBatch(input -> filterWritesFromRows(input, writes)).isEqual(readsInRange.entrySet())) {
-                    handleTransactionConflict(table);
-                }
-            }
-        }
-    }
-
-    private NavigableMap<Cell, byte[]> getReadsInColumnRange(TableReference table,
-                                                             byte[] row,
-                                                             BatchColumnRangeSelection range) {
-        NavigableMap<Cell, byte[]> reads = getReadsForTable(table);
-        Cell startCell = Cells.createSmallestCellForRow(row);
-        if ((range.getStartCol() != null) && (range.getStartCol().length > 0)) {
-            startCell = Cell.create(row, range.getStartCol());
-        }
-        reads = reads.tailMap(startCell, true);
-        if ((range.getEndCol() != null) && (range.getEndCol().length > 0)) {
-            Cell endCell = Cell.create(row, range.getEndCol());
-            reads = reads.headMap(endCell, false);
-        } else {
-            if (!RangeRequests.isLastRowName(row)) {
-                Cell endCell = Cells.createSmallestCellForRow(RangeRequests.nextLexicographicName(row));
-                reads = reads.headMap(endCell, false);
-            }
-        }
-        ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
-        if (writes != null) {
-            reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
-        }
-        return reads;
-    }
-
-    private void verifyColumnRanges(Transaction readOnlyTransaction) {
-        // verify each set of reads to ensure they are the same.
-        for (Entry<TableReference,
-                ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>> tableAndRange :
-                columnRangeEndsByTable.entrySet()) {
-            TableReference table = tableAndRange.getKey();
-            Map<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> columnRangeEnds =
-                    tableAndRange.getValue();
-
-            Map<Cell, byte[]> writes = writesByTable.get(table);
-            Map<BatchColumnRangeSelection, List<byte[]>> rangesToRows = Maps.newHashMap();
-            for (Entry<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
-                    columnRangeEnds.entrySet()) {
-                byte[] row = rowAndRangeEnds.getKey().array();
-                Map<BatchColumnRangeSelection, byte[]> rangeEnds = rowAndRangeEnds.getValue();
-
-                for (Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
-                    BatchColumnRangeSelection range = e.getKey();
-                    byte[] rangeEnd = e.getValue();
-                    if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(false, rangeEnd)) {
-                        range = BatchColumnRangeSelection.create(
-                                range.getStartCol(),
-                                RangeRequests.getNextStartRow(false, rangeEnd),
-                                range.getBatchHint());
-                    }
-                    rangesToRows.computeIfAbsent(range, ignored -> Lists.newArrayList()).add(row);
-                }
-            }
-            for (Entry<BatchColumnRangeSelection, List<byte[]>> e : rangesToRows.entrySet()) {
-                BatchColumnRangeSelection range = e.getKey();
-                List<byte[]> rows = e.getValue();
-                Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> result =
-                        readOnlyTransaction.getRowsColumnRange(table, rows, range);
-                for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> res : result.entrySet()) {
-                    byte[] row = res.getKey();
-                    BatchingVisitableView<Entry<Cell, byte[]>> bv = BatchingVisitableView.of(res.getValue());
-                    NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(
-                            getReadsInColumnRange(table, row, range),
-                            input -> ByteBuffer.wrap(input));
-                    boolean isEqual = bv.transformBatch(input -> filterWritesFromCells(input, writes))
-                            .isEqual(readsInRange.entrySet());
-                    if (!isEqual) {
-                        handleTransactionConflict(table);
-                    }
-                }
-            }
-        }
-    }
-
-    private List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
-            Iterable<Entry<Cell, byte[]>> cells,
-            Map<Cell, byte[]> writes) {
-        List<Entry<Cell, ByteBuffer>> cellsWithoutWrites = Lists.newArrayList();
-        for (Entry<Cell, byte[]> cell : cells) {
-            // NB: We filter our write set out here because our normal SI
-            // checking handles this case to ensure the value hasn't changed.
-            if (writes == null || !writes.containsKey(cell.getKey())) {
-                cellsWithoutWrites.add(Maps.immutableEntry(cell.getKey(), ByteBuffer.wrap(cell.getValue())));
-            }
-        }
-        return cellsWithoutWrites;
-    }
-
-    private List<Entry<Cell, ByteBuffer>> filterWritesFromRows(
-            Iterable<RowResult<byte[]>> rows,
-            Map<Cell, byte[]> writes) {
-        List<Entry<Cell, ByteBuffer>> rowsWithoutWrites = Lists.newArrayList();
-        for (RowResult<byte[]> row : rows) {
-            rowsWithoutWrites.addAll(filterWritesFromCells(row.getCells(), writes));
-        }
-        return rowsWithoutWrites;
-    }
-
-    private NavigableMap<Cell, byte[]> getReadsInRange(TableReference table,
-                                                       RangeRequest range) {
-        NavigableMap<Cell, byte[]> reads = getReadsForTable(table);
-        if (range.getStartInclusive().length != 0) {
-            reads = reads.tailMap(Cells.createSmallestCellForRow(range.getStartInclusive()), true);
-        }
-        if (range.getEndExclusive().length != 0) {
-            reads = reads.headMap(Cells.createSmallestCellForRow(range.getEndExclusive()), false);
-        }
-        Map<Cell, byte[]> writes = writesByTable.get(table);
-        if (writes != null) {
-            reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
-        }
-        if (!range.getColumnNames().isEmpty()) {
-            Predicate<Cell> columnInNames = Predicates.compose(
-                    Predicates.in(range.getColumnNames()),
-                    Cells.getColumnFunction());
-            reads = Maps.filterKeys(reads, columnInNames);
-        }
-        return reads;
-    }
-
-    private Transaction getReadOnlyTransaction(final long commitTs) {
-        return new SnapshotTransaction(
-                metricsManager,
-                keyValueService,
-                timelockService,
-                defaultTransactionService,
-                NoOpCleaner.INSTANCE,
-                Suppliers.ofInstance(commitTs + 1),
-                ConflictDetectionManagers.createWithNoConflictDetection(),
-                sweepStrategyManager,
-                immutableTimestamp,
-                Optional.empty(),
-                PreCommitConditions.NO_OP,
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                transactionReadTimeoutMillis,
-                getReadSentinelBehavior(),
-                allowHiddenTableAccess,
-                timestampValidationReadCache,
-                lockAcquireTimeoutMs,
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP,
-                deleteExecutor,
-                commitProfileProcessor) {
-            @Override
-            protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
-                                                          Iterable<Long> startTimestamps,
-                                                          boolean waitForCommitterToComplete) {
-                Set<Long> beforeStart = Sets.newHashSet();
-                Set<Long> afterStart = Sets.newHashSet();
-                boolean containsMyStart = false;
-                long myStart = SerializableTransaction.this.getTimestamp();
-                for (long startTs : startTimestamps) {
-                    if (startTs == myStart) {
-                        containsMyStart = true;
-                    } else if (startTs < myStart) {
-                        beforeStart.add(startTs);
+    @Override
+    protected List<TableRange> getReadRanges() {
+        Stream<TableRange> rangeRequests = KeyedStream.stream(rangeEndByTable)
+                .mapKeys(SnapshotTransaction::toTable)
+                .flatMap((table, map) -> KeyedStream.stream(map).map((range, endRow) -> {
+                    TableRange.Builder builder = TableRange.newBuilder()
+                            .setTable(table)
+                            .setStart(cell(Cell.create(
+                                    transformForFirst(range.getStartInclusive()), RangeRequests.getFirstRowName())))
+                            .setHasColumnFilter(true)
+                            .addAllColumnFilter(range.getColumnNames().stream()
+                                    .map(ByteString::copyFrom)
+                                    .collect(Collectors.toList()));
+                    if (endRow.length != 0 && !RangeRequests.isTerminalRow(false, endRow)) {
+                        builder.setEnd(
+                                cell(Cell.create(RangeRequests.getNextStartRow(false, endRow),
+                                        RangeRequests.getFirstRowName())));
                     } else {
-                        afterStart.add(startTs);
+                        builder.setEnd(cell(Cell.create(range.getEndExclusive(), RangeRequests.getFirstRowName())));
                     }
-                }
-                Map<Long, Long> ret = Maps.newHashMap();
-                if (!afterStart.isEmpty()) {
-                    // We do not block when waiting for results that were written after our
-                    // start timestamp.  If we block here it may lead to deadlock if two transactions
-                    // (or a cycle of any length) have all written their data and all doing checks before committing.
-                    Map<Long, Long> afterResults = super.getCommitTimestamps(tableRef, afterStart, false);
-                    if (!afterResults.keySet().containsAll(afterStart)) {
-                        // If we do not get back all these results we may be in the deadlock case so we should just
-                        // fail out early.  It may be the case that abort more transactions than needed to break the
-                        // deadlock cycle, but this should be pretty rare.
-                        transactionOutcomeMetrics.markReadWriteConflict(tableRef);
-                        throw new TransactionSerializableConflictException("An uncommitted conflicting read was "
-                                + "written after our start timestamp for table " + tableRef + ".  "
-                                + "This case can cause deadlock and is very likely to be a read write conflict.");
-                    } else {
-                        ret.putAll(afterResults);
-                    }
-                }
-                // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
-                // then at least one of them will be in the ab
-                ret.putAll(super.getCommitTimestamps(tableRef, beforeStart, waitForCommitterToComplete));
-                if (containsMyStart) {
-                    ret.put(myStart, commitTs);
-                }
-                return ret;
-            }
-        };
-    }
+                    return builder.build();
+                }).values())
+                .values();
 
-    private void handleTransactionConflict(TableReference tableRef) {
-        transactionOutcomeMetrics.markReadWriteConflict(tableRef);
-        throw TransactionSerializableConflictException.create(tableRef, getTimestamp(),
-                System.currentTimeMillis() - timeCreated);
+        Stream<TableRange> columnRangeRequests = KeyedStream.stream(columnRangeEndsByTable)
+                .mapKeys(SnapshotTransaction::toTable)
+                .flatMap((table, map) -> KeyedStream.stream(map)
+                        .flatMap((row, ranges) -> KeyedStream.stream(ranges)
+                                .map((range, rangeEnd) -> {
+                                    TableRange.Builder builder = TableRange.newBuilder()
+                                            .setTable(table)
+                                            .setHasColumnFilter(false)
+                                            .setStart(cell(Cell.create(row.array(), range.getStartCol())));
+                                    if (rangeEnd.length != 0 && RangeRequests.isTerminalRow(false, rangeEnd)) {
+                                        builder.setEnd(cell(Cell.create(row.array(),
+                                                RangeRequests.getNextStartRow(false, rangeEnd))));
+                                    } else {
+                                        builder.setEnd(cell(Cell.create(row.array(), range.getEndCol())));
+                                    }
+                                    return builder.build();
+                                }).values()).values()).values();
+
+        return Stream.concat(rangeRequests, columnRangeRequests).collect(Collectors.toList());
     }
 }

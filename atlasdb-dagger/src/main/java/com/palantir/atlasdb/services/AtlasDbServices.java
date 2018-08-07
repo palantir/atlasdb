@@ -22,11 +22,9 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.lock.LockService;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.TimestampService;
 
 import dagger.Component;
 
@@ -39,12 +37,6 @@ public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract AtlasDbRuntimeConfig getAtlasDbRuntimeConfig();
 
-    public abstract TimelockService getTimelockService();
-
-    public abstract TimestampService getTimestampService();
-
-    public abstract LockService getLockService();
-
     @Named("kvs")
     public abstract KeyValueService getKeyValueService();
 
@@ -53,6 +45,8 @@ public abstract class AtlasDbServices implements AutoCloseable {
     public abstract SweepTaskRunner getSweepTaskRunner();
 
     public abstract TransactionService getTransactionService();
+
+    public abstract JamesTransactionService james();
 
     @Override
     public void close() {

@@ -38,7 +38,6 @@ import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -56,7 +55,6 @@ public class BackgroundSweepThread implements Runnable {
     private final Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final CountDownLatch shuttingDown;
-    private final LockService lockService;
     private final int threadIndex;
 
     private Optional<TableToSweep> currentTable = Optional.empty();
@@ -64,7 +62,7 @@ public class BackgroundSweepThread implements Runnable {
     // Used in internal test code
     @VisibleForTesting
     @SuppressWarnings("checkstyle:RegexpMultilineCheck")
-    public static BackgroundSweepThread createForTests(LockService lockService,
+    public static BackgroundSweepThread createForTests(
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
@@ -72,12 +70,12 @@ public class BackgroundSweepThread implements Runnable {
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             SpecificTableSweeper specificTableSweeper,
             MetricsManager metricsManager) {
-        return new BackgroundSweepThread(lockService, nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled,
+        return new BackgroundSweepThread(nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled,
                 sweepPauseMillis, sweepPriorityOverrideConfig, specificTableSweeper,
                 SweepOutcomeMetrics.registerLegacy(metricsManager), new CountDownLatch(1), 1);
     }
 
-    BackgroundSweepThread(LockService lockService,
+    BackgroundSweepThread(
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
@@ -95,7 +93,6 @@ public class BackgroundSweepThread implements Runnable {
         this.sweepPriorityOverrideConfig = sweepPriorityOverrideConfig;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.shuttingDown = shuttingDown;
-        this.lockService = lockService;
         this.threadIndex = threadIndex;
     }
 
@@ -355,7 +352,7 @@ public class BackgroundSweepThread implements Runnable {
 
     @VisibleForTesting
     SingleLockService createSweepLocks() {
-        return SingleLockService.createSingleLockServiceWithSafeLockId(lockService, "atlas sweep " + threadIndex);
+        return SingleLockService.createSingleLockServiceWithSafeLockId("atlas sweep " + threadIndex);
     }
 
     private void closeTableLockIfHeld() {

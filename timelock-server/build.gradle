@@ -13,6 +13,9 @@ check.dependsOn integTest
 
 dependencies {
     compile (project(":timelock-agent"))
+    compile (project(":atlasdb-config")) {
+        exclude group:'io.dropwizard'
+    }
 
     compile group: 'io.dropwizard', name: 'dropwizard-core'
     compile group: 'io.dropwizard', name: 'dropwizard-http2'

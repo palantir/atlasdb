@@ -19,24 +19,24 @@ package com.palantir.atlasdb.factory.timestamp;
 import java.util.function.LongSupplier;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.timestamp.TimestampService;
 
 public class FreshTimestampSupplierAdapter implements LongSupplier {
-    private volatile TimestampService timestampService;
+    private volatile JamesTransactionService james;
 
-    public void setTimestampService(TimestampService timestampService) {
-        Preconditions.checkNotNull(timestampService, "Should not re-set timestamp service in a"
+    public void setTimestampService(JamesTransactionService james) {
+        Preconditions.checkNotNull(james, "Should not re-set timestamp service in a"
                 + " FreshTimestampSupplierAdapter to null");
-        this.timestampService = timestampService;
+        this.james = james;
     }
 
     @Override
     public long getAsLong() {
-        if (timestampService == null) {
+        if (james == null) {
             throwNotInitializedException();
         }
-        return timestampService.getFreshTimestamp();
+        return james.getFreshTimestamp().getTimestamp();
     }
 
     private static long throwNotInitializedException() {

@@ -20,7 +20,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
@@ -64,7 +63,6 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.impl.LegacyTimelockService;
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
@@ -74,9 +72,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
                 keyValueService,
-                timestampService,
-                lockClient,
-                lockService,
+                james,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
@@ -99,14 +95,13 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                james,
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                Suppliers.ofInstance(timestampService.getFreshTimestamp()),
+                james.startTransactions(1).getLower(),
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
-                Optional.empty(),
                 PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,

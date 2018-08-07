@@ -316,7 +316,7 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     private long storeStream(PersistentStreamStore store, byte[] bytesToStore, byte[] reference) {
-        final long id = timestampService.getFreshTimestamp();
+        final long id = james.getFreshTimestamp().getTimestamp();
         txManager.runTaskWithRetry(t -> {
             store.storeStreams(t, ImmutableMap.of(id, new ByteArrayInputStream(bytesToStore)));
             store.markStreamAsUsed(t, id, reference);
@@ -560,8 +560,8 @@ public class StreamTest extends AtlasDbTestCase {
         final byte[] bytes1 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
         final byte[] bytes2 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
 
-        long id1 = timestampService.getFreshTimestamp();
-        long id2 = timestampService.getFreshTimestamp();
+        long id1 = james.getFreshTimestamp().getTimestamp();
+        long id2 = james.getFreshTimestamp().getTimestamp();
 
         Random rand = new Random();
         rand.nextBytes(bytes1);
@@ -590,8 +590,8 @@ public class StreamTest extends AtlasDbTestCase {
         Random rand = new Random();
         rand.nextBytes(bytes);
 
-        long id1 = timestampService.getFreshTimestamp();
-        long id2 = timestampService.getFreshTimestamp();
+        long id1 = james.getFreshTimestamp().getTimestamp();
+        long id2 = james.getFreshTimestamp().getTimestamp();
 
         ImmutableMap<Long, InputStream> streams = ImmutableMap.of(
                 id1, new ByteArrayInputStream(bytes),
@@ -608,7 +608,7 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void testStreamMetadataConflictDeleteFirst() throws Exception {
-        long streamId = timestampService.getFreshTimestamp();
+        long streamId = james.getFreshTimestamp().getTimestamp();
 
         runConflictingTasksConcurrently(streamId, new TwoConflictingTasks() {
             @Override
@@ -630,7 +630,7 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void testStreamMetadataConflictWriteFirst() throws Exception {
-        long streamId = timestampService.getFreshTimestamp();
+        long streamId = james.getFreshTimestamp().getTimestamp();
 
         runConflictingTasksConcurrently(streamId, new TwoConflictingTasks() {
             @Override

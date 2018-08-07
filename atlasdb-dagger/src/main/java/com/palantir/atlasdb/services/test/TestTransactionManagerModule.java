@@ -27,10 +27,10 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -38,21 +38,12 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockService;
-import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
 import dagger.Provides;
 
 @Module
 public class TestTransactionManagerModule {
-
-    @Provides
-    @Singleton
-    public LockClient provideLockClient() {
-        return LockClient.of("atlas instance");
-    }
 
     @Provides
     @Singleton
@@ -64,17 +55,13 @@ public class TestTransactionManagerModule {
     @Singleton
     public Cleaner provideCleaner(ServicesConfig config,
                                   @Named("kvs") KeyValueService kvs,
-                                  LockService lock,
-                                  TimestampService tss,
-                                  LockClient lockClient,
+                                  JamesTransactionService james,
                                   Follower follower,
                                   TransactionService transactionService) {
         AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
         return new DefaultCleanerBuilder(
                 kvs,
-                lock,
-                tss,
-                lockClient,
+                james,
                 ImmutableList.of(follower),
                 transactionService)
                 .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
@@ -92,8 +79,7 @@ public class TestTransactionManagerModule {
     public SerializableTransactionManager provideTransactionManager(MetricsManager metricsManager,
                                                                     ServicesConfig config,
                                                                     @Named("kvs") KeyValueService kvs,
-                                                                    TransactionManagers.LockAndTimestampServices lts,
-                                                                    LockClient lockClient,
+                                                                    JamesTransactionService james,
                                                                     TransactionService transactionService,
                                                                     ConflictDetectionManager conflictManager,
                                                                     SweepStrategyManager sweepStrategyManager,
@@ -101,8 +87,7 @@ public class TestTransactionManagerModule {
         return new SerializableTransactionManager(
                 metricsManager,
                 kvs,
-                lts.timelock(),
-                lts.lock(),
+                james,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,

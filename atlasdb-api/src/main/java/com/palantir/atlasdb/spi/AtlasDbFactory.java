@@ -24,17 +24,13 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.timestamp.TimestampService;
-import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public interface AtlasDbFactory {
     Logger log = LoggerFactory.getLogger(AtlasDbFactory.class);
 
-    long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
     boolean DEFAULT_INITIALIZE_ASYNC = false;
     LongSupplier THROWING_FRESH_TIMESTAMP_SOURCE = () -> {
         throw new UnsupportedOperationException("Not expecting to use fresh timestamps");
@@ -79,20 +75,4 @@ public interface AtlasDbFactory {
             LongSupplier freshTimestampSource,
             boolean initializeAsync,
             QosClient qosClient);
-
-    default TimestampService createTimestampService(KeyValueService rawKvs) {
-        return createTimestampService(rawKvs, Optional.empty(), DEFAULT_INITIALIZE_ASYNC);
-    }
-
-    TimestampService createTimestampService(
-            KeyValueService rawKvs,
-            Optional<TableReference> timestampTable,
-            boolean initializeAsync);
-
-    default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
-        return () -> {
-            log.warn("AtlasDB doesn't yet support automated migration for KVS type {}.", getType());
-            return NO_OP_FAST_FORWARD_TIMESTAMP;
-        };
-    }
 }

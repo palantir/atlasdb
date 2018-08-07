@@ -27,6 +27,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import org.awaitility.Awaitility;
@@ -35,8 +36,9 @@ import org.joda.time.Duration;
 
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
+import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.common.base.Throwables;
-import com.palantir.timestamp.InMemoryTimestampService;
 
 /**
  * Utilities for ETE tests
@@ -103,8 +105,8 @@ public final class CassandraTestTools {
     }
 
     public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(long timestamp) {
-        InMemoryTimestampService timestampService = new InMemoryTimestampService();
-        timestampService.fastForwardTimestamp(timestamp);
-        return CassandraMutationTimestampProviders.singleLongSupplierBacked(timestampService::getFreshTimestamp);
+        JamesTransactionService james = new DefaultTransactionService();
+        LongStream.range(0, timestamp).forEach(x -> james.getFreshTimestamp());
+        return CassandraMutationTimestampProviders.singleLongSupplierBacked(() -> james.getFreshTimestamp().getTimestamp());
     }
 }

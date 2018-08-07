@@ -54,7 +54,6 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.atlasdb.transaction.impl.TxTask;
@@ -74,7 +73,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     private final KeyValueService kvs;
     private final TransactionManager txManager;
-    private final Cache<TransactionToken, TransactionAndImmutableTsLock> transactions =
+    private final Cache<TransactionToken, Transaction> transactions =
             CacheBuilder.newBuilder().expireAfterAccess(12, TimeUnit.HOURS).build();
     private final TableMetadataCache metadataCache;
 
@@ -175,7 +174,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
         if (token.shouldAutoCommit()) {
             return txManager.runTaskWithRetry(task);
         } else {
-            Transaction tx = transactions.getIfPresent(token).transaction();
+            Transaction tx = transactions.getIfPresent(token);
             Preconditions.checkNotNull(tx, "The given transaction does not exist.");
             return task.execute(tx);
         }
@@ -185,7 +184,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
         if (token.shouldAutoCommit()) {
             return txManager.runTaskWithRetry(task);
         } else {
-            Transaction tx = transactions.getIfPresent(token).transaction();
+            Transaction tx = transactions.getIfPresent(token);
             Preconditions.checkNotNull(tx, "The given transaction does not exist.");
             return task.execute(tx);
         }
@@ -195,7 +194,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public TransactionToken startTransaction() {
         String id = UUID.randomUUID().toString();
         TransactionToken token = new TransactionToken(id);
-        TransactionAndImmutableTsLock txAndLock =
+        Transaction txAndLock =
                 txManager.setupRunTaskWithConditionThrowOnConflict(PreCommitConditions.NO_OP);
         transactions.put(token, txAndLock);
         return token;
@@ -203,7 +202,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Override
     public void commit(TransactionToken token) {
-        TransactionAndImmutableTsLock txAndLock = transactions.getIfPresent(token);
+        Transaction txAndLock = transactions.getIfPresent(token);
         if (txAndLock != null) {
             txManager.finishRunTaskWithLockThrowOnConflict(txAndLock, (TxTask) transaction -> null);
             transactions.invalidate(token);
@@ -212,7 +211,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Override
     public void abort(TransactionToken token) {
-        TransactionAndImmutableTsLock txAndLock = transactions.getIfPresent(token);
+        Transaction txAndLock = transactions.getIfPresent(token);
         if (txAndLock != null) {
             txManager.finishRunTaskWithLockThrowOnConflict(txAndLock, (TxTask) transaction -> {
                 transaction.abort();

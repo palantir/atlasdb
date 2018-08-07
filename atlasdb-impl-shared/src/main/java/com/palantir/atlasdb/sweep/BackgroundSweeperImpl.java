@@ -30,7 +30,6 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
-import com.palantir.lock.LockService;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -43,7 +42,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private final CountDownLatch shuttingDown = new CountDownLatch(1);
 
     // Shared between threads
-    private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
     private final Supplier<Boolean> isSweepEnabled;
@@ -55,7 +53,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     private BackgroundSweeperImpl(
             MetricsManager metricsManager,
-            LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
@@ -65,7 +62,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         this.sweepOutcomeMetrics = SweepOutcomeMetrics.registerLegacy(metricsManager);
-        this.lockService = lockService;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.sweepBatchConfigSource = sweepBatchConfigSource;
         this.isSweepEnabled = isSweepEnabled;
@@ -87,12 +83,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             SpecificTableSweeper specificTableSweeper) {
         NextTableToSweepProvider nextTableToSweepProvider = NextTableToSweepProvider
                 .create(specificTableSweeper.getKvs(),
-                        specificTableSweeper.getTxManager().getLockService(),
                         specificTableSweeper.getSweepPriorityStore());
 
         return new BackgroundSweeperImpl(
                 metricsManager,
-                specificTableSweeper.getTxManager().getLockService(),
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,
                 isSweepEnabled,
@@ -110,7 +104,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
         daemons = Sets.newHashSetWithExpectedSize(numThreads);
 
         for (int idx = 1; idx <= numThreads; idx++) {
-            BackgroundSweepThread backgroundSweepThread = new BackgroundSweepThread(lockService,
+            BackgroundSweepThread backgroundSweepThread = new BackgroundSweepThread(
                     nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled, sweepPauseMillis,
                     sweepPriorityOverrideConfig, specificTableSweeper, sweepOutcomeMetrics, shuttingDown, idx);
 

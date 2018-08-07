@@ -33,7 +33,6 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.BackgroundSweepThread;
 import com.palantir.atlasdb.sweep.TableToSweep;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -41,23 +40,20 @@ import com.palantir.logsafe.UnsafeArg;
 public class NextTableToSweepProvider {
     private static final Logger log = LoggerFactory.getLogger(NextTableToSweepProvider.class);
 
-    private final LockService lockService;
     private final StreamStoreRemappingSweepPriorityCalculator calculator;
 
     @VisibleForTesting
-    NextTableToSweepProvider(LockService lockService,
+    NextTableToSweepProvider(
             StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator) {
-        this.lockService = lockService;
         this.calculator = streamStoreRemappingSweepPriorityCalculator;
     }
 
-    public static NextTableToSweepProvider create(KeyValueService kvs, LockService lockService,
-            SweepPriorityStore sweepPriorityStore) {
+    public static NextTableToSweepProvider create(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
         SweepPriorityCalculator basicCalculator = new SweepPriorityCalculator(kvs, sweepPriorityStore);
         StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator =
                 new StreamStoreRemappingSweepPriorityCalculator(basicCalculator, sweepPriorityStore);
 
-        return new NextTableToSweepProvider(lockService, streamStoreRemappingSweepPriorityCalculator);
+        return new NextTableToSweepProvider(streamStoreRemappingSweepPriorityCalculator);
     }
 
     public Optional<TableToSweep> getNextTableToSweep(Transaction tx,
@@ -102,7 +98,7 @@ public class NextTableToSweepProvider {
     private Optional<TableToSweep> attemptToChooseTableFromList(List<TableReference> priorityTables, String reason) {
         for (TableReference tableRefToSweep : priorityTables) {
             SingleLockService sweepLockForTable = SingleLockService.createNamedLockServiceForTable(
-                    lockService, BackgroundSweepThread.TABLE_LOCK_PREFIX, tableRefToSweep);
+                    BackgroundSweepThread.TABLE_LOCK_PREFIX, tableRefToSweep);
             try {
                 sweepLockForTable.lockOrRefresh();
                 if (sweepLockForTable.haveLocks()) {

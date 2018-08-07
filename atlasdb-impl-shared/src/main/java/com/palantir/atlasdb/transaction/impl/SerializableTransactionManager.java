@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -30,6 +29,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -40,12 +40,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.TimestampService;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
@@ -82,12 +76,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         public boolean isInitialized() {
             assertOpen();
             return status == State.READY && isInitializedInternal();
-        }
-
-        @Override
-        public LockService getLockService() {
-            assertOpen();
-            return txManager.getLockService();
         }
 
         @Override
@@ -140,8 +128,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             // requests (note that it is not accessible from any TransactionManager implementation), so we omit
             // checking here whether it is initialized.
             return txManager.getKeyValueService().isInitialized()
-                    && txManager.getTimelockService().isInitialized()
-                    && txManager.getTimestampService().isInitialized()
                     && txManager.getCleaner().isInitialized()
                     && initializationPrerequisite.get();
         }
@@ -183,8 +169,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static TransactionManager create(MetricsManager metricsManager,
             KeyValueService keyValueService,
-            TimelockService timelockService,
-            LockService lockService,
+            JamesTransactionService james,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -202,8 +187,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         return create(metricsManager,
                 keyValueService,
-                timelockService,
-                lockService,
+                james,
                 transactionService,
                 constraintModeSupplier,
                 conflictDetectionManager,
@@ -224,8 +208,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static TransactionManager create(MetricsManager metricsManager,
             KeyValueService keyValueService,
-            TimelockService timelockService,
-            LockService lockService,
+            JamesTransactionService james,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -244,8 +227,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
-                timelockService,
-                lockService,
+                james,
                 transactionService,
                 constraintModeSupplier,
                 conflictDetectionManager,
@@ -270,9 +252,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static SerializableTransactionManager createForTest(MetricsManager metricsManager,
             KeyValueService keyValueService,
-            TimestampService timestampService,
-            LockClient lockClient,
-            LockService lockService,
+            JamesTransactionService james,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -284,8 +264,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
-                lockService,
+                james,
                 transactionService,
                 constraintModeSupplier,
                 conflictDetectionManager,
@@ -302,8 +281,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(MetricsManager metricsManager,
             KeyValueService keyValueService,
-            TimelockService timelockService,
-            LockService lockService,
+            JamesTransactionService james,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -319,8 +297,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         super(
                 metricsManager,
                 keyValueService,
-                timelockService,
-                lockService,
+                james,
                 transactionService,
                 constraintModeSupplier,
                 conflictDetectionManager,
@@ -338,20 +315,18 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     @Override
     protected SnapshotTransaction createTransaction(long immutableTimestamp,
-            Supplier<Long> startTimestampSupplier,
-            LockToken immutableTsLock,
+            long startTimestamp,
             PreCommitCondition preCommitCondition) {
         return new SerializableTransaction(
                 metricsManager,
                 keyValueService,
-                timelockService,
+                james,
                 transactionService,
                 cleaner,
-                startTimestampSupplier,
+                startTimestamp,
                 getConflictDetectionManager(),
                 sweepStrategyManager,
                 immutableTimestamp,
-                Optional.of(immutableTsLock),
                 preCommitCondition,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),

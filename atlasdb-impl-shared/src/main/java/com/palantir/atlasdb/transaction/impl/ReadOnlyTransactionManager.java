@@ -24,19 +24,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.TimestampService;
 
 public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
     private final MetricsManager metricsManager;
@@ -87,29 +81,6 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Iterable<HeldLocksToken> lockTokens,
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
     public long getImmutableTimestamp() {
         return Long.MAX_VALUE;
     }
@@ -145,29 +116,14 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
+    public Transaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 
     @Override
-    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
+    public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(Transaction tx,
             TransactionTask<T, E> task) throws TransactionFailedRetriableException {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
-    }
-
-    @Override
-    public LockService getLockService() {
-        return null;
-    }
-
-    @Override
-    public TimelockService getTimelockService() {
-        return null;
-    }
-
-    @Override
-    public TimestampService getTimestampService() {
-        return null;
     }
 
     @Override

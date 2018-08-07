@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.http;
 
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
-import com.palantir.lock.remoting.BlockingTimeoutException;
 
 import feign.RetryableException;
 
@@ -69,8 +68,7 @@ public enum ExceptionRetryBehaviour {
     }
 
     private static boolean isCausedByBlockingTimeout(RetryableException retryableException) {
-        return retryableException.getCause() instanceof AtlasDbRemoteException
-                && getCausingErrorName(retryableException).equals(BlockingTimeoutException.class.getName());
+        return false;
     }
 
     private static String getCausingErrorName(RetryableException retryableException) {

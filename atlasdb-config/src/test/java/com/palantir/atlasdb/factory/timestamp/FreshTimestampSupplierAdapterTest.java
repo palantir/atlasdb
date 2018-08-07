@@ -26,25 +26,25 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.timestamp.TimestampService;
 
 public class FreshTimestampSupplierAdapterTest {
     private final FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
 
     @Test
-    public void throwsNotInitializedIfTimestampServiceNotSet() {
+    public void throwsNotInitializedIfJamesTransactionServiceNotSet() {
         assertThatThrownBy(adapter::getAsLong).isInstanceOf(NotInitializedException.class);
     }
 
     @Test
-    public void throwsNullPointerExceptionIfSettingTimestampServiceToNull() {
+    public void throwsNullPointerExceptionIfSettingJamesTransactionServiceToNull() {
         assertThatThrownBy(() -> adapter.setTimestampService(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
-    public void delegatesCallToTimestampServiceIfSet() {
-        TimestampService timestampService = mock(TimestampService.class);
+    public void delegatesCallToJamesTransactionServiceIfSet() {
+        JamesTransactionService timestampService = mock(JamesTransactionService.class);
         adapter.setTimestampService(timestampService);
         adapter.getAsLong();
         verify(timestampService, times(1)).getFreshTimestamp();
@@ -52,9 +52,9 @@ public class FreshTimestampSupplierAdapterTest {
     }
 
     @Test
-    public void canChangeTimestampService() {
-        TimestampService timestampService1 = mock(TimestampService.class);
-        TimestampService timestampService2 = mock(TimestampService.class);
+    public void canChangeJamesTransactionService() {
+        JamesTransactionService timestampService1 = mock(JamesTransactionService.class);
+        JamesTransactionService timestampService2 = mock(JamesTransactionService.class);
 
         adapter.setTimestampService(timestampService1);
         adapter.getAsLong();
@@ -70,16 +70,16 @@ public class FreshTimestampSupplierAdapterTest {
     }
 
     @Test
-    public void throwsNullPointerExceptionIfResettingTimestampServiceToNull() {
-        TimestampService timestampService = mock(TimestampService.class);
+    public void throwsNullPointerExceptionIfResettingJamesTransactionServiceToNull() {
+        JamesTransactionService timestampService = mock(JamesTransactionService.class);
         adapter.setTimestampService(timestampService);
         assertThatThrownBy(() -> adapter.setTimestampService(null)).isInstanceOf(NullPointerException.class);
         verifyNoMoreInteractions(timestampService);
     }
 
     @Test
-    public void propagatesExceptionsThrownByTimestampService() {
-        TimestampService timestampService = mock(TimestampService.class);
+    public void propagatesExceptionsThrownByJamesTransactionService() {
+        JamesTransactionService timestampService = mock(JamesTransactionService.class);
         when(timestampService.getFreshTimestamp()).thenThrow(new IllegalStateException());
 
         adapter.setTimestampService(timestampService);

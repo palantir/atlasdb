@@ -30,7 +30,6 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
@@ -39,10 +38,6 @@ import org.mockito.internal.matchers.GreaterOrEqual;
 import org.mockito.internal.matchers.LessThan;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
-import com.palantir.lock.remoting.BlockingTimeoutException;
-import com.palantir.remoting2.errors.RemoteException;
-import com.palantir.remoting2.errors.SerializableError;
 
 import feign.RetryableException;
 
@@ -71,10 +66,6 @@ public class FailoverFeignTargetTest {
     static {
         when(EXCEPTION_WITH_RETRY_AFTER.retryAfter()).thenReturn(Date.valueOf(LocalDate.MAX));
         when(EXCEPTION_WITHOUT_RETRY_AFTER.retryAfter()).thenReturn(null);
-        when(BLOCKING_TIMEOUT_EXCEPTION.getCause()).thenReturn(
-                new AtlasDbRemoteException(new RemoteException(
-                        SerializableError.of("foo", BlockingTimeoutException.class),
-                        HttpStatus.SC_SERVICE_UNAVAILABLE)));
     }
 
     @Before

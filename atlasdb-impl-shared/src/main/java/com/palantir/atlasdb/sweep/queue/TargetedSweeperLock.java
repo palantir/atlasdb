@@ -18,41 +18,23 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Optional;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
 
 public final class TargetedSweeperLock {
     private final ShardAndStrategy shardStrategy;
-    private final TimelockService timeLock;
-    private final LockToken lockToken;
 
-    private TargetedSweeperLock(ShardAndStrategy shardStrategy, TimelockService timeLock, LockToken lockToken) {
+    private TargetedSweeperLock(ShardAndStrategy shardStrategy) {
         this.shardStrategy = shardStrategy;
-        this.timeLock = timeLock;
-        this.lockToken = lockToken;
     }
 
-    public static Optional<TargetedSweeperLock> tryAcquire(int shard, TableMetadataPersistence.SweepStrategy strategy,
-            TimelockService timeLock) {
+    public static Optional<TargetedSweeperLock> tryAcquire(int shard, TableMetadataPersistence.SweepStrategy strategy) {
         ShardAndStrategy shardStrategy = ShardAndStrategy.of(shard, strategy);
-        LockDescriptor lock = StringLockDescriptor.of(shardStrategy.toText());
-        // We do not want the timeout to be too low to avoid a race condition where we give up too soon
-        LockRequest request = LockRequest.of(ImmutableSet.of(lock), 100L);
-        return timeLock.lock(request)
-                .getTokenOrEmpty()
-                .map(lockToken -> new TargetedSweeperLock(shardStrategy, timeLock, lockToken));
+        return Optional.of(new TargetedSweeperLock(shardStrategy));
     }
 
     public ShardAndStrategy getShardAndStrategy() {
         return shardStrategy;
     }
 
-    public void unlock() {
-        timeLock.unlock(ImmutableSet.of(lockToken));
-    }
+    public void unlock() {}
 }

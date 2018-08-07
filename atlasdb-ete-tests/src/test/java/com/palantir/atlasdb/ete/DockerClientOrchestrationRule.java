@@ -75,12 +75,12 @@ public class DockerClientOrchestrationRule extends ExternalResource {
                 .machine(dockerMachine)
                 .file("docker-compose.timelock-migration.cassandra.yml")
                 .waitingForService("cassandra", HealthChecks.toHaveAllPortsOpen())
-                .saveLogsTo(LogDirectory.circleAwareLogDirectory(TimeLockMigrationEteTest.class.getSimpleName()))
+                .saveLogsTo(LogDirectory.circleAwareLogDirectory(DockerClientOrchestrationRule.class.getSimpleName()))
                 .addClusterWait(new ClusterWait(ClusterHealthCheck.nativeHealthChecks(), WAIT_TIMEOUT))
                 .build();
         dockerProxyRule = DockerProxyRule.fromProjectName(
                 dockerComposeRule.projectName(),
-                TimeLockMigrationEteTest.class);
+                DockerClientOrchestrationRule.class);
 
         dockerComposeRule.before();
         dockerProxyRule.before();

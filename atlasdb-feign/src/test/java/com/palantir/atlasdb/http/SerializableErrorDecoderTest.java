@@ -31,12 +31,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.net.HttpHeaders;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
-import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRequest;
-import com.palantir.lock.StringLockDescriptor;
 import com.palantir.remoting2.errors.SerializableError;
 import com.palantir.remoting2.ext.jackson.ObjectMappers;
 
@@ -84,16 +80,6 @@ public class SerializableErrorDecoderTest {
     public void resilientToMalformedBody() {
         byte[] oneByteArray = {42};
         Response response = createResponse(HttpStatus.SC_SERVICE_UNAVAILABLE, oneByteArray);
-
-        assertCanDecodeRuntimeException(response);
-    }
-
-    @Test
-    public void resilientToValidJsonBodyThatIsNotASerializableError() throws JsonProcessingException {
-        LockRequest lockRequest =
-                LockRequest.builder(ImmutableSortedMap.of(StringLockDescriptor.of(LOCK_ID), LockMode.WRITE))
-                        .build();
-        Response response = createResponseForEntity(lockRequest);
 
         assertCanDecodeRuntimeException(response);
     }

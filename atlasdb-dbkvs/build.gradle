@@ -8,7 +8,6 @@ dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-dbkvs-hikari")
   compile project(":atlasdb-impl-shared")
-  compile project(':timestamp-impl')
   compile project(':commons-db')
   compile project(':commons-api')
   compile group: 'com.palantir.remoting-api', name: 'service-config'

@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
@@ -56,8 +55,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractBackgroundSweeperIntegrationTest {
 
@@ -81,14 +78,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     @Before
     public void setup() {
-        TimestampService tsService = new InMemoryTimestampService();
-        kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService,
-                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
-                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD
-        );
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
-        txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
+        txManager = SweepTestUtils.setupTxManager(kvs, ssm, txService);
         LongSupplier tsSupplier = sweepTimestamp::get;
         PersistentLockManager persistentLockManager = new PersistentLockManager(metricsManager,
                 SweepTestUtils.getPersistentLockService(kvs),
@@ -108,9 +100,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(metricsManager, () -> sweepBatchConfig);
 
         backgroundSweeper = new BackgroundSweepThread(
-                txManager.getLockService(),
                 NextTableToSweepProvider.create(kvs,
-                        txManager.getLockService(),
                         specificTableSweeper.getSweepPriorityStore()),
                 sweepBatchConfigSource,
                 () -> true, // sweepEnabled

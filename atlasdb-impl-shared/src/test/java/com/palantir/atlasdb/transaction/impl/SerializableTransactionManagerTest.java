@@ -45,18 +45,18 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.lock.v2.TimelockService;
 
 public class SerializableTransactionManagerTest {
     private static final long THREE = 3L;
 
     private KeyValueService mockKvs = mock(KeyValueService.class);
-    private TimelockService mockTimelockService = mock(TimelockService.class);
+    private JamesTransactionService james = mock(JamesTransactionService.class);
     private Cleaner mockCleaner = mock(Cleaner.class);
     private AsyncInitializer mockInitializer = mock(AsyncInitializer.class);
     private Callback<TransactionManager> mockCallback = mock(Callback.class);
@@ -263,8 +263,7 @@ public class SerializableTransactionManagerTest {
         return SerializableTransactionManager.create(
                 MetricsManagers.createForTests(),
                 mockKvs,
-                mockTimelockService,
-                null, // lockService
+                james,
                 null, // transactionService
                 () -> null, // constraintMode
                 null, // conflictDetectionManager
@@ -292,7 +291,6 @@ public class SerializableTransactionManagerTest {
 
     private void setInitializationStatus(boolean kvs, boolean timelock, boolean cleaner, boolean initializer) {
         when(mockKvs.isInitialized()).thenReturn(kvs);
-        when(mockTimelockService.isInitialized()).thenReturn(timelock);
         when(mockCleaner.isInitialized()).thenReturn(cleaner);
         when(mockInitializer.isInitialized()).thenReturn(initializer);
     }

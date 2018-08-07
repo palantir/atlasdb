@@ -18,15 +18,12 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
-import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockRequest;
 
 public abstract class WrappingTransactionManager implements AutoDelegate_TransactionManager {
     private final TransactionManager delegate;
@@ -44,10 +41,6 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
 
     private <T, E extends Exception> TransactionTask<T, E> wrapTask(TransactionTask<T, E> task) {
         return transaction -> task.execute(wrap(transaction));
-    }
-
-    private <T, E extends Exception> LockAwareTransactionTask<T, E> wrapTask(LockAwareTransactionTask<T, E> task) {
-        return (transaction, locks) -> task.execute(wrap(transaction), locks);
     }
 
     private <T, C extends PreCommitCondition, E extends Exception> ConditionAwareTransactionTask<T, C, E>
@@ -69,31 +62,6 @@ public abstract class WrappingTransactionManager implements AutoDelegate_Transac
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
         return delegate().runTaskReadOnly(wrapTask(task));
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task)
-            throws E, TransactionConflictException {
-        return delegate().runTaskWithLocksThrowOnConflict(lockTokens, wrapTask(task));
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
-        return delegate().runTaskWithLocksWithRetry(lockSupplier, wrapTask(task));
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Iterable<HeldLocksToken> lockTokens,
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
-        return delegate().runTaskWithLocksWithRetry(lockTokens, lockSupplier, wrapTask(task));
     }
 
     @Override

@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -83,11 +82,10 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 null,
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                () -> startTimeStamp,
+                startTimeStamp,
                 ConflictDetectionManagers.createWithNoConflictDetection(),
                 SweepStrategyManagers.createDefault(keyValueService),
                 startTimeStamp,
-                Optional.empty(),
                 PreCommitConditions.NO_OP,
                 constraintCheckingMode,
                 null,

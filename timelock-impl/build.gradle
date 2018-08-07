@@ -6,20 +6,16 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/timelock.gradle"
 
 dependencies {
-    compile project(":timestamp-impl")
     compile project(":lock-impl")
     compile project(":leader-election-impl")
-    compile (project(":atlasdb-config")) {
-        exclude group:'io.dropwizard'
-    }
 
+    compile 'com.lmax:disruptor'
     compile group: 'com.palantir.remoting3', name: 'tracing'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
     processor group: 'org.immutables', name: 'value'
 
     testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
-    testCompile project(":atlasdb-tests-shared")
 
     testCompile group: 'com.palantir.remoting2', name: 'jersey-servers'
     testCompile group: 'org.assertj', name: 'assertj-core'

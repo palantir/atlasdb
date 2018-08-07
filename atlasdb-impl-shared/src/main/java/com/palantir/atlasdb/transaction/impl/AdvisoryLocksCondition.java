@@ -17,8 +17,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.lock.HeldLocksToken;
 
 public interface AdvisoryLocksCondition extends PreCommitCondition {
-    Iterable<HeldLocksToken> getLocks();
+    Iterable<?> getLocks();
 }

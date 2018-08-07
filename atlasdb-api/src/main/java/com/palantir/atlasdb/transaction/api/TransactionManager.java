@@ -19,12 +19,7 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.processors.AutoDelegate;
-import com.palantir.timestamp.TimestampService;
 
 @AutoDelegate(typeToExtend = TransactionManager.class)
 public interface TransactionManager extends AutoCloseable {
@@ -118,56 +113,6 @@ public interface TransactionManager extends AutoCloseable {
     <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E;
 
     /**
-     * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)} but it will
-     * acquire locks right before the transaction is created and release them after the task is complete.
-     * <p>
-     * The created transaction will not commit successfully if these locks are invalid by the time commit is run.
-     *
-     * @param lockSupplier supplier for the lock request
-     * @param task task to run
-     *
-     * @return value returned by task
-     *
-     * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
-     * @throws IllegalStateException if the transaction manager has been closed.
-     */
-    <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
-
-    /**
-     * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}
-     * but it will also ensure that the existing lock tokens passed are still valid before committing.
-     *
-     * @param lockTokens lock tokens to acquire while transaction executes
-     * @param task task to run
-     *
-     * @return value returned by task
-     *
-     * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
-     * @throws IllegalStateException if the transaction manager has been closed.
-     */
-    <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Iterable<HeldLocksToken> lockTokens,
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
-
-    /**
-     * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
-     * will not commit successfully if these locks are invalid by the time commit is run.
-     *
-     * @param lockTokens lock tokens to refresh while transaction executes
-     * @param task task to run
-     *
-     * @return value returned by task
-     *
-     * @throws IllegalStateException if the transaction manager has been closed.
-     */
-    <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
-
-    /**
      * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)}, but it will
      * acquire a {@link PreCommitCondition} right before the transaction is created and check it
      * immediately before the transaction commits.
@@ -235,27 +180,6 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     long getImmutableTimestamp();
-
-    /**
-     * Returns the lock service used by this transaction manager.
-     *
-     * @return the lock service for this transaction manager
-     */
-    LockService getLockService();
-
-    /**
-     * Returns the timelock service used by this transaction manager.
-     *
-     * @return the timelock service for this transaction manager
-     */
-    TimelockService getTimelockService();
-
-    /**
-     * Returns the timestamp service used by this transaction manager.
-     *
-     * @return the timestamp service for this transaction manager
-     */
-    TimestampService getTimestampService();
 
     /**
      * Returns the cleaner used by this transaction manager.
@@ -330,7 +254,7 @@ public interface TransactionManager extends AutoCloseable {
      * the transaction is interactive and cannot be expressed as a {@link TransactionTask} ahead of time, this method
      * allows for a long lived transaction object. For the any data read or written to the transaction to be valid,
      * the transaction must be committed, preferably by calling
-     * {@link #finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock, TransactionTask)} to also perform
+     * {@link #finishRunTaskWithLockThrowOnConflict(Transaction, TransactionTask)} to also perform
      * additional cleanup.
      *
      * @deprecated Similar functionality will exist, but this method is likely to change in the future
@@ -338,7 +262,7 @@ public interface TransactionManager extends AutoCloseable {
      * @return the transaction and associated immutable timestamp lock for the task
      */
     @Deprecated
-    TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
+    Transaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition);
 
     /**
      * Runs a provided task, commits the transaction, and performs cleanup associated with a transaction created by
@@ -350,7 +274,7 @@ public interface TransactionManager extends AutoCloseable {
      * @return value returned by the task
      */
     @Deprecated
-    <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(TransactionAndImmutableTsLock tx,
+    <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(Transaction tx,
             TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException;
 

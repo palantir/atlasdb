@@ -24,7 +24,6 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.remoting2.errors.RemoteException;
 import com.palantir.remoting2.errors.SerializableError;
 
@@ -36,7 +35,7 @@ public class ExceptionRetryBehaviourTest {
             = new ServiceNotAvailableException("foo");
     private static final AtlasDbRemoteException REMOTE_BLOCKING_TIMEOUT_EXCEPTION
             = new AtlasDbRemoteException(
-                    new RemoteException(SerializableError.of("foo", BlockingTimeoutException.class), 503));
+                    new RemoteException(SerializableError.of("foo", ""), 503));
     private static final Date DATE = Date.from(Instant.EPOCH);
 
     @Test

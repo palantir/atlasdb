@@ -28,7 +28,6 @@ import com.palantir.atlasdb.containers.CassandraEnvironment;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
-        ServiceExposureEteTest.class,
         CassandraTimestampsEteTest.class
         })
 public class CassandraNoLeaderTestSuite extends EteSetup {

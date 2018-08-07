@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -26,16 +24,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
 public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
@@ -43,7 +38,6 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
 
     private static final Mockery context = new Mockery();
     private static final KeyValueService keyValueService = context.mock(KeyValueService.class);
-    private static List<TimestampService> nextTimestampServices = new ArrayList<>();
     private static final Logger log = LoggerFactory.getLogger(AutoServiceAnnotatedAtlasDbFactory.class);
 
     @Override
@@ -66,15 +60,5 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
         }
 
         return keyValueService;
-    }
-
-    @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs, Optional<TableReference> timestampTable,
-            boolean initializeAsync) {
-        return nextTimestampServices.remove(0);
-    }
-
-    public static void nextTimestampServiceToReturn(TimestampService... timestampServices) {
-        nextTimestampServices = Lists.newArrayList(timestampServices);
     }
 }

@@ -98,9 +98,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,
-                timestampService,
-                lockClient,
-                lockService,
+                james,
                 transactionService,
                 cdm2,
                 ssm2,
@@ -135,9 +133,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,
-                timestampService,
-                lockClient,
-                lockService,
+                james,
                 transactionService,
                 verifyCdm,
                 verifySsm,

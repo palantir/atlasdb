@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -66,6 +65,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TransactionService.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -84,7 +84,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -104,17 +103,16 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             Executors.newFixedThreadPool(GET_RANGES_THREAD_POOL_SIZE);
 
     protected Transaction startTransaction() {
-        long startTimestamp = timestampService.getFreshTimestamp();
+        TimestampRange range = james.startTransactions(1);
         return new SnapshotTransaction(metricsManager,
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                james,
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                () -> startTimestamp,
+                range.getLower(),
                 ConflictDetectionManagers.create(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
-                startTimestamp,
-                Optional.empty(),
+                range.getImmutable(),
                 PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,

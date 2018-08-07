@@ -28,8 +28,6 @@ import org.junit.Test;
 import com.google.common.base.Suppliers;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public class AsyncPuncherTest {
 
@@ -38,14 +36,13 @@ public class AsyncPuncherTest {
     private static final long MAX_INTERVALS_TO_WAIT = 100;
 
     AsyncPuncher asyncPuncher;
-    TimestampService timestampService;
+    private long counter = 0;
 
     @Before
     public void setup() {
         PuncherStore puncherStore = InMemoryPuncherStore.create();
         Clock clock = new SystemClock();
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(TRANSACTION_TIMEOUT));
-        timestampService = new InMemoryTimestampService();
         asyncPuncher = AsyncPuncher.create(puncher, ASYNC_PUNCHER_INTERVAL);
     }
 
@@ -69,7 +66,7 @@ public class AsyncPuncherTest {
 
     @Test
     public void testPuncherDurability() throws Exception {
-        Long stored = timestampService.getFreshTimestamp();
+        Long stored = counter++;
         asyncPuncher.punch(stored);
         Long retrieved = Long.MIN_VALUE;
         for (int i = 0; i < MAX_INTERVALS_TO_WAIT && retrieved < stored; i++) {
@@ -81,14 +78,14 @@ public class AsyncPuncherTest {
 
     @Test
     public void testPuncherTimestampLessThanFreshTimestamp() throws Exception {
-        Long stored = timestampService.getFreshTimestamp();
+        Long stored = counter++;
         asyncPuncher.punch(stored);
         Long retrieved = Long.MIN_VALUE;
         for (int i = 0; i < MAX_INTERVALS_TO_WAIT && retrieved < stored; i++) {
             Thread.sleep(ASYNC_PUNCHER_INTERVAL);
             retrieved = asyncPuncher.getTimestampSupplier().get();
         }
-        long freshTimestamp = timestampService.getFreshTimestamp();
+        long freshTimestamp = counter++;
         assertTrue(retrieved < freshTimestamp);
     }
 

@@ -29,7 +29,6 @@ import com.palantir.atlasdb.containers.CassandraEnvironment;
 @Suite.SuiteClasses({
         TodoEteTest.class,
         SchemaMetadataServiceEteTest.class,
-        ServiceExposureEteTest.class
         })
 public class CassandraMultinodeTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");

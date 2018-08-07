@@ -45,7 +45,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 
 public class SweeperTestSetup {
@@ -90,7 +89,6 @@ public class SweeperTestSetup {
 
     protected BackgroundSweepThread getBackgroundSweepThread(int threadIndex) {
         return new BackgroundSweepThread(
-                mock(LockService.class),
                 nextTableToSweepProvider,
                 sweepBatchConfigSource,
                 () -> sweepEnabled,

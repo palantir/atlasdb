@@ -17,13 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
-import java.util.UUID;
 
 import org.junit.Test;
 
@@ -34,18 +27,13 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockService;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagerTest extends TransactionTestSetup {
 
@@ -91,33 +79,6 @@ public class TransactionManagerTest extends TransactionTestSetup {
     }
 
     @Test
-    public void shouldNotMakeRemoteCallsInAReadonlyTransactionIfNoWorkIsDone() {
-        TimestampService mockTimestampService = mock(TimestampService.class);
-        LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(
-                metricsManager,
-                getKeyValueService(),
-                mockTimestampService, LockClient.of("foo"), mockLockService, transactionService,
-                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-                conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP);
-
-        // fetch an immutable timestamp once so it's cached
-        when(mockTimestampService.getFreshTimestamp()).thenReturn(1L);
-        when(mockLockService.getMinLockedInVersionId("foo")).thenReturn(1L);
-        txnManagerWithMocks.getImmutableTimestamp();
-        verify(mockTimestampService).getFreshTimestamp();
-        verify(mockLockService).getMinLockedInVersionId("foo");
-
-        // now execute a read transaction
-        txnManagerWithMocks.runTaskReadOnly(txn -> null);
-        verifyNoMoreInteractions(mockLockService);
-        verifyNoMoreInteractions(mockTimestampService);
-    }
-
-    @Test
     public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnThoroughSweptTable() {
         TransactionManager txnManagerWithMocks = setupTransactionManager();
         assertThatThrownBy(() -> txnManagerWithMocks.runTaskThrowOnConflict(txn -> {
@@ -149,12 +110,10 @@ public class TransactionManagerTest extends TransactionTestSetup {
     }
 
     private TransactionManager setupTransactionManager() {
-        TimelockService timelock = mock(TimelockService.class);
-        LockService mockLockService = mock(LockService.class);
+        JamesTransactionService james = new DefaultTransactionService();
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
                 keyValueService,
-                timelock,
-                mockLockService,
+                james,
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 conflictDetectionManager,
@@ -167,14 +126,6 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
-
-        when(timelock.getFreshTimestamp()).thenReturn(1L);
-        when(timelock.lockImmutableTimestamp(any())).thenReturn(
-                LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
-        when(timelock.startAtlasDbTransaction(any())).thenReturn(
-                StartAtlasDbTransactionResponse.of(
-                        LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())), 1L));
-
         return txnManagerWithMocks;
     }
 }
