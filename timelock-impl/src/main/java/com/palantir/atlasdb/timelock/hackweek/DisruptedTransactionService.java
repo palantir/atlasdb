@@ -65,12 +65,12 @@ public final class DisruptedTransactionService {
             Futures.addCallback(txnService.process(message), new FutureCallback<Optional<ByteBuffer>>() {
                 @Override
                 public void onSuccess(Optional<ByteBuffer> result) {
-                    event.responseConsumer.accept(result, null);
+                    responseConsumer.accept(result, null);
                 }
 
                 @Override
                 public void onFailure(Throwable throwable) {
-                    event.responseConsumer.accept(null, throwable);
+                    responseConsumer.accept(null, throwable);
                 }
             }, MoreExecutors.directExecutor());
         });
