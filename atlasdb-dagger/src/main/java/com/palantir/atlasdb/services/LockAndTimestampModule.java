@@ -17,7 +17,7 @@ package com.palantir.atlasdb.services;
 
 import javax.inject.Singleton;
 
-import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.SynchronizedTransactionService;
 import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 
 import dagger.Module;
@@ -29,6 +29,6 @@ public class LockAndTimestampModule {
     @Provides
     @Singleton
     public JamesTransactionService provideJames() {
-        return new DefaultTransactionService();
+        return new SynchronizedTransactionService();
     }
 }

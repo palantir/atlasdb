@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -52,7 +51,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.hamcrest.Matchers;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Assert;
 import org.junit.Before;
@@ -192,23 +190,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testConcurrentWriteWriteConflicts() throws InterruptedException, ExecutionException {
         long val = concurrentlyIncrementValueThousandTimesAndGet();
         assertEquals(1000, val);
-        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
-                .hasPlaceholderWriteWriteConflictsSatisfying(conflicts ->
-                        assertThat(conflicts, greaterThanOrEqualTo(1L)));
-    }
-
-    @Test
-    public void testConcurrentWriteIgnoreConflicts() throws InterruptedException, ExecutionException {
-        overrideConflictHandlerForTable(TABLE, ConflictHandler.IGNORE_ALL);
-        long val = concurrentlyIncrementValueThousandTimesAndGet();
-        assertThat(val, Matchers.lessThan(1000L));
     }
 
     @Test
     public void testImmutableTs() throws Exception {
         final long firstTs = james.getFreshTimestamp().getTimestamp();
         long startTs = txManager.runTaskThrowOnConflict(t -> {
-            Assert.assertTrue(firstTs < txManager.getImmutableTimestamp());
+            Assert.assertTrue(firstTs <= txManager.getImmutableTimestamp());
             Assert.assertTrue(txManager.getImmutableTimestamp() < t.getTimestamp());
             Assert.assertTrue(t.getTimestamp() < james.getFreshTimestamp().getTimestamp());
             return t.getTimestamp();
@@ -443,18 +431,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void testWriteChangedConflictsNoThrow() {
-        overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
-        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-        Transaction t1 = txManager.createNewTransaction();
-        Transaction t2 = txManager.createNewTransaction();
-        t1.delete(TABLE, ImmutableSet.of(cell));
-        t2.delete(TABLE, ImmutableSet.of(cell));
-        t1.commit();
-        t2.commit();
-    }
-
-    @Test
     public void testWriteChangedConflictsThrow() {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
@@ -595,6 +571,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .thenReturn(PreCommitConditions.NO_OP);
 
         deleteTxManager.runTaskWithConditionWithRetry(conditionSupplier, (tx, condition) -> {
+            tx.get(TABLE, ImmutableSet.of(TEST_CELL));
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
             return null;
         });
@@ -822,7 +799,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t1.commit();
         for (int i = 0; i < 1000; i++) {
             executor.submit(() -> {
-                txManager.runTaskWithRetry((TxTask) t -> {
+                txManager.runTaskWithRetry(t -> {
                     long prev = EncodingUtils.decodeVarLong(
                             t.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
                     t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev + 1)));

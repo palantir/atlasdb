@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.hackweek;
 
 import java.util.List;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.protos.generated.TransactionService.CheckReadConflictsResponse;
 import com.palantir.atlasdb.protos.generated.TransactionService.CommitWritesResponse;
 import com.palantir.atlasdb.protos.generated.TransactionService.ImmutableTimestamp;
@@ -32,5 +33,6 @@ public interface JamesTransactionService {
     TimestampRange startTransactions(long numberOfTransactions);
     CommitWritesResponse commitWrites(long startTimestamp, List<TableCell> writes);
     CheckReadConflictsResponse checkReadConflicts(long startTimestamp, List<TableCell> reads, List<TableRange> ranges);
+    ListenableFuture<?> waitForCommit(List<Long> startTimestamp);
     void unlock(List<Long> startTimestamps);
 }

@@ -27,7 +27,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.SynchronizedTransactionService;
 import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -110,7 +110,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
     }
 
     private TransactionManager setupTransactionManager() {
-        JamesTransactionService james = new DefaultTransactionService();
+        JamesTransactionService james = new SynchronizedTransactionService();
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
                 keyValueService,
                 james,

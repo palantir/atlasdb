@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static java.util.Collections.emptyList;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,8 +31,10 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -85,6 +89,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -108,10 +113,13 @@ import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
+import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.impl.logging.TransactionCommitProfile;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
@@ -1323,11 +1331,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
                 if (validationNecessaryForInvolvedTables()) {
-                    james.checkReadConflicts(startTimestamp, Collections.emptyList(), Collections.emptyList());
-                    james.unlock(Collections.singletonList(startTimestamp));
+                    james.checkReadConflicts(startTimestamp, emptyList(), emptyList());
                 }
-                return;
             }
+            james.unlock(Collections.singletonList(startTimestamp));
             return;
         }
 
@@ -1348,7 +1355,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     .collect(Collectors.toList());
             CommitWritesResponse writes = james.commitWrites(startTimestamp, cells);
             if (!writes.getContinue()) {
-                throw new RuntimeException("Got a transaction conflict");
+                throw TransactionConflictException.create(
+                        TableReference.create(Namespace.create("blah"), "nah"),
+                        startTimestamp, emptyList(), emptyList(), 1);
             }
 
             // Write to the targeted sweep queue. We must do this before writing to the key value service -
@@ -1369,7 +1378,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             CheckReadConflictsResponse response = james.checkReadConflicts(startTimestamp, getReads(), getReadRanges());
             if (!response.hasCommitTimestamp()) {
-                throw new RuntimeException("Read/write conflict");
+                throw TransactionSerializableConflictException.create(
+                        TableReference.create(Namespace.create("blah"), "nah"),
+                        startTimestamp, 1);
             }
 
             long commitTimestamp = response.getCommitTimestamp();
@@ -1406,11 +1417,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected List<TableCell> getReads() {
-        return Collections.emptyList();
+        return emptyList();
     }
 
     protected List<com.palantir.atlasdb.protos.generated.TransactionService.TableRange> getReadRanges() {
-       return Collections.emptyList();
+       return emptyList();
     }
 
     private boolean hasWrites() {
@@ -1515,37 +1526,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * We will block here until the passed transactions have released their lock.  This means that
      * the committing transaction is either complete or it has failed and we are allowed to roll
      * it back.
-     *
-     * TODO fix this
      */
     private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
-//        boolean isEmpty = true;
-//        Set<LockDescriptor> lockDescriptors = Sets.newHashSet();
-//        for (long start : startTimestamps) {
-//            if (start < immutableTimestamp) {
-//                // We don't need to block in this case because this transaction is already complete
-//                continue;
-//            }
-//            isEmpty = false;
-//            lockDescriptors.add(
-//                    AtlasRowLockDescriptor.of(
-//                            TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-//                            TransactionConstants.getValueForTimestamp(start)));
-//        }
-//
-//        if (isEmpty) {
-//            return;
-//        }
-//
-//        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMs);
-//        WaitForLocksResponse response = timelockService.waitForLocks(request);
-//        if (!response.wasSuccessful()) {
-//            log.error("Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
-//                    SafeArg.of("requestId", request.getRequestId()),
-//                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
-//                    UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
-//            throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
-//        }
+        try {
+            james.waitForCommit(ImmutableList.copyOf(startTimestamps)).get(lockAcquireTimeoutMs, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (TimeoutException e) {
+            throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////

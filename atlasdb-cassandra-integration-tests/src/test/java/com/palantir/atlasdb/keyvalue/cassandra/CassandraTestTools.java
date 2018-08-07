@@ -36,7 +36,7 @@ import org.joda.time.Duration;
 
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
-import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.SynchronizedTransactionService;
 import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.common.base.Throwables;
 
@@ -105,7 +105,7 @@ public final class CassandraTestTools {
     }
 
     public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(long timestamp) {
-        JamesTransactionService james = new DefaultTransactionService();
+        JamesTransactionService james = new SynchronizedTransactionService();
         LongStream.range(0, timestamp).forEach(x -> james.getFreshTimestamp());
         return CassandraMutationTimestampProviders.singleLongSupplierBacked(() -> james.getFreshTimestamp().getTimestamp());
     }

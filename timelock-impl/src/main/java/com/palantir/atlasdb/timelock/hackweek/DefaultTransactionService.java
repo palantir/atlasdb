@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock.hackweek;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,16 +25,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.LongStream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
-import com.google.common.collect.TreeRangeSet;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.protos.generated.TransactionService.Cell;
 import com.palantir.atlasdb.protos.generated.TransactionService.CheckReadConflictsResponse;
@@ -43,31 +50,43 @@ import com.palantir.atlasdb.protos.generated.TransactionService.TableCell;
 import com.palantir.atlasdb.protos.generated.TransactionService.TableRange;
 import com.palantir.atlasdb.protos.generated.TransactionService.Timestamp;
 import com.palantir.atlasdb.protos.generated.TransactionService.TimestampRange;
+import com.palantir.common.concurrent.PTExecutors;
 
 @NotThreadSafe
 public final class DefaultTransactionService implements JamesTransactionService {
+    private static final ScheduledExecutorService schedulingExecutor = PTExecutors.newSingleThreadScheduledExecutor();
     private static CheckReadConflictsResponse ABORTED = CheckReadConflictsResponse.newBuilder().build();
     private final Map<Long, Long> commitTimestamps = new HashMap<>();
     private final NavigableMap<Long, List<TableCell>> writesByTransaction = new TreeMap<>();
-    private final RangeSet<Long> runningTransactions = TreeRangeSet.create();
+    private final NavigableSet<Long> runningTransactions = new TreeSet<>();
     private final Map<Table, NavigableMap<Cell, Long>> lastUpdated = new HashMap<>();
+    private final Map<Long, SettableFuture<?>> notifications = new HashMap<>();
 
     private long timestamp = 0;
 
     private void cleanUp() {
+        if (runningTransactions.isEmpty()) {
+            lastUpdated.clear();
+            writesByTransaction.clear();
+            commitTimestamps.clear();
+            notifications.clear();
+            return;
+        }
+
         Iterator<Map.Entry<Long, List<TableCell>>> iterator = writesByTransaction.entrySet().iterator();
-        Range<Long> liveRange = runningTransactions.span();
+        long minRunning = runningTransactions.first();
         while (iterator.hasNext()) {
             Map.Entry<Long, List<TableCell>> current = iterator.next();
-            if (liveRange.contains(current.getKey())) {
+            if (minRunning < current.getKey()) {
                 return;
             }
             Long commitTimestamp = commitTimestamps.get(current.getKey());
-            if (commitTimestamp != null && liveRange.contains(commitTimestamp)) {
+            if (commitTimestamp == null || minRunning < commitTimestamp) {
                 return;
             }
             iterator.remove();
             commitTimestamps.remove(current.getKey());
+            notifications.remove(current.getKey());
             current.getValue().forEach(write ->
                     getLastUpdated(write.getTable()).remove(write.getCell(), current.getKey()));
         }
@@ -78,7 +97,7 @@ public final class DefaultTransactionService implements JamesTransactionService 
         if (runningTransactions.isEmpty()) {
             return ImmutableTimestamp.newBuilder().setTimestamp(timestamp).build();
         } else {
-            return ImmutableTimestamp.newBuilder().setTimestamp(runningTransactions.span().lowerEndpoint()).build();
+            return ImmutableTimestamp.newBuilder().setTimestamp(runningTransactions.first() - 1).build();
         }
     }
 
@@ -91,7 +110,7 @@ public final class DefaultTransactionService implements JamesTransactionService 
     public TimestampRange startTransactions(long numberOfTransactions) {
         long start = timestamp;
         timestamp += numberOfTransactions;
-        runningTransactions.add(Range.closedOpen(start, timestamp));
+        LongStream.range(start, timestamp).forEach(runningTransactions::add);
         return TimestampRange.newBuilder()
                 .setLower(start)
                 .setUpper(timestamp)
@@ -107,7 +126,7 @@ public final class DefaultTransactionService implements JamesTransactionService 
 
         for (TableCell write : writes) {
             if (isConflicting(startTimestamp, write.getTable(), write.getCell())) {
-                runningTransactions.remove(Range.singleton(startTimestamp));
+                runningTransactions.remove(startTimestamp);
                 return CommitWritesResponse.newBuilder().setContinue(false).build();
             }
         }
@@ -128,7 +147,7 @@ public final class DefaultTransactionService implements JamesTransactionService 
 
         for (TableCell read : reads) {
             if (isConflicting(startTimestamp, read.getTable(), read.getCell())) {
-                runningTransactions.remove(Range.singleton(startTimestamp));
+                runningTransactions.remove(startTimestamp);
                 return ABORTED;
             }
         }
@@ -142,7 +161,7 @@ public final class DefaultTransactionService implements JamesTransactionService 
             }
             updated = Maps.filterValues(updated, timestamp -> isConflicting(startTimestamp, timestamp));
             if (!updated.isEmpty()) {
-                runningTransactions.remove(Range.singleton(startTimestamp));
+                runningTransactions.remove(startTimestamp);
                 return ABORTED;
             }
         }
@@ -153,15 +172,33 @@ public final class DefaultTransactionService implements JamesTransactionService 
     }
 
     @Override
+    public ListenableFuture<?> waitForCommit(List<Long> startTimestamps) {
+        List<ListenableFuture<?>> futures = startTimestamps.stream()
+                .filter(runningTransactions::contains)
+                .map(ts -> notifications.computeIfAbsent(ts, key -> SettableFuture.create()))
+                .collect(toList());
+        return Futures.withTimeout(Futures.allAsList(futures), 10, TimeUnit.SECONDS, schedulingExecutor);
+    }
+
+    @Override
     public void unlock(List<Long> startTimestamps) {
-        startTimestamps.stream().map(Range::singleton).forEach(runningTransactions::remove);
+        startTimestamps.forEach(ts -> {
+            runningTransactions.remove(ts);
+            SettableFuture<?> future = notifications.remove(ts);
+            if (future != null) {
+                future.set(null);
+            }
+        });
+        cleanUp();
     }
 
     private boolean isConflicting(long startTimestamp, long otherStartTimestamp) {
         Long otherCommitTimestamp = commitTimestamps.get(otherStartTimestamp);
         if (otherCommitTimestamp == null) {
-            return startTimestamp < otherStartTimestamp;
+            return true;
         } else {
+            if (startTimestamp < otherCommitTimestamp) {
+            }
             return startTimestamp < otherCommitTimestamp;
         }
     }

@@ -37,7 +37,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.SynchronizedTransactionService;
 import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -51,7 +51,7 @@ public class SnapshotTransactionManagerTest {
 
     private final Cleaner cleaner = mock(Cleaner.class);
     private final KeyValueService keyValueService = mock(KeyValueService.class);
-    private final JamesTransactionService james = new DefaultTransactionService();
+    private final JamesTransactionService james = new SynchronizedTransactionService();
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();

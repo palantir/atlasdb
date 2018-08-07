@@ -33,7 +33,7 @@ import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
-import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.SynchronizedTransactionService;
 import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -69,7 +69,7 @@ public class AtlasDbTestCase {
 
     @Before
     public void setUp() throws Exception {
-        james = new DefaultTransactionService();
+        james = new SynchronizedTransactionService();
         KeyValueService kvs = getBaseKeyValueService();
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
         keyValueService = spy(new TrackingKeyValueService(keyValueServiceWithStats));

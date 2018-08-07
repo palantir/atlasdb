@@ -39,7 +39,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.timelock.hackweek.DefaultTransactionService;
+import com.palantir.atlasdb.timelock.hackweek.SynchronizedTransactionService;
 import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -74,7 +74,7 @@ public abstract class TransactionTestSetup {
 
     @Before
     public void setUp() throws Exception {
-        james = new DefaultTransactionService();
+        james = new SynchronizedTransactionService();
 
         keyValueService = getKeyValueService();
         keyValueService.createTables(ImmutableMap.of(
