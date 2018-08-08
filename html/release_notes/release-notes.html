@@ -210,6 +210,11 @@ We don’t stop completely or sleep for too long just in case configuration chan
 This makes it easier for a service to expose these via a health check
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3431">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The atlasdb-commons package has had its dependency tree greatly pruned of unused cruft.
+This may introduce a devreak to users transitively relying on these old dependencies.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3439">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

@@ -74,6 +74,10 @@ develop
            This makes it easier for a service to expose these via a health check
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3431>`__)
 
+    *    - |improved| |devbreak|
+         - The atlasdb-commons package has had its dependency tree greatly pruned of unused cruft.
+           This may introduce a devreak to users transitively relying on these old dependencies.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3439>`__)
 
 =======
 v0.99.0
