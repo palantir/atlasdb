@@ -261,7 +261,8 @@ public abstract class TransactionManagers {
                     SslSocketFactories.createSslSocketFactory(timelock.serversList().sslConfiguration().get()),
                     SslSocketFactories.createX509TrustManager(timelock.serversList().sslConfiguration().get()));
             james = new TransactionServiceClient(OkHttpClients.create(clientConfig, userAgent(), Transaction.class),
-                    Iterables.getOnlyElement(timelock.serversList().servers()));
+                    Iterables.getOnlyElement(timelock.serversList().servers())
+                            + "/" + config().getNamespaceString());
         } else {
             james = new SynchronizedTransactionService();
         }
