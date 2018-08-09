@@ -94,6 +94,7 @@ import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.timelock.hackweek.AutoBatchingTransactionServiceClient;
 import com.palantir.atlasdb.timelock.hackweek.JamesTransactionService;
 import com.palantir.atlasdb.timelock.hackweek.SynchronizedTransactionService;
 import com.palantir.atlasdb.timelock.hackweek.TransactionServiceClient;
@@ -253,16 +254,17 @@ public abstract class TransactionManagers {
                         config.leader(), config.namespace(), Optional.empty(), config.initializeAsync(),
                         qosClient, adapter);
 
-        final JamesTransactionService james;
+        JamesTransactionService james;
         if (runtimeConfigSupplier.get().timelockRuntime().isPresent()) {
             TimeLockRuntimeConfig timelock = runtimeConfigSupplier.get().timelockRuntime().get();
             ClientConfiguration clientConfig = ClientConfigurations.of(
                     ImmutableList.copyOf(timelock.serversList().servers()),
                     SslSocketFactories.createSslSocketFactory(timelock.serversList().sslConfiguration().get()),
                     SslSocketFactories.createX509TrustManager(timelock.serversList().sslConfiguration().get()));
-            james = new TransactionServiceClient(OkHttpClients.create(clientConfig, userAgent(), Transaction.class),
+            james = AutoBatchingTransactionServiceClient.create(
+                    new TransactionServiceClient(OkHttpClients.create(clientConfig, userAgent(), Transaction.class),
                     Iterables.getOnlyElement(timelock.serversList().servers())
-                            + "/" + config().getNamespaceString());
+                            + "/" + config().getNamespaceString()));
         } else {
             james = new SynchronizedTransactionService();
         }

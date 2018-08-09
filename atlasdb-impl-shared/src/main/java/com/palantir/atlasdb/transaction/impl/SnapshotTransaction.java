@@ -121,6 +121,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
+import com.palantir.atlasdb.transaction.impl.logging.ImmutableTransactionCommitProfile;
 import com.palantir.atlasdb.transaction.impl.logging.TransactionCommitProfile;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -1344,8 +1345,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // Acquire row locks and a lock on the start timestamp row in the transactions table.
         // This must happen before conflict checking, otherwise we could complete the checks and then have someone
         // else write underneath us before we proceed (thus missing a write/write conflict).
-        Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
-        long microsForRowLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
         try {
             List<TableCell> cells = KeyedStream.stream(writesByTable)
                     .mapKeys(SnapshotTransaction::toTable)
@@ -1353,7 +1352,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     .map((table, write) -> TableCell.newBuilder().setCell(write).setTable(table).build())
                     .values()
                     .collect(Collectors.toList());
+            Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
             CommitWritesResponse writes = james.commitWrites(startTimestamp, cells);
+            long microsForRowLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
             if (!writes.getContinue()) {
                 throw TransactionConflictException.create(
                         TableReference.create(Namespace.create("blah"), "nah"),
@@ -1385,7 +1386,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             long commitTimestamp = response.getCommitTimestamp();
             commitTsForScrubbing = commitTimestamp;
-            long microsForGetCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTimestampTimer.stop());
+            long microsForGetCommitTs = TimeUnit.NANOSECONDS.toMicros(commitTimestampTimer.stop());
 
             // Punch on commit so that if hard delete is the only thing happening on a system,
             // we won't block forever waiting for the unreadable timestamp to advance past the
@@ -1405,8 +1406,31 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
             getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
+            optionalProfile = Optional.of(ImmutableTransactionCommitProfile.builder()
+                    .startTimestamp(getTimestamp())
+                    .acquireRowLocksMicros(0)
+                    .conflictCheckMicros(microsForRowLocks)
+                    .writingToSweepQueueMicros(microsWritingToTargetedSweepQueue)
+                    .keyValueServiceWriteMicros(microsForWrites)
+                    .commitTimestampMicros(0)
+                    .punchMicros(microsForPunch)
+                    .readWriteConflictCheckMicros(microsForGetCommitTs)
+                    .verifyPreCommitLockCheckMicros(0)
+                    .verifyUserPreCommitConditionMicros(microsForUserPreCommitCondition)
+                    .putCommitTimestampMicros(microsForPutCommitTs)
+                    .commitTimestamp(commitTimestamp)
+                    .totalCommitStageMicros(TimeUnit.NANOSECONDS.toMicros(commitStageTimer.stop()))
+                    .totalTimeSinceTransactionCreationMicros(microsSinceCreation)
+                    .build());
         } finally {
-            james.unlock(Collections.singletonList(startTimestamp));
+            long postCommitOverhead = runAndReportTimeAndGetDurationMicros(
+                    () -> james.unlock(Collections.singletonList(startTimestamp)),
+                    "postCommitOverhead");
+            optionalProfile.ifPresent(profile -> commitProfileProcessor.consumeProfilingData(
+                    profile,
+                    writesByTable.keySet(),
+                    byteCount.get(),
+                    postCommitOverhead));
         }
     }
 

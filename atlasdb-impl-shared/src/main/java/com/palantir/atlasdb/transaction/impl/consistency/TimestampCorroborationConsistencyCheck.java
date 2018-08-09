@@ -53,7 +53,7 @@ public abstract class TimestampCorroborationConsistencyCheck implements Transact
             lowerBound = conservativeBound().applyAsLong(transactionManager);
         } catch (Exception e) {
             log.warn("Could not obtain a lower bound on timestamps, so we don't know if our transaction manager"
-                    + " is consistent");
+                    + " is consistent", e);
             return indeterminateResultForException(e);
         }
 
@@ -61,7 +61,7 @@ public abstract class TimestampCorroborationConsistencyCheck implements Transact
             freshTimestamp = freshTimestampSource().applyAsLong(transactionManager);
         } catch (Exception e) {
             log.warn("Could not obtain a fresh timestamp, so we don't know if our transaction manager is"
-                    + " consistent.");
+                    + " consistent.", e);
             return indeterminateResultForException(e);
         }
         if (freshTimestamp <= lowerBound) {

@@ -25,6 +25,6 @@ public class CachingTransactionManager extends WrappingTransactionManager {
 
     @Override
     protected Transaction wrap(Transaction transaction) {
-        return new CachingTransaction(transaction);
+        return new CachingTransaction((SerializableTransaction) transaction);
     }
 }

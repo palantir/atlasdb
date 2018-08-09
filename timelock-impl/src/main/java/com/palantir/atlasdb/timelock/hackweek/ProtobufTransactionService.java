@@ -16,15 +16,12 @@
 
 package com.palantir.atlasdb.timelock.hackweek;
 
-import java.nio.ByteBuffer;
 import java.util.Optional;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.protobuf.ByteString;
 import com.google.protobuf.GeneratedMessageV3;
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.TransactionService.TransactionServiceRequest;
 
 public class ProtobufTransactionService {
@@ -34,18 +31,7 @@ public class ProtobufTransactionService {
         this.delegate = delegate;
     }
 
-    public ListenableFuture<Optional<ByteBuffer>> process(ByteBuffer buffer) {
-        try {
-            TransactionServiceRequest req = TransactionServiceRequest.parseFrom(buffer);
-            return Futures.transform(process(req),
-                    opt -> opt.map(GeneratedMessageV3::toByteString).map(ByteString::asReadOnlyByteBuffer),
-                    MoreExecutors.directExecutor());
-        } catch (InvalidProtocolBufferException e) {
-            return Futures.immediateFailedFuture(e);
-        }
-    }
-
-    private ListenableFuture<Optional<GeneratedMessageV3>> process(TransactionServiceRequest request) {
+    public ListenableFuture<Optional<GeneratedMessageV3>> process(TransactionServiceRequest request) {
         switch (request.getType()) {
             case GET_IMMUTABLE_TIMESTAMP: return Futures.immediateFuture(Optional.of(delegate.getImmutableTimestamp()));
             case GET_FRESH_TIMESTAMP: return Futures.immediateFuture(Optional.of(delegate.getFreshTimestamp()));
@@ -63,7 +49,7 @@ public class ProtobufTransactionService {
                         request.getCheckReadConflicts().getRangeReadsList())));
             case UNLOCK:
                 delegate.unlock(request.getUnlock().getStartTimestampsList());
-                return Futures.immediateFuture(null);
+                return Futures.immediateFuture(Optional.empty());
             case WAIT_FOR_COMMIT:
                 return Futures.transform(delegate.waitForCommit(request.getWaitForCommit().getStartTimestampsList()),
                         x -> Optional.empty(),

@@ -148,6 +148,10 @@ public class SerializableTransaction extends SnapshotTransaction {
         return ret;
     }
 
+    void addToReadSet(TableReference tableRef, Map<Cell, byte[]> toAdd) {
+        markCellsRead(tableRef, toAdd.keySet(), toAdd);
+    }
+
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef,
@@ -438,6 +442,10 @@ public class SerializableTransaction extends SnapshotTransaction {
                         builder.setEnd(
                                 cell(Cell.create(RangeRequests.getNextStartRow(false, endRow),
                                         RangeRequests.getFirstRowName())));
+                    } else if (range.getEndExclusive().length == 0) {
+                        builder.setEnd(cell(Cell.create(
+                                RangeRequests.getLastRowName(),
+                                RangeRequests.getLastRowName())));
                     } else {
                         builder.setEnd(cell(Cell.create(range.getEndExclusive(), RangeRequests.getFirstRowName())));
                     }
@@ -453,16 +461,19 @@ public class SerializableTransaction extends SnapshotTransaction {
                                     TableRange.Builder builder = TableRange.newBuilder()
                                             .setTable(table)
                                             .setHasColumnFilter(false)
-                                            .setStart(cell(Cell.create(row.array(), range.getStartCol())));
+                                            .setStart(cell(Cell.create(row.array(), transformForFirst(range.getStartCol()))));
                                     if (rangeEnd.length != 0 && RangeRequests.isTerminalRow(false, rangeEnd)) {
                                         builder.setEnd(cell(Cell.create(row.array(),
                                                 RangeRequests.getNextStartRow(false, rangeEnd))));
+                                    } else if (range.getEndCol().length == 0) {
+                                        builder.setEnd(cell(Cell.create(row.array(), RangeRequests.getLastRowName())));
                                     } else {
                                         builder.setEnd(cell(Cell.create(row.array(), range.getEndCol())));
                                     }
                                     return builder.build();
                                 }).values()).values()).values();
 
-        return Stream.concat(rangeRequests, columnRangeRequests).collect(Collectors.toList());
+        return Stream.concat(rangeRequests, columnRangeRequests)
+                .collect(Collectors.toList());
     }
 }

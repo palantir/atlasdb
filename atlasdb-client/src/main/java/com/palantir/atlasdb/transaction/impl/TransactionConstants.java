@@ -44,11 +44,11 @@ public class TransactionConstants {
     public static final long APPROX_IN_MEM_CELL_OVERHEAD_BYTES = 16;
 
     public static byte[] getValueForTimestamp(long transactionTimestamp) {
-        return EncodingUtils.encodeVarLong(transactionTimestamp);
+        return EncodingUtils.encodeLittleEndian(transactionTimestamp);
     }
 
     public static long getTimestampForValue(byte[] encodedTimestamp) {
-        return EncodingUtils.decodeVarLong(encodedTimestamp);
+        return EncodingUtils.decodeLittleEndian(encodedTimestamp, 0);
     }
 
     public static final TableMetadata TRANSACTION_TABLE_METADATA = new TableMetadata(

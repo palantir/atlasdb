@@ -193,12 +193,13 @@ public final class DefaultTransactionService implements JamesTransactionService 
     }
 
     private boolean isConflicting(long startTimestamp, long otherStartTimestamp) {
+        if (startTimestamp == otherStartTimestamp) {
+            return false;
+        }
         Long otherCommitTimestamp = commitTimestamps.get(otherStartTimestamp);
         if (otherCommitTimestamp == null) {
             return true;
         } else {
-            if (startTimestamp < otherCommitTimestamp) {
-            }
             return startTimestamp < otherCommitTimestamp;
         }
     }

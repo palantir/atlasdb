@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.timelock.hackweek;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -32,9 +30,11 @@ import com.palantir.atlasdb.protos.generated.TransactionService.CommitWritesResp
 import com.palantir.atlasdb.protos.generated.TransactionService.GetFreshTimestampRequest;
 import com.palantir.atlasdb.protos.generated.TransactionService.GetImmutableTimestampRequest;
 import com.palantir.atlasdb.protos.generated.TransactionService.ImmutableTimestamp;
+import com.palantir.atlasdb.protos.generated.TransactionService.MessageType;
 import com.palantir.atlasdb.protos.generated.TransactionService.StartTransactionsRequest;
 import com.palantir.atlasdb.protos.generated.TransactionService.Timestamp;
 import com.palantir.atlasdb.protos.generated.TransactionService.TimestampRange;
+import com.palantir.atlasdb.protos.generated.TransactionService.TransactionServiceRequest;
 import com.palantir.atlasdb.protos.generated.TransactionService.UnlockRequest;
 import com.palantir.atlasdb.protos.generated.TransactionService.WaitForCommitRequest;
 
@@ -64,8 +64,14 @@ public class TransactionServiceClient implements JamesTransactionService {
     }
 
     private <T> T deserialize(Response response, Deserializer<T> deserializer) throws IOException {
-        checkState(response.isSuccessful());
+        check(response);
         return deserializer.deserialize(response.body().byteStream());
+    }
+
+    private static void check(Response response) throws IOException {
+        if (!response.isSuccessful()) {
+            throw new IllegalStateException("Failed request " + response + " " + response.body().string());
+        }
     }
 
     private interface Deserializer<T> {
@@ -82,7 +88,7 @@ public class TransactionServiceClient implements JamesTransactionService {
 
     private void execute(GeneratedMessageV3 request) {
         try {
-            checkState(client.newCall(request(request)).execute().isSuccessful());
+            check(client.newCall(request(request)).execute());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -98,7 +104,12 @@ public class TransactionServiceClient implements JamesTransactionService {
 
             @Override
             public void onResponse(Call call, Response response) {
-                checkState(response.isSuccessful());
+                try {
+                    check(response);
+                } catch (IOException e) {
+                    future.setException(e);
+                    return;
+                }
                 future.set(null);
             }
         });
@@ -107,50 +118,64 @@ public class TransactionServiceClient implements JamesTransactionService {
 
     @Override
     public ImmutableTimestamp getImmutableTimestamp() {
-        return execute(GetImmutableTimestampRequest.newBuilder().build(), ImmutableTimestamp::parseFrom);
+        return execute(TransactionServiceRequest.newBuilder()
+                .setGetImmutableTimestamp(GetImmutableTimestampRequest.newBuilder().build())
+                .setType(MessageType.GET_IMMUTABLE_TIMESTAMP)
+                .build(), ImmutableTimestamp::parseFrom);
     }
 
     @Override
     public Timestamp getFreshTimestamp() {
-        return execute(GetFreshTimestampRequest.newBuilder().build(), Timestamp::parseFrom);
+        return execute(TransactionServiceRequest.newBuilder()
+                .setGetFreshTimestamp(GetFreshTimestampRequest.newBuilder().build())
+                .setType(MessageType.GET_FRESH_TIMESTAMP)
+                .build(), Timestamp::parseFrom);
     }
 
     @Override
     public TimestampRange startTransactions(long numberOfTransactions) {
         return execute(
-                StartTransactionsRequest.newBuilder().setNumberOfTransactions(numberOfTransactions).build(),
+                TransactionServiceRequest.newBuilder()
+                        .setStartTransactions(StartTransactionsRequest.newBuilder()
+                                .setNumberOfTransactions(numberOfTransactions)
+                                .build())
+                        .setType(MessageType.START_TRANSACTIONS)
+                        .build(),
                 TimestampRange::parseFrom);
     }
 
     @Override
     public CommitWritesResponse commitWrites(long startTimestamp,
             List<TransactionService.TableCell> writes) {
-        return execute(CommitWritesRequest.newBuilder()
+        return execute(TransactionServiceRequest.newBuilder()
+                .setCommitWrites(CommitWritesRequest.newBuilder()
                 .addAllWrites(writes)
                 .setStartTimestamp(startTimestamp)
-                .build(), CommitWritesResponse::parseFrom);
+                .build()).setType(MessageType.COMMIT_WRITES).build(), CommitWritesResponse::parseFrom);
     }
 
     @Override
     public CheckReadConflictsResponse checkReadConflicts(long startTimestamp,
             List<TransactionService.TableCell> reads, List<TransactionService.TableRange> ranges) {
-        return execute(TransactionService.CheckReadConflictsRequest.newBuilder()
+        return execute(TransactionServiceRequest.newBuilder().setCheckReadConflicts(TransactionService.CheckReadConflictsRequest.newBuilder()
                         .setStartTimestamp(startTimestamp)
                         .addAllReads(reads)
                         .addAllRangeReads(ranges)
-                        .build(),
+                        .build()).setType(MessageType.CHECK_READ_CONFLICTS).build(),
                 CheckReadConflictsResponse::parseFrom);
     }
 
     @Override
     public ListenableFuture<?> waitForCommit(List<Long> startTimestamp) {
-        return executeAsync(WaitForCommitRequest.newBuilder()
+        return executeAsync(TransactionServiceRequest.newBuilder().setWaitForCommit(WaitForCommitRequest.newBuilder()
                 .addAllStartTimestamps(startTimestamp)
-                .build());
+                .build()).setType(MessageType.WAIT_FOR_COMMIT).build());
     }
 
     @Override
     public void unlock(List<Long> startTimestamps) {
-        execute(UnlockRequest.newBuilder().addAllStartTimestamps(startTimestamps).build());
+        execute(TransactionServiceRequest.newBuilder()
+                .setUnlock(UnlockRequest.newBuilder().addAllStartTimestamps(startTimestamps).build())
+                .setType(MessageType.UNLOCK).build());
     }
 }
