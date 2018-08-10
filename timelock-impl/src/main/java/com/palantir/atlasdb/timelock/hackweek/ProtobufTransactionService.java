@@ -37,7 +37,9 @@ public class ProtobufTransactionService {
             case GET_FRESH_TIMESTAMP: return Futures.immediateFuture(Optional.of(delegate.getFreshTimestamp()));
             case START_TRANSACTIONS:
                 return Futures.immediateFuture(Optional.of(
-                        delegate.startTransactions(request.getStartTransactions().getNumberOfTransactions())));
+                        delegate.startTransactions(
+                                request.getStartTransactions().getCachedUpTo(),
+                                request.getStartTransactions().getNumberOfTransactions())));
             case COMMIT_WRITES:
                 return Futures.immediateFuture(Optional.of(delegate.commitWrites(
                         request.getCommitWrites().getStartTimestamp(),

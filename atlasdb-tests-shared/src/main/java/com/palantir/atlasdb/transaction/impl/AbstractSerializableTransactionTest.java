@@ -98,7 +98,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 james,
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                james.startTransactions(1).getLower(),
+                james.startTransactions(-1, 1).getLower(),
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,

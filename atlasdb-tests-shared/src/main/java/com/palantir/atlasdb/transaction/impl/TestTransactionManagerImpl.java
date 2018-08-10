@@ -105,7 +105,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     @Override
     public Transaction createNewTransaction() {
-        TimestampRange range = james.startTransactions(1);
+        TimestampRange range = james.startTransactions(-1, 1);
         long startTimestamp = range.getLower();
         return new SnapshotTransaction(metricsManager,
                 keyValueService,

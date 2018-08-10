@@ -25,6 +25,6 @@ public class CachingTestTransactionManager extends WrappingTestTransactionManage
 
     @Override
     protected Transaction wrap(Transaction transaction) {
-        return new CachingTransaction(transaction);
+        return transaction;
     }
 }

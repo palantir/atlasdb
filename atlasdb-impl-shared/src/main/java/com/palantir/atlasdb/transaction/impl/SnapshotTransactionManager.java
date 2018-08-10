@@ -74,6 +74,8 @@ import com.palantir.common.base.Throwables;
 
     final CommitProfileProcessor commitProfileProcessor;
 
+    private final TransactionDataCache dataCache;
+
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
@@ -94,6 +96,7 @@ import com.palantir.common.base.Throwables;
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.james = james;
+        this.dataCache = new TransactionDataCache(this, james);
         this.transactionService = transactionService;
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = sweepStrategyManager;
@@ -132,7 +135,8 @@ import com.palantir.common.base.Throwables;
 
     @Override
     public Transaction setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        TimestampRange range = james.startTransactions(1);
+        TransactionDataCache.AtlasCache cache = dataCache.getCache();
+        TimestampRange range = james.startTransactions(cache.getUpToDateTo(), 1);
         try {
             long immutableTs = range.getImmutable();
             recordImmutableTimestamp(immutableTs);
@@ -140,7 +144,7 @@ import com.palantir.common.base.Throwables;
             cleaner.punch(range.getLower());
 
             SnapshotTransaction transaction = createTransaction(immutableTs, range.getLower(), condition);
-            return transaction;
+            return new CachingTransaction(transaction, cache.invalidate(range), dataCache::registerCacheMisses);
         } catch (Throwable e) {
             // timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -208,7 +212,8 @@ import com.palantir.common.base.Throwables;
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
-        TimestampRange range = james.startTransactions(1);
+        TransactionDataCache.AtlasCache cache = dataCache.getCache();
+        TimestampRange range = james.startTransactions(cache.getUpToDateTo(), 1);
         long immutableTs = range.getImmutable();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
@@ -234,7 +239,7 @@ import com.palantir.common.base.Throwables;
                 commitProfileProcessor);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
-                    new ReadTransaction(transaction, sweepStrategyManager));
+                    new CachingTransaction(new ReadTransaction(transaction, sweepStrategyManager), cache.invalidate(range), dataCache::registerCacheMisses));
         } finally {
             james.checkReadConflicts(range.getLower(), Collections.emptyList(), Collections.emptyList());
             james.unlock(Collections.singletonList(range.getLower()));

@@ -35,8 +35,8 @@ public class SynchronizedTransactionService implements JamesTransactionService {
     }
 
     @Override
-    public synchronized TransactionService.TimestampRange startTransactions(long numberOfTransactions) {
-        return delegate.startTransactions(numberOfTransactions);
+    public synchronized TransactionService.TimestampRange startTransactions(long cachedUpTo, long numberOfTransactions) {
+        return delegate.startTransactions(cachedUpTo, numberOfTransactions);
     }
 
     @Override

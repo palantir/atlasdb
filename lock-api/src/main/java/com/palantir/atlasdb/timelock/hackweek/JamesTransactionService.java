@@ -30,7 +30,7 @@ import com.palantir.atlasdb.protos.generated.TransactionService.TimestampRange;
 public interface JamesTransactionService {
     ImmutableTimestamp getImmutableTimestamp();
     Timestamp getFreshTimestamp();
-    TimestampRange startTransactions(long numberOfTransactions);
+    TimestampRange startTransactions(long cachedUpTo, long numberOfTransactions);
     CommitWritesResponse commitWrites(long startTimestamp, List<TableCell> writes);
     CheckReadConflictsResponse checkReadConflicts(long startTimestamp, List<TableCell> reads, List<TableRange> ranges);
     ListenableFuture<?> waitForCommit(List<Long> startTimestamp);

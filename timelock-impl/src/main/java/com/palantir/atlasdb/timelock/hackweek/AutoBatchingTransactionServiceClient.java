@@ -54,9 +54,10 @@ public final class AutoBatchingTransactionServiceClient implements JamesTransact
     }
 
     @Override
-    public TimestampRange startTransactions(long numberOfTransactions) {
+    public TimestampRange startTransactions(long cachedUpTo, long numberOfTransactions) {
         CompletableFuture<TimestampRange> future = new CompletableFuture<>();
         pendingStartBuffer.publishEvent((event, sequence) -> {
+            event.cachedUpTo = cachedUpTo;
             event.result = future;
             event.numberOfTransactions = numberOfTransactions;
         });
@@ -103,8 +104,9 @@ public final class AutoBatchingTransactionServiceClient implements JamesTransact
             }
 
             private void flush() {
+                long toUncache = buffered.stream().mapToLong(p -> p.cachedUpTo).min().getAsLong();
                 long numToAskFor = buffered.stream().mapToLong(p -> p.numberOfTransactions).sum();
-                TimestampRange range = delegate.startTransactions(numToAskFor);
+                TimestampRange range = delegate.startTransactions(toUncache, numToAskFor);
                 long start = range.getLower();
                 for (PendingStart s : buffered) {
                     s.result.complete(TimestampRange.newBuilder()
@@ -140,11 +142,13 @@ public final class AutoBatchingTransactionServiceClient implements JamesTransact
     }
 
     private static class PendingStart {
+        private long cachedUpTo;
         private long numberOfTransactions;
         private CompletableFuture<TimestampRange> result;
 
         PendingStart copy() {
             PendingStart copied = new PendingStart();
+            copied.cachedUpTo = cachedUpTo;
             copied.numberOfTransactions = numberOfTransactions;
             copied.result = result;
             return copied;

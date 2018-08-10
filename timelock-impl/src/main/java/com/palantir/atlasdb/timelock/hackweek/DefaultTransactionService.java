@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock.hackweek;
 
 import static java.util.stream.Collectors.toList;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,10 +27,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.NavigableSet;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.LongStream;
@@ -56,48 +58,82 @@ import com.palantir.common.concurrent.PTExecutors;
 public final class DefaultTransactionService implements JamesTransactionService {
     private static final ScheduledExecutorService schedulingExecutor = PTExecutors.newSingleThreadScheduledExecutor();
     private static CheckReadConflictsResponse ABORTED = CheckReadConflictsResponse.newBuilder().build();
-    private final Map<Long, Long> commitTimestamps = new HashMap<>();
-    private final NavigableMap<Long, List<TableCell>> writesByTransaction = new TreeMap<>();
-    private final NavigableSet<Long> runningTransactions = new TreeSet<>();
-    private final Map<Table, NavigableMap<Cell, Long>> lastUpdated = new HashMap<>();
+    private final NavigableMap<Long, RunningTransactionState> runningTransactions = new TreeMap<>();
+    private final Map<Table, NavigableMap<Cell, Set<Long>>> lastUpdated = new HashMap<>();
+    private final Map<Table, NavigableMap<Cell, Set<Long>>> reads = new HashMap<>();
     private final Map<Long, SettableFuture<?>> notifications = new HashMap<>();
+
+    private final NavigableMap<Long, List<TableCell>> writes = new TreeMap<>();
+
+    private static final RunningTransactionState EMPTY = new RunningTransactionState();
+
+    private static class RunningTransactionState {
+        boolean doneCommitting = false;
+        Long commitTimestamp = null;
+        List<TableCell> writes = Collections.emptyList();
+        List<TableCell> reads = Collections.emptyList();
+        boolean inConflict = false;
+        boolean outConflict = false;
+    }
 
     private long timestamp = 0;
 
+    private OptionalLong getFirstRunningTransaction() {
+        return runningTransactions.entrySet().stream()
+                .filter(entry -> entry.getValue().commitTimestamp == null)
+                .mapToLong(Map.Entry::getKey)
+                .findFirst();
+    }
+
     private void cleanUp() {
-        if (runningTransactions.isEmpty()) {
+        OptionalLong maybeMinRunning = getFirstRunningTransaction();
+        if (!maybeMinRunning.isPresent()) {
+            runningTransactions.clear();
             lastUpdated.clear();
-            writesByTransaction.clear();
-            commitTimestamps.clear();
-            notifications.clear();
             return;
         }
+        long minRunning = maybeMinRunning.getAsLong();
 
-        Iterator<Map.Entry<Long, List<TableCell>>> iterator = writesByTransaction.entrySet().iterator();
-        long minRunning = runningTransactions.first();
+        Iterator<Map.Entry<Long, RunningTransactionState>> iterator = runningTransactions.entrySet().iterator();
         while (iterator.hasNext()) {
-            Map.Entry<Long, List<TableCell>> current = iterator.next();
+            Map.Entry<Long, RunningTransactionState> current = iterator.next();
             if (minRunning < current.getKey()) {
                 return;
             }
-            Long commitTimestamp = commitTimestamps.get(current.getKey());
+            Long commitTimestamp = current.getValue().commitTimestamp;
             if (commitTimestamp == null || minRunning < commitTimestamp) {
                 return;
             }
+            clearWrites(current.getKey());
+            current.getValue().reads.forEach(write -> getReads(write.getTable()).compute(write.getCell(), (c, timestamps) -> {
+                timestamps.remove(current.getKey());
+                if (timestamps.isEmpty()) {
+                    return null;
+                }
+                return timestamps;
+            }));
             iterator.remove();
-            commitTimestamps.remove(current.getKey());
-            notifications.remove(current.getKey());
-            current.getValue().forEach(write ->
-                    getLastUpdated(write.getTable()).remove(write.getCell(), current.getKey()));
         }
+    }
+
+    private void clearWrites(Long txnTimestamp) {
+        runningTransactions.get(txnTimestamp).writes.forEach(
+                write -> getLastUpdated(write.getTable()).compute(write.getCell(), (c, timestamps) -> {
+            timestamps.remove(txnTimestamp);
+            if (timestamps.isEmpty()) {
+                return null;
+            }
+            return timestamps;
+        }));
     }
 
     @Override
     public ImmutableTimestamp getImmutableTimestamp() {
-        if (runningTransactions.isEmpty()) {
-            return ImmutableTimestamp.newBuilder().setTimestamp(timestamp).build();
+        OptionalLong firstRunning = getFirstRunningTransaction();
+        if (!firstRunning.isPresent()) {
+            return ImmutableTimestamp.newBuilder().setTimestamp(timestamp++).build();
         } else {
-            return ImmutableTimestamp.newBuilder().setTimestamp(runningTransactions.first() - 1).build();
+            return ImmutableTimestamp.newBuilder().setTimestamp(firstRunning.getAsLong()).build();
         }
     }
 
@@ -107,20 +143,21 @@ public final class DefaultTransactionService implements JamesTransactionService 
     }
 
     @Override
-    public TimestampRange startTransactions(long numberOfTransactions) {
+    public TimestampRange startTransactions(long cachedUpTo, long numberOfTransactions) {
         long start = timestamp;
         timestamp += numberOfTransactions;
-        LongStream.range(start, timestamp).forEach(runningTransactions::add);
+        LongStream.range(start, timestamp).forEach(timestamp -> runningTransactions.put(timestamp, new RunningTransactionState()));
         return TimestampRange.newBuilder()
                 .setLower(start)
                 .setUpper(timestamp)
                 .setImmutable(getImmutableTimestamp().getTimestamp())
+                .addAllCacheUpdates(() -> writes.tailMap(cachedUpTo).values().stream().flatMap(Collection::stream).iterator())
                 .build();
     }
 
     @Override
     public CommitWritesResponse commitWrites(long startTimestamp, List<TableCell> writes) {
-        if (!runningTransactions.contains(startTimestamp)) {
+        if (!runningTransactions.containsKey(startTimestamp)) {
             return CommitWritesResponse.newBuilder().setContinue(false).build();
         }
 
@@ -131,9 +168,13 @@ public final class DefaultTransactionService implements JamesTransactionService 
             }
         }
 
-        writesByTransaction.put(startTimestamp, writes);
+        runningTransactions.get(startTimestamp).writes = writes;
         for (TableCell write : writes) {
-            getLastUpdated(write.getTable()).put(write.getCell(), startTimestamp);
+            getLastUpdated(write.getTable()).compute(write.getCell(), (cell, current) -> {
+                Set<Long> result = current == null ? new HashSet<>() : current;
+                result.add(startTimestamp);
+                return result;
+            });
         }
         return CommitWritesResponse.newBuilder().setContinue(true).build();
     }
@@ -141,32 +182,52 @@ public final class DefaultTransactionService implements JamesTransactionService 
     @Override
     public CheckReadConflictsResponse checkReadConflicts(
             long startTimestamp, List<TableCell> reads, List<TableRange> ranges) {
-        if (!runningTransactions.contains(startTimestamp)) {
+        if (!runningTransactions.containsKey(startTimestamp)) {
             return ABORTED;
         }
 
         for (TableCell read : reads) {
-            if (isConflicting(startTimestamp, read.getTable(), read.getCell())) {
+            if (isConflictingRead(startTimestamp, read.getTable(), read.getCell())) {
+                clearWrites(startTimestamp);
                 runningTransactions.remove(startTimestamp);
                 return ABORTED;
             }
         }
 
         for (TableRange read : ranges) {
-            NavigableMap<Cell, Long> updated = getLastUpdated(read.getTable());
+            NavigableMap<Cell, Set<Long>> updated = getLastUpdated(read.getTable());
             updated = updated.subMap(read.getStart(), true, read.getEnd(), false);
             if (read.getHasColumnFilter()) {
                 Set<ByteString> columnFilter = new HashSet<>(read.getColumnFilterList());
                 updated = Maps.filterKeys(updated, c -> columnFilter.contains(c.getColumn()));
             }
-            updated = Maps.filterValues(updated, timestamp -> isConflicting(startTimestamp, timestamp));
+            updated = Maps.filterKeys(updated, cell -> isConflictingRead(startTimestamp, read.getTable(), cell));
             if (!updated.isEmpty()) {
+                clearWrites(startTimestamp);
                 runningTransactions.remove(startTimestamp);
                 return ABORTED;
             }
         }
+
+        RunningTransactionState state = runningTransactions.get(startTimestamp);
+
+        if (state.inConflict && state.outConflict) {
+            clearWrites(startTimestamp);
+            runningTransactions.remove(startTimestamp);
+            return ABORTED;
+        }
+
+        state.reads = reads;
+
+        reads.forEach(tableCell -> getReads(tableCell.getTable()).compute(tableCell.getCell(), (cell, set) -> {
+            Set<Long> result = set == null ? new HashSet<>() : set;
+            result.add(startTimestamp);
+            return result;
+        }));
+
         long commitTimestamp = timestamp++;
-        commitTimestamps.put(startTimestamp, commitTimestamp);
+        state.commitTimestamp = commitTimestamp;
+        writes.put(commitTimestamp, state.writes);
         cleanUp();
         return CheckReadConflictsResponse.newBuilder().setCommitTimestamp(commitTimestamp).build();
     }
@@ -174,21 +235,21 @@ public final class DefaultTransactionService implements JamesTransactionService 
     @Override
     public ListenableFuture<?> waitForCommit(List<Long> startTimestamps) {
         List<ListenableFuture<?>> futures = startTimestamps.stream()
-                .filter(runningTransactions::contains)
-                .map(ts -> notifications.computeIfAbsent(ts, key -> SettableFuture.create()))
+                .filter(runningTransactions::containsKey)
+                .filter(ts -> !runningTransactions.get(ts).doneCommitting)
+                .map(ts -> {
+                    SettableFuture<?> future = SettableFuture.create();
+                    notifications.put(ts, future);
+                    return future;
+                })
                 .collect(toList());
         return Futures.withTimeout(Futures.allAsList(futures), 10, TimeUnit.SECONDS, schedulingExecutor);
     }
 
     @Override
     public void unlock(List<Long> startTimestamps) {
-        startTimestamps.forEach(ts -> {
-            runningTransactions.remove(ts);
-            SettableFuture<?> future = notifications.remove(ts);
-            if (future != null) {
-                future.set(null);
-            }
-        });
+        startTimestamps.forEach(ts -> Optional.ofNullable(runningTransactions.get(ts)).ifPresent(state -> state.doneCommitting = true));
+        startTimestamps.forEach(ts -> Optional.ofNullable(notifications.get(ts)).ifPresent(x -> x.set(null)));
         cleanUp();
     }
 
@@ -196,7 +257,7 @@ public final class DefaultTransactionService implements JamesTransactionService 
         if (startTimestamp == otherStartTimestamp) {
             return false;
         }
-        Long otherCommitTimestamp = commitTimestamps.get(otherStartTimestamp);
+        Long otherCommitTimestamp = runningTransactions.getOrDefault(otherStartTimestamp, EMPTY).commitTimestamp;
         if (otherCommitTimestamp == null) {
             return true;
         } else {
@@ -204,16 +265,53 @@ public final class DefaultTransactionService implements JamesTransactionService 
         }
     }
 
-    private boolean isConflicting(long startTimestamp, Table table, Cell cell) {
-        Long otherWriteStartTimestamp = getLastUpdated(table).get(cell);
-        if (otherWriteStartTimestamp != null) {
-            return isConflicting(startTimestamp, otherWriteStartTimestamp);
+    private boolean isConflictingRead(long startTimestamp, Table table, Cell cell) {
+        RunningTransactionState ourState = runningTransactions.get(startTimestamp);
+        Set<Long> otherWriteStartTimestamps = getLastUpdated(table).getOrDefault(cell, Collections.emptySet());
+        for (Long otherStartTimestamp : otherWriteStartTimestamps) {
+            if (otherStartTimestamp == startTimestamp) {
+                continue;
+            }
+            RunningTransactionState otherState = runningTransactions.get(otherStartTimestamp);
+            if (otherState.commitTimestamp != null && otherState.commitTimestamp > startTimestamp
+                    && otherState.outConflict) {
+                return true;
+            } else {
+                otherState.inConflict = true;
+                ourState.outConflict = true;
+            }
         }
         return false;
     }
 
-    private NavigableMap<Cell, Long> getLastUpdated(Table table) {
+    private boolean isConflicting(long startTimestamp, Table table, Cell cell) {
+        Set<Long> readStartTimestamps = getReads(table).getOrDefault(cell, Collections.emptySet());
+        for (Long readStartTimestamp : readStartTimestamps) {
+            if (readStartTimestamp == startTimestamp) {
+                continue;
+            }
+            RunningTransactionState readState = runningTransactions.get(readStartTimestamp);
+            if (readState.commitTimestamp > startTimestamp && readState.inConflict) {
+                return true;
+            } else {
+                readState.outConflict = true;
+                runningTransactions.get(startTimestamp).inConflict = true;
+            }
+        }
+
+        Set<Long> otherWriteStartTimestamps = getLastUpdated(table).getOrDefault(cell, Collections.emptySet());
+        return otherWriteStartTimestamps.stream()
+                .anyMatch(otherWriteStartTimestamp -> isConflicting(startTimestamp, otherWriteStartTimestamp));
+    }
+
+    private NavigableMap<Cell, Set<Long>> getLastUpdated(Table table) {
         return lastUpdated.computeIfAbsent(table, k -> new TreeMap<>(
+                Comparator.comparing(Cell::getRow, ByteStringComparator.INSTANCE)
+                        .thenComparing(Cell::getColumn, ByteStringComparator.INSTANCE)));
+    }
+
+    private NavigableMap<Cell, Set<Long>> getReads(Table table) {
+        return reads.computeIfAbsent(table, k -> new TreeMap<>(
                 Comparator.comparing(Cell::getRow, ByteStringComparator.INSTANCE)
                         .thenComparing(Cell::getColumn, ByteStringComparator.INSTANCE)));
     }

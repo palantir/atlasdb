@@ -4,6 +4,7 @@ message TimestampRange {
     required int64 immutable = 1;
     required int64 lower = 2;
     required int64 upper = 3;
+    repeated TableCell cacheUpdates = 4;
 }
 
 message CommitWritesResponse {
@@ -65,6 +66,7 @@ message GetFreshTimestampRequest {
 
 message StartTransactionsRequest {
     required int64 numberOfTransactions = 1;
+    optional int64 cachedUpTo = 2;
 }
 
 message CommitWritesRequest {

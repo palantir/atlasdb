@@ -16,19 +16,16 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import static java.util.Collections.emptyMap;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -44,18 +41,25 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 
-public class CachingTransaction implements Transaction {
-    private final Map<TableReference, Map<Cell, byte[]>> cache;
-    private final SerializableTransaction delegate;
-    private final Set<Cell> cacheMisses = Sets.newConcurrentHashSet();
+import io.vavr.collection.Map;
+import io.vavr.control.Option;
 
-    public CachingTransaction(SerializableTransaction delegate) {
-        this.cache = emptyMap();
+public class CachingTransaction implements Transaction {
+    private final Transaction delegate;
+    private final BiConsumer<TableReference, Set<Cell>> cacheMisses;
+    private volatile Map<TransactionDataCache.CacheKey, byte[]> cache;
+
+    public CachingTransaction(
+            Transaction delegate,
+            Map<TransactionDataCache.CacheKey, byte[]> startingCache,
+            BiConsumer<TableReference, Set<Cell>> cacheMisses) {
+        this.cache = startingCache;
         this.delegate = delegate;
+        this.cacheMisses = cacheMisses;
     }
 
-    private Map<Cell, byte[]> getCache(TableReference ref) {
-        return cache.computeIfAbsent(ref, k -> new HashMap<>());
+    public Transaction delegate() {
+        return delegate;
     }
 
     @Override
@@ -64,22 +68,23 @@ public class CachingTransaction implements Transaction {
         if (columnSelection.allColumnsSelected()) {
             return delegate.getRows(tableRef, rows, columnSelection);
         }
-        Map<Cell, byte[]> cache = getCache(tableRef);
-        Map<Cell, byte[]> cached = new HashMap<>();
+        java.util.Map<Cell, byte[]> cached = new HashMap<>();
         Set<Cell> toQuery = new HashSet<>();
         for (byte[] row : rows) {
             for (byte[] column : columnSelection.getSelectedColumns()) {
                 Cell cell = Cell.create(row, column);
-                byte[] value = cache.get(cell);
-                if (value == null) {
+                Option<byte[]> value = cache.get(ImmutableCacheKey.builder().cell(cell).tableRef(tableRef).build());
+                if (value.isEmpty()) {
                     toQuery.add(Cell.create(row, column));
                 } else {
-                    cached.put(cell, value);
+                    cached.put(cell, value.get());
                 }
             }
         }
-        delegate.addToReadSet(tableRef, cached);
-        Map<Cell, byte[]> fetched = delegate.get(tableRef, toQuery);
+        if (delegate instanceof SerializableTransaction) {
+            ((SerializableTransaction) delegate).addToReadSet(tableRef, cached);
+        }
+        java.util.Map<Cell, byte[]> fetched = delegate.get(tableRef, toQuery);
         SortedMap<byte[], RowResult<byte[]>> result = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         rows.forEach(row -> {
             SortedMap<byte[], byte[]> values = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
@@ -102,40 +107,43 @@ public class CachingTransaction implements Transaction {
     }
 
     @Override
-    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
+    public java.util.Map<byte[], BatchingVisitable<java.util.Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
             Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection);
     }
 
     @Override
-    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
+    public Iterator<java.util.Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection, int batchHint) {
         return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
     }
 
     @Override
-    public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        Map<Cell, byte[]> results = new HashMap<>();
+    public java.util.Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
+        java.util.Map<Cell, byte[]> results = new HashMap<>();
         Set<Cell> toQuery = new HashSet<>();
 
-        Map<Cell, byte[]> cache = getCache(tableRef);
         for (Cell cell : cells) {
-            byte[] data = cache.get(cell);
-            if (data == null) {
+            Option<byte[]> value = cache.get(ImmutableCacheKey.builder().cell(cell).tableRef(tableRef).build());
+            if (value.isEmpty()) {
                 toQuery.add(cell);
             } else {
-                results.put(cell, data);
+                results.put(cell, value.get());
             }
         }
-        Map<Cell, byte[]> fetched = delegate.get(tableRef, toQuery);
+        java.util.Map<Cell, byte[]> fetched = delegate.get(tableRef, toQuery);
         addCacheMisses(tableRef, fetched);
         results.putAll(delegate.get(tableRef, toQuery));
         return results;
     }
 
-    private synchronized void addCacheMisses(TableReference reference, Map<Cell, byte[]> misses) {
-        getCache(reference).putAll(misses);
-        cacheMisses.addAll(misses.keySet());
+    private synchronized void addCacheMisses(TableReference reference, java.util.Map<Cell, byte[]> misses) {
+        Map<TransactionDataCache.CacheKey, byte[]> tempCache = cache;
+        for (java.util.Map.Entry<Cell, byte[]> entry : misses.entrySet()) {
+            tempCache = tempCache.put(ImmutableCacheKey.builder().cell(entry.getKey()).tableRef(reference).build(), entry.getValue());
+        }
+        cache = tempCache;
+        cacheMisses.accept(reference, misses.keySet());
     }
 
     @Override
@@ -169,16 +177,21 @@ public class CachingTransaction implements Transaction {
     }
 
     @Override
-    public synchronized void put(TableReference tableRef, Map<Cell, byte[]> values) {
-        Map<Cell, byte[]> cache = getCache(tableRef);
-        cache.putAll(values);
+    public synchronized void put(TableReference tableRef, java.util.Map<Cell, byte[]> values) {
+        Map<TransactionDataCache.CacheKey, byte[]> tempCache = cache;
+        for (java.util.Map.Entry<Cell, byte[]> entry : values.entrySet()) {
+            tempCache = tempCache.put(ImmutableCacheKey.builder().cell(entry.getKey()).tableRef(tableRef).build(), entry.getValue());
+        }
+        cache = tempCache;
         delegate.put(tableRef, values);
     }
 
     @Override
     public synchronized void delete(TableReference tableRef, Set<Cell> keys) {
-        Map<Cell, byte[]> cache = getCache(tableRef);
-        keys.forEach(cache::remove);
+        Map<TransactionDataCache.CacheKey, byte[]> tempCache = cache;
+        for (Cell cell : keys) {
+            tempCache = tempCache.remove(ImmutableCacheKey.builder().cell(cell).tableRef(tableRef).build());
+        }
         delegate.delete(tableRef, keys);
     }
 

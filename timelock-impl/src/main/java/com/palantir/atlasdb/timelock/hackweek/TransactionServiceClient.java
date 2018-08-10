@@ -133,10 +133,11 @@ public class TransactionServiceClient implements JamesTransactionService {
     }
 
     @Override
-    public TimestampRange startTransactions(long numberOfTransactions) {
+    public TimestampRange startTransactions(long cachedUpTo, long numberOfTransactions) {
         return execute(
                 TransactionServiceRequest.newBuilder()
                         .setStartTransactions(StartTransactionsRequest.newBuilder()
+                                .setCachedUpTo(cachedUpTo)
                                 .setNumberOfTransactions(numberOfTransactions)
                                 .build())
                         .setType(MessageType.START_TRANSACTIONS)

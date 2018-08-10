@@ -103,7 +103,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             Executors.newFixedThreadPool(GET_RANGES_THREAD_POOL_SIZE);
 
     protected Transaction startTransaction() {
-        TimestampRange range = james.startTransactions(1);
+        TimestampRange range = james.startTransactions(-1, 1);
         return new SnapshotTransaction(metricsManager,
                 keyValueService,
                 james,

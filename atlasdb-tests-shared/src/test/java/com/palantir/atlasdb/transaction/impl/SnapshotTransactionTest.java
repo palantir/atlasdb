@@ -731,7 +731,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void commitThrowsIfRolledBackAtCommitTime_alreadyAborted() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
-        TransactionService.TimestampRange range = james.startTransactions(1);
+        TransactionService.TimestampRange range = james.startTransactions(-1, 1);
         long transactionTs = range.getLower();
         SnapshotTransaction snapshot = new SnapshotTransaction(
                 metricsManager,
