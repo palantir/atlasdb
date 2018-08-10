@@ -247,7 +247,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             rangeEnds.put(range, maxRow);
         }
 
-        rangeEnds.compute(range, (r, curVal) -> {
+        rangeEnds.compute(range, (innerRange, curVal) -> {
             if (curVal == null) {
                 return maxRow;
             } else if (curVal.length == 0) {
