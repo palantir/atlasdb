@@ -591,7 +591,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             for (Entry<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
                     columnRangeEnds.entrySet()) {
                 byte[] row = rowAndRangeEnds.getKey().array();
-                Map<BatchColumnRangeSelection, byte[]> rangeEnds = columnRangeEnds.get(row);
+                Map<BatchColumnRangeSelection, byte[]> rangeEnds = rowAndRangeEnds.getValue();
 
                 for (Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
                     BatchColumnRangeSelection range = e.getKey();
