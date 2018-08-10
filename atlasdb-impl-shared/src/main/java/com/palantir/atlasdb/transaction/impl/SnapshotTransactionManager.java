@@ -158,14 +158,14 @@ import com.palantir.common.base.Throwables;
         Timer postTaskTimer = getTimer("finishTask");
         Timer.Context postTaskContext;
 
-        SnapshotTransaction tx = (SnapshotTransaction) txAndLock;
+        Transaction tx = txAndLock;
         T result;
         try {
             result = runTaskThrowOnConflict(task, tx);
         } finally {
             postTaskContext = postTaskTimer.time();
         }
-        scrubForAggressiveHardDelete(tx);
+        //scrubForAggressiveHardDelete(tx);
         postTaskContext.stop();
         return result;
     }

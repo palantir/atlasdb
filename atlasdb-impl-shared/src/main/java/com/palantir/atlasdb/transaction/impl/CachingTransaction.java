@@ -192,6 +192,7 @@ public class CachingTransaction implements Transaction {
         for (Cell cell : keys) {
             tempCache = tempCache.remove(ImmutableCacheKey.builder().cell(cell).tableRef(tableRef).build());
         }
+        cache = tempCache;
         delegate.delete(tableRef, keys);
     }
 

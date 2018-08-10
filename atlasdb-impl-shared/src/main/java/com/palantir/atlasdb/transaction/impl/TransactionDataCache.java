@@ -97,7 +97,7 @@ public final class TransactionDataCache {
         txnService.commitWrites(range.getLower(), emptyList());
         txnService.checkReadConflicts(range.getLower(), emptyList(), emptyList());
         txnService.unlock(singletonList(range.getLower()));
-        List<TableCell> cells = null;
+        List<TableCell> cells = range.getCacheUpdatesList();
         List<CacheKey> keys = cells.stream().map(tableCell -> ImmutableCacheKey.builder()
                 .tableRef(tableRef(tableCell.getTable()))
                 .cell(cell(tableCell.getCell()))
@@ -111,8 +111,8 @@ public final class TransactionDataCache {
         Set<CacheKey> cellsToLoad = cells.stream().map(cell -> ImmutableCacheKey.builder().tableRef(tableReference).cell(cell).build()).collect(
                 Collectors.toSet());
         AtlasCache loaded = transactionManager.runTaskReadOnly(txn -> {
-            return new AtlasCache(txn.getTimestamp(),
-                    HashMap.ofAll(txn.get(tableReference,
+            return new AtlasCache(((CachingTransaction) txn).delegate().getTimestamp(),
+                    HashMap.ofAll(((CachingTransaction) txn).delegate().get(tableReference,
                             Sets.difference(cellsToLoad, cache.cache.keySet().toJavaSet()).stream().map(CacheKey::cell).collect(
                                     Collectors.toSet())).entrySet().stream(), entry ->
                                     ImmutableCacheKey.builder()
