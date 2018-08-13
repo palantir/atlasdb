@@ -65,12 +65,12 @@ public class CassandraRequestExceptionHandlerTest {
             .collect(Collectors.toSet());
 
     private boolean currentMode = true;
-    private CassandraRequestExceptionHandler handlerDefault;
+    private CassandraRequestExceptionHandler handlerLegacy;
     private CassandraRequestExceptionHandler handlerConservative;
 
     @Before
     public void setup() {
-        handlerDefault = new CassandraRequestExceptionHandler(
+        handlerLegacy = new CassandraRequestExceptionHandler(
                 () -> MAX_RETRIES_PER_HOST,
                 () -> MAX_RETRIES_TOTAL,
                 () -> false,
@@ -86,33 +86,33 @@ public class CassandraRequestExceptionHandlerTest {
     @Test
     public void retryableExceptionsAreRetryableDefault() {
         for (Exception ex : ALL_EXCEPTIONS) {
-            assertTrue(String.format("Exception %s should be retryable", ex), handlerDefault.isRetryable(ex));
+            assertTrue(String.format("Exception %s should be retryable", ex), handlerLegacy.isRetryable(ex));
         }
-        assertFalse("RuntimeException is not retryable", handlerDefault.isRetryable(new RuntimeException()));
+        assertFalse("RuntimeException is not retryable", handlerLegacy.isRetryable(new RuntimeException()));
     }
 
     @Test
     public void connectionExceptionsWithSufficientAttemptsShouldBlacklistDefault() {
         for (Exception ex : CONNECTION_EXCEPTIONS) {
             assertFalse("MAX_RETRIES_PER_HOST - 1 attempts should not blacklist",
-                    handlerDefault.shouldBlacklist(ex, MAX_RETRIES_PER_HOST - 1));
+                    handlerLegacy.shouldBlacklist(ex, MAX_RETRIES_PER_HOST - 1));
         }
 
         for (Exception ex : CONNECTION_EXCEPTIONS) {
             assertTrue(String.format("MAX_RETRIES_PER_HOST attempts with exception %s should blacklist", ex),
-                    handlerDefault.shouldBlacklist(ex, MAX_RETRIES_PER_HOST));
+                    handlerLegacy.shouldBlacklist(ex, MAX_RETRIES_PER_HOST));
         }
 
         Exception ffException = Iterables.get(FAST_FAILOVER_EXCEPTIONS, 0);
         assertFalse(String.format("Exception %s should not blacklist", ffException),
-                handlerDefault.shouldBlacklist(ffException, MAX_RETRIES_PER_HOST));
+                handlerLegacy.shouldBlacklist(ffException, MAX_RETRIES_PER_HOST));
     }
 
     @Test
     public void connectionExceptionsShouldBackoffDefault() {
         for (Exception ex : CONNECTION_EXCEPTIONS) {
             assertTrue(String.format("Exception %s should backoff", ex),
-                    handlerDefault.shouldBackoff(ex, handlerDefault.getStrategy()));
+                    handlerLegacy.shouldBackoff(ex, handlerLegacy.getStrategy()));
         }
     }
 
@@ -120,14 +120,14 @@ public class CassandraRequestExceptionHandlerTest {
     public void cassandraLoadExceptionsShouldBackoffDefault() {
         for (Exception ex : INDICATIVE_OF_CASSANDRA_LOAD_EXCEPTIONS) {
             assertTrue(String.format("Exception %s should backoff", ex),
-                    handlerDefault.shouldBackoff(ex, handlerDefault.getStrategy()));
+                    handlerLegacy.shouldBackoff(ex, handlerLegacy.getStrategy()));
         }
     }
 
     @Test
     public void transientExceptionsShouldNotBackoffDefault() {
         for (Exception ex : TRANSIENT_EXCEPTIONS) {
-            assertFalse(handlerDefault.shouldBackoff(ex, handlerDefault.getStrategy()));
+            assertFalse(handlerLegacy.shouldBackoff(ex, handlerLegacy.getStrategy()));
         }
     }
 
@@ -135,7 +135,7 @@ public class CassandraRequestExceptionHandlerTest {
     public void fastFailoverExceptionsShouldNotBackoffDefault() {
         for (Exception ex : FAST_FAILOVER_EXCEPTIONS) {
             assertFalse(String.format("Exception %s should not backoff", ex),
-                    handlerDefault.shouldBackoff(ex, handlerDefault.getStrategy()));
+                    handlerLegacy.shouldBackoff(ex, handlerLegacy.getStrategy()));
         }
     }
 
@@ -143,20 +143,20 @@ public class CassandraRequestExceptionHandlerTest {
     public void connectionExceptionRetriesOnDifferentHostAfterSufficientRetriesDefault() {
         for (Exception ex : CONNECTION_EXCEPTIONS) {
             assertFalse(String.format("Exception %s should not retry on different host", ex),
-                    handlerDefault.shouldRetryOnDifferentHost(ex, MAX_RETRIES_PER_HOST - 1,
-                            handlerDefault.getStrategy()));
+                    handlerLegacy.shouldRetryOnDifferentHost(ex, MAX_RETRIES_PER_HOST - 1,
+                            handlerLegacy.getStrategy()));
         }
 
         for (Exception ex : CONNECTION_EXCEPTIONS) {
             assertTrue(String.format("Exception %s should retry on different host", ex),
-                    handlerDefault.shouldRetryOnDifferentHost(ex, MAX_RETRIES_PER_HOST, handlerDefault.getStrategy()));
+                    handlerLegacy.shouldRetryOnDifferentHost(ex, MAX_RETRIES_PER_HOST, handlerLegacy.getStrategy()));
         }
     }
 
     @Test
     public void cassandraLoadExceptionRetriesOnSameHostDefault() {
         for (Exception ex : INDICATIVE_OF_CASSANDRA_LOAD_EXCEPTIONS) {
-            assertFalse(handlerDefault.shouldRetryOnDifferentHost(ex, 0, handlerDefault.getStrategy()));
+            assertFalse(handlerLegacy.shouldRetryOnDifferentHost(ex, 0, handlerLegacy.getStrategy()));
         }
     }
 
@@ -164,7 +164,7 @@ public class CassandraRequestExceptionHandlerTest {
     public void cassandraLoadExceptionRetriesOnDifferentHostAfterSufficientRetriesDefault() {
         for (Exception ex : INDICATIVE_OF_CASSANDRA_LOAD_EXCEPTIONS) {
             assertTrue(String.format("Exception %s should retry on different host", ex),
-                    handlerDefault.shouldRetryOnDifferentHost(ex, MAX_RETRIES_PER_HOST, handlerDefault.getStrategy()));
+                    handlerLegacy.shouldRetryOnDifferentHost(ex, MAX_RETRIES_PER_HOST, handlerLegacy.getStrategy()));
         }
     }
 
@@ -172,7 +172,7 @@ public class CassandraRequestExceptionHandlerTest {
     public void fastFailoverExceptionAlwaysRetriesOnDifferentHostDefault() {
         for (Exception ex : FAST_FAILOVER_EXCEPTIONS) {
             assertTrue(String.format("Fast failover exception %s should always retry on different host", ex),
-                    handlerDefault.shouldRetryOnDifferentHost(ex, 0, handlerDefault.getStrategy()));
+                    handlerLegacy.shouldRetryOnDifferentHost(ex, 0, handlerLegacy.getStrategy()));
         }
     }
 
@@ -303,7 +303,7 @@ public class CassandraRequestExceptionHandlerTest {
             assertTrue(String.format("If the max retries per host has been exceeded, we should always retry on a"
                             + " different host - but we didn't for exception %s", ex),
                     handlerConservative.shouldRetryOnDifferentHost(
-                            ex, MAX_RETRIES_PER_HOST + 1, handlerDefault.getStrategy()));
+                            ex, MAX_RETRIES_PER_HOST + 1, handlerLegacy.getStrategy()));
         }
     }
 

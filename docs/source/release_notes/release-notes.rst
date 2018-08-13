@@ -81,9 +81,11 @@ develop
 
     *    - |changed|
          - ``CassandraRequestExceptionHandler`` is set to use ``Conservative`` exception handler by default. Main differences are:
+
             - Conservative exception handler backs off for larger subset of exceptions
             - Backoff period is exponentially increasing (but cannot go beyond ``MAX_BACKOFF``)
             - Retries are executed on a different host rather than the same host for a larger subset of exceptions
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3444>`__)
 
 =======
 v0.99.0
