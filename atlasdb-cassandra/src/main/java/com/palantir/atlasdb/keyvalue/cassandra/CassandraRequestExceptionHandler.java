@@ -90,7 +90,7 @@ class CassandraRequestExceptionHandler {
         if (useConservativeHandler.get()) {
             return Conservative.INSTANCE;
         } else {
-            return Default.INSTANCE;
+            return LegacyExceptionHandler.INSTANCE;
         }
     }
 
@@ -245,8 +245,8 @@ class CassandraRequestExceptionHandler {
         boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts);
     }
 
-    private static class Default implements RequestExceptionHandlerStrategy {
-        private static final RequestExceptionHandlerStrategy INSTANCE = new Default();
+    private static class LegacyExceptionHandler implements RequestExceptionHandlerStrategy {
+        private static final RequestExceptionHandlerStrategy INSTANCE = new LegacyExceptionHandler();
 
         private static final long BACKOFF_DURATION = Duration.ofSeconds(1).toMillis();
 
