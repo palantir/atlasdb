@@ -103,7 +103,7 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
      */
     @Value.Default
     public boolean conservativeRequestExceptionHandler() {
-        return false;
+        return true;
     }
 
     public static CassandraKeyValueServiceRuntimeConfig getDefault() {
