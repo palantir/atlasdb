@@ -382,6 +382,7 @@ public abstract class TransactionManagers {
 
         instrumentedTransactionManager.registerClosingCallback(qosClient::close);
         instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices::close);
+        instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(

@@ -37,13 +37,13 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 
-public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
+public abstract class SweepQueueTable {
     final KeyValueService kvs;
     private final TableReference tableRef;
     private final WriteInfoPartitioner partitioner;
     final Optional<TargetedSweepMetrics> maybeMetrics;
 
-    public KvsSweepQueueWriter(KeyValueService kvs, TableReference tableRef, WriteInfoPartitioner partitioner,
+    public SweepQueueTable(KeyValueService kvs, TableReference tableRef, WriteInfoPartitioner partitioner,
             @Nullable TargetedSweepMetrics metrics) {
         this.kvs = kvs;
         this.tableRef = tableRef;
@@ -51,7 +51,6 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
         this.maybeMetrics = Optional.ofNullable(metrics);
     }
 
-    @Override
     public void enqueue(List<WriteInfo> allWrites) {
         Map<Cell, byte[]> referencesToDedicatedCells = new HashMap<>();
         Map<Cell, byte[]> cellsToWrite = new HashMap<>();
@@ -69,11 +68,15 @@ public abstract class KvsSweepQueueWriter implements SweepQueueWriter {
                 .ifPresent(timestamp -> {
                     write(referencesToDedicatedCells, timestamp);
                     write(cellsToWrite, timestamp);
+                    updateWriteMetrics(partitionedWrites, timestamp);
                 });
 
+    }
+
+    private void updateWriteMetrics(Map<PartitionInfo, List<WriteInfo>> partitionedWrites, long timestamp) {
         maybeMetrics.ifPresent(metrics ->
                 partitionedWrites.forEach((info, writes) ->
-                        metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size())));
+                        metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size(), timestamp)));
     }
 
     /**
