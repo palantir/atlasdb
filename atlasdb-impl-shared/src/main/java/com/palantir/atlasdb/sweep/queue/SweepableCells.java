@@ -57,7 +57,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.logsafe.SafeArg;
 
-public class SweepableCells extends KvsSweepQueueWriter {
+public class SweepableCells extends SweepQueueTable {
     private final Logger log = LoggerFactory.getLogger(SweepableCells.class);
     private final CommitTsCache commitTsCache;
 
@@ -148,7 +148,7 @@ public class SweepableCells extends KvsSweepQueueWriter {
         PeekingIterator<Map.Entry<Cell, Value>> peekingResultIterator = Iterators.peekingIterator(resultIterator);
         Multimap<Long, WriteInfo> writesByStartTs = getBatchOfWrites(row, peekingResultIterator, sweepTs);
         maybeMetrics.ifPresent(metrics -> metrics.updateEntriesRead(shardStrategy, writesByStartTs.size()));
-        log.info("Read {} entries from the sweep queue.", SafeArg.of("number", writesByStartTs.size()));
+        log.debug("Read {} entries from the sweep queue.", SafeArg.of("number", writesByStartTs.size()));
         TimestampsToSweep tsToSweep = getTimestampsToSweepDescendingAndCleanupAborted(shardStrategy,
                 minTsExclusive, sweepTs, writesByStartTs);
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());

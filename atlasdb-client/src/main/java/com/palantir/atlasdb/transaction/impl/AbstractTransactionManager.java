@@ -51,10 +51,6 @@ public abstract class AbstractTransactionManager implements TransactionManager {
         this.timestampValidationReadCache = timestampCache;
     }
 
-    protected static void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {
-        // no-op
-    }
-
     protected boolean shouldStopRetrying(@SuppressWarnings("unused") int numTimesFailed) {
         return false;
     }

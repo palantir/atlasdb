@@ -57,15 +57,15 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private State status = State.INITIALIZING;
         private Throwable callbackThrowable = null;
 
-        private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true));
+        private final ScheduledExecutorService executorService;
 
         InitializeCheckingWrapper(TransactionManager manager,
                 Supplier<Boolean> initializationPrerequisite,
-                Callback<TransactionManager> callBack) {
+                Callback<TransactionManager> callBack, ScheduledExecutorService initializer) {
             this.txManager = manager;
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callBack;
+            this.executorService = initializer;
             scheduleInitializationCheckAndCallback();
         }
 
@@ -149,7 +149,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private void runCallback() {
             try {
                 callback.runWithRetry(txManager);
-                checkAndSetStatus(ImmutableSet.of(State.INITIALIZING), State.READY);
+                if (checkAndSetStatus(ImmutableSet.of(State.INITIALIZING), State.READY)) {
+                    executorService.shutdown();
+                }
             } catch (Throwable e) {
                 log.error("Callback failed and was not able to perform its cleanup task. "
                         + "Closing the TransactionManager.", e);
@@ -197,7 +199,49 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback) {
-        TransactionManager serializableTransactionManager = new SerializableTransactionManager(
+
+        return create(metricsManager,
+                keyValueService,
+                timelockService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                initializationPrerequisite,
+                allowHiddenTableAccess,
+                lockAcquireTimeoutMs,
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency,
+                initializeAsync,
+                timestampCache,
+                sweepQueueWriter,
+                callback,
+                PTExecutors.newSingleThreadScheduledExecutor(
+                        new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)));
+    }
+
+    public static TransactionManager create(MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TimelockService timelockService,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            Supplier<Boolean> initializationPrerequisite,
+            boolean allowHiddenTableAccess,
+            Supplier<Long> lockAcquireTimeoutMs,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            boolean initializeAsync,
+            TimestampCache timestampCache,
+            MultiTableSweepQueueWriter sweepQueueWriter,
+            Callback<TransactionManager> callback,
+            ScheduledExecutorService initializer) {
+        TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
                 timelockService,
@@ -216,12 +260,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 PTExecutors.newSingleThreadExecutor(true));
 
         if (!initializeAsync) {
-            callback.runWithRetry(serializableTransactionManager);
+            callback.runWithRetry(transactionManager);
         }
 
         return initializeAsync
-                ? new InitializeCheckingWrapper(serializableTransactionManager, initializationPrerequisite, callback)
-                : serializableTransactionManager;
+                ? new InitializeCheckingWrapper(transactionManager, initializationPrerequisite, callback, initializer)
+                : transactionManager;
     }
 
     public static SerializableTransactionManager createForTest(MetricsManager metricsManager,

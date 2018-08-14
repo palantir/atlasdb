@@ -33,6 +33,5 @@
     <suppress files="atlasdb-jdbc-tests/*" checks="." />
     <suppress files="cassandra-partitioner/*" checks="." />
     <suppress files="commons-db/*" checks="." />
-    <suppress files="leader-election-impl/*" checks="." />
     <suppress files="lock-impl/*" checks="." />
 </suppressions>

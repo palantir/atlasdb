@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.paxos;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+package com.palantir.atlasdb.keyvalue.cassandra.cas;
 
-import com.palantir.paxos.persistence.ProtobufTest;
+import java.util.List;
 
-@RunWith(Suite.class)
-@SuiteClasses({ProtobufTest.class, PaxosConsensusFastTest.class, PaxosConsensusSlowTest.class})
-public class AllLeaderElectionTests {}
+import org.immutables.value.Value;
+
+import okio.ByteString;
+
+@Value.Immutable
+public interface CheckAndSetResult {
+    @Value.Parameter
+    boolean successful();
+
+    @Value.Parameter
+    List<ByteString> existingValues();
+}

@@ -83,7 +83,6 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
                 log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), e);
                 throw e;
             }
-            sleepForBackoff(failureCount);
         }
     }
 

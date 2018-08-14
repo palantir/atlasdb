@@ -89,8 +89,12 @@ public class TimeLockResource {
         return servicesByNamespace.computeIfAbsent(namespace, this::createNewClient);
     }
 
-    public int numberOfClients() {
+    public int getNumberOfActiveClients() {
         return servicesByNamespace.size();
+    }
+
+    public int getMaxNumberOfClients() {
+        return maxNumberOfClients.get();
     }
 
     private TimeLockServices createNewClient(String namespace) {
@@ -99,13 +103,13 @@ public class TimeLockResource {
                         + "used.",
                 PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE);
 
-        if (numberOfClients() >= maxNumberOfClients.get()) {
+        if (getNumberOfActiveClients() >= getMaxNumberOfClients()) {
             log.error(
                     "Unable to create timelock services for client {}, as it would exceed the maximum number of "
                             + "allowed clients ({}). If this is intentional, the maximum number of clients can be "
                             + "increased via the maximum-number-of-clients runtime config property.",
                     SafeArg.of("client", namespace),
-                    SafeArg.of("maxNumberOfClients", maxNumberOfClients));
+                    SafeArg.of("maxNumberOfClients", getMaxNumberOfClients()));
             throw new IllegalStateException("Maximum number of clients exceeded");
         }
 
@@ -113,7 +117,7 @@ public class TimeLockResource {
     }
 
     private static void registerClientCapacityMetrics(TimeLockResource resource, MetricsManager metricsManager) {
-        metricsManager.registerMetric(TimeLockResource.class, ACTIVE_CLIENTS, resource::numberOfClients);
-        metricsManager.registerMetric(TimeLockResource.class, MAX_CLIENTS, resource.maxNumberOfClients::get);
+        metricsManager.registerMetric(TimeLockResource.class, ACTIVE_CLIENTS, resource::getNumberOfActiveClients);
+        metricsManager.registerMetric(TimeLockResource.class, MAX_CLIENTS, resource::getMaxNumberOfClients);
     }
 }
