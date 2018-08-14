@@ -219,6 +219,18 @@ This makes it easier for a service to expose these via a health check
 This may introduce a devreak to users transitively relying on these old dependencies.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3439">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td><p class="first"><code class="docutils literal notranslate"><span class="pre">CassandraRequestExceptionHandler</span></code> is set to use <code class="docutils literal notranslate"><span class="pre">Conservative</span></code> exception handler by default. Main differences are:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Conservative exception handler backs off for larger subset of exceptions</li>
+<li>Backoff period is exponentially increasing (but cannot go beyond <code class="docutils literal notranslate"><span class="pre">MAX_BACKOFF</span></code>)</li>
+<li>Retries are executed on a different host rather than the same host for a larger subset of exceptions</li>
+</ul>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3444">Pull Request</a>)</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
