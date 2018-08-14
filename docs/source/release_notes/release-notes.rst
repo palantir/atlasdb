@@ -79,6 +79,9 @@ develop
            This may introduce a devreak to users transitively relying on these old dependencies.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3439>`__)
 
+    *    - |fixed|
+         - Fixed a bug that when filtering the row results for ``getRows`` in ``SnapshotTransaction`` could cause an exception due to duplicate keys in a map builder.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3445>`__)
 =======
 v0.99.0
 =======
