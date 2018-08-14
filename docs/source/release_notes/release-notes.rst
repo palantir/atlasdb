@@ -85,6 +85,7 @@ develop
             - Conservative exception handler backs off for larger subset of exceptions
             - Backoff period is exponentially increasing (but cannot go beyond ``MAX_BACKOFF``)
             - Retries are executed on a different host rather than the same host for a larger subset of exceptions
+
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3444>`__)
 
 =======
