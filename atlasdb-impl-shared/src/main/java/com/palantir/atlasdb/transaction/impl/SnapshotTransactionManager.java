@@ -172,6 +172,8 @@ import com.palantir.timestamp.TimestampService;
         Timer postTaskTimer = getTimer("finishTask");
         Timer.Context postTaskContext;
 
+        task = wrapTaskIfNecessary(task, txAndLock.immutableTsLock());
+
         SnapshotTransaction tx = (SnapshotTransaction) txAndLock.transaction();
         T result;
         try {
@@ -193,6 +195,18 @@ import com.palantir.timestamp.TimestampService;
                     tx.getTimestamp(),
                     tx.getCommitTimestamp());
         }
+    }
+
+    private <T, E extends Exception> TransactionTask<T, E> wrapTaskIfNecessary(
+            TransactionTask<T, E> task, LockToken immutableTsLock) {
+        if(taskWrappingIsNecessary()) {
+            return new WrappingTransactionTask<>(task, timelockService, immutableTsLock);
+        }
+        return task;
+    }
+
+    private boolean taskWrappingIsNecessary() {
+        return !validateLocksOnReads;
     }
 
     protected SnapshotTransaction createTransaction(
