@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - AtlasDB now correctly closes the targeted sweeper on shutdown, and logs less by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/347>`__)
+
     *    - |fixed|
          - Cassandra KVS now correctly accepts check-and-set operations if one is working with multiple columns in the relevant row.
            Previously, if there were multiple columns in the row where one was trying to do a CAS, the CAS would be rejected even if the column value matched the cell.
