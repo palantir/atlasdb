@@ -86,6 +86,7 @@ develop
     *    - |fixed|
          - Fixed a bug that when filtering the row results for ``getRows`` in ``SnapshotTransaction`` could cause an exception due to duplicate keys in a map builder.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3445>`__)
+
 =======
 v0.99.0
 =======
