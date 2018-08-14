@@ -52,7 +52,25 @@ develop
 
     *    - |improved|
          - AtlasDB now correctly closes the targeted sweeper on shutdown, and logs less by default.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/347>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3447>`__)
+
+    *    - |improved| |devbreak|
+         - The atlasdb-commons package has had its dependency tree greatly pruned of unused cruft.
+           This may introduce a devbreak to users transitively relying on these old dependencies.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3439>`__)
+
+========
+v0.100.0
+========
+
+2 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Cassandra KVS now correctly accepts check-and-set operations if one is working with multiple columns in the relevant row.
@@ -74,14 +92,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3429>`__)
 
     *    - |improved|
-         - TimeLockAgent now exposes the number of active clients and the configured maximum
-           This makes it easier for a service to expose these via a health check
+         - TimeLockAgent now exposes the number of active clients and the configured maximum.
+           This makes it easier for a service to expose these via a health check.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3431>`__)
-
-    *    - |improved| |devbreak|
-         - The atlasdb-commons package has had its dependency tree greatly pruned of unused cruft.
-           This may introduce a devreak to users transitively relying on these old dependencies.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3439>`__)
 
 =======
 v0.99.0
