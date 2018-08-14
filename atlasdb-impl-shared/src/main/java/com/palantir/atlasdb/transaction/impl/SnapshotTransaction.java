@@ -1121,7 +1121,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
         Set<Cell> keysAddedToResults = keysAddedBuilder.build();
-        count.set(keysAddedToResults.size());
+        count.addAndGet(keysAddedToResults.size());
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
