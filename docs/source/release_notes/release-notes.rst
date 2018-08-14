@@ -92,6 +92,18 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3444>`__)
 
+    *    - |improved| |logs|
+         - CassandraKVS's ``ExecutorService`` is now instrumented.
+           This ExecutorService is responsible for submitting queries to the underlying DB. It being throttled will increase the latency of queries and transactions.
+           The following metrics are available:
+
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.submitted``
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.running``
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.completed``
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.duration``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3416>`__)
+
 =======
 v0.99.0
 =======
