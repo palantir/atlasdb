@@ -93,7 +93,7 @@ public class SweepQueueCleaner {
             return;
         }
         progress.updateLastSweptTimestamp(shardStrategy, newProgress);
-        log.info("Progressed last swept timestamp for {} to {}.",
+        log.debug("Progressed last swept timestamp for {} to {}.",
                 SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("timestamp", newProgress));
 
     }
