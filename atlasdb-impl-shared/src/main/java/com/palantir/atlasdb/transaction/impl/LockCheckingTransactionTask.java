@@ -18,17 +18,24 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
-public class WrappingTransactionTask<T, E extends Exception> implements TransactionTask<T, E> {
+/**
+ *  Best effort attempt to keep backwards compatibility while making immutableTs lock validation optional on reads.
+ *  Validating immutableTs lock only on commits rather than on every read may cause the TransactionTask to throw
+ *  an unexpected non-retriable error as reads are not idempotent. This wrapper task will convert the exception thrown
+ *  by the underlying task into a retriable lock timeout exception if immutableTs lock is not valid anymore.
+ */
+public class LockCheckingTransactionTask<T, E extends Exception> implements TransactionTask<T, E> {
     private final TransactionTask<T, E> delegate;
     private final TimelockService timelockService;
     private final LockToken immutableTsLock;
 
-    public WrappingTransactionTask(TransactionTask<T, E> delegate,
+    public LockCheckingTransactionTask(TransactionTask<T, E> delegate,
             TimelockService timelockService,
             LockToken immutableTsLock) {
         this.delegate = delegate;
@@ -40,16 +47,20 @@ public class WrappingTransactionTask<T, E extends Exception> implements Transact
     public T execute(Transaction transaction) throws E {
         try {
             return delegate.execute(transaction);
-        } catch (IllegalArgumentException|IllegalStateException|NullPointerException e) {
-            checkImmutableTsLock();
-            throw e;
-        }
-    }
-
-    private void checkImmutableTsLock() {
-        if (timelockService.refreshLockLeases(ImmutableSet.of(immutableTsLock)).isEmpty()) {
+        } catch (Exception ex) {
+            if (shouldRethrowWithoutLockValidation(ex) || immutableTsLockIsValid()) {
+                throw ex;
+            }
             throw new TransactionLockTimeoutException(
                     "The following immutable timestamp lock is no longer valid: " + immutableTsLock);
         }
+    }
+
+    private boolean shouldRethrowWithoutLockValidation(Exception ex) {
+        return ex instanceof InterruptedException || ex instanceof TransactionFailedNonRetriableException;
+    }
+
+    private boolean immutableTsLockIsValid() {
+        return !timelockService.refreshLockLeases(ImmutableSet.of(immutableTsLock)).isEmpty();
     }
 }

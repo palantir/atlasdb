@@ -172,12 +172,12 @@ import com.palantir.timestamp.TimestampService;
         Timer postTaskTimer = getTimer("finishTask");
         Timer.Context postTaskContext;
 
-        task = wrapTaskIfNecessary(task, txAndLock.immutableTsLock());
+        TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, txAndLock.immutableTsLock());
 
         SnapshotTransaction tx = (SnapshotTransaction) txAndLock.transaction();
         T result;
         try {
-            result = runTaskThrowOnConflict(task, tx);
+            result = runTaskThrowOnConflict(wrappedTask, tx);
         } finally {
             postTaskContext = postTaskTimer.time();
             timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
@@ -199,8 +199,8 @@ import com.palantir.timestamp.TimestampService;
 
     private <T, E extends Exception> TransactionTask<T, E> wrapTaskIfNecessary(
             TransactionTask<T, E> task, LockToken immutableTsLock) {
-        if(taskWrappingIsNecessary()) {
-            return new WrappingTransactionTask<>(task, timelockService, immutableTsLock);
+        if (taskWrappingIsNecessary()) {
+            return new LockCheckingTransactionTask<>(task, timelockService, immutableTsLock);
         }
         return task;
     }
