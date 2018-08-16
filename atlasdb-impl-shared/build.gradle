@@ -21,7 +21,6 @@ dependencies {
   compile project(":atlasdb-client")
   compile project(":qos-service-api")
 
-
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
   compile group: 'com.palantir.common', name: 'streams'
   compile group: 'com.palantir.remoting3', name: 'tracing'
@@ -40,6 +39,10 @@ dependencies {
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'org.awaitility', name: 'awaitility'
+  testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+    exclude group: 'org.hamcrest'
+    exclude group: 'org.ow2.asm'
+  }
 
   testRuntime group: 'ch.qos.logback', name: 'logback-classic'
 }

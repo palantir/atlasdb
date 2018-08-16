@@ -71,6 +71,7 @@ distribution {
     mainClass 'com.palantir.atlasdb.AtlasDbEteServer'
     args 'server', 'var/conf/atlasdb-ete.yml'
     defaultJvmOpts '-Xmx384M'
+    ignoredProductDependency('com.palantir.rescue', 'rescue')
 }
 
 sourceCompatibility = '1.8'

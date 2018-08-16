@@ -6,18 +6,10 @@ dependencies {
     compile project(":commons-executors")
     compile project(":commons-annotations")
 
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-    compile group: 'com.google.code.findbugs', name: 'jsr305'
-    compile group: 'com.google.guava', name: 'guava'
-    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile (group: 'io.dropwizard.metrics', name: 'metrics-core') {
         exclude (module: 'slf4j-api')
     }
-    compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
     compile group: 'net.jpountz.lz4', name: 'lz4'
-    compile group: 'org.slf4j', name: 'slf4j-api'
-    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-    compile group: 'org.apache.commons', name: 'commons-math3', version: '3.2'
 
     processor group: 'org.immutables', name: 'value'
 

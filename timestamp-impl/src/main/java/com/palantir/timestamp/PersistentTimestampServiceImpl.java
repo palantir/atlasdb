@@ -17,10 +17,14 @@ package com.palantir.timestamp;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.logsafe.SafeArg;
 
 @ThreadSafe
 public class PersistentTimestampServiceImpl implements PersistentTimestampService {
@@ -42,6 +46,7 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
         }
     }
 
+    private static final Logger log = LoggerFactory.getLogger(PersistentTimestampServiceImpl.class);
     private static final int MAX_TIMESTAMPS_PER_REQUEST = 10_000;
 
     private ErrorCheckingTimestampBoundStore store;
@@ -104,6 +109,7 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
     @Override
     public void fastForwardTimestamp(long newTimestamp) {
         checkFastForwardRequest(newTimestamp);
+        log.info("Fast-forwarding the timestamp service to timestamp {}.", SafeArg.of("timestamp", newTimestamp));
         timestamp.increaseTo(newTimestamp);
     }
 

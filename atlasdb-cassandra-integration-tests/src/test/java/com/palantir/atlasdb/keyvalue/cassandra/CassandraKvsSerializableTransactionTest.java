@@ -22,12 +22,11 @@ import org.junit.ClassRule;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
-import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
+import com.palantir.atlasdb.sweep.queue.SweepQueue;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
-import com.palantir.lock.v2.TimelockService;
 
 public class CassandraKvsSerializableTransactionTest
         extends AbstractSerializableTransactionTest {
@@ -51,10 +50,7 @@ public class CassandraKvsSerializableTransactionTest
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
-        TargetedSweeper queue = TargetedSweeper.createUninitializedForTest(() -> 128);
-        queue.initialize(new SpecialTimestampsSupplier(() -> 0, () -> 0), mock(TimelockService.class), keyValueService,
-                mock(TargetedSweepFollower.class));
-        return queue;
+        return SweepQueue.createWriter(mock(TargetedSweepMetrics.class), keyValueService, () -> 128);
     }
 
     @Override

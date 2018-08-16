@@ -50,14 +50,99 @@ develop
     *    - Type
          - Change
 
-    *    - |new| |metrics|
-         - Targeted sweep now exposes tagged metrics for the outcome of each iteration, analogous to the legacy sweep outcome metrics.
-           The reported outcomes for targeted sweep are: ``SUCCESS``, ``NOTHING_TO_SWEEP``, ``DISABLED``, ``NOT_ENOUGH_DB_NODES_ONLINE``, and ``ERROR``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3399>`__)
+    *    - |changed|
+         - Targeted Sweep is now enabled by default.
+           Products using atlasdb-cassandra library need to declare a dependency on Rescue 3 or ignore that dependency altogether.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3451>`__)
+
+    *    - |fixed|
+         - Fixed a bug that when filtering the row results for ``getRows`` in ``SnapshotTransaction`` could cause an exception due to duplicate keys in a map builder.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3445>`__)
 
     *    - |improved|
-         - Changed the range scan behavior for the sweep priority table so that reads scan less data in Cassandra.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3410>`__)
+         - AtlasDB now correctly closes the targeted sweeper on shutdown, and logs less by default.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3447>`__)
+
+    *    - |improved| |devbreak|
+         - The atlasdb-commons package has had its dependency tree greatly pruned of unused cruft.
+           This may introduce a devbreak to users transitively relying on these old dependencies.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3439>`__)
+
+    *    - |changed|
+         - ``CassandraRequestExceptionHandler`` is set to use ``Conservative`` exception handler by default. Main differences are:
+
+            - Conservative exception handler backs off for larger subset of exceptions
+            - Backoff period is exponentially increasing (but cannot go beyond ``MAX_BACKOFF``)
+            - Retries are executed on a different host rather than the same host for a larger subset of exceptions
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3444>`__)
+
+    *    - |improved| |logs|
+         - CassandraKVS's ``ExecutorService`` is now instrumented.
+           This ExecutorService is responsible for submitting queries to the underlying DB. It being throttled will increase the latency of queries and transactions.
+           The following metrics are available:
+
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.submitted``
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.running``
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.completed``
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.duration``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3416>`__)
+
+========
+v0.100.0
+========
+
+2 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Cassandra KVS now correctly accepts check-and-set operations if one is working with multiple columns in the relevant row.
+           Previously, if there were multiple columns in the row where one was trying to do a CAS, the CAS would be rejected even if the column value matched the cell.
+           Similarly, for put-unless-exists, the PUE would be rejected if there were any other cells in the relevant row (even if they had a different column name).
+           We now perform the operations correctly only considering the value (or absence of value) in the relevant cell.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3388>`__)
+
+    *    - |improved| |devbreak|
+         - We have removed the ``sleepForBackoff(int)`` method from ``AbstractTransactionManager`` as there were no known users and its presence led to user confusion.
+           AtlasDB does not actually backoff between attempts of running a user's transaction task.
+           If your service overrides this method, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3432>`__)
+
+    *    - |improved|
+         - Sequential sweep now sleeps longer between iterations if there was nothing to sweep.
+           Previously we would sleep for 2 minutes between runs, but it is unlikely that anything has changed dramatically in 2 minutes so we sleep for longer to prevent scanning the sweep priority table too often.  Going forward the most likely explanation for there being nothing to sweep is that we have switched to targeted sweep.
+           We don't stop completely or sleep for too long just in case configuration changes and a table is eligible to sweep again.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3429>`__)
+
+    *    - |improved|
+         - TimeLockAgent now exposes the number of active clients and the configured maximum.
+           This makes it easier for a service to expose these via a health check.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3431>`__)
+
+=======
+v0.99.0
+=======
+
+25 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed an issue where a failure to punch a value into the _punch table would suppress any future attempts to punch.
+           Previously, if the asynchronous job that punches a timestamp every minute ever threw an exception, the unreadable timestamp would be stuck until the service is restarted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3427>`__)
 
     *    - |improved|
          - TimeLock by default now has a client limit of 500.
@@ -70,6 +155,27 @@ develop
            These are useful to identify stacks that may be in danger of breaching their maxima.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3413>`__)
 
+=======
+v0.98.0
+=======
+
+25 July 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new| |metrics|
+         - Targeted sweep now exposes tagged metrics for the outcome of each iteration, analogous to the legacy sweep outcome metrics.
+           The reported outcomes for targeted sweep are: ``SUCCESS``, ``NOTHING_TO_SWEEP``, ``DISABLED``, ``NOT_ENOUGH_DB_NODES_ONLINE``, and ``ERROR``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3399>`__)
+
+    *    - |improved|
+         - Changed the range scan behavior for the sweep priority table so that reads scan less data in Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3410>`__)
 
 =======
 v0.97.0

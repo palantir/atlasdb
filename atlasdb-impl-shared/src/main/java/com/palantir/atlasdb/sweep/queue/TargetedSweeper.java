@@ -34,11 +34,10 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.schema.TargetedSweepSchema;
+import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
-import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -49,7 +48,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
-public class TargetedSweeper implements MultiTableSweepQueueWriter {
+public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
     private final Supplier<Boolean> runSweep;
     private final Supplier<Integer> shardsConfig;
@@ -79,8 +78,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
 
     /**
      * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
-     * {@link #initialize(SpecialTimestampsSupplier, TimelockService, KeyValueService, TargetedSweepFollower)} method
-     * before any writes can be made to the sweep queue, or before sweeping.
+     * {@link #initializeWithoutRunning(SpecialTimestampsSupplier, TimelockService, KeyValueService,
+     * TargetedSweepFollower)} method before any writes can be made to the sweep queue, or before the background sweep
+     * job can run.
      *
      * @param enabled live reloadable config controlling whether background threads should perform targeted sweep.
      * @param shardsConfig live reloadable config specifying the desired number of shards. Since the number of shards
@@ -105,6 +105,19 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         return createUninitializedForTest(MetricsManagers.createForTests(), () -> true, shards);
     }
 
+    @Override
+    public void initialize(TransactionManager txManager) {
+        initializeWithoutRunning(txManager);
+        runInBackground();
+    }
+
+    public void initializeWithoutRunning(TransactionManager txManager) {
+        initializeWithoutRunning(SpecialTimestampsSupplier.create(txManager),
+                txManager.getTimelockService(),
+                txManager.getKeyValueService(),
+                new TargetedSweepFollower(followers, txManager));
+    }
+
     /**
      * This method initializes all the resources necessary for the targeted sweeper. This method should only be called
      * once the kvs is ready.
@@ -113,29 +126,25 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
      * @param kvs key value service that must be already initialized.
      * @param follower followers used for sweeps.
      */
-    public void initialize(SpecialTimestampsSupplier timestamps, TimelockService timelockService, KeyValueService kvs,
-            TargetedSweepFollower follower) {
+    public void initializeWithoutRunning(SpecialTimestampsSupplier timestamps, TimelockService timelockService,
+            KeyValueService kvs, TargetedSweepFollower follower) {
         if (isInitialized) {
             return;
         }
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
-        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-        metrics = TargetedSweepMetrics.create(metricsManager, kvs, SweepQueueUtils.REFRESH_INTERVAL);
+        metrics = TargetedSweepMetrics.create(metricsManager, timelockService, kvs, SweepQueueUtils.REFRESH_TIME);
         queue = SweepQueue.create(metrics, kvs, shardsConfig, follower);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
-        conservativeScheduler.scheduleBackgroundThreads();
-        thoroughScheduler.scheduleBackgroundThreads();
         isInitialized = true;
     }
 
     @Override
-    public void initialize(TransactionManager txManager) {
-        initialize(SpecialTimestampsSupplier.create(txManager),
-                txManager.getTimelockService(),
-                txManager.getKeyValueService(),
-                new TargetedSweepFollower(followers, txManager));
+    public void runInBackground() {
+        assertInitialized();
+        conservativeScheduler.scheduleBackgroundThreads();
+        thoroughScheduler.scheduleBackgroundThreads();
     }
 
     @Override
@@ -163,9 +172,14 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         conservativeScheduler.close();
         thoroughScheduler.close();
+    }
+
+    @Override
+    public void shutdown() {
+        close();
     }
 
     private void assertInitialized() {
@@ -187,7 +201,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter {
         }
 
         private void scheduleBackgroundThreads() {
-            if (numThreads > 0) {
+            if (numThreads > 0 && executorService == null) {
                 executorService = PTExecutors
                         .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", true));
                 for (int i = 0; i < numThreads; i++) {
