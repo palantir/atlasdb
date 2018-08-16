@@ -52,35 +52,11 @@ develop
 
     *    - |improved|
          - AtlasDB now correctly closes the targeted sweeper on shutdown, and logs less by default.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/347>`__)
-
-    *    - |fixed|
-         - Cassandra KVS now correctly accepts check-and-set operations if one is working with multiple columns in the relevant row.
-           Previously, if there were multiple columns in the row where one was trying to do a CAS, the CAS would be rejected even if the column value matched the cell.
-           Similarly, for put-unless-exists, the PUE would be rejected if there were any other cells in the relevant row (even if they had a different column name).
-           We now perform the operations correctly only considering the value (or absence of value) in the relevant cell.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3388>`__)
-
-    *    - |improved| |devbreak|
-         - We have removed the ``sleepForBackoff(int)`` method from ``AbstractTransactionManager`` as there were no known users and its presence led to user confusion.
-           AtlasDB does not actually backoff between attempts of running a user's transaction task.
-           If your service overrides this method, please contact the AtlasDB team.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3432>`__)
-
-    *    - |improved|
-         - Sequential sweep now sleeps longer between iterations if there was nothing to sweep.
-           Previously we would sleep for 2 minutes between runs, but it is unlikely that anything has changed dramatically in 2 minutes so we sleep for longer to prevent scanning the sweep priority table too often.  Going forward the most likely explanation for there being nothing to sweep is that we have switched to targeted sweep.
-           We don't stop completely or sleep for too long just in case configuration changes and a table is eligible to sweep again.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3429>`__)
-
-    *    - |improved|
-         - TimeLockAgent now exposes the number of active clients and the configured maximum
-           This makes it easier for a service to expose these via a health check
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3431>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3447>`__)
 
     *    - |improved| |devbreak|
          - The atlasdb-commons package has had its dependency tree greatly pruned of unused cruft.
-           This may introduce a devreak to users transitively relying on these old dependencies.
+           This may introduce a devbreak to users transitively relying on these old dependencies.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3439>`__)
 
     *    - |changed|
@@ -103,6 +79,43 @@ develop
               - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.duration``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3416>`__)
+
+========
+v0.100.0
+========
+
+2 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Cassandra KVS now correctly accepts check-and-set operations if one is working with multiple columns in the relevant row.
+           Previously, if there were multiple columns in the row where one was trying to do a CAS, the CAS would be rejected even if the column value matched the cell.
+           Similarly, for put-unless-exists, the PUE would be rejected if there were any other cells in the relevant row (even if they had a different column name).
+           We now perform the operations correctly only considering the value (or absence of value) in the relevant cell.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3388>`__)
+
+    *    - |improved| |devbreak|
+         - We have removed the ``sleepForBackoff(int)`` method from ``AbstractTransactionManager`` as there were no known users and its presence led to user confusion.
+           AtlasDB does not actually backoff between attempts of running a user's transaction task.
+           If your service overrides this method, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3432>`__)
+
+    *    - |improved|
+         - Sequential sweep now sleeps longer between iterations if there was nothing to sweep.
+           Previously we would sleep for 2 minutes between runs, but it is unlikely that anything has changed dramatically in 2 minutes so we sleep for longer to prevent scanning the sweep priority table too often.  Going forward the most likely explanation for there being nothing to sweep is that we have switched to targeted sweep.
+           We don't stop completely or sleep for too long just in case configuration changes and a table is eligible to sweep again.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3429>`__)
+
+    *    - |improved|
+         - TimeLockAgent now exposes the number of active clients and the configured maximum.
+           This makes it easier for a service to expose these via a health check.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3431>`__)
 
 =======
 v0.99.0
