@@ -115,7 +115,8 @@ public class TestTransactionManagerModule {
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
-                PTExecutors.newSingleThreadExecutor(true));
+                PTExecutors.newSingleThreadExecutor(true),
+                true);
     }
 
 }

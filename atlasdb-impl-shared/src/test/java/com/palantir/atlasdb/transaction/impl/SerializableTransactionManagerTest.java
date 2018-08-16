@@ -279,7 +279,8 @@ public class SerializableTransactionManagerTest {
                 TimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 callBack,
-                executor);
+                executor,
+                true);
     }
 
     private void nothingInitialized() {

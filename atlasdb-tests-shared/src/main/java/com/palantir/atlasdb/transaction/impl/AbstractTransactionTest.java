@@ -127,7 +127,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true);
     }
 
     @Test

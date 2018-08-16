@@ -72,7 +72,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 sweepQueue,
-                deleteExecutor);
+                deleteExecutor,
+                true);
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -98,7 +99,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                true);
     }
 
     @Override
@@ -141,7 +143,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                validateLocksOnReads);
     }
 
     @Override
